@@ -1,0 +1,247 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>Infinite Light Logo — Audio Synced</title>
+<link href="https://fonts.googleapis.com/css2?family=Spirax&display=swap" rel="stylesheet">
+<style>
+/* =========================
+   TUNABLES / PAIR TIMING (shared)
+   ========================= */
+:root{
+  --focus-base: 8s;
+  --focus-m1: 1;
+  --focus-m2: 1.15;
+  --focus-m3: 1.35;
+  --focus-delay-1: 0s;
+  --focus-delay-2: 0.6s;
+  --focus-delay-3: 1.1s;
+  --pair1-duration: calc(var(--focus-base) * var(--focus-m1));
+  --pair1-delay: var(--focus-delay-1);
+  --pair2-duration: calc(var(--focus-base) * var(--focus-m2));
+  --pair2-delay: var(--focus-delay-2);
+  --pair3-duration: calc(var(--focus-base) * var(--focus-m3));
+  --pair3-delay: var(--focus-delay-3);
+}
+
+/* =========================
+   LAYOUT
+   ========================= */
+html,body{height:100%}
+body{
+  margin:0;
+  height:100vh;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  background:#000;
+  overflow:hidden;
+  -webkit-font-smoothing:antialiased;
+  -moz-osx-font-smoothing:grayscale;
+}
+.splash-container{
+  position:relative;
+  font-family:'Spirax',cursive;
+  font-size:6rem;
+  line-height:1.2;
+  text-align:center;
+}
+
+/* =========================
+   TEXT (main + strokes)
+   ========================= */
+.text-base{ position:relative;color:white;z-index:40;line-height:1.2;display:inline-block;filter:blur(1px);opacity:1; }
+.text-stroke1,.text-stroke2{ position:absolute;top:0; left:0;color:white;line-height:1.2;text-align:center;z-index:30;mix-blend-mode:plus-lighter; }
+.text-stroke1{ filter:blur(4px); opacity:0.6; }
+.text-stroke2{ filter:blur(16px); opacity:0.4; }
+
+/* =========================
+   GLOW LAYERS
+   ========================= */
+.glow-layer{
+  position:absolute;
+  top:0; left:0;
+  line-height:1.2;text-align:center;
+  mix-blend-mode:plus-lighter; z-index:10;
+  --init-blur:120px;
+  --init-alpha:.45;
+  --focus-target-blur:10px;
+  --focus-target-alpha:.6;
+  --glow-offset-x:0px;
+  --glow-offset-y:0px;
+  --glow-max-off-x:100px;
+  --glow-max-off-y:100px;
+  --scale-x:1;
+  --scale-y:1;
+  --glow-max-scale:1.25;
+  --pair-duration: var(--pair1-duration);
+  --pair-delay: var(--pair1-delay);
+  filter: blur(var(--init-blur));
+  opacity: var(--init-alpha);
+  animation:
+    glowTransform var(--pair-duration) ease-in-out var(--pair-delay) infinite alternate,
+    focus var(--pair-duration) ease-in-out var(--pair-delay) infinite alternate;
+  transform-origin:center center;
+}
+.glow-inner{
+  display:inline-block;
+  -webkit-background-clip:text;
+  -webkit-text-fill-color:transparent;
+  background-clip:text;
+  text-fill-color:transparent;
+  animation: rotateGlow var(--glow-speed,60s) linear infinite;
+}
+@keyframes rotateGlow{ from{ transform: rotate(0deg); } to{ transform: rotate(360deg); } }
+@keyframes glowTransform{
+  from{ transform: translate(var(--glow-offset-x,0px), var(--glow-offset-y,0px)) scale(var(--scale-x,1),var(--scale-y,1)); }
+  to{ transform: translate(calc(var(--glow-offset-x,0px)+var(--glow-max-off-x,100px)),calc(var(--glow-offset-y,0px)+var(--glow-max-off-y,100px))) scale(calc(var(--scale-x,1)*var(--glow-max-scale,1.25)),calc(var(--scale-y,1)*var(--glow-max-scale,1.25))); }
+}
+@keyframes focus{ from{ filter: blur(var(--init-blur)); opacity: var(--init-alpha); } to{ filter: blur(var(--focus-target-blur,40px)); opacity: var(--focus-target-alpha,0.6); } }
+.glow1{ --init-blur:120px; --init-alpha:0.35; --focus-target-blur:40px; --focus-target-alpha:0.6; --glow-speed:33s; --pair-duration: var(--pair1-duration); --pair-delay: var(--pair1-delay); --glow-offset-x:0px; --glow-offset-y:0px; --glow-max-off-x:100px; --glow-max-off-y:100px; --scale-x:1; --scale-y:1; --glow-max-scale:1.25; }
+.glow1 .glow-inner{ background: conic-gradient(rgba(255,0,0,0.45), rgba(255,127,0,0.45), rgba(255,255,0,0.45), rgba(0,255,0,0.45), rgba(0,0,255,0.45), rgba(75,0,130,0.45), rgba(148,0,211,0.45), rgba(255,0,0,0.45)); }
+.glow2{ --init-blur:120px; --init-alpha:0.28; --focus-target-blur:40px; --focus-target-alpha:0.6; --glow-speed:36s; --pair-duration: var(--pair2-duration); --pair-delay: var(--pair2-delay); --glow-offset-x:-8px; --glow-offset-y:6px; --glow-max-off-x:-90px; --glow-max-off-y:70px; --scale-x:1.05; --scale-y:0.95; --glow-max-scale:1.25; }
+.glow2 .glow-inner{ animation-direction:reverse; background: conic-gradient(rgba(148,0,211,0.45), rgba(75,0,130,0.45), rgba(0,0,255,0.45), rgba(0,255,0,0.45), rgba(255,255,0,0.45), rgba(255,127,0,0.45), rgba(255,0,0,0.45), rgba(148,0,211,0.45)); }
+.glow3{ --init-blur:130px; --init-alpha:0.3; --focus-target-blur:40px; --focus-target-alpha:0.6; --glow-speed:40s; --pair-duration: var(--pair3-duration); --pair-delay: var(--pair3-delay); --glow-offset-x:6px; --glow-offset-y:-6px; --glow-max-off-x:70px; --glow-max-off-y:-80px; --scale-x:0.95; --scale-y:1.05; --glow-max-scale:1.25; }
+.glow3 .glow-inner{ background: conic-gradient(rgba(255,0,0,0.45), rgba(255,255,0,0.45), rgba(0,255,255,0.45), rgba(255,0,255,0.45), rgba(255,0,0,0.45)); }
+
+/* =========================
+   RINGS + TEXT PAIRS
+   ========================= */
+.ring,.ring-glow1,.ring-glow2,.ring-glow3{ position:absolute;border-radius:50%;mix-blend-mode:plus-lighter;z-index:28;top:-96px;left:22.5px; }
+.ring{ width:282px;height:282px;--ring-rgb:255,255,255;border:3px solid rgba(var(--ring-rgb),0.95);filter:blur(1px);opacity:1; --init-blur:1px; --init-border-alpha:0.95; animation: ringFocus var(--pair1-duration) ease-in-out var(--pair1-delay) infinite alternate; }
+.ring-glow1{ width:282px;height:282px;--ring-rgb:0,255,255;border:3px solid rgba(var(--ring-rgb),0.7);filter:blur(4px);--init-blur:4px;--init-border-alpha:0.7;animation: ringFocus var(--pair1-duration) ease-in-out var(--pair1-delay) infinite alternate; }
+.ring-glow2{ width:282px;height:282px;--ring-rgb:255,255,0;border:3px solid rgba(var(--ring-rgb),0.45);filter:blur(4px);--init-blur:4px;--init-border-alpha:0.45;animation: ringFocus var(--pair2-duration) ease-in-out var(--pair2-delay) infinite alternate; }
+.ring-glow3{ width:282px;height:282px;--ring-rgb:255,0,255;border:3px solid rgba(var(--ring-rgb),0.25);filter:blur(4px);--init-blur:4px;--init-border-alpha:0.25;animation: ringFocus var(--pair3-duration) ease-in-out var(--pair3-delay) infinite alternate; }
+@keyframes ringFocus{ from{filter:blur(var(--init-blur));border-color:rgba(var(--ring-rgb),var(--init-border-alpha));} to{filter:blur(0px);border-color:rgba(var(--ring-rgb),1);} }
+.text-pair{ position:absolute; top:0; left:0; color:white; z-index:32; line-height:1.2; text-align:center; mix-blend-mode:plus-lighter; }
+.text-pair1{ filter:blur(120px); opacity:0.6; --init-blur:120px; --init-alpha:0.6; animation: focus var(--pair1-duration) ease-in-out var(--pair1-delay) infinite alternate; }
+.text-pair2{ filter:blur(120px); opacity:0.6; --init-blur:120px; --init-alpha:0.6; animation: focus var(--pair2-duration) ease-in-out var(--pair2-delay) infinite alternate; }
+.text-pair3{ filter:blur(120px); opacity:0.6; --init-blur:120px; --init-alpha:0.6; animation: focus var(--pair3-duration) ease-in-out var(--pair3-delay) infinite alternate; }
+
+/* Button container top-right */
+.audio-controls{ position:fixed; top:10px; right:10px; display:flex; gap:5px; z-index:100; }
+.audio-controls button{ font-size:0.7rem; padding:3px 6px; cursor:pointer; }
+
+/* responsive clamp */
+@media (max-width:720px){ .splash-container{ font-size:4rem; } }
+</style>
+</head>
+<body>
+  <div class="splash-container">
+
+    <!-- Glow layers -->
+    <div class="glow-layer glow1"><span class="glow-inner">Infinite~<br><span>~Light</span></span></div>
+    <div class="glow-layer glow2"><span class="glow-inner">Infinite~<br><span>~Light</span></span></div>
+    <div class="glow-layer glow3"><span class="glow-inner">Infinite~<br><span>~Light</span></span></div>
+
+    <!-- White stroke layers -->
+    <div class="text-stroke1">Infinite~<br><span>~Light</span></div>
+    <div class="text-stroke2">Infinite~<br><span>~Light</span></div>
+
+    <!-- Text-pairs -->
+    <div class="text-pair text-pair1">Infinite~<br><span>~Light</span></div>
+    <div class="text-pair text-pair2">Infinite~<br><span>~Light</span></div>
+    <div class="text-pair text-pair3">Infinite~<br><span>~Light</span></div>
+
+    <!-- Rings -->
+    <div class="ring"></div>
+    <div class="ring-glow1"></div>
+    <div class="ring-glow2"></div>
+    <div class="ring-glow3"></div>
+
+    <!-- Main text -->
+    <div class="text-base">Infinite~<br><span>~Light</span></div>
+  </div>
+
+  <!-- Controls -->
+  <div class="audio-controls">
+    <button id="toggleAudio">Enable</button>
+    <button id="pauseAudio">Pause</button>
+  </div>
+
+<script>
+// Audio context
+const AudioContext = window.AudioContext || window.webkitAudioContext;
+const ctx = new AudioContext();
+
+// Two oscillators
+const glowOsc = ctx.createOscillator();
+const textOsc = ctx.createOscillator();
+const glowGain = ctx.createGain();
+const textGain = ctx.createGain();
+glowOsc.connect(glowGain).connect(ctx.destination);
+textOsc.connect(textGain).connect(ctx.destination);
+glowGain.gain.value = 0.05;
+textGain.gain.value = 0.05;
+glowOsc.start();
+textOsc.start();
+
+// Flag
+let audioEnabled = false;
+let audioPaused = false;
+
+// Toggle buttons
+document.getElementById('toggleAudio').onclick = () => {
+  if (!audioEnabled) ctx.resume().then(()=>{audioEnabled=true;});
+}
+document.getElementById('pauseAudio').onclick = () => {
+  audioPaused = !audioPaused;
+}
+
+// Mute when leaving screen
+document.addEventListener('visibilitychange',()=>{ if(document.hidden){glowGain.gain.value=0;textGain.gain.value=0;} else{glowGain.gain.value=audioEnabled&&!audioPaused?0.05:0;textGain.gain.value=audioEnabled&&!audioPaused?0.05:0;} });
+
+const glowLayers = [...document.querySelectorAll('.glow-layer')];
+const textLayers = [...document.querySelectorAll('.text-pair')];
+const ringLayers = [...document.querySelectorAll('.ring, .ring-glow1, .ring-glow2, .ring-glow3')];
+
+const glowMinAlpha = 0.28, glowMaxAlpha = 0.6;
+const glowMinBlur = 120, glowMaxBlur = 40;
+const textMinAlpha = 0.25, textMaxAlpha = 0.6;
+const textMinBlur = 4, textMaxBlur = 0;
+
+const pitchMin = 220, pitchMax = 660; // overlapping range
+
+function parseBlur(filter){
+  const m = filter.match(/blur\((\d+\.?\d*)px\)/);
+  return m?parseFloat(m[1]):0;
+}
+
+function updateAudio(){
+  if(!audioEnabled || audioPaused) return;
+
+  // Glow layers
+  let glowF = 0;
+  glowLayers.forEach(l=>{
+    const style = getComputedStyle(l);
+    const alpha = parseFloat(style.opacity);
+    const blur = parseBlur(style.filter);
+    const f = ((alpha-glowMinAlpha)/(glowMaxAlpha-glowMinAlpha) + (glowMaxBlur-blur)/(glowMaxBlur-glowMinBlur))/2;
+    glowF += Math.max(0,Math.min(1,f));
+  });
+  glowF /= glowLayers.length;
+
+  // Text + ring layers
+  let textF = 0;
+  [...textLayers,...ringLayers].forEach(l=>{
+    const style = getComputedStyle(l);
+    const alpha = parseFloat(style.opacity);
+    const blur = parseBlur(style.filter);
+    const f = ((alpha-textMinAlpha)/(textMaxAlpha-textMinAlpha) + (textMaxBlur-blur)/(textMaxBlur-textMinBlur))/2;
+    textF += Math.max(0,Math.min(1,f));
+  });
+  textF /= (textLayers.length+ringLayers.length);
+
+  const glowPitch = pitchMin + (pitchMax-pitchMin)*glowF;
+  const textPitch = pitchMin + (pitchMax-pitchMin)*(1-textF); // invert
+  glowOsc.frequency.setTargetAtTime(glowPitch,ctx.currentTime,0.05);
+  textOsc.frequency.setTargetAtTime(textPitch,ctx.currentTime,0.05);
+
+  requestAnimationFrame(updateAudio);
+}
+
+requestAnimationFrame(updateAudio);
+</script>
+</body>
+</html>
