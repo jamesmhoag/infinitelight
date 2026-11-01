@@ -6641,7 +6641,7 @@ function processBlackRemnant(now,dt){
     if(!orphan){
       let anyDormantLeft=false;
       if(active.length===0)forEachDormant(bh.x|0,bh.y|0,bh.activateR,()=>{anyDormantLeft=true;});
-      if(active.length===0&&bh.wakes.length===0&&!anyDormantLeft){bh.complete=true;ensureDarkRemnantTheme();purgeAfterBlack();}
+      if(active.length===0&&bh.wakes.length===0&&!anyDormantLeft&&!ducks.length){bh.complete=true;ensureDarkRemnantTheme();purgeAfterBlack();}
     }
   }
 }
@@ -7601,7 +7601,7 @@ function serializeMap(full){
     blackHole:blackHole?JSON.parse(JSON.stringify(plainCopy(blackHole))):null,
     totalActivations,simulationStarted,levelCleared,maxWhites,invDisabled:[...invDisabled],
     // full = a session save (leaving a Surface Map hex): every feature of the surface at this exact moment
-    extra:full?{shapes:fixedShapes.map(plainCopy),fields:placedFields.map(plainCopy),tally:surfaceTally,lost:surfaceLost,ducks:ducks.map(d=>Object.assign({},d)),invert:invertMode,speed:speedMult,level:hubLevel,elapsed:performance.now()-levelStartTime}:null,
+    extra:full?{shapes:fixedShapes.map(plainCopy),fields:placedFields.map(plainCopy),tally:surfaceTally,lost:surfaceLost,ducks:ducks.map(d=>({x:d.x,y:d.y,vx:d.vx,vy:d.vy,rot:d.rot,wx:d.wx,wy:d.wy,q:d.q,spin:d.spin,type:d.type,ph:d.ph})),invert:invertMode,speed:speedMult,level:hubLevel,elapsed:performance.now()-levelStartTime}:null,
   };
 }
 async function saveMap(){
@@ -7921,6 +7921,7 @@ function syncActivationSounds(){
   for(let i=0;i<active.length;i++){const p=active[i];if(activationSounds.has(p.id))live.set(p.id,p);}
   const nowA=audioCtx?audioCtx.currentTime:0;
   for(const [id,h] of Array.from(activationSounds)){
+    if(id==='wipe'){if(!audioCtx||nowA>h.endAt)activationSounds.delete(id);continue;} // the wipe chord belongs to the wipe, not a point: it rings out
     const p=live.get(id);
     if(!p||p.dying||p.captured||!pressedIDs.has(id)||p.touchStart<0){stopActivationSound(id);continue;} // activation disconnected → interrupt
     if(p.ci!==h.ci)retuneActivationSound(id,p.ci); // note source changed → shift the chord mid-pattern
@@ -9630,7 +9631,8 @@ function handleHeldActivation(now){
   best.touchStart=now;
   if(!best.collapsed)best.wakeProgress=0;
   pressedIDs.add(best.id);lastActivatedId=best.id;totalActivations++;
-  playScaleStep(best.ci); // wiping: a clean rising scale instead of stacked chords
+  if(activationSounds.has('wipe')){if(activationSounds.get('wipe').ci!==best.ci)retuneActivationSound('wipe',best.ci);} // wiping: ONE violin chord that glides to each new colour
+  else playViolin(best.ci,best.mass,true,'wipe');
   enforceMaxActivePoints();
   heatAdd(1,now); // every swiped-over object after the first adds heat
 }
@@ -10427,6 +10429,14 @@ function perfHudText(){
 let settleTimer=0;
 let _hdOn=false,_hdAny=false;
 
+function exitSpinStep(p,now,timeScale){ // after leaving an Orbit / Fling / Whirl ring, spin bleeds down to Exit spin keep of what it left with
+  if(p._orbSrc!==undefined&&now-(p._orbT||0)>150){p._orbSrc=undefined;p._exitRot=Math.abs(p.rot||0);} // just left an Orbit / Fling / Whirl ring (applyForce stopped refreshing it)
+  else if(p._orbSrc!==undefined)p._exitRot=0; // back inside one: the effect owns its spin again
+  if(p._exitRot&&p.rotGoal===undefined){ // its spin bleeds down to Exit spin keep of what it left with, so the curve opens out and it moves away from the source
+    const fl=p._exitRot*T.exitSpinKeep,a=Math.abs(p.rot||0),nr=a-(p._exitRot-fl)*timeScale*16.67/Math.max(1,T.exitSpinMs);
+    if(nr<=fl||a<=fl){if(a>fl)p.rot=Math.sign(p.rot)*fl;p._exitRot=0;}else p.rot=Math.sign(p.rot)*nr;
+  }
+}
 let _effDt=16.67; // the current step's dt, for effect fields that apply forces
 let effSerial=0; // advances every step — lets an object know whether an effect has already reached it this frame
 function step(now,timeScale){
@@ -10438,6 +10448,7 @@ function step(now,timeScale){
   pulsingClock+=dt;
   audioCallsThisFrame=0;
   if(blackHole&&!blackHole.complete&&timeScale>0)processBlackRemnant(now,dt);
+  duckStep(now,timeScale);
   if(blackHole&&blackHole.complete){checkLevelClear(now);return;}
   if(blackHole&&blackHole.phase==='active')return; // draw-in: nothing interacts with anything, so no collision / force / lifespan passes run at all
   const n=active.length;
@@ -10476,7 +10487,7 @@ _pm('prep');  wakeBudget=Math.max(0,Math.min(T.wakeBudgetPerFrame,T.maxActive-ac
       // Any active/pressed point within another active point's radius still
       // gets pushed/pulled/etc — activation no longer makes a point immune to
       // other active points' effects, only to being captured mid-merge.
-      if(curR>0){fillRadiusBuf(src.x,src.y,curR);const brake=src.ci===5;for(let ni=0;ni<_radLen;ni++){const p=active[_radBuf[ni]];if(brake&&p.vx*p.vx+p.vy*p.vy<0.0001&&p.rot*p.rot<1e-8)continue;applyForce(src,p,sc,dt,curR);}}
+      if(curR>0){fillRadiusBuf(src.x,src.y,curR);const brake=src.ci===5;for(let ni=0;ni<_radLen;ni++){const p=active[_radBuf[ni]];if(brake&&p.vx*p.vx+p.vy*p.vy<0.0001&&p.rot*p.rot<1e-8)continue;applyForce(src,p,sc,dt,curR);}for(const d of ducks)applyForce(src,d,sc,dt,curR);}
     }
   }
 
@@ -10485,7 +10496,7 @@ _pm('activated-forces');
   if(!(blackHole&&blackHole.phase!=='active'))
   for(let i=0;i<n;i++){const p=active[i];
     if((p.whiteFx||p.blackFx)&&p.collapsed&&!p._tweenW&&!p.failedCollapse&&!p.isRemnant&&!p.captured&&!p.dying&&!isBonded(p)&&!(p._nullAt>_nullNow)&&!pressedIDs.has(p.id)){colourFxSource(p,p.blackFx?'b':'w',true);continue;} // an UNSELECTED Bright CRYSTALIZE / ECLIPSE has no effect radius: it only changes what it touches (an ECLIPSE what it passes over, a CRYSTALIZE what it bonks)
-    if(!p.collapsed||p.failedCollapse||p.isRemnant||p.captured||p.dying||p.unwind||isBonded(p)||p.whiteFx||p.blackFx||p._stasis||p._nullAt>_nullNow)continue;const curR=p.wakeProgress;if(curR<=0)continue;if(curR>p.peakEffectR)p.peakEffectR=curR;fillRadiusBuf(p.x,p.y,curR);const brake=p.ci===5;for(let ni=0;ni<_radLen;ni++){const q=active[_radBuf[ni]];if(brake&&q.vx*q.vx+q.vy*q.vy<0.0001&&q.rot*q.rot<1e-8)continue;applyForce(p,q,1.0,dt,curR);}}
+    if(!p.collapsed||p.failedCollapse||p.isRemnant||p.captured||p.dying||p.unwind||isBonded(p)||p.whiteFx||p.blackFx||p._stasis||p._nullAt>_nullNow)continue;const curR=p.wakeProgress;if(curR<=0)continue;if(curR>p.peakEffectR)p.peakEffectR=curR;fillRadiusBuf(p.x,p.y,curR);const brake=p.ci===5;for(let ni=0;ni<_radLen;ni++){const q=active[_radBuf[ni]];if(brake&&q.vx*q.vx+q.vy*q.vy<0.0001&&q.rot*q.rot<1e-8)continue;applyForce(p,q,1.0,dt,curR);}for(const d of ducks)applyForce(p,d,1.0,dt,curR);}
 
 _pm('white-wake');
   // Active Remnant effects (Neutron/Magnetic/Pulsing) — each type wakes every dormant particle inside its effect
@@ -10542,12 +10553,7 @@ _pm('remnant-fx');
     const p=active[i];
     if(p._stasis){continue;} // held in stasis (its telemetry is stored and zeroed when it is frozen): nothing moves, no force or timer touches it
     if(p.rotGoal!==undefined){const dg=p.rotGoal-(p.rot||0),sl=T.rotSlew*Math.max(0.05,timeScale);if(Math.abs(dg)<=sl){p.rot=p.rotGoal;p.rotGoal=undefined;}else p.rot=(p.rot||0)+Math.sign(dg)*sl;}
-    if(p._orbSrc!==undefined&&now-(p._orbT||0)>150){p._orbSrc=undefined;p._exitRot=Math.abs(p.rot||0);} // just left an Orbit / Fling / Whirl ring (applyForce stopped refreshing it)
-    else if(p._orbSrc!==undefined)p._exitRot=0; // back inside one: the effect owns its spin again
-    if(p._exitRot&&p.rotGoal===undefined){ // its spin bleeds down to Exit spin keep of what it left with, so the curve opens out and it moves away from the source
-      const fl=p._exitRot*T.exitSpinKeep,a=Math.abs(p.rot||0),nr=a-(p._exitRot-fl)*timeScale*16.67/Math.max(1,T.exitSpinMs);
-      if(nr<=fl||a<=fl){if(a>fl)p.rot=Math.sign(p.rot)*fl;p._exitRot=0;}else p.rot=Math.sign(p.rot)*nr;
-    }
+    exitSpinStep(p,now,timeScale);
     if(p.dialT!==undefined){
       p.dialT+=_effDt;
       if(p.dialT<T.dialMs&&!p.captured){ // launch window: 2× speed, on its own trajectory; collisions can happen but don't redirect it
@@ -14194,15 +14200,13 @@ EVENTS.push(
  {id:'map_descend',name:'Descent',type:'Event — Surface Map',rar:'m',scene:'dark',ico:'dark',facts:()=>['You stepped into the centre void. A deeper map begins.'],flavor:'Under every surface, another.'});
 // ═════════════════════════ DUCKS ═════════════════════════
 // A Dark Remnant can come out as a rubber duck instead (T.duckChance); the surface then carries on. Ducks are collected into a
-// collection (duckLog, saved with the inventory), never used as items. The model is the four-view duck strip, cut into sections
-// (head, body, beak, eye, line) so every section can take its own colour and material; each view is lit as a rounded 3D shell
-// (height from the distance to its outline → normals → diffuse, specular, rim and translucency).
+// collection (duckLog, saved with the inventory), never used as items. The strip below is the duck's four views (side-right, front,
+// side-left, back) cut into sections (head, body, beak, eye, line); the model pipeline (duckModel) turns it into a real 3D duck.
 const DUCK_PNG='data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAlQAAACKCAAAAABJWIuDAAAMLElEQVR42u1d67mjIBAd/G4xKYEyKMEyKGHKoATLoATL2R/RJBpUHjMDbuDbH7u5d+N45nDmASJAH3300UfrQ3UI+vDrX3QnVR+EfHoP3UnVRzmjxvUDR8OrTqrfptT4/bkrplUn1Q9Tajz6oSujlfqRVEF3Gu0BGs9+7kogUyJe1bWTzyq88s1y+opST1rptkjl67nUQzBVcNKu9dCuWMZwqoRVSiQBdFKYHiWfokYE7HAt0crHUKqEVUoqA3QSmF5MQSdI7bEqqSk4lc8qJeZWfo9GqHpdarsWWBXPqWxWKUG/Ol5IozIFAb/6Uwhq0yqFU7kuU5IWs7KKPVMgsaM6q9JIlYeWEjWY0aH8mUL7GNBzKs/cQdTg8aiHJAkWnxGVMWAZOeYOsn7lQjRpAjK6tSYGLEKVNYab2Vtt9hFicC+tyrB2EOYUD6A3IvSdsvTaSlXVrckXZ9KKWDv+d6kapN3aBqCVrah0eamZPwB0Uf/PKtDqU2CQgtM5535EqtY7/dkxSHEKPrZA/99ZsIu505t1q+RJFcepeV6wpsYzL/qxedW977QxVomlCTI5lQOYAeaf0f95/q+0KtXUP4kJ4KQI5QDOt0kA32RdYFjIND/cCNBzKtapC/B4PLhF3cFp5rbN6/iUYrlR97Np1Z+IUM0AH4wanddHO6J0cZB9gBt3Th3fZoCIgjxgnh/QlYod5k+xCFLH++MnYeI5tQTaTVnvnHvHpbIa1Hvv/ZkSvmn1u1L1JyRUW+wDSuUBYAIwvkCr5k/qwvT63CwfPQBgfmU7h4J5+YyMh7D9P5xGUSfqyYIyfVPHrySYslnl4DPiTJ8/mgDMS0Lmohk0PUn6RSsP0/sav56rD/KcAoBpK/zeA0wT4UW+v+z9wSM/AC6cgmlagvX+Gu5WK5C3J9W89e+GVRtKTZlAu49aYIriWSlrvf+mm/ssd392P84g0Tp7vFg1fnHHe0/k8Hk+pw8pq7a0Wjg1heZQz6m4ar95zaLdivxkfNDbhu+5gMk8/U2U7ExgXqo6ffRLFkr9rlCJhL8R4PFsfY7fwjFNdJyaLwRpWuNS5tC7XPxl+vR9tz/MKRmlGoMLJCHv53NqdI8Z5sd5kJvMs7GQ62/tzXR5D+PValEnFZlYxYyy2PfYedmEPF/W6NbeRORmYxNPIN44/Gm6XVKmiFPj+MkfY4z5+PtWWcaS2923o+4zsl2VSv6/Zm7ZUB6KYr7+/aoPCuOShiix6tWf4BjdLisBsxRSFJSaDjgFAO/LlpZ+2oNZLO7kalCpDKVKOTim1JtVkynOaDT45RqmiFfiKZX2MgtHf8KWum9G6fAKbbZQmUMGT3TZydNiD78gWMnk/9ueUKklVv52nve66LLaO7yo+NbPF1o9SGj1gdqHYDn2VoJv/7hl9XXqacZ2EIz8TbvbMbD2pXUhyvj69tP1mPW6uFqjS907mZ1OmvfXR6ChxQ883m5UclFNkfQo/belhc0IRdpbTFna4FqPQ3vxnRsKlHNqfz9rxRGPRhal1imRuUXosZnixxEFC5VqKzU2eRZES5UN1mqmXDHw8/uni7KAUKjChQHyKJXffnWe/Rv9APx2ykv1Mf86KkAKm6quCaxap/ZEuITst1gfscpQOCXIqo9UznBxyn+xNesGPicgns///Mn3F6AEZkXB1F4S07YEtGAmEU4Fb2oybIEPaboKz+h8wSlAC+svUh3PiIjBvY2HpZCFKkszocsjgDFBTiFSL3uYfAqlOMv7kPGYtZ3xCZa95ChCvlMP1/4QgWez635RjlwQ8UCnkDxN1zv+MqmUp58PEbqH+Tips4zIRrs8Mquy+/KbiFJfpcYUYBU9qdaCbHozajKxSOjiwGdz2wpoo4y0gHmXGC7IGh8Do6cIvjygtaYKRPYrqn6po2XgFGj9vBuzpGymfZVKSFYyYRouCRBFq0hD8fnnIO0hjrInYYkyS19pBYiAsfl0nAE8gQ90pJGYG0j+Lr/YUhaC+O5TklZ9mwbsUrWYKVj2AcM67esS2GLFB+1t0otTq7QC0ILWtBm6DjTxjFni0n62W+LqIPleIgxgUikQWvuLSLIjuuw+YVZZhh5Y4Pr2oNDhuDx4oAQgRqWyb8OzLk8edNTzaJWyWKNZ+oN40hfm5lQSq+wllBDlklZJ9RedDFHlVkycCq5ro+gO8NiF9QtX3TeXSlWqCLWK+hrLthMo1hcWOE3AUlJ52gKySqIyJCTZFyl7xNdYTk7FLSxYQOQ6F0M/77DAUXdOz3O3ExcFQcu5YdF/bKhK2H1DHwIjltVIAp+IUAFmbdtSGYp4SA1/tZuC8RWSy94gvDQe+XL1KGbYY/RAoIL2iZTP36WQ0mXC/MUbRk4hvjbtRLRfkWH5adNhZ1+QkeJU1l6IIXP1Lnjy5Sk3LSunYl2B71XNOvlGGAapXMqnh2bMft9f4o4oRADGyZ6PFMbeB1+2nnU4bSql8jco5Cyt+cxEPeXphdceLt/Ek0L+1l0dn9NQk+RURrY+FO5h2ZwA7Rvn1CaP55OqeNl/gofYNKfSoVKFl7TRLWy21RE85M0pqfiyvMsiuLTpX/ogDfcVh8KN5vg5zSq07XzRPpwa0or7ZwFuwKlEqFTuQrsUFokLIylKxdU688ww5j2aVWhUymWH3SrDvZJcXyiO9ToLd+NU0tZyJTrHNPv6rb3IZ5C/z88Koq1DqTSohtsW50GZsqwzsIHgl5EHeqq0BmMXIpQkpwhVIbxQdrWYG/45qVh57s1QGUcwIKUHIy4vSio693nYHsoRW6Ef/DYdrTwIgKgr2hMDlRIOfjR5lV+fmEnf6mmD/4WKVRIYJj0wz8Dx6+tLk4rCff7zDBwsVfMXrfQdZCrNUh6XXhogTqpyVvn36RFENQ3RHisPUgjqurp5ZYCqUPuVuc+/ZAoJs08sZ1Vz+PEZdGFBDVIVue+1Fx1p1RNLNbQ5+DgNOodK/M2khYtuK6dolxkRwNqy/npzPT5Wg86hUnVwKdkNa1mei7NlIbA57ASajroppSqafZZnN8QigJla9Vs6dRVuFNxIqlZOsdmEpceztoJc3Z7jQHR2p0RaxcwpwGdi5QGa3qWgmxfOAW7DKm5OLSEwZ8m2MYUXsucQqQFqsQqa41Tukbw/yqljVg1Qi1WJiiDBqSer2g2AtrXYdwDVEHgUxDYaAK3AMgjm0b2hTZ+i+VQYqiF4dEmTwc+KLK0htJqsW9Aa4J5nfnqxh2ISfCfGqYSHnFvJYKoWfkGj7tT8lEuH25SqJq0KGTXc4iHy6JcUyJeAjeHVhDlDe2lehcPKAq8QuKdUVeBUwKjhLkt+smSPDoAebn+YYo3D+RsYGqy072yTb76+SVY13AQklC4JNNzyXCLsStVwoek7CP83qXri0jROXzNw6Fh1qerhD364f91J1YPfr07Aeltfeq4OxI2OZmbf0IUKZN5H3MNfHy1Klb1J92zoc68PfqWSZFXMu4R7mt6+UO1EvYe/svjXkLC3M/2Gnnx2oZJI1MVYZe+5bNs5lVP9da1qr6lwpwk4VESqdZxasi/ClopSsLNuaD3/lHsOMZNTIlBF2VLNaXvrVL1aIv6UwRplTfyxegJVV9NQfSOlqmGVdMiuOFYpRzXWPF+sSaRUNaxqHwdOeIJyQ0hJQxVEStWyLzELFu3sJZ8oW+/M1sqsChunKtmXXFkJYpVe9TGSKuPI5OrnJKs6rsyo1sVYldNJ4DsGv+XTIo+QUllvq6rTAZJ6z4lu5W0Pce+sag8pVQOukgOv2z2MmwGm7O5rXaSUPF5NY1XQRSc2rvX3T5wgpaJfqY4tgMVevDfiSAtQ+JA0+1vWT8xT8S8ClX0Pb502RxvGlVOqLlIq6QWzpWbacrA828EKNG8iLDeOACRmWl0hpRIhKzGTCC0WWpGIA4FxVHbQpy0JFqoMM7PspESLHCxq47DkRamadIsxLVRxFqo8M1PttMRoEYLF5EnMMoNhBxcdVNFIqXw7Yy21PGh5gpOrLPC4MnHmcZlBCFUS51WhneemWmCFyxecicZsWqwjuc1I89f5aavRJioiS09OIZeDKwYwW8k0PDkXV4s9xBWPlS1woqI2tQpaGQ+o6zYs0zWeD+QGSpFbXPVhAd8Mmc4t0008fNoiTn300UcfMuMfHzm3P67Lx9YAAAAASUVORK5CYII=';
 const DUCK_CW=149,DUCK_CH=138,DUCK_NECK=[46,45,46,47]; // one view cell of the strip (side-right, front, side-left, back); the neck row splits head from body
-const DUCK_SEC={head:1,body:2,beak:3,eye:4,line:5};
-let duckLab=null;const _duckTex=new Map();
+let duckLab=null;
 (function(){const im=new Image();im.onload=()=>{const c=document.createElement('canvas');c.width=im.width;c.height=im.height;const g=c.getContext('2d');g.drawImage(im,0,0);
-  const d=g.getImageData(0,0,c.width,c.height).data;duckLab=new Uint8Array(c.width*c.height);for(let i=0;i<duckLab.length;i++)duckLab[i]=Math.round(d[i*4]/40);_duckTex.clear();};im.src=DUCK_PNG;})();
+  const d=g.getImageData(0,0,c.width,c.height).data;duckLab=new Uint8Array(c.width*c.height);for(let i=0;i<duckLab.length;i++)duckLab[i]=Math.round(d[i*4]/40);_duckModels.clear();_dgl=null;};im.src=DUCK_PNG;})();
 // ── Types: the classic duck plus exotics that change ONE thing (colour, size or material). Rare ones roll on their own, rarer chance.
 const DUCK_YEL=[255,222,40],DUCK_ORA=[255,128,10];
 const DUCK_TYPES={classic:{name:'Rubber Duck',axis:'Classic',tex:'classic'}};
@@ -14213,92 +14217,251 @@ DUCK_TYPES.bighead={name:'Big Head Duck',axis:'Size',detail:'huge head, small bo
 [['wood','Wooden',[176,118,64],[128,78,38]],['glass','Glass',DUCK_YEL,DUCK_ORA],['metal','Metal',[196,200,210],[150,154,166]],['dim','Dim',[150,70,30],[110,48,20]],['bright','Bright',[255,250,232],[255,226,196]],['shining','Shining',DUCK_YEL,DUCK_ORA],['gold','Gold',[255,196,52],[226,146,34]]]
   .forEach(([id,n,c1,c2])=>DUCK_TYPES[id]={name:n+' Duck',axis:'Material',detail:n.toLowerCase()==='wooden'?'wood':n.toLowerCase(),tex:id,mat:id,col:c1,col2:c2,rare:id==='gold'?1:0});
 const DUCK_IDS=Object.keys(DUCK_TYPES);
-Object.assign(T,{duckChance:0.25,duckExoticChance:0.2,duckRareChance:0.03,duckSize:46,duckSpin:0.5,duckDrift:6,duckGloss:0.9,duckTrans:0.35,duckGlow:2.5});
+Object.assign(T,{duckChance:0.25,duckExoticChance:0.2,duckRareChance:0.03,duckSize:46,duckSpin:0.5,duckDrift:6,duckGloss:0.9,duckTrans:0.35,duckGlow:2.5,duckMass:40,duckTumble:0.6,duckSpinDamp:0.4,duckMaxSpin:0.25,volDuck:1});
 TUNE_DEFS.push({sec:'Ducks',tab:'gameplay'},
  {key:'duckChance',label:'Duck chance',min:0,max:1,step:0.01,tip:'Chance a Dark Remnant comes out as a duck instead (the surface then carries on)'},
  {key:'duckExoticChance',label:'Exotic chance',min:0,max:1,step:0.01,tip:'Chance a duck is an exotic (one colour, size or material change)'},
  {key:'duckRareChance',label:'Rare exotic chance',min:0,max:1,step:0.005,tip:'Chance a duck is a rare exotic: Rainbow, Big Head or Gold'},
  {key:'duckSize',label:'Duck size',min:16,max:140,step:1,tip:'Height (px) of a classic duck on the surface'},
- {key:'duckSpin',label:'Duck turn speed',min:0,max:3,step:0.05,tip:'How fast a duck turns (radians per second)'},
- {key:'duckDrift',label:'Duck drift',min:0,max:60,step:1,tip:'How fast a duck drifts across the surface (px per second)'},
+ {key:'duckSpin',label:'Duck turn speed',min:0,max:3,step:0.05,tip:'How fast a resting duck turns about its upright axis (radians per second); a tumble eases back to this'},
+ {key:'duckDrift',label:'Duck drift',min:0,max:60,step:1,tip:'Speed (px per second) a new duck drifts off with'},
+ {key:'duckMass',label:'Duck mass',min:1,max:400,step:1,tip:'Mass of a classic duck in collisions (sizes scale it by size³)'},
+ {key:'duckTumble',label:'Duck tumble',min:0,max:3,step:0.05,tip:'How much 3D tumble a duck picks up from any change in its 2D motion (a push, an effect, a bounce)'},
+ {key:'duckSpinDamp',label:'Duck tumble damping',min:0,max:3,step:0.05,tip:'How fast (per second) a tumble eases back to the resting turn'},
+ {key:'duckMaxSpin',label:'Duck max spin',min:0.02,max:1,step:0.01,tip:'Cap on a duck\'s 3D spin (radians per frame)'},
  {key:'duckGloss',label:'Duck gloss',min:0,max:2,step:0.05,tip:'Shine of the plastic'},
  {key:'duckTrans',label:'Duck translucency',min:0,max:1,step:0.05,tip:'How much light passes through the plastic at thin edges'},
- {key:'duckGlow',label:'Shining duck glow',min:0,max:6,step:0.1,tip:'Size of the light a Bright or Shining duck gives off (× its size)'});
+ {key:'duckGlow',label:'Shining duck glow',min:0,max:6,step:0.1,tip:'Size of the light a Bright or Shining duck gives off (× its size)'},
+ {key:'volDuck',label:'Duck voice vol',min:0,max:3,step:0.05,tip:'Quacks and squeaks when a duck is hit',test:()=>duckVoice({type:'classic'},1)});
 function rollDuckType(){const r=Math.random(),pick=a=>a[Math.floor(Math.random()*a.length)];
   if(r<T.duckRareChance)return pick(DUCK_IDS.filter(k=>DUCK_TYPES[k].rare));
   if(r<T.duckRareChance+T.duckExoticChance)return pick(DUCK_IDS.filter(k=>k!=='classic'&&!DUCK_TYPES[k].rare));
   return 'classic';}
-function duckLook(tex,sec,x,y){ // [rgb, material] for one section of a texture
-  const v=DUCK_TYPES[tex]||DUCK_TYPES.classic,mat=v.mat||'plastic';
-  if(sec===4)return[[250,250,250],'plastic'];if(sec===5)return[[22,22,26],mat==='glass'?'glass':'plastic'];
-  if(tex==='rainbow'&&sec!==3){const c=ucol(((x/DUCK_CW+y/DUCK_CH*0.6)%1+1)%1,1,0.5);return[[c.r,c.g,c.b],'plastic'];}
-  if(sec===3)return[v.col2||DUCK_ORA,mat];return[v.col||DUCK_YEL,mat];}
-function duckTexture(tex,view){
-  const key=tex+'|'+view+'|'+T.duckGloss+'|'+T.duckTrans;if(_duckTex.has(key))return _duckTex.get(key);if(!duckLab)return null;
-  const CW=DUCK_CW,CH=DUCK_CH,N=CW*CH,AW=CW*4,lab=new Uint8Array(N);for(let y=0;y<CH;y++)for(let x=0;x<CW;x++)lab[y*CW+x]=duckLab[y*AW+view*CW+x];
-  const dist=inside=>{const d=new Float32Array(N);for(let i=0;i<N;i++)d[i]=inside(lab[i])?1e4:0; // two-pass chamfer distance to the outside of a section
-    for(let y=0;y<CH;y++)for(let x=0;x<CW;x++){const i=y*CW+x;if(!d[i])continue;let m=d[i];if(x>0)m=Math.min(m,d[i-1]+1);if(y>0){m=Math.min(m,d[i-CW]+1);if(x>0)m=Math.min(m,d[i-CW-1]+1.414);if(x<CW-1)m=Math.min(m,d[i-CW+1]+1.414);}if(x===0||y===0||x===CW-1)m=Math.min(m,1);d[i]=m;}
-    for(let y=CH-1;y>=0;y--)for(let x=CW-1;x>=0;x--){const i=y*CW+x;if(!d[i])continue;let m=d[i];if(x<CW-1)m=Math.min(m,d[i+1]+1);if(y<CH-1){m=Math.min(m,d[i+CW]+1);if(x<CW-1)m=Math.min(m,d[i+CW+1]+1.414);if(x>0)m=Math.min(m,d[i+CW-1]+1.414);}d[i]=m;}return d;};
-  const dS=dist(l=>l>0),dB=dist(l=>l===3),dE=dist(l=>l===4),R=24,dome=(d,r)=>{const t=Math.min(1,d/r);return r*Math.sqrt(1-(1-t)*(1-t));};
-  const h=new Float32Array(N);for(let i=0;i<N;i++){if(!lab[i])continue;h[i]=dome(dS[i],R)+(lab[i]===3?dome(dB[i],5)*1.2:0)+(lab[i]===4?dome(dE[i],2.5):0)-(lab[i]===5?0.8:0);}
-  const cv=document.createElement('canvas');cv.width=CW;cv.height=CH;const g=cv.getContext('2d'),img=g.createImageData(CW,CH),o=img.data;
-  const L=[-0.45,-0.62,0.64],Ln=Math.hypot(...L),lx=L[0]/Ln,ly=L[1]/Ln,lz=L[2]/Ln,hx=lx,hy=ly,hz=lz+1,hn=Math.hypot(hx,hy,hz);
-  const gl=T.duckGloss,tr=T.duckTrans;
-  for(let y=0;y<CH;y++)for(let x=0;x<CW;x++){const i=y*CW+x,s=lab[i];if(!s)continue;
-    const hL=x>0&&lab[i-1]?h[i-1]:0,hR=x<CW-1&&lab[i+1]?h[i+1]:0,hU=y>0&&lab[i-CW]?h[i-CW]:0,hD=y<CH-1&&lab[i+CW]?h[i+CW]:0;
-    let nx=-(hR-hL)*0.5,ny=-(hD-hU)*0.5,nz=1;const nn=Math.hypot(nx,ny,nz);nx/=nn;ny/=nn;nz/=nn;
-    const dif=Math.max(0,nx*lx+ny*ly+nz*lz),nh=Math.max(0,(nx*hx+ny*hy+nz*hz)/hn),rim=Math.pow(1-nz,3),edge=1-Math.min(1,dS[i]/R);
-    const [c,mat]=duckLook(tex,s===1||s===2?s:s,x,y);let r,gg,b,a=1,sp;
-    const mix=(k,w)=>[c[0]*k+w,c[1]*k+w,c[2]*k+w];
-    if(mat==='wood'){const gr=0.5+0.5*Math.sin(x*0.33+4*Math.sin(y*0.06+x*0.01)+y*0.04);sp=Math.pow(nh,12)*0.12*gl*255;[r,gg,b]=mix((0.62+0.32*gr)*(0.35+0.75*dif),sp);}
-    else if(mat==='glass'){sp=(Math.pow(nh,80)*1.6+rim*0.6)*255*gl;[r,gg,b]=mix(0.7*(0.55+0.5*dif)+0.25*edge,sp);a=Math.min(1,0.42+0.55*Math.pow(1-nz,1.5)+sp/300);} // glass: see-through in the middle, its edges and highlights solid
-    else if(mat==='metal'||mat==='gold'){const e=0.5+0.5*Math.sin((ny*3.4+nx*0.7)*2.4);sp=Math.pow(nh,140)*1.5*gl*255;[r,gg,b]=mix(0.18+0.95*e*(0.4+0.6*dif),sp);}
-    else if(mat==='dim'){sp=Math.pow(nh,20)*0.18*gl*255;[r,gg,b]=mix(0.3+0.55*dif+0.35*edge,sp);}
-    else if(mat==='bright'){sp=Math.pow(nh,40)*gl*255;[r,gg,b]=mix(0.62+0.42*dif,sp+40);}
-    else if(mat==='shining'){sp=Math.pow(nh,40)*gl*255;[r,gg,b]=mix(0.85+0.4*dif,sp+30);}
-    else{sp=(Math.pow(nh,60)*1.0+Math.pow(nh,8)*0.12)*gl*255;[r,gg,b]=mix(0.3+0.8*dif,sp+rim*60);
-      r+=c[0]*tr*0.45*edge;gg+=c[1]*tr*0.45*edge;b+=c[2]*tr*0.45*edge;a=1-tr*0.4*Math.pow(1-nz,2);} // translucent plastic: thin edges glow with their own colour and let a little through
-    const k=i*4;o[k]=Math.min(255,r);o[k+1]=Math.min(255,gg);o[k+2]=Math.min(255,b);o[k+3]=Math.round(255*Math.max(0,Math.min(1,a)));}
-  g.putImageData(img,0,0);_duckTex.set(key,cv);return cv;}
-// ── On the surface ──
+// ── The model pipeline: SHAPE from the strip, TEXTURE from the type ──
+// One pipeline makes every type (the classic and all its exotics, and any added later). SHAPE: the side view's silhouette is
+// inflated into a closed body. Each row of it is cut into runs; a run gets an elliptical cross-section whose width is the duck's
+// width at that height in the front / back views (capped by the run's own length, so a beak or tail tip stays slim) — the visual
+// hull of the three silhouettes, smoothed. Both halves meet on the outline, so the mesh is closed. Every vertex keeps its strip
+// section (head, body, beak, eye, interior line); a type's head / body scale (Big Head) reshapes the mesh, its size scales it on
+// the surface. TEXTURE: each section's colour comes from the type (body, beak in col2, eyes white, lines dark, Rainbow by position)
+// and its material (plastic, wood, glass, metal, gold, dim, bright, shining) is shaded per pixel by the WebGL material shader.
+const DUCK_MAT={plastic:0,wood:1,metal:2,glass:3,dim:4,bright:5,shining:6,gold:7};
+const _duckModels=new Map();let _dgl=null;
+function duckModel(type,hi){ // hi: full strip resolution (the viewer); otherwise every 2nd pixel (surface, icons, collision)
+  const key=type+(hi?'|hi':''),g=hi?1:2;if(_duckModels.has(key))return _duckModels.get(key);if(!duckLab)return null;
+  const v=DUCK_TYPES[type]||DUCK_TYPES.classic,CW=DUCK_CW,CH=DUCK_CH,AW=CW*4,N=CW*CH,L=(vw,x,y)=>duckLab[y*AW+vw*CW+x];
+  const half=new Float32Array(CH); // the duck's half-width at each height, from the front and back views
+  for(let y=0;y<CH;y++){let w=0,n=0;for(const vw of [1,3]){let a=-1,b=-1;for(let x=0;x<CW;x++)if(L(vw,x,y)){if(a<0)a=x;b=x;}if(a>=0){w+=(b-a+1)/2;n++;}}half[y]=n?w/n:0;}
+  const lab=new Uint8Array(N);for(let y=0;y<CH;y++)for(let x=0;x<CW;x++)lab[y*CW+x]=L(0,x,y);
+  const isIn=(x,y)=>x>=0&&y>=0&&x<CW&&y<CH&&lab[y*CW+x]>0;
+  const edge=new Uint8Array(N);for(let y=0;y<CH;y++)for(let x=0;x<CW;x++)if(isIn(x,y)&&(!isIn(x-1,y)||!isIn(x+1,y)||!isIn(x,y-1)||!isIn(x,y+1)))edge[y*CW+x]=1;
+  for(let it=0;it<3;it++){const nb=lab.slice();for(let i=0;i<N;i++){if(lab[i]!==5)continue;const x=i%CW,y=(i/CW)|0; // the drawn outline is handed to the section beside it (a 3D duck has none); interior lines stay
+    let near=0;for(let dy=-2;dy<=2;dy++)for(let dx=-2;dx<=2;dx++)if(!isIn(x+dx,y+dy))near=1;if(!near)continue;
+    for(const [dx,dy] of [[1,0],[-1,0],[0,1],[0,-1],[1,1],[-1,-1],[1,-1],[-1,1]]){const s=isIn(x+dx,y+dy)?lab[(y+dy)*CW+x+dx]:0;if(s&&s!==5){nb[i]=s;break;}}}lab.set(nb);}
+  let th=new Float32Array(N);
+  for(let y=0;y<CH;y++){let x=0;while(x<CW){if(!isIn(x,y)){x++;continue;}let b=x;while(b+1<CW&&isIn(b+1,y))b++;
+    const c=(x+b)/2,hl=(b-x+1)/2,w=Math.min(half[y],hl*1.15);for(let k=x;k<=b;k++){const s=(k-c)/hl;th[y*CW+k]=w*Math.sqrt(Math.max(0,1-s*s));}x=b+1;}}
+  for(let it=0;it<3;it++){const o=new Float32Array(N);for(let y=0;y<CH;y++)for(let x=0;x<CW;x++){const i=y*CW+x;if(!lab[i])continue;let s=0,n=0;
+    for(let dy=-2;dy<=2;dy++)for(let dx=-2;dx<=2;dx++)if(isIn(x+dx,y+dy)){s+=th[(y+dy)*CW+x+dx];n++;}o[i]=s/n;}th=o;}
+  const dO=new Float32Array(N);for(let i=0;i<N;i++)dO[i]=lab[i]?1e4:0; // distance to the outline (two-pass chamfer): the body rounds over into it instead of meeting it in a ridge
+  for(let y=0;y<CH;y++)for(let x=0;x<CW;x++){const i=y*CW+x;if(!dO[i])continue;let m=dO[i];if(x>0)m=Math.min(m,dO[i-1]+1);if(y>0){m=Math.min(m,dO[i-CW]+1);if(x>0)m=Math.min(m,dO[i-CW-1]+1.414);if(x<CW-1)m=Math.min(m,dO[i-CW+1]+1.414);}if(!x||!y||x===CW-1)m=Math.min(m,1);dO[i]=m;}
+  for(let y=CH-1;y>=0;y--)for(let x=CW-1;x>=0;x--){const i=y*CW+x;if(!dO[i])continue;let m=dO[i];if(x<CW-1)m=Math.min(m,dO[i+1]+1);if(y<CH-1){m=Math.min(m,dO[i+CW]+1);if(x<CW-1)m=Math.min(m,dO[i+CW+1]+1.414);if(x>0)m=Math.min(m,dO[i+CW-1]+1.414);}dO[i]=m;}
+  for(let i=0;i<N;i++){if(edge[i]){th[i]=0;continue;}const u=Math.min(1,(dO[i]-1)/9);th[i]*=Math.sqrt(1-(1-u)*(1-u));} // both halves meet on the outline: a closed body
+  const neck=DUCK_NECK[0];let bx=0,bn=0,hx=0,hn=0,bot=0,h0=CW,h1=0;for(let y=0;y<CH;y++)for(let x=0;x<CW;x++){const l=lab[y*CW+x];if(!l)continue;if(y<neck){hx+=x;hn++;}else{bx+=x;bn++;}if(l!==2&&y<neck){h0=Math.min(h0,x);h1=Math.max(h1,x);}bot=Math.max(bot,y);}
+  bx/=Math.max(1,bn);hx/=Math.max(1,hn);
+  const reshape=(x,y,z)=>{if(!v.head)return[x,y,z];const kb=v.bodyS,kh=v.head,B=[bx+(x-bx)*kb,bot+(y-bot)*kb,z*kb],nX=bx+(hx-bx)*kb,nY=bot+(neck-bot)*kb,Hd=[nX+(x-hx)*kh,nY+(y-neck)*kh,z*kh];
+    const w=Math.max(0,Math.min(1,(neck+4-y)/8))*Math.max(0,Math.min(1,1-Math.max(h0-x,x-h1,0)/6)),f=w*w*(3-2*w);return[B[0]+(Hd[0]-B[0])*f,B[1]+(Hd[1]-B[1])*f,B[2]+(Hd[2]-B[2])*f];}; // the head's scale only reaches the head's own columns (not a wing tip level with it)
+  const P=[],S=[],U=[],top=new Int32Array(N).fill(-1),botI=new Int32Array(N).fill(-1);
+  const addV=(x,y,z,s)=>{const r=reshape(x,y,z);P.push(r[0],r[1],r[2]);S.push(s);U.push(x,y);return P.length/3-1;};
+  const ge=new Uint8Array(N);for(let i=0;i<N;i++){if(!lab[i])continue;const x=i%CW,y=(i/CW)|0;if(x%g||y%g)continue;const e=ge[i]=edge[i]||!isIn(x-g,y)||!isIn(x+g,y)||!isIn(x,y-g)||!isIn(x,y+g)?1:0;
+    top[i]=addV(x,y,e?0:th[i],lab[i]);botI[i]=e?top[i]:addV(x,y,-th[i],lab[i]);}
+  const I=[],tri=(a,b,c,flip)=>{if(flip)I.push(a,c,b);else I.push(a,b,c);};
+  for(let y=0;y+g<CH;y+=g)for(let x=0;x+g<CW;x+=g){const q=[y*CW+x,y*CW+x+g,(y+g)*CW+x,(y+g)*CW+x+g],inn=q.map(i=>lab[i]>0),k=inn.filter(Boolean).length;if(k<3)continue;
+    for(const [A,side] of [[top,0],[botI,1]]){if(k===4){tri(A[q[0]],A[q[2]],A[q[1]],side);tri(A[q[1]],A[q[2]],A[q[3]],side);}
+      else{const t=q.filter((_,j)=>inn[j]).map(i=>[A[i],i%CW,(i/CW)|0]);const cr=(t[1][1]-t[0][1])*(-(t[2][2]-t[0][2]))-(-(t[1][2]-t[0][2]))*(t[2][1]-t[0][1]);tri(t[0][0],t[1][0],t[2][0],(cr<0)!==!!side);}}}
+  let x0=1e9,x1=-1e9,y0=1e9,y1=-1e9;for(let i=0;i<P.length;i+=3){x0=Math.min(x0,P[i]);x1=Math.max(x1,P[i]);y0=Math.min(y0,P[i+1]);y1=Math.max(y1,P[i+1]);}
+  const cx=(x0+x1)/2,cy=(y0+y1)/2,nv=P.length/3,pos=new Float32Array(nv*3);let R=0;
+  for(let i=0;i<nv;i++){pos[i*3]=(P[i*3]-cx)/CH;pos[i*3+1]=(cy-P[i*3+1])/CH;pos[i*3+2]=P[i*3+2]/CH;R=Math.max(R,Math.hypot(pos[i*3],pos[i*3+1],pos[i*3+2]));} // model units: 1 = the strip cell height; x forward (beak), y up, z across
+  const idx=new Uint16Array(I),nrm=new Float32Array(nv*3);
+  { const nb=Array.from({length:nv},()=>new Set());for(let t=0;t<idx.length;t+=3)for(let k=0;k<3;k++){nb[idx[t+k]].add(idx[t+(k+1)%3]);nb[idx[t+k]].add(idx[t+(k+2)%3]);}
+    for(let it=0;it<4;it++){const o=pos.slice();for(let i=0;i<nv;i++){let sx=0,sy=0,sz=0,n=0;for(const j of nb[i]){sx+=o[j*3];sy+=o[j*3+1];sz+=o[j*3+2];n++;}if(!n)continue; // smoothing: the pixel steps of the strip melt into a smooth surface
+      const l=it%2?-0.53:0.5;pos[i*3]+=l*(sx/n-o[i*3]);pos[i*3+1]+=l*(sy/n-o[i*3+1]);pos[i*3+2]+=l*(sz/n-o[i*3+2]);}} }
+  for(let t=0;t<idx.length;t+=3){const a=idx[t]*3,b=idx[t+1]*3,c=idx[t+2]*3,ux=pos[b]-pos[a],uy=pos[b+1]-pos[a+1],uz=pos[b+2]-pos[a+2],wx=pos[c]-pos[a],wy=pos[c+1]-pos[a+1],wz=pos[c+2]-pos[a+2];
+    const nx=uy*wz-uz*wy,ny=uz*wx-ux*wz,nz=ux*wy-uy*wx;for(const o of [a,b,c]){nrm[o]+=nx;nrm[o+1]+=ny;nrm[o+2]+=nz;}}
+  for(let i=0;i<nrm.length;i+=3){const l=Math.hypot(nrm[i],nrm[i+1],nrm[i+2])||1;nrm[i]/=l;nrm[i+1]/=l;nrm[i+2]/=l;}
+  const hp=[];for(let i=0;i<N;i++){if(top[i]<0)continue;const x=i%CW,y=(i/CW)|0;if(ge[i]?(x+y)%(3*g):(x%4||y%4))continue;for(const vi of ge[i]?[top[i]]:[top[i],botI[i]])hp.push(pos[vi*3],pos[vi*3+1],pos[vi*3+2]);} // collision samples: the outline and a grid over both halves
+  const M={pos,nrm,sec:new Float32Array(S),uv:new Float32Array(U),idx,R,hp:new Float32Array(hp),buf:null,mat:v.tex==='rainbow'?8:DUCK_MAT[v.mat||'plastic'],
+    c1:(v.col||DUCK_YEL).map(c=>c/255),c2:(v.col2||DUCK_ORA).map(c=>c/255)};
+  _duckModels.set(key,M);return M;}
+// ── WebGL: one shared offscreen renderer; each duck is drawn into it and copied onto the 2D canvas ──
+function duckGL(){
+  if(_dgl!==null)return _dgl;_dgl=false;
+  const cv=document.createElement('canvas');cv.width=cv.height=256;const gl=cv.getContext('webgl',{alpha:true,premultipliedAlpha:true,antialias:true,preserveDrawingBuffer:true});if(!gl)return false;
+  const sh=(t,src)=>{const s=gl.createShader(t);gl.shaderSource(s,src);gl.compileShader(s);if(!gl.getShaderParameter(s,gl.COMPILE_STATUS))console.error(gl.getShaderInfoLog(s));return s;};
+  const pr=gl.createProgram();
+  gl.attachShader(pr,sh(gl.VERTEX_SHADER,'attribute vec3 aP;attribute vec3 aN;attribute float aS;attribute vec2 aU;uniform mat3 uR;uniform vec2 uK;varying vec3 vN;varying float vS;varying vec2 vU;varying float vZ;'+
+    'void main(){vec3 p=uR*aP;vN=uR*aN;vS=aS;vU=aU;vZ=abs(aN.z);gl_Position=vec4(p.xy*uK.x,-p.z*uK.y,1.0);}'));
+  gl.attachShader(pr,sh(gl.FRAGMENT_SHADER,'precision mediump float;varying vec3 vN;varying float vS;varying vec2 vU;varying float vZ;uniform vec3 uC1;uniform vec3 uC2;uniform float uM;uniform float uGl;uniform float uTr;uniform float uA;'+
+    'vec3 hue(float h){return clamp(abs(mod(h*6.0+vec3(0.0,4.0,2.0),6.0)-3.0)-1.0,0.0,1.0);}'+
+    'void main(){vec3 n=normalize(vN);if(!gl_FrontFacing)n=-n;vec3 L=normalize(vec3(-0.45,0.62,0.64)),H=normalize(L+vec3(0.0,0.0,1.0));'+
+    'float dif=max(0.0,dot(n,L)),nh=max(0.0,dot(n,H)),nz=max(0.0,n.z),rim=pow(1.0-nz,3.0),edg=1.0-nz,s=floor(vS+0.5),m=uM;vec3 c=uC1;if((s==4.0||s==5.0)&&vZ<0.45)s=1.0; /* eyes and drawn lines belong to the side faces only, never smeared over the top or underside */'+
+    'if(s==3.0)c=uC2;if(m==8.0){if(s!=3.0)c=hue(fract(vU.x/149.0+vU.y/138.0*0.6));m=0.0;}'+
+    'if(s==4.0){c=vec3(0.98);m=0.0;}if(s==5.0){c=vec3(0.086,0.086,0.1);if(m!=3.0)m=0.0;}'+
+    'vec3 col;float a=1.0;'+
+    'if(m==1.0){float g=0.5+0.5*sin(vU.x*0.33+4.0*sin(vU.y*0.06+vU.x*0.01)+vU.y*0.04);col=c*(0.62+0.32*g)*(0.35+0.75*dif)+pow(nh,12.0)*0.12*uGl;}'+
+    'else if(m==3.0){float sp=(pow(nh,80.0)*1.6+rim*0.6)*uGl;col=c*(0.7*(0.55+0.5*dif)+0.25*edg)+sp;a=min(1.0,0.42+0.55*pow(edg,1.5)+sp/1.2);}'+
+    'else if(m==2.0||m==7.0){float e=0.5+0.5*sin((n.y*3.4+n.x*0.7)*2.4);col=c*(0.18+0.95*e*(0.4+0.6*dif))+pow(nh,140.0)*1.5*uGl;}'+
+    'else if(m==4.0){col=c*(0.3+0.55*dif+0.35*edg)+pow(nh,20.0)*0.18*uGl;}'+
+    'else if(m==5.0){col=c*(0.62+0.42*dif)+pow(nh,40.0)*uGl+0.157;}'+
+    'else if(m==6.0){col=c*(0.85+0.4*dif)+pow(nh,40.0)*uGl+0.118;}'+
+    'else{col=c*(0.3+0.8*dif)+(pow(nh,60.0)+pow(nh,8.0)*0.12)*uGl+rim*0.235+c*uTr*0.45*edg;a=1.0-uTr*0.4*edg*edg;}'+
+    'a*=uA;gl_FragColor=vec4(min(col,vec3(1.0))*a,a);}'));
+  gl.linkProgram(pr);if(!gl.getProgramParameter(pr,gl.LINK_STATUS)){console.error(gl.getProgramInfoLog(pr));return false;}
+  const at={},un={};for(const k of ['aP','aN','aS','aU'])at[k]=gl.getAttribLocation(pr,k);for(const k of ['uR','uK','uC1','uC2','uM','uGl','uTr','uA'])un[k]=gl.getUniformLocation(pr,k);
+  _dgl={cv,gl,pr,at,un};return _dgl;}
+function quatMat(q){const [x,y,z,w]=q;return[1-2*(y*y+z*z),2*(x*y+z*w),2*(x*z-y*w),2*(x*y-z*w),1-2*(x*x+z*z),2*(y*z+x*w),2*(x*z+y*w),2*(y*z-x*w),1-2*(x*x+y*y)];} // column-major 3×3 (view = R·model)
+function quatTurn(q,ax,ay,az){const a=Math.hypot(ax,ay,az);if(a<1e-9)return q;const s=Math.sin(a/2)/a,c=Math.cos(a/2),bx=ax*s,by=ay*s,bz=az*s,[x,y,z,w]=q; // q ← rotation (axis·angle, view frame) · q
+  const r=[c*x+bx*w+by*z-bz*y,c*y-bx*z+by*w+bz*x,c*z+bx*y-by*x+bz*w,c*w-bx*x-by*y-bz*z],l=Math.hypot(...r)||1;return r.map(k=>k/l);}
+function drawDuck3D(c,type,q,at,h,alpha,maxS){ // the type's model turned by q, h px per model unit, drawn centred on each [x,y] of at
+  const G=duckGL(),M=duckModel(type,h>160);
+  if(!G||!M){c.save();c.fillStyle='rgba(255,222,40,'+alpha+')';for(const p of at){c.beginPath();c.arc(p[0],p[1],h*0.35,0,6.2832);c.fill();}c.restore();return;}
+  const gl=G.gl,S=Math.max(4,Math.min(maxS||2048,Math.ceil(2*M.R*h)+4));
+  if(G.cv.width<S||G.cv.height<S){G.cv.width=G.cv.height=Math.min(2048,Math.max(S,G.cv.width*2));}
+  if(!M.buf){M.buf={};for(const [k,a,n] of [['p',M.pos,3],['n',M.nrm,3],['s',M.sec,1],['u',M.uv,2]]){const b=gl.createBuffer();gl.bindBuffer(gl.ARRAY_BUFFER,b);gl.bufferData(gl.ARRAY_BUFFER,a,gl.STATIC_DRAW);M.buf[k]=[b,n];}
+    M.buf.i=gl.createBuffer();gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER,M.buf.i);gl.bufferData(gl.ELEMENT_ARRAY_BUFFER,M.idx,gl.STATIC_DRAW);}
+  gl.useProgram(G.pr);gl.viewport(0,0,S,S);gl.enable(gl.SCISSOR_TEST);gl.scissor(0,0,S,S);gl.clearColor(0,0,0,0);gl.clearDepth(1);gl.clear(gl.COLOR_BUFFER_BIT|gl.DEPTH_BUFFER_BIT);
+  for(const [k,an] of [['p','aP'],['n','aN'],['s','aS'],['u','aU']]){gl.bindBuffer(gl.ARRAY_BUFFER,M.buf[k][0]);gl.enableVertexAttribArray(G.at[an]);gl.vertexAttribPointer(G.at[an],M.buf[k][1],gl.FLOAT,false,0,0);}
+  gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER,M.buf.i);const u=G.un;
+  gl.uniformMatrix3fv(u.uR,false,quatMat(q));gl.uniform2f(u.uK,2*h/S,1/(M.R+0.01));gl.uniform3fv(u.uC1,M.c1);gl.uniform3fv(u.uC2,M.c2);gl.uniform1f(u.uM,M.mat);
+  gl.uniform1f(u.uGl,T.duckGloss);gl.uniform1f(u.uTr,T.duckTrans);gl.uniform1f(u.uA,1);
+  gl.enable(gl.DEPTH_TEST);gl.depthFunc(gl.LEQUAL);gl.enable(gl.BLEND);gl.blendFunc(gl.ONE,gl.ONE_MINUS_SRC_ALPHA);gl.enable(gl.CULL_FACE);
+  if(M.mat===3){gl.cullFace(gl.FRONT);gl.drawElements(gl.TRIANGLES,M.idx.length,gl.UNSIGNED_SHORT,0);} // glass: the inside wall shows through first
+  gl.cullFace(gl.BACK);gl.drawElements(gl.TRIANGLES,M.idx.length,gl.UNSIGNED_SHORT,0);
+  const sy=G.cv.height-S;c.save();c.globalAlpha*=alpha;for(const p of at)c.drawImage(G.cv,0,sy,S,S,p[0]-S/2,p[1]-S/2,S,S);c.restore();}
+// ── On the surface: a solid body. Its footprint is its 3D shape projected onto the plane; things bounce off it like a CRYSTALIZE
+// point (elastic, it never breaks); any change in its 2D motion also tumbles it in 3D; only a Dark Remnant can take it. ──
 function spawnDuck(x,y,now,type){
-  type=type||rollDuckType();const d={x,y,vx:0,vy:0,ang:Math.random()*6.2832,spin:(Math.random()<0.5?-1:1)*(0.6+Math.random()*0.8),born:now,type,ph:Math.random()*6.2832};
-  const a=Math.random()*6.2832;d.vx=Math.cos(a);d.vy=Math.sin(a);ducks.push(d);fireEvent('duck');
-  flashSaveStatus('A Dark Remnant came out as a duck: '+DUCK_TYPES[type].name+'!');return d;}
+  type=type||rollDuckType();const a=Math.random()*6.2832,yaw=Math.random()*6.2832,sp=T.duckDrift/60;
+  const d={x,y,vx:Math.cos(a)*sp,vy:Math.sin(a)*sp,rot:0,wx:0,wy:0,q:[0,Math.sin(yaw/2),0,Math.cos(yaw/2)],spin:(Math.random()<0.5?-1:1)*(0.6+Math.random()*0.8),born:now,type,ph:Math.random()*6.2832};
+  d.wy=d.spin*T.duckSpin/60;ducks.push(d);fireEvent('duck');flashSaveStatus('A Dark Remnant came out as a duck: '+DUCK_TYPES[type].name+'!');return d;}
+function duckInit(d){if(!d.q){const a=d.ang||0;d.q=[0,Math.sin(a/2),0,Math.cos(a/2)];}d.rot=d.rot||0;d.wx=d.wx||0;d.wy=d.wy||0;if(d._pvx===undefined){d._pvx=d.vx;d._pvy=d.vy;}}
 function duckSizeOf(d){return T.duckSize*(DUCK_TYPES[d.type].scale||1);}
-function duckAt(mx,my){if(!ducks.length||mx<0)return null;let best=null,bd=1e9;for(const d of ducks){const s=duckSizeOf(d)*0.5,dx=_wrapD(d.x-mx,W),dy=_wrapD(d.y-my,H),q=dx*dx+dy*dy;if(q<s*s&&q<bd){bd=q;best=d;}}return best;}
+function duckMass(d){const s=DUCK_TYPES[d.type].scale||1;return Math.max(0.01,T.duckMass*s*s*s);}
+function duckHull(d){ // its footprint: the model's sample points turned by its orientation, projected onto the plane (px from its centre, y down), convex hull; each point keeps its depth
+  const M=duckModel(d.type);if(!M)return null;const R=quatMat(d.q),P=M.hp,h=duckSizeOf(d),pts=[];
+  for(let i=0;i<P.length;i+=3){const x=P[i],y=P[i+1],z=P[i+2];pts.push([(R[0]*x+R[3]*y+R[6]*z)*h,-(R[1]*x+R[4]*y+R[7]*z)*h,(R[2]*x+R[5]*y+R[8]*z)*h]);}
+  pts.sort((a,b)=>a[0]-b[0]||a[1]-b[1]);const cr=(o,a,b)=>(a[0]-o[0])*(b[1]-o[1])-(a[1]-o[1])*(b[0]-o[0]),lo=[],up=[];
+  for(const p of pts){while(lo.length>1&&cr(lo[lo.length-2],lo[lo.length-1],p)<=0)lo.pop();lo.push(p);}
+  for(let i=pts.length-1;i>=0;i--){const p=pts[i];while(up.length>1&&cr(up[up.length-2],up[up.length-1],p)<=0)up.pop();up.push(p);}
+  lo.pop();up.pop();const H=lo.concat(up);let r=0,m=0;for(const p of H){const l=Math.hypot(p[0],p[1]);r=Math.max(r,l);m+=l;}H.r=r;H.m=m/Math.max(1,H.length);return H;}
+function duckHullHit(H,cx,cy,rq){ // circle (centre relative to the duck, radius rq) against the footprint → contact {nx,ny (duck → circle), pen, px,py}
+  let inside=true,bd=1e9,bp=null,bn=null;
+  for(let i=0;i<H.length;i++){const a=H[i],b=H[(i+1)%H.length],ex=b[0]-a[0],ey=b[1]-a[1],L2=ex*ex+ey*ey||1e-9;
+    if(ex*(cy-a[1])-ey*(cx-a[0])<0)inside=false;
+    const t=Math.max(0,Math.min(1,((cx-a[0])*ex+(cy-a[1])*ey)/L2)),px=a[0]+ex*t,py=a[1]+ey*t,dd=Math.hypot(cx-px,cy-py);
+    if(dd<bd){bd=dd;bp=[px,py];const l=Math.sqrt(L2);bn=[ey/l,-ex/l];}}
+  if(!bp)return null;
+  if(inside)return{nx:bn[0],ny:bn[1],pen:rq+bd,px:bp[0],py:bp[1]}; // inside: pushed out through the nearest edge
+  if(bd>=rq)return null;return{nx:(cx-bp[0])/bd,ny:(cy-bp[1])/bd,pen:rq-bd,px:bp[0],py:bp[1]};}
+function duckImpulse(d,o,ct,mo,isDuck){ // rigid, elastic (restitution 1, like a CRYSTALIZE bounce); o is a point or another duck
+  const md=duckMass(d),h=duckSizeOf(d),invI=1/(0.4*md*Math.pow(0.3*h,2)),nx=ct.nx,ny=ct.ny,tm=md+mo;
+  d.x-=nx*ct.pen*mo/tm;d.y-=ny*ct.pen*mo/tm;o.x+=nx*ct.pen*md/tm;o.y+=ny*ct.pen*md/tm;
+  for(const z of isDuck?[d,o]:[d]){z.x=(z.x%W+W)%W;z.y=(z.y%H+H)%H;}
+  const rxn=ct.px*ny-ct.py*nx,vcx=d.vx-d.rot*ct.py,vcy=d.vy+d.rot*ct.px; // contact point velocity of the duck (its in-plane spin included)
+  const vn=((o.vx||0)-vcx)*nx+((o.vy||0)-vcy)*ny;if(vn>=0)return 0;
+  const j=-2*vn/(1/md+1/mo+invI*rxn*rxn);
+  d.vx-=j*nx/md;d.vy-=j*ny/md;d.rot=Math.max(-T.maxRotSpeed,Math.min(T.maxRotSpeed,d.rot-invI*j*rxn));
+  o.vx=(o.vx||0)+j*nx/mo;o.vy=(o.vy||0)+j*ny/mo;
+  if(!isDuck){const rt=((o.vx||0)-d.vx)*-ny+((o.vy||0)-d.vy)*nx;o.rot=Math.max(-T.maxRotSpeed,Math.min(T.maxRotSpeed,(o.rot||0)+rt*T.remBounceSpinK/mo));}
+  for(const z of [d,o]){const s=Math.hypot(z.vx,z.vy);if(s>T.maxSpeed){z.vx*=T.maxSpeed/s;z.vy*=T.maxSpeed/s;}}
+  return -vn;}
+function duckStep(now,ts){
+  if(!ducks.length)return;const bh=blackHole&&!blackHole.complete?blackHole:null,MS2=T.maxSpeed*T.maxSpeed;
+  for(let i=ducks.length-1;i>=0;i--){const d=ducks[i];duckInit(d);
+    if(bh&&duckDark(d,bh,now,ts)){ducks.splice(i,1);continue;}
+    if(d._bhK){d._hull=duckHull(d);continue;}
+    const dvx=d.vx-d._pvx,dvy=d.vy-d._pvy;
+    if(dvx||dvy){const k=T.duckTumble/Math.max(4,duckSizeOf(d)*0.4);d.wx+=dvy*k;d.wy+=dvx*k;} // 2D momentum it was given also turns it in 3D (about the in-plane axis across the push)
+    exitSpinStep(d,now,ts);
+    const kd=1-Math.exp(-T.duckSpinDamp*ts/60),base=d.spin*T.duckSpin/60;d.wx-=d.wx*kd;d.wy+=(base-d.wy)*kd;d.rot-=d.rot*kd; // a tumble eases back to the resting turn
+    const wm=Math.hypot(d.wx,d.wy,d.rot);if(wm>T.duckMaxSpin){const k=T.duckMaxSpin/wm;d.wx*=k;d.wy*=k;d.rot*=k;}
+    const s2=d.vx*d.vx+d.vy*d.vy;
+    if(s2<T.velDead){d.vx=0;d.vy=0;}else{if(s2>MS2){const k=T.maxSpeed/Math.sqrt(s2);d.vx*=k;d.vy*=k;}
+      if(d.rot){const a=d.rot*ts*T.rotCurveMult,cs=Math.cos(a),sn=Math.sin(a),nx=d.vx*cs-d.vy*sn;d.vy=d.vx*sn+d.vy*cs;d.vx=nx;}} // spin curves its path, the same rule every object follows
+    d.x=((d.x+d.vx*ts)%W+W)%W;d.y=((d.y+d.vy*ts)%H+H)%H;
+    d.q=quatTurn(d.q,d.wx*ts,d.wy*ts,-d.rot*ts);d._pvx=d.vx;d._pvy=d.vy;d._hull=duckHull(d);}
+  if(ts<=0)return;
+  for(let i=0;i<ducks.length;i++){const d=ducks[i],Hd=d._hull;if(!Hd||d._bhK)continue;
+    for(let k=0;k<active.length;k++){const q=active[k];if(q.isRemnant||q.dying||q.captured||q.blackFx||q._embed||q.unwind||q._stasis||q._bhFly)continue;
+      const rq=placedRadius(q),dx=_wrapD(q.x-d.x,W),dy=_wrapD(q.y-d.y,H);if(dx*dx+dy*dy>(Hd.r+rq)*(Hd.r+rq))continue;
+      const ct=duckHullHit(Hd,dx,dy,rq);if(!ct)continue;const imp=duckImpulse(d,q,ct,Math.max(0.01,q.mass||1),false);if(imp>0.05)duckVoice(d,imp/T.maxSpeed);}
+    for(let k=i+1;k<ducks.length;k++){const e=ducks[k];if(!e._hull||e._bhK)continue;const dx=_wrapD(e.x-d.x,W),dy=_wrapD(e.y-d.y,H),dd=Math.hypot(dx,dy)||1e-4,R=Hd.m+e._hull.m;if(dd>=R)continue;
+      const nx=dx/dd,ny=dy/dd,imp=duckImpulse(d,e,{nx,ny,pen:R-dd,px:nx*Hd.m,py:ny*Hd.m},duckMass(e),true);if(imp>0.05){duckVoice(d,imp/T.maxSpeed);duckVoice(e,imp/T.maxSpeed);}}}}
+function duckDark(d,bh,now,ts){ // a Dark Remnant stops it as its wave passes, draws it in with everything else, and swallows it (true = gone)
+  const dx=_wrapD(bh.x-d.x,W),dy=_wrapD(bh.y-d.y,H),dist=Math.hypot(dx,dy)||1,r=(d._hull?d._hull.m:duckSizeOf(d)*0.4);
+  if(dist<(bh.consumeR||0)+r){duckVoice(d,1);bhConsumeSound({ci:0,mass:duckMass(d)});
+    if(bh.phase==='active'){const nx=-dx/dist,ny=-dy/dist;bh.impacts.push({x:bh.x+nx*bh.consumeR,y:bh.y+ny*bh.consumeR,r:255,g:222,b:40,size:bhImpactSizeFor(duckMass(d)),born:now});}
+    flashSaveStatus('🦆 The Dark Remnant swallowed a '+DUCK_TYPES[d.type].name+'.');return true;}
+  if(!d._bhK&&(bh.phase==='active'||(bh.activateR||0)>=dist)){d._bhK=true;d.vx=d.vy=d.rot=d.wx=d.wy=0;}
+  if(d._bhK&&bh.phase==='active'&&bh.queue&&(bh.qi>=bh.queue.length||(bh.qi>0&&bh.queue[bh.qi-1]._bhD>=dist))){const s=Math.min(dist,T.blackFlySpeed*ts);d.x=((d.x+dx/dist*s)%W+W)%W;d.y=((d.y+dy/dist*s)%H+H)%H;}
+  return false;}
+function duckVoice(d,imp){ // a rubber squeak (plastic ducks, mostly) or a quack, pitched by size, louder for a harder hit
+  if(!canPlay())return;const n=performance.now();if(n-(d._sndAt||0)<140)return;d._sndAt=n;reserveVoice();
+  const v=DUCK_TYPES[d.type]||DUCK_TYPES.classic,m=v.mat||'plastic',sq=Math.random()<(m==='plastic'||m==='shining'?0.8:0.25),t=audioCtx.currentTime,p=1/Math.sqrt(v.scale||1),vol=(0.05+0.13*Math.min(1,imp))*T.volDuck;
+  const o=audioCtx.createOscillator(),f=audioCtx.createBiquadFilter(),g=audioCtx.createGain();o.type='sawtooth';f.type='bandpass';g.gain.setValueAtTime(0,t);let end;
+  if(sq){const f0=1150*p;o.frequency.setValueAtTime(f0*0.8,t);o.frequency.linearRampToValueAtTime(f0*1.25,t+0.05);o.frequency.exponentialRampToValueAtTime(f0*0.75,t+0.22);f.frequency.value=2300*p;f.Q.value=3;
+    const lf=audioCtx.createOscillator(),lg=audioCtx.createGain();lf.frequency.value=28;lg.gain.value=f0*0.04;lf.connect(lg);lg.connect(o.frequency);lf.start(t);lf.stop(t+0.3);
+    g.gain.linearRampToValueAtTime(vol,t+0.02);g.gain.setValueAtTime(vol,t+0.14);g.gain.exponentialRampToValueAtTime(0.0001,t+0.26);end=0.3;}
+  else{const f0=330*p;o.frequency.setValueAtTime(f0*1.15,t);o.frequency.exponentialRampToValueAtTime(f0*0.82,t+0.17);f.frequency.setValueAtTime(1100*p,t);f.frequency.exponentialRampToValueAtTime(800*p,t+0.17);f.Q.value=4;
+    g.gain.linearRampToValueAtTime(vol*1.3,t+0.012);g.gain.exponentialRampToValueAtTime(0.0001,t+0.2);end=0.24;}
+  o.connect(f);f.connect(g);g.connect(timpBus());o.start(t);o.stop(t+end);releaseVoiceOn(o,g);}
+function duckAt(mx,my){if(!ducks.length||mx<0)return null;let best=null,bd=1e9;
+  for(const d of ducks){const dx=_wrapD(mx-d.x,W),dy=_wrapD(my-d.y,H),q=dx*dx+dy*dy,H0=d._hull;
+    const hit=H0?!!duckHullHit(H0,dx,dy,4):q<Math.pow(duckSizeOf(d)*0.5,2);if(hit&&q<bd){bd=q;best=d;}}return best;}
 function duckInfo(d){const v=DUCK_TYPES[d.type];return[(v.rare?'★ ':'')+v.name,v.axis+(v.detail?': '+v.detail:'')+' · '+(v.rare?'rare exotic':d.type==='classic'?'classic':'exotic')+' · collected '+(duckLog[d.type]||0)+' · click to collect'];}
 function collectDuck(d,silent){const i=ducks.indexOf(d);if(i<0)return;ducks.splice(i,1);duckLog[d.type]=(duckLog[d.type]||0)+1;saveInventory();
   if(!silent){const v=DUCK_TYPES[d.type];earnFx.push({kind:'plus',x:d.x,y:d.y-duckSizeOf(d)*0.6,text:'🦆 '+v.name,born:performance.now(),dur:1400});flashSaveStatus('🦆 Collected: '+v.name+' ('+duckLog[d.type]+')');}}
 function collectAllDucks(){for(const d of ducks.slice())collectDuck(d,true);}
-function drawDuckSprite(c,tex,view,cx,by,h,v,alpha,sx){ // bottom-centre anchored; Big Head draws its head and body at their own scales
-  const im=duckTexture(tex,view);if(!im)return;const k=h/DUCK_CH,nk=DUCK_NECK[view];c.save();c.globalAlpha*=alpha;c.translate(cx,by);c.scale(sx,1);
-  if(v.head){const kb=k*v.bodyS,kh=k*v.head,bh=(DUCK_CH-nk)*kb;c.drawImage(im,0,nk,DUCK_CW,DUCK_CH-nk,-DUCK_CW*kb/2,-bh,DUCK_CW*kb,bh);c.drawImage(im,0,0,DUCK_CW,nk+2,-DUCK_CW*kh/2,-bh-nk*kh+2*kh,DUCK_CW*kh,(nk+2)*kh);}
-  else c.drawImage(im,-DUCK_CW*k/2,-DUCK_CH*k,DUCK_CW*k,DUCK_CH*k);c.restore();}
-function drawDuckTurning(c,d,cx,cy,h,now){ // four views; a turn squeezes the duck narrow, swaps to the next view at the narrowest point, then widens again
-  const v=DUCK_TYPES[d.type],f=(((d.ang/(Math.PI/2))%4)+4)%4,i0=Math.floor(f)%4,t=f-Math.floor(f),w=t<0.47?0:t>0.53?1:(t-0.47)/0.06,sq=1-0.38*Math.sin(Math.PI*t);
-  if(v.mat==='bright'||v.mat==='shining'){const col=v.mat==='bright'?'255,250,235':v.col.join(','),R=h*T.duckGlow*0.5,gr=c.createRadialGradient(cx,cy,0,cx,cy,R);
-    gr.addColorStop(0,'rgba('+col+','+(0.35+0.15*Math.sin(now/300+d.ph))+')');gr.addColorStop(1,'rgba('+col+',0)');c.save();c.globalCompositeOperation='lighter';c.fillStyle=gr;c.beginPath();c.arc(cx,cy,R,0,6.2832);c.fill();c.restore();}
-  if(w<1)drawDuckSprite(c,v.tex,i0,cx,cy+h/2,h,v,1-w,sq);if(w>0)drawDuckSprite(c,v.tex,(i0+1)%4,cx,cy+h/2,h,v,w,sq);}
-let _duckT=0;
+function duckGlow(c,type,x,y,h,now,ph){const v=DUCK_TYPES[type];if(v.mat!=='bright'&&v.mat!=='shining')return;
+  const col=v.mat==='bright'?'255,250,235':v.col.join(','),R=h*T.duckGlow*0.5,gr=c.createRadialGradient(x,y,0,x,y,R);
+  gr.addColorStop(0,'rgba('+col+','+(0.35+0.15*Math.sin(now/300+ph))+')');gr.addColorStop(1,'rgba('+col+',0)');c.save();c.globalCompositeOperation='lighter';c.fillStyle=gr;c.beginPath();c.arc(x,y,R,0,6.2832);c.fill();c.restore();}
 function drawDucks(c,now){
-  const dt=_duckT?Math.min(100,now-_duckT)*(typeof timeScale==='number'?Math.min(1,Math.max(0,timeScale)):1):0;_duckT=now;if(!ducks.length)return;
-  for(const d of ducks){d.ang+=d.spin*T.duckSpin*dt/1000;d.x=((d.x+d.vx*T.duckDrift*dt/1000)%W+W)%W;d.y=((d.y+d.vy*T.duckDrift*dt/1000)%H+H)%H;
-    const age=(now-d.born)/600,pop=age>=1?1:1+2.7*Math.pow(age-1,3)+1.7*Math.pow(age-1,2),h=duckSizeOf(d)*Math.max(0,pop),bob=Math.sin(now/650+d.ph)*h*0.035;
+  for(const d of ducks){duckInit(d);const age=(now-d.born)/600,pop=age>=1?1:1+2.7*Math.pow(age-1,3)+1.7*Math.pow(age-1,2),h=duckSizeOf(d)*Math.max(0,pop);
     if(age<1.5){c.save();c.strokeStyle='rgba(255,240,150,'+(0.6*(1-age/1.5))+')';c.lineWidth=2;c.beginPath();c.arc(d.x,d.y,h*(0.4+age*0.8),0,6.2832);c.stroke();c.restore();}
-    c.save();c.translate(d.x,d.y+bob);c.rotate(Math.sin(now/900+d.ph)*0.06);drawDuckTurning(c,d,0,0,h,now);c.restore();}}
-// ── The collection (Guide → Ducks) ──
+    const e=h*0.7,xs=[d.x],ys=[d.y],at=[];if(d.x<e)xs.push(d.x+W);else if(d.x>W-e)xs.push(d.x-W);if(d.y<e)ys.push(d.y+H);else if(d.y>H-e)ys.push(d.y-H); // across a screen edge it shows on both sides, as it moves
+    for(const x of xs)for(const y of ys){at.push([x,y]);duckGlow(c,d.type,x,y,h,now,d.ph);}
+    if(h>0.5)drawDuck3D(c,d.type,d.q,at,h,1);}}
+// ── The collection (Guide → Ducks): every collected type, and a viewer to turn and zoom it ──
+const DUCK_ICON_Q=quatTurn(quatTurn([0,0,0,1],0,Math.PI*0.3,0),0.25,0,0);
 function duckCollectionHTML(){
   const got=DUCK_IDS.filter(k=>duckLog[k]>0),total=got.reduce((s,k)=>s+duckLog[k],0);
-  return '<h3 style="margin:14px 0 6px">Collection · '+total+' duck'+(total===1?'':'s')+' · '+got.length+' of '+DUCK_IDS.length+' types</h3><div class="rl-grid">'+(got.length?got.map(k=>{const v=DUCK_TYPES[k];
-    return '<div class="rl-c"><div class="rl-h"><canvas class="rl-m" width="48" height="48" data-k="duck:'+k+'"></canvas><span class="rl-t"><b>'+(v.rare?'★ ':'')+gEsc(v.name)+' × '+duckLog[k]+'</b><i>'+gEsc(v.axis+(v.detail?': '+v.detail:'')+(v.rare?' · rare exotic':k==='classic'?'':' · exotic'))+'</i></span></div></div>';}).join(''):'<p class="rl-note">No ducks yet. Some Dark Remnants come out as ducks.</p>')+'</div>';}
-function drawDuckIcon(c,S,type){const d={type:DUCK_TYPES[type]?type:'classic',ang:Math.PI*0.35,ph:0},v=DUCK_TYPES[d.type];drawDuckTurning(c,d,S/2,S/2,S*0.8/(v.head?1.25:1),performance.now());}
-SCENES.duck={dur:5200,setup(S){S.ring(14,40,95,(x,y,i)=>S.part(x,y,i%6));S.ring(6,30,60,(x,y,i)=>S.pig(x,y,i,10));},
-  tick(S,t,now){if(!S.fired&&t>700){S.fired=1;spawnDuck(S.W/2,S.H/2,now,DUCK_IDS[(S.n-1)%DUCK_IDS.length]);}}};
+  return '<h3 style="margin:14px 0 6px">Collection · '+total+' duck'+(total===1?'':'s')+' · '+got.length+' of '+DUCK_IDS.length+' types</h3>'+(got.length?'<p class="rl-note">Click a duck to turn it and zoom in.</p>':'')+'<div class="rl-grid">'+(got.length?got.map(k=>{const v=DUCK_TYPES[k];
+    return '<div class="rl-c" style="cursor:pointer" onclick="openDuckViewer(\''+k+'\')"><div class="rl-h"><canvas class="rl-m" width="48" height="48" data-k="duck:'+k+'"></canvas><span class="rl-t"><b>'+(v.rare?'★ ':'')+gEsc(v.name)+' × '+duckLog[k]+'</b><i>'+gEsc(v.axis+(v.detail?': '+v.detail:'')+(v.rare?' · rare exotic':k==='classic'?'':' · exotic'))+'</i></span></div></div>';}).join(''):'<p class="rl-note">No ducks yet. Some Dark Remnants come out as ducks.</p>')+'</div>';}
+function drawDuckIcon(c,S,type){const k=DUCK_TYPES[type]?type:'classic';drawDuck3D(c,k,DUCK_ICON_Q,[[S/2,S/2]],S*0.8/(DUCK_TYPES[k].head?1.25:1),1);}
+function openDuckViewer(type){
+  if(document.getElementById('duckView')||!DUCK_TYPES[type])return;const v=DUCK_TYPES[type],dpr=Math.min(2,window.devicePixelRatio||1),SZ=Math.max(200,Math.min(560,innerWidth-40,innerHeight-110)),N=Math.round(SZ*dpr);
+  const ov=document.createElement('div');ov.id='duckView';ov.style.cssText='position:fixed;inset:0;z-index:100000;background:rgba(0,0,0,0.8);display:flex;flex-direction:column;align-items:center;justify-content:center;font:13px system-ui,sans-serif;color:#eee;touch-action:none';
+  ov.innerHTML='<div style="margin-bottom:6px;text-align:center"><b>'+(v.rare?'★ ':'')+gEsc(v.name)+'</b> × '+(duckLog[type]||0)+'<br><span style="opacity:.7">drag to turn · wheel or pinch to zoom · double-click to reset · Esc to close</span></div><canvas width="'+N+'" height="'+N+'" style="position:relative;left:auto;top:auto;display:block;width:'+SZ+'px;height:'+SZ+'px;cursor:grab;border-radius:10px;background:radial-gradient(#2a2a33,#0d0d12)"></canvas>';
+  document.body.appendChild(ov);const cv=ov.querySelector('canvas'),c=cv.getContext('2d'),ptr=new Map();let q=DUCK_ICON_Q.slice(),zoom=1,auto=true,run=true,pd=0;
+  const close=()=>{run=false;ov.remove();document.removeEventListener('keydown',key,true);};
+  const key=e=>{if(e.key==='Escape'){close();e.stopPropagation();e.preventDefault();}};document.addEventListener('keydown',key,true);
+  ov.addEventListener('pointerdown',e=>{if(e.target===ov){close();return;}if(e.target!==cv)return;cv.setPointerCapture(e.pointerId);ptr.set(e.pointerId,[e.clientX,e.clientY]);auto=false;
+    if(ptr.size===2){const [a,b]=[...ptr.values()];pd=Math.hypot(a[0]-b[0],a[1]-b[1]);}});
+  cv.addEventListener('pointermove',e=>{const p=ptr.get(e.pointerId);if(!p)return;
+    if(ptr.size===1){const dx=e.clientX-p[0],dy=e.clientY-p[1];q=quatTurn(q,dy*0.01,dx*0.01,0);} // drag right turns it about the vertical, drag down tips it toward you
+    ptr.set(e.pointerId,[e.clientX,e.clientY]);if(ptr.size===2){const [a,b]=[...ptr.values()],nd=Math.hypot(a[0]-b[0],a[1]-b[1]);if(pd>0)zoom=Math.max(0.4,Math.min(4,zoom*nd/pd));pd=nd;}});
+  const up=e=>{ptr.delete(e.pointerId);pd=0;};cv.addEventListener('pointerup',up);cv.addEventListener('pointercancel',up);
+  cv.addEventListener('wheel',e=>{e.preventDefault();zoom=Math.max(0.4,Math.min(4,zoom*Math.exp(-e.deltaY*0.0015)));},{passive:false});
+  cv.addEventListener('dblclick',()=>{q=DUCK_ICON_Q.slice();zoom=1;auto=true;});
+  const fr=()=>{if(!run)return;const now=performance.now();if(auto)q=quatTurn(q,0,0.008,0);c.clearRect(0,0,N,N);const h=N*0.62*zoom/(v.head?1.25:1);
+    duckGlow(c,type,N/2,N/2,h,now,0);drawDuck3D(c,type,q,[[N/2,N/2]],h,1,N);requestAnimationFrame(fr);};fr();}
+SCENES.duck={dur:6500,setup(S){S.ring(14,40,95,(x,y,i)=>S.part(x,y,i%6));S.ps=[];S.ring(6,30,60,(x,y,i)=>S.ps.push(S.pig(x,y,i,10)));},
+  tick(S,t,now){if(!S.fired&&t>700){S.fired=1;S.d=spawnDuck(S.W/2,S.H/2,now,DUCK_IDS[(S.n-1)%DUCK_IDS.length]);S.d.vx=S.d.vy=0;}
+    if(S.d&&!S.shot&&t>1700){S.shot=1;for(const p of S.ps){const dx=S.d.x-p.x,dy=S.d.y-p.y,l=Math.hypot(dx,dy)||1;p.vx=dx/l*1.6;p.vy=dy/l*1.6;}}}}; // pigments thrown at it bounce off; it squeaks and tumbles
 RULE_TABS.splice(RULE_TABS.findIndex(t=>t[0]==='map'),0,['ducks','Ducks']);
 RULE_TAB_COST.ducks=0;RULE_BLURB.ducks='Rubber ducks you have collected. Each type you find joins the collection.';
 RULES.push(
-["duck","ducks","Rubber Duck","duck:classic","Sometimes a Dark Remnant comes out as a rubber duck instead, and the surface carries on.",[["Chance","Every Dark Remnant has a chance (Duck chance) to be a duck. It cannot happen when only remnants and relics are left."],["Collect","Click a duck to collect it. Ducks are not items: they go into your collection."],["Cleared","Ducks still on a cleared surface are collected for you."],["Feed","Hover a duck to see its type and variation."]]],
+["duck","ducks","Rubber Duck","duck:classic","Sometimes a Dark Remnant comes out as a rubber duck instead, and the surface carries on.",[["Chance","Every Dark Remnant has a chance (Duck chance) to be a duck. It cannot happen when only remnants and relics are left."],["Collect","Click a duck to collect it. Ducks are not items: they go into your collection."],["Cleared","Ducks still on a cleared surface are collected for you."],["Feed","Hover a duck to see its type and variation."],["Solid","Things bounce off a duck the way they bounce off a CRYSTALIZE point. It never breaks, and every hit makes it squeak or quack."],["Tumbles","It is a real 3D duck: any push it gets on the surface also tumbles it."],["Dark","Nothing consumes a duck, except a Dark Remnant before you collect it."],["Viewer","Click a duck in your collection to turn it and zoom in."]]],
 ["duckexo","ducks","Exotic ducks","duck:rainbow","A duck can be an exotic: the classic duck with ONE thing changed.",[["Colour","Six effect colours (body, with the opposite colour on the beak), plus Rainbow."],["Size","Tiny, Small, Little, Big, Bigger, Huge, plus Big Head."],["Material","Wood, Glass, Metal, Dim, Bright, Shining, plus Gold."],["Rare","Rainbow, Big Head and Gold are rarer than the other exotics."],["One change","Exotics never mix: there is no tiny rainbow metal duck."]]]);
 Object.assign(RULE_EV,{duck:'duck',duckexo:'duck'});Object.assign(RULE_SCENES,{duck:['duck']});
 EVENTS.push({id:'duck',name:'Rubber Duck',type:'Event — Duck',rar:'r',scene:'duck',ico:'duck:classic',facts:()=>['A Dark Remnant came out as a rubber duck. The surface carries on.','Click it to add it to your collection (Guide → Ducks).'],flavor:'Squeak.'});
