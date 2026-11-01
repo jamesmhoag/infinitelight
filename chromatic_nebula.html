@@ -13633,7 +13633,9 @@ const SCENES={};
   SCENES.eclpoint=fxp('black');SCENES.cryspoint=fxp('white');
 })();
 function sceneBoot(name,TT){
-  Object.assign(T,TT||{});T.particleScale=0.5;T.particleGap=2;
+  Object.assign(T,TT||{});
+  {const k=0.5/Math.max(0.05,T.particleScale||1);T.nebBlur*=k;T.nebBlur2*=k;} // a demo draws particles at half size: its blur radii shrink with them, so the look matches play
+  T.particleScale=0.5;T.particleGap=2;T.nebBlurScale=1;T.glowResScale=1; // a demo canvas is small: its blur and glow layers can run at full resolution
   const dockScene=(name==='itemcache'||name==='discover');wrap.classList.add('ui-hidden');if(!dockScene)document.getElementById('dock').style.display='none';wrap.style.pointerEvents='none';for(const k in T)if(k.slice(0,3)==='dc_')T[k]=0;
   const def=SCENES[name]||{dur:3000,setup(){}};
   const S={W:0,H:0,t0:0,n:0,
