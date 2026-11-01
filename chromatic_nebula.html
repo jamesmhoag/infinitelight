@@ -434,6 +434,8 @@ const T={
   pulsingFacing: 90,  // degrees: how far a Pulsing remnant's glyph and beam are turned from its spin angle (its first-half thrust points forward)
   orbitSteer:   1, // how much of its heading error an Orbit / Fling / Pull turns out per frame (the turn itself is limited by Max rot spd and the K·Rot-force rate)
   spiralRate:   0.13, // px/frame: how fast Fling widens (and Pull narrows) an orbit's radius
+  exitSpinKeep: 0.3,  // share of its spin a thing keeps once it leaves an Orbit / Fling / Whirl ring (the rest bleeds off, so it sails away)
+  exitSpinMs:   1500, // ms: how long that spin takes to bleed down to Exit spin keep
   // Forces — per-color sub-ratios
 
   // Interaction
@@ -960,6 +962,8 @@ const TUNE_DEFS=[
   {sec:'Forces — sub-ratios',tab:'gameplay'},
   {key:'orbitSteer',label:'Orbit steer',min:0,max:1,step:0.05,tip:'Share of its heading error an Orbit / Fling / Pull turns out each frame (turn rate itself is capped by Max rot spd)'},
   {key:'spiralRate',label:'Spiral rate',min:0,max:1,step:0.01,tip:'px/frame: Fling widens, Pull narrows an orbit by this much'},
+  {key:'exitSpinKeep',label:'Exit spin keep',min:0,max:1,step:0.05,tip:'Share of its spin a thing keeps after leaving an Orbit / Fling / Whirl ring: the rest bleeds off over Exit spin ms, so its path straightens and it moves away from the source'},
+  {key:'exitSpinMs',label:'Exit spin ms',min:0,max:6000,step:100,tip:'How long the spin of a thing leaving an Orbit / Fling / Whirl ring takes to bleed down to Exit spin keep'},
 
   {sec:'Interaction',tab:'gameplay'},
   {key:'repurposeGap',label:'Repurpose gap',min:4,max:60,step:1,tip:'Minimum spacing of the particles / points / remnants a Repurposed shape is made of (the copied object own size sets a floor)'},
@@ -9831,7 +9835,7 @@ function removeAt(mx,my){
     if(Math.hypot(_wrapD(p.x-mx,W),_wrapD(p.y-my,H))<R+Math.max(1,placedRadius(p))){pressedIDs.delete(p.id);pendingActs.delete(p.id);active.splice(i,1);}
   }
 }
-function createParticleAt(mx,my,variant){
+function createParticleAt(mx,my,variant,h){ // h: an exact hue for a new coloured particle (default: the variant's own primary)
   if(underGlass(mx,my))return null;
   if(GW<=0||GH<=0)return null;
   let gx=Math.floor((mx-GRID_OX)/PIXEL_SIZE),gy=Math.floor((my-GRID_OY)/PIXEL_SY);
@@ -9849,7 +9853,7 @@ function createParticleAt(mx,my,variant){
     return existing; // so a held click keeps feeding it
   }
   const white=(variant==='white'),black=(variant==='black'),ci0=(white||black)?0:variant;
-  const hue=ci0/6;
+  const hue=(white||black||h===undefined)?ci0/6:h;
   const rgb=white?{r:255,g:255,b:255}:black?{r:0,g:0,b:0}:ucol(hue,1.0,0.5);
   const jp=jitterPos(gx,gy);
   const energy=jitterParticleEnergy();
@@ -9874,11 +9878,11 @@ function createParticleAt(mx,my,variant){
 // one of those minimums is read live off T rather than hardcoded, so if the
 // tuning changes (e.g. T.collMass, T.opacMin), newly created objects track
 // it immediately — the create cursor always matches the current tuning.
-function createPointAt(mx,my,ci,isStar){
+function createPointAt(mx,my,ci,isStar,h){ // h: as createParticleAt
   if(underGlass(mx,my))return null;
   const fxv=(ci==='white'||ci==='black')?ci:null; // CRYSTALIZE / ECLIPSE variant
   if(fxv)ci=0;
-  const hue=ci/6;
+  const hue=(fxv||h===undefined)?ci/6:h;
   const rgb=ucol(hue,1.0,0.5);
   if(isStar){
     // Mass is pinned at the smallest legitimate collapsed-star mass
@@ -10538,6 +10542,12 @@ _pm('remnant-fx');
     const p=active[i];
     if(p._stasis){continue;} // held in stasis (its telemetry is stored and zeroed when it is frozen): nothing moves, no force or timer touches it
     if(p.rotGoal!==undefined){const dg=p.rotGoal-(p.rot||0),sl=T.rotSlew*Math.max(0.05,timeScale);if(Math.abs(dg)<=sl){p.rot=p.rotGoal;p.rotGoal=undefined;}else p.rot=(p.rot||0)+Math.sign(dg)*sl;}
+    if(p._orbSrc!==undefined&&now-(p._orbT||0)>150){p._orbSrc=undefined;p._exitRot=Math.abs(p.rot||0);} // just left an Orbit / Fling / Whirl ring (applyForce stopped refreshing it)
+    else if(p._orbSrc!==undefined)p._exitRot=0; // back inside one: the effect owns its spin again
+    if(p._exitRot&&p.rotGoal===undefined){ // its spin bleeds down to Exit spin keep of what it left with, so the curve opens out and it moves away from the source
+      const fl=p._exitRot*T.exitSpinKeep,a=Math.abs(p.rot||0),nr=a-(p._exitRot-fl)*timeScale*16.67/Math.max(1,T.exitSpinMs);
+      if(nr<=fl||a<=fl){if(a>fl)p.rot=Math.sign(p.rot)*fl;p._exitRot=0;}else p.rot=Math.sign(p.rot)*nr;
+    }
     if(p.dialT!==undefined){
       p.dialT+=_effDt;
       if(p.dialT<T.dialMs&&!p.captured){ // launch window: 2× speed, on its own trajectory; collisions can happen but don't redirect it
@@ -13516,10 +13526,11 @@ const SCENES={};
   const rv=s=>(Math.random()-0.5)*2*s,TAU=6.2832;
   const R4=(x0,y0,x1,y1)=>[{x:x0,y:y0},{x:x1,y:y0},{x:x1,y:y1},{x:x0,y:y1}];
   const shp=o=>{pushFixed(Object.assign({id:++shapeSeq,closed:false,acc:0,lastSweep:0,broken:{}},o));rebuildGlassList();};
-  for(let ci=0;ci<6;ci++)SCENES['fx'+ci]={dur:7000,setup(S){ // a shining pigment of this colour in a field of pigments and sleeping particles: the real effect
+  for(let ci=0;ci<6;ci++)SCENES['fx'+ci]={dur:7000,setup(S){ // a shining pigment of this colour in a field of pigments and sleeping particles: the real effect.
+    // Everything in it is within this colour's own range, so nothing in the scene can carry (or shift it to) another effect.
     showRadii=true;classOn=true;S.act(S.pig(S.W/2,S.H/2,ci,40),Math.min(S.H*0.46,85));
-    S.ring(12,26,70,(x,y,i)=>{const p=S.pig(x,y,ci,8);p.vx=rv(0.6);p.vy=rv(0.6);});
-    S.ring(16,34,90,(x,y)=>S.part(x,y,ci));}};
+    S.ring(12,26,70,(x,y)=>{const p=S.pig(x,y,ci,8,S.band(ci));p.vx=rv(0.6);p.vy=rv(0.6);});
+    S.ring(16,34,90,(x,y)=>S.part(x,y,ci,S.band(ci)));}};
   SCENES.eclipse={dur:6500,setup(S){for(let i=0;i<6;i++)S.pig(50+i*48,S.H/2,i,10);const e=S.act(createPointAt(14,S.H/2,'black',false));e.vx=0.9;e.birthProgress=1;S.keep(e);}};
   SCENES.crystal={dur:7000,setup(S){for(let i=0;i<3;i++)S.pig(S.W*0.7,S.H*(0.3+0.2*i),i*2,10);const c=S.act(createPointAt(S.W*0.38,S.H/2,'white',false));c.vx=1.3;c.birthProgress=1;c.lifespan=4500;}};
   SCENES.neutron={dur:7000,setup(S){S.rem(S.W/2,S.H/2,'neutron');S.ring(9,30,85,(x,y,i)=>{const p=S.pig(x,y,i,12);p.vx=rv(0.2);p.vy=rv(0.2);});S.ring(10,40,90,(x,y)=>S.part(x,y,2));}};
@@ -13648,16 +13659,17 @@ function sceneBoot(name,TT){
   const dockScene=(name==='itemcache'||name==='discover');wrap.classList.add('ui-hidden');if(!dockScene)document.getElementById('dock').style.display='none';wrap.style.pointerEvents='none';for(const k in T)if(k.slice(0,3)==='dc_')T[k]=0;
   const def=SCENES[name]||{dur:3000,setup(){}};
   const S={W:0,H:0,t0:0,n:0,
-    part:(x,y,c)=>createParticleAt(x,y,c),
-    pig:(x,y,c,m)=>{const p=createPointAt(x,y,c,false);if(m){p.mass=m;updateCached(p);}p.birthProgress=1;return p;},
+    part:(x,y,c,h)=>createParticleAt(x,y,c,h),
+    pig:(x,y,c,m,h)=>{const p=createPointAt(x,y,c,false,h);if(m){p.mass=m;updateCached(p);}p.birthProgress=1;return p;},
     pnt:(x,y,c)=>{const p=createPointAt(x,y,c,true);p.birthProgress=1;p._keep=true;p.lifespan=Infinity;return p;},
     rem:(x,y,k)=>createRemnantAt(x,y,k),
     keep:p=>{p._keep=true;return p;},
     act:(p,R)=>{p.touchStart=performance.now();if(!p.collapsed)p.wakeProgress=0;pressedIDs.add(p.id);p._keep=true;if(R)p._ER=R;return p;},
     rnd:(a,b)=>a+Math.random()*(b-a),
+    band:c=>(c/6+(Math.random()*0.12-0.06)*T.seedSpread+1)%1, // a hue in colour c's own range, strayed by Seed spread like the stages' nebula — never far enough to become another effect
     patch:(gx,gy,w,h,f)=>{for(let y=gy;y<gy+h;y++)for(let x=gx;x<gx+w;x++)S.part(GRID_OX+(x+0.5)*PIXEL_SIZE,GRID_OY+(y+0.5)*PIXEL_SY,f(x,y));},
     ring:(n,r0,r1,f)=>{for(let i=0;i<n;i++){const a=i/n*TAU0+0.4,r=r0+(r1-r0)*((i*7)%n)/n;f(S.W/2+Math.cos(a)*r,S.H/2+Math.sin(a)*r,i);}}};
-  const TAU0=6.2832;const CORE=new Set(['W','H','t0','n','part','pig','pnt','rem','keep','act','rnd','ring','patch']);
+  const TAU0=6.2832;const CORE=new Set(['W','H','t0','n','part','pig','pnt','rem','keep','act','rnd','band','ring','patch']);
   const start=()=>{
     clearStage();if(invertMode!==!!window.__INV)toggleInvertMode();
     heat.v=0;heat.until=0;heat.needNew=false;mouse.x=mouse.y=-9999;mouseDown=false;dragMode=false;armedInvItem=null;conMode=false;
@@ -13698,9 +13710,9 @@ const RULES=[
 ["particle","things","Particle","particle","A sleeping dot. It does nothing until woken.",[["Forms","When shined, or when a shining ring, nova, beam, item or Dark Remnant reaches it."],["Becomes","A pigment of the same colour."],["Moves","Never, but when a settle step runs it can slide to a free neighbour spot."]]],
 ["pig","things","Pigment","pig","A formed particle. When it shines, its colour does a job to things inside its ring.",[["Born","Fades in from a soft glow."],["Shining","A ring pulses round it. Its colour effect works inside the ring."],["Life","Runs down only while shining."],["Joins","If two touch, the shining one wins, otherwise the heavier. The winner gets the mass. Pigments never join Dim or Bright remnants."],["Ends","Out of life, it closes in with a small flash and leaves a Dim Remnant with the same mass, energy and colour."]]],
 ["THROW","things","THROW","pig","Pushes things away from it.",[["Also","Slows spin."]]],
-["FLING","things","FLING","pig","Throws things out in a widening spiral.",[["Also","Sets things circling at a safe speed first."]]],
-["ORBIT","things","ORBIT","pig","Makes things circle around it at the distance they were.",[["String","Circling a still point enough times earns a String."]]],
-["WHIRL","things","WHIRL","pig","Pulls things in a tightening spiral.",[]],
+["FLING","things","FLING","pig","Throws things out in a widening spiral.",[["Also","Sets things circling at a safe speed first."],["Leaving","Out of the ring, a thing's spin eases off to part of what it had, so it sails away still curving."]]],
+["ORBIT","things","ORBIT","pig","Makes things circle around it at the distance they were.",[["String","Circling a still point enough times earns a String."],["Leaving","Out of the ring, a thing's spin eases off to part of what it had, so it drifts away."]]],
+["WHIRL","things","WHIRL","pig","Pulls things in a tightening spiral.",[["Leaving","Out of the ring, a thing's spin eases off to part of what it had, so it drifts away."]]],
 ["CATCH","things","CATCH","pig","Pulls things straight toward it.",[["Also","Slows spin."]]],
 ["SNARE","things","SNARE","pig","Brakes things: speed and spin both fall.",[]],
 ["ECLIPSE","things","ECLIPSE","eclipse","A black one. It turns what it touches black.",[["Pigment","Does nothing until it shines. While shining it blackens whatever it touches as it moves (it has no ring)."],["Point","Not shining: blackens what it touches. Shining: a ring that blackens everything inside."],["Bumps","Nothing bumps or consumes it except another ECLIPSE."],["Point form","When it bursts, its nova lays CRYSTALIZE particles with some colour mixed in. It leaves an enriched Dim Remnant (a relic)."]]],
