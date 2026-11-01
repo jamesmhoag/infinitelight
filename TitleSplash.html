@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8"/>
 <meta name="viewport" content="width=device-width,initial-scale=1"/>
-<title>Infinite Light Logo — Audio Synced</title>
+<title>Infinite Light</title>
 <link href="https://fonts.googleapis.com/css2?family=Spirax&display=swap" rel="stylesheet">
 <style>
 /* =========================
@@ -119,9 +119,19 @@ body{
 .text-pair2{ filter:blur(120px); opacity:0.6; --init-blur:120px; --init-alpha:0.6; animation: focus var(--pair2-duration) ease-in-out var(--pair2-delay) infinite alternate; }
 .text-pair3{ filter:blur(120px); opacity:0.6; --init-blur:120px; --init-alpha:0.6; animation: focus var(--pair3-duration) ease-in-out var(--pair3-delay) infinite alternate; }
 
-/* Button container top-right */
-.audio-controls{ position:fixed; top:10px; right:10px; display:flex; gap:5px; z-index:100; }
+/* Sound top-right (shared with the game: T.soundOn / T.masterVol) */
+.audio-controls{ position:fixed; top:10px; right:10px; display:flex; gap:6px; align-items:center; z-index:100; }
 .audio-controls button{ font-size:0.7rem; padding:3px 6px; cursor:pointer; }
+/* Main menu */
+.main-menu{ position:fixed; left:50%; bottom:9vh; transform:translateX(-50%); display:flex; gap:14px; z-index:100; }
+.main-menu button{ font:600 14px/1 system-ui,sans-serif; letter-spacing:3px; text-transform:uppercase; color:#fff; background:rgba(255,255,255,0.04);
+  border:1px solid rgba(255,255,255,0.3); border-radius:999px; padding:12px 26px; cursor:pointer; transition:background .2s,box-shadow .2s; }
+.main-menu button:hover{ background:rgba(255,255,255,0.12); box-shadow:0 0 24px rgba(160,200,255,0.35); }
+.main-menu button[hidden]{ display:none; }
+.disc-lock{ opacity:0!important; }
+#veil{ position:fixed; z-index:120; pointer-events:none; display:none; align-items:center; justify-content:center; background:#000; border:1px solid #333; color:#666; font:10px monospace; border-radius:999px; }
+#neb{ position:fixed; inset:0; width:100%; height:100%; border:0; z-index:200; visibility:hidden; pointer-events:none; background:#000; }
+#neb.show{ visibility:visible; pointer-events:auto; }
 
 /* responsive clamp */
 @media (max-width:720px){ .splash-container{ font-size:4rem; } }
@@ -154,11 +164,20 @@ body{
     <div class="text-base">Infinite~<br><span>~Light</span></div>
   </div>
 
-  <!-- Controls -->
-  <div class="audio-controls">
-    <button id="toggleAudio">Enable</button>
-    <button id="pauseAudio">Pause</button>
+  <!-- Main menu -->
+  <div class="main-menu">
+    <button id="continueBtn" hidden>Continue</button>
+    <button id="startBtn">Start</button>
+    <button id="guideBtn" data-disc="main_guide">Guide</button>
   </div>
+  <!-- Sound -->
+  <div class="audio-controls">
+    <button id="toggleAudio">Sound: OFF</button>
+    <input id="vol" type="range" min="0" max="1" step="0.05" title="Volume">
+  </div>
+  <div id="veil"></div>
+  <!-- The game, loaded hidden: it holds the Guide, the sound setting, the items and the discoveries -->
+  <iframe id="neb" src="chromatic_nebula.html?hub=1" title="Guide"></iframe>
 
 <script>
 // Audio context
@@ -177,20 +196,59 @@ textGain.gain.value = 0.05;
 glowOsc.start();
 textOsc.start();
 
-// Flag
+// Sound: the same setting as the game (T.soundOn / T.masterVol, saved by the game)
+let T = {}, inv = {dim:0}, disc = new Set(), nebReady = false;
 let audioEnabled = false;
-let audioPaused = false;
+const nebEl = document.getElementById('neb');
+function neb(m){ if(nebEl.contentWindow) nebEl.contentWindow.postMessage(m,'*'); }
+function applyGain(){ const g = audioEnabled && !document.hidden ? 0.05*(T.masterVol!=null?T.masterVol:0.7) : 0;
+  glowGain.gain.setTargetAtTime(g,ctx.currentTime,0.1); textGain.gain.setTargetAtTime(g,ctx.currentTime,0.1);
+  document.getElementById('toggleAudio').textContent = 'Sound: '+(audioEnabled?'ON':'OFF'); document.getElementById('vol').value = T.masterVol!=null?T.masterVol:0.7; }
+function setSound(on,vol){ audioEnabled = on; if(vol!=null) T.masterVol = +vol; T.soundOn = on?1:0; if(on) ctx.resume(); applyGain(); neb({cmd:'sound',on,vol:vol!=null?+vol:null}); }
+glowGain.gain.value = 0; textGain.gain.value = 0;
+document.getElementById('toggleAudio').onclick = () => setSound(!audioEnabled);
+document.getElementById('vol').oninput = e => setSound(true,e.target.value);
+document.addEventListener('visibilitychange',applyGain); // mute when leaving the screen
+document.addEventListener('pointerdown', e => { if(T.soundOn && !audioEnabled && e.target.id!=='toggleAudio'){ audioEnabled = true; ctx.resume(); applyGain(); } }, true); // the game's sound setting starts with the first click (browsers need one)
 
-// Toggle buttons
-document.getElementById('toggleAudio').onclick = () => {
-  if (!audioEnabled) ctx.resume().then(()=>{audioEnabled=true;});
+// Main menu: Continue goes straight back to the map, or into the surface left unfinished
+const MAP_KEY = 'il_map_v1';
+let saved = null; try{ saved = JSON.parse(localStorage.getItem(MAP_KEY)||'null'); }catch(e){}
+const contBtn = document.getElementById('continueBtn'), startBtn = document.getElementById('startBtn');
+if(saved && saved.cells){ contBtn.hidden = false; startBtn.textContent = 'New map'; }
+contBtn.onclick = () => { location.href = 'Surface_Map_HUB.html' + (saved.session ? '?resume=1' : ''); };
+startBtn.onclick = () => {
+  if(saved && saved.cells && !confirm('Start a new map? Your items and discoveries are kept.')) return;
+  try{ localStorage.removeItem(MAP_KEY); }catch(e){}
+  const go = () => { location.href = 'Surface_Map_HUB.html'; };
+  try{ const r = indexedDB.open('infiniteLight',1); r.onupgradeneeded = () => r.result.createObjectStore('kv');
+    r.onsuccess = () => { const tx = r.result.transaction('kv','readwrite'); tx.objectStore('kv').delete('session'); tx.oncomplete = go; tx.onerror = go; };
+    r.onerror = go; }catch(e){ go(); }
+};
+// The Guide: shown by the game in its own overlay; it must be discovered first
+document.getElementById('guideBtn').onclick = () => { if(!nebReady) return; nebEl.classList.add('show'); nebEl.focus(); neb({cmd:'guide'}); };
+window.addEventListener('message', e => {
+  const m = e.data; if(e.source !== nebEl.contentWindow || !m || !m.il) return;
+  if(m.T){ T = m.T; inv = m.inv||inv; disc = new Set(m.disc||[]); applyDisc(); applyGain(); }
+  if(m.T) nebReady = true; // 'ready', or its answer to the 'state' asked for below
+  if(m.type === 'overlayDone'){ nebEl.classList.remove('show'); window.focus(); }
+});
+neb({cmd:'state'});
+// Discoveries: the same rule as the game (hover while holding the Dim cost; nothing is spent)
+let dcX=-1, dcY=-1, dcMet=null;
+document.addEventListener('mousemove', e => { dcX=e.clientX; dcY=e.clientY; }, true);
+const discCost = id => T['dc_'+id]||0;
+function applyDisc(){ document.querySelectorAll('[data-disc]').forEach(el => el.classList.toggle('disc-lock', discCost(el.dataset.disc)>0 && !disc.has(el.dataset.disc))); }
+for(const ev of ['mousedown','mouseup','click']) document.addEventListener(ev, e => { if(e.target.closest && e.target.closest('.disc-lock')){ e.stopPropagation(); e.preventDefault(); } }, true);
+function discTick(){
+  const v=document.getElementById('veil'), t=dcX>=0?document.elementFromPoint(dcX,dcY):null, el=t&&t.closest?t.closest('.disc-lock'):null;
+  if(!el){ v.style.display='none'; dcMet=null; return; }
+  const id=el.dataset.disc, cost=discCost(id), r=el.getBoundingClientRect(), met=(inv.dim||0)>=cost;
+  Object.assign(v.style,{display:'flex',left:r.left+'px',top:r.top+'px',width:r.width+'px',height:r.height+'px'});
+  if(met){ if(!dcMet||dcMet.id!==id) dcMet={id,t:performance.now()}; v.textContent='\u2713 '+cost; v.style.color='#9fd';
+    if(performance.now()-dcMet.t>450){ dcMet=null; v.style.display='none'; disc.add(id); applyDisc(); neb({cmd:'discover',id}); } }
+  else { dcMet=null; v.textContent=cost+' Dim'; v.style.color='#666'; }
 }
-document.getElementById('pauseAudio').onclick = () => {
-  audioPaused = !audioPaused;
-}
-
-// Mute when leaving screen
-document.addEventListener('visibilitychange',()=>{ if(document.hidden){glowGain.gain.value=0;textGain.gain.value=0;} else{glowGain.gain.value=audioEnabled&&!audioPaused?0.05:0;textGain.gain.value=audioEnabled&&!audioPaused?0.05:0;} });
 
 const glowLayers = [...document.querySelectorAll('.glow-layer')];
 const textLayers = [...document.querySelectorAll('.text-pair')];
@@ -209,7 +267,9 @@ function parseBlur(filter){
 }
 
 function updateAudio(){
-  if(!audioEnabled || audioPaused) return;
+  requestAnimationFrame(updateAudio); // keeps running so sound can be switched on at any time
+  discTick();
+  if(!audioEnabled) return;
 
   // Glow layers
   let glowF = 0;
@@ -237,8 +297,6 @@ function updateAudio(){
   const textPitch = pitchMin + (pitchMax-pitchMin)*(1-textF); // invert
   glowOsc.frequency.setTargetAtTime(glowPitch,ctx.currentTime,0.05);
   textOsc.frequency.setTargetAtTime(textPitch,ctx.currentTime,0.05);
-
-  requestAnimationFrame(updateAudio);
 }
 
 requestAnimationFrame(updateAudio);
