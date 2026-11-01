@@ -72,7 +72,7 @@ body{background:#050608;overflow:hidden;font-family:'Share Tech Mono',monospace;
   <div class="gl">Leave</div><button onclick="quitMain()">Quit to main menu</button>
 </div></div>
 <div id="veil"></div>
-<iframe id="neb" src="chromatic_nebula.html?hub=1" title="Surface"></iframe>
+<iframe id="neb" src="chromatic_nebula.html?hub=1&v=20261101d" title="Surface"></iframe>
 <script>
 // ╔══════════════════════════════════════════════════════════════════════════════╗
 // ║  MAP ENGINE                                                                 ║
@@ -229,7 +229,7 @@ const shotSize=()=>Math.round(2*HEX*(window.devicePixelRatio||1));
 function cellSeed(c){return Math.abs(Math.sin(c.q*127.1+c.r*311.7+depth*999)*43758.5453)%100;}
 function cellCov(c){const lo=T.mapCovMin!=null?T.mapCovMin:0.25,full=T.mapCovFull||1;return Math.round((lo+(1-lo)*Math.min(1,c.v/full))*1000)/1000;}
 function syncRenderSig(){ // any tuner that changes how a surface looks (not sound, discoveries or the map's own layout) re-shoots the hexes
-  let h=0;const str=JSON.stringify(Object.keys(T).filter(k=>!/^(dc_|soundOn|masterVol|mapAlpha|mapCov|mapHexSize)/.test(k)).sort().map(k=>T[k]))+'|'+shotSize();
+  let h=0;const str=JSON.stringify(Object.keys(T).filter(k=>!/^(dc_|soundOn|masterVol|mapAlpha|mapCov|mapClear|mapHexSize|duck)/.test(k)).sort().map(k=>T[k]))+'|'+shotSize();
   for(let i=0;i<str.length;i++)h=(h*31+str.charCodeAt(i))|0;renderSig=''+h;
 }
 function cellSig(c){return cellSeed(c).toFixed(6)+'|'+cellCov(c)+'|'+renderSig;}
@@ -258,7 +258,7 @@ function mapRender(){
   const ptSet=new Set();if(hoverMove)for(const p of hoverMove.path)ptSet.add(K(p.q,p.r));
   const mergedSet=new Set();for(const g of mergeGroups)for(const ck of g.cells)mergedSet.add(ck);
   const keys=Object.keys(cells);keys.sort((a,b)=>(cells[a].isP?1:0)-(cells[b].isP?1:0));
-  const now=performance.now();
+  const now=performance.now(),brightOnes=[];
   for(const k of keys){
     const c=cells[k];const[sx,sy]=w2s(...a2w(c.q,c.r));
     if(sx<-HEX*2||sx>MW+HEX*2||sy<-HEX*2||sy>MH+HEX*2)continue;
@@ -273,7 +273,6 @@ function mapRender(){
     else{fill='rgba(14,17,22,0.75)';stroke='rgba(255,255,255,0.08)';}
 
     if(c.isP){mctx.save();mctx.shadowColor='rgba(0,210,210,0.2)';mctx.shadowBlur=24;hexPath(sx,sy,s+3);mctx.fillStyle='rgba(0,210,210,0.05)';mctx.fill();mctx.restore();}
-    if(bright){mctx.save();mctx.shadowColor='rgba(255,255,255,0.45)';mctx.shadowBlur=18;hexPath(sx,sy,s);mctx.fillStyle=fill;mctx.fill();mctx.restore();}
     if(c.isVoid&&c.q===0&&c.r===0&&voidOpen){mctx.save();mctx.shadowColor='rgba(160,120,230,0.25)';mctx.shadowBlur=28;hexPath(sx,sy,s+2);mctx.fillStyle='rgba(160,120,230,0.04)';mctx.fill();mctx.restore();}
     hexPath(sx,sy,s);mctx.fillStyle=fill;mctx.fill();
     if(!c.cap&&!c.isVoid){const img=cellLayer(k,c);if(img){mctx.save();hexPath(sx,sy,s);mctx.clip();mctx.globalAlpha=T.mapAlpha!=null?T.mapAlpha:1;mctx.drawImage(img,sx-HEX,sy-HEX,2*HEX,2*HEX);mctx.restore();}}
@@ -286,10 +285,18 @@ function mapRender(){
     if(c.locked){const d=3.5;mctx.beginPath();mctx.moveTo(sx,sy-HEX*0.28-d);mctx.lineTo(sx+d,sy-HEX*0.28);mctx.lineTo(sx,sy-HEX*0.28+d);mctx.lineTo(sx-d,sy-HEX*0.28);mctx.closePath();mctx.fillStyle='rgba(220,185,50,0.6)';mctx.fill();}
     if(k===nebulaCellKey){mctx.font=`${Math.max(8,HEX*0.24)}px 'Share Tech Mono',monospace`;mctx.textAlign='center';mctx.textBaseline='middle';mctx.fillStyle='rgba(0,230,230,0.85)';mctx.fillText('❚❚ saved',sx,sy-HEX*0.5);}
     if(c.isVoid){if(c.q===0&&c.r===0&&voidOpen){mctx.font=`${HEX*0.45}px 'Orbitron',sans-serif`;mctx.textAlign='center';mctx.textBaseline='middle';mctx.fillStyle='rgba(180,140,255,0.5)';mctx.fillText('▽',sx,sy+1);}else if(c.q===0&&c.r===0){mctx.beginPath();mctx.arc(sx,sy,3,0,Math.PI*2);mctx.fillStyle='rgba(255,255,255,0.06)';mctx.fill();}else{const m=4;mctx.strokeStyle='rgba(255,255,255,0.08)';mctx.lineWidth=1;mctx.beginPath();mctx.moveTo(sx-m,sy-m);mctx.lineTo(sx+m,sy+m);mctx.stroke();mctx.beginPath();mctx.moveTo(sx+m,sy-m);mctx.lineTo(sx-m,sy+m);mctx.stroke();}}
+    if(bright){brightOnes.push([sx,sy,c.capVal,stroke,sw]);continue;} // drawn after the bleed below
     if(!c.isVoid){const dv=c.cap?c.capVal:c.v;mctx.font=`${Math.max(10,HEX*0.34)}px 'Share Tech Mono',monospace`;mctx.textAlign='center';mctx.textBaseline='middle';
       mctx.save();if(!c.cap){mctx.shadowColor='#000';mctx.shadowBlur=4;}
       mctx.fillStyle=`rgba(${vC},${vA})`;mctx.fillText(dv.toFixed(2),sx,sy+(dark?HEX*0.55:c.locked?2:0));mctx.restore();}
   }
+  // Bright clears bleed into their neighbours: every bright hex together, blurred and screened over the map, then their outline and value on top
+  if(brightOnes.length){const bl=T.mapClearBlur!=null?T.mapClearBlur:0.6,ba=T.mapClearBleed!=null?T.mapClearBleed:0.85;
+    if(bl>0&&ba>0)for(const[k,al,sz]of [[1,ba,1.12],[0.4,ba*0.8,1]]){mctx.save();mctx.filter=`blur(${HEX*bl*k}px)`;mctx.globalCompositeOperation='screen';mctx.fillStyle=`rgba(255,255,255,${al})`;mctx.beginPath(); // a wide and a mid blur pass
+      for(const[x,y]of brightOnes)for(let i=0;i<6;i++){const a=Math.PI/3*i-Math.PI/6,r=HEX*sz;if(!i)mctx.moveTo(x+r*Math.cos(a),y+r*Math.sin(a));else mctx.lineTo(x+r*Math.cos(a),y+r*Math.sin(a));}
+      mctx.fill();mctx.restore();}
+    for(const[x,y,v,st,sw]of brightOnes){mctx.save();mctx.filter=`blur(${HEX*0.12}px)`;hexPath(x,y,HEX*0.8);mctx.fillStyle='rgba(255,255,255,0.95)';mctx.fill();mctx.restore();if(st!=='#fff'){hexPath(x,y,HEX*0.92);mctx.strokeStyle=st;mctx.lineWidth=sw;mctx.stroke();} // a soft white core (no hard edge); only the player / merge outline stays crisp
+      mctx.font=`${Math.max(10,HEX*0.34)}px 'Share Tech Mono',monospace`;mctx.textAlign='center';mctx.textBaseline='middle';mctx.fillStyle='rgba(20,24,32,0.75)';mctx.fillText(v.toFixed(2),x,y);}}
   // Merge visuals
   for(const g of mergeGroups){if(!g.cells.length)continue;const pts=g.cells.map(ck=>{const cc=cells[ck];return cc?w2s(...a2w(cc.q,cc.r)):null;}).filter(Boolean);if(pts.length<2)continue;mctx.strokeStyle='rgba(160,120,230,0.5)';mctx.lineWidth=1.2;for(let i=0;i<g.cells.length;i++)for(let j=i+1;j<g.cells.length;j++){const c1=cells[g.cells[i]],c2=cells[g.cells[j]];if(c1&&c2&&dist(c1.q,c1.r,c2.q,c2.r)===1){const[x1,y1]=w2s(...a2w(c1.q,c1.r));const[x2,y2]=w2s(...a2w(c2.q,c2.r));mctx.beginPath();mctx.moveTo(x1,y1);mctx.lineTo(x2,y2);mctx.stroke();}}const cx2=pts.reduce((s,p)=>s+p[0],0)/pts.length;const cy2=pts.reduce((s,p)=>s+p[1],0)/pts.length;const sr=g.type==='hex'?HEX*1.6:HEX*0.85;starPath(cx2,cy2,sr,sr*0.42,5);mctx.strokeStyle='rgba(160,120,230,0.55)';mctx.lineWidth=1.5;mctx.stroke();}
   // Direction line

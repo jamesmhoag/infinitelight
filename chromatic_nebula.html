@@ -1537,11 +1537,13 @@ TUNE_DEFS.push({sec:'Time dilation & Risks',tab:'gameplay'},
  {key:'riskWarnMass',label:'Risk WARNING mass',min:1,max:5000,step:10,tip:'Points above this mass show a blinking WARNING (default: half the Dark Remnant formation mass)'},
  {key:'riskDangerMass',label:'Risk DANGER mass',min:1,max:400000,step:100,tip:'Points above this mass show DANGER'},
  {key:'cacheKeyR',label:'Cache keyhole pane R',min:6,max:40,step:1,tip:'Radius of the central keyhole glass pane of a Cache'});
-Object.assign(T,{masterVol:0.7,soundOn:0,mapHexSize:34,mapZoom:1,mapAlpha:1,mapCovMin:0.25,mapCovFull:1});
+Object.assign(T,{masterVol:0.7,soundOn:0,mapHexSize:34,mapZoom:1,mapAlpha:1,mapClearBlur:0.6,mapClearBleed:0.85,mapCovMin:0.25,mapCovFull:1});
 TUNE_DEFS.push({sec:'Master volume',tab:'sounds'},{key:'masterVol',label:'Master volume',min:0,max:1,step:0.05,tip:'Overall volume (also in the Esc menu)'},
  {sec:'Surface Map — hex surface layer (drawn by the surface renderer: pixel map, blur passes and α all apply)',tab:'gameplay'},
  {key:'mapHexSize',label:'Hex size',min:20,max:90,step:1,tip:'Radius (px) of a Surface Map hex'},
  {key:'mapZoom',label:'Hex zoom',min:0.25,max:8,step:0.05,tip:'How much of its surface a hex shows: 1 = the middle square of the screen; higher zooms in'},
+ {key:'mapClearBlur',label:'Clear edge blur',min:0,max:1.5,step:0.05,tip:'How far a bright cleared hex blurs into its neighbours (× hex size)'},
+ {key:'mapClearBleed',label:'Clear edge glow α',min:0,max:1,step:0.05,tip:'Strength of the white that bleeds from a bright cleared hex into its neighbours'},
  {key:'mapAlpha',label:'Hex layer α',min:0,max:1,step:0.05,tip:'Opacity of the surface shown on an uncleared hex'},
  {key:'mapCovMin',label:'Hex min coverage',min:0,max:1,step:0.05,tip:'Coverage of a surface whose hex value is 0'},
  {key:'mapCovFull',label:'Hex full coverage value',min:0.1,max:6,step:0.1,tip:'Hex value at which a surface is fully covered with particles'});
@@ -3125,6 +3127,7 @@ let gateFx=null,keyFx=null; // the Gate's rewind transition / the Key's insert-t
 let keyShapes=[];        // one entry per Key in the purse, oldest first — each remembers the Pattern that formed it
 let inventory={bright:0,dim:0,neutron:0,magnetic:0,pulsing:0,dial:0,leash:0,prism:0,gate:0,knot:0,key:0,lens:0,weave:0};
 let invDisabled=new Set(),invDisableMode=false,discSeen=new Set();
+let ducks=[],duckLog={}; // rubber ducks on this surface / the duck collection (type → count, saved with the inventory)
 let invFlash={kind:null,at:0};   // last slot that gained an item (its icon pulses)
 let earnFx=[],constellationFx=[]; // real-time visual effects (see drawEarnFx / drawConstellationFx)
 (function loadInventory(){
@@ -3133,6 +3136,7 @@ let earnFx=[],constellationFx=[]; // real-time visual effects (see drawEarnFx / 
     if(raw){const saved=JSON.parse(raw);for(const k of INV_KINDS)if(typeof saved[k]==='number')inventory[k]=saved[k];
     if(Array.isArray(saved.disabled))invDisabled=new Set(saved.disabled);
     if(Array.isArray(saved.discovered))discSeen=new Set(saved.discovered);
+    if(saved.ducks&&typeof saved.ducks==='object')duckLog=saved.ducks;
       if(typeof saved.notch==='number')inventory.knot=Math.min(invMaxFor('knot'),inventory.knot+saved.notch);}
   }catch(e){/* localStorage unavailable — start fresh, still fully playable */}
 })();
@@ -3152,7 +3156,7 @@ function cycleKeyRing(){if(keyShapes.length>1)keyShapes.push(keyShapes.shift());
 function saveInventory(){
   if(window.__SCENE)return;
   syncKeyShapes();
-  try{localStorage.setItem(INV_STORAGE_KEY,JSON.stringify(Object.assign({},inventory,{disabled:[...invDisabled],discovered:[...discSeen]})));localStorage.setItem(KEYSHAPE_STORAGE_KEY,JSON.stringify(keyShapes));}catch(e){}
+  try{localStorage.setItem(INV_STORAGE_KEY,JSON.stringify(Object.assign({},inventory,{disabled:[...invDisabled],discovered:[...discSeen],ducks:duckLog})));localStorage.setItem(KEYSHAPE_STORAGE_KEY,JSON.stringify(keyShapes));}catch(e){}
 }
 function fmtCount(n){n=Math.floor(n||0);if(n<=9999)return''+n;if(n<100000)return(Math.floor(n/100)/10).toFixed(1)+'k';if(n<1000000)return Math.floor(n/1000)+'k';return(Math.floor(n/10000)/100).toFixed(2)+'m';} // 99.9k · 999k · 9.99m
 function invMaxFor(kind){return T['invMax'+kind[0].toUpperCase()+kind.slice(1)];}
@@ -6300,6 +6304,7 @@ function collectAllOfKind(kind,limit){
 }
 function tryPickupRemnant(mx,my){
   if(performance.now()-mouseDownAt>=HOLD_CHARGE_DELAY_MS)return false; // a hold is not a click
+  {const dk=duckAt(mx,my);if(dk){collectDuck(dk);return true;}} // a duck under the cursor is collected first
   { const nta=performance.now();
     if(lastCollectAll&&nta-lastCollectAll.t<380&&Math.hypot(mx-lastCollectAll.x,my-lastCollectAll.y)<34){ // second quick click: sweep up the NEAREST remnants of the same type, anywhere on screen, up to the snake length in all
       const k=lastCollectAll.kind;lastCollectAll=null;
@@ -6363,7 +6368,7 @@ function checkLevelClear(now){
     clearInfo={type:'black',timeMs:now-levelStartTime,clicks:totalActivations,
       collapsedMass:blackHole.collapsedMass||0,collapsedEnergy:blackHole.collapsedEnergy||0,
       collectedMass:blackHole.scoreMass||0,collectedEnergy:blackHole.scoreEnergy||0};
-    hubLevelCleared();
+    collectAllDucks();hubLevelCleared();
     return;
   }
   // Nothing has ever woken up yet (fresh start — everything's still dormant
@@ -6397,7 +6402,7 @@ function checkLevelClear(now){
   clearInfo={type:'points',timeMs:now-levelStartTime,clicks:totalActivations,
     whiteCount,whiteMass,whiteEnergy,brownCount,brownMass,brownEnergy,activeCounts};
   collectRemnantsToInventory(whiteCount,brownCount,activeCounts);
-  hubLevelCleared();
+  collectAllDucks();hubLevelCleared();
 }
 // Shared per-frame budget for promoting dormant mega-particles into full active
 // particles. Recomputed once per frame from remaining headroom under
@@ -6421,10 +6426,12 @@ function avoidDockFor(x,y,r){
 function triggerBlackRemnant(x,y,now,mass,energy,fromGate){
   if(blackHole)return; // only one remnant event at a time
   if(!fromGate){const lg=gateAtPoint(x,y);if(lg){lockDarkInGate(lg,x,y,now,mass,energy);return;}} // formed inside a Gate: it stays locked in there
+  const asDuck=!fromGate&&!window.__SCENE&&Math.random()<T.duckChance&&(dormantCount>0||active.some(q=>!q.isRemnant&&!q.dying&&!q.captured&&Math.hypot(q.x-x,q.y-y)>60)); // a duck instead — only while the surface still has something to play
   if(fromGate!=='nogrow'&&!(performance.now()-_lastNovaAt<400&&Math.hypot(_lastNovaX-x,_lastNovaY-y)<250)){ // every Dark Remnant begins with a nova (mergers and deaths already fired theirs)
     const nm=Math.min(mass||0,T.massScaleMax*T.blackMult),synthN={x,y,vx:0,vy:0,rot:0,rotation:0,pvx:0,pvy:0,mass:Math.max(1,nm),energy:Math.max(0.001,Math.min(energy||0.5,5)),masses:randomColorMasses(),sigR:255,sigG:255,sigB:255,peakEffectR:0};
     const deb=triggerNova(synthN,now,undefined,true);if(deb)for(const d of deb)active.push(d);
   }
+  if(asDuck){spawnDuck(x,y,now);return;} // the nova still fires; the surface carries on
   const targetR=Math.min(T.whiteEffMax,Math.max(T.whiteEffMin,40))*remEnScaleOf(energy);
   fireEvent('dark');
   blackHole={x,y,targetR,consumeR:0,waveR:0,growStart:now,phase:'grow',activateR:0,scoreMass:0,scoreEnergy:0,collapsedMass:mass||0,collapsedEnergy:energy||0,complete:false,wakes:[],impacts:[]};
@@ -7363,7 +7370,7 @@ function rebuild(seed){
   nebDirty=false;
   dormant=new Array(GW*GH).fill(null);voidLocked=new Uint8Array(GW*GH);settleFades.length=0;glideById.clear();interpList.length=0;interpByCell.clear();transitions.length=0;pausePaths.clear();orbitTrack={};leashTrack={};
   active=[];pressedIDs.clear();lastActivatedId=-1;pidCounter=0;maxWhites=0;fpsCount=0;fpsLast=performance.now();dispersions.length=0;flashes.length=0;blackHole=null;
-  levelCleared=false;clearInfo=null;totalActivations=0;levelStartTime=performance.now();simulationStarted=false;surfaceTally={};surfaceLost={};
+  levelCleared=false;clearInfo=null;totalActivations=0;levelStartTime=performance.now();simulationStarted=false;surfaceTally={};surfaceLost={};ducks.length=0;
   {const dockEl=document.getElementById('dock');if(dockEl)dockEl.classList.remove('dr-hidden');}
   buildSeed=typeof seed==='number'?seed:(hubLevel?hubLevel.seed:Math.random()*100);
   prepareImageSample();
@@ -7512,7 +7519,7 @@ function clearStage(){
   nebDirty=false;
   dormant=new Array(GW*GH).fill(null);voidLocked=new Uint8Array(GW*GH);dormantCount=0;settleFades.length=0;glideById.clear();interpList.length=0;interpByCell.clear();transitions.length=0;pausePaths.clear();orbitTrack={};leashTrack={};
   active=[];pressedIDs.clear();lastActivatedId=-1;pidCounter=0;maxWhites=0;fpsCount=0;fpsLast=performance.now();dispersions.length=0;flashes.length=0;blackHole=null;
-  levelCleared=false;clearInfo=null;totalActivations=0;levelStartTime=performance.now();simulationStarted=false;surfaceTally={};surfaceLost={};
+  levelCleared=false;clearInfo=null;totalActivations=0;levelStartTime=performance.now();simulationStarted=false;surfaceTally={};surfaceLost={};ducks.length=0;
   {const dockEl=document.getElementById('dock');if(dockEl)dockEl.classList.remove('dr-hidden');}
   buildSeed=Math.random()*100;
   rebuildNebula(); // bakes the (now-empty) dormant array into a blank nebula image
@@ -7590,7 +7597,7 @@ function serializeMap(full){
     blackHole:blackHole?JSON.parse(JSON.stringify(plainCopy(blackHole))):null,
     totalActivations,simulationStarted,levelCleared,maxWhites,invDisabled:[...invDisabled],
     // full = a session save (leaving a Surface Map hex): every feature of the surface at this exact moment
-    extra:full?{shapes:fixedShapes.map(plainCopy),fields:placedFields.map(plainCopy),tally:surfaceTally,lost:surfaceLost,invert:invertMode,speed:speedMult,level:hubLevel,elapsed:performance.now()-levelStartTime}:null,
+    extra:full?{shapes:fixedShapes.map(plainCopy),fields:placedFields.map(plainCopy),tally:surfaceTally,lost:surfaceLost,ducks:ducks.map(d=>Object.assign({},d)),invert:invertMode,speed:speedMult,level:hubLevel,elapsed:performance.now()-levelStartTime}:null,
   };
 }
 async function saveMap(){
@@ -7669,7 +7676,7 @@ function loadMapFromObject(data,keepT){
   buildSeed=data.buildSeed||Math.random()*100;
   rebuildNebula();
 }
-function resetSceneState(){resetAudioState();surfaceStartSnapshot=null;lastGateSnapshot=null;gateStates=[];gateCursor=0;whiteChain.length=0;armedInvItem=null;clearFieldsSilently();gateFx=null;keyFx=null;conMode=false;pendingActs.clear();activeBonds.length=0;pendingDial.clear();fixedShapes.length=0;shapeBuild=null;_glassList=[];_gateList=[];_zoneList=[];_plateList=[];shardFx.length=0;_shapeSet=new Set();_grpPrev=new Map();inertSel=[];inertBox=null;}
+function resetSceneState(){resetAudioState();ducks.length=0;surfaceStartSnapshot=null;lastGateSnapshot=null;gateStates=[];gateCursor=0;whiteChain.length=0;armedInvItem=null;clearFieldsSilently();gateFx=null;keyFx=null;conMode=false;pendingActs.clear();activeBonds.length=0;pendingDial.clear();fixedShapes.length=0;shapeBuild=null;_glassList=[];_gateList=[];_zoneList=[];_plateList=[];shardFx.length=0;_shapeSet=new Set();_grpPrev=new Map();inertSel=[];inertBox=null;}
 function loadMapFile(input){
   const file=input.files&&input.files[0];
   if(!file)return;
@@ -12018,6 +12025,8 @@ function updateInfoAndStats(now,hoverObj){
   } else if(performance.now()<feedAlert.until){
     // An alert overrides everything else in the feed for its duration.
     setFeed(feedAlert.text,'','rgba(255,225,140,0.98)');
+  } else if(!hoverInvKind&&!overUI&&duckAt(mouse.x,mouse.y)){
+    const di=duckInfo(duckAt(mouse.x,mouse.y));setFeed('🦆 '+di[0],di[1],'rgba(255,236,140,0.95)');
   } else if(hoverInvKind){
     const pr=invHoverParts(hoverInvKind);setFeed(pr[0],pr[1],'rgba(255,255,255,0.92)');
   } else if(conMode){
@@ -13415,7 +13424,7 @@ function draw(now){
   _dialTargets=computeDialTargets();gateSwipeTick();
   // The world is ALWAYS rendered live (glows, pulses, fades, state changes all keep animating on real time);
   // pausing only stops the simulation itself (timeScale 0), it no longer freezes the picture.
-  renderWorld(now,false);
+  renderWorld(now,false);drawDucks(ctx,now);
   if(timeScale>0.0005)drawMotionGlow(ctx); // (fully paused, the pause paths show motion instead)
   const gateA=drawGateRewind(ctx,now); // during a Gate rewind: the old picture dissolving over the restored world
   if(timeScale<=0.0005){ctx.save();ctx.globalAlpha=gateA;drawPauseGuideRings(ctx,now);ctx.restore();} // effect-radius outlines + predicted motion paths, only at a full stop
@@ -13733,6 +13742,7 @@ function rulesCol(r,g,b){const q=invRGB(r,g,b);return `rgb(${q.r|0},${q.g|0},${q
 function rulesDraw(cv,k){
   const c=cv.getContext('2d'),S=cv.width,m=S/2,inv=!!invertMode;
   c.clearRect(0,0,S,S);c.fillStyle=inv?'#fff':'#05060a';c.fillRect(0,0,S,S);
+  if(k&&k.slice(0,5)==='duck:'){drawDuckIcon(c,S,k.slice(5));return;}
   const glow=(x,y,r,col)=>{const g=c.createRadialGradient(x,y,0,x,y,r);g.addColorStop(0,col);g.addColorStop(1,'rgba(0,0,0,0)');c.fillStyle=g;c.beginPath();c.arc(x,y,r,0,6.2832);c.fill();};
   const ci=({THROW:0,FLING:1,ORBIT:2,WHIRL:3,CATCH:4,SNARE:5})[k];
   const eff=(i)=>{const q=ucol(i/6,1,0.55);return `rgb(${q.r|0},${q.g|0},${q.b|0})`;};
@@ -13991,7 +14001,7 @@ function rulesRender(){
     if(_rulesTab==='book'){const f=_rulesFilter.trim().toLowerCase();list=RULES.slice().sort((a,b)=>a[2].localeCompare(b[2])).filter(e=>!f||(e[2]+' '+e[4]+' '+e[5].map(r=>r[1]).join(' ')).toLowerCase().includes(f));
       body.innerHTML=`<input id="rlFind" type="search" placeholder="Find a word…" value="${_rulesFilter.replace(/"/g,'&quot;')}"><p class="rl-note">Every object, item and shape in the game, A to Z.</p><div class="rl-grid">`+list.map(e=>guideCardHTML(e,!!f)).join('')+'</div>';
       const fi=document.getElementById('rlFind');fi.addEventListener('input',()=>{_rulesFilter=fi.value;const pos=fi.selectionStart;rulesRender();const n=document.getElementById('rlFind');n.focus();n.setSelectionRange(pos,pos);});}
-    else{list=RULES.filter(e=>e[1]===_rulesTab);body.innerHTML=(RULE_BLURB[_rulesTab]?`<p class="rl-note">${RULE_BLURB[_rulesTab]}</p>`:'')+'<div class="rl-grid">'+list.map(e=>guideCardHTML(e,false)).join('')+'</div>';}
+    else{list=RULES.filter(e=>e[1]===_rulesTab);body.innerHTML=(RULE_BLURB[_rulesTab]?`<p class="rl-note">${RULE_BLURB[_rulesTab]}</p>`:'')+'<div class="rl-grid">'+list.map(e=>guideCardHTML(e,false)).join('')+'</div>'+(_rulesTab==='ducks'?duckCollectionHTML():'');}
   }
   body.querySelectorAll('canvas.rl-m').forEach(cv=>rulesDraw(cv,cv.dataset.k));
   applyDisc();body.querySelectorAll('.rl-c.open').forEach(rulesMount);
@@ -14041,7 +14051,7 @@ const IDB={db:null,
 // The particle layer a hex shows on the map: sample the surface at the map's lattice spots (uv in 0..1)
 let _shotCv=null,_shotGen=0;
 function hexShot(size){ // the surface exactly as play renders it (pixel map, blur passes, α), cropped to the middle square and scaled to a hex
-  nebBlurStale=true;nebBlurAt=-1e9;renderWorld(performance.now(),false,true);
+  nebBlurStale=true;nebBlurAt=-1e9;renderWorld(performance.now(),false,true);drawDucks(ctx,performance.now());
   if(!_shotCv)_shotCv=document.createElement('canvas');size=Math.max(8,size|0);_shotCv.width=_shotCv.height=size;
   const g=_shotCv.getContext('2d'),sq=Math.min(W,H)/Math.max(0.05,T.mapZoom||1);
   g.imageSmoothingEnabled=true;g.imageSmoothingQuality='high';g.drawImage(canvas,(W-sq)/2,(H-sq)/2,sq,sq,0,0,size,size);
@@ -14070,7 +14080,7 @@ function restoreSession(d){
   for(const sh of (x.shapes||[])){fixedShapes.push(sh);if(sh.id>shapeSeq)shapeSeq=sh.id;}
   for(const h of (x.fields||[])){h.born=now-T.fieldGrowMs;placedFields.push(h);}
   rebuildGlassList();_shapeSet=new Set(fixedShapes);
-  surfaceTally=x.tally||{};surfaceLost=x.lost||{};levelStartTime=now-(x.elapsed||0);
+  surfaceTally=x.tally||{};surfaceLost=x.lost||{};levelStartTime=now-(x.elapsed||0);for(const d of (x.ducks||[]))if(DUCK_TYPES[d.type]){d.born=now-1e4;ducks.push(d);}
   if(x.invert)toggleInvertMode();
   if(x.speed&&SPEED_LADDER.includes(x.speed)){speedMult=x.speed;setPauseTarget(speedMult,now);}
 }
@@ -14170,6 +14180,116 @@ EVENTS.push(
  {id:'map_merge',name:'Merge',type:'Event — Surface Map',rar:'r',scene:'prism',ico:'prism',facts:()=>['Three touching captures merged: the map shrinks by a ring.','Seven in a hexagon shrink it by three.'],flavor:'Many surfaces, one shape.'},
  {id:'map_decay',name:'Decay',type:'Event — Surface Map',rar:'u',scene:'pointfail',ico:'dim',facts:()=>['Value ran too thin, so the oldest capture became a void.'],flavor:'Nothing stays clean forever.'},
  {id:'map_descend',name:'Descent',type:'Event — Surface Map',rar:'m',scene:'dark',ico:'dark',facts:()=>['You stepped into the centre void. A deeper map begins.'],flavor:'Under every surface, another.'});
+// ═════════════════════════ DUCKS ═════════════════════════
+// A Dark Remnant can come out as a rubber duck instead (T.duckChance); the surface then carries on. Ducks are collected into a
+// collection (duckLog, saved with the inventory), never used as items. The model is the four-view duck strip, cut into sections
+// (head, body, beak, eye, line) so every section can take its own colour and material; each view is lit as a rounded 3D shell
+// (height from the distance to its outline → normals → diffuse, specular, rim and translucency).
+const DUCK_PNG='data:image/png;base64,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';
+const DUCK_CW=149,DUCK_CH=138,DUCK_NECK=[46,45,46,47]; // one view cell of the strip (side-right, front, side-left, back); the neck row splits head from body
+const DUCK_SEC={head:1,body:2,beak:3,eye:4,line:5};
+let duckLab=null;const _duckTex=new Map();
+(function(){const im=new Image();im.onload=()=>{const c=document.createElement('canvas');c.width=im.width;c.height=im.height;const g=c.getContext('2d');g.drawImage(im,0,0);
+  const d=g.getImageData(0,0,c.width,c.height).data;duckLab=new Uint8Array(c.width*c.height);for(let i=0;i<duckLab.length;i++)duckLab[i]=Math.round(d[i*4]/40);_duckTex.clear();};im.src=DUCK_PNG;})();
+// ── Types: the classic duck plus exotics that change ONE thing (colour, size or material). Rare ones roll on their own, rarer chance.
+const DUCK_YEL=[255,222,40],DUCK_ORA=[255,128,10];
+const DUCK_TYPES={classic:{name:'Rubber Duck',axis:'Classic',tex:'classic'}};
+for(let ci=0;ci<6;ci++){const a=ucol(ci/6,1,0.5),b=ucol(((ci+3)%6)/6,1,0.5);DUCK_TYPES['c'+ci]={name:EFFECT_NAMES[ci][0]+EFFECT_NAMES[ci].slice(1).toLowerCase()+' Duck',axis:'Colour',detail:EFFECT_NAMES[ci]+' body · '+EFFECT_NAMES[(ci+3)%6]+' beak',tex:'c'+ci,col:[a.r,a.g,a.b],col2:[b.r,b.g,b.b]};}
+DUCK_TYPES.rainbow={name:'Rainbow Duck',axis:'Colour',detail:'every colour at once',tex:'rainbow',rare:1};
+[['tiny','Tiny',0.45],['small','Small',0.62],['little','Little',0.8],['big','Big',1.3],['bigger','Bigger',1.65],['huge','Huge',2.05]].forEach(([id,n,s])=>DUCK_TYPES[id]={name:n+' Duck',axis:'Size',detail:'×'+s+' size',tex:'classic',scale:s});
+DUCK_TYPES.bighead={name:'Big Head Duck',axis:'Size',detail:'huge head, small body',tex:'classic',head:1.6,bodyS:0.68,rare:1};
+[['wood','Wooden',[176,118,64],[128,78,38]],['glass','Glass',DUCK_YEL,DUCK_ORA],['metal','Metal',[196,200,210],[150,154,166]],['dim','Dim',[150,70,30],[110,48,20]],['bright','Bright',[255,250,232],[255,226,196]],['shining','Shining',DUCK_YEL,DUCK_ORA],['gold','Gold',[255,196,52],[226,146,34]]]
+  .forEach(([id,n,c1,c2])=>DUCK_TYPES[id]={name:n+' Duck',axis:'Material',detail:n.toLowerCase()==='wooden'?'wood':n.toLowerCase(),tex:id,mat:id,col:c1,col2:c2,rare:id==='gold'?1:0});
+const DUCK_IDS=Object.keys(DUCK_TYPES);
+Object.assign(T,{duckChance:0.25,duckExoticChance:0.2,duckRareChance:0.03,duckSize:46,duckSpin:0.5,duckDrift:6,duckGloss:0.9,duckTrans:0.35,duckGlow:2.5});
+TUNE_DEFS.push({sec:'Ducks',tab:'gameplay'},
+ {key:'duckChance',label:'Duck chance',min:0,max:1,step:0.01,tip:'Chance a Dark Remnant comes out as a duck instead (the surface then carries on)'},
+ {key:'duckExoticChance',label:'Exotic chance',min:0,max:1,step:0.01,tip:'Chance a duck is an exotic (one colour, size or material change)'},
+ {key:'duckRareChance',label:'Rare exotic chance',min:0,max:1,step:0.005,tip:'Chance a duck is a rare exotic: Rainbow, Big Head or Gold'},
+ {key:'duckSize',label:'Duck size',min:16,max:140,step:1,tip:'Height (px) of a classic duck on the surface'},
+ {key:'duckSpin',label:'Duck turn speed',min:0,max:3,step:0.05,tip:'How fast a duck turns (radians per second)'},
+ {key:'duckDrift',label:'Duck drift',min:0,max:60,step:1,tip:'How fast a duck drifts across the surface (px per second)'},
+ {key:'duckGloss',label:'Duck gloss',min:0,max:2,step:0.05,tip:'Shine of the plastic'},
+ {key:'duckTrans',label:'Duck translucency',min:0,max:1,step:0.05,tip:'How much light passes through the plastic at thin edges'},
+ {key:'duckGlow',label:'Shining duck glow',min:0,max:6,step:0.1,tip:'Size of the light a Bright or Shining duck gives off (× its size)'});
+function rollDuckType(){const r=Math.random(),pick=a=>a[Math.floor(Math.random()*a.length)];
+  if(r<T.duckRareChance)return pick(DUCK_IDS.filter(k=>DUCK_TYPES[k].rare));
+  if(r<T.duckRareChance+T.duckExoticChance)return pick(DUCK_IDS.filter(k=>k!=='classic'&&!DUCK_TYPES[k].rare));
+  return 'classic';}
+function duckLook(tex,sec,x,y){ // [rgb, material] for one section of a texture
+  const v=DUCK_TYPES[tex]||DUCK_TYPES.classic,mat=v.mat||'plastic';
+  if(sec===4)return[[250,250,250],'plastic'];if(sec===5)return[[22,22,26],mat==='glass'?'glass':'plastic'];
+  if(tex==='rainbow'&&sec!==3){const c=ucol(((x/DUCK_CW+y/DUCK_CH*0.6)%1+1)%1,1,0.5);return[[c.r,c.g,c.b],'plastic'];}
+  if(sec===3)return[v.col2||DUCK_ORA,mat];return[v.col||DUCK_YEL,mat];}
+function duckTexture(tex,view){
+  const key=tex+'|'+view+'|'+T.duckGloss+'|'+T.duckTrans;if(_duckTex.has(key))return _duckTex.get(key);if(!duckLab)return null;
+  const CW=DUCK_CW,CH=DUCK_CH,N=CW*CH,AW=CW*4,lab=new Uint8Array(N);for(let y=0;y<CH;y++)for(let x=0;x<CW;x++)lab[y*CW+x]=duckLab[y*AW+view*CW+x];
+  const dist=inside=>{const d=new Float32Array(N);for(let i=0;i<N;i++)d[i]=inside(lab[i])?1e4:0; // two-pass chamfer distance to the outside of a section
+    for(let y=0;y<CH;y++)for(let x=0;x<CW;x++){const i=y*CW+x;if(!d[i])continue;let m=d[i];if(x>0)m=Math.min(m,d[i-1]+1);if(y>0){m=Math.min(m,d[i-CW]+1);if(x>0)m=Math.min(m,d[i-CW-1]+1.414);if(x<CW-1)m=Math.min(m,d[i-CW+1]+1.414);}if(x===0||y===0||x===CW-1)m=Math.min(m,1);d[i]=m;}
+    for(let y=CH-1;y>=0;y--)for(let x=CW-1;x>=0;x--){const i=y*CW+x;if(!d[i])continue;let m=d[i];if(x<CW-1)m=Math.min(m,d[i+1]+1);if(y<CH-1){m=Math.min(m,d[i+CW]+1);if(x<CW-1)m=Math.min(m,d[i+CW+1]+1.414);if(x>0)m=Math.min(m,d[i+CW-1]+1.414);}d[i]=m;}return d;};
+  const dS=dist(l=>l>0),dB=dist(l=>l===3),dE=dist(l=>l===4),R=24,dome=(d,r)=>{const t=Math.min(1,d/r);return r*Math.sqrt(1-(1-t)*(1-t));};
+  const h=new Float32Array(N);for(let i=0;i<N;i++){if(!lab[i])continue;h[i]=dome(dS[i],R)+(lab[i]===3?dome(dB[i],5)*1.2:0)+(lab[i]===4?dome(dE[i],2.5):0)-(lab[i]===5?0.8:0);}
+  const cv=document.createElement('canvas');cv.width=CW;cv.height=CH;const g=cv.getContext('2d'),img=g.createImageData(CW,CH),o=img.data;
+  const L=[-0.45,-0.62,0.64],Ln=Math.hypot(...L),lx=L[0]/Ln,ly=L[1]/Ln,lz=L[2]/Ln,hx=lx,hy=ly,hz=lz+1,hn=Math.hypot(hx,hy,hz);
+  const gl=T.duckGloss,tr=T.duckTrans;
+  for(let y=0;y<CH;y++)for(let x=0;x<CW;x++){const i=y*CW+x,s=lab[i];if(!s)continue;
+    const hL=x>0&&lab[i-1]?h[i-1]:0,hR=x<CW-1&&lab[i+1]?h[i+1]:0,hU=y>0&&lab[i-CW]?h[i-CW]:0,hD=y<CH-1&&lab[i+CW]?h[i+CW]:0;
+    let nx=-(hR-hL)*0.5,ny=-(hD-hU)*0.5,nz=1;const nn=Math.hypot(nx,ny,nz);nx/=nn;ny/=nn;nz/=nn;
+    const dif=Math.max(0,nx*lx+ny*ly+nz*lz),nh=Math.max(0,(nx*hx+ny*hy+nz*hz)/hn),rim=Math.pow(1-nz,3),edge=1-Math.min(1,dS[i]/R);
+    const [c,mat]=duckLook(tex,s===1||s===2?s:s,x,y);let r,gg,b,a=1,sp;
+    const mix=(k,w)=>[c[0]*k+w,c[1]*k+w,c[2]*k+w];
+    if(mat==='wood'){const gr=0.5+0.5*Math.sin(x*0.33+4*Math.sin(y*0.06+x*0.01)+y*0.04);sp=Math.pow(nh,12)*0.12*gl*255;[r,gg,b]=mix((0.62+0.32*gr)*(0.35+0.75*dif),sp);}
+    else if(mat==='glass'){sp=(Math.pow(nh,80)*1.6+rim*0.6)*255*gl;[r,gg,b]=mix(0.7*(0.55+0.5*dif)+0.25*edge,sp);a=Math.min(1,0.42+0.55*Math.pow(1-nz,1.5)+sp/300);} // glass: see-through in the middle, its edges and highlights solid
+    else if(mat==='metal'||mat==='gold'){const e=0.5+0.5*Math.sin((ny*3.4+nx*0.7)*2.4);sp=Math.pow(nh,140)*1.5*gl*255;[r,gg,b]=mix(0.18+0.95*e*(0.4+0.6*dif),sp);}
+    else if(mat==='dim'){sp=Math.pow(nh,20)*0.18*gl*255;[r,gg,b]=mix(0.3+0.55*dif+0.35*edge,sp);}
+    else if(mat==='bright'){sp=Math.pow(nh,40)*gl*255;[r,gg,b]=mix(0.62+0.42*dif,sp+40);}
+    else if(mat==='shining'){sp=Math.pow(nh,40)*gl*255;[r,gg,b]=mix(0.85+0.4*dif,sp+30);}
+    else{sp=(Math.pow(nh,60)*1.0+Math.pow(nh,8)*0.12)*gl*255;[r,gg,b]=mix(0.3+0.8*dif,sp+rim*60);
+      r+=c[0]*tr*0.45*edge;gg+=c[1]*tr*0.45*edge;b+=c[2]*tr*0.45*edge;a=1-tr*0.4*Math.pow(1-nz,2);} // translucent plastic: thin edges glow with their own colour and let a little through
+    const k=i*4;o[k]=Math.min(255,r);o[k+1]=Math.min(255,gg);o[k+2]=Math.min(255,b);o[k+3]=Math.round(255*Math.max(0,Math.min(1,a)));}
+  g.putImageData(img,0,0);_duckTex.set(key,cv);return cv;}
+// ── On the surface ──
+function spawnDuck(x,y,now,type){
+  type=type||rollDuckType();const d={x,y,vx:0,vy:0,ang:Math.random()*6.2832,spin:(Math.random()<0.5?-1:1)*(0.6+Math.random()*0.8),born:now,type,ph:Math.random()*6.2832};
+  const a=Math.random()*6.2832;d.vx=Math.cos(a);d.vy=Math.sin(a);ducks.push(d);fireEvent('duck');
+  flashSaveStatus('A Dark Remnant came out as a duck: '+DUCK_TYPES[type].name+'!');return d;}
+function duckSizeOf(d){return T.duckSize*(DUCK_TYPES[d.type].scale||1);}
+function duckAt(mx,my){if(!ducks.length||mx<0)return null;let best=null,bd=1e9;for(const d of ducks){const s=duckSizeOf(d)*0.5,dx=_wrapD(d.x-mx,W),dy=_wrapD(d.y-my,H),q=dx*dx+dy*dy;if(q<s*s&&q<bd){bd=q;best=d;}}return best;}
+function duckInfo(d){const v=DUCK_TYPES[d.type];return[(v.rare?'★ ':'')+v.name,v.axis+(v.detail?': '+v.detail:'')+' · '+(v.rare?'rare exotic':d.type==='classic'?'classic':'exotic')+' · collected '+(duckLog[d.type]||0)+' · click to collect'];}
+function collectDuck(d,silent){const i=ducks.indexOf(d);if(i<0)return;ducks.splice(i,1);duckLog[d.type]=(duckLog[d.type]||0)+1;saveInventory();
+  if(!silent){const v=DUCK_TYPES[d.type];earnFx.push({kind:'plus',x:d.x,y:d.y-duckSizeOf(d)*0.6,text:'🦆 '+v.name,born:performance.now(),dur:1400});flashSaveStatus('🦆 Collected: '+v.name+' ('+duckLog[d.type]+')');}}
+function collectAllDucks(){for(const d of ducks.slice())collectDuck(d,true);}
+function drawDuckSprite(c,tex,view,cx,by,h,v,alpha,sx){ // bottom-centre anchored; Big Head draws its head and body at their own scales
+  const im=duckTexture(tex,view);if(!im)return;const k=h/DUCK_CH,nk=DUCK_NECK[view];c.save();c.globalAlpha*=alpha;c.translate(cx,by);c.scale(sx,1);
+  if(v.head){const kb=k*v.bodyS,kh=k*v.head,bh=(DUCK_CH-nk)*kb;c.drawImage(im,0,nk,DUCK_CW,DUCK_CH-nk,-DUCK_CW*kb/2,-bh,DUCK_CW*kb,bh);c.drawImage(im,0,0,DUCK_CW,nk+2,-DUCK_CW*kh/2,-bh-nk*kh+2*kh,DUCK_CW*kh,(nk+2)*kh);}
+  else c.drawImage(im,-DUCK_CW*k/2,-DUCK_CH*k,DUCK_CW*k,DUCK_CH*k);c.restore();}
+function drawDuckTurning(c,d,cx,cy,h,now){ // four views; a turn squeezes the duck narrow, swaps to the next view at the narrowest point, then widens again
+  const v=DUCK_TYPES[d.type],f=(((d.ang/(Math.PI/2))%4)+4)%4,i0=Math.floor(f)%4,t=f-Math.floor(f),w=t<0.47?0:t>0.53?1:(t-0.47)/0.06,sq=1-0.38*Math.sin(Math.PI*t);
+  if(v.mat==='bright'||v.mat==='shining'){const col=v.mat==='bright'?'255,250,235':v.col.join(','),R=h*T.duckGlow*0.5,gr=c.createRadialGradient(cx,cy,0,cx,cy,R);
+    gr.addColorStop(0,'rgba('+col+','+(0.35+0.15*Math.sin(now/300+d.ph))+')');gr.addColorStop(1,'rgba('+col+',0)');c.save();c.globalCompositeOperation='lighter';c.fillStyle=gr;c.beginPath();c.arc(cx,cy,R,0,6.2832);c.fill();c.restore();}
+  if(w<1)drawDuckSprite(c,v.tex,i0,cx,cy+h/2,h,v,1-w,sq);if(w>0)drawDuckSprite(c,v.tex,(i0+1)%4,cx,cy+h/2,h,v,w,sq);}
+let _duckT=0;
+function drawDucks(c,now){
+  const dt=_duckT?Math.min(100,now-_duckT)*(typeof timeScale==='number'?Math.min(1,Math.max(0,timeScale)):1):0;_duckT=now;if(!ducks.length)return;
+  for(const d of ducks){d.ang+=d.spin*T.duckSpin*dt/1000;d.x=((d.x+d.vx*T.duckDrift*dt/1000)%W+W)%W;d.y=((d.y+d.vy*T.duckDrift*dt/1000)%H+H)%H;
+    const age=(now-d.born)/600,pop=age>=1?1:1+2.7*Math.pow(age-1,3)+1.7*Math.pow(age-1,2),h=duckSizeOf(d)*Math.max(0,pop),bob=Math.sin(now/650+d.ph)*h*0.035;
+    if(age<1.5){c.save();c.strokeStyle='rgba(255,240,150,'+(0.6*(1-age/1.5))+')';c.lineWidth=2;c.beginPath();c.arc(d.x,d.y,h*(0.4+age*0.8),0,6.2832);c.stroke();c.restore();}
+    c.save();c.translate(d.x,d.y+bob);c.rotate(Math.sin(now/900+d.ph)*0.06);drawDuckTurning(c,d,0,0,h,now);c.restore();}}
+// ── The collection (Guide → Ducks) ──
+function duckCollectionHTML(){
+  const got=DUCK_IDS.filter(k=>duckLog[k]>0),total=got.reduce((s,k)=>s+duckLog[k],0);
+  return '<h3 style="margin:14px 0 6px">Collection · '+total+' duck'+(total===1?'':'s')+' · '+got.length+' of '+DUCK_IDS.length+' types</h3><div class="rl-grid">'+(got.length?got.map(k=>{const v=DUCK_TYPES[k];
+    return '<div class="rl-c"><div class="rl-h"><canvas class="rl-m" width="48" height="48" data-k="duck:'+k+'"></canvas><span class="rl-t"><b>'+(v.rare?'★ ':'')+gEsc(v.name)+' × '+duckLog[k]+'</b><i>'+gEsc(v.axis+(v.detail?': '+v.detail:'')+(v.rare?' · rare exotic':k==='classic'?'':' · exotic'))+'</i></span></div></div>';}).join(''):'<p class="rl-note">No ducks yet. Some Dark Remnants come out as ducks.</p>')+'</div>';}
+function drawDuckIcon(c,S,type){const d={type:DUCK_TYPES[type]?type:'classic',ang:Math.PI*0.35,ph:0},v=DUCK_TYPES[d.type];drawDuckTurning(c,d,S/2,S/2,S*0.8/(v.head?1.25:1),performance.now());}
+SCENES.duck={dur:5200,setup(S){S.ring(14,40,95,(x,y,i)=>S.part(x,y,i%6));S.ring(6,30,60,(x,y,i)=>S.pig(x,y,i,10));},
+  tick(S,t,now){if(!S.fired&&t>700){S.fired=1;spawnDuck(S.W/2,S.H/2,now,DUCK_IDS[(S.n-1)%DUCK_IDS.length]);}}};
+RULE_TABS.splice(RULE_TABS.findIndex(t=>t[0]==='map'),0,['ducks','Ducks']);
+RULE_TAB_COST.ducks=0;RULE_BLURB.ducks='Rubber ducks you have collected. Each type you find joins the collection.';
+RULES.push(
+["duck","ducks","Rubber Duck","duck:classic","Sometimes a Dark Remnant comes out as a rubber duck instead, and the surface carries on.",[["Chance","Every Dark Remnant has a chance (Duck chance) to be a duck. It cannot happen when only remnants and relics are left."],["Collect","Click a duck to collect it. Ducks are not items: they go into your collection."],["Cleared","Ducks still on a cleared surface are collected for you."],["Feed","Hover a duck to see its type and variation."]]],
+["duckexo","ducks","Exotic ducks","duck:rainbow","A duck can be an exotic: the classic duck with ONE thing changed.",[["Colour","Six effect colours (body, with the opposite colour on the beak), plus Rainbow."],["Size","Tiny, Small, Little, Big, Bigger, Huge, plus Big Head."],["Material","Wood, Glass, Metal, Dim, Bright, Shining, plus Gold."],["Rare","Rainbow, Big Head and Gold are rarer than the other exotics."],["One change","Exotics never mix: there is no tiny rainbow metal duck."]]]);
+Object.assign(RULE_EV,{duck:'duck',duckexo:'duck'});Object.assign(RULE_SCENES,{duck:['duck']});
+EVENTS.push({id:'duck',name:'Rubber Duck',type:'Event — Duck',rar:'r',scene:'duck',ico:'duck:classic',facts:()=>['A Dark Remnant came out as a rubber duck. The surface carries on.','Click it to add it to your collection (Guide → Ducks).'],flavor:'Squeak.'});
 document.addEventListener('keydown',e=>{
   if(_evOpen){if(e.key==='Escape'||e.key==='Enter')closeEventCard();e.stopPropagation();e.preventDefault();return;}
   if(!_rulesOpen)return;if(e.key==='Escape'){closeRules();e.stopPropagation();e.preventDefault();return;}
