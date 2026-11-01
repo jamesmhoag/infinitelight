@@ -1537,15 +1537,12 @@ TUNE_DEFS.push({sec:'Time dilation & Risks',tab:'gameplay'},
  {key:'riskWarnMass',label:'Risk WARNING mass',min:1,max:5000,step:10,tip:'Points above this mass show a blinking WARNING (default: half the Dark Remnant formation mass)'},
  {key:'riskDangerMass',label:'Risk DANGER mass',min:1,max:400000,step:100,tip:'Points above this mass show DANGER'},
  {key:'cacheKeyR',label:'Cache keyhole pane R',min:6,max:40,step:1,tip:'Radius of the central keyhole glass pane of a Cache'});
-Object.assign(T,{masterVol:0.7,soundOn:0,mapHexSize:34,mapPixSize:4,mapPixGap:2,mapPixJitter:0.35,mapPixAlpha:0.85,mapPixGlow:4,mapCovMin:0.25,mapCovFull:1});
+Object.assign(T,{masterVol:0.7,soundOn:0,mapHexSize:34,mapZoom:1,mapAlpha:1,mapCovMin:0.25,mapCovFull:1});
 TUNE_DEFS.push({sec:'Master volume',tab:'sounds'},{key:'masterVol',label:'Master volume',min:0,max:1,step:0.05,tip:'Overall volume (also in the Esc menu)'},
- {sec:'Surface Map — hex particle layer',tab:'gameplay'},
+ {sec:'Surface Map — hex surface layer (drawn by the surface renderer: pixel map, blur passes and α all apply)',tab:'gameplay'},
  {key:'mapHexSize',label:'Hex size',min:20,max:90,step:1,tip:'Radius (px) of a Surface Map hex'},
- {key:'mapPixSize',label:'Hex particle size',min:1,max:14,step:0.5,tip:'Diameter (px) of each particle drawn on an uncleared hex'},
- {key:'mapPixGap',label:'Hex particle gap',min:0,max:12,step:0.5,tip:'Space (px) between the particles of a hex layer'},
- {key:'mapPixJitter',label:'Hex particle jitter',min:0,max:1,step:0.05,tip:'How far each hex particle strays from its lattice spot'},
- {key:'mapPixAlpha',label:'Hex particle α',min:0,max:1,step:0.05,tip:'Opacity of a hex particle layer'},
- {key:'mapPixGlow',label:'Hex particle glow',min:0,max:20,step:0.5,tip:'Glow blur (px) of a hex particle layer'},
+ {key:'mapZoom',label:'Hex zoom',min:0.25,max:8,step:0.05,tip:'How much of its surface a hex shows: 1 = the middle square of the screen; higher zooms in'},
+ {key:'mapAlpha',label:'Hex layer α',min:0,max:1,step:0.05,tip:'Opacity of the surface shown on an uncleared hex'},
  {key:'mapCovMin',label:'Hex min coverage',min:0,max:1,step:0.05,tip:'Coverage of a surface whose hex value is 0'},
  {key:'mapCovFull',label:'Hex full coverage value',min:0.1,max:6,step:0.1,tip:'Hex value at which a surface is fully covered with particles'});
 let tuneTab='gameplay',tuneFilter='',tuneSel=null,tuneBuf='';
@@ -11126,10 +11123,10 @@ function nebBlurLayers(src,dw,dh,now){ // the two blurred halo passes live in ca
   }
   return [nebB1,nebB2];
 }
-function renderWorld(now,suppressGlow){
+function renderWorld(now,suppressGlow,asPlay){
   // A manual Particle-map toggle is instant (mapT snaps to 1); otherwise this follows timeScale (0=paused..1=play, 2=fast) exactly
   // like the rest of the sim's pause ramp, so the blend rides the same Stop ms / Resume ms feel as everything else that pauses.
-  const timeScaleForBlend=isPaused?Math.min(1,timeScale):Math.min(1,baseScale/Math.max(0.05,Math.min(1,resumeRef,speedMult))); // changing speed while running never counts as 'less played'
+  const timeScaleForBlend=asPlay?1:isPaused?Math.min(1,timeScale):Math.min(1,baseScale/Math.max(0.05,Math.min(1,resumeRef,speedMult))); // changing speed while running never counts as 'less played'
   ctx.fillStyle=invertMode?'#fff':'#000';ctx.fillRect(0,0,W,H); // main canvas: always a hard clear — the nebula redraws fully fresh on it every frame regardless of trails
   drawBlackRemnantBG(ctx,now); // the Dark Remnant's expanding darkness — drawn like part of the background, UNDER everything else, so it never blocks anything it hasn't actually reached yet
   if(blackHole&&blackHole.activateR>0){
@@ -14027,7 +14024,7 @@ function closeRules(){
 // and this page reports back when it is cleared (bright → the hex turns white, Dark Remnant → the hex holds a dark remnant).
 // Leaving an unfinished surface saves every feature of it (IndexedDB, it is too big for localStorage) so it can be continued.
 var HUB=!window.__SCENE&&window.parent!==window&&/[?&]hub=1/.test(location.search);
-var hubAsleep=false,hubLevel=null,hubOverlay=false,hubUV=null,_menuOpen=false,_menuWasPaused=false;
+var hubAsleep=false,hubLevel=null,hubOverlay=false,hubShotSize=68,_menuOpen=false,_menuWasPaused=false;
 function hubPost(m){if(HUB)window.parent.postMessage(Object.assign({il:1},m),'*');}
 function hubState(type){hubPost({type:type||'state',T:Object.assign({},T),inv:Object.assign({},inventory),disc:[...discSeen],defs:TUNE_DEFS.filter(d=>d.key&&d.key.slice(0,3)==='map')});}
 function hubWake(){hubAsleep=false;if(!rafId)rafId=requestAnimationFrame(loop);}
@@ -14040,25 +14037,27 @@ const IDB={db:null,
   async run(mode,fn){const db=await this.open();return new Promise((ok,no)=>{const tx=db.transaction('kv',mode),st=tx.objectStore('kv'),q=fn(st);tx.oncomplete=()=>ok(q&&q.result);tx.onerror=()=>no(tx.error);});},
   get(k){return this.run('readonly',st=>st.get(k));},put(k,v){return this.run('readwrite',st=>st.put(v,k));},del(k){return this.run('readwrite',st=>st.delete(k));}};
 // The particle layer a hex shows on the map: sample the surface at the map's lattice spots (uv in 0..1)
-function previewFor(seed,cov,uv){
-  const sv=levelCoverage;levelCoverage=cov;const pts=[];
-  for(const q of uv){const x=q[0]*W,y=q[1]*H;pts.push(isCellCovered(x,y,seed)?{h:fieldHue(x,y,seed),x,y}:null);}
-  levelCoverage=sv;
-  const live=pts.filter(Boolean).sort((a,b)=>a.h-b.h),N=live.length; // the same colour-balancing rank as rebuild()
-  live.forEach((p,r)=>{const bk=Math.min(5,Math.floor(r/N*6)),bs=Math.floor(bk*N/6),bz=Math.max(1,Math.floor((bk+1)*N/6)-bs);p.h=(bk+((r-bs+0.5)/bz-0.5)*T.seedSpread)/6;});
-  const e=T.particleStartEnergy/10;
-  return pts.map(p=>{if(!p)return 0;const rl=hash(p.x+seed,p.y);if(rl<T.particleBlackFrac)return[24,24,30];if(rl<T.particleBlackFrac+T.particleWhiteFrac)return[255,255,255];const c=ucol(p.h,1,0.5),w=whiteTint(c.r,c.g,c.b,e);return[w.r,w.g,w.b];});
+let _shotCv=null,_shotGen=0;
+function hexShot(size){ // the surface exactly as play renders it (pixel map, blur passes, α), cropped to the middle square and scaled to a hex
+  nebBlurStale=true;nebBlurAt=-1e9;renderWorld(performance.now(),false,true);
+  if(!_shotCv)_shotCv=document.createElement('canvas');size=Math.max(8,size|0);_shotCv.width=_shotCv.height=size;
+  const g=_shotCv.getContext('2d'),sq=Math.min(W,H)/Math.max(0.05,T.mapZoom||1);
+  g.imageSmoothingEnabled=true;g.imageSmoothingQuality='high';g.drawImage(canvas,(W-sq)/2,(H-sq)/2,sq,sq,0,0,size,size);
+  return _shotCv.toDataURL('image/png');
 }
-function livePreview(uv){ // what is actually left on the surface right now
-  return (uv||[]).map(q=>{const x=q[0]*W,y=q[1]*H;
-    const dp=GW>0?dormant[Math.min(GH-1,(y/PIXEL_SY)|0)*GW+Math.min(GW-1,(x/PIXEL_SIZE)|0)]:null;
-    if(dp){if(dp.blackFx)return[24,24,30];const w=whiteTint(dp.r,dp.g,dp.b,dp.energy);return[w.r,w.g,w.b];}
-    for(const p of active)if(!p.isRemnant&&!p.failedCollapse&&Math.abs(p.x-x)<PIXEL_SIZE&&Math.abs(p.y-y)<PIXEL_SY){const w=whiteTint(p.r,p.g,p.b,p.energy);return[w.r,w.g,w.b];}
-    return 0;});
+async function hubPreviews(items,size){ // one hex per frame; stops the moment a surface is entered
+  const gen=++_shotGen;
+  for(const it of items){
+    if(hubLevel||gen!==_shotGen){hubPost({type:'preview',key:it.key,sig:it.sig,img:null});continue;}
+    levelCoverage=it.cov;rebuild(it.seed);
+    hubPost({type:'preview',key:it.key,sig:it.sig,img:hexShot(size)});
+    await new Promise(r=>setTimeout(r,0));
+  }
+  if(!hubLevel&&gen===_shotGen)hubIdle();
 }
 async function saveSession(){
   if(!HUB||!hubLevel||levelCleared)return null;
-  const rec={key:hubLevel.key,data:JSON.parse(JSON.stringify(serializeMap(true))),pix:livePreview(hubUV)};
+  const rec={key:hubLevel.key,data:JSON.parse(JSON.stringify(serializeMap(true))),img:hexShot(hubShotSize)};
   try{await IDB.put('session',rec);}catch(e){console.error('session save failed',e);}
   return rec;
 }
@@ -14074,7 +14073,7 @@ function restoreSession(d){
   if(x.speed&&SPEED_LADDER.includes(x.speed)){speedMult=x.speed;setPauseTarget(speedMult,now);}
 }
 async function hubStartLevel(m){
-  hubWake();if(_menuOpen)closeGameMenu();
+  _shotGen++;hubWake();if(_menuOpen)closeGameMenu();
   let rec=null;if(m.resume){try{rec=await IDB.get('session');}catch(e){}}
   hubLevel={key:m.key,seed:m.seed,cov:m.cov};levelCoverage=m.cov;
   if(rec&&rec.key===m.key&&rec.data){try{restoreSession(rec.data);flashSaveStatus('Surface '+m.label+' — continued where you left it');}catch(e){console.error(e);rec=null;}}
@@ -14087,14 +14086,14 @@ async function quitTo(dest){ // the pause menu's Quit buttons
   let rec=null;
   if(levelCleared)IDB.del('session').catch(()=>{});else rec=await saveSession();
   const key=hubLevel&&hubLevel.key;hubIdle();hubAsleep=true;
-  hubPost({type:'quit',to:dest,key,cleared:!rec,pix:rec?rec.pix:null,T:Object.assign({},T),inv:Object.assign({},inventory),disc:[...discSeen]});
+  hubPost({type:'quit',to:dest,key,cleared:!rec,img:rec?rec.img:null,T:Object.assign({},T),inv:Object.assign({},inventory),disc:[...discSeen]});
 }
 function hubLevelCleared(){if(!HUB||!hubLevel)return;IDB.del('session').catch(()=>{});hubPost({type:'cleared',key:hubLevel.key,kind:clearInfo&&clearInfo.type==='black'?'dark':'bright'});}
 window.addEventListener('message',e=>{
   const m=e.data;if(!HUB||e.source!==window.parent||!m||!m.cmd)return;
-  if(m.uv)hubUV=m.uv;
+  if(m.size)hubShotSize=m.size;
   if(m.cmd==='level')hubStartLevel(m);
-  else if(m.cmd==='preview')for(const it of m.items)hubPost({type:'preview',key:it.key,sig:it.sig,pix:previewFor(it.seed,it.cov,hubUV)});
+  else if(m.cmd==='preview')hubPreviews(m.items,m.size);
   else if(m.cmd==='drop')IDB.del('session').catch(()=>{});
   else if(m.cmd==='guide'){hubOverlay_(true);openRules();}
   else if(m.cmd==='event'){if(discSeen.has('ev:'+m.id)){hubState('overlayDone');return;}hubOverlay_(true);fireEvent(m.id);}

@@ -68,7 +68,7 @@ body{background:#050608;overflow:hidden;font-family:'Share Tech Mono',monospace;
   <button onclick="toggleMenu()">Resume (Esc)</button>
   <div class="gl">Sound</div><div class="row"><button id="mSnd" onclick="setSound(!soundOn())"></button><input id="mVol" type="range" min="0" max="1" step="0.05" oninput="setSound(true,this.value)"></div>
   <div class="gl">Help</div><button id="mGuide" data-disc="hub_guide" onclick="toggleMenu();openGuide()">Guide</button>
-  <div class="gl">Surface Map — hex particle layer</div><div id="mTune"></div>
+  <div class="gl">Surface Map — hex surface layer</div><div id="mTune"></div>
   <div class="gl">Leave</div><button onclick="quitMain()">Quit to main menu</button>
 </div></div>
 <div id="veil"></div>
@@ -118,7 +118,7 @@ function retractToTurn(){
 function addRing(n){for(const[q,r]of ring(n)){const k=K(q,r);if(!cells[k]){cells[k]={q,r,v:0,cap:false,capVal:0,isP:false,locked:false,mergeId:null,isVoid:false};totalCells++;}}}
 function recomputeLocked(){for(const k in cells){const c=cells[k];c.locked=(!c.cap&&!c.isVoid&&adjCaptured(c.q,c.r));}}
 function dropSession(){ // the unfinished surface is thrown away (values changed, or a new map)
-  if(!nebulaCellKey)return;const c=cells[nebulaCellKey];if(c){delete c.pix;delete c._img;}nebulaCellKey=null;neb({cmd:'drop'});
+  if(!nebulaCellKey)return;const c=cells[nebulaCellKey];if(c){delete c.shot;delete c._im;}nebulaCellKey=null;neb({cmd:'drop'});
 }
 function redistribute(){
   recomputeLocked();let exSum=0,exN=0,voidN=0;
@@ -186,7 +186,7 @@ function doCapture(){ // enter the surface of the hex you stand on
 }
 function completeCaptureForCell(cellKey,kind){
   const c=cells[cellKey];if(!c||c.cap)return;
-  c.cap=true;c.capVal=c.v;c.kind=kind;delete c.pix;delete c.pixSig;delete c._img;
+  c.cap=true;c.capVal=c.v;c.kind=kind;delete c.shot;delete c._im;
   score=Math.round((score+c.v)*100)/100;
   captureOrder.push({keys:[cellKey],mergeId:null});
   phase='captured';
@@ -219,49 +219,38 @@ function hexPath(cx,cy,s){mctx.beginPath();for(let i=0;i<6;i++){const a=Math.PI/
 function starPath(cx,cy,or,ir,pts){mctx.beginPath();for(let i=0;i<pts*2;i++){const a=Math.PI/pts*i-Math.PI/2,r=i%2?ir:or;if(!i)mctx.moveTo(cx+r*Math.cos(a),cy+r*Math.sin(a));else mctx.lineTo(cx+r*Math.cos(a),cy+r*Math.sin(a));}mctx.closePath();}
 
 // ╔══════════════════════════════════════════════════════════════════════════════╗
-// ║  HEX PARTICLE LAYER — each uncleared hex shows the particles of its surface ║
+// ║  HEX SURFACE LAYER — each uncleared hex shows its surface, drawn by the     ║
+// ║  surface's own renderer (pixel map, blur passes, α: the same as in play)    ║
 // ╚══════════════════════════════════════════════════════════════════════════════╝
-// A lattice of spots inside a hex (mapPixSize + mapPixGap pitch, mapPixJitter) is sent to the surface as 0..1 positions;
-// the surface answers with the colour of its particle at each spot (0 = bare). An unfinished surface shows what is left on it.
-let LAT=[],latSig='',prev={},prevPending=new Set(),mapNeed=[];
+// The surface builds each hex's level while idle, renders one frame and sends back a snapshot (mapZoom crops it).
+// An unfinished surface shows the snapshot taken when it was left.
+let prev={},prevPending=new Set(),mapNeed=[],renderSig='';
+const shotSize=()=>Math.round(2*HEX*(window.devicePixelRatio||1));
 function cellSeed(c){return Math.abs(Math.sin(c.q*127.1+c.r*311.7+depth*999)*43758.5453)%100;}
 function cellCov(c){const lo=T.mapCovMin!=null?T.mapCovMin:0.25,full=T.mapCovFull||1;return Math.round((lo+(1-lo)*Math.min(1,c.v/full))*1000)/1000;}
-function buildLattice(){
-  const sig=[HEX,T.mapPixSize,T.mapPixGap,T.mapPixJitter].join('|');if(sig===latSig)return;
-  latSig=sig;LAT=[];prev={};prevPending.clear();
-  const R=HEX*0.86,p=Math.max(1.5,(T.mapPixSize||4)+(T.mapPixGap||0)),j=T.mapPixJitter||0;
-  const h=(x,y)=>Math.abs(Math.sin(x*127.1+y*311.7)*43758.5453)%1;
-  for(let y=-R;y<=R;y+=p)for(let x=-R;x<=R;x+=p){
-    const px=x+(h(x,y)-0.5)*j*p,py=y+(h(y,x)-0.5)*j*p;
-    if(Math.abs(px)*Math.sqrt(3)/2+Math.abs(py)*0.5>R*Math.sqrt(3)/2||Math.abs(py)>R)continue; // inside the pointy-top hex
-    LAT.push([px,py]);
-  }
+function syncRenderSig(){ // any tuner that changes how a surface looks (not sound, discoveries or the map's own layout) re-shoots the hexes
+  let h=0;const str=JSON.stringify(Object.keys(T).filter(k=>!/^(dc_|soundOn|masterVol|mapAlpha|mapCov|mapHexSize)/.test(k)).sort().map(k=>T[k]))+'|'+shotSize();
+  for(let i=0;i<str.length;i++)h=(h*31+str.charCodeAt(i))|0;renderSig=''+h;
 }
-function cellSig(c){return cellSeed(c).toFixed(6)+'|'+cellCov(c)+'|'+latSig;}
+function cellSig(c){return cellSeed(c).toFixed(6)+'|'+cellCov(c)+'|'+renderSig;}
 function requestPreviews(keys){
   if(!nebReady||!keys.length)return;
   const items=[];for(const k of keys){if(prevPending.has(k))continue;const c=cells[k];prevPending.add(k);items.push({key:k,sig:cellSig(c),seed:cellSeed(c),cov:cellCov(c)});}
-  if(items.length)neb({cmd:'preview',items,uv:LAT.map(([x,y])=>[(x+HEX)/(2*HEX),(y+HEX)/(2*HEX)])});
+  if(items.length)neb({cmd:'preview',items,size:shotSize()});
 }
-function layerImage(pix){ // bake one hex's particles into a small canvas (redrawn only when they change)
-  const S=Math.ceil(HEX*2+(T.mapPixGlow||0)*2+4),cv=document.createElement('canvas');cv.width=cv.height=S;const g=cv.getContext('2d'),o=S/2,d=T.mapPixSize||4;
-  g.globalAlpha=T.mapPixAlpha!=null?T.mapPixAlpha:0.85;g.shadowBlur=T.mapPixGlow||0;
-  for(let i=0;i<LAT.length&&i<pix.length;i++){const q=pix[i];if(!q)continue;const col=`rgb(${q[0]},${q[1]},${q[2]})`;g.fillStyle=col;g.shadowColor=col;g.beginPath();g.arc(o+LAT[i][0],o+LAT[i][1],d/2,0,Math.PI*2);g.fill();}
-  return cv;
-}
+function shotImg(o,url){if(!o._im||o._im._u!==url){o._im=new Image();o._im._u=url;o._im.src=url;}return o._im.complete&&o._im.naturalWidth?o._im:null;}
 function cellLayer(k,c){
-  if(c.pix&&c.pixSig===latSig){if(!c._img)c._img=layerImage(c.pix);return c._img;} // an unfinished surface: what is left on it
+  if(c.shot)return shotImg(c,c.shot); // an unfinished surface: as it was left
   const p=prev[k];
-  if(!p||p.sig!==cellSig(c)){if(!prevPending.has(k))mapNeed.push(k);return p&&p.img;}
-  if(!p.img)p.img=layerImage(p.pix);return p.img;
+  if(!p||p.sig!==cellSig(c)){if(!prevPending.has(k))mapNeed.push(k);} // re-shoot; the old picture stays up until the new one arrives
+  return p&&p.img?shotImg(p,p.img):null;
 }
-function relayer(){for(const k in cells)delete cells[k]._img;for(const k in prev)prev[k].img=null;}
 
 function mapRender(){
   if(currentView==='level'){mapRafId=null;return;}
   camX+=(camTX-camX)*0.1;camY+=(camTY-camY)*0.1;
   mctx.fillStyle='#050608';mctx.fillRect(0,0,MW,MH);
-  buildLattice();mapNeed=[];
+  mapNeed=[];
   const moves=(phase==='move'||phase==='captured')?getMoves():[];
   const candMap={};for(const m of moves)candMap[K(m.q,m.r)]=m;
   const hoverKey=hQ!==null?K(hQ,hR):null;
@@ -287,7 +276,7 @@ function mapRender(){
     if(bright){mctx.save();mctx.shadowColor='rgba(255,255,255,0.45)';mctx.shadowBlur=18;hexPath(sx,sy,s);mctx.fillStyle=fill;mctx.fill();mctx.restore();}
     if(c.isVoid&&c.q===0&&c.r===0&&voidOpen){mctx.save();mctx.shadowColor='rgba(160,120,230,0.25)';mctx.shadowBlur=28;hexPath(sx,sy,s+2);mctx.fillStyle='rgba(160,120,230,0.04)';mctx.fill();mctx.restore();}
     hexPath(sx,sy,s);mctx.fillStyle=fill;mctx.fill();
-    if(!c.cap&&!c.isVoid){const img=cellLayer(k,c);if(img){mctx.save();hexPath(sx,sy,s);mctx.clip();mctx.drawImage(img,sx-img.width/2,sy-img.height/2);mctx.restore();}}
+    if(!c.cap&&!c.isVoid){const img=cellLayer(k,c);if(img){mctx.save();hexPath(sx,sy,s);mctx.clip();mctx.globalAlpha=T.mapAlpha!=null?T.mapAlpha:1;mctx.drawImage(img,sx-HEX,sy-HEX,2*HEX,2*HEX);mctx.restore();}}
     if(dark){ // the dark remnant left on the hex
       const rr=HEX*0.36,pul=0.5+0.5*Math.sin(now/700+c.q*1.7+c.r);
       mctx.save();mctx.shadowColor='rgba(170,140,255,0.7)';mctx.shadowBlur=10+8*pul;mctx.beginPath();mctx.arc(sx,sy,rr,0,Math.PI*2);mctx.fillStyle='#000';mctx.fill();
@@ -338,7 +327,7 @@ window.addEventListener('resize',mapResize);
 // ║  surface's own save, so a new map never touches them)                       ║
 // ╚══════════════════════════════════════════════════════════════════════════════╝
 function saveMap(){
-  const out={};for(const k in cells){const c=Object.assign({},cells[k]);delete c._img;out[k]=c;}
+  const out={};for(const k in cells){const c=Object.assign({},cells[k]);delete c._im;out[k]=c;}
   try{localStorage.setItem(MAP_KEY,JSON.stringify({v:1,cells:out,turn,score,pQ,pR,totalCells,phase,depth,gameOverReason,captureOrder,mergeGroups,mergeIdCounter,voidOpen,session:nebulaCellKey}));}catch(e){}
 }
 function loadMap(){
@@ -368,7 +357,7 @@ function openGuide(){if(!nebReady||currentView!=='map')return;currentView='overl
 function takeState(m){
   if(m.T)T=m.T;if(m.inv)inv=m.inv;if(m.disc)disc=new Set(m.disc);if(m.defs&&m.defs.length)tuneDefs=m.defs;
   if(T.mapHexSize&&T.mapHexSize!==HEX){HEX=T.mapHexSize;focusCam(false);}
-  if(m.T)relayer();applyDisc();syncMenu();
+  if(m.T)syncRenderSig();applyDisc();syncMenu();
 }
 window.addEventListener('message',e=>{
   const m=e.data;if(e.source!==nebEl.contentWindow||!m||!m.il)return;
@@ -379,13 +368,13 @@ window.addEventListener('message',e=>{
     hubEvent('map');
   }
   if(m.type==='ready'||m.type==='state');
-  else if(m.type==='preview'){prevPending.delete(m.key);if(cells[m.key])prev[m.key]={sig:m.sig,pix:m.pix,img:null};}
+  else if(m.type==='preview'){prevPending.delete(m.key);if(cells[m.key]&&m.img)prev[m.key]={sig:m.sig,img:m.img};}
   else if(m.type==='overlayDone'){if(currentView==='overlay'){currentView='map';showNeb(false);evPump();}}
   else if(m.type==='cleared')completeCaptureForCell(m.key,m.kind); // the hex is captured right away; the player returns with a right-click
   else if(m.type==='return')exitNebula();
   else if(m.type==='quit'){
     const c=cells[m.key];
-    if(c&&!c.cap&&!m.cleared&&m.pix){c.pix=m.pix;c.pixSig=latSig;delete c._img;nebulaCellKey=m.key;}else nebulaCellKey=null;
+    if(c&&!c.cap&&!m.cleared&&m.img){c.shot=m.img;nebulaCellKey=m.key;}else nebulaCellKey=null;
     saveMap();
     if(m.to==='main'){location.href='TitleSplash.html';return;}
     exitNebula();
@@ -407,7 +396,7 @@ function buildTune(){ // the same tuner definitions as the surface's Tune menu (
   const box=document.getElementById('mTune');box.innerHTML='';
   for(const d of tuneDefs){const r=document.createElement('div');r.className='row';r.title=d.tip||'';
     r.innerHTML=`<span>${d.label}</span><input type="range" min="${d.min}" max="${d.max}" step="${d.step}" data-k="${d.key}"><b></b>`;
-    r.querySelector('input').addEventListener('input',e=>{T[d.key]=+e.target.value;neb({cmd:'tune',T:{[d.key]:T[d.key]}});if(d.key==='mapHexSize'){HEX=T.mapHexSize;focusCam(false);}relayer();syncMenu();});
+    r.querySelector('input').addEventListener('input',e=>{T[d.key]=+e.target.value;neb({cmd:'tune',T:{[d.key]:T[d.key]}});if(d.key==='mapHexSize'){HEX=T.mapHexSize;focusCam(false);}syncRenderSig();syncMenu();});
     box.appendChild(r);}
   syncMenu();
 }
