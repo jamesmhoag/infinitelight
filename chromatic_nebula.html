@@ -425,26 +425,26 @@ const T={
   forceFloor:   0.40,
   forceCeil:    0.40,
   // Forces — per-color K
-  kPush:        0.10,
-  kFling:       0.10,
-  kOrbit:       0.10,
-  kPull:        0.10,
-  kAttract:     0.10,
-  kDamp:        0.10,
+  kPush:        0.3,
+  kFling:       0.12,
+  kOrbit:       0.12,
+  kPull:        0.12,
+  kAttract:     0.3,
+  kDamp:        0.3,
   pulsingFacing: 90,  // degrees: how far a Pulsing remnant's glyph and beam are turned from its spin angle (its first-half thrust points forward)
-  orbitSteer:   0.35, // how much of its heading error an Orbit / Fling / Pull turns out per frame (the turn itself is limited by Max rot spd and the K·Rot-force rate)
-  spiralRate:   0.15, // px/frame: how fast Fling widens (and Pull narrows) an orbit's radius
+  orbitSteer:   1, // how much of its heading error an Orbit / Fling / Pull turns out per frame (the turn itself is limited by Max rot spd and the K·Rot-force rate)
+  spiralRate:   0.13, // px/frame: how fast Fling widens (and Pull narrows) an orbit's radius
   // Forces — per-color sub-ratios
 
   // Interaction
   dblClickMs:   300,  // ms after a click during which the nearest same-type double-click targets are previewed
   particleLingerMul:1, // scalar on the colour-change linger time for dormant particles
   dimFormMs:    450,  // ms: the inward flash when a point dims into a Dim Remnant
-  touchR:       20,
-  cursorLightR:        40,  // px: radius of the soft cursor light overlay — kept close to element scale
-  cursorLightStrength: 0.35,// 0..1: peak brightness of the cursor light overlay
-  effectRMin:   18,
-  maxSpeed:     1,
+  touchR:       18,
+  cursorLightR:        10,  // px: radius of the soft cursor light overlay — kept close to element scale
+  cursorLightStrength: 1,// 0..1: peak brightness of the cursor light overlay
+  effectRMin:   25,
+  maxSpeed:     2.5,
   velDead:      0.001,
   rampDur:      0,
 
@@ -453,256 +453,256 @@ const T={
   // governed by the exact same slowing/transfer rules as velocity itself
   // (see rotDead/maxRotSpeed below, and the ratio-scaling on mass absorption)
   // rather than being a separate bolt-on system.
-  maxRotSpeed:  0.12,  // rad/frame: hard cap on angular velocity, mirrors maxSpeed
-  rotDead:      0.00002,// rad²/frame²: snap-to-zero dead zone, mirrors velDead
-  rotForceMult: 1.0,   // scales how strongly a force's own impulse also spins its target
-  rotCurveMult: 1.0,   // how strongly angular velocity curves the linear velocity vector each frame
+  maxRotSpeed:  1,  // rad/frame: hard cap on angular velocity, mirrors maxSpeed
+  rotDead:      0.000125,// rad²/frame²: snap-to-zero dead zone, mirrors velDead
+  rotForceMult: 0.4,   // scales how strongly a force's own impulse also spins its target
+  rotCurveMult: 0.1,   // how strongly angular velocity curves the linear velocity vector each frame
 
   // Cursor visual — base ring/dot size + click punch + idle (no-target) dimming
-  cursorBaseR:      15,  // px: resting outer ring radius
-  cursorLineW:      1.5, // px: ring/edge line width
-  cursorClickShrink:0.5, // 0..1: fraction the ring shrinks to at the instant of a click
-  cursorClickDurMs: 220, // ms: duration of the shrink -> regrow punch after a click
-  cursorIdleAlphaMult:0.45,// 0..1: overall alpha multiplier applied when not hovering a target
-  cursorIdleBorderDark:0.65,// 0..1: how far the ring/edge color is mixed toward black when not hovering a target
+  cursorBaseR:      8,  // px: resting outer ring radius
+  cursorLineW:      2, // px: ring/edge line width
+  cursorClickShrink:0.7, // 0..1: fraction the ring shrinks to at the instant of a click
+  cursorClickDurMs: 100, // ms: duration of the shrink -> regrow punch after a click
+  cursorIdleAlphaMult:0.5,// 0..1: overall alpha multiplier applied when not hovering a target
+  cursorIdleBorderDark:0.4,// 0..1: how far the ring/edge color is mixed toward black when not hovering a target
   collectGraceMs:   260, // ms: a click still collects the target the cursor just slid off of, for this long after (must cover the collect cursor's own fade-out, so the two never disagree)
 
   // Space-bar pause: separate ramp durations for stopping vs. resuming, plus
   // the pause-only effect-radius guide rings (a plain, unanimated outline
   // per point, in the point's own color, at its current effect radius) shown
   // only while fully at rest.
-  pauseStopMs:   450, // ms: ramp time from full speed down to a full stop
-  pauseResumeMs: 450, // ms: ramp time from a full stop back up to full speed
+  pauseStopMs:   650, // ms: ramp time from full speed down to a full stop
+  pauseResumeMs: 650, // ms: ramp time from a full stop back up to full speed
   // Pause-mode effect rings: PASSIVE (an ambient effect: a Point's standing range, a remnant's area) vs ACTIVE (a point that has been activated)
   pauseRingPassiveWidth:1,   pauseRingPassiveAlpha:0.45, pauseRingPassiveFill:0.05, pauseRingPassiveDash:4,
   pauseRingActiveWidth:1.75, pauseRingActiveAlpha:0.9,   pauseRingActiveFill:0.14,
   pauseRingFillWhiten:0.5, pauseRingStrokeWhiten:0.3,   // 0..1: how far the ring fill colour is mixed toward white
   // Achievements & Patterns — visuals
-  conFxOkMs:4500, conFxFailMs:1600, conFxFadeStart:0.6, conFxPulseMs:700,
-  conFxLineW:2, conFxPulseLine:3, conFxAlpha:0.75, conFxGlow:10, conFxNodeR:6, conFxPulseRing:16, conFxTextSize:13,
-  conNodeR:7, conNodeScale:60, conChainLineW:1.4, conChainAlpha:0.85, conChainPreviewAlpha:0.4,
-  conFocusGlowR:30, conFocusPulse:0.006,
-  bondSweepMs:  120,  // ms: how often a finished Prism / Knot looks for new objects inside it
-  bondSndMs:    250,  // ms: minimum gap between the conversion notes of one Prism / Knot
-  crateBreakSpeed: 0.4,  // impact speed at which a Crate breaks (a hit anywhere breaks the whole crate)
+  conFxOkMs:500, conFxFailMs:300, conFxFadeStart:0.6, conFxPulseMs:700,
+  conFxLineW:1.25, conFxPulseLine:3, conFxAlpha:0.75, conFxGlow:10, conFxNodeR:6, conFxPulseRing:16, conFxTextSize:13,
+  conNodeR:5, conNodeScale:60, conChainLineW:1.3, conChainAlpha:0.9, conChainPreviewAlpha:0.9,
+  conFocusGlowR:10, conFocusPulse:0.005,
+  bondSweepMs:  16,  // ms: how often a finished Prism / Knot looks for new objects inside it
+  bondSndMs:    25,  // ms: minimum gap between the conversion notes of one Prism / Knot
+  crateBreakSpeed: 2.5,  // impact speed at which a Crate breaks (a hit anywhere breaks the whole crate)
   crateBurnMs: 1800,     // ms a broken Crate takes to burn away, edges first
-  barrierBreakSpeed: 3, // impact speed at which a breakable Barrier edge breaks
-  bondFadeOutMs: 700, // ms: how long a Spindle / Prism / Knot takes to fade when a point is collected or its type is full
-  bhDrawPad:    40,   // px: extra drawing room around the Dark Remnant's glow rings so their blur is never clipped
-  glassEdgeA:   1,    // Lens edge opacity multiplier
-  glassTintA:   1,    // Lens tint strength multiplier
-  glassLightA:  1,    // Lens light intensity multiplier (cursor light + object lights)
-  glassEdgeW:   1.2,  // px: edge thickness of a Lens that is its own edge
-  glassEdgeWShared: 1.2, // px: edge thickness of a Lens sitting on another shape's edge (Spindle / Knot / Prism / Barrier)
-  glassClickMs: 250,  // ms a tinted pane's effect stays on after a single click (it also stays on while held)
-  glassReflCover: 40, // % of the pane the reflection covers (from the upper-left)
-  glassReflWhite: 0.10, // how much the reflection is whitened
+  barrierBreakSpeed: 2.4, // impact speed at which a breakable Barrier edge breaks
+  bondFadeOutMs: 300, // ms: how long a Spindle / Prism / Knot takes to fade when a point is collected or its type is full
+  bhDrawPad:    125,   // px: extra drawing room around the Dark Remnant's glow rings so their blur is never clipped
+  glassEdgeA:   0.55,    // Lens edge opacity multiplier
+  glassTintA:   2.35,    // Lens tint strength multiplier
+  glassLightA:  0.4,    // Lens light intensity multiplier (cursor light + object lights)
+  glassEdgeW:   2.6,  // px: edge thickness of a Lens that is its own edge
+  glassEdgeWShared: 2.5, // px: edge thickness of a Lens sitting on another shape's edge (Spindle / Knot / Prism / Barrier)
+  glassClickMs: 125,  // ms a tinted pane's effect stays on after a single click (it also stays on while held)
+  glassReflCover: 100, // % of the pane the reflection covers (from the upper-left)
+  glassReflWhite: 0, // how much the reflection is whitened
   glassMag:     1.02, // slight magnification of the scene seen through glass (1 = none)
-  glassReflect: 0.55, // strength of the scene reflection on the upper-left part of a pane
-  glassReflMs:  100,  // ms between reflection refreshes (0 = every frame)
-  glassBodyA:   1,    // strength of the pane's own body tint (clear glass); 0 = off, removes any darkening / lightening under the glass
-  glassReflBlur: 4,   // px: blur of that reflection
+  glassReflect: 1, // strength of the scene reflection on the upper-left part of a pane
+  glassReflMs:  0,  // ms between reflection refreshes (0 = every frame)
+  glassBodyA:   1.8,    // strength of the pane's own body tint (clear glass); 0 = off, removes any darkening / lightening under the glass
+  glassReflBlur: 7,   // px: blur of that reflection
   // Lens / Glass / Gate / Crate — look
-  lensCrackW:       1,   // crack thickness multiplier
+  lensCrackW:       0.6,   // crack thickness multiplier
   metalReflA:       0.55, // strength of the scene reflection on metal (Barrier edge / Gate posts)
   metalLightA:      1,    // how strongly nearby lights glint on metal
-  lensMeshN:        10,  // fish-eye mesh divisions: N×N cells = 2N² triangles (more = smoother curve, slower)
-  lensFish:         0.3,  // Lens fish-eye: extra magnification at the centre (0 = flat)
-  paneMag:          1.04, paneFish: 0.7, paneTintA: 1, paneBodyA: 1.3, paneEdgeA: 1, paneEdgeW: 1.8, // Glass (create tool) — its own look
-  crateEdgeW:       10,  // px: thickness of the ring of planks around a Crate
-  crateW:           8,   // px: Crate post width
-  crateGap:         4,   // px: gap between Crate posts
-  gatePostGap:      5,   // px between the posts of a Gate
-  gatePostW:        12,  // px width of each Gate post
-  conTargetAlpha:   0.6, // 0..1: strength of the target markers shown while building any Pattern
+  lensMeshN:        5,  // fish-eye mesh divisions: N×N cells = 2N² triangles (more = smoother curve, slower)
+  lensFish:         0.26,  // Lens fish-eye: extra magnification at the centre (0 = flat)
+  paneMag:          1.04, paneFish: 0.24, paneTintA: 1, paneBodyA: 1.3, paneEdgeA: 1, paneEdgeW: 1.8, // Glass (create tool) — its own look
+  crateEdgeW:       21,  // px: thickness of the ring of planks around a Crate
+  crateW:           21,   // px: Crate post width
+  crateGap:         1,   // px: gap between Crate posts
+  gatePostGap:      15,   // px between the posts of a Gate
+  gatePostW:        15,  // px width of each Gate post
+  conTargetAlpha:   1, // 0..1: strength of the target markers shown while building any Pattern
   dupWheelDeg:  0.1,  // degrees a held duplicate / moved object turns per unit of wheel movement (a typical notch is ~100 units)
   removeR:      10,   // px: radius of the Remove brush
   volGlassTap:  1,    // glass tap sound
   holdEParticle:   0.001, // energy per ms while holding the Create tool on a particle
   holdEPoint:   0.01,  // …on a pigment
   holdEBright:  0.1,   // …on a Point
-  remPlaceMass: 5, remPlaceEnergy: 5, // placed Active / Bright remnants
+  remPlaceMass: 25.5, remPlaceEnergy: 5, // placed Active / Bright remnants
   dialRepeatMs: 200,  // ms between shots while the String is held down (each shoots the next closest point)
   dialStaggerMs: 60,  // ms between loaded rounds when a click fires them all
-  dialMs:       1000, // ms a String launch lasts (2× speed, ignoring every effect field), before easing back to normal
-  dialRampMs:   800,  // ms over which launched points then gradually become affected by outside forces again
-  dialTrailLen: 40,   // path points kept in a String trail
-  dialIconMs:   500,  // ms the String target marker lingers
-  dialTurn:     0.12, // how sharply String-launched points bend toward the target (per step)
+  dialMs:       700, // ms a String launch lasts (2× speed, ignoring every effect field), before easing back to normal
+  dialRampMs:   200,  // ms over which launched points then gradually become affected by outside forces again
+  dialTrailLen: 15,   // path points kept in a String trail
+  dialIconMs:   400,  // ms the String target marker lingers
+  dialTurn:     0.3, // how sharply String-launched points bend toward the target (per step)
   dialDecay:    0.02, // how fast their speed relaxes back to max speed after passing through
   bondFadeMs:2500, // how long a completed Spindle/Knot shape must hold, unbroken, before each scoring/dimming cycle
-  earnDialMs:2600, earnLeashMs:2000, earnUseMs:800, earnPathW:2, earnTextRise:26, earnTextSize:13,
+  earnDialMs:1400, earnLeashMs:1400, earnUseMs:700, earnPathW:2, earnTextRise:26, earnTextSize:13,
   // Achievements & Patterns — timing and feel
   conChimeStaggerMs:90, gateRewindMs:2000, keyFxMs:3400, keyFireT:0.5,
-  repurposeGap: 6,    // px: the closest a Repurposed fill may be spaced (it also never goes tighter than the copied object's own size) — between the particles / points / remnants a Repurposed shape is made of
+  repurposeGap: 14,    // px: the closest a Repurposed fill may be spaced (it also never goes tighter than the copied object's own size) — between the particles / points / remnants a Repurposed shape is made of
   lensClicksPerCrack: 6, // every N single clicks on a Lens crack it (0 = off)
   lensHoldSecPerCrack: 2, // every N seconds a Lens is held it cracks (0 = off)
-  lensCrackSegMs:   80,  // ms each section of a crack takes to grow
-  gateUnlockMs:     900, // ms the Gate posts take to shrink away when a Key opens it
+  lensCrackSegMs:   30,  // ms each section of a crack takes to grow
+  gateUnlockMs:     200, // ms the Gate posts take to shrink away when a Key opens it
   // Remnant place/pickup sound volumes + dynamism (LFO wobble depth) per kind, and a couple of timbre pickers.
-  volDimPlace:0.09, volDimPickup:0.07, dynDimPlace:0.08, dynDimPickup:0.08, sndDimWave:'sawtooth',
-  volBrightPlace:0.09, volBrightPickup:0.06,
-  volNeutronPlace:0.05, volNeutronPickup:0.05, dynNeutronPlace:0.1, dynNeutronPickup:0.1,
-  volMagPlace:0.08, volMagPickup:0.06, dynMagPlace:0.08, dynMagPickup:0.08, sndMagWave:'triangle',
-  volPulsePlace:0.07, volPulsePickup:0.05,
-  volCollisionBounce:0.06,
+  volDimPlace:0.09, volDimPickup:0.125, dynDimPlace:0.08, dynDimPickup:1, sndDimWave:'sawtooth',
+  volBrightPlace:0.165, volBrightPickup:0.16,
+  volNeutronPlace:0.05, volNeutronPickup:0.13, dynNeutronPlace:0.28, dynNeutronPickup:0.44,
+  volMagPlace:0.08, volMagPickup:0.195, dynMagPlace:0.08, dynMagPickup:1, sndMagWave:'triangle',
+  volPulsePlace:0.145, volPulsePickup:0.3,
+  volCollisionBounce:0.125,
   // ── Sound board: every distinct sound EVENT gets its own volume multiplier below — none shared across two
   // different events, even when they happen to use the same instrument voice. All default to 1 = unchanged from
   // how they always sounded; each is a straight multiplier on that sound's own existing volume math.
   volActivate:      1,  // playViolin(up=true)   — a point is activated (clicked on)
   volDeactivate:    1,  // playViolin(up=false)  — a point is deactivated (released)
-  volFluteMerge:    1,  // playFlute             — a Pigment merges with / consumes another
+  volFluteMerge:    0.3,  // playFlute             — a Pigment merges with / consumes another
   volHornBirth:     1,  // playFrenchHorn('proud')      — a Point forms (collapses)
   volHornDeath:     1,  // playFrenchHorn('somber')     — a Point dies into its nova
   volHornConsume:   1,  // playFrenchHorn('consumeLoud')— a Point consumes another Point
-  volTubaFormation: 1,  // playTubaBlast — a Dim remnant forms
-  volTubaMerge:     1,  // playTubaBlast — two Dim remnants merge
-  volCymbal:        1,  // playCymbalCrash — a nova-triggering collision between Bright/Active remnants
-  volPointDeathTimpani: 1, // playTimpani — an ordinary (non-Bright) point fades out at end of life
+  volTubaFormation: 0.5,  // playTubaBlast — a Dim remnant forms
+  volTubaMerge:     0.6,  // playTubaBlast — two Dim remnants merge
+  volCymbal:        0,  // playCymbalCrash — a nova-triggering collision between Bright/Active remnants
+  volPointDeathTimpani: 3, // playTimpani — an ordinary (non-Bright) point fades out at end of life
   volDialUse:       1,  // playClarinet — the String is used on a point
   volPrismUse:      1,  // playClarinet — the Prism is used on a point
   volKnotUse:       1,  // playClarinet — the Knot is used on a Point (radius consume)
-  volItemSelect:    1,  // playTimpani — an inventory item is selected/armed (icon click or mid-mouse cycle)
-  volGatePost:      1,   // playTimpani — a Gate post is clicked
-  volKeyUse:        1,  // playTimpani — the Key is used (turns the lock)
-  volChainStep:     1,  // playTriangleNote — each point clicked onto a Spindle/Knot chain-in-progress
+  volItemSelect:    3,  // playTimpani — an inventory item is selected/armed (icon click or mid-mouse cycle)
+  volGatePost:      1.95,   // playTimpani — a Gate post is clicked
+  volKeyUse:        3,  // playTimpani — the Key is used (turns the lock)
+  volChainStep:     1.4,  // playTriangleNote — each point clicked onto a Spindle/Knot chain-in-progress
   volChainBreak:    1,  // playClarinet — a Prism / Knot / Spindle connection breaks
-  volKnotResolve:   1,  // playTriangleNote — a Knot loop resolves (everything inside dimmed)
-  volConstellationScore: 1, // playTriangleNote — a Spindle-mode Pattern is scored (Gate/Prism/Knot/Key earned)
-  volAchieveDial:   1,  // playAchievementScale — a String is earned (orbit held long enough)
-  volAchieveLeash:  1,  // playAchievementScale — a Spindle is earned (flock held long enough)
-  volGateChimes: 1,   // playGateRestoreChimes
-  glissVol:0.8, glissWave:'sawtooth', glissNotes:14, glissGapMs:45, glissLingerMs:350, glissChimeHits:40, glissSpanMs:900, glissClang:0.35, // synth glissando + how metallic the bar chimes are
+  volKnotResolve:   0.1,  // playTriangleNote — a Knot loop resolves (everything inside dimmed)
+  volConstellationScore: 0.1, // playTriangleNote — a Spindle-mode Pattern is scored (Gate/Prism/Knot/Key earned)
+  volAchieveDial:   0.6,  // playAchievementScale — a String is earned (orbit held long enough)
+  volAchieveLeash:  0.55,  // playAchievementScale — a Spindle is earned (flock held long enough)
+  volGateChimes: 0.7,   // playGateRestoreChimes
+  glissVol:0.75, glissWave:'sawtooth', glissNotes:13, glissGapMs:59, glissLingerMs:560, glissChimeHits:23, glissSpanMs:825, glissClang:0.25, // synth glissando + how metallic the bar chimes are
   sizeVarPct:0.05, remEnScaleMin:0.8, remEnScaleMax:1.6, remEnScaleE:5, bhWakeMinVar:0.3, kStraighten:6, dimWhirlRMin:30, brightStasisRMin:30, fieldGrowMs:600, globeRPerSpeed:60, globeRMin:40, globeRMax:220,
-  volNovaChime:  1,   // playNovaChime — the ascending cluster on a Bright/Active nova
-  volConsume:    1,   // playTimpani — each individual point being consumed by the Dark Remnant
-  volFinale:     1,   // playOrchestraFinale as a whole (stab + long chord), when the Dark Remnant first appears
+  volNovaChime:  0.55,   // playNovaChime — the ascending cluster on a Bright/Active nova
+  volConsume:    3,   // playTimpani — each individual point being consumed by the Dark Remnant
+  volFinale:     1.65,   // playOrchestraFinale as a whole (stab + long chord), when the Dark Remnant first appears
 
-  achProgAlpha:0.35, achProgMinRad:0.8, achProgSize:10, achProgIdleMs:250, // (idle ms: an indicator hides when its String / Spindle hasn't gained anything for this long) // dim 'not yet earned' String / Spindle progress indicators
+  achProgAlpha:0.7, achProgMinRad:1, achProgSize:10, achProgIdleMs:100, // (idle ms: an indicator hides when its String / Spindle hasn't gained anything for this long) // dim 'not yet earned' String / Spindle progress indicators
   settleInterp:0,            // 0 = Swap settle (particles glide to new cells) · 1 = Interpolate settle (cells morph into each other, nothing moves)
   feedAlertMs:2200,          // how long an alert message takes over the feed
 
   particleMapAlpha:0.55,        // 0..1: opacity of the particle-map layer (dimmed so points, paths and rings stay readable)
   invalidTargetOpacity:0.35, // 0..1: opacity of objects that are NOT a viable target for the armed tool/mode (1 = no dimming at all; the object's own effect ring can still show at full strength on top)
-  predictMs:   800,   // ms: how far ahead the combined velocity+rotation predictive path looks
+  predictMs:   300,   // ms: how far ahead the combined velocity+rotation predictive path looks
   predictSteps:40,    // resolution of the predicted path — more steps = a smoother curve
 
   // Active-point pulsing ring (click-activated points) — blur + glow
-  activeRingWidth:      1,   // px: sharp ring line width
-  activeRingBlur:       4,   // px: blur radius for the glow pass behind the sharp ring
-  activeRingGlowMult:   1.6, // alpha multiplier for the blurred glow pass vs the sharp ring
-  activeRingGlowWidthMult:2.5,// line-width multiplier for the blurred glow pass vs the sharp ring
-  activeRingRadiusMult: 2.0, // radius multiplier over the point's own displayR for the base ring size
-  activeRingOpacity:    1.0, // overall opacity multiplier applied to both the sharp ring and its glow pass
+  activeRingWidth:      0.5,   // px: sharp ring line width
+  activeRingBlur:       1,   // px: blur radius for the glow pass behind the sharp ring
+  activeRingGlowMult:   0.4, // alpha multiplier for the blurred glow pass vs the sharp ring
+  activeRingGlowWidthMult:0.5,// line-width multiplier for the blurred glow pass vs the sharp ring
+  activeRingRadiusMult: 1.25, // radius multiplier over the point's own displayR for the base ring size
+  activeRingOpacity:    0.3, // overall opacity multiplier applied to both the sharp ring and its glow pass
 
   // Active colored-point glow (click-activated, non-collapsed points look like dim stars)
-  activeGlowR:      3.0, // radius multiplier over the point's own displayR for the glow source
-  activeGlowBlur:   6,   // px: base blur radius for the glow halo passes
+  activeGlowR:      2, // radius multiplier over the point's own displayR for the glow source
+  activeGlowBlur:   9,   // px: base blur radius for the glow halo passes
 
   // White-point birth flash — second color-matched glow layer
   birthGlowMult:    1.8, // radius multiplier (over the white flash radius) for the color-matched glow layer
   birthGlowAlpha:   0.6, // peak alpha of the color-matched glow layer
 
   // Point size (visual px) — larger to match macro-particle scale
-  vRadBase:     3,
-  massEffPow:   1.0, // steepness of mass->effect-radius scaling (effectMassR); higher = mass matters more
+  vRadBase:     0.6,
+  massEffPow:   1.3, // steepness of mass->effect-radius scaling (effectMassR); higher = mass matters more
   // Shared mass→radius curve (see massToRadius): every object type (particles,
   // points, Points, remnants) grows from its own min radius to its
   // own max radius across this SAME mass range, mostly linear but easing off
   // near the top. Replaces the old per-absorb incremental growth system.
   massScaleMin: 1,     // mass at/below which every object sits at its min radius (fallback for any type below that doesn't set its own mass domain; also still used as the general "mass scale" reference elsewhere, e.g. the Dark Remnant threshold)
-  massScaleMax: 400,   // mass at/above which every object sits at its max radius (see massScaleMin note)
-  massCurvePow: 1.6,   // >1 = mostly linear then taper near the cap; 1 = straight linear
+  massScaleMax: 4030,   // mass at/above which every object sits at its max radius (see massScaleMin note)
+  massCurvePow: 1.7,   // >1 = mostly linear then taper near the cap; 1 = straight linear
   // Per-type mass domain overrides: each of Pigment/Bright/Dim can have its own min/max mass at which it hits its
   // own min/max radius (colorMinR/Max, whiteMinR/Max, brownMinR/Max respectively — those are unchanged, still the
   // per-type OUTPUT radius range). Defaults match massScaleMin/Max exactly, so nothing changes until adjusted —
   // massScaleMin/Max are otherwise now redundant as far as radius goes, only kept for the other systems still keyed
   // off them (Dark Remnant mass threshold, etc).
-  pigmentMassMin:1, pigmentMassMax:400,
-  brightMassMin: 1, brightMassMax: 400,
-  dimMassMin:    1, dimMassMax:    400,
-  colorMinR:    3.0,
-  colorMaxR:    14.0,
-  whiteMinR:    0.8,
+  pigmentMassMin:13, pigmentMassMax:1300,
+  brightMassMin: 126, brightMassMax: 4160,
+  dimMassMin:    30, dimMassMax:    5000,
+  colorMinR:    3.5,
+  colorMaxR:    9,
+  whiteMinR:    0.2,
   whiteMaxR:    9.0,
   brownR:       3.0,
-  brownMinR:    3.0,   // Dim Remnant min radius (at dimMassMin)
-  brownMaxR:    16.0,  // Dim Remnant max radius (at dimMassMax) — Dim Remnants are round and scale with mass
+  brownMinR:    1,   // Dim Remnant min radius (at dimMassMin)
+  brownMaxR:    9,  // Dim Remnant max radius (at dimMassMax) — Dim Remnants are round and scale with mass
   // Soft glow around browns — same wide/mid blur-pass treatment as the black
   // remnant's edge glow, colored with the brown's own tone and offset behind
   // its direction of travel (like a dim drag/wake), brighter for heavier
   // browns.
-  brownGlowRMult:     5,
-  brownGlowOffsetMult:2.5,
-  brownGlowBase:      0.25,
-  brownGlowMassScale: 0.12,
-  brownGlowBlurWide:  10,
-  brownGlowBlurMid:   4,
-  brownGlowAlphaWide: 0.4,
-  brownGlowAlphaMid:  0.55,
+  brownGlowRMult:     7.5,
+  brownGlowOffsetMult:0.75,
+  brownGlowBase:      1,
+  brownGlowMassScale: 0.5,
+  brownGlowBlurWide:  0,
+  brownGlowBlurMid:   0,
+  brownGlowAlphaWide: 1,
+  brownGlowAlphaMid:  1,
 
   // Effect radius (force range) — eRadMult is the shared fallback multiplier still used by remnant kinds that don't
   // have their own (white/neutron/magnetic/pulsing remnants); Pigment/Bright/Dim each have their own below instead.
-  eRadMult:     5,
-  pigmentEffMult:5, // Pigment points: visual radius × this = effect/force radius
-  brightEffMult: 5, // Bright (collapsed) points: same idea, applied on top of effectMassR
-  dimEffMult:    5, // Dim remnants: visual radius × this = effect/force radius
-  whiteEffMin:  40,
-  whiteEffMax:  100,
-  whiteClickM:  2.0,
+  eRadMult:     1,
+  pigmentEffMult:1, // Pigment points: visual radius × this = effect/force radius
+  brightEffMult: 1, // Bright (collapsed) points: same idea, applied on top of effectMassR
+  dimEffMult:    1, // Dim remnants: visual radius × this = effect/force radius
+  whiteEffMin:  30,
+  whiteEffMax:  90,
+  whiteClickM:  2.5,
 
   // Collapse triggers
-  triadBal:     0.55,
-  crystalGray:  205,   // 0..255: grey of a Bright CRYSTALIZE point's glow / halo (its body is lighter, its core a mid grey) — silver, against ECLIPSE's dark grey
-  eclipseGray:  110,   // 0..255: grey of every ECLIPSE glow / halo / trail (its body is black) — dark, dimly visible, distinct from the Dim remnant
+  triadBal:     0.15,
+  crystalGray:  230,   // 0..255: grey of a Bright CRYSTALIZE point's glow / halo (its body is lighter, its core a mid grey) — silver, against ECLIPSE's dark grey
+  eclipseGray:  65,   // 0..255: grey of every ECLIPSE glow / halo / trail (its body is black) — dark, dimly visible, distinct from the Dim remnant
   particleBlackFrac:0.03, // share of generated particles that start as ECLIPSE (black)
   particleWhiteFrac:0.03, // share of generated particles that start CRYSTALIZED (white)
-  magBWScore:   0.85,  // balanceScore (the Bright-collapse triad score) at or above which a new Magnetic remnant is a BLACK & WHITE one: CRYSTALIZE on its first side, ECLIPSE on its second
-  magItemEclipseP:0.15,// chance that a Magnetic item's gesture applies ECLIPSE (black) instead of a colour
+  magBWScore:   0.9,  // balanceScore (the Bright-collapse triad score) at or above which a new Magnetic remnant is a BLACK & WHITE one: CRYSTALIZE on its first side, ECLIPSE on its second
+  magItemEclipseP:0,// chance that a Magnetic item's gesture applies ECLIPSE (black) instead of a colour
   implodeForce: 1.4,   // DYNAMISM implosion: pull speed (× max speed) dragging everything in reach toward the shrunk point for the whole shrink duration
-  implodeNull:  0.22,  // DYNAMISM implosion: how fast existing motion is nullified in favour of the pull (0..0.95 per 16ms)
+  implodeNull:  0.84,  // DYNAMISM implosion: how fast existing motion is nullified in favour of the pull (0..0.95 per 16ms)
   fxNovaMix:    0.22,  // share of a CRYSTALIZE / ECLIPSE Point's nova particles that keep their own colour instead of the opposite grey
-  implodeMs:    700,   // DYNAMISM implosion: ms the reverse nova ring takes to close
-  fxTieMs:      2000,  // ms an object stays its random pigment colour after being touched by an active CRYSTALIZE and an active ECLIPSE together
-  heatMax:      20,    // HEAT: how many extra unique selections (swipe / double-click / item use) the cursor can make before it overheats
-  heatDecay:    5,     // heat lost per second
-  heatCooldownMs:1500, // ms the cursor is shut down once it overheats (it then needs a fresh press)
-  eclipseSweepEvery:4, // frames between an ECLIPSE source's sweeps of the particles it touches
-  colorLingerMs:700,   // ms a colour change lingers: an adjacent colour shifts its visible colour over this time; a colour two steps away spends it as the colour between; an opposite colour spends it as white
-  holdDrainK:1,        // hold (basic cursor, with something activated): scales how long a held, activated point takes to run out (1 ≈ 2s for a 5s life, ≈10s for a 60s life; its burn rate keeps accelerating)
+  implodeMs:    300,   // DYNAMISM implosion: ms the reverse nova ring takes to close
+  fxTieMs:      500,  // ms an object stays its random pigment colour after being touched by an active CRYSTALIZE and an active ECLIPSE together
+  heatMax:      60,    // HEAT: how many extra unique selections (swipe / double-click / item use) the cursor can make before it overheats
+  heatDecay:    19,     // heat lost per second
+  heatCooldownMs:1000, // ms the cursor is shut down once it overheats (it then needs a fresh press)
+  eclipseSweepEvery:1, // frames between an ECLIPSE source's sweeps of the particles it touches
+  colorLingerMs:1000,   // ms a colour change lingers: an adjacent colour shifts its visible colour over this time; a colour two steps away spends it as the colour between; an opposite colour spends it as white
+  holdDrainK:0.4,        // hold (basic cursor, with something activated): scales how long a held, activated point takes to run out (1 ≈ 2s for a 5s life, ≈10s for a 60s life; its burn rate keeps accelerating)
   crystalHitMs:1000,   // CRYSTALIZE points: the least life (ms) a collision costs them — whatever they hit, however gently
   crystalHitK:900,     // …and the life (ms) lost per unit of impact (relative speed + the spin of the two rims); a hard, spinning hit costs far more, until the point dims into its remnant
-  fxContactPad:3,      // px added to an active pigment ECLIPSE / CRYSTALIZE point's own radius when it touches other points
-  triadMin:     0.10,
-  collMass:     200,
-  collEnergy:   5.0,
+  fxContactPad:0,      // px added to an active pigment ECLIPSE / CRYSTALIZE point's own radius when it touches other points
+  triadMin:     0.01,
+  collMass:     202,
+  collEnergy:   1,
 
   // Energy & merge — a true merge (two live objects combining) always
   // conserves 100% of both objects' energy (see mergeEnergy); that's a fixed
   // rule, not tunable. mergeAbsorb below only governs the separate case of a
   // point FEEDING on inert dormant/dust energy (hold-charge, absorbing
   // nebula particles) — not a merge between two live objects.
-  mergeAbsorb:  0.05,
+  mergeAbsorb:  1,
 
   // Animation & display
-  dispRLR:      0.150,
-  dispALR:      0.150,
+  dispRLR:      0.05,
+  dispALR:      0.05,
 
   // Glow rendering
-  tintForceE:   0.3,  // energy a Magnetic-coloured Neutron/Pulsing applies its colour's force with
+  tintForceE:   1,  // energy a Magnetic-coloured Neutron/Pulsing applies its colour's force with
   glowMaxR:     26,  // px: largest object radius a glow is allowed to scale with — bigger objects keep this glow thickness
-  lifeMaxS:     90,  // s: ceiling on any derived lifespan
+  lifeMaxS:     60,  // s: ceiling on any derived lifespan
   glowCore:     2,
   glowWhite:    1.5, // reach (× radius) of a Point's tight white inner glow; the coloured halo (glowCore) only shows beyond it
-  glowHalo:     4,
+  glowHalo:     0.5,
 
   // World generation
-  blobSize:     125,
-  opacMin:      0.01,
-  opacMax:      1.00,
+  blobSize:     150,
+  opacMin:      0.2,
+  opacMax:      0.9,
   coverage:     1.0,  // 0..1: fraction of the grid populated at rebuild — 1=fully solid (old behavior), lower leaves permanent empty voids
   coverageMode: 'blob', // 'blob'|'vignette'|'framed'|'ellipse'|'rectangle' — shape of the void when coverage<1
-  coverageScale:220,  // px: blob scale of the coverage/void field — bigger = larger, more contiguous empty regions
+  coverageScale:100,  // px: blob scale of the coverage/void field — bigger = larger, more contiguous empty regions
   particleJitter:  0.8,  // 0..1: how far a macro-particle can land from its cell's exact center — 0 = perfect grid, 1 = nearly anywhere in the cell
   particleGap:     3,    // px: space between adjacent macro-particles — 0 = cells touch edge-to-edge with no gap. Feeds the grid pitch (rebuild needed to change row/column count)
   particleScale:   1.0,  // multiplier on the macro-particle's own diameter. Grid pitch grows with it too, so cells never overlap from scale alone — only jitter can push one into a neighbor's territory (rebuild needed)
@@ -724,33 +724,33 @@ const T={
   particleMassJitter:2,  // +/- spread (whole ints) around the base; 0 = always exactly the base
 
   // Particle limits
-  maxActive:    20000,
+  maxActive:    150000,
   // Cap on simultaneously ACTIVATED (clicked-on) points — not the same as
   // maxActive above, which caps the whole active[] particle count. When a
   // fresh activation would push past this, the oldest still-activated point
   // (first in, "snake" style) is deactivated to make room.
-  maxActivePoints: 14,
-  wakeBudgetPerFrame: 400, // cap on NEW active promotions per frame; spreads a big surge (e.g. after a nova) across multiple frames instead of one spike or a hard freeze
-  settleFr:     30,
-  settleBt:     100,     // candidate cells reconsidered per settle tick (1–100; small + every frame = a continuous trickle)
-  settleBlendRate:0.5,   // 0..1: chance any given sampled cell reconsiders its state at all this tick (speed knob — direction always follows local majority)
-  settleFadeFrames:20,   // frames a settled cell takes to fade in (newly filled) or fade out (newly voided) instead of popping instantly
-  settleBlendMix: 0.5,   // 0..1: how far a cell jumps toward its neighbors' majority color when it stays/becomes populated
+  maxActivePoints: 15,
+  wakeBudgetPerFrame: 150000, // cap on NEW active promotions per frame; spreads a big surge (e.g. after a nova) across multiple frames instead of one spike or a hard freeze
+  settleFr:     1,
+  settleBt:     50,     // candidate cells reconsidered per settle tick (1–100; small + every frame = a continuous trickle)
+  settleBlendRate:0.1,   // 0..1: chance any given sampled cell reconsiders its state at all this tick (speed knob — direction always follows local majority)
+  settleFadeFrames:90,   // frames a settled cell takes to fade in (newly filled) or fade out (newly voided) instead of popping instantly
+  settleBlendMix: 0.2,   // 0..1: how far a cell jumps toward its neighbors' majority color when it stays/becomes populated
 
   // Lifespan
-  lifeColor:    10,
-  lifeStarK:    200,
-  lifeStarDiv:  9,
+  lifeColor:    100,
+  lifeStarK:    2500,
+  lifeStarDiv:  3,
 
   // Death nova (white-collapse death sequence)
   deathFlashMs:    550,  // duration (ms) of the white flash -> colorize -> settle transition
-  novaRingWidth:   18,   // px: below 2x this the nova flash is a filled circle; beyond it, a travelling ring of this width
-  novaMassBase:    3.0,  // nova radius = novaMassBase * sqrt(mass) — direct mass scaling, independent of the passive effect-radius cap
-  novaBlastForce:  6.0,  // push strength applied to active points caught in the blast radius
-  novaHueBias:     2.5,  // how strongly nova colors skew toward the star's own displayed hue (0=raw composition, higher=more concentrated)
-  novaDebrisGrace: 900,  // ms: blast-ejected debris ignores freshly spawned nova-ring particles
+  novaRingWidth:   44,   // px: below 2x this the nova flash is a filled circle; beyond it, a travelling ring of this width
+  novaMassBase:    5,  // nova radius = novaMassBase * sqrt(mass) — direct mass scaling, independent of the passive effect-radius cap
+  novaBlastForce:  30,  // push strength applied to active points caught in the blast radius
+  novaHueBias:     2.6,  // how strongly nova colors skew toward the star's own displayed hue (0=raw composition, higher=more concentrated)
+  novaDebrisGrace: 1500,  // ms: blast-ejected debris ignores freshly spawned nova-ring particles
   novaFreshGrace: 1500,  // ms: freshly spawned nova-ring particles are immune to ambient absorption
-  whiteFormMs:     450,  // ms: white-point birth flash + grow-in from a point to full scale
+  whiteFormMs:     1500,  // ms: white-point birth flash + grow-in from a point to full scale
 
   // Remnant visual
   remSize:      3,
@@ -758,7 +758,7 @@ const T={
   remGlowA:     0.3,
   dimGlowA:0.6, dimGlowRed:255, dimGlowGreen:110, dimGlowBlue:40, // (glow radius is dimGlowRMult below)
   dimGlowRMult:3, // Dim Remnant glow radius, as a multiplier over the remnant's OWN current (mass-scaled) radius, so a big Dim Remnant's glow actually grows with it instead of staying a fixed size
-  glowStretchAlpha:0.4, glowStretchSize:2.4, glowStretchPerSpeed:0.35, glowStretchMax:2.5, glowStretchRotK:6, glowStretchMinSpeed:0.05, // moving/spinning objects: a subtle stretched glow at the object itself (NOT a trail) — strength · base size (×radius) · elongation per unit speed · elongation cap · extra puff per unit spin · slowest speed that still stretches
+  glowStretchAlpha:0.4, glowStretchSize:2.4, glowStretchPerSpeed:0.35, glowStretchMax:0.7, glowStretchRotK:5.5, glowStretchMinSpeed:0, // moving/spinning objects: a subtle stretched glow at the object itself (NOT a trail) — strength · base size (×radius) · elongation per unit speed · elongation cap · extra puff per unit spin · slowest speed that still stretches
   remAlpha:     1.0,
 
   // Active Remnant — created when two white (Bright) remnants collide, or a
@@ -771,135 +771,135 @@ const T={
   statusEnergy:2, remMassFrac:0.2, remEnergyFrac:0.2, // energy a remnant gains per status from active remnants · share of a Point's / pigment's mass and energy a remnant keeps
   contactSpinK:    0.35,   // how much of the tangential slip at a contact is turned into spin / sliding per frame (0 = frictionless)
   whirlLens:       1.6,    // Dim DEPTH: how strongly it pinches what is inside toward its centre (an inverted lens: things shrink and thin out until they are one tiny glowing point); 0 = off
-  whirlExp:        4,      // Dim DEPTH: steepness of the pinch curve — 1 is gentle, higher keeps the rim flat and piles the pinch into the centre
+  whirlExp:        5.5,      // Dim DEPTH: steepness of the pinch curve — 1 is gentle, higher keeps the rim flat and piles the pinch into the centre
   whirlTwist:      1.5,    // Dim DEPTH: radians the picture is wound round at the centre (the stretch of the spiral)
   dimWhirlR:     120,    // Dim item: radius (px) of the stationary WHIRL it holds open
   dimWhirlCost:  1,      // Dim spent per interval while the WHIRL is held
   dimWhirlIntervalMs: 400,
   neutronBurstCost: 100,    // Neutrons spent per nova burst
-  neutronBurstMass: 5000,   // the mass the Neutron burst stands for — it sets the burst radius and blast exactly as it does for a nova
-  neutronBurstEnergy: 0.5,
+  neutronBurstMass: 700,   // the mass the Neutron burst stands for — it sets the burst radius and blast exactly as it does for a nova
+  neutronBurstEnergy: 0.34,
   magToolR:        34,     // Magnetic item: reach (px) around the cursor
   brightStasisR:  90,     // Bright item: radius (px) of the stasis area held under the cursor
-  brightStasisCost: 1,    // Bright spent per interval while stasis is held
-  brightStasisIntervalMs: 500,
+  brightStasisCost: 50,    // Bright spent per interval while stasis is held
+  brightStasisIntervalMs: 50,
   pulseToolR:      60,     // Pulsing item: reach (px) around the cursor
-  lightMergeGrow:  0.04,   // how much a merged light grows with how many it stands for (× log2 of the count, max ×3)
-  lightMergeGain:  0.75,   // how much of the combined radiance a merged light keeps (1 = full accumulation)
+  lightMergeGrow:  0.01,   // how much a merged light grows with how many it stands for (× log2 of the count, max ×3)
+  lightMergeGain:  0.1,   // how much of the combined radiance a merged light keeps (1 = full accumulation)
   seedSpread:      0.3,    // how far generated particles may stray from their primary colour (0 = exactly the primary, 1 = the full colour range)
-  nebBlurScale:    0.5,    // the blurred nebula halos are cached at this fraction of full size (lower = faster)
-  glowResScale:    0.35,   // the big soft effect-radius glows are drawn at this fraction of full size (lower = faster)
+  nebBlurScale:    0.25,    // the blurred nebula halos are cached at this fraction of full size (lower = faster)
+  glowResScale:    0.15,   // the big soft effect-radius glows are drawn at this fraction of full size (lower = faster)
   nebRefreshMs:    33,     // the blurred halos are re-filtered at most this often while the nebula is changing
   particleLinger:     0.35,   // fraction of a waking particle's fade during which it stays fully visible while its point grows in
   dimWhirlCoreR: 14,     // px: a particle-point swirled this close to the centre of a Dim WHIRL is consumed
   dialShotSpins:   2,      // String cursor: how many rapid counter-rotations its radar makes when it shoots (held ×1.5, double-click ×2.5)
   telemetryR:      180,    // px: telemetry mode labels the points within this reach of the cursor
-  perfLogSimMs:    16,     // sim frames slower than this are logged in detail for the performance log
+  perfLogSimMs:    30,     // sim frames slower than this are logged in detail for the performance log
   keySeqPosts:     5,      // Key sequence: how many targets (Gate posts, or points of the key on the background) make the pattern; 0 = the Key just turns, as it used to
   keySeqRounds:    1,      // Key sequence: how many full patterns must be played back to unlock
-  keySeqStepMs:    650,    // Key sequence: time between demonstrated notes
+  keySeqStepMs:    875,    // Key sequence: time between demonstrated notes
   keySeqBgR:       120,    // Key sequence: radius (px) the background targets are laid out within (a full Dark Remnant centre)
   volKeySeq:       1,      // Key sequence notes + the failure timpani
-  fadeBudgetMs:    4,      // particle fades share this much time per frame (0 = unlimited); fades not reached this frame keep their last look and go first next frame
+  fadeBudgetMs:    0,      // particle fades share this much time per frame (0 = unlimited); fades not reached this frame keep their last look and go first next frame
   maxDimFields:  1,      // how many Dim DEPTHS can stand at once (the oldest is removed only when this is exceeded)
   maxBrightFields: 1,      // how many Bright BALANCES can stand at once
   prismMagHoldMs:  3000, // Prism whose first node is Magnetic: how long each stable Magnetic colour is applied
-  prismMagTransMs: 1200, // …and how long the change through the intermediary colour takes (that colour is applied while it lasts)
+  prismMagTransMs: 1000, // …and how long the change through the intermediary colour takes (that colour is applied while it lasts)
   enrichGap:      4,    // px: gap between an ENRICHED remnant's body and its outline at full size (shrinks to ~30% at the smallest size)
   dynamismR:       30,   // px: DYNAMISM item reach — everything inside it is targeted (a plain click, a swipe, the first step of a press)
   neutronItemBurstK: 30,   // Neutron item: an enlarged object bursts like a nova of this × its mass (kept between 10 and the Burst mass)
   rotSlew:         0.006,  // rad/frame² : how fast a rotation speed may change when it is SET (collisions, Pulsing, Inertializer, String) — it never jumps between extremes
-  timpTone:        1,      // timpani: how much tonal overtone colour rides on top of the deep fundamental (0 = the old flat thud)
+  timpTone:        1.9,      // timpani: how much tonal overtone colour rides on top of the deep fundamental (0 = the old flat thud)
   conCloseSnapR:   36,     // px: near a node that would close a shape, the live edge runs straight to it (no screen hand-off)
   conMinAngleDeg:  20,     // a Pattern leg may not pinch to less than this angle (or more than 360 minus it) at the node it extends from
   itemReactMs:     700,    // Magnetic / Pulsing swipes: an object may be hit again after this long
-  novaScaleMix:    0.7,    // heavy novas: how much the particle sizes vary (same total mass) so neighbours are always a mix of scales (0 = all alike)
-  nebBlend:        1,      // overlapping nebula particles: 0 = the old winner-takes-all, 1 = fully blended (lighten on dark, darken on inverted)
-  hueRangeDeg:     12,     // each effect colour only owns +/- this many degrees of hue; the gaps between are dead zones colours leap across
+  novaScaleMix:    1,    // heavy novas: how much the particle sizes vary (same total mass) so neighbours are always a mix of scales (0 = all alike)
+  nebBlend:        0.05,      // overlapping nebula particles: 0 = the old winner-takes-all, 1 = fully blended (lighten on dark, darken on inverted)
+  hueRangeDeg:     20,     // each effect colour only owns +/- this many degrees of hue; the gaps between are dead zones colours leap across
   bhWakeJitter:    28,     // px: random extra length past the Dark Remnant's max spike height, so spikes never all cut at the same height
   glowTrailSpeedK: 1.2,    // trail length (× glow radius) at MAX speed; scales linearly down to none at rest
-  glowTrailSpinK:  1.0,    // tail length (× glow radius) at MAX spin; the tail is turned by the object's own rotation, locked to it
-  lightMergeMin:   48,     // more lights than this on screen: lights of the same colour in the same area are merged into one
-  lightMergeCell:  56,     // size (px) of the area lights are merged within
-  remBounceSpinK:  0.015,  // rotation gained per unit of tangential bounce-impact speed
+  glowTrailSpinK:  0.5,    // tail length (× glow radius) at MAX spin; the tail is turned by the object's own rotation, locked to it
+  lightMergeMin:   8,     // more lights than this on screen: lights of the same colour in the same area are merged into one
+  lightMergeCell:  100,     // size (px) of the area lights are merged within
+  remBounceSpinK:  0.1,  // rotation gained per unit of tangential bounce-impact speed
   pulseSumThresh:1.5, // a Pulsing Remnant forms when (faster input's speed ÷ Max speed) + (faster input's spin ÷ Max rot spd) reaches this (0–2)
-  neutronEffRMax:  90,   // px: Neutron effect radius in its "max" state
-  neutronEffRMin:  28,   // px: Neutron effect radius in its "min" state
-  neutronCycleMs:  1000, // ms: how long Neutron holds each state before flipping
+  neutronEffRMax:  75,   // px: Neutron effect radius in its "max" state
+  neutronEffRMin:  100,   // px: Neutron effect radius in its "min" state
+  neutronCycleMs:  3000, // ms: how long Neutron holds each state before flipping
   neutronTransMs:  260,  // ms: how long the eased ramp between Neutron's min/max state takes — smoothstep (fade()), the same interpolation metric used for every other radius/color transition in the game, not an instant snap
   pulseRateMult:   1,    // speed multiplier on the Pulsing Remnant's glow-pulse + triangle-flip animation
-  neutronBoostMult:1.6,  // points caught while Neutron is in "max" state have their own radius/effect-range scaled up by this
-  neutronShrinkMult:0.55,// points caught while Neutron is in "min" state have their own radius/effect-range scaled down by this
-  neutronSizeMaxMult:1.8,// Neutron's own icon size multiplier while in "max" state
-  neutronSizeMinMult:0.6,// Neutron's own icon size multiplier while in "min" state
-  magneticEffR:    80,   // px: Magnetic Remnant's effect radius
-  pulsingEffR:     95,   // px: Pulsing Remnant's effect radius (the arc's length)
-  pulsingArcWidth: 0.9,  // radians: total angular width of the Pulsing Remnant's narrow arc
+  neutronBoostMult:2.5,  // points caught while Neutron is in "max" state have their own radius/effect-range scaled up by this
+  neutronShrinkMult:0.5,// points caught while Neutron is in "min" state have their own radius/effect-range scaled down by this
+  neutronSizeMaxMult:4,// Neutron's own icon size multiplier while in "max" state
+  neutronSizeMinMult:0.3,// Neutron's own icon size multiplier while in "min" state
+  magneticEffR:    125,   // px: Magnetic Remnant's effect radius
+  pulsingEffR:     200,   // px: Pulsing Remnant's effect radius (the arc's length)
+  pulsingArcWidth: 0,  // radians: total angular width of the Pulsing Remnant's narrow arc
   prismRemnantAddFrac: 0.5, // Neutron/Pulsing only: fraction of the target's own total mass that the Prism's colour adds into the existing composition
 
   // Inventory — Moments (String, Spindle) and Artifacts (Bright/Dim remnant
   // collects, Prism/Gate/Key symbols). Max counts are each independently
   // tunable "purses"; detection counts/durations are exposed too.
-  invMaxBright: 9999999, invMaxDim: 9999999, invMaxDial: 10, invMaxLeash: 10, invMaxWeave: 10,
+  invMaxBright: 9999999, invMaxDim: 9999999, invMaxDial: 99, invMaxLeash: 10, invMaxWeave: 10,
   weaveRadius: 120, weaveMinPoints: 5, weaveSeconds: 3, weaveStarMs: 1500, minPointDist: 14, patternCost: 1, patternMs: 5000, stringHomeR: 60, unwindMass: 5, unwindMs: 200, unwindMaxWidth: 60, unwindGrowMs: 3000, // Spindle unwind: mass per tick · ms per tick · widest spread · ms still to reach it
   // Weave: points inside this radius (more than 5) held for N s · universal min gap for String / Spindle / Weave members · a Pattern spends this many of its own item (Prism / Knot) per interval
   invMaxNeutron: 9999, invMaxMagnetic: 9999, invMaxPulsing: 9999,
   invMaxLens: 5,  invMaxPrism: 5,  invMaxGate: 5,  invMaxKnot: 5,  invMaxKey: 5,
-  knotFadeMs:    1000,   // ms: how long a Knot-removed point takes to fade out
+  knotFadeMs:    600,   // ms: how long a Knot-removed point takes to fade out
   orbitMaxDist: 220, // px: a String orbit only counts when the orbiting pair are this close (stops screen-wide 'orbits')
-  orbitsPerDial:   5,    // full orbits of one white point around another needed to earn 1 String
-  orbitDistTolerance:0.35,// fraction the orbit radius may drift by frame-to-frame and still count as "orbiting"
+  orbitsPerDial:   3,    // full orbits of one white point around another needed to earn 1 String
+  orbitDistTolerance:0.1,// fraction the orbit radius may drift by frame-to-frame and still count as "orbiting"
   // Flock detection (earns Spindles): a flock is a group of Points that all sit inside one circular
   // range and share heading, speed and rotation. No leader/follower order is needed.
-  leashShowDelayMs:1000, leashFadeInMs:250, leashAheadAngle:1.2, leashDistTol:0.25, // leash candidate indicator delay / fade-in · how far off a point's heading its target may sit · how much the following distance may vary
-  flockSecondsPerLeash:5,// continuous seconds a flock must hold together to earn 1 Spindle
-  flockRadius:   160,    // px: radius of the circular range every flock member must sit inside (measured from the flock's centre)
-  flockSpeedTol:  0.4,   // fractional speed difference allowed between neighbouring flock members
-  flockRotTol:   0.25,   // fraction of Max rot spd that neighbouring members' rotation may differ by
+  leashShowDelayMs:1000, leashFadeInMs:100, leashAheadAngle:1.05, leashDistTol:0.1, // leash candidate indicator delay / fade-in · how far off a point's heading its target may sit · how much the following distance may vary
+  flockSecondsPerLeash:3,// continuous seconds a flock must hold together to earn 1 Spindle
+  flockRadius:   200,    // px: radius of the circular range every flock member must sit inside (measured from the flock's centre)
+  flockSpeedTol:  0.05,   // fractional speed difference allowed between neighbouring flock members
+  flockRotTol:   0.05,   // fraction of Max rot spd that neighbouring members' rotation may differ by
 
   // Black remnant (victory)
   blackBatch:   20,  // Dark Remnant draw-in: launch in random batches of about this many of the closest objects (1 = one at a time)
   blackLaunchPerMs: 1, // Dark Remnant draw-in: objects launched at the void per ms, nearest first
-  blackFlySpeed: 10,   // px per step a launched object travels toward the void
-  blackSpeed:   3,
+  blackFlySpeed: 20,   // px per step a launched object travels toward the void
+  blackSpeed:   10,
   blackMaxActive: 250, // cap on simultaneously-drawn-in points during the Dark Remnant's active/consume phase — refilled 1-for-1 as each is consumed
-  blackMult:    340,
-  blackGrowMs:  700, // ms: single point -> derived full scale before it starts affecting the scene
+  blackMult:    21,
+  blackGrowMs:  1500, // ms: single point -> derived full scale before it starts affecting the scene
   bhThemeFlashMs: 380, // ms: the dark→light theme-shift flash once the darkness finishes covering the screen and the draw-in wave begins
-  bhBlurWide:   12,  // wide blur (px) — matches nebBlur by default so it blends like the nebula
-  bhBlurMid:    4,   // mid blur (px) — matches nebBlur2 by default
-  bhAlphaWide:  0.55,// wide pass alpha — matches nebAlpha1 by default
+  bhBlurWide:   1,  // wide blur (px) — matches nebBlur by default so it blends like the nebula
+  bhBlurMid:    2,   // mid blur (px) — matches nebBlur2 by default
+  bhAlphaWide:  0.45,// wide pass alpha — matches nebAlpha1 by default
   bhAlphaMid:   0.80,// mid pass alpha — matches nebAlpha2 by default
   bhExpandBlur: 22,  // px: blur radius on the expanding-darkness fill while the Dark Remnant is still growing to fill the screen
-  bhRingWidth:  4,   // px: width of the edge glow ring around the void (extends both inward and outward from the radius)
-  bhImpactMs:   350, // ms: lifetime of a per-point consumption impact flash
-  bhImpactSize: 2.2, // radius multiplier (over sqrt(mass)) for a consumption impact flash
-  bhImpactMin:  2,   // px: floor size for a consumption impact flash, independent of the mass multiplier above — the two together give finer control over the impact radius than one knob alone
+  bhRingWidth:  22,   // px: width of the edge glow ring around the void (extends both inward and outward from the radius)
+  bhImpactMs:   250, // ms: lifetime of a per-point consumption impact flash
+  bhImpactSize: 1, // radius multiplier (over sqrt(mass)) for a consumption impact flash
+  bhImpactMin:  1.1,   // px: floor size for a consumption impact flash, independent of the mass multiplier above — the two together give finer control over the impact radius than one knob alone
   bhImpactBlur: 3,   // px: extra soft blur applied to each impact flash itself, on top of the shared wake-canvas blur passes
   // Heartbeat + sway applied directly to the edge glow above (not a separate
   // ring/decoration): the glow's width/brightness swells to a two-lobed
   // "lub-dub" rhythm, and the whole glow drifts gently around the void
   // center (which itself stays put) instead of sitting perfectly still.
-  bhRingBeatMs:     900, // ms: duration of one heartbeat cycle
-  bhRingPulseAmt:   0.35,// 0..1+: how much the heartbeat swells the edge glow's width/brightness
-  bhRingSwayR:      6,   // px: amplitude of the glow's drift around the center
-  bhRingSwaySpeed:  0.6, // angular speed of the sway (rad/s-ish)
+  bhRingBeatMs:     1600, // ms: duration of one heartbeat cycle
+  bhRingPulseAmt:   0.1,// 0..1+: how much the heartbeat swells the edge glow's width/brightness
+  bhRingSwayR:      4,   // px: amplitude of the glow's drift around the center
+  bhRingSwaySpeed:  0.2, // angular speed of the sway (rad/s-ish)
   // Second, independent glow ring layered on top of the first — same initial
   // parameters, but its own separate vars, and its heartbeat starts at the
   // midpoint of the first ring's cycle (phase offset 0.5) so the two beat
   // off-time from each other instead of pulsing in lockstep.
-  bhRing2Width:      4,
-  bhRing2BlurWide:   12,
-  bhRing2BlurMid:    4,
-  bhRing2AlphaWide:  0.55,
-  bhRing2AlphaMid:   0.80,
+  bhRing2Width:      12,
+  bhRing2BlurWide:   1,
+  bhRing2BlurMid:    1,
+  bhRing2AlphaWide:  0.2,
+  bhRing2AlphaMid:   0.3,
   bhRing2BeatMs:     900,
   bhRing2PulseAmt:   0.35,
-  bhRing2SwayR:      6,
-  bhRing2SwaySpeed:  0.6,
+  bhRing2SwayR:      4,
+  bhRing2SwaySpeed:  0.25,
 
   // Wake visual — min config (at wakeShow speed) and max config (at maxSpeed)
-  wakeShow:     0.05,
+  wakeShow:     0.01,
   wakeMaxA:     0.35,
   wakeHold:     10,
   wakeShrinkRate: 2, // per-frame shrink of a white's effective range back toward passive after releasing a click
@@ -916,26 +916,26 @@ const T={
 
   // Nebula render — 3-pass: wide glow → mid body → sharp core
   triScale:0.56,  // triangle cell size (uniformly inward): the rounded triangle is scaled so its area is close to the circle / square
-  nebSrcScale:1.25,// nebula source resolution: sub-particles per screen particle of a cell (rebuild to apply) — higher = cleaner edges, costlier when many particles wake
-  nebEdgePx:1.5,  // soft edge of every cell shape, in screen particles
-  nebBlur:      12,  // wide blur (px) — glow halo around each macro-particle
-  nebBlur2:     4,   // mid blur (px) — main body softness
-  nebAlpha1:    0.55,// wide pass alpha
-  nebAlpha2:    0.80,// mid pass alpha
-  nebAlpha3:    0.30,// sharp core pass alpha
+  nebSrcScale:0.75,// nebula source resolution: sub-particles per screen particle of a cell (rebuild to apply) — higher = cleaner edges, costlier when many particles wake
+  nebEdgePx:0.3,  // soft edge of every cell shape, in screen particles
+  nebBlur:      16,  // wide blur (px) — glow halo around each macro-particle
+  nebBlur2:     12,   // mid blur (px) — main body softness
+  nebAlpha1:    0.15,// wide pass alpha
+  nebAlpha2:    0.4,// mid pass alpha
+  nebAlpha3:    0,// sharp core pass alpha
   particleMapBlur: 0,   // px: extra blur on the crisp particle-map layer itself (the flat/paused view, not the glow passes above) — 0 = perfectly sharp
 
   // Macro-particle → point transition
-  transMaxAge:  25,  // frames: duration of nebData fade (matches birthFrames so the particle and the point cross-fade exactly)
-  maxTransitions: 8000, // fade-queue capacity; overflow falls back to instant clear (see addTransition) so a particle can never get stuck painted-but-orphaned
+  transMaxAge:  20,  // frames: duration of nebData fade (matches birthFrames so the particle and the point cross-fade exactly)
+  maxTransitions: 50000, // fade-queue capacity; overflow falls back to instant clear (see addTransition) so a particle can never get stuck painted-but-orphaned
 
   // Active point birth blur — uses nebula render params (nebBlur/nebBlur2/nebAlpha*)
-  birthFrames:  25,  // frames to cross-fade blurred→sharp after waking
+  birthFrames:  30,  // frames to cross-fade blurred→sharp after waking
 
   // Nebula particle alpha bracket — clamps all nebula particle alphas to [min, max]
   // so low-energy regions are never invisible and high-energy never over-saturate.
-  nebAlphaMin:  0.30,// minimum alpha for any nebula particle
-  nebAlphaMax:  0.80,// maximum alpha for any nebula particle
+  nebAlphaMin:  0.35,// minimum alpha for any nebula particle
+  nebAlphaMax:  1,// maximum alpha for any nebula particle
 
   // Particle capture — animated pull-in replacing all instant merges
   captureFrames: 20, // base frames for pull animation (accelerates over time)
@@ -943,7 +943,7 @@ const T={
   captureAccel:  6.0,// pull speed multiplier at captureProgress=1
 };
 
-const DISC_LIST=[["Top level (1–100)", [["slot_vol", "Sound toggle", 1], ["slot_speedctl", "Game speed control", 2], ["slot_guide", "Guide (circled i)", 0], ["hud_rebuild", "Rebuild button", 3], ["mode_sound", "Sound mode", 4], ["hud_modes", "Modes menu", 8], ["stats_collapse", "Stats collapse", 10], ["stats_line", "Stats line pick", 10]]], ["Inventory items", [["slot_dim", "DEPTH (Dim) slot", 0], ["slot_bright", "BALANCE (Bright) slot", 10], ["slot_magnetic", "HARMONY slot", 30], ["slot_pulsing", "RHYTHM slot", 40], ["slot_neutron", "DYNAMISM slot", 50], ["slot_dial", "String slot", 60], ["slot_leash", "Spindle slot", 70], ["slot_weave", "Weave slot", 80], ["slot_prism", "Prism slot", 120], ["slot_knot", "Knot slot", 130], ["slot_gate", "Gate slot", 140], ["slot_lens", "Lens slot", 150], ["slot_key", "Key slot", 200]]], ["Tools & panels", [["hud_tune", "Tune menu", 500], ["mode_pause", "Pause mode", 15], ["mode_invert", "Invert mode", 20], ["mode_trails", "Trails mode", 25], ["mode_particlemap", "Particle map mode", 40], ["mode_radii", "Effect radii mode", 60], ["mode_telemetry", "Telemetry mode", 90], ["mode_dynamics", "Dynamics mode", 90], ["mode_class", "Class mode", 90], ["mode_savemap", "Save map", 200], ["mode_loadmap", "Load map", 200], ["mode_shape", "Cell shape mode", 300], ["mode_coverage", "Coverage mode", 400], ["mode_settle", "Settle mode", 900], ["mode_clearstage", "Clear stage", 1500], ["stats_log", "Performance log", 2500], ["hud_image", "Image button", 3000], ["hud_clearimg", "Clear image button", 3000], ["mode_cache", "Item cache mode", 5000], ["slot_cache-clear", "Cache: clear slot", 5000], ["slot_cache-fill", "Cache: fill slot", 5000], ["slot_cache-disable", "Cache: disable slot", 8000]]], ["Advanced", [["mode_create", "Create item mode", 500000], ["slot_create", "Create item slot", 500000]]], ["Feed & object info (feed and telemetry unlock separately, same cost)", [["feed_msg", "Feed: any message", 0], ["obj_particle", "Particle", 0], ["obj_pigment", "Pigment", 0], ["obj_point", "Point", 5], ["obj_dim", "Dim remnant", 0], ["obj_bright", "Bright remnant", 10], ["obj_neutron", "Neutron remnant", 25], ["obj_magnetic", "Magnetic remnant", 25], ["obj_pulsing", "Pulsing remnant", 25], ["obj_dark", "Dark remnant", 50], ["obj_relic", "Relic (enriched)", 100], ["obj_eclipse", "ECLIPSE", 15], ["obj_crystal", "CRYSTALIZE", 15]]], ["Surface Map & main menu", [["main_guide", "Main menu: Guide", 5], ["hub_guide", "Map: Guide button", 0], ["hub_score", "Map: score bar", 1], ["hub_legend", "Map: legend", 2], ["hub_restart", "Map: New map button", 3], ["hub_cells", "Map: cell count", 4], ["hub_depth", "Map: depth", 6]]]];
+const DISC_LIST=[["Top level (1–100)", [["slot_vol", "Sound toggle", 0], ["slot_speedctl", "Game speed control", 200], ["slot_guide", "Guide (circled i)", 0], ["hud_rebuild", "Rebuild button", 0], ["mode_sound", "Sound mode", 0], ["hud_modes", "Modes menu", 0], ["stats_collapse", "Stats collapse", 0], ["stats_line", "Stats line pick", 0]]], ["Inventory items", [["slot_dim", "DEPTH (Dim) slot", 0], ["slot_bright", "BALANCE (Bright) slot", 10], ["slot_magnetic", "HARMONY slot", 30], ["slot_pulsing", "RHYTHM slot", 40], ["slot_neutron", "DYNAMISM slot", 50], ["slot_dial", "String slot", 60], ["slot_leash", "Spindle slot", 70], ["slot_weave", "Weave slot", 80], ["slot_prism", "Prism slot", 120], ["slot_knot", "Knot slot", 130], ["slot_gate", "Gate slot", 140], ["slot_lens", "Lens slot", 150], ["slot_key", "Key slot", 200]]], ["Tools & panels", [["hud_tune", "Tune menu", 0], ["mode_pause", "Pause mode", 0], ["mode_invert", "Invert mode", 0], ["mode_trails", "Trails mode", 9999999], ["mode_particlemap", "Particle map mode", 9999999], ["mode_radii", "Effect radii mode", 100000], ["mode_telemetry", "Telemetry mode", 100000], ["mode_dynamics", "Dynamics mode", 100000], ["mode_class", "Class mode", 100000], ["mode_savemap", "Save map", 0], ["mode_loadmap", "Load map", 0], ["mode_shape", "Cell shape mode", 0], ["mode_coverage", "Coverage mode", 400], ["mode_settle", "Settle mode", 900], ["mode_clearstage", "Clear stage", 1500], ["stats_log", "Performance log", 2500], ["hud_image", "Image button", 3000], ["hud_clearimg", "Clear image button", 3000], ["mode_cache", "Item cache mode", 0], ["slot_cache-clear", "Cache: clear slot", 5000], ["slot_cache-fill", "Cache: fill slot", 0], ["slot_cache-disable", "Cache: disable slot", 8000]]], ["Advanced", [["mode_create", "Create item mode", 0], ["slot_create", "Create item slot", 0]]], ["Feed & object info (feed and telemetry unlock separately, same cost)", [["feed_msg", "Feed: any message", 0], ["obj_particle", "Particle", 0], ["obj_pigment", "Pigment", 0], ["obj_point", "Point", 5], ["obj_dim", "Dim remnant", 0], ["obj_bright", "Bright remnant", 10], ["obj_neutron", "Neutron remnant", 25], ["obj_magnetic", "Magnetic remnant", 25], ["obj_pulsing", "Pulsing remnant", 25], ["obj_dark", "Dark remnant", 50], ["obj_relic", "Relic (enriched)", 100], ["obj_eclipse", "ECLIPSE", 15], ["obj_crystal", "CRYSTALIZE", 15]]], ["Surface Map & main menu", [["main_guide", "Main menu: Guide", 5], ["hub_guide", "Map: Guide button", 0], ["hub_score", "Map: score bar", 1], ["hub_legend", "Map: legend", 2], ["hub_restart", "Map: New map button", 3], ["hub_cells", "Map: cell count", 4], ["hub_depth", "Map: depth", 6]]]];
 const DISC_ALL=[];for(const g of DISC_LIST)for(const d of g[1]){DISC_ALL.push(d);T['dc_'+d[0]]=d[2];} // Discoveries: Dim needed (on hover) to reveal each interface element
 const TUNE_DEFS=[
   {sec:'Forces — base power',tab:'gameplay'},
@@ -1528,7 +1528,7 @@ const TUNE_DEFS=[
 ];
 
 for(const g of DISC_LIST){TUNE_DEFS.push({sec:'Discoveries — '+g[0],tab:'discoveries'});for(const d of g[1])TUNE_DEFS.push({key:'dc_'+d[0],label:d[1],min:0,max:9999999,step:1,tip:'Dim you must hold while hovering to discover this element (nothing is spent). 0 = always visible'});}
-Object.assign(T,{dilMin:0.05,dilMax:0.5,dilFloor:0.25,riskWarnMass:T.massScaleMax*T.blackMult/2,riskDangerMass:T.massScaleMax*T.blackMult,cacheKeyR:16});
+Object.assign(T,{dilMin:0.05,dilMax:0.5,dilFloor:0.25,riskWarnMass:68000,riskDangerMass:136000,cacheKeyR:16});
 let baseScale=1,dilations=[],dilLast=0,risksOn=false,_glAt=0,_bhSF=-1,_bhSN=0,_batchSnd=false,_batchCis=new Map(),_scStep=0,_scAt=0;
 TUNE_DEFS.push({sec:'Time dilation & Risks',tab:'gameplay'},
  {key:'dilMin',label:'Dilation min nova',min:0,max:0.5,step:0.01,tip:'Game-speed reduction of the smallest nova (0.05 = x0.95)'},
