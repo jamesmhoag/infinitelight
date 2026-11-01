@@ -732,7 +732,9 @@ const T={
   // fresh activation would push past this, the oldest still-activated point
   // (first in, "snake" style) is deactivated to make room.
   maxActivePoints: 15,
-  wakeBudgetPerFrame: 150000, // cap on NEW active promotions per frame; spreads a big surge (e.g. after a nova) across multiple frames instead of one spike or a hard freeze
+  wakeBudgetPerFrame: 400, // cap on NEW active promotions per frame; a surge past it is queued (never dropped) and woken over the next frames
+  wakeBusyBudget: 60,  // …and the cap while the simulation is running behind (Sim busy ms)
+  simBusyMs: 12,       // ms: when the smoothed sim time is above this, eye-candy steps aside (no settling, glides / fade-ins finish at once) and waking spreads thinner
   settleFr:     1,
   settleBt:     50,     // candidate cells reconsidered per settle tick (1–100; small + every frame = a continuous trickle)
   settleBlendRate:0.1,   // 0..1: chance any given sampled cell reconsiders its state at all this tick (speed knob — direction always follows local majority)
@@ -1222,7 +1224,9 @@ const TUNE_DEFS=[
   {key:'implodeMs',label:'Implosion ms',min:200,max:3000,step:50,tip:'DYNAMISM implosion: how long the reverse nova ring takes to collapse inward'},
   {key:'fxTieMs',label:'FX tie ms',min:200,max:8000,step:100,tip:'An object touched by an active CRYSTALIZE and an active ECLIPSE at once becomes a random pigment colour and ignores both for this long'},
   {key:'maxActivePoints',label:'Max shining',min:1,max:60,step:1,   tip:'Cap on simultaneously shining points — exceeding it stops the oldest one shining (snake-style)'},
-  {key:'wakeBudgetPerFrame',label:'Wake budget', min:0,max:150000,step:20, tip:'Max new active promotions per frame (spreads big surges across frames)'},
+  {key:'wakeBudgetPerFrame',label:'Wake budget', min:20,max:5000,step:20, tip:'Max particles woken per frame. Any past it are queued and woken over the next frames (never missed)'},
+  {key:'wakeBusyBudget',label:'Wake budget busy', min:5,max:1000,step:5, tip:'Wake budget while the simulation is running behind (Sim busy ms)'},
+  {key:'simBusyMs',label:'Sim busy ms', min:4,max:40,step:1, tip:'Smoothed sim time above which settling stops, glides and fade-ins finish at once, and waking uses the busy budget'},
   {key:'settleFr',    label:'Settle int',  min:1,max:300,step:1,      tip:'Frames between settle steps'},
   {key:'settleBt',    label:'Settle bat',  min:1,max:100,step:1,      tip:'Candidate cells reconsidered per settle step. Small batch + interval 1 = a continuous every-frame trickle; big batch + long interval = the slow, chunky effect'},
   {key:'settleBlendRate',label:'Churn chance',min:0,max:1,step:0.05, tip:'Chance any sampled cell reconsiders its state this tick — direction always follows local majority (void counts as a state too)'},
@@ -2237,7 +2241,17 @@ function forEachDormant(cx,cy,radius,cb){
 }
 
 // Ring wake: only wakes dormant between innerR and outerR
-function wakeRing(cx,cy,innerR,outerR,now,cbIn,filter){
+// Wake queue: a budgeted ring that runs out of this frame's wake budget never drops a particle. It is flagged (dp._wq) and
+// queued; the queue is woken first, oldest first, at the start of every step, so a big surge spreads over a few frames.
+const wakeQ=[];
+function simBusy(){return perfStep>T.simBusyMs;} // the simulation is running behind: optional eye-candy steps aside
+function wakeQueued(now){
+  let k=0;
+  while(k<wakeQ.length&&wakeBudget>0){const j=wakeQ[k++],dp=j.dp;dp._wq=false;
+    if(dormant[j.idx]!==dp||fieldProtects(dp.x,dp.y))continue; // already woken another way, consumed, or now held in stasis
+    _dormantFadeOnRemove=true;removeDormant(j.idx,now);_dormantFadeOnRemove=false;wakeBudget--;j.cb(dp);if(j.push)active.push(dp);}
+  if(k)wakeQ.splice(0,k);}
+function wakeRing(cx,cy,innerR,outerR,now,cbIn,filter,queue){ // queue (budgeted): 1 = the callback puts the particle in active itself, 2 = the caller collects it (a queued one is put in active here)
   const cb=(dp,idx)=>{perfCtx.wake++;if(perfCtx.wake===50||perfCtx.wake%250===0)logEv('wakeRing: '+perfCtx.wake+' particles woken so far this frame (centre '+(cx|0)+','+(cy|0)+' r '+(outerR|0)+')');return cbIn(dp,idx);};
   const inner2=innerR*innerR,wgs=_zoneList.length?gateSide(cx,cy):-1;
   forEachDormant(cx,cy,outerR,(dp,idx)=>{
@@ -2246,6 +2260,7 @@ function wakeRing(cx,cy,innerR,outerR,now,cbIn,filter){
       if(wgs>=0&&gateSide(dp.x,dp.y)!==wgs)return; // …nor does it wake particles on the other side of the wall
       if(filter&&!filter(dp))return;
       if(fieldProtects(dp.x,dp.y))return; // held in stasis: nothing can wake a particle inside the field
+      if(queue){if(dp._wq)return;if(wakeBudget<=0){dp._wq=true;wakeQ.push({dp,idx,cb:cbIn,push:queue===2});return;}wakeBudget--;}
       removeDormant(idx,now);cb(dp);
     }
   });
@@ -3575,7 +3590,7 @@ function _prismSweepVictimsOld(chain,bond){
 // Recolour any object to one palette colour — a full transition, never additive. Works on particles, pigment and Bright
 // points, and (tint-capable) remnants.
 let _pixPaintQueue=[];
-function flushParticlePaints(){const n=_pixPaintQueue.length;if(!n)return;if(n>24)rebuildNebula();else for(let i=0;i<n;i++)nebPaint(_pixPaintQueue[i]);_pixPaintQueue.length=0;}
+function flushParticlePaints(){const n=_pixPaintQueue.length;if(!n)return;if(n>Math.max(24,dormantCount*0.25))rebuildNebula(); /* a full rebuild only pays once a quarter of the surface changed */else for(let i=0;i<n;i++)nebPaint(_pixPaintQueue[i]);_pixPaintQueue.length=0;}
 function particlesInPoly(P,owner){
   const out=[];let x0=1e9,y0=1e9,x1=-1e9,y1=-1e9;
   for(const c of P){x0=Math.min(x0,c.x);y0=Math.min(y0,c.y);x1=Math.max(x1,c.x);y1=Math.max(y1,c.y);}
@@ -8625,14 +8640,15 @@ function _sfAddNb(px,py){
     _sfNb.add(ngy*GW+ngx);
   }
 }
+const _sfG=[],_sfI=[],_sfGD=[],_sfID=[],_sfPool=[],_sfList=[];let _sfSer=0;
 function updateSettleFades(timeScale){
   const gl=settleFades,il=interpList;
   if(gl.length===0&&il.length===0)return;
-  const step=1/Math.max(1,T.settleFadeFrames);
+  const step=1/Math.max(1,T.settleFadeFrames),snap=simBusy(),kx=NEB_SS/PIXEL_SIZE,ky=NEB_SS/PIXEL_SY; // busy: every glide / fade-in finishes this frame
   const eas=pr=>pr<0.5?2*pr*pr:1-Math.pow(-2*pr+2,2)/2;
-  _sfNb.clear();
-  const gJobs=[],iJobs=[],gDone=[],iDone=[];
-  // ── phase A: advance everything and erase its previous footprint
+  _sfNb.clear();_sfSer++;
+  const gJobs=_sfG,iJobs=_sfI,gDone=_sfGD,iDone=_sfID;gJobs.length=iJobs.length=gDone.length=iDone.length=0;
+  // ── phase A: advance everything; only what has visibly changed (≥ 1 nebula pixel moved, or a visible alpha / size step) is erased and repainted
   let w=0;
   for(let i=0;i<gl.length;i++){
     const g=gl[i],p=g.p;
@@ -8641,10 +8657,11 @@ function updateSettleFades(timeScale){
     if(dormant[g.idx]!==p){ // no longer a dormant particle there: erase what is painted, never leave a ghost
       nebStamp(g.visX,g.visY,0,0,0,0,true,sz);_sfAddNb(g.visX,g.visY);glideById.delete(p.id);continue;
     }
-    g.progress=Math.min(1,g.progress+step);
-    const e=eas(g.progress);
+    g.progress=snap?1:Math.min(1,g.progress+step);
+    const e=eas(g.progress),nx=g.fx+(p.x-g.fx)*e,ny=g.fy+(p.y-g.fy)*e;
+    if(g.progress<1&&Math.abs(nx-g.visX)*kx<1&&Math.abs(ny-g.visY)*ky<1){gl[w++]=g;continue;} // not a nebula pixel further yet: nothing to repaint
     nebStamp(g.visX,g.visY,0,0,0,0,true,sz);_sfAddNb(g.visX,g.visY);
-    gJobs.push(g,g.fx+(p.x-g.fx)*e,g.fy+(p.y-g.fy)*e,sz);
+    gJobs.push(g,nx,ny,sz);g._sfS=_sfSer;
     if(g.progress<1)gl[w++]=g;else gDone.push(g);
   }
   gl.length=w;
@@ -8652,30 +8669,35 @@ function updateSettleFades(timeScale){
   for(let i=0;i<il.length;i++){
     const e=il[i];
     if(e.dead)continue;
-    e.progress=Math.min(1,e.progress+(e.step||step));
+    e.progress=snap?1:Math.min(1,e.progress+(e.step||step));
     const p=dormant[e.idx],to=p?visOf(p):ZERO_V;
     const cur=lerpV(e.from,to,eas(e.progress));
+    if(e.progress<1&&e.cur&&Math.abs(cur.a-e.cur.a)<3&&Math.abs(cur.s-e.cur.s)<0.03){il[wi++]=e;continue;} // no visible step yet
     nebStamp(e.x,e.y,0,0,0,0,true,Math.max(e.prevS,cur.s,0.05));_sfAddNb(e.x,e.y);
-    iJobs.push(e,cur);
+    iJobs.push(e,cur);e._sfS=_sfSer;
     if(e.progress<1)il[wi++]=e;else iDone.push(e);
   }
   il.length=wi;
   // ── phase B/C (unified): every neighbour, glider and morpher is stamped in ONE pass sorted by each particle's retained z-order,
-  //    so a particle that is moving keeps the depth of its parent instead of jumping in front of what was behind it.
-  const stamps=[];
-  _sfNb.forEach(ni=>{
-    if(interpByCell.has(ni))return;
-    const np=dormant[ni];
-    if(!np||glideById.has(np.id))return;
-    stamps.push({z:np.zSeq||0,k:0,np});
+  //    so a particle that is moving keeps the depth of its parent instead of jumping in front of what was behind it. (Stamp records are pooled.)
+  const stamps=_sfList;stamps.length=0;let np0=0;
+  const put=(z,k,a,b,c,d)=>{let o=_sfPool[np0];if(!o)o=_sfPool[np0]={};np0++;o.z=z;o.k=k;o.a=a;o.b=b;o.c=c;o.d=d;stamps.push(o);};
+  _sfNb.forEach(ni=>{ // a neighbour whose picture an erase may have nicked is repainted as it stands (a glide / fade-in that skipped this frame included)
+    const ie=interpByCell.get(ni),np=dormant[ni];
+    if(ie){if(ie._sfS!==_sfSer&&ie.cur&&!ie.dead)put((np&&np.zSeq)||0,2,ie,ie.cur);return;}
+    if(!np)return;
+    const g=glideById.get(np.id);
+    if(g){if(g._sfS!==_sfSer&&!g.dead)put(np.zSeq||0,1,g,g.visX,g.visY,nebSizeMultOf(np));return;}
+    put(np.zSeq||0,0,np);
   });
-  for(let k=0;k<gJobs.length;k+=4){const g=gJobs[k];stamps.push({z:g.p.zSeq||0,k:1,g,nx:gJobs[k+1],ny:gJobs[k+2],sz:gJobs[k+3]});}
-  for(let k=0;k<iJobs.length;k+=2){const e=iJobs[k],po=dormant[e.idx];stamps.push({z:(po&&po.zSeq)||0,k:2,e,v:iJobs[k+1]});}
+  for(let k=0;k<gJobs.length;k+=4){const g=gJobs[k];put(g.p.zSeq||0,1,g,gJobs[k+1],gJobs[k+2],gJobs[k+3]);}
+  for(let k=0;k<iJobs.length;k+=2){const e=iJobs[k],po=dormant[e.idx];put((po&&po.zSeq)||0,2,e,iJobs[k+1]);}
   stamps.sort((A,B)=>A.z-B.z);
   for(const st of stamps){
-    if(st.k===0){const np=st.np,wt=whiteTint(np.r,np.g,np.b,np.energy);nebStamp(np.x,np.y,wt.r,wt.g,wt.b,(nebAlphaForEnergy(np.energy)*255+0.5)|0,false,nebSizeMultOf(np));}
-    else if(st.k===1){const g=st.g,p=g.p,wt=whiteTint(p.r,p.g,p.b,p.energy);nebStamp(st.nx,st.ny,wt.r,wt.g,wt.b,(nebAlphaForEnergy(p.energy)*255+0.5)|0,false,st.sz);g.visX=st.nx;g.visY=st.ny;}
-    else{const e=st.e,v=st.v;if(v.a>0&&v.s>0)nebStamp(e.x,e.y,v.r|0,v.g|0,v.b|0,v.a|0,false,v.s);e.cur=v;e.prevS=v.s;}
+    if(st.k===0){const np=st.a,wt=whiteTint(np.r,np.g,np.b,np.energy);nebStamp(np.x,np.y,wt.r,wt.g,wt.b,(nebAlphaForEnergy(np.energy)*255+0.5)|0,false,nebSizeMultOf(np));}
+    else if(st.k===1){const g=st.a,p=g.p,wt=whiteTint(p.r,p.g,p.b,p.energy);nebStamp(st.b,st.c,wt.r,wt.g,wt.b,(nebAlphaForEnergy(p.energy)*255+0.5)|0,false,st.d);g.visX=st.b;g.visY=st.c;}
+    else{const e=st.a,v=st.b;if(v.a>0&&v.s>0)nebStamp(e.x,e.y,v.r|0,v.g|0,v.b|0,v.a|0,false,v.s);e.cur=v;e.prevS=v.s;}
+    st.a=st.b=null; // release references
   }
   for(const g of gDone)glideById.delete(g.p.id);
   for(const e of iDone)if(interpByCell.get(e.idx)===e)interpByCell.delete(e.idx);
@@ -8749,7 +8771,7 @@ function settleStep(){
     const idx=gy*GW+gx;
     if(voidLocked&&voidLocked[idx])continue;
     const p=dormant[idx];
-    if(!p)continue;
+    if(!p||p._wq)continue; // a particle queued to wake keeps its cell
     const REG=cellRegions(),rg0=REG?REG[idx]:0; // a settling particle never leaves (or enters) its own region
     const empties=[],pops=[],vm=[0,0,0,0,0,0];
     let blocked=0;
@@ -10456,7 +10478,7 @@ function step(now,timeScale){
   // (birthProgress is a visual-only fade-in — it advances on real frames so a point activated while paused still appears)
   for(let i=0;i<n;i++){const p=active[i];p.pvx=p.vx;p.pvy=p.vy;p.touched=false;if(p.birthProgress<1)p.birthProgress=Math.min(1,p.birthProgress+1/T.birthFrames);}
   if(active.length>0)rebuildActiveGrid();
-_pm('prep');  wakeBudget=Math.max(0,Math.min(T.wakeBudgetPerFrame,T.maxActive-active.length));
+_pm('prep');  wakeBudget=Math.max(0,Math.min(simBusy()?T.wakeBusyBudget:T.wakeBudgetPerFrame,T.maxActive-active.length));wakeQueued(now);
   // Objects currently part of a Spindle/Knot chain (still being drawn) or an active bond: their lifespan is fully
   // maintained (no aging) and they project no effect/effect-radius of their own for as long as they're connected —
   // both resume the instant they're no longer part of one (see the .lifespan and effect-source guards below).
@@ -10479,7 +10501,7 @@ _pm('prep');  wakeBudget=Math.max(0,Math.min(T.wakeBudgetPerFrame,T.maxActive-ac
           if(src.wakeProgress>src.peakEffectR)src.peakEffectR=src.wakeProgress;
 
           _dormantFadeOnRemove=true;
-          wakeRing(src.x,src.y,0,src.wakeProgress,now,(dp)=>{initWoken(dp,0);applyForce(src,dp,sc,dt,src.wakeProgress);active.push(dp);},()=>{if(wakeBudget<=0)return false;wakeBudget--;return true;});
+          wakeRing(src.x,src.y,0,src.wakeProgress,now,(dp)=>{initWoken(dp,0);applyForce(src,dp,sc,dt,src.wakeProgress);active.push(dp);},null,1);
           _dormantFadeOnRemove=false;
         }
       }
@@ -10519,8 +10541,8 @@ _pm('white-wake');
       if(R<=0)continue;
       _dormantFadeOnRemove=true;
       if(remnantWakesParticles(p))wakeRing(p.x,p.y,0,R,now,(dp)=>{initWoken(dp,0);applyActiveRemnantEffect(p,dp);wokenByRem.push(dp);},
-        (dp)=>{if(wakeBudget<=0)return false;if(!remnantReaches(p,dp))return false;if(p.remKind==='pulsing'){const bsw=pulsingBeamState(p);if(bsw.side!==0)return false;if(p._wakeEp!==bsw.ep){p._wakeEp=bsw.ep;p._wakeN=0;}if(p._wakeN>=Math.max(1,T.maxActivePoints|0))return false;p._wakeN++;} // a beam wakes no more particles per pass than the cursor could keep activated
-      wakeBudget--;return true;});
+        (dp)=>{if(!remnantReaches(p,dp))return false;if(p.remKind==='pulsing'){const bsw=pulsingBeamState(p);if(bsw.side!==0)return false;if(p._wakeEp!==bsw.ep){p._wakeEp=bsw.ep;p._wakeN=0;}if(p._wakeN>=Math.max(1,T.maxActivePoints|0))return false;p._wakeN++;} // a beam wakes no more particles per pass than the cursor could keep activated
+      return true;},2);
       _dormantFadeOnRemove=false;
       fillRadiusBuf(p.x,p.y,R);
       for(let ni=0;ni<_radLen;ni++)applyActiveRemnantEffect(p,active[_radBuf[ni]]);
@@ -10635,7 +10657,7 @@ _pm('point-update');
         if(p.wakeProgress>0){
           if(p.wakeProgress>p.peakEffectR)p.peakEffectR=p.wakeProgress;
           _dormantFadeOnRemove=true;
-          wakeRing(p.x,p.y,0,p.wakeProgress,now,(dp)=>{initWoken(dp,0);applyForce(p,dp,1.0,dt,p.wakeProgress);woken.push(dp);},()=>{if(wakeBudget<=0)return false;wakeBudget--;return true;});
+          wakeRing(p.x,p.y,0,p.wakeProgress,now,(dp)=>{initWoken(dp,0);applyForce(p,dp,1.0,dt,p.wakeProgress);woken.push(dp);},null,2);
           _dormantFadeOnRemove=false;
         }
       } else if(!p.collapsed&&!p.failedCollapse&&!p.blackFx&&(p.vx!==0||p.vy!==0)&&!(p.isBlastDebris&&now<p.blastDebrisUntil)){
@@ -11008,7 +11030,7 @@ _pm('compaction-lifespan');
   // while fully paused rather than ticking forward on real elapsed frames.
   if(timeScale>0){
     settleTimer+=timeScale;
-    if(settleTimer>=T.settleFr){settleTimer=0;if(!(blackHole&&!blackHole.complete))settleStep();}
+    if(settleTimer>=T.settleFr){settleTimer=0;if(!(blackHole&&!blackHole.complete)&&!simBusy())settleStep();} // settling is eye-candy: it simply waits while the simulation is behind
     if(dispersions.length>0&&!(blackHole&&!blackHole.complete&&blackHole.phase!=='grow'))processDispersions(now);
     if(implosions.length)updateImplosions(now);
     holdDynamism(now);
@@ -14474,6 +14496,7 @@ if(!window.__SCENE)registerGuideDisc();
 (async()=>{
   if(window.__SCENE){sceneBoot(window.__SCENE,window.__T);return;}
   await loadConfig();
+  if(T.wakeBudgetPerFrame>5000)T.wakeBudgetPerFrame=400; // (old saves: 150000 meant unlimited; waking now queues instead of dropping, so a real budget is safe)
   buildTunePanel();updateRect();
   if(HUB){hubIdle();hubAsleep=true;}else{rebuild();fireEvent('surface');}
   updateInventoryUI();applyDisc();updateSettleBtn();updateCacheBtn();if(T.soundOn)setSound(true,null,true);
