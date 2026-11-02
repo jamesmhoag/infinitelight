@@ -114,7 +114,7 @@ body.thru .shop{pointer-events:none} /* an armed map item, or the open source, r
 <div id="veil"></div>
 <canvas id="hcur"></canvas>
 <iframe id="neb" title="Surface"></iframe>
-<script src="shared.js?v=20261102x"></script>
+<script src="shared.js?v=20261102y"></script>
 <script>
 // ╔══════════════════════════════════════════════════════════════════════════════╗
 // ║  MAP ENGINE                                                                 ║
@@ -130,7 +130,7 @@ let clock=3,day=1,pool=6,fresh=true,burstFx=null,dayLog=[],dayCnt={b:0,d:0},pend
 // // clock: the hour (3 = Twilight … 24 = Midnight, the day's last turn); day: your attempts; pool: what the source put out at its last burst; fresh: no ring added yet since it
 let constel=[],armed=null,weaveSel=[],weaveAsk=null,clearFx={},mergeFx=[],feedMsg={t:'',d:'',at:-1e9}; // constellations {keys,type}; the armed map item; a Weave being drawn; animations; the final count
 const TIMES={3:'Twilight',6:'Dawn',9:'Morning',12:'Noon',15:'Afternoon',18:'Dusk',21:'Night',24:'Midnight'},STEP_H=3; // the day: eight turns of three hours
-const CACHE_V='20261102x'; // the build: bump with shared.js's
+const CACHE_V='20261102y'; // the build: bump with shared.js's
 const SCENE=new URLSearchParams(location.search).get('scene'); // a Guide / event demo: the map plays a scripted moment (no surface behind it)
 let phase='move',turnTimer=0,mergeTimer=0;
 let gameOverReason='';
@@ -782,9 +782,9 @@ function shopSprite(id,bk,lit){ // glass (tinted with the shop's colour, dark wh
   c.save();if(lit&&gw>0){c.shadowColor=S.col;c.shadowBlur=26*gw;c.drawImage(si,(cv.width-sw)/2,by+ov-sh,sw,sh);c.shadowBlur=8*gw;}else if(!lit)c.filter='brightness(0.32) saturate(0.4)';
   c.drawImage(si,(cv.width-sw)/2,by+ov-sh,sw,sh);c.restore();
   cv._ax=cv.width/2;cv._ay=cv.height-pad;cv._bw=bw;return shopCv[key]=cv;}
-function shopList(){ // every shop on the map now: main street side by side across the source hex, pop-ups on their bright clears
-  const out=[],ms=Object.keys(SHOPS).filter(k=>SHOPS[k].street),w=HEX*(T.mapShopStreet||0.42);
-  ms.forEach((id,i)=>out.push({key:id,id,bk:SHOPS[id].bk||'s',wx:(i-(ms.length-1)/2)*w*1.05,wy:HEX*0.3,lit:shopIsOpen(id,clock),w}));
+function shopList(){ // every shop on the map now: main street hugging the source (two behind it, two in front), pop-ups on their bright clears
+  const out=[],w=HEX*(T.mapShopStreet||0.5),R=HEX*(T.mapShopRing!=null?T.mapShopRing:0.62);
+  for(const id in SHOPS){const S=SHOPS[id],a=(S.a||0)*Math.PI/180;if(S.street)out.push({key:id,id,bk:S.bk||'s',wx:R*Math.cos(a),wy:R*Math.sin(a),lit:shopIsOpen(id,clock),w});}
   for(const k in cells){const c=cells[k];if(c.shop&&isBright(k)){const[wx,wy]=a2w(c.q,c.r);out.push({key:k,id:c.shop.id,rank:c.shop.rank,bk:SHOP_RANK_BLD[c.shop.rank-1],wx,wy,lit:true});}}
   return out;}
 function shopTick(){if(SCENE)return;
@@ -863,7 +863,7 @@ function cursorTick(now){ // the surface's standard cursor (shared.js): brighter
   const k=hQ!==null?K(hQ,hR):null,c=k?cells[k]:null,act=!!ui||!!(c&&(armed==='leash'?c.cap:armed==='dial'?(!c.cap&&!c.isVoid):armed==='weave'?isBright(k):(k===K(pQ,pR)||getMoves().some(m=>K(m.q,m.r)===k))));
   const base=T.cursorBaseR||8,lw=T.cursorLineW||2,press=mDownAt>0?Math.min(1,(now-mDownAt)/(T.cursorClickDurMs||120)):0,cR=base*(1-(T.cursorClickShrink!=null?T.cursorClickShrink:0.7)*0.4*press);
   _curA+=((act?1:(T.cursorIdleAlphaMult!=null?T.cursorIdleAlphaMult:0.5))-_curA)*0.25;const ev=act?255:Math.round(255*(1-(T.cursorIdleBorderDark!=null?T.cursorIdleBorderDark:0.4))),col=armed?'255,220,120':`${ev},${ev},${ev}`;
-  cursorBase(hcx,mX,mY,cR,_curA,1,col,lw);cursorRing(hcx,mX,mY,cR,_curA,col,lw);cursorDot(hcx,mX,mY,_curA,col);}
+  cursorTrail(hcx,mX,mY,now,col,lw);cursorBase(hcx,mX,mY,cR,_curA,1,col,lw);cursorRing(hcx,mX,mY,cR,_curA,col,lw);cursorDot(hcx,mX,mY,_curA,col);}
 let _curA=0.5;
 
 // ╔══════════════════════════════════════════════════════════════════════════════╗
