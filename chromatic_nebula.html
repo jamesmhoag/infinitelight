@@ -14374,7 +14374,7 @@ function duckGL(){
     'vec3 mn=normalize(vM);float side=smoothstep(0.3,0.5,abs(mn.z)),notTop=1.0-smoothstep(0.8,0.95,abs(mn.y)),fw=smoothstep(0.5,0.85,mn.x);'+ // fw: faces forward
     'float nb=smoothstep(-2.55,-1.2,(mk.r*255.0-128.0)/48.0)*smoothstep(0.0,0.4,mn.x);'+ // near the bill in the side view and facing ahead: the front view decides (the bill's swollen sides and corners)
     'float tw=uTS.w>2.5?smoothstep(0.55,0.85,mn.y):0.0;'+ // faces looking up read the top view, when the strip has one
-    'float beak=max(mix(cov(mk.r),cov(mf.r),fw),cov(mf.r)*nb),eye=cov(mk.g)*side,ln=max(max(max(cov(mk.b)*side,cov(mk.a)*notTop),cov(mf.a)*max(fw,nb)),cov(mt.b)*tw);'+ // eyes and lines on the side faces; the mouth wraps round the bill and shows as the front view's dark band from ahead // eyes and drawn lines on the side faces; the mouth wraps round the bill
+    'float beak=max(mix(cov(mk.r),cov(mf.r),fw),cov(mf.r)*nb),eye=cov(mk.g)*side,ln=max(max(max(cov(mk.b)*side,cov(mk.a)),cov(mf.a)*max(fw,nb)),cov(mt.b)*tw);'+ // eyes and lines on the side faces; the mouth wraps round the bill and shows as the front view's dark band from ahead // eyes and drawn lines on the side faces; the mouth wraps round the bill
     'float m=uM;vec3 c=mix(uC1,uC2,beak);if(m==8.0){c=mix(hue(fract(vU.x/149.0+vU.y/138.0*0.6)),uC2,beak);m=0.0;}'+
     'float g=0.5+0.5*sin(vU.x*0.33+4.0*sin(vU.y*0.06+vU.x*0.01)+vU.y*0.04);vec3 eC=vec3(0.98),lC=vec3(0.086,0.086,0.1);'+
     'if(m==1.0){eC=uC1*(1.05+0.35*g);lC=uC1*(0.22+0.12*g);}'+ // wood: wooden eyes, darkened wood in the mouth and lines
