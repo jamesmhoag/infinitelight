@@ -114,7 +114,7 @@ button:hover{background:rgba(255,255,255,0.15);}
   <div id="dock" class="bottom"><div id="inventoryPanel"></div><div id="touch-info"></div></div>
   <canvas id="cur"></canvas>
 </div>
-<script src="shared.js?v=20261102l"></script>
+<script src="shared.js?v=20261102m"></script>
 <script>
 const _SRC=document.documentElement.outerHTML; // kept so the Encyclopedia can run live scenes as embedded copies of the game
 // Safety: a negative / non-finite gradient radius would throw and kill the frame — clamp it, and log the first offender's stack so it can be traced.
@@ -4657,10 +4657,20 @@ function shapeLocalLight(sh,L){const a=-(sh.ang||0),cs=Math.cos(a),sn=Math.sin(a
 function cacheNewTints(){const a=[0,1,2,3,4,5];for(let i=a.length-1;i>0;i--){const j=(Math.random()*(i+1))|0;[a[i],a[j]]=[a[j],a[i]];}return a.slice(0,5);} // five unique colour tints (four panes + the keyhole pane)
 function clipPolyHalf(poly,ax,ay,off){const out=[];for(let i=0;i<poly.length;i++){const A=poly[i],B=poly[(i+1)%poly.length],da=ax*A.x+ay*A.y-off,db=ax*B.x+ay*B.y-off;
   if(da>=0)out.push(A);if((da>=0)!==(db>=0)){const t=da/(da-db);out.push({x:A.x+(B.x-A.x)*t,y:A.y+(B.y-A.y)*t});}}return out;}
-function buildCachePanes(sh){ // four panes: the shape's four quadrants around its centre (in the shape's own frame), a small muntin gap between them
-  const loc=sh._gatep.map(q=>shapeRel(sh,q.x,q.y)),tints=(sh.cacheTints&&sh.cacheTints.length>=5)?sh.cacheTints:(sh.cacheTints=cacheNewTints()),panes=[];
-  for(let k=0;k<4;k++){const sx=(k&1)?1:-1,sy=(k&2)?1:-1;
-    let P=clipPolyHalf(loc,sx,0,4);P=P.length?clipPolyHalf(P,0,sy,4):P;
+function clipPolyDisc(poly,r){ // poly minus the disc of radius r at the origin: the part inside is replaced by the disc's own arc
+  const out=[],n=poly.length,ins=q=>q.x*q.x+q.y*q.y<r*r,s0=poly.findIndex(q=>!ins(q));if(s0<0)return out;let aIn=null;
+  for(let i=0;i<n;i++){const A=poly[(s0+i)%n],B=poly[(s0+i+1)%n],dx=B.x-A.x,dy=B.y-A.y,a=dx*dx+dy*dy,b=2*(A.x*dx+A.y*dy),c=A.x*A.x+A.y*A.y-r*r,D=b*b-4*a*c;
+    if(!ins(A))out.push(A);if(!(a>0)||D<=0)continue;const sq=Math.sqrt(D);
+    for(const t of [(-b-sq)/(2*a),(-b+sq)/(2*a)]){if(!(t>1e-9&&t<1-1e-9))continue;const an=Math.atan2(A.y+dy*t,A.x+dx*t);
+      if(aIn===null){aIn=an;continue;}let d=an-aIn;while(d>Math.PI)d-=6.2832;while(d<-Math.PI)d+=6.2832;const m=Math.max(1,Math.ceil(Math.abs(d)/0.2));
+      for(let j=0;j<=m;j++){const aa=aIn+d*j/m;out.push({x:Math.cos(aa)*r,y:Math.sin(aa)*r});}aIn=null;}}
+  return out;}
+function buildCachePanes(sh){ // four panes: the shape's four quadrants around its centre (in the shape's own frame), a small muntin gap between them,
+  // each cut back round the centre so the keyhole pane (the fifth) sits clear of their inside corners
+  const loc=sh._gatep.map(q=>shapeRel(sh,q.x,q.y)),tints=(sh.cacheTints&&sh.cacheTints.length>=5)?sh.cacheTints:(sh.cacheTints=cacheNewTints()),panes=[],Rk=T.cacheKeyR;
+  for(let k=0;k<5;k++){const sx=(k&1)?1:-1,sy=(k&2)?1:-1;
+    let P;if(k<4){P=clipPolyHalf(loc,sx,0,4);P=P.length?clipPolyHalf(P,0,sy,4):P;P=P.length?clipPolyDisc(P,Rk+3):P;}
+    else{P=[];for(let i=0;i<20;i++){const a=i/20*6.2832;P.push({x:Math.cos(a)*Rk,y:Math.sin(a)*Rk});}}
     const W2=P.map(q=>shapeWorld(sh,q.x,q.y));let x0=1e9,y0=1e9,x1=-1e9,y1=-1e9,cx=0,cy=0;
     for(const q of W2){x0=Math.min(x0,q.x);y0=Math.min(y0,q.y);x1=Math.max(x1,q.x);y1=Math.max(y1,q.y);cx+=q.x;cy+=q.y;}
     if(W2.length){cx/=W2.length;cy/=W2.length;}let R=0;for(const q of W2)R=Math.max(R,Math.hypot(q.x-cx,q.y-cy));
@@ -5142,7 +5152,7 @@ function drawCache(ctx,sh,now,s){ // four tinted glass panes in a metal cross fr
       if(inv){g.addColorStop(0,'rgb(18,22,40)');g.addColorStop(0.3,'rgb(120,128,160)');g.addColorStop(0.6,'rgb(60,66,94)');g.addColorStop(1,'rgb(14,18,34)');}
       else{g.addColorStop(0,'rgb(140,146,164)');g.addColorStop(0.3,'rgb(255,255,255)');g.addColorStop(0.6,'rgb(222,227,240)');g.addColorStop(1,'rgb(118,124,142)');}
       cc.fillStyle=g;cc.fillRect(x,y,w,h);};
-    bar(-R,-3.5,2*R,7,false);bar(-3.5,-R,7,2*R,true);
+    cc.save();cc.beginPath();cc.rect(-R,-R,2*R,2*R);cc.arc(0,0,14,0,6.2832);cc.clip('evenodd');bar(-R,-3.5,2*R,7,false);bar(-3.5,-R,7,2*R,true);cc.restore(); // the bars stop at the lock plate: its open middle stays clear
     const pg=cc.createRadialGradient(-4,-4,2,0,0,17);if(inv){pg.addColorStop(0,'rgb(130,138,170)');pg.addColorStop(1,'rgb(24,28,48)');}else{pg.addColorStop(0,'rgb(255,255,255)');pg.addColorStop(1,'rgb(128,134,152)');}
     cc.fillStyle=pg;cc.beginPath();cc.arc(0,0,15,0,6.2832);cc.moveTo(12.5,0);cc.arc(0,0,12.5,0,6.2832);const k=2.2; // keyhole through the lock plate
     cc.moveTo(2*k,-0.5*k);cc.lineTo(3.4*k,7*k);cc.lineTo(-3.4*k,7*k);cc.lineTo(-2*k,-0.5*k);cc.arc(0,-3*k,3.2*k,2.246,0.896+6.2832,false);cc.closePath();cc.fill('evenodd');
@@ -6066,7 +6076,7 @@ function validGatePosts(kg){ // posts that really can be clicked (their middle l
   if(kg.cache){const out=[];(kg._panes||[]).forEach((p,i)=>{if(p._gp&&polyAreaAbs(p._gp)>150)out.push(i);});return out;}
   const cols=gateCols(kg),out=[];for(let i=0;i<cols.length;i++){const w=shapeWorld(kg,cols[i].x,0),gh=gatePostIdxAt(w.x,w.y);if(gh&&gh.g===kg&&gh.idx===i)out.push(i);}return out;}
 function startKeySeq(mode,kg,mx,my,shape,fit){
-  const now=performance.now(),ks={id:++itemHoldSeq,mode,g:kg||null,shape,x:mx,y:my,targets:[],order:[],round:1,phase:'ready',step:0,inputI:0,lit:{},t0:now,pulses:0,nextAt:now+450,fit:fit||null};
+  const now=performance.now(),ks={id:++itemHoldSeq,mode,g:kg||null,shape,x:mx,y:my,targets:[],order:[],done:[],round:1,phase:'ready',step:0,inputI:0,lit:{},t0:now,pulses:0,nextAt:now+450,fit:fit||null};
   if(mode==='gate'){
     const valid=validGatePosts(kg),N=Math.max(2,Math.min(Math.floor(T.keySeqPosts),valid.length));
     const idxs=ksShuffle(valid.slice()).slice(0,N).sort((a,b)=>a-b);ks.targets=idxs.map(ci=>({idx:ci,ci:kg.cache&&kg.cacheTints?kg.cacheTints[ci]:ci%6}));
@@ -6095,6 +6105,7 @@ function updateKeySeq(now){
       for(const e of fit){const A=ks.targets[e[0]],B=ks.targets[e[1]];if(A&&B)spawnEdgeSparks({x:A.p.x,y:A.p.y},{x:B.p.x,y:B.p.y},[255,240,140],now);}
       for(const t of ks.targets)for(let k=0;k<8;k++){const a0=k/8*6.2832,a1=(k+1)/8*6.2832;spawnEdgeSparks({x:t.p.x+Math.cos(a0)*t.r,y:t.p.y+Math.sin(a0)*t.r},{x:t.p.x+Math.cos(a1)*t.r,y:t.p.y+Math.sin(a1)*t.r},[255,240,140],now);}}
     if(now>=ks.until)endKeySeq();return;}
+  if(ks.phase==='solved'){if(now>=ks.until)keySeqSuccess(ks,now);return;}
   if(ks.phase==='ready'&&now>=ks.nextAt){ // GET READY: every target pulses together, three times, then a short wait
     if(ks.pulses<3){ks.pulses++;ks.pulseAt=now;if(ks.mode==='gate')for(const t of ks.targets)ksLight(ks,t,now,true);playBell(4,0.28*T.volKeySeq);ks.nextAt=now+380;}
     else{ks.phase='demo';ks.step=0;ks.nextAt=now+500;}
@@ -6111,10 +6122,10 @@ function keySeqClick(mx,my){
   else{for(let i=0;i<ks.targets.length;i++){const t=ks.targets[i];if(Math.hypot(_wrapD(mx-t.p.x,W),_wrapD(my-t.p.y,H))<=t.r+4){hit=i;break;}}}
   if(hit<0)return; // a click that is not on a target is ignored: no accidental failures
   if(hit===ks.order[ks.inputI]){
-    ksLight(ks,ks.targets[hit],now);ks.inputI++;
+    ksLight(ks,ks.targets[hit],now);ks.done.push(hit);ks.inputI++;
     if(ks.inputI>=ks.order.length){
       if(ks.round<Math.floor(T.keySeqRounds)){ks.round++;ks.order=ksShuffle(ks.targets.map((t,i)=>i));ks.phase='ready';ks.pulses=0;ks.nextAt=now+700;flashSaveStatus('Round '+ks.round+' — get ready');}
-      else keySeqSuccess(ks,now);
+      else{ks.phase='solved';ks.until=now+400;} // the pie shows full for a moment, then the key works
     }
   } else { // one chance: the key is spent, a deactivate timpani sounds; the whole gate flashes 3× / the formed key blinks 3× and breaks
     playTimpani(0,300,1.1*T.volKeySeq);flashSaveStatus('Wrong — the key is lost.');logEv('key sequence failed');
@@ -6137,8 +6148,8 @@ function drawKeySeq(ctx,now){
   const ks=keySeq;
   if(ks&&ks.shrink){ // the key shrinks into the cursor as the sequence begins
     const sh=ks.shrink,u=Math.min(1,(now-sh.t0)/sh.dur),e=1-Math.pow(1-u,3);
-    if(u<1&&mouse.x>=0){const x=sh.x0+(mouse.x-sh.x0)*e,y=sh.y0+(mouse.y-sh.y0)*e,sc=sh.s0*(1-e)+keyScaleFor(ks.shape,KEY_CURSOR_R)*e;
-      ctx.save();ctx.globalCompositeOperation='screen';drawKeyShape(ctx,ks.shape,x,y,sc,(sh.ang0||0)*(1-e),'255,240,140',1-0.4*e,12,2.6);ctx.restore();}
+    if(u<1&&mouse.x>=0){const x=sh.x0+(mouse.x-sh.x0)*e,y=sh.y0+(mouse.y-sh.y0)*e,sc=sh.s0*(1-e)+keyScaleFor(ks.shape,keyCursorR())*e;
+      ctx.save();ctx.globalCompositeOperation='screen';drawKeyShape(ctx,ks.shape,x,y,sc,(sh.ang0||0)*(1-e),'255,240,140',1-e,12*(1-e),2.6-1.7*e,1.6-0.9*e);ctx.restore();} // the used key shrinks into the cursor and is gone
   }
   if(!ks||ks.mode!=='bg'){drawSeqKeyCursor(ctx,now);return;}
   let hov=-1;if(ks.phase==='input'){for(let i=0;i<ks.targets.length;i++){const t=ks.targets[i];if(Math.hypot(_wrapD(mouse.x-t.p.x,W),_wrapD(mouse.y-t.p.y,H))<=t.r+4){hov=i;break;}}}
@@ -6158,13 +6169,12 @@ function drawKeySeq(ctx,now){
   ctx.restore();
   drawSeqKeyCursor(ctx,now);
 }
-function drawSeqKeyCursor(ctx,now){ // while a sequence runs: the used key inside the cursor — dim and inactive until the pattern has played, then active
+function drawSeqKeyCursor(ctx,now){ // while a sequence runs the key is gone: a pie inside the cursor gains a slice in each entered target's colour — empty to start, full when solved
   const ks=keySeq;if(!ks||mouse.x<0||(ks.shrink&&now-ks.shrink.t0<ks.shrink.dur))return;
-  const active=ks.phase==='input',x=mouse.x,y=mouse.y;
+  const n=ks.targets.length*Math.max(1,Math.floor(T.keySeqRounds)),r=keyCursorR(),x=mouse.x,y=mouse.y,failed=ks.phase==='failed',a=failed?0.3+0.6*ksBlink(ks,now):ks.phase==='input'?0.9:0.55;
   ctx.save();
-  ctx.strokeStyle=active?'rgba(255,240,140,0.9)':'rgba(170,170,170,0.55)';ctx.lineWidth=1.4;ctx.beginPath();ctx.arc(x,y,KEY_CURSOR_R+6,0,6.2832);ctx.stroke();
-  if(!active){ctx.setLineDash([3,4]);ctx.strokeStyle='rgba(170,170,170,0.35)';ctx.beginPath();ctx.arc(x,y,KEY_CURSOR_R+10,0,6.2832);ctx.stroke();ctx.setLineDash([]);}
-  drawKeyShape(ctx,ks.shape,x,y,keyScaleFor(ks.shape,KEY_CURSOR_R),0,active?'255,240,140':'150,150,150',active?0.95:0.5,active?8:0,2.4);
+  ks.done.forEach((ti,i)=>{const t=ks.targets[ti],c=failed?[255,70,70]:(ks.g&&ks.g.cache)?lensRGB({tint:t.ci}):(q=>[q.r,q.g,q.b])(ucol(t.ci/6,1,0.5)),a0=-Math.PI/2+i/n*6.2832;
+    ctx.fillStyle=`rgba(${c[0]|0},${c[1]|0},${c[2]|0},${a.toFixed(3)})`;ctx.beginPath();ctx.moveTo(x,y);ctx.arc(x,y,r,a0,a0+6.2832/n);ctx.closePath();ctx.fill();});
   ctx.restore();
 }
 function performInventoryDrop(mx,my,now){
@@ -11837,7 +11847,7 @@ function drawSymbolFor(cx,x,y,cR,sp,holdT){
       const r=cR*(0.66+0.10*heldK-0.12*clickK); // idle mid-ring; held flares a little further out; clicking pulls in
       cx.strokeStyle=col(0.85);cx.fillStyle=col(0.85);cx.lineWidth=1.3;
       if(k==='gate')drawGateCursor(cx,x,y,cR,col); // thumbnail at its own natural scale; small thin counter-clockwise arcs + ◀◀ for "time running backwards"
-      else if(k==='key')drawKeyCursor(cx,x,y);     // the shape of the key that will be used next
+      else if(k==='key')drawKeyCursor(cx,x,y,cR);  // the shape of the key that will be used next
       else if(k==='leash')drawDialCursor(cx,x,y,r,col,e); // Spindle: the radar ring
       else if(k==='dial'){const im=icoImg('dial'),sz=cR*(1.0+0.12*heldK-0.1*clickK),ga=cx.globalAlpha;if(im.complete&&im.naturalWidth){cx.globalAlpha=ga*0.9;if(invertMode)cx.filter='invert(1)';cx.drawImage(im,x-sz/2,y-sz/2,sz,sz);cx.filter='none';cx.globalAlpha=ga;}} // String: its own glyph in the ring
       else if(k==='prism'){ // Prism: no shape of its own — the ring already carries its colour, so just a small centred triangle, brighter while held
@@ -12818,7 +12828,7 @@ function drawFixedShapes(ctx,now){
         ctx.drawImage(warpLayer(sh,'_wl',sh._lt,cw0,ch0,fishS),bb[0],bb[1],bw,bh);
       } else if(!empty||(mouse.x>=bb[0]-80&&mouse.x<=bb[2]+80&&mouse.y>=bb[1]-80&&mouse.y<=bb[3]+80))lightsFn(ctx);
       ctx.restore();
-      ctx.save();ctx.shadowColor=`rgba(${tcol?base:GLOW},0.9)`;ctx.shadowBlur=7;strokePoly(ctx,fk,`rgba(${tcol?base:GLOW},${(0.28*T.glassEdgeA).toFixed(3)})`,ew*2.1);ctx.restore();
+      ctx.save();if(sh._cp){const c0=sh._cp.parent._gc;ctx.beginPath();ctx.rect(bb[0]-20,bb[1]-20,bw+40,bh+40);ctx.arc(c0[0],c0[1],T.cacheKeyR+12,0,6.2832);ctx.clip('evenodd');} /* a Cache's inner edges: thin glass, no halo over the lock */ ctx.shadowColor=`rgba(${tcol?base:GLOW},0.9)`;ctx.shadowBlur=7;strokePoly(ctx,fk,`rgba(${tcol?base:GLOW},${(0.28*T.glassEdgeA).toFixed(3)})`,ew*2.1);ctx.restore();
       strokePoly(ctx,fk,`rgba(${EDGE},${Math.min(1,(0.65+0.3*ping)*T.glassEdgeA).toFixed(3)})`,ew);
       for(const h of holes){path(h.pts,true);ctx.strokeStyle=`rgba(${EDGE},${Math.min(1,0.6*T.glassEdgeA).toFixed(3)})`;ctx.lineWidth=ew;ctx.stroke();}
     }
@@ -13300,15 +13310,15 @@ function drawGateRewind(ctx,now){
   ctx.restore();
   return e;
 }
-const KEY_CURSOR_R=46;
+function keyCursorR(cR){return (cR||T.cursorBaseR)*0.85;} // the key fits inside the standard cursor ring
 function keyExtent(sh){let e=1;for(const p of sh.pts)e=Math.max(e,Math.hypot(p[0],p[1]));return e;}
 function keyScaleFor(sh,R){return Math.min(1,R/keyExtent(sh));}
 // One drawing routine for the key on the cursor and in the scene. ang>0 twists it: points nearer the middle turn further.
-function drawKeyShape(c,sh,x,y,scale,ang,rgb,alpha,glow,nodeR){
+function drawKeyShape(c,sh,x,y,scale,ang,rgb,alpha,glow,nodeR,lw){
   const ext=keyExtent(sh);
   const tw=(px,py)=>{if(!ang)return[px,py];const d=Math.hypot(px,py),k=ang*(1.4-Math.min(1,d/ext)),cs=Math.cos(k),sn=Math.sin(k);return[px*cs-py*sn,px*sn+py*cs];};
   c.save();c.lineCap='round';c.lineJoin='round';
-  c.strokeStyle=`rgba(${rgb},${alpha.toFixed(3)})`;c.lineWidth=1.6;
+  c.strokeStyle=`rgba(${rgb},${alpha.toFixed(3)})`;c.lineWidth=lw||1.6;
   if(glow){c.shadowColor=`rgb(${rgb})`;c.shadowBlur=glow;}
   const SEG=ang?14:1;
   for(const e of sh.edges){
@@ -13322,10 +13332,10 @@ function drawKeyShape(c,sh,x,y,scale,ang,rgb,alpha,glow,nodeR){
   for(const p of sh.pts){const q=tw(p[0],p[1]);c.beginPath();c.arc(x+q[0]*scale,y+q[1]*scale,nodeR,0,6.2832);c.fill();}
   c.restore();
 }
-function drawKeyCursor(cx,x,y){
-  if(keySeq)return; // (a running sequence draws its own key cursor)
-  const sh=keyShapes[0]||defaultKeyShape(); // the next key on the ring
-  drawKeyShape(cx,sh,x,y,keyScaleFor(sh,KEY_CURSOR_R),0,'255,240,140',0.9,8,2.6);
+function drawKeyCursor(cx,x,y,cR){
+  if(keySeq)return; // (a running sequence shows its progress pie instead)
+  const sh=keyShapes[0]||defaultKeyShape(); // the next key on the ring, at the size of every other cursor glyph, in fine lines
+  drawKeyShape(cx,sh,x,y,keyScaleFor(sh,keyCursorR(cR)),0,'255,240,140',0.9,2,0.9,0.7);
 }
 function drawGateCursor(cx,x,y,cR,col){
   // The thumbnail is deliberately NOT tightened to the ring's own (state-scaled) size — it keeps its original,
@@ -13376,7 +13386,7 @@ function updateKeyFx(now){
 function drawKeyFx(ctx,now){
   if(!keyFx)return;
   const f=keyFx,t=Math.max(0,Math.min(1,(now-f.born)/f.dur)),sh=f.shape;
-  const s0=f.s0||keyScaleFor(sh,KEY_CURSOR_R),sF=Math.max(s0,keyScaleFor(sh,0.42*Math.min(W,H))); // (a solved sequence starts it lined up with the targets, not the cursor)
+  const s0=f.s0||keyScaleFor(sh,keyCursorR()),sF=Math.max(s0,keyScaleFor(sh,0.42*Math.min(W,H))); // (a solved sequence starts it lined up with the targets, not the cursor)
   const eo=u=>1-Math.pow(1-u,3),eio=u=>u<0.5?2*u*u:1-Math.pow(-2*u+2,2)/2;
   const A=0.34,B=0.72,C=0.9,TW=Math.PI*2.6,FIRE=T.keyFireT;
   ctx.save();
@@ -13560,13 +13570,11 @@ function stepDilation(now){ // each nova's own slow (5–50% by its size) is hel
 }
 function bhConsumeSound(p){if(frameCount===_bhSF){if(++_bhSN>8)return;}else{_bhSF=frameCount;_bhSN=1;}playTimpani(p.ci,p.mass,2.4*T.volConsume,0.001);} // scheduled, so the voice cap never swallows a consumption note
 function playItemGestureSound(kind,g,now){if(!(g.dbl||g.moved)||now-(g._snd||0)<260)return;g._snd=now;const rk={magnetic:'magnetic',pulsing:'pulsing',neutron:'neutron'}[kind];if(!rk)return;playRemnantActionSound({remKind:rk,ci:g.ci,mass:20,magPrimaryCI:g.ci,magOppositeCI:(g.ci+3)%6},true,1);}
-var _bcp0=buildCachePanes;buildCachePanes=function(sh){const panes=_bcp0(sh),R=T.cacheKeyR,c=sh._gc,P=[];for(let i=0;i<20;i++){const a=i/20*6.2832;P.push(shapeWorld(sh,Math.cos(a)*R,Math.sin(a)*R));}
-  panes.push({_cpane:true,glass:true,pane:true,tint:sh.cacheTints[4],idx:4,parent:sh,_gp:P,_bb:[c[0]-R,c[1]-R,c[0]+R,c[1]+R],_c:[c[0],c[1],R+20],_holes:[],pulseUntil:0});return panes;};
 function playScaleStep(){const n=performance.now();if(n-_scAt>700)_scStep=0;_scAt=n;if(!audioCtx||audioMuted)return;const L=CHIME_SCALE.length,idx=Math.min(L-1,3+_scStep%12);_scStep++;playChimeCollisionHit(CHIME_SCALE[idx],0.1,0,idx/L);}
 function flushBatchChord(){const m=[..._batchCis];_batchCis.clear();m.slice(0,3).forEach(([ci,mass],i)=>setTimeout(()=>playViolin(ci,mass,true),i*70));}
 // Case / Cache glass uses the SAME glass renderer as Glass, Window and Mirror (reflection + own lensing, Glass tuners)
 function pgOf(src,key,P,tint){let s=src[key];if(!s)s=src[key]={id:-1,cat:'shape_glass',variant:null,closed:true,glass:true,pane:true,tint:null,broken:{},acc:0,lastSweep:0,_pseudo:true};
-  s.pts=P;s._gp=P;s.tint=tint;s._holes=[];let x0=1e9,y0=1e9,x1=-1e9,y1=-1e9,cx=0,cy=0;for(const q of P){x0=Math.min(x0,q.x);y0=Math.min(y0,q.y);x1=Math.max(x1,q.x);y1=Math.max(y1,q.y);cx+=q.x;cy+=q.y;}
+  s.pts=P;s._gp=P;s.tint=tint;s._holes=[];s._cp=src._cpane?src:null;let x0=1e9,y0=1e9,x1=-1e9,y1=-1e9,cx=0,cy=0;for(const q of P){x0=Math.min(x0,q.x);y0=Math.min(y0,q.y);x1=Math.max(x1,q.x);y1=Math.max(y1,q.y);cx+=q.x;cy+=q.y;}
   cx/=P.length;cy/=P.length;let R=0;for(const q of P)R=Math.max(R,Math.hypot(q.x-cx,q.y-cy));s._bb=[x0,y0,x1,y1];s._c=[cx,cy,R+20];s.held=!!(src.pulseUntil&&src.pulseUntil>performance.now());return s;}
 function pseudoGlass(){const out=[];for(const g of _gateList){if(g.unlocking||!g._gatep)continue;
   if(g.case)out.push(pgOf(g,'_pgc',insetPoly(g._gatep,Math.max(3,T.crateEdgeW)),null));
@@ -13920,7 +13928,7 @@ function cardHTML(ev,mini){ // the one card format: name bar, art box, type line
   return `<div class="mtg${mini?' sm':''}" data-ev="${ev.id}" style="--rc:${r[0]}"><div class="nm"><b>${gEsc(ev.name)}</b><span class="gem"></span></div><div class="art" data-scene="${ev.scene}">${mini?`<canvas class="rl-m" width="64" height="64" data-k="${ev.ico}"></canvas>`:''}</div><div class="ty"><span>${gEsc(ev.type.replace(/^Event — /,''))}</span><span>${r[1]}</span></div><div class="tx">${ev.facts().map(f=>`<p>${gEsc(f)}</p>`).join('')}<p class="fl">${gEsc(ev.flavor)}</p></div></div>`;
 }
 function mountScene(h,w,hh){if(!h||h.firstChild||document.querySelectorAll('.rl-live iframe,.mtg .art iframe').length>=5)return;const f=document.createElement('iframe'),nm=h.dataset.s||h.dataset.scene;f.style.cssText='border:0;max-width:100%;pointer-events:none;background:#000;border-radius:6px;'+(w?`width:${w}px;height:${hh}px`:'width:100%;height:100%');
-  if(nm.slice(0,4)==='hub:')f.src='Surface_Map_HUB.html?v=20261102l&scene='+nm.slice(4)+'&T='+encodeURIComponent(JSON.stringify(mapSceneT()));else f.srcdoc=liveSrc(nm);h.appendChild(f);} // a Surface Map demo is played by the map itself
+  if(nm.slice(0,4)==='hub:')f.src='Surface_Map_HUB.html?v=20261102m&scene='+nm.slice(4)+'&T='+encodeURIComponent(JSON.stringify(mapSceneT()));else f.srcdoc=liveSrc(nm);h.appendChild(f);} // a Surface Map demo is played by the map itself
 function mapSceneT(){const o={};for(const k in T)if(/^(map|bh|duck|wake|glass|metal|dimGlow|glowHalo|maxSpeed)/.test(k))o[k]=T[k];return o;} // what a map demo needs of the tuners
 function showEventCard(id,review){
   const ev=EVENTS.find(e=>e.id===id);if(!ev)return;guideCSS();

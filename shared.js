@@ -71,11 +71,10 @@ function duckCtx(gl){
     'vec3 col;float a=1.0;'+
     'if(m==1.0){col=c*(0.62+0.32*g)*(0.35+0.75*dif)+pow(nh,12.0)*0.12*uGl;}'+
     'else if(m==3.0){float sp=(pow(nh,80.0)*1.6+rim*0.6)*uGl;col=c*(0.7*(0.55+0.5*dif)+0.25*edg)+sp+env*uEA*(0.3+0.7*edg)+gs;a=min(1.0,0.42+0.55*pow(edg,1.5)+sp/1.2+ln*0.6);}'+
-    'else if(m==2.0){col=mix(c*(0.6+0.45*dif),c*env*1.35,uEA)+pow(nh,140.0)*1.2*uGl+gs;}'+ // as the game's metal: a light base with the scene reflected over it (Metal reflection), tinted by the metal
-    'else if(m==7.0){vec3 r=reflect(-V,n);float el=dot(env,vec3(0.3,0.59,0.11)),hz=smoothstep(-0.2,0.25,r.y),fr=pow(edg,2.0);'+ // gold: a chrome-style horizon split and the scene's brightness drive a dark-bronze → gold → pale-gold ramp, so it reads as polished metal
-    'float s=0.02+0.42*dif*hz+0.3*hz+1.1*el*uEA+0.35*fr*hz;vec3 g0=vec3(0.13,0.06,0.01),g2=vec3(1.0,0.95,0.7);'+
-    'col=s<0.6?mix(g0,c,s/0.6):mix(c,g2,min(1.0,(s-0.6)/0.6));col+=c*env*0.9*uEA;'+ // …and the scene's colour still shows, tinted gold
-    'col+=vec3(1.0,0.82,0.42)*(pow(nh,40.0)*0.55+pow(nh,260.0)*1.4)*uGl+gs*vec3(1.0,0.8,0.42);}'+ // as the game's metal: a light base with the scene reflected over it (Metal reflection), tinted by the metal
+    'else if(m==2.0||m==7.0){float au=m==7.0?1.0:0.0;vec3 r=reflect(-V,n);float el=dot(env,vec3(0.3,0.59,0.11)),hz=smoothstep(-0.2,0.25,r.y),fr=pow(edg,2.0);'+ // Metal and Gold: a chrome-style horizon split and the scene's brightness drive a dark → metal → bright ramp, so both read as polished metal
+    'float s=0.02+0.42*dif*hz+0.3*hz+1.1*el*uEA+0.35*fr*hz;vec3 g0=mix(c*0.07,vec3(0.13,0.06,0.01),au),g2=mix(vec3(1.0),vec3(1.0,0.95,0.7),au),gt=mix(vec3(1.0),vec3(1.0,0.82,0.42),au);'+ // steel: near-black → silver → white; gold: dark bronze → gold → pale gold
+    'col=s<0.6?mix(g0,c,s/0.6):mix(c,g2,min(1.0,(s-0.6)/0.6));col+=mix(env*(0.55+0.6*fr),c*env*0.9,au)*uEA;'+ // the scene shows in it: true-coloured on steel (stronger at grazing angles), tinted gold on gold
+    'col+=gt*((pow(nh,40.0)*0.55+pow(nh,260.0)*1.4)*uGl+gs);}'+ // tight glints: white on steel, warm on gold
     'else if(m==4.0){col=vec3(0.012)+uDim*(pow(edg,2.4)*1.15+pow(nh,40.0)*0.12)+uDim*0.05*eye;}'+ // dim: a black duck lit only by a Dim Remnant glow at its rim
     'else if(m==5.0){col=c*(0.62+0.42*dif)+pow(nh,40.0)*uGl+0.157+rim*0.35;a=min(1.0,0.5+0.45*pow(edg,1.3)+ln+eye);}'+ // bright: a little translucent (the scene shows through its middle), its rim and markings solid
     'else if(m==6.0){col=c*(0.85+0.4*dif)+pow(nh,40.0)*uGl+0.118;}'+
