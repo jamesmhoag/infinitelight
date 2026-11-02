@@ -51,9 +51,11 @@ function masks(lab){const mBeak=M(),mEye=M(),mLine=M(),mMouth=M();for(let i=0;i<
   return{mBeak,mEye,mLine,mMouth};}
 const {mBeak,mEye,mLine,mMouth}=masks(labX);
 // the FRONT view's bill and mouth: from the front the mouth is a dark band between the upper bill and the lower jaw, which the side view
-// cannot show (a side projection only reaches the bill's tip). Its mouth is the line pixels with bill both above and below.
+// cannot show (a side projection only reaches the bill's tip). Its mouth is the line pixels with bill both above and below, plus the
+// bill's drawn top edge (bill just below, none above), which from ahead is the line over the bill between the eyes.
 const labF=viewLabels(1),fM=masks(extendOut(labF,8)),mBeakF=fM.mBeak,mMouthF=M();
-for(let i=0;i<N;i++){if(!fM.mMouth[i]&&!fM.mLine[i])continue;const x=i%CW,y=(i/CW)|0;let up=0,dn=0;for(let k=1;k<=9;k++){if(y-k>=0&&labF[(y-k)*CW+x]===3)up=1;if(y+k<CH&&labF[(y+k)*CW+x]===3)dn=1;}if(up&&dn)mMouthF[i]=1;}
+for(let i=0;i<N;i++){if(!fM.mMouth[i]&&!fM.mLine[i])continue;const x=i%CW,y=(i/CW)|0;let up=0,dn=0;for(let k=1;k<=9;k++){if(y-k>=0&&labF[(y-k)*CW+x]===3)up=1;if(y+k<CH&&labF[(y+k)*CW+x]===3)dn=1;}let u3=0,d3=0;for(let k=1;k<=3;k++){if(y-k>=0&&labF[(y-k)*CW+x]===3)u3=1;if(y+k<CH&&labF[(y+k)*CW+x]===3)d3=1;}
+  if((up&&dn)||(d3&&!u3))mMouthF[i]=1;} // …and the bill's top edge (over the bill, between the eyes): lines with bill just below and none above
 const tM=TOP?masks(extendOut(viewLabels(4),8)):null; // the top view: row = depth across (middle row = 0), column = the side view's
 let fc=0,fn=0;for(let i=0;i<N;i++)if(labF[i]===3){fc+=i%CW;fn++;}fc=fn?fc/fn:CW/2; // the front view's centre column: z = 0
 // ── exact Euclidean distance transform (Felzenszwalb) and signed distance of a mask
