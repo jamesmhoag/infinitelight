@@ -114,7 +114,7 @@ button:hover{background:rgba(255,255,255,0.15);}
   <div id="dock" class="bottom"><div id="inventoryPanel"></div><div id="touch-info"></div></div>
   <canvas id="cur"></canvas>
 </div>
-<script src="ducks.js?v=20261102b"></script>
+<script src="ducks.js?v=20261102c"></script>
 <script>
 const _SRC=document.documentElement.outerHTML; // kept so the Encyclopedia can run live scenes as embedded copies of the game
 // Safety: a negative / non-finite gradient radius would throw and kill the frame — clamp it, and log the first offender's stack so it can be traced.
@@ -923,6 +923,7 @@ const T={
   // Nebula render — 3-pass: wide glow → mid body → sharp core
   triScale:0.56,  // triangle cell size (uniformly inward): the rounded triangle is scaled so its area is close to the circle / square
   nebSrcScale:0.75,// nebula source resolution: sub-particles per screen particle of a cell (rebuild to apply) — higher = cleaner edges, costlier when many particles wake
+  nebSweepMs:0.4, // ms a frame spent repainting patches of the nebula from the particles really there (clears stains; 0 = off)
   nebEdgePx:0.3,  // soft edge of every cell shape, in screen particles
   nebBlur:      16,  // wide blur (px) — glow halo around each macro-particle
   nebBlur2:     12,   // mid blur (px) — main body softness
@@ -1333,6 +1334,7 @@ const TUNE_DEFS=[
   {key:'dynamismR', label:'DYNAMISM radius',min:5,max:150,step:1,tip:'DYNAMISM item: every point / particle inside this radius of the cursor is targeted'},
   {key:'itemReactMs', label:'Re-hit delay ms', min:0,max:3000,step:50, tip:'Magnetic / Pulsing / Neutron (DYNAMISM) swipes: how long before an object that was already hit may be hit again'},
   {key:'novaScaleMix', label:'Nova size mix', min:0,max:1,step:0.05, tip:'Heavy novas: how much nebula particle sizes vary (same total mass), so neighbouring particles are always a mix of scales'},
+  {key:'nebSweepMs',label:'Stain sweep ms',min:0,max:3,step:0.1,tip:'Time a frame spent repainting patches of the surface from the particles really there, so a partly erased particle never stays as a stain (0 = off)'},
   {key:'nebBlend', label:'Particle blend', min:0,max:1,step:0.05, tip:'Overlapping nebula particles blend (lighten on the dark theme, darken when inverted) instead of the top one winning; 0 = old behaviour'},
   {key:'hueRangeDeg', label:'Colour range °', min:2,max:28,step:1, tip:'Each effect colour only owns this many degrees of hue either side of its base colour; hues in the gaps are a dead zone that blends and shifts leap across'},
   {key:'bhWakeJitter', label:'Spike jitter', min:0,max:80,step:1, tip:'Random extra length (px) past a Dark Remnant spike\'s max height, so they do not all cut off at the same height'},
@@ -2416,6 +2418,24 @@ function triSDF(edges,dx,dy,R){
   }
   return d; // <=0 inside, >0 = distance outside the nearest edge
 }
+let _nebClip=null,_sweepK=0; // _nebClip: [x0,y0,x1,y1] in nebula px that stamps are held to (nebSweep)
+// Stains: a footprint erased at another size or spot than it was painted (a glide, a rescale, a wake mid-repaint) leaves a crescent of
+// colour with no particle under it, which nothing ever clears. While the surface is calm, a few patches a frame are wiped and repainted
+// from the particles really there (oldest first, newest on top, held to the patch), so any such stain is gone within a sweep of the map.
+function nebSweep(){
+  if(!nebData||!(T.nebSweepMs>0)||blackHole)return;
+  const B=4,nbx=Math.ceil(GW/B),nby=Math.ceil(GH/B),tot=nbx*nby,t0=performance.now(),stride=GW*NEB_SS,reach=Math.ceil(maxPixSz*1.35)+1;
+  const busy=new Set(),mark=(x,y)=>{const gx=Math.floor((x-GRID_OX)/PIXEL_SIZE/B),gy=Math.floor((y-GRID_OY)/PIXEL_SY/B),r=Math.ceil(reach/B);for(let dy=-r;dy<=r;dy++)for(let dx=-r;dx<=r;dx++)busy.add(((gy+dy+nby)%nby)*nbx+((gx+dx+nbx)%nbx));};
+  if(transitions.length+settleFades.length+interpByCell.size>400)return; // a busy surface: these paint themselves; sweep when it calms
+  for(const t of transitions)mark(t.x,t.y);for(const g of settleFades){mark(g.fx,g.fy);mark(g.p.x,g.p.y);}for(const c of interpByCell.values())mark(c.x,c.y); // patches with a fade, glide or morph in flight are left to it
+  for(let n=0;n<tot&&performance.now()-t0<T.nebSweepMs;n++){
+    const k=_sweepK++%tot;if(busy.has(k))continue;const gx0=(k%nbx)*B,gy0=((k/nbx)|0)*B,gx1=Math.min(GW,gx0+B),gy1=Math.min(GH,gy0+B);
+    const X0=gx0*NEB_SS,Y0=gy0*NEB_SS,X1=gx1*NEB_SS-1,Y1=gy1*NEB_SS-1;
+    for(let y=Y0;y<=Y1;y++)nebData32.fill(0,y*stride+X0,y*stride+X1+1);
+    const ps=[];for(let gy=gy0-reach;gy<gy1+reach;gy++)for(let gx=gx0-reach;gx<gx1+reach;gx++){const np=dormant[((gy%GH+GH)%GH)*GW+((gx%GW+GW)%GW)];if(np)ps.push(np);}
+    ps.sort((u,v)=>(u.zSeq||0)-(v.zSeq||0));_nebClip=[X0,Y0,X1,Y1];
+    for(const np of ps){const wt=np.blackFx?(invertMode?{r:255,g:255,b:255}:{r:0,g:0,b:0}):whiteTint(np.r,np.g,np.b,np.energy);nebStamp(np.x,np.y,wt.r,wt.g,wt.b,(nebAlphaForEnergy(np.energy)*255+0.5)|0,false,nebSizeMultOf(np));}
+    _nebClip=null;if(X0<nebDX0)nebDX0=X0;if(Y0<nebDY0)nebDY0=Y0;if(X1>nebDX1)nebDX1=X1;if(Y1>nebDY1)nebDY1=Y1;nebDirty=true;}}
 function nebStamp(px,py,r,g,b,alpha,erase,sizeMult,par){ // the nebula wraps like the screen: a particle near an edge also shows (and erases) on the opposite edge
   const lx=px-GRID_OX,ly=py-GRID_OY,gw=GW*PIXEL_SIZE,gh=GH*PIXEL_SY,reach=(PIXEL_DIAM*0.5*(sizeMult||1)+T.nebEdgePx)*1.6+PIXEL_SIZE;
   const xs=lx<reach?[0,gw]:lx>gw-reach?[0,-gw]:null,ys=ly<reach?[0,gh]:ly>gh-reach?[0,-gh]:null;
@@ -2464,9 +2484,9 @@ function _nebStamp1(px,py,r,g,b,alpha,erase,sizeMult,par){
   const rad=nominalRad+edge;
   const triR=nominalRad*T.triScale; // the (rounded) triangle, scaled uniformly inward about its own centre
   const bb=nebShape==='triangle'?Math.max(rad,2*triR+edge):rad; // bounding half-size to scan
-  const stride=GW*NEB_SS,maxX=stride-1,maxY=GH*NEB_SS-1;
-  const x0=Math.max(0,Math.floor(cx-bb-edge)),x1=Math.min(maxX,Math.ceil(cx+bb+edge));
-  const y0=Math.max(0,Math.floor(cy-bb-edge)),y1=Math.min(maxY,Math.ceil(cy+bb+edge));
+  const stride=GW*NEB_SS,maxX=stride-1,maxY=GH*NEB_SS-1,K=_nebClip;
+  const x0=Math.max(K?K[0]:0,Math.floor(cx-bb-edge)),x1=Math.min(K?K[2]:maxX,Math.ceil(cx+bb+edge));
+  const y0=Math.max(K?K[1]:0,Math.floor(cy-bb-edge)),y1=Math.min(K?K[3]:maxY,Math.ceil(cy+bb+edge));
   if(x1<x0||y1<y0)return;
   if(x0<nebDX0)nebDX0=x0;if(y0<nebDY0)nebDY0=y0;if(x1>nebDX1)nebDX1=x1;if(y1>nebDY1)nebDY1=y1;
   if(nebShape==='circle'){
@@ -11087,7 +11107,7 @@ _pm('compaction-lifespan');
   // mid-fade: the particle was already gone from the simulation but its picture stayed — a dead, non-interactive ghost.
 _pm('settle-dispersions');
   updateSettleFades(1);
-  stepTransitions();
+  stepTransitions();nebSweep();
   if(isPaused)recordPausePaths();
   recordDialPaths();
 _pm('fades-transitions');  if(pressedIDs.size>0){ // drop presses that no longer match a live, pressable point (stale ids can make a fresh particle look 'already active')
@@ -11238,6 +11258,11 @@ function renderWorld(now,suppressGlow,asPlay){
     // itself out at the same old rate while nothing new is being added to it.
     pointsCtx.fillStyle=invertMode?`rgba(255,255,255,${(0.10*(timeScale>0.0005?timeScale:0.5)).toFixed(4)})`:`rgba(0,0,0,${(0.10*(timeScale>0.0005?timeScale:0.5)).toFixed(4)})`;
     pointsCtx.fillRect(0,0,W,H);
+    // A see-through body (a pigment, a CRYSTALIZE one most of all) is drawn over its own fading trail every frame, so the trail showed
+    // through it as a hard chord where the last frame's edge was. Its own disc is cleared first: the trail now starts at its round back edge.
+    pointsCtx.save();pointsCtx.globalCompositeOperation='destination-out';pointsCtx.fillStyle='#000';
+    for(let i=0;i<active.length;i++){const p=active[i];if(p.isRemnant||p.captured||!(p.displayR>0.5))continue;wrapCopies(p.x,p.y,p.displayR,(ox,oy)=>{pointsCtx.beginPath();pointsCtx.arc(p.x+ox,p.y+oy,p.displayR,0,6.2832);pointsCtx.fill();});}
+    pointsCtx.restore();
   } else {
     pointsCtx.clearRect(0,0,W,H); // fully transparent — no residue, no black square over the nebula
   }
