@@ -62,8 +62,11 @@ body.scene .hbtn,body.scene #shops,body.scene #htrail,body.scene #hdock,body.sce
 #shops{position:absolute;inset:0;pointer-events:none;z-index:6;overflow:hidden}
 .shop{position:absolute;left:0;top:0;transform-origin:0 0;pointer-events:auto}.shop canvas{display:block}
 body.thru .shop{pointer-events:none} /* an armed map item, or the open source, reaches the hexes under them */
-.shop.lit canvas{animation:neon 5s infinite}
-@keyframes neon{0%,100%{filter:brightness(1)}46%{filter:brightness(1.06)}48%{filter:brightness(.82)}50%{filter:brightness(1.08)}53%{filter:brightness(.95)}}
+.shop.lit canvas{animation:neon0 5s infinite} /* each shop gets its own flicker (one of these, its own pace and start: shopTick) */
+@keyframes neon0{0%,100%{filter:brightness(1)}46%{filter:brightness(1.06)}48%{filter:brightness(.82)}50%{filter:brightness(1.08)}53%{filter:brightness(.95)}}
+@keyframes neon1{0%,100%{filter:brightness(1)}20%{filter:brightness(.9)}21%{filter:brightness(1.05)}70%{filter:brightness(1)}71%{filter:brightness(.7)}72%{filter:brightness(1.04)}74%{filter:brightness(.88)}75%{filter:brightness(1)}}
+@keyframes neon2{0%,100%{filter:brightness(1)}50%{filter:brightness(1.1)}}
+@keyframes neon3{0%,100%{filter:brightness(1.02)}10%{filter:brightness(.78)}11%{filter:brightness(1.06)}12%{filter:brightness(.8)}14%{filter:brightness(1.03)}60%{filter:brightness(.97)}}
 /* a shop's menu: its sign and store over a black card (name left, price right); grey squares turn the page */
 #shop{position:fixed;inset:0;z-index:58;display:none;align-items:center;justify-content:center;background:rgba(0,0,0,.55)}#shop.show{display:flex}
 #shop .sbox{display:flex;flex-direction:column;align-items:center}
@@ -116,7 +119,7 @@ body.thru .shop{pointer-events:none} /* an armed map item, or the open source, r
 <div id="veil"></div>
 <canvas id="hcur"></canvas>
 <iframe id="neb" title="Surface"></iframe>
-<script src="shared.js?v=20261102za"></script>
+<script src="shared.js?v=20261102zb"></script>
 <script>
 // ╔══════════════════════════════════════════════════════════════════════════════╗
 // ║  MAP ENGINE                                                                 ║
@@ -132,7 +135,7 @@ let clock=3,day=1,pool=6,fresh=true,burstFx=null,dayLog=[],dayCnt={b:0,d:0},pend
 // // clock: the hour (3 = Twilight … 24 = Midnight, the day's last turn); day: your attempts; pool: what the source put out at its last burst; fresh: no ring added yet since it
 let constel=[],armed=null,weaveSel=[],weaveAsk=null,clearFx={},mergeFx=[],feedMsg={t:'',d:'',at:-1e9}; // constellations {keys,type}; the armed map item; a Weave being drawn; animations; the final count
 const TIMES={3:'Twilight',6:'Dawn',9:'Morning',12:'Noon',15:'Afternoon',18:'Dusk',21:'Night',24:'Midnight'},STEP_H=3; // the day: eight turns of three hours
-const CACHE_V='20261102za'; // the build: bump with shared.js's
+const CACHE_V='20261102zb'; // the build: bump with shared.js's
 const SCENE=new URLSearchParams(location.search).get('scene'); // a Guide / event demo: the map plays a scripted moment (no surface behind it)
 let phase='move',turnTimer=0,mergeTimer=0;
 let gameOverReason='';
@@ -793,8 +796,9 @@ function shopList(){ // every shop on the map now: main street hugging the sourc
 function shopTick(){if(SCENE)return;
   document.body.classList.toggle('thru',!!armed||voidOpen);const box=document.getElementById('shops'),seen=new Set();
   for(const s of shopList()){const cv=shopSprite(s.id,s.bk,s.lit);if(!cv)continue;seen.add(s.key);let el=shopEls[s.key];
-    if(!el){el=shopEls[s.key]=document.createElement('div');el.className='shop';el.dataset.key=s.key;el.onclick=()=>openShop(s.key);box.appendChild(el);}
-    if(el._cv!==cv){el._cv=cv;const d=document.createElement('canvas');d.width=cv.width;d.height=cv.height;d.getContext('2d').drawImage(cv,0,0);el.innerHTML='';el.appendChild(d);}el.classList.toggle('lit',s.lit);el._s=s; // (its own copy: two pop-ups can share a sprite)
+    if(!el){el=shopEls[s.key]=document.createElement('div');el.className='shop';el.dataset.key=s.key;el.onclick=()=>openShop(s.key);box.appendChild(el);
+      let h=7;for(const ch of s.key)h=(h*31+ch.charCodeAt(0))>>>0;el._fl=`neon${h%4} ${(2.5+(h>>4)%60/10).toFixed(1)}s ${-((h>>10)%50)/10}s infinite`;} // its own flicker: which, how fast, where in it
+    if(el._cv!==cv){el._cv=cv;const d=document.createElement('canvas');d.width=cv.width;d.height=cv.height;d.getContext('2d').drawImage(cv,0,0);d.style.animation=s.lit?el._fl:'none';el.innerHTML='';el.appendChild(d);}el.classList.toggle('lit',s.lit);el._s=s; // (its own copy: two pop-ups can share a sprite)
     const[X,Y,k]=proj(...w2s(s.wx,s.wy)),sc_=(s.w||HEX*(T.mapShopSize||1))*k/cv._bw;
     el.style.transform=`translate(${(X-cv._ax*sc_).toFixed(1)}px,${(Y-cv._ay*sc_).toFixed(1)}px) scale(${sc_.toFixed(4)})`;el.style.zIndex=Math.round(Y);}
   for(const k in shopEls)if(!seen.has(k)){shopEls[k].remove();delete shopEls[k];}}
@@ -861,7 +865,7 @@ function feedTick(now){ // the feed: a recent message, else what the cursor is o
 const hcur=document.getElementById('hcur'),hcx=hcur.getContext('2d'),htr=document.getElementById('htrail'),htx=htr.getContext('2d');
 function cursorTick(now){ // the surface's standard cursor (shared.js): brighter over something it can act on
   const dp=window.devicePixelRatio||1;for(const cv of [hcur,htr])if(cv.width!==Math.round(innerWidth*dp)){cv.width=Math.round(innerWidth*dp);cv.height=Math.round(innerHeight*dp);}
-  for(const c of [hcx,htx]){c.setTransform(dp,0,0,dp,0,0);c.clearRect(0,0,innerWidth,innerHeight);}if(currentView!=='map'||menuOpen||shopUI||mX<0)return;
+  hcx.setTransform(dp,0,0,dp,0,0);hcx.clearRect(0,0,innerWidth,innerHeight);cursorTrailClear(htx);htx.setTransform(dp,0,0,dp,0,0);if(currentView!=='map'||menuOpen||shopUI||mX<0)return;
   const over=document.elementFromPoint(mX,mY),ui=over&&over!==sc&&over.closest&&over.closest('button,.slot,.hbtn,.shop');
   const k=hQ!==null?K(hQ,hR):null,c=k?cells[k]:null,act=!!ui||!!(c&&(armed==='leash'?c.cap:armed==='dial'?(!c.cap&&!c.isVoid):armed==='weave'?isBright(k):(k===K(pQ,pR)||getMoves().some(m=>K(m.q,m.r)===k))));
   const base=T.cursorBaseR||8,lw=T.cursorLineW||2,press=mDownAt>0?Math.min(1,(now-mDownAt)/(T.cursorClickDurMs||120)):0,cR=base*(1-(T.cursorClickShrink!=null?T.cursorClickShrink:0.7)*0.4*press);

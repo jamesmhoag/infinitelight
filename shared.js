@@ -248,13 +248,14 @@ function cursorBase(cx,x,y,cR,dimA,tintK,edgeCol,lw){
   cx.globalCompositeOperation='screen';cx.filter='blur(7px)';cx.globalAlpha=0.6*dimA; // the bloom behind the sharp ring
   cx.beginPath();cx.arc(x,y,cR,0,6.2832);cx.strokeStyle=`rgba(${edgeCol},0.9)`;cx.lineWidth=lw*2.5;cx.stroke();
   cx.filter='none';cx.globalAlpha=1;cx.globalCompositeOperation='source-over';}
-const _curTrail=[]; // where the cursor has just been: {x, y, t, gap (it was off the scene: the line breaks)}
+const _curTrail=[];let _curTrailInk=false; // where the cursor has just been: {x, y, t, gap (it was off the scene: the line breaks)}; whether its layer has anything on it
+function cursorTrailClear(cx){if(!_curTrailInk)return;cx.save();cx.setTransform(1,0,0,1,0,0);cx.clearRect(0,0,cx.canvas.width,cx.canvas.height);cx.restore();_curTrailInk=false;} // (an empty layer is left alone)
 function cursorTrail(cx,x,y,now,edgeCol,lw,on){ // a faint light trail behind the cursor that fades over T.cursorTrailLife ms (0 = off), so a cursor lost on a busy surface
   // is easy to find. cx: the trail's own layer, just above the scene and under every panel; on: the cursor is over the scene itself (no trail over anything else)
   const ms=T.cursorTrailLife!=null?T.cursorTrailLife:230,A=T.cursorTrailA!=null?T.cursorTrailA:0.6;if(ms<=0||A<=0){_curTrail.length=0;return;}
   const l=_curTrail[_curTrail.length-1];if(!on){if(l&&!l.gap)_curTrail.push({x,y,t:now,gap:1});}else if(!l||l.gap||Math.hypot(x-l.x,y-l.y)>1.5)_curTrail.push({x,y,t:now});else l.t=now;
   while(_curTrail.length&&now-_curTrail[0].t>ms)_curTrail.shift();if(_curTrail.length<2)return;
-  cx.save();cx.lineCap='round';cx.lineJoin='round';cx.filter='blur(1px)';
+  cx.save();cx.lineCap='round';cx.lineJoin='round';_curTrailInk=true; // (no canvas filter: a blur on every segment every frame made the cursor lag)
   for(let i=1;i<_curTrail.length;i++){const a=_curTrail[i-1],b=_curTrail[i];if(a.gap||b.gap)continue;const f=Math.max(0,1-(now-b.t)/ms);cx.strokeStyle=`rgba(${edgeCol},${(A*f).toFixed(3)})`;cx.lineWidth=lw*(1.2+3.3*f);cx.beginPath();cx.moveTo(a.x,a.y);cx.lineTo(b.x,b.y);cx.stroke();}
   cx.restore();}
 function cursorRing(cx,x,y,cR,dimA,edgeCol,lw){cx.beginPath();cx.arc(x,y,cR,0,6.2832);cx.strokeStyle=`rgba(${edgeCol},${(0.80*dimA).toFixed(3)})`;cx.lineWidth=lw;cx.stroke();}
@@ -270,9 +271,9 @@ const SHOP_BLD={s:{b:'bld_s',g:'glass_s',gx:1.75,gy:10.75},d:{b:'bld_s_dark',g:'
 const SHOP_RANK_BLD=['s','m','l'];
 const SHOPS={
   corner:{n:'CORNER STORE',tag:'The corners are conveniently cut.',street:1,open:0,close:27,col:'#fff1d0',a:25},
-  clock:{n:'Clock smith.',tag:'Turn the Clock, be unlocked.',street:1,open:9,close:18,col:'#fff1d0',a:-58},
+  clock:{n:'Clock smith.',tag:'Turn the Clock, be unlocked.',street:1,open:9,close:18,col:'#fff1d0',a:155},
   xact:{n:'XACT change',tag:'Exchange for spare change.',street:1,open:6,close:15,col:'#fff1d0',a:-122},
-  gift:{n:'GIFT SHOP',tag:'Souvenirs to remember with.',street:1,open:0,close:27,col:'#ffffff',bk:'d',a:155},
+  gift:{n:'GIFT SHOP',tag:'Souvenirs to remember with.',street:1,open:0,close:27,col:'#ffffff',bk:'d',a:-58},
   bright:{n:'BRiGHT IDEAS',tag:'Like a spoon that is also a fork.',cur:'bright',col:'#00c3ff',at:[100,1000,10000]},
   dim:{n:'Dim’s: Carnival of Discovery',tag:'Natural phenomena.',cur:'dim',col:'#ff78e2',at:[100,1000,10000]},
   neutron:{n:'premium NEUTRINOS',tag:'Density, delivered.',cur:'neutron',col:'#8a3cff',at:[5,25,100]},
