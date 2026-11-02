@@ -9,7 +9,9 @@
 *{margin:0;padding:0;box-sizing:border-box}
 body{background:#050608;overflow:hidden;font-family:'Share Tech Mono',monospace;color:#fff;user-select:none}
 #map-view{position:absolute;inset:0}
-#map-view canvas{display:block;width:100%;height:100%}
+#map-view{overflow:hidden}
+#mc{position:absolute;display:block;transform-origin:50% 50%} /* the map plane, larger than the screen and tilted away (applyView) */
+#pond{position:absolute;inset:0;width:100%;height:100%;pointer-events:none;z-index:5} /* the ducks and their ripples, drawn upright over the tilted plane */
 /* the surface (chromatic_nebula.html): hidden with visibility, not display, so it keeps its size for the hex previews */
 #neb{position:fixed;inset:0;width:100%;height:100%;border:0;z-index:50;visibility:hidden;pointer-events:none;background:#000}
 #neb.show{visibility:visible;pointer-events:auto}
@@ -46,6 +48,7 @@ body{background:#050608;overflow:hidden;font-family:'Share Tech Mono',monospace;
 <body>
 <div id="map-view">
   <canvas id="mc"></canvas>
+  <canvas id="pond"></canvas>
   <div id="turn-label"></div>
   <div id="merge-flash"></div>
   <div id="depth-display" data-disc="hub_depth"></div>
@@ -72,13 +75,13 @@ body{background:#050608;overflow:hidden;font-family:'Share Tech Mono',monospace;
   <div class="gl">Leave</div><button onclick="quitMain()">Quit to main menu</button>
 </div></div>
 <div id="veil"></div>
-<iframe id="neb" src="chromatic_nebula.html?hub=1&v=20261101n" title="Surface"></iframe>
+<iframe id="neb" src="chromatic_nebula.html?hub=1&v=20261101o" title="Surface"></iframe>
 <script>
 // ╔══════════════════════════════════════════════════════════════════════════════╗
 // ║  MAP ENGINE                                                                 ║
 // ╚══════════════════════════════════════════════════════════════════════════════╝
 const mc=document.getElementById('mc'),mctx=mc.getContext('2d');
-let MW,MH;
+let MW,MH,SW,SH,MK=1,viewZoom=1; // MW×MH: the map plane's canvas (bigger than the screen SW×SH, so zooming out and tilting never show its edge); MK: its backing scale
 let HEX=34; // T.mapHexSize (tuned in the Esc menu / the surface's Tune menu)
 const DIRS=[[1,0],[1,-1],[0,-1],[-1,0],[-1,1],[0,1]];
 let camX=0,camY=0,camTX=0,camTY=0;
@@ -93,13 +96,13 @@ let currentView='map'; // 'map' | 'level' (a surface is open) | 'overlay' (the G
 let nebulaCellKey=null; // the hex whose unfinished surface is saved (one at a time)
 let mapRafId=null;
 // Shared with the surface: its tuners, the inventory and the discoveries (the surface owns and saves them)
-let T={},inv={dim:0},disc=new Set(),tuneDefs=[],nebReady=false;
+let T={},inv={dim:0},disc=new Set(),tuneDefs=[],nebReady=false,duckLog={};
 const MAP_KEY='il_map_v1';
 
 const K=(q,r)=>q+','+r;
 const parseK=k=>{const p=k.split(',');return[+p[0],+p[1]];};
 const a2w=(q,r)=>[HEX*(Math.sqrt(3)*q+Math.sqrt(3)/2*r),HEX*(3/2*r)];
-const w2s=(wx,wy)=>[wx-camX+MW/2,wy-camY+MH/2];
+const w2s=(wx,wy)=>[wx-camX+MW/2,wy-camY+MH/2]; // world → the plane's canvas
 const s2w=(sx,sy)=>[sx+camX-MW/2,sy+camY-MH/2];
 function p2a(sx,sy){const[wx,wy]=s2w(sx,sy);const q=(Math.sqrt(3)/3*wx-1/3*wy)/HEX,r=(2/3*wy)/HEX;const s=-q-r;let rq=Math.round(q),rr=Math.round(r),rs=Math.round(s);const dq=Math.abs(rq-q),dr=Math.abs(rr-r),ds=Math.abs(rs-s);if(dq>dr&&dq>ds)rq=-rr-rs;else if(dr>ds)rr=-rq-rs;return[rq,rr];}
 function dist(q1,r1,q2,r2){return(Math.abs(q1-q2)+Math.abs(q1+r1-q2-r2)+Math.abs(r1-r2))/2}
@@ -214,7 +217,16 @@ function updateHint(){
     else{el.textContent=`Space / click to ${nebulaCellKey===K(pQ,pR)?'continue this surface':'enter this surface'} (${c.v.toFixed(2)}) · or move`;el.classList.add('show');}
   } else el.classList.remove('show');
 }
-function mapResize(){MW=innerWidth;MH=innerHeight;mc.width=MW;mc.height=MH;}
+// The plane is seen at an angle (T.mapTilt) in perspective (T.mapPersp), zoomed by viewZoom — a CSS transform on the plane's canvas.
+// proj / unproj are the same transform in maths: plane canvas px ↔ screen px (for clicks, and for drawing the ducks where they swim).
+function viewTf(){const th=(T.mapTilt!=null?T.mapTilt:32)*Math.PI/180,P=T.mapPersp||1400;return{th,P,c:Math.cos(th),s:Math.sin(th),z:viewZoom};}
+function proj(x,y){const v=viewTf(),u=(x-MW/2)*v.z,w=(y-MH/2)*v.z,k=v.P/(v.P-w*v.s);return[SW/2+u*k,SH/2+w*v.c*k,k*v.z];} // → screen x, y and px per plane px
+function unproj(X,Y){const v=viewTf(),d=Y-SH/2,w=d*v.P/(v.P*v.c+d*v.s),k=v.P/(v.P-w*v.s);return[MW/2+(X-SW/2)/k/v.z,MH/2+w/v.z];}
+function applyView(){const v=viewTf();Object.assign(mc.style,{left:((SW-MW)/2)+'px',top:((SH-MH)/2)+'px',width:MW+'px',height:MH+'px',transform:`perspective(${v.P}px) rotateX(${v.th*180/Math.PI}deg) scale(${v.z})`});}
+function mapResize(){SW=innerWidth;SH=innerHeight;const E=1.25/Math.max(0.2,T.mapZoomMin||0.55);MW=Math.round(SW*E);MH=Math.round(SH*E);
+  MK=Math.max(0.6,Math.min(Math.max(1,viewZoom)*(window.devicePixelRatio||1),Math.sqrt(9e6/(MW*MH)))); // sharp when zoomed in, within a pixel budget
+  mc.width=Math.round(MW*MK);mc.height=Math.round(MH*MK);const pd=document.getElementById('pond'),dp=window.devicePixelRatio||1;pd.width=Math.round(SW*dp);pd.height=Math.round(SH*dp);applyView();}
+function zoomView(f){const z=Math.max(T.mapZoomMin||0.55,Math.min(T.mapZoomMax||1.8,viewZoom*f));if(z===viewZoom)return;const sharp=Math.max(1,z)!==Math.max(1,viewZoom);viewZoom=z;if(sharp)mapResize();else applyView();}
 function hexPath(cx,cy,s){mctx.beginPath();for(let i=0;i<6;i++){const a=Math.PI/3*i-Math.PI/6;if(!i)mctx.moveTo(cx+s*Math.cos(a),cy+s*Math.sin(a));else mctx.lineTo(cx+s*Math.cos(a),cy+s*Math.sin(a));}mctx.closePath();}
 function starPath(cx,cy,or,ir,pts){mctx.beginPath();for(let i=0;i<pts*2;i++){const a=Math.PI/pts*i-Math.PI/2,r=i%2?ir:or;if(!i)mctx.moveTo(cx+r*Math.cos(a),cy+r*Math.sin(a));else mctx.lineTo(cx+r*Math.cos(a),cy+r*Math.sin(a));}mctx.closePath();}
 
@@ -249,7 +261,7 @@ function cellLayer(k,c){
 function mapRender(){
   if(currentView==='level'){mapRafId=null;return;}
   camX+=(camTX-camX)*0.1;camY+=(camTY-camY)*0.1;
-  mctx.fillStyle='#050608';mctx.fillRect(0,0,MW,MH);
+  mctx.setTransform(MK,0,0,MK,0,0);mctx.fillStyle='#050608';mctx.fillRect(0,0,MW,MH);
   mapNeed=[];
   const moves=(phase==='move'||phase==='captured')?getMoves():[];
   const candMap={};for(const m of moves)candMap[K(m.q,m.r)]=m;
@@ -263,12 +275,12 @@ function mapRender(){
     const c=cells[k];const[sx,sy]=w2s(...a2w(c.q,c.r));
     if(sx<-HEX*2||sx>MW+HEX*2||sy<-HEX*2||sy>MH+HEX*2)continue;
     const s=HEX*0.92,isCand=!!candMap[k],isHov=k===hoverKey&&isCand,isPT=ptSet.has(k),isMerged=mergedSet.has(k),bright=c.cap&&c.kind!=='dark',dark=c.cap&&c.kind==='dark';
-    let fill,stroke,sw=1,vA=0.6,vC='255,255,255';
-    if(c.isVoid){const isCtr=c.q===0&&c.r===0;if(isCtr&&voidOpen){fill=isHov?'rgba(180,140,255,0.15)':'rgba(120,80,200,0.06)';stroke=isHov?'rgba(180,140,255,0.6)':'rgba(160,120,230,0.35)';sw=isHov?2:1.5;}else{fill='rgba(8,8,12,0.9)';stroke='rgba(255,255,255,0.06)';}vA=0;}
-    else if(bright){fill=isPT?'rgba(225,240,255,0.85)':'rgba(255,255,255,0.92)';stroke=isMerged?'rgba(190,160,250,0.9)':c.isP?'rgba(0,220,220,0.9)':'#fff';sw=c.isP?2.5:1.5;vA=0.75;vC='20,24,32';}
-    else if(dark){fill='rgba(0,0,0,0.96)';stroke=isMerged?'rgba(190,160,250,0.7)':c.isP?'rgba(0,220,220,0.8)':'rgba(150,130,200,0.5)';sw=c.isP?2.5:1.5;vA=0.55;vC='200,185,240';}
-    else if(c.isP){fill='rgba(0,185,185,0.10)';stroke='rgba(0,220,220,0.6)';sw=2;vA=0.9;vC='0,230,230';}
-    else if(c.locked){fill=isHov?'rgba(200,165,40,0.14)':'rgba(180,148,35,0.09)';stroke=isHov?'rgba(225,190,55,0.6)':'rgba(210,175,45,0.38)';sw=isHov?1.5:1;vA=0.7;vC='225,190,55';}
+    let fill,stroke,sw=1;
+    if(c.isVoid){const isCtr=c.q===0&&c.r===0;if(isCtr&&voidOpen){fill=isHov?'rgba(180,140,255,0.15)':'rgba(120,80,200,0.06)';stroke=isHov?'rgba(180,140,255,0.6)':'rgba(160,120,230,0.35)';sw=isHov?2:1.5;}else{fill='rgba(8,8,12,0.9)';stroke='rgba(255,255,255,0.06)';}}
+    else if(bright){fill=isPT?'rgba(225,240,255,0.85)':'rgba(255,255,255,0.92)';stroke=isMerged?'rgba(190,160,250,0.9)':c.isP?'rgba(0,220,220,0.9)':'#fff';sw=c.isP?2.5:1.5;}
+    else if(dark){fill='rgba(0,0,0,0.96)';stroke=isMerged?'rgba(190,160,250,0.7)':c.isP?'rgba(0,220,220,0.8)':'rgba(150,130,200,0.5)';sw=c.isP?2.5:1.5;}
+    else if(c.isP){fill='rgba(0,185,185,0.10)';stroke='rgba(0,220,220,0.6)';sw=2;}
+    else if(c.locked){fill=isHov?'rgba(200,165,40,0.14)':'rgba(180,148,35,0.09)';stroke=isHov?'rgba(225,190,55,0.6)':'rgba(210,175,45,0.38)';sw=isHov?1.5:1;}
     else if(isCand){fill=isHov?'rgba(0,170,170,0.12)':'rgba(18,22,28,0.75)';stroke=isHov?'rgba(0,210,210,0.45)':'rgba(255,255,255,0.14)';sw=isHov?1.5:1;}
     else{fill='rgba(14,17,22,0.75)';stroke='rgba(255,255,255,0.08)';}
 
@@ -285,10 +297,7 @@ function mapRender(){
     if(c.locked){const d=3.5;mctx.beginPath();mctx.moveTo(sx,sy-HEX*0.28-d);mctx.lineTo(sx+d,sy-HEX*0.28);mctx.lineTo(sx,sy-HEX*0.28+d);mctx.lineTo(sx-d,sy-HEX*0.28);mctx.closePath();mctx.fillStyle='rgba(220,185,50,0.6)';mctx.fill();}
     if(k===nebulaCellKey){mctx.font=`${Math.max(8,HEX*0.24)}px 'Share Tech Mono',monospace`;mctx.textAlign='center';mctx.textBaseline='middle';mctx.fillStyle='rgba(0,230,230,0.85)';mctx.fillText('❚❚ saved',sx,sy-HEX*0.5);}
     if(c.isVoid){if(c.q===0&&c.r===0&&voidOpen){mctx.font=`${HEX*0.45}px 'Orbitron',sans-serif`;mctx.textAlign='center';mctx.textBaseline='middle';mctx.fillStyle='rgba(180,140,255,0.5)';mctx.fillText('▽',sx,sy+1);}else if(c.q===0&&c.r===0){mctx.beginPath();mctx.arc(sx,sy,3,0,Math.PI*2);mctx.fillStyle='rgba(255,255,255,0.06)';mctx.fill();}else{const m=4;mctx.strokeStyle='rgba(255,255,255,0.08)';mctx.lineWidth=1;mctx.beginPath();mctx.moveTo(sx-m,sy-m);mctx.lineTo(sx+m,sy+m);mctx.stroke();mctx.beginPath();mctx.moveTo(sx+m,sy-m);mctx.lineTo(sx-m,sy+m);mctx.stroke();}}
-    if(bright){brightOnes.push([sx,sy,c.capVal,stroke,sw]);continue;} // drawn after the bleed below
-    if(!c.isVoid){const dv=c.cap?c.capVal:c.v;mctx.font=`${Math.max(10,HEX*0.34)}px 'Share Tech Mono',monospace`;mctx.textAlign='center';mctx.textBaseline='middle';
-      mctx.save();if(!c.cap){mctx.shadowColor='#000';mctx.shadowBlur=4;}
-      mctx.fillStyle=`rgba(${vC},${vA})`;mctx.fillText(dv.toFixed(2),sx,sy+(dark?HEX*0.55:c.locked?2:0));mctx.restore();}
+    if(bright)brightOnes.push([sx,sy,c.capVal,stroke,sw]); // drawn after the bleed below
   }
   // Bright clears bleed into their neighbours: every bright hex together, blurred and screened over the map, then their outline and value on top
   if(brightOnes.length){const bl=T.mapClearBlur!=null?T.mapClearBlur:0.6,ba=T.mapClearBleed!=null?T.mapClearBleed:0.85;
@@ -296,12 +305,12 @@ function mapRender(){
       for(const[x,y]of brightOnes)for(let i=0;i<6;i++){const a=Math.PI/3*i-Math.PI/6,r=HEX*sz;if(!i)mctx.moveTo(x+r*Math.cos(a),y+r*Math.sin(a));else mctx.lineTo(x+r*Math.cos(a),y+r*Math.sin(a));}
       mctx.fill();mctx.restore();}
     for(const[x,y,v,st,sw]of brightOnes){mctx.save();mctx.filter=`blur(${HEX*0.12}px)`;hexPath(x,y,HEX*0.8);mctx.fillStyle='rgba(255,255,255,0.95)';mctx.fill();mctx.restore();if(st!=='#fff'){hexPath(x,y,HEX*0.92);mctx.strokeStyle=st;mctx.lineWidth=sw;mctx.stroke();} // a soft white core (no hard edge); only the player / merge outline stays crisp
-      mctx.font=`${Math.max(10,HEX*0.34)}px 'Share Tech Mono',monospace`;mctx.textAlign='center';mctx.textBaseline='middle';mctx.fillStyle='rgba(20,24,32,0.75)';mctx.fillText(v.toFixed(2),x,y);}}
+}}
   // Merge visuals
   for(const g of mergeGroups){if(!g.cells.length)continue;const pts=g.cells.map(ck=>{const cc=cells[ck];return cc?w2s(...a2w(cc.q,cc.r)):null;}).filter(Boolean);if(pts.length<2)continue;mctx.strokeStyle='rgba(160,120,230,0.5)';mctx.lineWidth=1.2;for(let i=0;i<g.cells.length;i++)for(let j=i+1;j<g.cells.length;j++){const c1=cells[g.cells[i]],c2=cells[g.cells[j]];if(c1&&c2&&dist(c1.q,c1.r,c2.q,c2.r)===1){const[x1,y1]=w2s(...a2w(c1.q,c1.r));const[x2,y2]=w2s(...a2w(c2.q,c2.r));mctx.beginPath();mctx.moveTo(x1,y1);mctx.lineTo(x2,y2);mctx.stroke();}}const cx2=pts.reduce((s,p)=>s+p[0],0)/pts.length;const cy2=pts.reduce((s,p)=>s+p[1],0)/pts.length;const sr=g.type==='hex'?HEX*1.6:HEX*0.85;starPath(cx2,cy2,sr,sr*0.42,5);mctx.strokeStyle='rgba(160,120,230,0.55)';mctx.lineWidth=1.5;mctx.stroke();}
   // Direction line
   if(hoverMove&&phase!=='gameover'){const pts=[{q:pQ,r:pR},...hoverMove.path,{q:hoverMove.q,r:hoverMove.r}];mctx.beginPath();for(let i=0;i<pts.length;i++){const[sx,sy]=w2s(...a2w(pts[i].q,pts[i].r));if(!i)mctx.moveTo(sx,sy);else mctx.lineTo(sx,sy);}mctx.strokeStyle='rgba(0,210,210,0.6)';mctx.lineWidth=1.5;mctx.setLineDash([5,4]);mctx.stroke();mctx.setLineDash([]);const[dx,dy]=w2s(...a2w(hoverMove.q,hoverMove.r));mctx.beginPath();mctx.arc(dx,dy,3.5,0,Math.PI*2);mctx.fillStyle='rgba(0,220,220,0.7)';mctx.fill();}
-  requestPreviews(mapNeed);
+  requestPreviews(mapNeed);pondStep(now);
   // HUD
   let dc=0;for(const k in cells)if(!cells[k].isVoid)dc++;
   document.getElementById('cell-count').innerHTML=dc+'<small>cells</small>';
@@ -314,10 +323,12 @@ function mapRender(){
 }
 function startMapLoop(){if(!mapRafId)mapRafId=requestAnimationFrame(mapRender);}
 
-mc.addEventListener('mousemove',e=>{if(currentView==='map')[hQ,hR]=p2a(e.clientX,e.clientY);});
+const evA=e=>p2a(...unproj(e.clientX,e.clientY)); // the hex under the cursor, through the tilt
+mc.addEventListener('mousemove',e=>{if(currentView==='map')[hQ,hR]=evA(e);});
+window.addEventListener('wheel',e=>{if(currentView!=='map'||menuOpen)return;e.preventDefault();zoomView(Math.exp(-e.deltaY*0.0015));},{passive:false});
 mc.addEventListener('click',e=>{
   if(currentView!=='map'||phase==='gameover')return;
-  const[q,r]=p2a(e.clientX,e.clientY);
+  const[q,r]=evA(e);
   if(q===pQ&&r===pR){doCapture();return;}
   const moves=getMoves();if(moves.find(m=>m.q===q&&m.r===r))doMove(q,r);
 });
@@ -326,9 +337,47 @@ document.addEventListener('keydown',e=>{
   if(e.code==='Escape'){e.preventDefault();if(currentView==='map')toggleMenu();return;}
   if(menuOpen)return;
   if(e.code==='Space'){e.preventDefault();if(currentView==='map')doCapture();}
+  if(currentView==='map'&&(e.key==='+'||e.key==='='))zoomView(1.15);if(currentView==='map'&&(e.key==='-'||e.key==='_'))zoomView(1/1.15);
 });
 window.addEventListener('resize',mapResize);
 
+// ╔══════════════════════════════════════════════════════════════════════════════╗
+// ║  THE LAKE — some of your collected ducks swim in the empty space around the  ║
+// ║  grid. The surface's own duck renderer draws them (one sheet per frame,      ║
+// ║  sent back as an ImageBitmap); the map moves them and draws their ripples.   ║
+// ╚══════════════════════════════════════════════════════════════════════════════╝
+let pond=[],ripples=[],pondSheet=null,pondBusy=false,pondT=0;
+function isWater(wx,wy){ // world point well clear of every hex
+  const q=(Math.sqrt(3)/3*wx-1/3*wy)/HEX,r=(2/3*wy)/HEX;for(let dq=-2;dq<=2;dq++)for(let dr=-2;dr<=2;dr++){const c=cells[K(Math.round(q)+dq,Math.round(r)+dr)];if(!c)continue;const[cx,cy]=a2w(c.q,c.r);if(Math.hypot(wx-cx,wy-cy)<HEX*1.7)return false;}return true;}
+const s2wp=(X,Y)=>{const[x,y]=unproj(X,Y);return s2w(x,y);},w2sc=(wx,wy)=>proj(...w2s(wx,wy)); // screen ↔ world, through the tilt
+function pondSpawn(){ // each time the map shows: a few of your ducks where there is open water on screen
+  pond=[];ripples=[];const got=Object.keys(duckLog).filter(k=>duckLog[k]>0);if(!got.length||!SW)return;
+  const n=Math.min(T.mapDucks!=null?T.mapDucks:5,got.length+2),now=performance.now();
+  for(let i=0,tries=0;i<n&&tries<400;tries++){const X=Math.random()*SW,Y=SH*0.08+Math.random()*SH*0.88,[wx,wy]=s2wp(X,Y);if(!isWater(wx,wy))continue;
+    pond.push({type:got[(Math.random()*got.length)|0],x:wx,y:wy,hd:Math.random()*6.283,sp:0,tw:0,ph:Math.random()*6.283,next:now+Math.random()*1500,born:now+i*260,lastRip:0});i++;}}
+function pondStep(now){
+  const pd=document.getElementById('pond'),c=pd.getContext('2d'),dp=window.devicePixelRatio||1,dt=Math.min(50,now-(pondT||now))/16.67;pondT=now;
+  c.setTransform(dp,0,0,dp,0,0);c.clearRect(0,0,SW,SH);if(!pond.length)return;
+  const v=viewTf(),items=[];
+  for(const d of pond){
+    if(now<d.born)continue;
+    if(now>d.next){d.next=now+900+Math.random()*2600;d.tw=(Math.random()-0.5)*0.03;d.go=Math.random()<0.8;} // a duck's way of going: glide, turn a little, sometimes rest
+    const paddle=d.go?0.35+0.25*Math.max(0,Math.sin(now/260+d.ph)):0;d.sp+=(paddle-d.sp)*0.04*dt; // little bursts of paddling
+    const ax=d.x+Math.cos(d.hd)*HEX*1.2,ay=d.y+Math.sin(d.hd)*HEX*1.2,[sx,sy]=w2sc(ax,ay);
+    if(!isWater(ax,ay)||sx<20||sx>SW-20||sy<SH*0.05||sy>SH-20)d.hd+=0.06*dt; // shore or the edge of view ahead: turn away
+    else d.hd+=d.tw*dt;
+    d.x+=Math.cos(d.hd)*d.sp*dt;d.y+=Math.sin(d.hd)*d.sp*dt;
+    if(d.sp>0.1&&now-d.lastRip>320){d.lastRip=now;const[X,Y]=w2sc(d.x,d.y);let ink='255,255,255';
+      try{const[px,py]=w2s(d.x,d.y),p=mctx.getImageData(Math.max(0,px*MK|0),Math.max(0,py*MK|0),1,1).data;if(p[0]*0.3+p[1]*0.59+p[2]*0.11>128)ink='20,24,32';}catch(e){} // the water's own ground: white rings on black, dark rings on white
+      ripples.push({x:d.x,y:d.y,t:now,ink});}
+    const[X,Y,k]=w2sc(d.x,d.y),h=HEX*0.62*k,pop=Math.min(1,(now-d.born)/500);
+    d._at=[X,Y-h*0.12+Math.sin(now/700+d.ph)*h*0.03];d._h=h*pop; // it bobs
+    items.push({type:d.type,h:d._h*dp,ang:-d.hd,tilt:v.th,roll:Math.sin(now/650+d.ph)*0.05});} // the surface sizes it by its type and turns it (pondSheet)
+  ripples=ripples.filter(r=>now-r.t<1800);
+  for(const r of ripples){const a=(now-r.t)/1800,[X,Y,k]=w2sc(r.x,r.y),R=(4+a*HEX*0.9)*k;c.strokeStyle=`rgba(${r.ink},${(0.5*(1-a)*(1-a)).toFixed(3)})`;c.lineWidth=1.4;c.beginPath();c.ellipse(X,Y,R,R*v.c,0,0,6.2832);c.stroke();}
+  const S=pondSheet;if(S&&S.bmp){let i=0;for(const d of pond){if(now<d.born)continue;const rc=S.rects[i++];if(!rc||!d._at)continue;c.drawImage(S.bmp,rc[0],rc[1],rc[2],rc[2],d._at[0]-rc[2]/dp/2,d._at[1]-rc[2]/dp/2,rc[2]/dp,rc[2]/dp);}}
+  if(!pondBusy&&items.length&&nebReady&&currentView==='map'){pondBusy=true;neb({cmd:'pond',items});setTimeout(()=>{pondBusy=false;},500);}
+}
 // ╔══════════════════════════════════════════════════════════════════════════════╗
 // ║  SAVE — the map is kept between sessions (items and discoveries are the     ║
 // ║  surface's own save, so a new map never touches them)                       ║
@@ -356,13 +405,13 @@ function enterNebula(cellKey){
   const resume=nebulaCellKey===cellKey;nebulaCellKey=cellKey;saveMap();
   neb({cmd:'level',key:cellKey,seed:cellSeed(c),cov:cellCov(c),label:`(${c.q},${c.r}) · value ${c.v.toFixed(2)}`,resume});
 }
-function exitNebula(){currentView='map';showNeb(false);mapResize();startMapLoop();updateHint();evPump();}
+function exitNebula(){currentView='map';showNeb(false);mapResize();pondSpawn();startMapLoop();updateHint();evPump();}
 let evQ=[];
 function hubEvent(id){if(disc.has('ev:'+id)||evQ.includes(id))return;evQ.push(id);evPump();}
 function evPump(){if(currentView!=='map'||menuOpen||!nebReady||!evQ.length)return;const id=evQ.shift();if(disc.has('ev:'+id)){evPump();return;}currentView='overlay';showNeb(true);neb({cmd:'event',id});}
 function openGuide(){if(!nebReady||currentView!=='map')return;currentView='overlay';showNeb(true);neb({cmd:'guide'});}
 function takeState(m){
-  if(m.T)T=m.T;if(m.inv)inv=m.inv;if(m.disc)disc=new Set(m.disc);if(m.defs&&m.defs.length)tuneDefs=m.defs;
+  if(m.T){T=m.T;if(SW)applyView();}if(m.ducks)duckLog=m.ducks;if(m.inv)inv=m.inv;if(m.disc)disc=new Set(m.disc);if(m.defs&&m.defs.length)tuneDefs=m.defs;
   if(T.mapHexSize&&T.mapHexSize!==HEX){HEX=T.mapHexSize;focusCam(false);}
   if(m.T)syncRenderSig();applyDisc();syncMenu();
 }
@@ -370,11 +419,12 @@ window.addEventListener('message',e=>{
   const m=e.data;if(e.source!==nebEl.contentWindow||!m||!m.il)return;
   if(m.T||m.disc)takeState(m);
   if(!nebReady&&m.T){ // the first word from the surface ('ready', or its answer to the 'state' asked for at start — whichever page loaded first)
-    nebReady=true;buildTune();
+    nebReady=true;buildTune();mapResize();pondSpawn();
     if(/[?&]resume=1/.test(location.search)){history.replaceState(null,'',location.pathname);const c=nebulaCellKey&&cells[nebulaCellKey];if(c&&!c.cap&&c.q===pQ&&c.r===pR){enterNebula(nebulaCellKey);return;}}
     hubEvent('map');
   }
   if(m.type==='ready'||m.type==='state');
+  else if(m.type==='pond'){pondSheet=m;pondBusy=false;}
   else if(m.type==='preview'){prevPending.delete(m.key);if(cells[m.key]&&m.img)prev[m.key]={sig:m.sig,img:m.img};}
   else if(m.type==='overlayDone'){if(currentView==='overlay'){currentView='map';showNeb(false);evPump();}}
   else if(m.type==='cleared')completeCaptureForCell(m.key,m.kind); // the hex is captured right away; the player returns with a right-click
@@ -403,7 +453,7 @@ function buildTune(){ // the same tuner definitions as the surface's Tune menu (
   const box=document.getElementById('mTune');box.innerHTML='';
   for(const d of tuneDefs){const r=document.createElement('div');r.className='row';r.title=d.tip||'';
     r.innerHTML=`<span>${d.label}</span><input type="range" min="${d.min}" max="${d.max}" step="${d.step}" data-k="${d.key}"><b></b>`;
-    r.querySelector('input').addEventListener('input',e=>{T[d.key]=+e.target.value;neb({cmd:'tune',T:{[d.key]:T[d.key]}});if(d.key==='mapHexSize'){HEX=T.mapHexSize;focusCam(false);}syncRenderSig();syncMenu();});
+    r.querySelector('input').addEventListener('input',e=>{T[d.key]=+e.target.value;neb({cmd:'tune',T:{[d.key]:T[d.key]}});if(d.key==='mapHexSize'){HEX=T.mapHexSize;focusCam(false);}if(/^map(Tilt|Persp|Zoom(Min|Max))$/.test(d.key))mapResize();syncRenderSig();syncMenu();});
     box.appendChild(r);}
   syncMenu();
 }

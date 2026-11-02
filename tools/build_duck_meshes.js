@@ -10,8 +10,13 @@
 // reshapes the classic mesh. Collision samples are the points farthest out in some direction (only those can be on an outline).
 // MARKINGS. Beak, eye, line and mouth are baked as distance fields into one RGBA texture at 2× the strip, from masks that are
 // up-sampled and smoothed at 4×, so the game draws them as smooth, crisp curves at any zoom instead of strip pixels.
+// Each vertex keeps the strip pixel it came from plus its depth across, so every view is a straight projection of the smoothed mesh
+// (no UV unwrap to relax): the SIDE view marks the side faces, the FRONT view the forward faces (the bill and the mouth band), and an
+// optional TOP view — a fifth cell in the strip, beak to the right, the duck's centre line on the cell's middle row — the faces that
+// look up (lines over the head and back). Where a face turns away from every drawn view the nearest view's marking is stretched;
+// a view drawn for that direction is the fix, not smoothing the texture.
 const fs=require('fs'),zlib=require('zlib'),path=require('path');
-const GAME=path.join(__dirname,'..','chromatic_nebula.html'),STRIP=path.join(__dirname,'duck_strip.png');
+const GAME=process.env.DUCK_GAME||path.join(__dirname,'..','chromatic_nebula.html'),STRIP=process.env.DUCK_STRIP||path.join(__dirname,'duck_strip.png');
 function readPNG(file){ // 8-bit, non-interlaced PNG → first channel
   const b=fs.readFileSync(file);let o=8,w=0,h=0,ct=0;const idat=[];
   while(o<b.length){const len=b.readUInt32BE(o),type=b.toString('ascii',o+4,o+8),d=b.subarray(o+8,o+8+len);
@@ -24,7 +29,7 @@ function readPNG(file){ // 8-bit, non-interlaced PNG → first channel
       cur[x]=v&255;}
     for(let x=0;x<w;x++)out[y*w+x]=cur[x*bpp];prev.set(cur);}
   return{w,h,data:out};}
-const png=readPNG(STRIP),CW=149,CH=138,AW=png.w,N=CW*CH,NECK=46;
+const png=readPNG(STRIP),CW=149,CH=138,AW=png.w,N=CW*CH,NECK=46,TOP=AW>=5*CW; // TOP: the strip has a fifth (top) view
 const L=(v,x,y)=>Math.round(png.data[y*AW+v*CW+x]/40);
 // ── side-view labels; the drawn outline is handed to the section beside it (a 3D duck has no outline), interior lines stay
 function viewLabels(v){const lab=new Uint8Array(N);for(let y=0;y<CH;y++)for(let x=0;x<CW;x++)lab[y*CW+x]=L(v,x,y);
@@ -49,6 +54,7 @@ const {mBeak,mEye,mLine,mMouth}=masks(labX);
 // cannot show (a side projection only reaches the bill's tip). Its mouth is the line pixels with bill both above and below.
 const labF=viewLabels(1),fM=masks(extendOut(labF,8)),mBeakF=fM.mBeak,mMouthF=M();
 for(let i=0;i<N;i++){if(!fM.mMouth[i]&&!fM.mLine[i])continue;const x=i%CW,y=(i/CW)|0;let up=0,dn=0;for(let k=1;k<=9;k++){if(y-k>=0&&labF[(y-k)*CW+x]===3)up=1;if(y+k<CH&&labF[(y+k)*CW+x]===3)dn=1;}if(up&&dn)mMouthF[i]=1;}
+const tM=TOP?masks(extendOut(viewLabels(4),8)):null; // the top view: row = depth across (middle row = 0), column = the side view's
 let fc=0,fn=0;for(let i=0;i<N;i++)if(labF[i]===3){fc+=i%CW;fn++;}fc=fn?fc/fn:CW/2; // the front view's centre column: z = 0
 // ── exact Euclidean distance transform (Felzenszwalb) and signed distance of a mask
 function edt1(f,n){const d=new Float64Array(n),v=new Int32Array(n),z=new Float64Array(n+1);let k=0;v[0]=0;z[0]=-1e20;z[1]=1e20;
@@ -69,11 +75,12 @@ function upMask(m){const o=new Float32Array(UW*UH);for(let y=0;y<UH;y++)for(let 
   return o;}
 const sdf4=m=>{const s=signedDist(upMask(m),UW,UH);for(let i=0;i<s.length;i++)s[i]/=U;return s;}; // signed distance in strip px, at 4×
 const SB=sdf4(mBeak),SE=sdf4(mEye),SL=sdf4(mLine),SM=sdf4(mMouth),SBF=sdf4(mBeakF),SMF=sdf4(mMouthF),SNO=new Float32Array(UW*UH).fill(-3);
+const TOPS=TOP?[sdf4(tM.mBeak),sdf4(tM.mEye),sdf4((()=>{const m=M();for(let i=0;i<N;i++)m[i]=Math.max(tM.mLine[i],tM.mMouth[i]);return m;})()),SNO]:null,PANELS=TOP?3:2;
 // ── markings texture at 2× (128 = edge, 48 per strip px), two views side by side: left the SIDE view (RGBA = beak, eye, line, mouth),
-// right the FRONT view (R = beak, A = mouth; G, B empty) for surfaces that face forward
-const TS=2,TW=CW*TS*2,TH=CH*TS,tex=new Uint8Array(TW*TH*4);
-for(let y=0;y<TH;y++)for(let x=0;x<TW;x++){const f=x>=CW*TS,ux=Math.min(UW-1,(x-(f?CW*TS:0))*2+1),uy=Math.min(UH-1,y*2+1),k=uy*UW+ux,o=(y*TW+x)*4;
-  (f?[SBF,SNO,SNO,SMF]:[SB,SE,SL,SM]).forEach((S,c)=>{tex[o+c]=Math.max(0,Math.min(255,Math.round(128+S[k]*48)));});}
+// then the FRONT view (R = beak, A = mouth; G, B empty) for surfaces that face forward, then (if drawn) the TOP view (R = beak, G = eye, B = line)
+const TS=2,TW=CW*TS*PANELS,TH=CH*TS,tex=new Uint8Array(TW*TH*4);
+for(let y=0;y<TH;y++)for(let x=0;x<TW;x++){const pn=Math.floor(x/(CW*TS)),ux=Math.min(UW-1,(x-pn*CW*TS)*2+1),uy=Math.min(UH-1,y*2+1),k=uy*UW+ux,o=(y*TW+x)*4;
+  [[SB,SE,SL,SM],[SBF,SNO,SNO,SMF],TOPS][pn].forEach((S,c)=>{tex[o+c]=Math.max(0,Math.min(255,Math.round(128+S[k]*48)));});}
 // 1× coverage of a 4× distance field (box average of the smooth shape) — for grooves and raised eyes
 const cov1=S=>{const c=new Float32Array(N);for(let y=0;y<CH;y++)for(let x=0;x<CW;x++){let s=0;for(let j=0;j<U;j++)for(let i=0;i<U;i++)s+=S[(y*U+j)*UW+x*U+i]>0?1:0;c[y*CW+x]=s/(U*U);}return c;};
 const cLine=cov1(SL),cMouth=cov1(SM),cEye=cov1(SE);
@@ -170,7 +177,7 @@ const dz=(a,k,bits)=>{const m=(1<<bits)-1,o=bits===8?new Uint8Array(a.length):ne
 const qz=(a,k)=>Int32Array.from(a,v=>Math.round(v*k));
 const C=buildGeo({}),B=buildGeo({head:+bh[1],bodyS:+bh[2]});
 const enc=m=>({R:+m.R.toFixed(4),p:dz(qz(m.pos,32000),3,16),n:dz(qz(m.nrm,127),3,8),h:z64(Int16Array.from(m.hp,v=>Math.round(v*32000)))});
-const data={nv:C.nv,tex:{w:TW,h:TH,s:CW,t:CH,f:+fc.toFixed(2),d:z64(tex)},i:dz(Int32Array.from(C.idx),1,16),u:dz(Int32Array.from(C.uv),3,16),
+const data={nv:C.nv,tex:{w:TW,h:TH,s:CW,t:CH,f:+fc.toFixed(2),p:PANELS,d:z64(tex)},i:dz(Int32Array.from(C.idx),1,16),u:dz(Int32Array.from(C.uv),3,16),
   classic:enc(C),bighead:enc(B)}; // both shapes share topology and markings coordinates (Big Head only moves vertices)
 // self-check: decode exactly as the game does and compare
 {const un=(t,k,bits,signed)=>{const r=zlib.inflateRawSync(Buffer.from(t,'base64')),a=bits===8?new Uint8Array(r.buffer,r.byteOffset,r.length):new Uint16Array(r.buffer,r.byteOffset,r.length/2),m=(1<<bits)-1,h=1<<(bits-1),o=new Int32Array(a.length);
@@ -181,4 +188,4 @@ const data={nv:C.nv,tex:{w:TW,h:TH,s:CW,t:CH,f:+fc.toFixed(2),d:z64(tex)},i:dz(I
 const line='const DUCK_MESH='+JSON.stringify(data)+'; // baked by tools/build_duck_meshes.js — do not edit by hand';
 const re=/^const DUCK_MESH=.*$/m;if(!re.test(html))throw new Error('DUCK_MESH line not found in the game');
 fs.writeFileSync(GAME,html.replace(re,()=>line));
-console.log('baked classic + bighead:',data.nv,'vertices each,',C.idx.length/3,'triangles · markings',TW+'×'+TH,'· in the game:',(line.length/1024).toFixed(0)+' KB');
+console.log(TOP?'top view: yes':'top view: none in the strip (4 views)');console.log('baked classic + bighead:',data.nv,'vertices each,',C.idx.length/3,'triangles · markings',TW+'×'+TH,'· in the game:',(line.length/1024).toFixed(0)+' KB');
