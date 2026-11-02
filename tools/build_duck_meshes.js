@@ -134,14 +134,17 @@ const half=new Float32Array(CH),beakW=new Float32Array(CH);
 for(let y=0;y<CH;y++){let w=0,n=0;for(const v of [1,3]){let a=-1,b=-1;for(let x=0;x<CW;x++)if(L(v,x,y)){if(a<0)a=x;b=x;}if(a>=0){w+=(b-a+1)/2;n++;}}half[y]=n?w/n:0;
   let a=-1,b=-1;for(let x=0;x<CW;x++)if(L(1,x,y)===3){if(a<0)a=x;b=x;}beakW[y]=a>=0?(b-a+1)/2:0;}
 {const bw=beakW.slice();for(let y=0;y<CH;y++){let m=0;for(let k=-3;k<=3;k++){const yy=y+k;if(yy>=0&&yy<CH)m=Math.max(m,bw[yy]);}beakW[y]=m;}} // rows of the two views line up within a few px
-const SIL=signedDist(mSil,CW,CH); // side silhouette, signed distance in strip px (+ inside)
-const BSD=signedDist(Float32Array.from(lab,(l,i)=>l===3||mMouth[i]?1:0),CW,CH),BWZ=Float32Array.from(lab,(l,i)=>beakW[(i/CW)|0]); // the side view's bill (signed distance) and its width per row
-let th=new Float32Array(N);
+let HSIL=null;const SIL=signedDist(mSil,CW,CH); // side silhouette, signed distance in strip px (+ inside)
+const BSD=signedDist(Float32Array.from(lab,(l,i)=>l===3||mMouth[i]?1:0),CW,CH); // the side view's bill (signed distance)
+let th=new Float32Array(N);const TH0=new Float32Array(N); // TH0: the head's own half-width at each side-view pixel, as if it had no bill
 for(let y=0;y<CH;y++){let x=0;while(x<CW){if(!isIn(x,y)){x++;continue;}let b=x;while(b+1<CW&&isIn(b+1,y))b++;
   const c=(x+b)/2,hl=(b-x+1)/2,w=Math.min(half[y],hl*1.15);
   for(let k=x;k<=b;k++){const s=(k-c)/hl;let t=w*Math.sqrt(Math.max(0,1-s*s));
     if(lab[y*CW+k]===3||mMouth[y*CW+k]){const tip=Math.sqrt(Math.min(1,(b-k+0.5)/3));t=Math.max(t,beakW[y]*tip);} // the bill: as wide as the front view draws it, round-tipped
     th[y*CW+k]=t;}x=b+1;}}
+{let hm=M();for(let i=0;i<N;i++)if(lab[i]&&lab[i]!==3&&!mMouth[i])hm[i]=1;HSIL=signedDist(hm,CW,CH); // the head without its bill: its outline and, per run, its own elliptical width
+  for(let y=0;y<CH;y++){let x=0;while(x<CW){if(!hm[y*CW+x]){x++;continue;}let b=x;while(b+1<CW&&hm[y*CW+b+1])b++;const c=(x+b)/2,hl=(b-x+1)/2,w=Math.min(half[y],hl*1.15);
+    for(let k=x;k<=b;k++){const s=(k-c)/hl,u=Math.min(1,Math.max(0,HSIL[y*CW+k])/7);TH0[y*CW+k]=w*Math.sqrt(Math.max(0,1-s*s))*Math.sqrt(1-(1-u)*(1-u));}x=b+1;}}}
 for(let i=0;i<N;i++){if(!mSil[i])continue;const u=Math.min(1,Math.max(0,SIL[i])/7);th[i]*=Math.sqrt(1-(1-u)*(1-u));} // rounds over into the outline
 for(let it=0;it<2;it++){const o=new Float32Array(N);for(let y=0;y<CH;y++)for(let x=0;x<CW;x++){const i=y*CW+x;if(!mSil[i])continue;let s=0,n=0;
   for(let dy=-2;dy<=2;dy++)for(let dx=-2;dx<=2;dx++)if(isIn(x+dx,y+dy)){s+=th[(y+dy)*CW+x+dx];n++;}o[i]=s/n;}th=o;}
@@ -211,7 +214,7 @@ function buildGeo(v){
   for(let i=0;i<nv;i++){const x=net.P[i*3],y=net.P[i*3+1],z=net.P[i*3+2],e=0.75;
     let gx=-(sampleF(x+e,y,z)-sampleF(x-e,y,z)),gy=sampleF(x,y+e,z)-sampleF(x,y-e,z),gz=-(sampleF(x,y,z+e)-sampleF(x,y,z-e));const l=Math.hypot(gx,gy,gz)||1;
     nrm[i*3]=gx/l;nrm[i*3+1]=gy/l;nrm[i*3+2]=gz/l;}
-  const bw=new Uint8Array(nv);for(let i=0;i<nv;i++){const x=net.P[i*3],y=net.P[i*3+1],z=net.P[i*3+2],sb=bil(BSD,x,y),wz=bil(BWZ,x,y)+1.2-Math.abs(z),c=v=>Math.max(0,Math.min(1,v));bw[i]=Math.round(255*c(0.5+sb/1.5)*c(0.5+wz/1.5));} // how much of the bill (vs the face) this vertex is: inside the side view's bill and within its front-view width — the bill is its own colour, whatever the drawings project there
+  const bw=new Uint8Array(nv);for(let i=0;i<nv;i++){const x=net.P[i*3],y=net.P[i*3+1],z=net.P[i*3+2],sb=bil(BSD,x,y),c=v=>Math.max(0,Math.min(1,v)),out=Math.max(c(0.5-bil(HSIL,x,y)/1.5),c((Math.abs(z)-bil(TH0,x,y)-0.4)/1.6));bw[i]=Math.round(255*c(0.5+sb/1.5)*out);} // how much of the bill (vs the face) this vertex is: inside the side view's bill and outside the head as it would be without one (beyond its outline, or standing proud of its sides) — the bill is its own colour, whatever the drawings project there
   const uv=new Uint16Array(nv*3);for(let i=0;i<nv;i++)for(let c=0;c<3;c++)uv[i*3+c]=Math.max(0,Math.min(65535,Math.round((net.P[i*3+c]+(c===2?128:0))*256))); // the strip pixel it came from (before Big Head) and its depth across (+128), ×256
   const ext=new Set(),K=420;for(let k=0;k<K;k++){const z=1-2*(k+0.5)/K,r=Math.sqrt(1-z*z),a=k*2.39996323,dx=r*Math.cos(a),dy=r*Math.sin(a);
     let bi=0,bd=-1e9;for(let i=0;i<nv;i++){const d=pos[i*3]*dx+pos[i*3+1]*dy+pos[i*3+2]*z;if(d>bd){bd=d;bi=i;}}ext.add(bi);}
@@ -233,6 +236,21 @@ const data={nv:C.nv,tex:{w:TW,h:TH,s:CW,t:CH,f:+fc.toFixed(2),p:PANELS,b:BUMP?1:
     return o;};
   const ck=(name,got,want)=>{for(let i=0;i<want.length;i++)if(got[i]!==want[i])throw new Error(name+' mismatch at '+i+': '+got[i]+' vs '+want[i]);};
   ck('idx',un(data.i,1,16,false),C.idx);ck('uv',un(data.u,3,16,false),C.uv);ck('pos',un(data.classic.p,3,16,true),qz(C.pos,32000));ck('nrm',un(data.bighead.n,3,8,true),qz(B.nrm,127));}
+// ── texture_maps/: everything the duck is textured from, as pictures to study (written on every bake) ──
+{ const dir=path.join(__dirname,'texture_maps');fs.mkdirSync(dir,{recursive:true});
+  const crc=(()=>{const t=new Uint32Array(256);for(let n=0;n<256;n++){let c=n;for(let k=0;k<8;k++)c=c&1?0xEDB88320^(c>>>1):c>>>1;t[n]=c>>>0;}return b=>{let c=0xFFFFFFFF;for(const x of b)c=t[(c^x)&255]^(c>>>8);return(c^0xFFFFFFFF)>>>0;};})();
+  const png=(file,w,h,rgb)=>{const raw=Buffer.alloc((w*3+1)*h);for(let y=0;y<h;y++){raw[y*(w*3+1)]=0;for(let x=0;x<w*3;x++)raw[y*(w*3+1)+1+x]=rgb[y*w*3+x];}
+    const ch=(ty,d)=>{const l=Buffer.alloc(4);l.writeUInt32BE(d.length);const td=Buffer.concat([Buffer.from(ty),d]),c=Buffer.alloc(4);c.writeUInt32BE(crc(td));return Buffer.concat([l,td,c]);};
+    const hd=Buffer.alloc(13);hd.writeUInt32BE(w,0);hd.writeUInt32BE(h,4);hd[8]=8;hd[9]=2;fs.writeFileSync(path.join(dir,file),Buffer.concat([Buffer.from([137,80,78,71,13,10,26,10]),ch('IHDR',hd),ch('IDAT',zlib.deflateSync(raw)),ch('IEND',Buffer.alloc(0))]));};
+  const COL=[[0,0,0],[255,230,0],[225,195,0],[255,128,0],[255,255,255],[40,40,40]];
+  const labs=(file,Ls,w,h)=>{const n=Ls.length,o=new Uint8Array(w*n*h*3);Ls.forEach((L,v)=>{for(let y=0;y<h;y++)for(let x=0;x<w;x++){const c=COL[L[y*w+x]]||[255,0,255],j=(y*w*n+v*w+x)*3;o[j]=c[0];o[j+1]=c[1];o[j+2]=c[2];}});png(file,w*n,h,o);};
+  labs('1_shape_labels.png',LAB1,CW,CH); // what the mesh is built from (head / body / bill / eye / line), one cell per view
+  if(LABH)labs('2_marking_labels_svg.png',LABH,HW,HH); // the SVG's labels, registered onto the strip's views, at its fine grid
+  const ch=(file,c)=>{const o=new Uint8Array(TW*TH*3);for(let i=0;i<TW*TH;i++){const v=tex[i*4+c];o[i*3]=o[i*3+1]=o[i*3+2]=v;}png(file,TW,TH,o);};
+  ch('3_texture_R_bill.png',0);ch('3_texture_G_eye.png',1);ch('3_texture_B_line.png',2);ch('3_texture_A_mouth.png',3); // the markings texture's four channels: distance fields (mid-grey = the edge); left panel side view, right panel front view
+  {const o=new Uint8Array(CW*CH*3);for(let i=0;i<N;i++){const b=Math.max(0,Math.min(1,0.5+BSD[i]/1.5));o[i*3]=Math.round(255*b);o[i*3+1]=Math.round(120*b+(lab[i]?60:0));o[i*3+2]=lab[i]?60:0;}png('4_bill_side_mask.png',CW,CH,o);} // where the side view counts as bill
+  {const m=Math.max(...TH0,1),o=new Uint8Array(CW*CH*3);for(let i=0;i<N;i++){o[i*3]=Math.round(255*th[i]/m);o[i*3+1]=Math.round(255*TH0[i]/m);o[i*3+2]=0;}png('5_widths_with_and_without_bill.png',CW,CH,o);} // red: the half-width the mesh has, green: the head's own; red alone = the bill standing proud
+}
 const line='const DUCK_MESH='+JSON.stringify(data)+'; // baked by tools/build_duck_meshes.js — do not edit by hand';
 const re=/^const DUCK_MESH=.*$/m;
 const dst=fs.readFileSync(OUT,'utf8');if(!re.test(dst))throw new Error('DUCK_MESH line not found in '+OUT);fs.writeFileSync(OUT,dst.replace(re,()=>line));
