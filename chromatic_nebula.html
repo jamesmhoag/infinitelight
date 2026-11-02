@@ -10744,22 +10744,7 @@ _pm('point-update');
       if((a.enriched||b.enriched)&&a.isRemnant&&b.isRemnant&&a.remKind!=='brown'&&b.remKind!=='brown'&&a.remKind!=='black'&&b.remKind!=='black'){bounceRemnants(a,b,ra,rb);continue;} // a relic REFLECTS off every other Bright / active remnant or relic (momentum only: no damage, no merge)
       if(a.enriched||b.enriched)continue; // an ENRICHED remnant is never consumed, never merges and takes no damage from any collision (not even with its own kind)
       if((a.blackFx||b.blackFx)&&!(a.blackFx&&b.blackFx))continue; // ECLIPSE passes through everything except another ECLIPSE (the standard consume rules apply between the two)
-      if(!(a.isRemnant&&b.isRemnant))contactSpin(a,b,ra,rb,dx,dy); // remnant pairs keep their own bounce spin
-      if(activeBonds.length&&a.isRemnant!==b.isRemnant&&pointInBond(a.isRemnant?b:a))continue; // a bonded point never absorbs / collects a remnant
-      if(a.whiteFx||b.whiteFx){ // crystalized points are solid: bounce off other points (momentum kept), never merged or consumed
-        { // …and every collision wears a CRYSTALIZE point down: life lost grows with the impact speed and the spin of the two rims (never less than T.crystalHitMs), so whites can't take over unchecked
-          const hn=performance.now(),imp=Math.hypot((a.vx||0)-(b.vx||0),(a.vy||0)-(b.vy||0))+Math.abs(a.rot||0)*ra+Math.abs(b.rot||0)*rb,loss=Math.max(T.crystalHitMs,T.crystalHitK*imp);
-          for(const w of [a,b])if(w.whiteFx&&!w.isRemnant&&!w._tweenW&&!(w._hitAt>hn-250)){w._hitAt=hn;w._hitLoss=(w._hitLoss||0)+loss;if(w.lifespan!==Infinity)w.lifespan-=loss;lifeLossSparkle(w.x,w.y,now,w.ci);}
-        }
-        if(!a.isRemnant&&!b.isRemnant&&!a.failedCollapse&&!b.failedCollapse){
-          bounceRemnants(a,b,ra,rb);
-          // the bounce is what changes colour: an ACTIVE pigment CRYSTALIZE point turns what it bounces off into CRYSTALIZE (a Bright one uses its effect radius instead)
-          const ca=a.whiteFx&&!a._tweenW&&(pressedIDs.has(a.id)!==!!a.collapsed),cb=b.whiteFx&&!b._tweenW&&(pressedIDs.has(b.id)!==!!b.collapsed); // a selected pigment one, or an UNSELECTED Bright one, turns what it bounces off (a selected Bright uses its radius)
-          if(ca&&!b.whiteFx)shiftTo(b,'w');else if(cb&&!a.whiteFx)shiftTo(a,'w');
-        }
-        // (a remnant is layered over / under a crystalized pigment or point: it never collides, so it can never get stuck on one)
-        continue;
-      }
+      // Pairs that pass over each other are settled FIRST, so they exchange nothing — no contact spin, no speed, no wear:
       { // a Dim (Dim) Remnant no longer collides/consolidates with anything except a Point, the Dark
         // Remnant itself, or another Dim Remnant — two Dim Remnants that collide DO merge (see the plain
         // larger-consumes-smaller capture below), same as any other same-kind pairing.
@@ -10780,6 +10765,22 @@ _pm('point-update');
       if((aRem&&bReg)||(aReg&&bRem))continue;
       const aBrown=a.failedCollapse,bBrown=b.failedCollapse;
       if((aBrown&&bReg&&!bBrown)||(bBrown&&aReg&&!aBrown))continue; // dim remnants ignore pigments, like white remnants do
+      if(!(a.isRemnant&&b.isRemnant))contactSpin(a,b,ra,rb,dx,dy); // remnant pairs keep their own bounce spin
+      if(activeBonds.length&&a.isRemnant!==b.isRemnant&&pointInBond(a.isRemnant?b:a))continue; // a bonded point never absorbs / collects a remnant
+      if(a.whiteFx||b.whiteFx){ // crystalized points are solid: bounce off other points (momentum kept), never merged or consumed
+        { // …and every collision wears a CRYSTALIZE point down: life lost grows with the impact speed and the spin of the two rims (never less than T.crystalHitMs), so whites can't take over unchecked
+          const hn=performance.now(),imp=Math.hypot((a.vx||0)-(b.vx||0),(a.vy||0)-(b.vy||0))+Math.abs(a.rot||0)*ra+Math.abs(b.rot||0)*rb,loss=Math.max(T.crystalHitMs,T.crystalHitK*imp);
+          for(const w of [a,b])if(w.whiteFx&&!w.isRemnant&&!w._tweenW&&!(w._hitAt>hn-250)){w._hitAt=hn;w._hitLoss=(w._hitLoss||0)+loss;if(w.lifespan!==Infinity)w.lifespan-=loss;lifeLossSparkle(w.x,w.y,now,w.ci);}
+        }
+        if(!a.isRemnant&&!b.isRemnant&&!a.failedCollapse&&!b.failedCollapse){
+          bounceRemnants(a,b,ra,rb);
+          // the bounce is what changes colour: an ACTIVE pigment CRYSTALIZE point turns what it bounces off into CRYSTALIZE (a Bright one uses its effect radius instead)
+          const ca=a.whiteFx&&!a._tweenW&&(pressedIDs.has(a.id)!==!!a.collapsed),cb=b.whiteFx&&!b._tweenW&&(pressedIDs.has(b.id)!==!!b.collapsed); // a selected pigment one, or an UNSELECTED Bright one, turns what it bounces off (a selected Bright uses its radius)
+          if(ca&&!b.whiteFx)shiftTo(b,'w');else if(cb&&!a.whiteFx)shiftTo(a,'w');
+        }
+        // (a remnant is layered over / under a crystalized pigment or point: it never collides, so it can never get stuck on one)
+        continue;
+      }
       // Two Active Remnants (Neutron/Magnetic/Pulsing) colliding with each
       // other is its own special case, ranked above the generic remnant
       // collision below: it always forms a Dark Remnant outright.
