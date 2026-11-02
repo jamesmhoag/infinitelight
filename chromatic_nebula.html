@@ -772,7 +772,7 @@ const T={
   magBalanceLow:   0.22, // color-balance score at/below this = "heavily weighted" -> Magnetic
   magBalanceHigh:  0.85, // color-balance score at/above this = "nearly perfect" -> Magnetic
   remBounceNovaThresh:2.5, // combined motion score (0..4) needed for a Bright/Active remnant collision to nova instead of bounce
-  statusEnergy:2, remMassFrac:0.2, remEnergyFrac:0.2, // energy a remnant gains per status from active remnants · share of a Point's / pigment's mass and energy a remnant keeps
+  statusEnergy:2, activeStatusMax:4, remMassFrac:0.2, remEnergyFrac:0.2, // energy a remnant gains per status from active remnants · share of a Point's / pigment's mass and energy a remnant keeps
   contactSpinK:    0.35,   // how much of the tangential slip at a contact is turned into spin / sliding per frame (0 = frictionless)
   whirlLens:       1.6,    // Dim DEPTH: how strongly it pinches what is inside toward its centre (an inverted lens: things shrink and thin out until they are one tiny glowing point); 0 = off
   whirlExp:        5.5,      // Dim DEPTH: steepness of the pinch curve — 1 is gentle, higher keeps the rim flat and piles the pinch into the centre
@@ -1287,6 +1287,7 @@ const TUNE_DEFS=[
   {key:'remBounceNovaThresh',label:'Nova thresh',min:0,max:4,step:0.1,tip:'Combined motion score (each object\'s speed/maxSpeed + rot/maxRotSpeed fraction, summed across both — 0=both still, 4=both maxed) a Bright/Active remnant collision needs to break into a nova instead of just bouncing'},
   {key:'remBounceSpinK', label:'Bounce spin', min:0,max:0.1,step:0.001, tip:'How much rotation a Bright/Active remnant picks up from a bounce collision, per unit of tangential impact speed'},
   {key:'statusEnergy',label:'Status energy',min:0,max:20,step:0.5,tip:'Energy a Dim / Bright / relic (or active remnant) gains for each status an active remnant gives it (Enlarged, Shrunk, colour, pulse). x10 when collected'},
+  {key:'activeStatusMax',label:'Active status max',min:0,max:8,step:1,tip:'How many distinct statuses (Enlarged, Shrunk, each colour pair, each Pulsing beat) an active remnant can stack from the other active types'},
   {key:'remMassFrac',label:'Remnant mass %',min:0,max:1,step:0.01,tip:'Share of its mass (and colour mix) a remnant keeps when made from a Point or a failed collapse'},
   {key:'remEnergyFrac',label:'Remnant energy %',min:0,max:1,step:0.01,tip:'Share of its energy a remnant keeps when made from a Point or a failed collapse'},
   {key:'contactSpinK', label:'Contact spin', min:0,max:1,step:0.01, tip:'Surface friction when objects touch: spin is slowed toward 0, or sped up / reversed, depending on the angle, speed and spin of what touched'},
@@ -1302,7 +1303,7 @@ const TUNE_DEFS=[
   {key:'brightStasisCost', label:'Balance cost', min:1,max:1000,step:1, tip:'Bright spent each interval while a BALANCE stands'},
   {key:'brightStasisIntervalMs', label:'Balance interval ms', min:1,max:5000,step:1, tip:'How often the Neutron cost is paid while stasis is held'},
   {key:'lightMergeGrow', label:'Merged light size', min:0,max:0.3,step:0.01, tip:'How much a merged light grows with the number of lights it stands for (0 = the size of one)'},
-  {key:'lightMergeGain', label:'Merged light gain', min:0,max:1.5,step:0.05, tip:'How much of the combined radiance a merged light keeps (1 = full accumulation, lower = dimmer crowds)'},
+  {key:'lightMergeGain', label:'Merged light gain', min:0,max:1.5,step:0.05, tip:'How much of the EXTRA radiance from the other lights in a merged group is added (a merged light is never dimmer than its brightest member; 1 = full accumulation)'},
   {key:'seedSpread', label:'Seed spread', min:0,max:1,step:0.05, tip:'How far generated particles (starting world and nova regrowth) stray from their primary colour: 0 = exactly the primary, 1 = the whole colour range'},
   {key:'nebBlurScale', label:'Halo cache scale', min:0.25,max:1,step:0.05, tip:'The blurred nebula halos are cached at this fraction of full size; lower is faster'},
   {key:'glowResScale', label:'Glow layer scale', min:0.15,max:1,step:0.05, tip:'The big soft effect-radius glows are drawn at this fraction of full size; lower is faster (they are smooth, so little is lost)'},
@@ -1805,7 +1806,7 @@ function remnantEffectText(p){
   const tint=p.magTintCI!==undefined?' · carries '+EFFECT_NAMES[p.magTintCI]+' (applies that colour\'s effect)':'';
   if(p.remKind==='neutron')return 'scales effect radii in its field between min and max'+tint+' · ';
   if(p.remKind==='magnetic')return 'recolours to '+EFFECT_NAMES[p.magPrimaryCI]+' / '+EFFECT_NAMES[p.magOppositeCI]+' (overlaps blend; opposites crystalize) · ';
-  if(p.remKind==='pulsing')return 'beam activates on its first side, deactivates on its second'+tint+' · ';
+  if(p.remKind==='pulsing')return 'beam activates on its first side (the max-active snake retires the oldest)'+tint+' · ';
   return '';
 }
 // ===== Idle remnants =====
@@ -2730,19 +2731,20 @@ function wrapCopies(x,y,r,fn){ // the object itself plus a copy for each opposit
   if(l)fn(W,0);if(rt)fn(-W,0);if(t)fn(0,H);if(b)fn(0,-H);
   if(l&&t)fn(W,H);if(l&&b)fn(W,-H);if(rt&&t)fn(-W,H);if(rt&&b)fn(-W,-H);
 }
-// Many lights of the same colour in the same area read as ONE light of the accumulated radiance: 1-(1-a)^n, slightly larger. Used once
+// Many lights of the same colour in the same area read as ONE light: its brightest member's glow, plus Merged light gain × the extra the
+// others add (accumulated radiance 1-(1-a)^n), slightly larger. Used once
 // there are more than T.lightMergeMin of them, so a full-screen nova costs a handful of light draws instead of hundreds.
 function mergeLights(arr,cell){
   if(arr.length>perfCtx.merged)perfCtx.merged=arr.length;
   const map=new Map();
   for(const L of arr){
     const key=((L.x/cell)|0)+','+((L.y/cell)|0)+'|'+((L.r|0)>>5)+','+((L.g|0)>>5)+','+((L.b|0)>>5);
-    let c=map.get(key);if(!c){c={sx:0,sy:0,sr:0,sg:0,sb:0,w:0,n:0,R:0,keep:1,cap:0};map.set(key,c);}
+    let c=map.get(key);if(!c){c={sx:0,sy:0,sr:0,sg:0,sb:0,w:0,n:0,R:0,keep:1,cap:0,am:0};map.set(key,c);}
     const w=Math.max(0.01,L.a);c.sx+=L.x*w;c.sy+=L.y*w;c.sr+=L.r*w;c.sg+=L.g*w;c.sb+=L.b*w;c.w+=w;c.n++;
-    if(L.R>c.R)c.R=L.R;c.keep*=(1-Math.min(0.95,L.a));if(L.cap>c.cap)c.cap=L.cap;
+    if(L.R>c.R)c.R=L.R;c.keep*=(1-Math.min(0.95,L.a));if(L.cap>c.cap)c.cap=L.cap;if(L.a>c.am)c.am=L.a;
   }
   const out=[];
-  for(const c of map.values())out.push({x:c.sx/c.w,y:c.sy/c.w,R:c.R*(1+T.lightMergeGrow*Math.min(3,Math.log2(c.n))),a:Math.min(c.cap||0.95,(1-c.keep)*T.lightMergeGain),r:c.sr/c.w,g:c.sg/c.w,b:c.sb/c.w});
+  for(const c of map.values())out.push({x:c.sx/c.w,y:c.sy/c.w,R:c.R*(1+T.lightMergeGrow*Math.min(3,Math.log2(c.n))),a:Math.min(c.cap||0.95,c.am+Math.max(0,(1-c.keep)-c.am)*T.lightMergeGain),r:c.sr/c.w,g:c.sg/c.w,b:c.sb/c.w});
   return out;
 }
 const _GLOW_SIZES=[2,3,4,5,6,8,10,12,15,18,22,27,33,40,50,62,78,96,120,150,180];
@@ -2832,12 +2834,12 @@ function setScaleState(q,st,now){
   q._radFrom=q.radMult||1;q._radTo=m;q._radAt=now;q._radDone=false;
   if(q.isActiveRemnant&&(q.remKind==='magnetic'||q.remKind==='pulsing')&&(q._hToA!==1||q._hToB!==1)){q._hFromA=q._nhA||1;q._hFromB=q._nhB||1;q._hToA=1;q._hToB=1;q._hAt=now;} // halves follow the whole scale
 }
-function statusBonus(q,type,val){ // +T.statusEnergy energy per new status an active remnant gives a remnant (an active remnant: once per other active type)
+function statusBonus(q,type,val){ // +T.statusEnergy energy per new status an active remnant gives a remnant — each distinct status stacks (Enlarged, Shrunk, each colour, pulse); an active remnant stacks those from the OTHER active types, up to T.activeStatusMax
   if(!q||!q.isRemnant||q.remKind==='black'||!(T.statusEnergy>0))return;
   const act=!!q.isActiveRemnant;
   if(act&&((type==='scale'&&q.remKind==='neutron')||(type==='colour'&&q.remKind==='magnetic')||(type==='pulse'&&q.remKind==='pulsing')))return;
   if(q.remKind==='brown'&&type!=='scale')return;
-  const key=act?type:type+':'+val,L=q._stB||(q._stB=[]);if(L.indexOf(key)>=0)return;
+  const key=type+':'+val,L=q._stB||(q._stB=[]);if(L.indexOf(key)>=0||(act&&L.length>=T.activeStatusMax))return;
   L.push(key);q.energy+=T.statusEnergy;q.fillDirty=true;logEv('status '+key+' on '+q.remKind+': +'+T.statusEnergy+' energy');
 }
 function activeRemnantRange(p){
@@ -3005,7 +3007,7 @@ function applyMagToActive(q,a,b){
   const blend=(S)=>{if(S.length===1)return S[0];let sx=0,sy=0;for(const c of S){const an=c/6*6.2832;sx+=Math.cos(an);sy+=Math.sin(an);}return Math.round((((Math.atan2(sy,sx)/6.2832)+1)%1)*6)%6;};
   if(opp(q._magAs)||opp(q._magBs)){if(!q.magWhite||q.magTintCI!==undefined){q.magWhite=true;q.magTintCI=undefined;q.magTintCI2=undefined;q.fillDirty=true;}return;}
   const na=blend(q._magAs),nb=blend(q._magBs);
-  if(q.magWhite||q.magTintCI!==na||q.magTintCI2!==nb){statusBonus(q,'colour');q.magWhite=false;q.magTintCI=na;q.magTintCI2=nb;q.fillDirty=true;}
+  if(q.magWhite||q.magTintCI!==na||q.magTintCI2!==nb){statusBonus(q,'colour',na+'/'+nb);q.magWhite=false;q.magTintCI=na;q.magTintCI2=nb;q.fillDirty=true;}
 }
 function applyMagTarget(q,ci){
   if(q._magSer!==effSerial){q._magSer=effSerial;q._magSet=[];}
@@ -3069,9 +3071,9 @@ function applyActiveRemnantEffect(p,q){
     const now2=performance.now();
     if(p.remKind==='neutron'){ // Neutron -> Magnetic / Pulsing: primary half takes the Neutron's CURRENT scale, secondary half the OPPOSITE (unseen) one
       const big=p.neutronState==='max',a=big?T.neutronBoostMult:T.neutronShrinkMult,b=big?T.neutronShrinkMult:T.neutronBoostMult;
-      if(q._hToA!==a||q._hToB!==b){statusBonus(q,'scale');q._hFromA=q._nhA||1;q._hFromB=q._nhB||1;q._hToA=a;q._hToB=b;q._hAt=now2;}
+      if(q._hToA!==a||q._hToB!==b){statusBonus(q,'scale',big?'big':'small');q._hFromA=q._nhA||1;q._hFromB=q._nhB||1;q._hToA=a;q._hToB=b;q._hAt=now2;}
     } else if(p.remKind==='pulsing'){ // Pulsing -> Neutron / Magnetic: adopts the pulse animation (primary half = big / primary colour, secondary half = small / opposing colour)
-      if(Math.hypot(_wrapD(q.x-p.x,W),_wrapD(q.y-p.y,H))<=activeRemnantRange(p)){q._pulOff=((p.id||0)%7)*0.11;statusBonus(q,'pulse');} // anywhere in the Pulsing field (not just the beam's current wedge)
+      if(Math.hypot(_wrapD(q.x-p.x,W),_wrapD(q.y-p.y,H))<=activeRemnantRange(p)){q._pulOff=((p.id||0)%7)*0.11;statusBonus(q,'pulse',p.id);} // anywhere in the Pulsing field (not just the beam's current wedge)
     } else if(p.remKind==='magnetic'){ // Magnetic -> Neutron / Pulsing: becomes magnetized with the colour pair (side it sits on = primary)
       let rel=Math.atan2(_wrapD(q.y-p.y,H),_wrapD(q.x-p.x,W))-magAngle(p);rel=((rel%6.2832)+6.2832)%6.2832;
       const shd=sharesPulse(p),onPrim=shd?shareOnPrim(p,q):rel<Math.PI;if(shd?onPrim===null:Math.hypot(_wrapD(q.x-p.x,W),_wrapD(q.y-p.y,H))>T.magneticEffR*(p.radMult||1)*(onPrim?(p.halfA||1):(p.halfB||1)))return;
@@ -3098,7 +3100,7 @@ function applyActiveRemnantEffect(p,q){
     if(!remnantReaches(p,q))return;
     const bs0=pulsingBeamState(p);
     if(p.magTintCI!==undefined)tintForce(p,q,bs0.rMain,pulseTintCI(p,bs0.side)); // coloured: primary colour on the first side, secondary on the second
-    pulseSetActive(q,bs0.side===0,bs0.ep); // first side activates everything it reaches, second side deactivates it
+    if(bs0.side===0)pulseSetActive(q,true,bs0.ep); // first side activates everything it reaches; the second side changes no status (its only deactivation is the snake cap, pulseEnforceCap)
     if(bs0.side===0&&q.isRemnant&&q.remKind!=='pulsing'&&!q._collected&&!q.dying&&!underGlass(q.x,q.y)){const ck=collectKindOf(q);if(ck&&inventory[ck]<invMaxFor(ck))q._dialCollect=true;} // …and collects the loose remnants it touches
   }
 }
@@ -3208,7 +3210,7 @@ function addInventory(kind,amount){
   updateInventoryUI();
 }
 // Bright/Dim remnants left over at Surface Clear are "collected artifacts."
-function remnantValue(p,kind){const e=!!p.enriched;if(kind==='bright'||kind==='dim')return Math.max(1,Math.ceil((p.energy||0)*(e?100:10)));return e?100:1;} // what collecting this remnant is worth (Neutron / Magnetic / Pulsing: 1, enriched 100)
+function remnantValue(p,kind){const e=!!p.enriched,k=e?100:10;if(kind==='bright'||kind==='dim')return Math.max(1,Math.ceil((p.energy||0)*k));return (e?100:1)+((p._stB&&p._stB.length)||0)*Math.ceil(T.statusEnergy*k);} // what collecting this remnant is worth (Neutron / Magnetic / Pulsing: 1, enriched 100, plus each stacked status)
 let surfaceTally={},surfaceLost={};
 function tallyLost(p){const k=collectKindOf(p);if(k)surfaceLost[k]=(surfaceLost[k]||0)+remnantValue(p,k);}
 function collectRemnantsToInventory(whiteCount,brownCount,activeCounts){const tt=(k,n)=>{if(n>0)surfaceTally[k]=(surfaceTally[k]||0)+n;};tt('bright',whiteCount);tt('dim',brownCount);if(activeCounts)for(const k in activeCounts)tt(k,activeCounts[k]);
@@ -4916,8 +4918,8 @@ function _lensClickOne(sh,now){ // lenses made from an Active Remnant act as a b
   } else if(lk.k==='neu'){ // alternate the scaled Neutron states (size AND reach) of everything underneath
     const st=lk.big?'big':'small';lk.big=!lk.big;
     for(const q of list){if(q.isActiveRemnant&&q.remKind==='neutron')continue;setScaleState(q,st,now);}
-  } else if(lk.k==='pul'){ // alternate: activate everything underneath, then deactivate it on the next click
-    for(const q of list)pulseSetActive(q,lk.on!==false);lk.on=!(lk.on!==false);
+  } else if(lk.k==='pul'){ // alternate, as the remnant's beam: one click activates everything underneath, the next is its second side and switches nothing off
+    if(lk.on!==false)for(const q of list)pulseSetActive(q,true);lk.on=!(lk.on!==false);
   }
 }
 function drawLensCracks(ctx,now){
@@ -9148,7 +9150,7 @@ function createLabel(){
     if(k==='black')return 'Remnant — Dark ★ (triggers the Dark Remnant!)';
     if(k==='neutron')return 'Remnant — Neutron (radius/effect-range pulse on nearby points)';
     if(k==='magnetic')return 'Remnant — Magnetic (splits nearby points into two colors)';
-    if(k==='pulsing')return 'Remnant — Pulsing (beam activates nearby points on its first side, deactivates on its second)';
+    if(k==='pulsing')return 'Remnant — Pulsing (beam activates nearby points on its first side; the max-active snake retires the oldest)';
     if(k==='eneutron')return 'Remnant — Enriched Neutron (never breaks or is consumed · collects ×100)';
     if(k==='emagnetic')return 'Remnant — Enriched Magnetic (never breaks or is consumed · collects ×100)';
     if(k==='epulsing')return 'Remnant — Enriched Pulsing (never breaks or is consumed · collects ×100)';
@@ -9525,6 +9527,10 @@ wrap.addEventListener('auxclick',e=>{if(e.button===1)e.preventDefault();});
 // Standard (nothing to cycle) and no-op outright in activate mode.
 wrap.addEventListener('wheel',e=>{
   if(overUI)return; // let the interface scroll itself
+  // only a wheel ON the surface itself, with nothing over it, steers the game: never from inside the Guide, the menu, an event card
+  // or the duck viewer (they pause the game — scrolling them must not unpause it), nor while the surface is asleep or off screen
+  if(_rulesOpen||_menuOpen||_evOpen||document.getElementById('duckView')||hubAsleep||hubOverlay||!visible||document.hidden)return;
+  const tg=e.target;if(tg!==canvas&&tg!==wrap&&!(tg&&tg.id==='cur'))return;
   if(shapeRect&&mouseDown){e.preventDefault();const nt=performance.now();if(nt-lastRectWheel>140){shapeRect.ellipse=!shapeRect.ellipse;lastRectWheel=nt;}return;} // wheel while dragging: rectangle ⇄ ellipse
   if(armedInvItem&&armedInvItem.kind==='gate'){ // Gate's wheel browses its capture history instead of stepping an effect
     e.preventDefault();
@@ -10412,10 +10418,10 @@ function objClass(p){
   if(p.isRemnant){type=p.remKind==='brown'?'dim remnant':p.remKind==='black'?'dark remnant':p.remKind==='white'?'bright remnant':p.remKind+' remnant';
     fx=p.remKind==='brown'?'DIM':p.remKind==='white'?'BRIGHT':p.remKind==='black'?'DARK':p.remKind.toUpperCase();type=p.enriched?'relic':'remnant';} // top line: DIM / BRIGHT / MAGNETIC / NEUTRON / PULSING, REMNANT alone beneath
   else if(p.failedCollapse){type='dim';fx=pointFxName(p);}
-  else{type=p.collapsed?'bright':'pigment';fx=pointFxName(p);}
+  else{type=p.collapsed?'point':'pigment';fx=pointFxName(p);}
   return{fx:String(fx).toUpperCase(),type};
 }
-let _telHover=null,telDbl=null;const telMap=new Map();
+let _telHover=null,telDbl=null,sceneFocus=[];const telMap=new Map();
 function drawTelemetry(ctx,now){ // Telemetry = motion · Dynamics = mass/energy/life · Class = names. Selected points stay locked on; the hovered target (and a double-click's would-be targets) join them.
   const _rk=[];for(let i=0;i<active.length;i++){const q=active[i];if(risksOn&&!q.dying&&!q.captured&&riskOf(q)>0)_rk.push(q);}
   if(!telemetryOn&&!dynamicsOn&&!classOn&&!risksOn){telMap.clear();return;}
@@ -10425,6 +10431,7 @@ function drawTelemetry(ctx,now){ // Telemetry = motion · Dynamics = mass/energy
   for(const p of active)if(!p.dying&&!p.captured&&effActive(p))add(p,false,false,snake&&p.id===oldest);
   for(const q of _rk)add(q,false,false,false); // threats are always shown, hovered or not
   if(h)add(h,!!h.isDormant,true,false);
+  for(const q of sceneFocus)if(!q.dying&&!q.captured)add(q,false,false,false); // a live demo's subject shows its readouts without the cursor having to sit on it
   if(telDbl&&now-telDbl.t<T.dblClickMs)for(const c of dblTargets(telDbl.x,telDbl.y).slice(0,cap))add(c.p||dormant[c.idx],!c.p,true,false);
   for(const [k,w] of want){let e=telMap.get(k);if(!e){e={a:0};telMap.set(k,e);}Object.assign(e,w);e.on=1;}
   ctx.save();ctx.font='10px monospace';ctx.textBaseline='middle';ctx.lineJoin='round';
@@ -11101,7 +11108,7 @@ function pulseEnforceCap(){ // the cursor's snake rule (T.maxActivePoints): the 
   while(pressedIDs.size>cap){const id=pressedIDs.values().next().value;if(id===undefined)break;pressedIDs.delete(id);if(lastActivatedId===id)lastActivatedId=-1;
     for(let i=0;i<active.length;i++){const p=active[i];if(p.id===id){p.touchStart=-1;break;}}}
 }
-function pulseSetActive(q,on,ep){ // the Pulsing beam's whole effect: first side switches a point ON, second side switches it OFF; already in that state = nothing happens
+function pulseSetActive(q,on,ep){ // switches a point ON (or OFF); already in that state = nothing happens
   if(!q||q.isRemnant||q.failedCollapse||q.captured||q.dying||q._embed||q._stasis||q.isActiveRemnant)return;
   if(underGlass(q.x,q.y))return; // nothing under a Lens can be activated, by cursor or by beam
   const has=pressedIDs.has(q.id);if(on===has)return;
@@ -13018,7 +13025,7 @@ function drawActiveRemnantEffectAreas(ctx){
       if(inNeutron){dimRing(p.x,p.y,T.neutronEffRMin,cMin);dimRing(p.x,p.y,T.neutronEffRMax,cMin);}
       {const pc2=p.magTintCI!==undefined?magRGB(pulseTintCI(p,bs.side)):{r:255,g:255,b:255};drawEffectRing(ctx,p.x,p.y,bs.rMain,pc2.r,pc2.g,pc2.b,true,c0-bs.halfWidth,c0+bs.halfWidth);}
       if(bs.bothStub){const c1=center+(1-bs.side)*Math.PI,hw=Math.PI/2;drawEffectRing(ctx,p.x,p.y,bs.minR,255,255,255,true,c1-hw,c1+hw);}
-      if(p.magTintCI!==undefined){const tci=pulseTintCI(p,bs.side),tc=magRGB(tci);tag(p,bs.rMain,tc,EFFECT_NAMES[tci]+(bs.side===0?' · activates':' · deactivates'));}
+      if(p.magTintCI!==undefined){const tci=pulseTintCI(p,bs.side),tc=magRGB(tci);tag(p,bs.rMain,tc,EFFECT_NAMES[tci]+(bs.side===0?' · activates':''));}
     }
   }
   ctx.restore();
@@ -13593,10 +13600,10 @@ const SCENES={};
   SCENES.crystal={dur:7000,setup(S){for(let i=0;i<3;i++)S.pig(S.W*0.7,S.H*(0.3+0.2*i),i*2,10);const c=S.act(createPointAt(S.W*0.38,S.H/2,'white',false));c.vx=1.3;c.birthProgress=1;c.lifespan=4500;}};
   SCENES.neutron={dur:7000,setup(S){S.rem(S.W/2,S.H/2,'neutron');S.ring(9,30,85,(x,y,i)=>{const p=S.pig(x,y,i,12);p.vx=rv(0.2);p.vy=rv(0.2);});S.ring(10,40,90,(x,y)=>S.part(x,y,2));}};
   SCENES.magnetic={dur:7000,setup(S){S.rem(S.W/2,S.H/2,'magnetic').rot=0.012;S.ring(10,25,70,(x,y,i)=>{const p=S.pig(x,y,i,12);p.vx=rv(0.2);p.vy=rv(0.2);});S.ring(10,30,75,(x,y)=>S.part(x,y,4));}};
-  SCENES.pulsing={dur:8000,setup(S){S.rem(S.W/2,S.H/2,'pulsing').rot=0.008;S.ring(8,30,85,(x,y,i)=>S.pig(x,y,i,12));S.ring(18,35,95,(x,y)=>S.part(x,y,1));}};
+  SCENES.pulsing={dur:8000,setup(S){S.rem(S.W/2,S.H/2,'pulsing').rot=0.008;S.ring(8,30,85,(x,y,i)=>S.pig(x,y,i%2?5:'white',12));S.ring(18,35,95,(x,y,i)=>S.part(x,y,i%2?5:'white'));}}; // SNARE and CRYSTALIZE only: neither moves things, so the beam's status change is all that shows
   SCENES.nova={dur:5500,setup(S){const p=S.pnt(S.W/2,S.H/2,2);p.mass=600;p.masses=[100,100,100,100,100,100];p.energy=0.5;p.collapsedRadius=massToRadius(p.mass,T.whiteMinR,T.whiteMaxR,T.brightMassMin,T.brightMassMax);p._keep=false;p.lifespan=1400;S.ring(8,40,90,(x,y,i)=>S.pig(x,y,i,8));S.ring(12,45,95,(x,y)=>S.part(x,y,3));}};
   const pf=mode=>({dur:5200,setup(S){classOn=true;dynamicsOn=true;const ok=mode===1?true:mode===2?false:S.n%2===1,p=S.pig(S.W/2,S.H/2,2,0);p.mass=T.collMass+20;const m=p.mass/3;p.masses=[m,0,m,0,m,0];p.balance=balanceScore(p.masses);p.energy=ok?T.collEnergy+0.3:0.02;updateCached(p);S.p=p;},
-    tick(S,t){mouse.x=S.W/2;mouse.y=S.H/2;if(!S.fired&&t>1800){S.fired=1;tryCollapse(S.p,1);S.p._keep=true;S.p.lifespan=Infinity;}}});SCENES.pointform=pf(0);SCENES.pointfail=pf(2);
+    tick(S,t){S.focus(S.p);S.look(t,S.p.x,S.p.y,[1800]);if(!S.fired&&t>1800){S.fired=1;tryCollapse(S.p,1);S.p._keep=true;S.p.lifespan=Infinity;}}});SCENES.pointform=pf(0);SCENES.pointfail=pf(2);
   SCENES.dark={dur:10000,setup(S){S.ring(14,25,90,(x,y,i)=>S.pig(x,y,i,10));for(let i=0;i<30;i++)S.part(S.rnd(10,S.W-10),S.rnd(10,S.H-10),i%6);},
     tick(S,t){if(!S.fired&&t>900){S.fired=1;triggerBlackRemnant(S.W/2,S.H/2,performance.now(),T.massScaleMax*T.blackMult,T.collEnergy);}}};
   SCENES.barrier={dur:7000,setup(S){
@@ -13673,7 +13680,7 @@ const SCENES={};
     for(let i=0;i<2;i++){const p=S.pnt(S.rnd(60,S.W-60),S.rnd(40,S.H-40),(i*3+1)%6);p.vx=rv(0.3);p.vy=rv(0.3);}}};
   SCENES.lifecycle={dur:12000,setup(S){flags(0,1,1,0,0);const gx=Math.floor(GW/2),gy=Math.floor(GH/2);S.patch(gx-4,gy-3,8,6,(x,y)=>(x+y)%6);S.cx=GRID_OX+(gx+0.5)*PIXEL_SIZE;S.cy=GRID_OY+(gy+0.5)*PIXEL_SY;},
     tick(S,t,now){
-      if(t<9000){mouse.x=S.cx;mouse.y=S.cy;}
+      if(t<9000){const q=S.p&&!S.p.dying?S.p:{x:S.cx,y:S.cy};S.focus(S.p);S.look(t,q.x,q.y,[600,3000,6500]);}
       if(!S.a&&t>600){S.a=1;cursorClickAt=now;activateAt(S.cx,S.cy,now,true);S.p=active.find(q=>pressedIDs.has(q.id));if(S.p)S.p._keep=true;}
       if(S.p&&!S.b&&t>3000){S.b=1;const p=S.p,m=T.collMass+30;p.mass=m;p.masses=[m/3,0,m/3,0,m/3,0];p.energy=T.collEnergy+0.5;p.balance=balanceScore(p.masses);updateCached(p);tryCollapse(p,1);}
       if(S.p&&!S.c&&t>6500){S.c=1;S.p._keep=false;S.p.lifespan=1;}
@@ -13689,9 +13696,9 @@ const SCENES={};
     tick(S,t){S.ps.forEach((p,i)=>{if(!S['s'+i]&&t>900+i*200){S['s'+i]=1;shiftTo(p,i+1);}});}};
   SCENES.wake={dur:7000,setup(S){flags(0,0,1,1,0);S.patch(1,1,GW-2,GH-2,(x,y)=>((x>>2)+(y>>1))%6);S.act(S.pig(S.W/2,S.H/2,2,40),Math.min(S.H*0.45,80));}};
   SCENES.merge={dur:6000,setup(S){flags(0,1,1,0,0);S.a=S.pig(S.W*0.2,S.H/2,2,24);S.b=S.pig(S.W*0.8,S.H/2,2,12);S.a.vx=0.6;S.b.vx=-0.6;S.act(S.a,10);},
-    tick(S){mouse.x=S.b.x;mouse.y=S.b.y;}};
+    tick(S,t){S.focus(S.a,S.b);S.look(t,S.b.x,S.b.y);}};
   SCENES.life_pig={dur:9500,setup(S){flags(1,1,1,0,1);const p=createPointAt(S.W/2,S.H/2,2,false);p.mass=14;updateCached(p);S.p=p;},
-    tick(S,t,now){const p=S.p;mouse.x=S.W/2;mouse.y=S.H/2;if(!S.s&&t>3200){S.s=1;S.act(p,40);p._keep=false;refreshLifespan(p,now);}}};
+    tick(S,t,now){const p=S.p;S.focus(p);S.look(t,p.x,p.y,[3200]);if(!S.s&&t>3200){S.s=1;S.act(p,40);p._keep=false;refreshLifespan(p,now);}}};
   SCENES.collect={dur:9000,setup(S){S.patch(1,1,GW-2,GH-2,(x,y)=>((x>>2)+(y>>2)*2)%6);S.rs=[['brown',0.2,0.3],['white',0.5,0.6],['neutron',0.8,0.35],['edim',0.35,0.75],['pulsing',0.7,0.78]].map(a=>S.rem(S.W*a[1],S.H*a[2],a[0]));},
     tick(S,t,now){S.rs.forEach((r,i)=>{if(!S['c'+i]&&t>700+i*1300){S['c'+i]=1;mouse.x=r.x;mouse.y=r.y;mouseDownAt=now;cursorClickAt=now;tryPickupRemnant(r.x,r.y);}});}};
   SCENES.itemcache={dur:7000,setup(S){itemCacheMode=true;updateInventoryUI();},tick(S,t){if(!S.a&&t>1000){S.a=1;cacheAction(true);}if(!S.b&&t>3500){S.b=1;cacheAction(false);}}};
@@ -13700,14 +13707,14 @@ const SCENES={};
       const nd=Math.min(30,Math.floor(Math.max(0,t-600)/2200*30));if(inventory.dim!==nd){inventory.dim=nd;updateInventoryUI();}}};
   SCENES.relic={dur:11000,setup(S){flags(0,1,1,0,0);S.patch(1,1,GW-2,GH-2,(x,y)=>((x>>2)+(y>>2)*2)%6);const mk=(x,y)=>{const p=S.rem(x,y,'brown');p.mass=T.dimMassMax;p.energy=Math.max(p.energy,3);updateCached(p);return p;};
     S.a=mk(S.W*0.35,45);S.b=mk(S.W*0.65,45);S.c=mk(S.W*0.35,S.H-45);S.d=mk(S.W*0.65,S.H-45);S.c.enriched=S.d.enriched=true;S.a.vx=0.6;S.b.vx=-0.6;},
-    tick(S,t){if(!S.g&&t>4500){S.g=1;S.c.vx=0.6;S.d.vx=-0.6;}mouse.x=S.W/2;mouse.y=45;}};
+    tick(S,t){if(!S.g&&t>4500){S.g=1;S.c.vx=0.6;S.d.vx=-0.6;}S.focus(S.a,S.b,S.c,S.d);S.look(t,S.W/2,45);}};
   SCENES.sharing={dur:10000,setup(S){flags(0,0,1,1,0);S.patch(1,1,GW-2,GH-2,(x,y)=>((x>>2)+(y>>2)*2)%6);S.rs=[S.rem(S.W*0.22,S.H*0.5,'neutron'),S.rem(S.W*0.5,S.H*0.5,'magnetic'),S.rem(S.W*0.78,S.H*0.5,'pulsing')];S.rs[1].rot=0.01;S.rs[2].rot=0.006;S.ring(8,40,90,(x,y,i)=>S.pig(x,y,i,10));},
-    tick(S,t){const r=S.rs[Math.floor(t/2500)%3];mouse.x=r.x;mouse.y=r.y;}};
-  const fuse=(masses,rotf)=>({dur:6500,setup(S){flags(0,0,1,0,0);S.patch(1,1,GW-2,GH-2,(x,y)=>((x>>2)+(y>>2)*2)%6);const mk=(x,s)=>{const p=S.rem(x,S.H/2,'white');p.masses=masses.slice();p.vx=s*T.maxSpeed;p.rot=s*rotf*T.maxRotSpeed;return p;};mk(S.W/2-8,1);mk(S.W/2+8,-1);},tick(S){mouse.x=S.W/2;mouse.y=S.H/2;}});
+    tick(S,t){const r=S.rs[Math.floor(t/2500)%3];S.focus(r);S.look(t,r.x,r.y);}};
+  const fuse=(masses,rotf)=>({dur:6500,setup(S){flags(0,0,1,0,0);S.patch(1,1,GW-2,GH-2,(x,y)=>((x>>2)+(y>>2)*2)%6);const mk=(x,s)=>{const p=S.rem(x,S.H/2,'white');p.masses=masses.slice();p.vx=s*T.maxSpeed;p.rot=s*rotf*T.maxRotSpeed;return p;};mk(S.W/2-8,1);mk(S.W/2+8,-1);},tick(S,t){S.focus(...active.filter(q=>q.isRemnant));S.look(t,S.W/2,S.H/2);}});
   const MID=[1,0,0.8,0,0.5,0];
   SCENES.fuse_n=fuse(MID,0.45);SCENES.fuse_m=fuse([1,1,1,1,1,1],0.45);SCENES.fuse_p=fuse(MID,1);
   SCENES.crash={dur:9000,setup(S){S.patch(1,1,GW-2,GH-2,(x,y)=>((x>>2)+(y>>2)*2)%6);const mk=(x,k,s)=>{const p=S.rem(x,S.H/2,k);p.vx=s*T.maxSpeed;p.rot=s*T.maxRotSpeed;return p;};mk(S.W/2-8,'neutron',1);mk(S.W/2+8,'pulsing',-1);}};
-  const fxp=v=>({dur:8000,setup(S){flags(0,1,1,0,0);const p=createPointAt(S.W/2,S.H/2,v,true);p.lifespan=2500;S.p=p;},tick(S){mouse.x=S.W/2;mouse.y=S.H/2;}});
+  const fxp=v=>({dur:8000,setup(S){flags(0,1,1,0,0);const p=createPointAt(S.W/2,S.H/2,v,true);p.lifespan=2500;S.p=p;},tick(S,t){S.focus(S.p);S.look(t,S.p.x,S.p.y);}});
   SCENES.eclpoint=fxp('black');SCENES.cryspoint=fxp('white');
 })();
 function sceneBoot(name,TT){
@@ -13724,16 +13731,20 @@ function sceneBoot(name,TT){
     keep:p=>{p._keep=true;return p;},
     act:(p,R)=>{p.touchStart=performance.now();if(!p.collapsed)p.wakeProgress=0;pressedIDs.add(p.id);p._keep=true;if(R)p._ER=R;return p;},
     rnd:(a,b)=>a+Math.random()*(b-a),
+    focus:(...ps)=>{sceneFocus=ps.filter(q=>q&&active.includes(q));}, // the demo's subject(s): readouts show without hovering
+    look:(t,x,y,acts)=>{ // the cursor rests beside the subject so its state stays visible, and glides onto it only around each action time
+      const on=(acts||[]).some(a=>t>a-450&&t<a+250),tx=on?x:Math.max(12,Math.min(S.W-12,x+40)),ty=on?y:Math.max(12,Math.min(S.H-12,y+32));
+      if(mouse.x<-999){mouse.x=tx;mouse.y=ty;}mouse.x+=(tx-mouse.x)*0.25;mouse.y+=(ty-mouse.y)*0.25;},
     band:c=>(c/6+(Math.random()*0.12-0.06)*T.seedSpread+1)%1, // a hue in colour c's own range, strayed by Seed spread like the stages' nebula — never far enough to become another effect
     patch:(gx,gy,w,h,f)=>{for(let y=gy;y<gy+h;y++)for(let x=gx;x<gx+w;x++)S.part(GRID_OX+(x+0.5)*PIXEL_SIZE,GRID_OY+(y+0.5)*PIXEL_SY,f(x,y));},
     ring:(n,r0,r1,f)=>{for(let i=0;i<n;i++){const a=i/n*TAU0+0.4,r=r0+(r1-r0)*((i*7)%n)/n;f(S.W/2+Math.cos(a)*r,S.H/2+Math.sin(a)*r,i);}}};
-  const TAU0=6.2832;const CORE=new Set(['W','H','t0','n','part','pig','pnt','rem','keep','act','rnd','band','ring','patch']);
+  const TAU0=6.2832;const CORE=new Set(['W','H','t0','n','part','pig','pnt','rem','keep','act','rnd','band','ring','patch','focus','look']);
   const start=()=>{
     clearStage();if(invertMode!==!!window.__INV)toggleInvertMode();
     heat.v=0;heat.until=0;heat.needNew=false;mouse.x=mouse.y=-9999;mouseDown=false;dragMode=false;armedInvItem=null;conMode=false;
     earnFx.length=0;constellationFx.length=0;implosions.length=0;dimFlashes.length=0;dialMarks.length=0;dialQueue.length=0;dialLoaded=[];burnFx.length=0;weaveTrack={};keySeq=null;
     for(const k in inventory)inventory[k]=0;
-    S.W=W;S.H=H;S.t0=performance.now();S.n++;for(const k of Object.keys(S))if(!CORE.has(k))delete S[k];telemetryOn=dynamicsOn=classOn=showRadii=risksOn=false;discSeen=new Set();itemCacheMode=false;
+    S.W=W;S.H=H;S.t0=performance.now();S.n++;sceneFocus=[];for(const k of Object.keys(S))if(!CORE.has(k))delete S[k];telemetryOn=dynamicsOn=classOn=showRadii=risksOn=false;discSeen=new Set();itemCacheMode=false;
     def.setup(S);
   };
   start();
@@ -13779,9 +13790,9 @@ const RULES=[
 ["nova","bright","Nova","nova","The ring thrown out when a Point bursts.",[["Does","Pushes things away, cracks Lenses it reaches (or breaks one it bursts inside), wakes particles, then lays new particles in the burst colours."],["Size","Grows with the mass. Light ones fill only the outer ring."],["Slow","It slows the game: 5% for the smallest nova up to 50% for the largest. Each one holds its slow until its timer passes. Slows add up, to at most 75% (a quarter speed)."],["Leaves","A Bright Remnant."]]],
 ["dim","rem","Dim Remnant","dim","A dark glowing dot.",[["Born","From a pigment that ran out of life or failed to collapse. The inward flash shows it."],["Collect","Click it for DEPTH. You get 10 times its energy, rounded up, at least 1."],["Joins","Only meets Points, Dark Remnants and other Dim Remnants (those merge)."]]],
 ["brem","rem","Bright Remnant","brem","A small white diamond.",[["Born","From a Point that burst."],["Collect","Gives BALANCE, 10 times its energy rounded up."],["Bumps","Slow bumps bounce, spinning them. A fast one makes a nova and an active remnant."],["Which one","Colours very lopsided or very balanced: Magnetic. Fast and spinning: Pulsing. Otherwise Neutron."]]],
-["neutron","rem","Neutron Remnant","neutron","A square that breathes in and out.",[["Collect","Gives DYNAMISM, always 1."],["Does","In its range, things become Enlarged while it is big and Shrunk while it is small. They stay that way until they merge."]]],
-["magnetic","rem","Magnetic Remnant","magnetic","A diamond cut in two colours.",[["Collect","Gives HARMONY, always 1."],["Does","Each half turns things in its half to its colour. Two opposite colours blend to white and switch effects off."],["Black and white","A very balanced Bright makes one that crystalizes on one side and eclipses on the other."]]],
-["pulsing","rem","Pulsing Remnant","pulsing","A triangle that flips and sends a beam.",[["Collect","Gives RHYTHM, always 1."],["Beam","The beam grows and shrinks. While on its first side it shines everything it reaches and wakes particles. On its second side it stops them."]]],
+["neutron","rem","Neutron Remnant","neutron","A square that breathes in and out.",[["Collect","Gives DYNAMISM: 1, plus each status stacked on it."],["Does","In its range, things become Enlarged while it is big and Shrunk while it is small. They stay that way until they merge."]]],
+["magnetic","rem","Magnetic Remnant","magnetic","A diamond cut in two colours.",[["Collect","Gives HARMONY: 1, plus each status stacked on it."],["Does","Each half turns things in its half to its colour. Two opposite colours blend to white and switch effects off."],["Black and white","A very balanced Bright makes one that crystalizes on one side and eclipses on the other."]]],
+["pulsing","rem","Pulsing Remnant","pulsing","A triangle that flips and sends a beam.",[["Collect","Gives RHYTHM: 1, plus each status stacked on it."],["Beam","The beam grows and shrinks. While on its first side it shines everything it reaches and wakes particles. Its second side only carries its second colour: it never switches anything off. Past the max-active cap the oldest active goes dark first (the snake)."]]],
 ["sharing","rem","Active remnants together","magnetic","Active remnants hand their effects to each other and to other remnants.",[["Own kind","An active remnant never affects its own kind."],["Neutron onto others","A Magnetic or Pulsing takes the Neutron's size: one half big, the other small, and it follows the Neutron's breathing."],["Pulsing onto others","A Neutron or Magnetic starts to copy the Pulsing beat. It takes the Pulsing beam shape and timing, and it only works inside that beam."],["Magnetic onto others","A Neutron or Pulsing becomes coloured with its pair. It then applies that colour's effect, and a Pulsing uses one colour per side. Opposite colours make it white with no colour."],["Bright remnants","Neutron scales them. Magnetic tints them. Pulsing cannot shine them, because remnants cannot shine."],["Dim and Dark","Magnetic leaves them alone. They keep their colour."],["Never push","Coloured active remnants never push other active remnants."],["Crash","Two active remnants that hit hard make a Dark Remnant. A soft hit just bounces."]]],
 ["dark","rem","Dark Remnant","dark","A huge dark circle. It cannot be collected.",[["Comes from","A giant Point, two big ECLIPSE or CRYSTALIZE Points meeting, two active remnants crashing, or a Key."],["Does","Breaks every Lens and Gate, freezes everything, then draws all of it in until the surface is empty."],["Dock","The items and feed hide until it is over."]]],
 ["relic","rem","Relic","relic","A remnant with a soft outline.",[["Tough","Never eaten, never merged, never hurt by bumps."],["Worth","Collects as 100."],["From","An ECLIPSE or CRYSTALIZE Point that bursts."]]],
@@ -13875,8 +13886,8 @@ const CONV={
  crash:{t:'Active + Active → Dark Remnant',f:()=>['combined motion ≥ '+T.remBounceNovaThresh+' (speed ÷ '+T.maxSpeed+' + spin ÷ '+T.maxRotSpeed+', both objects); softer and they bounce','they are replaced by a nova of the combined mass, then a Dark Remnant']},
  dark:{t:'Dark Remnant',f:()=>['a Point of mass ≥ '+Math.round(T.massScaleMax*T.blackMult)+' (Mass scale max × Mass ×) dies into one','two Points of at least half that mass meeting, two active remnants crashing, two relics meeting, or a Key also make one','it grows over '+T.blackGrowMs+' ms, freezes everything, then draws everything in at '+T.blackLaunchPerMs+' objects per ms']},
  relic:{t:'Relics',f:()=>['two Dim Remnants of mass ≥ '+T.dimMassMax+' (Dim max mass) merge: one becomes a relic (enriched) with the combined mass and energy','two relics of that mass meeting make a nova and a Dark Remnant','an ECLIPSE Point that dies leaves an enriched Dim, a CRYSTALIZE Point an enriched Bright; relics are never eaten, merged or damaged and collect as ×100']},
- collect:{t:'Collecting',f:()=>['Bright / Dim: ceil(energy × 10), at least 1; relics ceil(energy × 100)','Neutron / Magnetic / Pulsing remnants: always 1; relics 100','so a remnant with energy '+cvn(2.3,1)+' collects as '+Math.ceil(2.3*10)+' (relic '+Math.ceil(2.3*100)+')']},
- status:{t:'Status energy',f:()=>['a Dim, Bright or relic gains +'+T.statusEnergy+' energy for every new status it picks up: Enlarged, Shrunk, or (Bright only) a colour','an active remnant gains +'+T.statusEnergy+' for each of the other two active types that affect it (scale, colour, pulse), at most 2 times','+'+T.statusEnergy+' energy collects as +'+Math.ceil(T.statusEnergy*10)+' (relic +'+Math.ceil(T.statusEnergy*100)+')']},
+ collect:{t:'Collecting',f:()=>['Bright / Dim: ceil(energy × 10), at least 1; relics ceil(energy × 100)','Neutron / Magnetic / Pulsing remnants: 1 (relics 100), plus +'+Math.ceil(T.statusEnergy*10)+' (relic +'+Math.ceil(T.statusEnergy*100)+') per stacked status','so a remnant with energy '+cvn(2.3,1)+' collects as '+Math.ceil(2.3*10)+' (relic '+Math.ceil(2.3*100)+')']},
+ status:{t:'Status energy',f:()=>['a Dim, Bright or relic gains +'+T.statusEnergy+' energy for every new status it picks up: Enlarged, Shrunk, or (Bright only) a colour','an active remnant stacks them too, from the other two active types: Enlarged, Shrunk, each colour pair, each Pulsing beat — up to '+T.activeStatusMax,'+'+T.statusEnergy+' energy collects as +'+Math.ceil(T.statusEnergy*10)+' (relic +'+Math.ceil(T.statusEnergy*100)+')']},
  unwind:{t:'Spindle unwind',f:()=>['every '+T.unwindMs+' ms the target gives back '+T.unwindMass+' mass as particles (each lump jittered like world particles)','each lump carries energy = lump mass × (target energy ÷ target mass), so energy is conserved per mass','a still target spreads up to '+T.unwindMaxWidth+' px over '+T.unwindGrowMs+' ms; when its mass is gone it disappears (no remnant)']}
 };
 // ── Events: the first time something happens, a card pauses the game and unlocks its Guide entries ──
@@ -14073,11 +14084,11 @@ function rulesRender(){
       const fi=document.getElementById('rlFind');fi.addEventListener('input',()=>{_rulesFilter=fi.value;const pos=fi.selectionStart;rulesRender();const n=document.getElementById('rlFind');n.focus();n.setSelectionRange(pos,pos);});}
     else{list=RULES.filter(e=>e[1]===_rulesTab);body.innerHTML=(RULE_BLURB[_rulesTab]?`<p class="rl-note">${RULE_BLURB[_rulesTab]}</p>`:'')+'<div class="rl-grid">'+list.map(e=>guideCardHTML(e,false)).join('')+'</div>'+(_rulesTab==='ducks'?duckCollectionHTML():'');}
   }
-  body.querySelectorAll('canvas.rl-m').forEach(cv=>rulesDraw(cv,cv.dataset.k));
+  body.querySelectorAll('canvas.rl-m').forEach(cv=>rulesDraw(cv,cv.dataset.k));duckPondMount();
   applyDisc();body.querySelectorAll('.rl-c.open').forEach(rulesMount);
   if(!_rulesLoop)_rulesLoop=requestAnimationFrame(rulesTick);body.scrollTop=0;
 }
-function rulesTick(now){if(!_rulesOpen){_rulesLoop=0;return;}if(_rulesTab==='map')mapDraw(now);_rulesLoop=requestAnimationFrame(rulesTick);}
+function rulesTick(now){if(!_rulesOpen){_rulesLoop=0;return;}if(_rulesTab==='map')mapDraw(now);if(_rulesTab==='ducks')duckPondDraw(now);_rulesLoop=requestAnimationFrame(rulesTick);}
 const RULE_BLURB={start:'Welcome! Tap a card to open it. Tap again to close it.',touch:'Particles are spilled on the surface. These are the ways to shine them off and clean up the spill.',things:'The glowing bits everything starts as. Each colour does a different job.',bright:'The big, bright and dark things that grow from points.',rem:'What is left behind. Click them to collect.',items:'Things you can hold and use. Each costs 1 per use unless it says so.',shapes:'Walls, boxes and loops you can build.'};
 function openRules(){
   if(_rulesOpen)return;_rulesOpen=true;window._rulesOpen=true;guideCSS();wrap.classList.add('rules-open');_rulesWasPaused=isPaused;if(!isPaused)togglePause();
@@ -14342,7 +14353,11 @@ function duckGL(){
     'vec3 col;float a=1.0;'+
     'if(m==1.0){col=c*(0.62+0.32*g)*(0.35+0.75*dif)+pow(nh,12.0)*0.12*uGl;}'+
     'else if(m==3.0){float sp=(pow(nh,80.0)*1.6+rim*0.6)*uGl;col=c*(0.7*(0.55+0.5*dif)+0.25*edg)+sp+env*uEA*(0.3+0.7*edg)+gs;a=min(1.0,0.42+0.55*pow(edg,1.5)+sp/1.2+ln*0.6);}'+
-    'else if(m==2.0||m==7.0){col=mix(c*(0.6+0.45*dif),c*env*1.35,uEA)+pow(nh,140.0)*1.2*uGl+gs;}'+ // as the game's metal: a light base with the scene reflected over it (Metal reflection), tinted by the metal
+    'else if(m==2.0){col=mix(c*(0.6+0.45*dif),c*env*1.35,uEA)+pow(nh,140.0)*1.2*uGl+gs;}'+ // as the game's metal: a light base with the scene reflected over it (Metal reflection), tinted by the metal
+    'else if(m==7.0){vec3 r=reflect(-V,n);float el=dot(env,vec3(0.3,0.59,0.11)),hz=smoothstep(-0.2,0.25,r.y),fr=pow(edg,2.0);'+ // gold: a chrome-style horizon split and the scene's brightness drive a dark-bronze → gold → pale-gold ramp, so it reads as polished metal
+    'float s=0.02+0.42*dif*hz+0.3*hz+1.1*el*uEA+0.35*fr*hz;vec3 g0=vec3(0.13,0.06,0.01),g2=vec3(1.0,0.95,0.7);'+
+    'col=s<0.6?mix(g0,c,s/0.6):mix(c,g2,min(1.0,(s-0.6)/0.6));col+=c*env*0.9*uEA;'+ // …and the scene's colour still shows, tinted gold
+    'col+=vec3(1.0,0.82,0.42)*(pow(nh,40.0)*0.55+pow(nh,260.0)*1.4)*uGl+gs*vec3(1.0,0.8,0.42);}'+ // as the game's metal: a light base with the scene reflected over it (Metal reflection), tinted by the metal
     'else if(m==4.0){col=vec3(0.012)+uDim*(pow(edg,2.4)*1.15+pow(nh,40.0)*0.12)+uDim*0.05*eye;}'+ // dim: a black duck lit only by a Dim Remnant glow at its rim
     'else if(m==5.0){col=c*(0.62+0.42*dif)+pow(nh,40.0)*uGl+0.157;}'+
     'else if(m==6.0){col=c*(0.85+0.4*dif)+pow(nh,40.0)*uGl+0.118;}'+
@@ -14373,7 +14388,7 @@ function drawDuck3D(c,type,q,at,h,alpha,maxS,env){ // the type's model turned by
     Gm.buf.i=gl.createBuffer();gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER,Gm.buf.i);gl.bufferData(gl.ELEMENT_ARRAY_BUFFER,Gm.idx,gl.STATIC_DRAW);}
   if(!_duckTex.gl){const t=_duckTex.gl=gl.createTexture();gl.bindTexture(gl.TEXTURE_2D,t);gl.texImage2D(gl.TEXTURE_2D,0,gl.RGBA,_duckTex.w,_duckTex.h,0,gl.RGBA,gl.UNSIGNED_BYTE,_duckTex.data);
     for(const [p,v] of [[gl.TEXTURE_MIN_FILTER,gl.LINEAR],[gl.TEXTURE_MAG_FILTER,gl.LINEAR],[gl.TEXTURE_WRAP_S,gl.CLAMP_TO_EDGE],[gl.TEXTURE_WRAP_T,gl.CLAMP_TO_EDGE]])gl.texParameteri(gl.TEXTURE_2D,p,v);}
-  gl.useProgram(G.pr);gl.viewport(0,0,S,S);gl.enable(gl.SCISSOR_TEST);gl.scissor(0,0,S,S);gl.clearColor(0,0,0,0);gl.clearDepth(1);gl.clear(gl.COLOR_BUFFER_BIT|gl.DEPTH_BUFFER_BIT);
+  gl.useProgram(G.pr);gl.viewport(0,0,S,S);gl.enable(gl.SCISSOR_TEST);gl.scissor(0,0,S+2,S+2);gl.clearColor(0,0,0,0);gl.clearDepth(1);gl.clear(gl.COLOR_BUFFER_BIT|gl.DEPTH_BUFFER_BIT);gl.scissor(0,0,S,S); // the clear runs 2px past the copied square: the copy's filtering reads a pixel beyond it, which held a bigger earlier duck's edge (stray lines)
   for(const [k,an] of [['p','aP'],['n','aN'],['u','aU']]){gl.bindBuffer(gl.ARRAY_BUFFER,Gm.buf[k][0]);gl.enableVertexAttribArray(G.at[an]);gl.vertexAttribPointer(G.at[an],Gm.buf[k][1],gl.FLOAT,false,0,0);}
   gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER,Gm.buf.i);const u=G.un;
   gl.activeTexture(gl.TEXTURE0);gl.bindTexture(gl.TEXTURE_2D,_duckTex.gl);gl.uniform1i(u.uTex,0);gl.uniform2f(u.uTS,_duckTex.s,_duckTex.t);
@@ -14489,13 +14504,34 @@ function drawDucks(c,now){
 const DUCK_ICON_Q=quatTurn(quatTurn([0,0,0,1],0,Math.PI*0.3,0),0.25,0,0);
 function duckCollectionHTML(){
   const got=DUCK_IDS.filter(k=>duckLog[k]>0),total=got.reduce((s,k)=>s+duckLog[k],0);
-  return '<h3 style="margin:14px 0 6px">Collection · '+total+' duck'+(total===1?'':'s')+' · '+got.length+' of '+DUCK_IDS.length+' types</h3>'+(got.length?'<p class="rl-note">Click a duck to turn it and zoom in.</p>':'')+'<div class="rl-grid">'+(got.length?got.map(k=>{const v=DUCK_TYPES[k];
-    return '<div class="rl-c" style="cursor:pointer" onclick="openDuckViewer(\''+k+'\')"><div class="rl-h"><canvas class="rl-m" width="48" height="48" data-k="duck:'+k+'"></canvas><span class="rl-t"><b>'+(v.rare?'★ ':'')+gEsc(v.name)+' × '+duckLog[k]+'</b><i>'+gEsc(v.axis+(v.detail?': '+v.detail:'')+(v.rare?' · rare exotic':k==='classic'?'':' · exotic'))+'</i></span></div></div>';}).join(''):'<p class="rl-note">No ducks yet. Some Dark Remnants come out as ducks.</p>')+'</div>';}
+  return '<h3 style="margin:14px 0 6px">Collection · '+total+' duck'+(total===1?'':'s')+' · '+got.length+' of '+DUCK_IDS.length+' types</h3>'+(got.length?'<p class="rl-note">Every type you have, together at true size. Swipe across a duck to spin it; click one to turn it and zoom in.</p><canvas id="duckPond" style="position:relative;left:auto;top:auto;display:block;width:100%;height:240px;border-radius:10px;background:radial-gradient(ellipse at 50% 40%,#2a2a33,#0d0d12);touch-action:none;cursor:pointer"></canvas>':'<p class="rl-note">No ducks yet. Some Dark Remnants come out as ducks.</p>');}
+// The pond (Guide → Ducks): one of each collected type, sized by its own scale so sizes compare. A swipe across a duck spins it by the swipe's
+// direction and speed (it keeps turning and slows); a click opens it in the viewer. Drawn from rulesTick while the Ducks tab is open.
+let duckPond=null;
+function duckPondMount(){
+  duckPond=null;const cv=document.getElementById('duckPond');if(!cv)return;const got=DUCK_IDS.filter(k=>duckLog[k]>0);if(!got.length)return;
+  const Wc=cv.clientWidth||600,sc=k=>DUCK_TYPES[k].scale||1,fp=k=>1.55*sc(k)*(DUCK_TYPES[k].head?1.2:1);let base=70,rows,rh;
+  for(;base>6;base*=0.93){rows=[[]];let w=0;for(const k of got){const f=fp(k)*base;if(w+f>Wc-10&&rows[rows.length-1].length){rows.push([]);w=0;}rows[rows.length-1].push(k);w+=f;}
+    rh=rows.map(r=>Math.max(...r.map(fp))*base*0.85);if(rh.reduce((a,b)=>a+b,0)<=380)break;}
+  const Hc=Math.ceil(rh.reduce((a,b)=>a+b,0)+16),dpr=Math.min(2,window.devicePixelRatio||1);cv.style.height=Hc+'px';cv.width=Math.round(Wc*dpr);cv.height=Math.round(Hc*dpr);
+  const P=duckPond={cv,c:cv.getContext('2d'),dpr,list:[],hov:null,last:null,down:null};let y=8;
+  rows.forEach((r,ri)=>{let x=(Wc-r.reduce((a,k)=>a+fp(k)*base,0))/2;for(const k of r){const f=fp(k)*base;P.list.push({k,x:x+f/2,y:y+rh[ri]/2,h:sc(k)*base,q:DUCK_ICON_Q.slice(),wx:0,wy:0,ph:Math.random()*6});x+=f;}y+=rh[ri];});
+  const at=e=>{const b=cv.getBoundingClientRect();return[e.clientX-b.left,e.clientY-b.top];},hit=(x,y)=>{let best=null,bd=1e9;for(const d of P.list){const r=Math.hypot(x-d.x,y-d.y);if(r<d.h*0.8&&r<bd){bd=r;best=d;}}return best;};
+  cv.addEventListener('pointerdown',e=>{const p=at(e);P.down={p,t:performance.now()};P.last=p;});
+  cv.addEventListener('pointermove',e=>{const p=at(e);P.hov=hit(p[0],p[1]);
+    if(P.last){const dx=p[0]-P.last[0],dy=p[1]-P.last[1];for(const d of P.list)if(Math.hypot(p[0]-d.x,p[1]-d.y)<d.h*0.8){const k=0.006/Math.max(0.5,d.h/40);d.wy=Math.max(-0.5,Math.min(0.5,d.wy+dx*k));d.wx=Math.max(-0.5,Math.min(0.5,d.wx+dy*k));}}P.last=p;}); // a swipe across a duck spins it, as the viewer's drag turns it
+  cv.addEventListener('pointerleave',()=>{P.last=null;P.hov=null;});
+  cv.addEventListener('pointerup',e=>{const p=at(e),D=P.down;P.down=null;if(D&&Math.hypot(p[0]-D.p[0],p[1]-D.p[1])<6&&performance.now()-D.t<450){const d=hit(p[0],p[1]);if(d)openDuckViewer(d.k);}});}
+function duckPondDraw(now){
+  const P=duckPond;if(!P||!P.cv.isConnected){duckPond=null;return;}const c=P.c,k=P.dpr;c.clearRect(0,0,P.cv.width,P.cv.height);let envd=false;
+  for(const d of P.list){d.q=quatTurn(d.q,d.wx,d.wy,0);d.wx*=0.985;d.wy*=0.985;const v=DUCK_TYPES[d.k],refl=v.mat==='metal'||v.mat==='gold'||v.mat==='glass',x=d.x*k,y=(d.y+Math.sin(now/900+d.ph)*d.h*0.03)*k;
+    if(refl&&!envd){duckEnvUpdate(canvas,now);envd=true;}duckGlow(c,d.k,x,y,d.h*k,now,d.ph);drawDuck3D(c,d.k,d.q,[[x,y]],d.h*k,1,0,refl?{x:W/2,y:H/2,lights:[]}:null);}
+  const h=P.hov;if(h){const v=DUCK_TYPES[h.k];c.font=(12*k)+'px system-ui,sans-serif';c.textAlign='center';c.fillStyle='rgba(240,240,240,0.9)';c.fillText((v.rare?'★ ':'')+v.name+' × '+duckLog[h.k],h.x*k,Math.max(14*k,(h.y-h.h*0.7)*k));}}
 function drawDuckIcon(c,S,type){const k=DUCK_TYPES[type]?type:'classic';drawDuck3D(c,k,DUCK_ICON_Q,[[S/2,S/2]],S*0.8/(DUCK_TYPES[k].head?1.25:1),1);}
 function openDuckViewer(type){
   if(document.getElementById('duckView')||!DUCK_TYPES[type])return;const v=DUCK_TYPES[type],dpr=Math.min(2,window.devicePixelRatio||1),SZ=Math.max(200,Math.min(560,innerWidth-40,innerHeight-110)),N=Math.round(SZ*dpr);
   const ov=document.createElement('div');ov.id='duckView';ov.style.cssText='position:fixed;inset:0;z-index:100000;background:rgba(0,0,0,0.8);display:flex;flex-direction:column;align-items:center;justify-content:center;font:13px system-ui,sans-serif;color:#eee;touch-action:none';
-  ov.innerHTML='<div style="margin-bottom:6px;text-align:center"><b>'+(v.rare?'★ ':'')+gEsc(v.name)+'</b> × '+(duckLog[type]||0)+'<br><span style="opacity:.7">drag to turn · wheel or pinch to zoom · double-click to reset · Esc to close</span></div><canvas width="'+N+'" height="'+N+'" style="position:relative;left:auto;top:auto;display:block;width:'+SZ+'px;height:'+SZ+'px;cursor:grab;border-radius:10px;background:radial-gradient(#2a2a33,#0d0d12)"></canvas>';
+  ov.innerHTML='<div style="margin-bottom:6px;text-align:center"><b>'+(v.rare?'★ ':'')+gEsc(v.name)+'</b> × '+(duckLog[type]||0)+'<br><span style="opacity:.7">'+(v.scale?'×'+v.scale+' the size of the classic duck (the faint outline) · ':'')+'drag to turn · wheel or pinch to zoom · double-click to reset · Esc to close</span></div><canvas width="'+N+'" height="'+N+'" style="position:relative;left:auto;top:auto;display:block;width:'+SZ+'px;height:'+SZ+'px;cursor:grab;border-radius:10px;background:radial-gradient(#2a2a33,#0d0d12)"></canvas>';
   document.body.appendChild(ov);const cv=ov.querySelector('canvas'),c=cv.getContext('2d'),ptr=new Map();let q=DUCK_ICON_Q.slice(),zoom=1,auto=true,run=true,pd=0;
   const close=()=>{run=false;ov.remove();document.removeEventListener('keydown',key,true);};
   const key=e=>{if(e.key==='Escape'){close();e.stopPropagation();e.preventDefault();}};document.addEventListener('keydown',key,true);
@@ -14507,7 +14543,8 @@ function openDuckViewer(type){
   const up=e=>{ptr.delete(e.pointerId);pd=0;};cv.addEventListener('pointerup',up);cv.addEventListener('pointercancel',up);
   cv.addEventListener('wheel',e=>{e.preventDefault();zoom=Math.max(0.4,Math.min(4,zoom*Math.exp(-e.deltaY*0.0015)));},{passive:false});
   cv.addEventListener('dblclick',()=>{q=DUCK_ICON_Q.slice();zoom=1;auto=true;});
-  const fr=()=>{if(!run)return;const now=performance.now();if(auto)q=quatTurn(q,0,0.008,0);c.clearRect(0,0,N,N);const h=N*0.62*zoom/(v.head?1.25:1);
+  const fr=()=>{if(!run)return;const now=performance.now();if(auto)q=quatTurn(q,0,0.008,0);c.clearRect(0,0,N,N);const sc=v.scale||1,h=N*0.62*zoom*Math.min(1,sc)/(v.head?1.25:1);
+    if(sc!==1)drawDuck3D(c,'classic',q,[[N/2,N/2]],h/sc,0.2,N); // the classic duck at the same turn and zoom, for scale
     duckGlow(c,type,N/2,N/2,h,now,0);duckEnvUpdate(canvas,now);drawDuck3D(c,type,q,[[N/2,N/2]],h,1,N,{x:W/2,y:H/2,lights:[]});requestAnimationFrame(fr);};fr();}
 SCENES.duck={dur:6500,setup(S){S.ring(14,40,95,(x,y,i)=>S.part(x,y,i%6));S.ps=[];S.ring(6,30,60,(x,y,i)=>S.ps.push(S.pig(x,y,i,10)));},
   tick(S,t,now){if(!S.fired&&t>700){S.fired=1;S.d=spawnDuck(S.W/2,S.H/2,now,DUCK_IDS[(S.n-1)%DUCK_IDS.length]);S.d.vx=S.d.vy=0;}
@@ -14515,7 +14552,7 @@ SCENES.duck={dur:6500,setup(S){S.ring(14,40,95,(x,y,i)=>S.part(x,y,i%6));S.ps=[]
 RULE_TABS.splice(RULE_TABS.findIndex(t=>t[0]==='map'),0,['ducks','Ducks']);
 RULE_TAB_COST.ducks=0;RULE_BLURB.ducks='Rubber ducks you have collected. Each type you find joins the collection.';
 RULES.push(
-["duck","ducks","Rubber Duck","duck:classic","Sometimes a Dark Remnant comes out as a rubber duck instead, and the surface carries on.",[["Chance","Every Dark Remnant has a chance (Duck chance) to be a duck. It cannot happen when only remnants and relics are left."],["Collect","Click a duck to collect it. Ducks are not items: they go into your collection."],["Cleared","Ducks still on a cleared surface are collected for you."],["Feed","Hover a duck to see its type and variation."],["Solid","Things bounce off a duck the way they bounce off a CRYSTALIZE point. It never breaks, and every hit makes it squeak or quack."],["Tumbles","It is a real 3D duck: any push it gets on the surface also tumbles it."],["Dark","Nothing consumes a duck, except a Dark Remnant before you collect it."],["Viewer","Click a duck in your collection to turn it and zoom in."]]],
+["duck","ducks","Rubber Duck","duck:classic","Sometimes a Dark Remnant comes out as a rubber duck instead, and the surface carries on.",[["Chance","Every Dark Remnant has a chance (Duck chance) to be a duck. It cannot happen when only remnants and relics are left."],["Collect","Click a duck to collect it. Ducks are not items: they go into your collection."],["Cleared","Ducks still on a cleared surface are collected for you."],["Feed","Hover a duck to see its type and variation."],["Solid","Things bounce off a duck the way they bounce off a CRYSTALIZE point. It never breaks, and every hit makes it squeak or quack."],["Tumbles","It is a real 3D duck: any push it gets on the surface also tumbles it."],["Dark","Nothing consumes a duck, except a Dark Remnant before you collect it."],["Collection","Your ducks sit together at true size. Swipe across one to spin it; click it to turn it and zoom in."]]],
 ["duckexo","ducks","Exotic ducks","duck:rainbow","A duck can be an exotic: the classic duck with ONE thing changed.",[["Colour","Six effect colours (body, with the opposite colour on the beak), plus Rainbow."],["Size","Tiny, Small, Little, Big, Bigger, Huge, plus Big Head."],["Material","Wood, Glass, Metal, Dim, Bright, Shining, plus Gold."],["Rare","Rainbow, Big Head and Gold are rarer than the other exotics."],["One change","Exotics never mix: there is no tiny rainbow metal duck."]]]);
 Object.assign(RULE_EV,{duck:'duck',duckexo:'duck'});Object.assign(RULE_SCENES,{duck:['duck']});
 // ═════════════════════════ RIFT ═════════════════════════
@@ -14548,7 +14585,7 @@ EVENTS.push({id:'rift',name:'The Rift',type:'Event — Ending',rar:'m',scene:'ri
 EVENTS.push({id:'duck',name:'Rubber Duck',type:'Event — Duck',rar:'r',scene:'duck',ico:'duck:classic',facts:()=>['A Dark Remnant came out as a rubber duck. The surface carries on.','Click it to add it to your collection (Guide → Ducks).'],flavor:'Squeak.'});
 document.addEventListener('keydown',e=>{
   if(_evOpen){if(e.key==='Escape'||e.key==='Enter')closeEventCard();e.stopPropagation();e.preventDefault();return;}
-  if(!_rulesOpen)return;if(e.key==='Escape'){closeRules();e.stopPropagation();e.preventDefault();return;}
+  if(!_rulesOpen||document.getElementById('duckView'))return;if(e.key==='Escape'){closeRules();e.stopPropagation();e.preventDefault();return;}
   if(e.target&&/INPUT|TEXTAREA|SELECT/.test(e.target.tagName))return;if(!/^(Arrow|Page|Home|End|Tab|Enter)/.test(e.key))e.stopPropagation();},true);
 document.addEventListener('mousedown',()=>{if(audioCtx&&!audioMuted&&audioCtx.state==='suspended')audioCtx.resume();},true);
 if(!window.__SCENE)registerGuideDisc();
