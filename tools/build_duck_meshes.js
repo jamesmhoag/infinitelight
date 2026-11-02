@@ -27,15 +27,29 @@ function readPNG(file){ // 8-bit, non-interlaced PNG → first channel
 const png=readPNG(STRIP),CW=149,CH=138,AW=png.w,N=CW*CH,NECK=46;
 const L=(v,x,y)=>Math.round(png.data[y*AW+v*CW+x]/40);
 // ── side-view labels; the drawn outline is handed to the section beside it (a 3D duck has no outline), interior lines stay
-const lab=new Uint8Array(N);for(let y=0;y<CH;y++)for(let x=0;x<CW;x++)lab[y*CW+x]=L(0,x,y);
+function viewLabels(v){const lab=new Uint8Array(N);for(let y=0;y<CH;y++)for(let x=0;x<CW;x++)lab[y*CW+x]=L(v,x,y);
+  const isIn=(x,y)=>x>=0&&y>=0&&x<CW&&y<CH&&lab[y*CW+x]>0;
+  for(let it=0;it<3;it++){const nb=lab.slice();for(let i=0;i<N;i++){if(lab[i]!==5)continue;const x=i%CW,y=(i/CW)|0;
+    let near=0;for(let dy=-2;dy<=2;dy++)for(let dx=-2;dx<=2;dx++)if(!isIn(x+dx,y+dy))near=1;if(!near)continue;
+    for(const [dx,dy] of [[1,0],[-1,0],[0,1],[0,-1],[1,1],[-1,-1],[1,-1],[-1,1]]){const s=isIn(x+dx,y+dy)?lab[(y+dy)*CW+x+dx]:0;if(s&&s!==5){nb[i]=s;break;}}}lab.set(nb);}
+  return lab;}
+// outside the silhouette every pixel takes the nearest section's label: the smoothed 3D surface swells a little past the drawn outline,
+// and a vertex there must still read the bill (or mouth) it belongs to, not the base colour
+function extendOut(lab,n){const o=lab.slice();for(let it=0;it<n;it++){const nb=o.slice();for(let i=0;i<N;i++){if(o[i])continue;const x=i%CW,y=(i/CW)|0;
+  for(const [dx,dy] of [[1,0],[-1,0],[0,1],[0,-1],[1,1],[-1,-1],[1,-1],[-1,1]]){const xx=x+dx,yy=y+dy;if(xx>=0&&yy>=0&&xx<CW&&yy<CH&&o[yy*CW+xx]){nb[i]=o[yy*CW+xx];break;}}}o.set(nb);}return o;}
+const lab=viewLabels(0),labX=extendOut(lab,8);
 const isIn=(x,y)=>x>=0&&y>=0&&x<CW&&y<CH&&lab[y*CW+x]>0;
-for(let it=0;it<3;it++){const nb=lab.slice();for(let i=0;i<N;i++){if(lab[i]!==5)continue;const x=i%CW,y=(i/CW)|0;
-  let near=0;for(let dy=-2;dy<=2;dy++)for(let dx=-2;dx<=2;dx++)if(!isIn(x+dx,y+dy))near=1;if(!near)continue;
-  for(const [dx,dy] of [[1,0],[-1,0],[0,1],[0,-1],[1,1],[-1,-1],[1,-1],[-1,1]]){const s=isIn(x+dx,y+dy)?lab[(y+dy)*CW+x+dx]:0;if(s&&s!==5){nb[i]=s;break;}}}lab.set(nb);}
 // ── masks: beak, eye, mouth (lines in or right beside the beak), other lines
-const M=k=>{const m=new Float32Array(N);return m;},mBeak=M(),mEye=M(),mLine=M(),mMouth=M(),mSil=M();
-for(let i=0;i<N;i++){const s=lab[i];if(s)mSil[i]=1;if(s===3)mBeak[i]=1;if(s===4)mEye[i]=1;}
-for(let i=0;i<N;i++){if(lab[i]!==5)continue;const x=i%CW,y=(i/CW)|0;let nb=0;for(let dy=-2;dy<=2;dy++)for(let dx=-2;dx<=2;dx++){const xx=x+dx,yy=y+dy;if(xx>=0&&yy>=0&&xx<CW&&yy<CH&&lab[yy*CW+xx]===3)nb=1;}if(nb)mMouth[i]=1;else mLine[i]=1;}
+const M=k=>{const m=new Float32Array(N);return m;},mSil=M();for(let i=0;i<N;i++)if(lab[i])mSil[i]=1;
+function masks(lab){const mBeak=M(),mEye=M(),mLine=M(),mMouth=M();for(let i=0;i<N;i++){const s=lab[i];if(s===3)mBeak[i]=1;if(s===4)mEye[i]=1;}
+  for(let i=0;i<N;i++){if(lab[i]!==5)continue;const x=i%CW,y=(i/CW)|0;let nb=0;for(let dy=-2;dy<=2;dy++)for(let dx=-2;dx<=2;dx++){const xx=x+dx,yy=y+dy;if(xx>=0&&yy>=0&&xx<CW&&yy<CH&&lab[yy*CW+xx]===3)nb=1;}if(nb)mMouth[i]=1;else mLine[i]=1;}
+  return{mBeak,mEye,mLine,mMouth};}
+const {mBeak,mEye,mLine,mMouth}=masks(labX);
+// the FRONT view's bill and mouth: from the front the mouth is a dark band between the upper bill and the lower jaw, which the side view
+// cannot show (a side projection only reaches the bill's tip). Its mouth is the line pixels with bill both above and below.
+const labF=viewLabels(1),fM=masks(extendOut(labF,8)),mBeakF=fM.mBeak,mMouthF=M();
+for(let i=0;i<N;i++){if(!fM.mMouth[i]&&!fM.mLine[i])continue;const x=i%CW,y=(i/CW)|0;let up=0,dn=0;for(let k=1;k<=9;k++){if(y-k>=0&&labF[(y-k)*CW+x]===3)up=1;if(y+k<CH&&labF[(y+k)*CW+x]===3)dn=1;}if(up&&dn)mMouthF[i]=1;}
+let fc=0,fn=0;for(let i=0;i<N;i++)if(labF[i]===3){fc+=i%CW;fn++;}fc=fn?fc/fn:CW/2; // the front view's centre column: z = 0
 // ── exact Euclidean distance transform (Felzenszwalb) and signed distance of a mask
 function edt1(f,n){const d=new Float64Array(n),v=new Int32Array(n),z=new Float64Array(n+1);let k=0;v[0]=0;z[0]=-1e20;z[1]=1e20;
   for(let q=1;q<n;q++){let s=((f[q]+q*q)-(f[v[k]]+v[k]*v[k]))/(2*q-2*v[k]);while(s<=z[k]){k--;s=((f[q]+q*q)-(f[v[k]]+v[k]*v[k]))/(2*q-2*v[k]);}k++;v[k]=q;z[k]=s;z[k+1]=1e20;}
@@ -54,11 +68,12 @@ function upMask(m){const o=new Float32Array(UW*UH);for(let y=0;y<UH;y++)for(let 
   for(let y=0;y<UH;y++)for(let x=0;x<UW;x++){let s=0;for(let k=-2;k<=2;k++){const yy=Math.max(0,Math.min(UH-1,y+k));s+=tmp[yy*UW+x]*K[k+2];}o[y*UW+x]=s;}
   return o;}
 const sdf4=m=>{const s=signedDist(upMask(m),UW,UH);for(let i=0;i<s.length;i++)s[i]/=U;return s;}; // signed distance in strip px, at 4×
-const SB=sdf4(mBeak),SE=sdf4(mEye),SL=sdf4(mLine),SM=sdf4(mMouth);
-// ── markings texture: RGBA = beak, eye, line, mouth distance at 2× (128 = edge, 48 per strip px)
-const TS=2,TW=CW*TS,TH=CH*TS,tex=new Uint8Array(TW*TH*4);
-for(let y=0;y<TH;y++)for(let x=0;x<TW;x++){const ux=Math.min(UW-1,x*2+1),uy=Math.min(UH-1,y*2+1),k=uy*UW+ux,o=(y*TW+x)*4;
-  [SB,SE,SL,SM].forEach((S,c)=>{tex[o+c]=Math.max(0,Math.min(255,Math.round(128+S[k]*48)));});}
+const SB=sdf4(mBeak),SE=sdf4(mEye),SL=sdf4(mLine),SM=sdf4(mMouth),SBF=sdf4(mBeakF),SMF=sdf4(mMouthF),SNO=new Float32Array(UW*UH).fill(-3);
+// ── markings texture at 2× (128 = edge, 48 per strip px), two views side by side: left the SIDE view (RGBA = beak, eye, line, mouth),
+// right the FRONT view (R = beak, A = mouth; G, B empty) for surfaces that face forward
+const TS=2,TW=CW*TS*2,TH=CH*TS,tex=new Uint8Array(TW*TH*4);
+for(let y=0;y<TH;y++)for(let x=0;x<TW;x++){const f=x>=CW*TS,ux=Math.min(UW-1,(x-(f?CW*TS:0))*2+1),uy=Math.min(UH-1,y*2+1),k=uy*UW+ux,o=(y*TW+x)*4;
+  (f?[SBF,SNO,SNO,SMF]:[SB,SE,SL,SM]).forEach((S,c)=>{tex[o+c]=Math.max(0,Math.min(255,Math.round(128+S[k]*48)));});}
 // 1× coverage of a 4× distance field (box average of the smooth shape) — for grooves and raised eyes
 const cov1=S=>{const c=new Float32Array(N);for(let y=0;y<CH;y++)for(let x=0;x<CW;x++){let s=0;for(let j=0;j<U;j++)for(let i=0;i<U;i++)s+=S[(y*U+j)*UW+x*U+i]>0?1:0;c[y*CW+x]=s/(U*U);}return c;};
 const cLine=cov1(SL),cMouth=cov1(SM),cEye=cov1(SE);
@@ -142,7 +157,7 @@ function buildGeo(v){
   for(let i=0;i<nv;i++){const x=net.P[i*3],y=net.P[i*3+1],z=net.P[i*3+2],e=0.75;
     let gx=-(sampleF(x+e,y,z)-sampleF(x-e,y,z)),gy=sampleF(x,y+e,z)-sampleF(x,y-e,z),gz=-(sampleF(x,y,z+e)-sampleF(x,y,z-e));const l=Math.hypot(gx,gy,gz)||1;
     nrm[i*3]=gx/l;nrm[i*3+1]=gy/l;nrm[i*3+2]=gz/l;}
-  const uv=new Uint16Array(nv*2);for(let i=0;i<nv;i++){uv[i*2]=Math.max(0,Math.min(65535,Math.round(net.P[i*3]*256)));uv[i*2+1]=Math.max(0,Math.min(65535,Math.round(net.P[i*3+1]*256)));} // the strip pixel it came from (before Big Head), ×256
+  const uv=new Uint16Array(nv*3);for(let i=0;i<nv;i++)for(let c=0;c<3;c++)uv[i*3+c]=Math.max(0,Math.min(65535,Math.round((net.P[i*3+c]+(c===2?128:0))*256))); // the strip pixel it came from (before Big Head) and its depth across (+128), ×256
   const ext=new Set(),K=420;for(let k=0;k<K;k++){const z=1-2*(k+0.5)/K,r=Math.sqrt(1-z*z),a=k*2.39996323,dx=r*Math.cos(a),dy=r*Math.sin(a);
     let bi=0,bd=-1e9;for(let i=0;i<nv;i++){const d=pos[i*3]*dx+pos[i*3+1]*dy+pos[i*3+2]*z;if(d>bd){bd=d;bi=i;}}ext.add(bi);}
   const hp=[];for(const i of ext)hp.push(pos[i*3],pos[i*3+1],pos[i*3+2]);
@@ -155,14 +170,14 @@ const dz=(a,k,bits)=>{const m=(1<<bits)-1,o=bits===8?new Uint8Array(a.length):ne
 const qz=(a,k)=>Int32Array.from(a,v=>Math.round(v*k));
 const C=buildGeo({}),B=buildGeo({head:+bh[1],bodyS:+bh[2]});
 const enc=m=>({R:+m.R.toFixed(4),p:dz(qz(m.pos,32000),3,16),n:dz(qz(m.nrm,127),3,8),h:z64(Int16Array.from(m.hp,v=>Math.round(v*32000)))});
-const data={nv:C.nv,tex:{w:TW,h:TH,s:CW,t:CH,d:z64(tex)},i:dz(Int32Array.from(C.idx),1,16),u:dz(Int32Array.from(C.uv),2,16),
+const data={nv:C.nv,tex:{w:TW,h:TH,s:CW,t:CH,f:+fc.toFixed(2),d:z64(tex)},i:dz(Int32Array.from(C.idx),1,16),u:dz(Int32Array.from(C.uv),3,16),
   classic:enc(C),bighead:enc(B)}; // both shapes share topology and markings coordinates (Big Head only moves vertices)
 // self-check: decode exactly as the game does and compare
 {const un=(t,k,bits,signed)=>{const r=zlib.inflateRawSync(Buffer.from(t,'base64')),a=bits===8?new Uint8Array(r.buffer,r.byteOffset,r.length):new Uint16Array(r.buffer,r.byteOffset,r.length/2),m=(1<<bits)-1,h=1<<(bits-1),o=new Int32Array(a.length);
     for(let i=0;i<a.length;i++){const v=((i>=k?o[i-k]:0)+a[i])&m;o[i]=signed&&v>=h?v-(m+1):v;}
     return o;};
   const ck=(name,got,want)=>{for(let i=0;i<want.length;i++)if(got[i]!==want[i])throw new Error(name+' mismatch at '+i+': '+got[i]+' vs '+want[i]);};
-  ck('idx',un(data.i,1,16,false),C.idx);ck('uv',un(data.u,2,16,false),C.uv);ck('pos',un(data.classic.p,3,16,true),qz(C.pos,32000));ck('nrm',un(data.bighead.n,3,8,true),qz(B.nrm,127));}
+  ck('idx',un(data.i,1,16,false),C.idx);ck('uv',un(data.u,3,16,false),C.uv);ck('pos',un(data.classic.p,3,16,true),qz(C.pos,32000));ck('nrm',un(data.bighead.n,3,8,true),qz(B.nrm,127));}
 const line='const DUCK_MESH='+JSON.stringify(data)+'; // baked by tools/build_duck_meshes.js — do not edit by hand';
 const re=/^const DUCK_MESH=.*$/m;if(!re.test(html))throw new Error('DUCK_MESH line not found in the game');
 fs.writeFileSync(GAME,html.replace(re,()=>line));
