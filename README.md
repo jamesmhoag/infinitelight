@@ -30,6 +30,7 @@ Served as a static site (GitHub Pages: Settings → Pages → Deploy from branch
 - **Space** / click your hex — enter its surface
 
 ## Shops (Surface Map)
-- **Main street** (round the source, once discovered; lit only while open): Corner Store (24 hours), Clock smith (Morning – Dusk), XACT change (Dawn – Afternoon), Gift Shop (entering it wipes the save; souvenirs are bought from your last Bright and kept).
+- **Main street** (side by side in the source hex, always there; lit only while open): Corner Store (24 hours), Clock smith (Morning – Dusk), XACT change (Dawn – Afternoon), Gift Shop (entering it wipes the save; souvenirs are bought from your last Bright and kept).
 - **Pop-ups** open on a bright clear whose surface collected enough of one thing: BRiGHT IDEAS (bright), Dim's Carnival of Discovery (dim), premium NEUTRINOS, MAGNETS & STUFF, the PULSE, DUCK SHOP (ducks caught). Rank 1–3 (the store's size, and how much of the list it carries) by the `Surface Map — shops` tuners (`mapShop<Kind>1..3`).
+- Ducks: every Dark Remnant that is not a duck adds `duckLuckStep` (1%) to Duck chance, every classic duck adds it to Exotic chance; a hit rebases it. The luck is saved with the inventory (`luck`), so it carries across surfaces and days.
 - Every item is a discovery (`dc_si_<id>`, Discoveries tab). One-time upgrades are kept as the discovery `up:<id>`; purse-cap upgrades raise `invMaxFor`.
