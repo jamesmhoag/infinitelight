@@ -23,7 +23,7 @@ body{background:#050608;overflow:hidden;font-family:'Share Tech Mono',monospace;
 #hfeed .fn{line-height:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}#hfeed .fd{font-size:9px;line-height:11px;opacity:0.62;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 #hfeed button{font:11px monospace;margin:0 4px;padding:1px 8px;background:rgba(255,220,120,0.2);border:1px solid rgba(255,220,120,0.7);color:#fff;border-radius:3px}
 #bottom-bar{bottom:76px}#legend{bottom:76px}
-body.scene .hbtn,body.scene #hdock,body.scene #legend,body.scene #bottom-bar,body.scene #cell-count,body.scene #depth-display,body.scene #capture-hint,body.scene #hcur{display:none!important} /* the map as a 3D scene: the plane (drawn in 2D, then laid in the scene as its ground) and the ducks on it */
+body.scene .hbtn,body.scene #shops,body.scene #hdock,body.scene #legend,body.scene #bottom-bar,body.scene #cell-count,body.scene #depth-display,body.scene #capture-hint,body.scene #hcur{display:none!important} /* the map as a 3D scene: the plane (drawn in 2D, then laid in the scene as its ground) and the ducks on it */
 /* the surface (chromatic_nebula.html): hidden with visibility, not display, so it keeps its size for the hex previews */
 #neb{position:fixed;inset:0;width:100%;height:100%;border:0;z-index:50;visibility:hidden;pointer-events:none;background:#000}
 #neb.show{visibility:visible;pointer-events:auto}
@@ -57,11 +57,30 @@ body.scene .hbtn,body.scene #hdock,body.scene #legend,body.scene #bottom-bar,bod
 #menu input[type=range]{flex:1}
 .dlog{width:100%;border-collapse:collapse;font-size:12px}.dlog td,.dlog th{padding:2px 6px;text-align:left;font-weight:400}.dlog th{opacity:.55}.dlog tr.w td{color:#ffd76a}
 #day-report .dsum{font-size:13px;text-align:center;opacity:.85}
+/* shops: upright on the plane (placed through the camera each frame); open ones glow like neon */
+#shops{position:absolute;inset:0;pointer-events:none;z-index:6;overflow:hidden}
+.shop{position:absolute;left:0;top:0;transform-origin:0 0;pointer-events:auto}.shop canvas{display:block}
+body.armed .shop{pointer-events:none} /* an armed map item reaches the hexes under them */
+.shop.lit canvas{animation:neon 5s infinite}
+@keyframes neon{0%,100%{filter:brightness(1)}46%{filter:brightness(1.06)}48%{filter:brightness(.82)}50%{filter:brightness(1.08)}53%{filter:brightness(.95)}}
+/* a shop's menu: its sign and store over a black card (name left, price right); grey squares turn the page */
+#shop{position:fixed;inset:0;z-index:58;display:none;align-items:center;justify-content:center;background:rgba(0,0,0,.55)}#shop.show{display:flex}
+#shop .sbox{display:flex;flex-direction:column;align-items:center}
+#shop .sart{display:block;margin-bottom:-14px;position:relative;z-index:1;pointer-events:none}
+#shop .scard{position:relative;width:300px;background:#000;border:1px solid #fff;padding:16px 22px 14px;color:#fff;font:12px/1.5 system-ui,'Inter',sans-serif;letter-spacing:.6px}
+#shop h2{font:700 19px/1.25 system-ui,'Inter',sans-serif;letter-spacing:1.6px;text-align:center;margin:0 0 6px}
+#shop .stag{text-align:center;margin-bottom:22px;font-size:12px}
+#shop .sarr{position:absolute;top:64px;width:22px;height:22px;background:#d9d9d9;cursor:pointer}#shop .sarr.l{left:-1px}#shop .sarr.r{right:-1px}#shop .sarr.off{opacity:.18;cursor:default}
+#shop .srow{display:flex;justify-content:space-between;gap:10px;cursor:pointer;padding:0 2px}#shop .srow:hover{background:rgba(255,255,255,.12)}
+#shop .srow b{font-weight:400;text-align:right;white-space:nowrap}#shop .srow i{font-style:normal;opacity:.5;font-size:10px;margin-left:4px}
+#shop .srow.poor{opacity:.38}#shop .srow.own{opacity:.5;cursor:default}#shop .srow.c{justify-content:center;text-align:center;margin:10px 0}
+#shop .sfoot{margin-top:16px;min-height:30px;font-size:10px;line-height:1.4;opacity:.6;text-align:center}
 </style>
 </head>
 <body>
 <div id="map-view">
   <canvas id="scene"></canvas>
+  <div id="shops"></div>
   <div id="hdock"><div id="hinv"></div><div id="hfeed"><div class="fn"></div><div class="fd"></div></div></div>
   <div id="turn-label"></div>
   <div id="merge-flash"></div>
@@ -91,10 +110,11 @@ body.scene .hbtn,body.scene #hdock,body.scene #legend,body.scene #bottom-bar,bod
   <div class="gl">Leave</div><button onclick="quitMain()">Quit to main menu</button>
 </div></div>
 <div id="day-report"><div class="gm"><h2></h2><div class="dsum"></div><div class="gl">Days</div><div class="dlogbox"></div><button></button></div></div>
+<div id="shop"><div class="sbox"><canvas class="sart"></canvas><div class="scard"></div></div></div>
 <div id="veil"></div>
 <canvas id="hcur"></canvas>
 <iframe id="neb" title="Surface"></iframe>
-<script src="shared.js?v=20261102u"></script>
+<script src="shared.js?v=20261102w"></script>
 <script>
 // ╔══════════════════════════════════════════════════════════════════════════════╗
 // ║  MAP ENGINE                                                                 ║
@@ -110,7 +130,7 @@ let clock=3,day=1,pool=6,fresh=true,burstFx=null,dayLog=[],dayCnt={b:0,d:0},pend
 // // clock: the hour (3 = Predawn … 24 = Midnight, the day's last turn); day: your attempts; pool: what the source put out at its last burst; fresh: no ring added yet since it
 let constel=[],armed=null,weaveSel=[],weaveAsk=null,clearFx={},mergeFx=[],feedMsg={t:'',d:'',at:-1e9}; // constellations {keys,type}; the armed map item; a Weave being drawn; animations; the final count
 const TIMES={3:'Predawn',6:'Dawn',9:'Morning',12:'Noon',15:'Afternoon',18:'Dusk',21:'Night',24:'Midnight'},STEP_H=3; // the day: eight turns of three hours
-const CACHE_V='20261102u'; // the build: bump with shared.js's
+const CACHE_V='20261102w'; // the build: bump with shared.js's
 const SCENE=new URLSearchParams(location.search).get('scene'); // a Guide / event demo: the map plays a scripted moment (no surface behind it)
 let phase='move',turnTimer=0,mergeTimer=0;
 let gameOverReason='';
@@ -219,9 +239,9 @@ function doCapture(){ // enter the surface of the hex you stand on
   if(c.v<=0){showMergeFlash('no value — cannot capture');return;}
   enterNebula(K(pQ,pR));
 }
-function completeCaptureForCell(cellKey,kind){
+function completeCaptureForCell(cellKey,kind,tally){
   const c=cells[cellKey];if(!c||c.cap)return;
-  c.cap=true;c.capVal=c.v;c.kind=kind;delete c.shot;delete c._im;if(kind==='dark')dayCnt.d++;else dayCnt.b++;
+  c.cap=true;c.capVal=c.v;c.kind=kind;c.shop=kind==='dark'?null:popupFor(tally);if(c.shop)feed('A pop-up opened: '+SHOPS[c.shop.id].n,'Rank '+c.shop.rank+' · click it to shop');delete c.shot;delete c._im;if(kind==='dark')dayCnt.d++;else dayCnt.b++;
   score=Math.round((score+c.v)*100)/100;
   captureOrder.push({keys:[cellKey],mergeId:null});
   phase='captured';
@@ -418,7 +438,7 @@ const shotSize=()=>Math.round(2*HEX*(window.devicePixelRatio||1));
 function cellSeed(c){return Math.abs(Math.sin(depth*999+7.13)*43758.5453)%100;} // one field per depth: each hex is a window onto it at its place (q,r), so a hex's edge pattern carries into its neighbours
 function cellCov(c){const lo=T.mapCovMin!=null?T.mapCovMin:0.25,full=T.mapCovFull||1;return Math.round((lo+(1-lo)*Math.min(1,c.v/full))*4)/4;} // in quarter steps: a move nudges every hex's value, and only a visible change is worth re-shooting its picture
 function syncRenderSig(){ // any tuner that changes how a surface looks (not sound, discoveries or the map's own layout) re-shoots the hexes
-  let h=0;const str=JSON.stringify(Object.keys(T).filter(k=>!/^(dc_|soundOn|masterVol|mapAlpha|mapCov|mapClear|mapHexSize|duck)/.test(k)).sort().map(k=>T[k]))+'|'+shotSize();
+  let h=0;const str=JSON.stringify(Object.keys(T).filter(k=>!/^(dc_|soundOn|masterVol|mapAlpha|mapCov|mapClear|mapHexSize|mapShop|duck)/.test(k)).sort().map(k=>T[k]))+'|'+shotSize();
   for(let i=0;i<str.length;i++)h=(h*31+str.charCodeAt(i))|0;renderSig=''+h;
 }
 function cellSig(c){return c.q+','+c.r+'|'+cellSeed(c).toFixed(6)+'|'+cellCov(c)+'|'+renderSig;}
@@ -556,7 +576,7 @@ function mapRender(){
   if(phase==='gameover')st+=' · game over: '+gameOverReason;
   document.getElementById('score-display').textContent=st;
   {const el=document.getElementById('turn-label'),tl=clockStr()+' · Day '+day;if(el.textContent!==tl)el.textContent=tl;}
-  discTick();feedTick(now);cursorTick(now);hubPh('hud');hubPerfFrame(now);
+  shopTick();discTick();feedTick(now);cursorTick(now);hubPh('hud');hubPerfFrame(now);
   mapRafId=requestAnimationFrame(mapRender);
 }
 function startMapLoop(){if(!mapRafId){hubPerf.last=0;mapRafId=requestAnimationFrame(mapRender);}} // (the time the loop was stopped is not a slow frame)
@@ -566,7 +586,7 @@ const evA=e=>p2a(...unproj(e.clientX,e.clientY)); // the hex under the cursor, t
 let mX=-1,mY=-1,mDownAt=-1,mUpAt=-1; // the cursor (drawn by the shared cursor code, as on a surface)
 sc.addEventListener('mousemove',e=>{if(currentView==='map')[hQ,hR]=evA(e);});
 document.addEventListener('mousemove',e=>{mX=e.clientX;mY=e.clientY;},true);document.addEventListener('mousedown',()=>{mDownAt=performance.now();},true);document.addEventListener('mouseup',()=>{mUpAt=performance.now();mDownAt=-1;},true);
-window.addEventListener('wheel',e=>{if(currentView!=='map'||menuOpen)return;e.preventDefault();zoomView(Math.exp(-e.deltaY*0.0015));},{passive:false});
+window.addEventListener('wheel',e=>{if(currentView!=='map'||menuOpen||shopUI)return;e.preventDefault();zoomView(Math.exp(-e.deltaY*0.0015));},{passive:false});
 sc.addEventListener('contextmenu',e=>{e.preventDefault();if(currentView==='map'&&armed){armed=null;weaveSel=[];weaveAsk=null;updateHint();syncDock();}}); // right-click puts a selected item down
 sc.addEventListener('click',e=>{
   if(currentView!=='map'||phase==='gameover'||phase==='ended'||phase==='collapse')return;
@@ -579,8 +599,8 @@ sc.addEventListener('click',e=>{
 });
 sc.addEventListener('mouseleave',()=>{hQ=null;hR=null;});
 document.addEventListener('keydown',e=>{
-  if(e.code==='Escape'){e.preventDefault();if(currentView==='map'&&armed){armed=null;weaveSel=[];weaveAsk=null;updateHint();syncDock();return;}if(currentView==='map')toggleMenu();return;}
-  if(menuOpen)return;
+  if(e.code==='Escape'){e.preventDefault();if(shopUI){closeShop();return;}if(currentView==='map'&&armed){armed=null;weaveSel=[];weaveAsk=null;updateHint();syncDock();return;}if(currentView==='map')toggleMenu();return;}
+  if(menuOpen||shopUI)return;
   if(e.code==='Space'){e.preventDefault();if(currentView==='map')doCapture();}
   if(currentView==='map'&&(e.key==='+'||e.key==='='))zoomView(1.15);if(currentView==='map'&&(e.key==='-'||e.key==='_'))zoomView(1/1.15);
 });
@@ -675,7 +695,7 @@ function openGuide(){if(!nebReady||currentView!=='map')return;currentView='overl
 function takeState(m){
   if(m.T){T=m.T;if(SW)camUpdate();}if(m.ducks)duckLog=m.ducks;if(m.duckTypes)DUCK_TYPES=m.duckTypes;if(m.icons)icons=m.icons;if(m.inv){inv=m.inv;syncDock();}if(m.disc)disc=new Set(m.disc);if(m.defs&&m.defs.length)tuneDefs=m.defs;
   if(T.mapHexSize&&T.mapHexSize!==HEX){HEX=T.mapHexSize;focusCam(false);}
-  if(m.T)syncRenderSig();applyDisc();syncMenu();
+  if(m.T)syncRenderSig();applyDisc();syncMenu();if(shopUI)renderShop();
 }
 window.addEventListener('message',e=>{
   const m=e.data;if(e.source!==nebEl.contentWindow||!m||!m.il)return;
@@ -688,7 +708,8 @@ window.addEventListener('message',e=>{
   if(m.type==='ready'||m.type==='state');
   else if(m.type==='preview'){prevPending.delete(m.key);hubLog('preview '+m.key+(m.ms!=null?' built in '+m.ms.toFixed(0)+' ms':'')+(m.img?'':' (skipped)'));if(m.img){IDB.put('pv:'+m.sig,m.img).catch(()=>{});setPrev(m.key,m.sig,m.img);}}
   else if(m.type==='overlayDone'){if(currentView==='overlay'){currentView='map';showNeb(false);evPump();}}
-  else if(m.type==='cleared')completeCaptureForCell(m.key,m.kind); // the hex is captured right away; the player returns with a right-click
+  else if(m.type==='cleared')completeCaptureForCell(m.key,m.kind,m.tally);
+  else if(m.type==='bought')shopBought(m); // the hex is captured right away; the player returns with a right-click
   else if(m.type==='return')exitNebula();
   else if(m.type==='quit'){
     const c=cells[m.key];
@@ -737,10 +758,89 @@ function discTick(){
 }
 
 // ╔══════════════════════════════════════════════════════════════════════════════╗
+// ║  SHOPS — main street round the source (lit while open), pop-ups on bright   ║
+// ║  clears (shared.js SHOPS / SHOP_ITEMS; the surface pays for each purchase)  ║
+// ╚══════════════════════════════════════════════════════════════════════════════╝
+let shopUI=null,giftWallet=0; // shopUI: the open menu {id, rank, page, exit (the Gift Shop's Exit? card), pick (choosing a duck), gift (inside the Gift Shop)}
+const SOUV_KEY='il_souvenirs_v1',shopPic={},shopCv={},shopEls={},fmtN=n=>Math.floor(n).toLocaleString('en-US');
+const shopHours=id=>{const S=SHOPS[id];return S.open<=0&&S.close>=27?'24 hours':TIMES[S.open]+' – '+TIMES[S.close];};
+function shopImg(n){if(!shopPic[n]){const im=new Image();im.onload=()=>{for(const k in shopCv)delete shopCv[k];};im.src='shops/'+n+'.png';shopPic[n]=im;}return shopPic[n];}
+function popupFor(tally){ // the pop-up a bright clear opens: the shop whose collectable crossed the highest rank threshold (ties: the furthest past it)
+  let best=null;for(const id in SHOPS){const S=SHOPS[id];if(S.street)continue;const n=(tally||{})[S.cur]||0;let r=0;for(let i=1;i<=3;i++){const t=T[shopTK(S.cur)+i];if(t>0&&n>=t)r=i;}
+    const x=r?n/T[shopTK(S.cur)+r]:0;if(r&&(!best||r>best.rank||(r===best.rank&&x>best.x)))best={id,rank:r,x};}
+  return best&&{id:best.id,rank:best.rank};}
+function shopSprite(id,bk,lit){ // glass (tinted with the shop's colour, dark when closed) behind the building's empty windows, then the sign above, glowing when lit
+  const gw=T.mapShopGlow!=null?T.mapShopGlow:1,key=id+bk+(lit?1:0)+gw;if(shopCv[key])return shopCv[key];
+  const S=SHOPS[id],B=SHOP_BLD[bk],bi=shopImg(B.b),gi=shopImg(B.g),si=shopImg('sign_'+id);if(![bi,gi,si].every(i=>i.complete&&i.naturalWidth))return null;
+  const bw=bi.naturalWidth,bh=bi.naturalHeight,sk=Math.min(bw*0.9/si.naturalWidth,bw*0.72/si.naturalHeight),sw=si.naturalWidth*sk,sh=si.naturalHeight*sk,ov=bh*0.12,pad=44;
+  const cv=document.createElement('canvas');cv.width=Math.ceil(Math.max(bw,sw)+pad*2);cv.height=Math.ceil(sh+bh-ov+pad*2);const c=cv.getContext('2d'),bx=(cv.width-bw)/2,by=cv.height-pad-bh;
+  const gl=document.createElement('canvas');gl.width=gi.naturalWidth;gl.height=gi.naturalHeight;const g=gl.getContext('2d');
+  g.drawImage(gi,0,0);g.globalCompositeOperation='multiply';g.fillStyle=lit?S.col:'#3a3a42';g.fillRect(0,0,gl.width,gl.height);g.globalCompositeOperation='destination-in';g.drawImage(gi,0,0);
+  if(lit&&gw>0){c.save();c.shadowColor=S.col;c.shadowBlur=18*gw;c.drawImage(gl,bx+B.gx,by+B.gy);c.restore();}else c.drawImage(gl,bx+B.gx,by+B.gy);
+  c.drawImage(bi,bx,by);
+  if(lit&&gw>0){c.save();c.globalCompositeOperation='screen';c.filter='blur(5px)';c.globalAlpha=Math.min(1,0.55*gw);c.drawImage(gl,bx+B.gx,by+B.gy);c.restore();} // light spills out of the windows
+  c.save();if(lit&&gw>0){c.shadowColor=S.col;c.shadowBlur=26*gw;c.drawImage(si,(cv.width-sw)/2,by+ov-sh,sw,sh);c.shadowBlur=8*gw;}else if(!lit)c.filter='brightness(0.32) saturate(0.4)';
+  c.drawImage(si,(cv.width-sw)/2,by+ov-sh,sw,sh);c.restore();
+  cv._ax=cv.width/2;cv._ay=cv.height-pad;cv._bw=bw;return shopCv[key]=cv;}
+function shopList(){ // every shop on the map now: main street on an arc behind the source, pop-ups on their bright clears
+  const out=[],ms=Object.keys(SHOPS).filter(k=>SHOPS[k].street),R=HEX*(T.mapShopRing!=null?T.mapShopRing:1.6);
+  ms.forEach((id,i)=>{const a=-Math.PI*(i+0.5)/ms.length;out.push({key:id,id,bk:SHOPS[id].bk||'s',wx:R*Math.cos(a),wy:R*Math.sin(a),lit:shopIsOpen(id,clock)});});
+  for(const k in cells){const c=cells[k];if(c.shop&&isBright(k)){const[wx,wy]=a2w(c.q,c.r);out.push({key:k,id:c.shop.id,rank:c.shop.rank,bk:SHOP_RANK_BLD[c.shop.rank-1],wx,wy,lit:true});}}
+  return out;}
+function shopTick(){if(SCENE)return;
+  const box=document.getElementById('shops'),seen=new Set();let added=false;
+  for(const s of shopList()){const cv=shopSprite(s.id,s.bk,s.lit);if(!cv)continue;seen.add(s.key);let el=shopEls[s.key];
+    if(!el){el=shopEls[s.key]=document.createElement('div');el.className='shop';el.dataset.key=s.key;if(SHOPS[s.id].street)el.dataset.disc='shop_'+s.id;el.onclick=()=>openShop(s.key);box.appendChild(el);added=true;}
+    if(el._cv!==cv){el._cv=cv;const d=document.createElement('canvas');d.width=cv.width;d.height=cv.height;d.getContext('2d').drawImage(cv,0,0);el.innerHTML='';el.appendChild(d);}el.classList.toggle('lit',s.lit);el._s=s; // (its own copy: two pop-ups can share a sprite)
+    const[X,Y,k]=proj(...w2s(s.wx,s.wy)),sc_=HEX*(T.mapShopSize||1)*k/cv._bw;
+    el.style.transform=`translate(${(X-cv._ax*sc_).toFixed(1)}px,${(Y-cv._ay*sc_).toFixed(1)}px) scale(${sc_.toFixed(4)})`;el.style.zIndex=Math.round(Y);}
+  for(const k in shopEls)if(!seen.has(k)){shopEls[k].remove();delete shopEls[k];}
+  if(added)applyDisc();}
+function shopInfo(key){const el=shopEls[key],s=el&&el._s;if(!s)return['',''];const S=SHOPS[s.id];
+  return S.street?[S.n,(s.lit?'Open':'Closed')+' · '+shopHours(s.id)+(s.lit?' · click to shop':'')]:[S.n+' · pop-up','Rank '+s.rank+' · open while its bright clear lasts · click to shop'];}
+function openShop(key){const el=shopEls[key],s=el&&el._s;if(!s||phase==='collapse')return;
+  if(!s.lit){feed(SHOPS[s.id].n+' is closed','Open '+shopHours(s.id));return;}
+  shopUI={id:s.id,rank:s.rank||3,page:0,exit:s.id==='gift'};renderShop();}
+function closeShop(){if(shopUI&&shopUI.gift){quitMain();return;} // leaving the Gift Shop: the run is over
+  shopUI=null;renderShop();}
+function shopRows(){const u=shopUI,has=k=>disc.has(k);
+  if(u.exit)return[{c:1,n:'Yes',sub:'(enter the GIFT SHOP)',go:giftEnter},{c:1,n:'No',sub:'(not yet)',go:closeShop}];
+  if(u.pick)return Object.keys(DUCK_TYPES).map(t=>({n:(DUCK_TYPES[t].rare?'★ ':'')+DUCK_TYPES[t].name,p:'× '+(duckLog[t]||0),go:()=>shopBuy(shopItem('pickduck'),t)}));
+  const ducks=Object.values(duckLog).reduce((a,b)=>a+(b|0),0),souv=souvenirs();
+  return SHOP_ITEMS.filter(i=>i.shop===u.id&&i.r<=u.rank&&(!i.req||has('up:'+i.req))).map(i=>{const own=shopOnce(i)&&has('up:'+i.id),held=i.fx.souv?giftWallet:i.cur==='duck'?ducks:(inv[i.cur]||0);
+    return{it:i,n:i.n,p:own?'✓ yours':fmtN(i.cost),unit:i.cur!==(SHOPS[u.id].cur||'bright')&&!own?i.cur:'',own,poor:!own&&held<i.cost,disc:'si_'+i.id,note:(i.note?i.note+' · ':'')+(i.fx.up?'its effect is still to come':i.fx.souv?'kept: you have '+(souv[i.id]||0):'')||'',
+      go:()=>i.fx.duck==='pick'?(shopUI.pick=true,shopUI.page=0,renderShop()):shopBuy(i)};});}
+function renderShop(){const el=document.getElementById('shop');el.classList.toggle('show',!!shopUI);if(!shopUI)return;
+  const u=shopUI,S=SHOPS[u.id],rows=shopRows(),per=6,pages=Math.max(1,Math.ceil(rows.length/per));u.page=Math.min(u.page,pages-1);
+  const art=el.querySelector('.sart'),sp=shopSprite(u.id,S.street?(S.bk||'s'):SHOP_RANK_BLD[u.rank-1],true),card=el.querySelector('.scard');
+  if(sp){const w=Math.min(150,sp.width*0.45),h=w*sp.height/sp.width;art.width=sp.width;art.height=sp.height;art.style.width=w+'px';art.style.height=h+'px';art.getContext('2d').drawImage(sp,0,0);}
+  const wal=u.gift?'Your last '+fmtN(giftWallet)+' bright':S.cur==='duck'?'You have '+fmtN(Object.values(duckLog).reduce((a,b)=>a+(b|0),0))+' ducks':'You have '+fmtN(inv[S.cur||'bright']||0)+' '+(S.cur||'bright');
+  card.innerHTML=`<h2>${u.exit?'EXIT?':u.pick?'Pick a Duck':S.n}</h2><div class="stag">${u.exit?'You will lose everything.<br>Are you ready to escape?':u.pick?'Ninety-nine ducks for the one you choose.':S.tag}</div>`+
+    (pages>1?`<div class="sarr l${u.page?'':' off'}"></div><div class="sarr r${u.page<pages-1?'':' off'}"></div>`:'')+
+    rows.slice(u.page*per,u.page*per+per).map((r,i)=>r.c?`<div class="srow c" data-i="${i}"><span>${r.n}<br>${r.sub}</span></div>`:
+      `<div class="srow${r.poor?' poor':''}${r.own?' own':''}" data-i="${i}"${r.disc?` data-disc="${r.disc}"`:''}><span>${r.n}</span><b>${r.p}${r.unit?`<i>${r.unit}</i>`:''}</b></div>`).join('')+
+    `<div class="sfoot">${u.exit?'':wal}</div>`;
+  const pr=rows.slice(u.page*per,u.page*per+per),foot=card.querySelector('.sfoot');
+  card.querySelectorAll('.srow').forEach(r=>{const row=pr[+r.dataset.i];r.onclick=()=>{if(!row.own)row.go();};r.onmouseenter=()=>{if(row.note)foot.textContent=row.note;};r.onmouseleave=()=>{foot.textContent=u.exit?'':wal;};});
+  const a=card.querySelectorAll('.sarr');if(a.length){a[0].onclick=()=>{if(u.page>0){u.page--;renderShop();}};a[1].onclick=()=>{if(u.page<pages-1){u.page++;renderShop();}};}
+  applyDisc();}
+function shopBuy(it,arg){
+  if(it.fx.souv){if(giftWallet<it.cost){feed(it.n,'You need '+fmtN(it.cost)+' bright');return;}giftWallet-=it.cost;const sv=souvenirs();sv[it.id]=(sv[it.id]||0)+1;try{localStorage.setItem(SOUV_KEY,JSON.stringify(sv));}catch(e){}feed('Souvenir: '+it.n,'Kept, whatever comes next');renderShop();return;}
+  neb({cmd:'buy',id:it.id,arg});}
+function shopBought(m){const it=shopItem(m.id);if(!it)return;feed(m.ok?'Bought: '+m.msg:it.n,m.ok?SHOPS[it.shop].n:m.msg);
+  if(m.ok&&it.fx.clock){clock=it.fx.clock;showTurn();updateHint();saveMap();} // the Clock smith turns the day's clock
+  if(m.ok&&shopUI&&shopUI.pick)shopUI.pick=false;if(shopUI)renderShop();}
+function souvenirs(){try{return JSON.parse(localStorage.getItem(SOUV_KEY)||'{}')||{};}catch(e){return{};}}
+function giftEnter(){ // Yes: everything is lost (the purse, ducks, discoveries and the map); souvenirs are bought from your last Bright and kept
+  giftWallet=inv.bright||0;neb({cmd:'wipe'});try{localStorage.removeItem(MAP_KEY);}catch(e){}initGame();shopUI={id:'gift',rank:3,page:0,gift:true};renderShop();}
+document.getElementById('shop').addEventListener('click',e=>{if(e.target.id==='shop')closeShop();});
+document.getElementById('shop').addEventListener('contextmenu',e=>{e.preventDefault();closeShop();});
+
+// ╔══════════════════════════════════════════════════════════════════════════════╗
 // ║  DOCK, FEED AND CURSOR — the surface's own slots, feed line and cursor       ║
 // ╚══════════════════════════════════════════════════════════════════════════════╝
 let icons={};const DOCK_ITEMS=['leash','dial','weave'];
-function syncDock(){const box=document.getElementById('hinv');if(!box)return;
+function syncDock(){document.body.classList.toggle('armed',!!armed);const box=document.getElementById('hinv');if(!box)return;
   box.innerHTML=DOCK_ITEMS.map(k=>`<div class="slot${armed===k?' armed':''}${(inv[k]||0)<=0?' empty':''}" data-k="${k}" title="${KIND_NAME[k]}">${icons[k]||KIND_NAME[k][0]}<b>${inv[k]||0}</b></div>`).join('')+
     '<div class="sep"></div>'+['prism','knot','gate','key','lens'].filter(k=>(inv[k]||0)>0).map(k=>`<div class="slot empty" data-k="${k}" title="${KIND_NAME[k]} (earned)">${icons[k]||KIND_NAME[k][0]}<b>${inv[k]}</b></div>`).join('');
   for(const el of box.querySelectorAll('.slot'))if(DOCK_ITEMS.includes(el.dataset.k))el.onclick=()=>armItem(el.dataset.k);
@@ -752,14 +852,15 @@ function feedTick(now){ // the feed: a recent message, else what the cursor is o
   let a,b;const over=mX>=0&&currentView==='map'&&!menuOpen?document.elementFromPoint(mX,mY):null,onMap=over===sc;
   const du=onMap?duckUnder(mX,mY):null,hc=onMap&&hQ!==null?cells[K(hQ,hR)]:null;
   if(now-feedMsg.at<3500){a=feedMsg.t;b=feedMsg.d;}
+  else if(over&&over.closest&&over.closest('.shop')){[a,b]=shopInfo(over.closest('.shop').dataset.key);}
   else if(du){const v=DUCK_TYPES[du.type]||{};a=(v.rare?'★ ':'')+(v.name||'Duck')+' × '+(duckLog[du.type]||0);b=(v.axis||'')+(v.detail?': '+v.detail:'')+' · swimming on the lake';}
   else if(hc){[a,b]=hexInfo(hc);}else{[a,b]=hintLine;}
   if(fn.textContent!==a)fn.textContent=a||'';if(fdd.textContent!==(b||''))fdd.textContent=b||'';}
 const hcur=document.getElementById('hcur'),hcx=hcur.getContext('2d');
 function cursorTick(now){ // the surface's standard cursor (shared.js): brighter over something it can act on
   const dp=window.devicePixelRatio||1;if(hcur.width!==Math.round(innerWidth*dp)){hcur.width=Math.round(innerWidth*dp);hcur.height=Math.round(innerHeight*dp);}
-  hcx.setTransform(dp,0,0,dp,0,0);hcx.clearRect(0,0,innerWidth,innerHeight);if(currentView!=='map'||menuOpen||mX<0)return;
-  const over=document.elementFromPoint(mX,mY),ui=over&&over!==sc&&over.closest&&over.closest('button,.slot,.hbtn');
+  hcx.setTransform(dp,0,0,dp,0,0);hcx.clearRect(0,0,innerWidth,innerHeight);if(currentView!=='map'||menuOpen||shopUI||mX<0)return;
+  const over=document.elementFromPoint(mX,mY),ui=over&&over!==sc&&over.closest&&over.closest('button,.slot,.hbtn,.shop');
   const k=hQ!==null?K(hQ,hR):null,c=k?cells[k]:null,act=!!ui||!!(c&&(armed==='leash'?c.cap:armed==='dial'?(!c.cap&&!c.isVoid):armed==='weave'?isBright(k):(k===K(pQ,pR)||getMoves().some(m=>K(m.q,m.r)===k))));
   const base=T.cursorBaseR||8,lw=T.cursorLineW||2,press=mDownAt>0?Math.min(1,(now-mDownAt)/(T.cursorClickDurMs||120)):0,cR=base*(1-(T.cursorClickShrink!=null?T.cursorClickShrink:0.7)*0.4*press);
   _curA+=((act?1:(T.cursorIdleAlphaMult!=null?T.cursorIdleAlphaMult:0.5))-_curA)*0.25;const ev=act?255:Math.round(255*(1-(T.cursorIdleBorderDark!=null?T.cursorIdleBorderDark:0.4))),col=armed?'255,220,120':`${ev},${ev},${ev}`;
