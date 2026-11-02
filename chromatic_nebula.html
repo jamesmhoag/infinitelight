@@ -114,7 +114,7 @@ button:hover{background:rgba(255,255,255,0.15);}
   <div id="dock" class="bottom"><div id="inventoryPanel"></div><div id="touch-info"></div></div>
   <canvas id="cur"></canvas>
 </div>
-<script src="shared.js?v=20261102o"></script>
+<script src="shared.js?v=20261102p"></script>
 <script>
 const _SRC=document.documentElement.outerHTML; // kept so the Encyclopedia can run live scenes as embedded copies of the game
 // Safety: a negative / non-finite gradient radius would throw and kill the frame — clamp it, and log the first offender's stack so it can be traced.
@@ -1679,12 +1679,12 @@ async function saveConfig(){
 }
 let saveTimer=null;
 function debounceSave(){clearTimeout(saveTimer);saveTimer=setTimeout(saveConfig,500);}
-function applyLoadedConfig(raw){
+function applyLoadedConfig(raw,live){ // a saved config (JSON text) or tuners sent by the map (live): a value is taken only if it is of the tuner's own type, numbers only when finite
   try{
-    const saved=JSON.parse(raw);
-    for(const k in saved){if(k in T)T[k]=saved[k];}
-    buildTunePanel();
-    updateCoverageModeBtn();
+    const saved=typeof raw==='string'?JSON.parse(raw):raw,bad=[];
+    for(const k in saved){if(!(k in T))continue;const v=saved[k];if(typeof v===typeof T[k]&&(typeof v!=='number'||isFinite(v)))T[k]=v;else bad.push(k);}
+    if(bad.length){console.warn('tuners kept at their defaults (bad saved values):',bad.join(', '));debounceSave();}
+    if(!live){buildTunePanel();updateCoverageModeBtn();}
   }catch(e){}
 }
 async function loadConfig(){
@@ -7770,6 +7770,7 @@ function noteFreq(ci,octMul){return pickBaseFreq(ci)*octMul;}
 
 function initAudio(){
   if(audioCtx)return;audioCtx=new(window.AudioContext||window.webkitAudioContext)();
+  {const P=AudioParam.prototype,f=P.exponentialRampToValueAtTime;P.exponentialRampToValueAtTime=function(v,t){return f.call(this,Math.abs(v)<1e-4?(v<0?-1e-4:1e-4):v,t);};} // a volume tuner at 0 ramps to silence instead of throwing (and leaving a nova half-built)
   const comp=audioCtx.createDynamicsCompressor();
   comp.threshold.value=-10;comp.knee.value=4;comp.ratio.value=12;comp.attack.value=0.002;comp.release.value=0.1;
   comp.connect(audioCtx.destination);
@@ -13928,7 +13929,7 @@ function cardHTML(ev,mini){ // the one card format: name bar, art box, type line
   return `<div class="mtg${mini?' sm':''}" data-ev="${ev.id}" style="--rc:${r[0]}"><div class="nm"><b>${gEsc(ev.name)}</b><span class="gem"></span></div><div class="art" data-scene="${ev.scene}">${mini?`<canvas class="rl-m" width="64" height="64" data-k="${ev.ico}"></canvas>`:''}</div><div class="ty"><span>${gEsc(ev.type.replace(/^Event — /,''))}</span><span>${r[1]}</span></div><div class="tx">${ev.facts().map(f=>`<p>${gEsc(f)}</p>`).join('')}<p class="fl">${gEsc(ev.flavor)}</p></div></div>`;
 }
 function mountScene(h,w,hh){if(!h||h.firstChild||document.querySelectorAll('.rl-live iframe,.mtg .art iframe').length>=5)return;const f=document.createElement('iframe'),nm=h.dataset.s||h.dataset.scene;f.style.cssText='border:0;max-width:100%;pointer-events:none;background:#000;border-radius:6px;'+(w?`width:${w}px;height:${hh}px`:'width:100%;height:100%');
-  if(nm.slice(0,4)==='hub:')f.src='Surface_Map_HUB.html?v=20261102o&scene='+nm.slice(4)+'&T='+encodeURIComponent(JSON.stringify(mapSceneT()));else f.srcdoc=liveSrc(nm);h.appendChild(f);} // a Surface Map demo is played by the map itself
+  if(nm.slice(0,4)==='hub:')f.src='Surface_Map_HUB.html?v=20261102p&scene='+nm.slice(4)+'&T='+encodeURIComponent(JSON.stringify(mapSceneT()));else f.srcdoc=liveSrc(nm);h.appendChild(f);} // a Surface Map demo is played by the map itself
 function mapSceneT(){const o={};for(const k in T)if(/^(map|bh|duck|wake|glass|metal|dimGlow|glowHalo|maxSpeed)/.test(k))o[k]=T[k];return o;} // what a map demo needs of the tuners
 function showEventCard(id,review){
   const ev=EVENTS.find(e=>e.id===id);if(!ev)return;guideCSS();
@@ -14186,6 +14187,7 @@ async function saveSession(){
 function restoreSession(d){
   if(invertMode)toggleInvertMode(); // the loader bakes the normal scheme; the saved one is put back after
   loadMapFromObject(d,true);resetSceneState();
+  for(let i=active.length-1;i>=0;i--){const q=active[i];if(![q.x,q.y,q.vx,q.vy,q.mass].every(Number.isFinite))active.splice(i,1);} // (a broken particle saved by an older build is dropped)
   const x=d.extra||{},now=performance.now();
   for(const sh of (x.shapes||[])){fixedShapes.push(sh);if(sh.id>shapeSeq)shapeSeq=sh.id;}
   for(const h of (x.fields||[])){h.born=now-T.fieldGrowMs;placedFields.push(h);}
@@ -14220,7 +14222,7 @@ window.addEventListener('message',e=>{
   else if(m.cmd==='guide'){hubOverlay_(true);openRules();}
   else if(m.cmd==='event'){if(discSeen.has('ev:'+m.id)){hubState('overlayDone');return;}hubOverlay_(true);fireEvent(m.id);}
   else if(m.cmd==='sound')setSound(m.on,m.vol);
-  else if(m.cmd==='tune'){Object.assign(T,m.T);debounceSave();}
+  else if(m.cmd==='tune'){applyLoadedConfig(m.T,true);debounceSave();}
   else if(m.cmd==='discover'){discSeen.add(m.id);saveInventory();hubState();}
   else if(m.cmd==='spend'){inventory[m.kind]=Math.max(0,(inventory[m.kind]||0)-(m.n||1));saveInventory();updateInventoryUI();hubState();} // the map used an item (Spindle, String, Weave)
   else if(m.cmd==='award'){addInventory(m.kind,m.n||1);hubState();} // a map constellation paid out

@@ -234,6 +234,7 @@ function drawBHGlowRing(mainCtx,bh,R,now,phaseOffset,cfg,canvasHolder,drawVoidCo
 }
 const _drMapH1={canvas:null,ctx:null},_drMapH2={canvas:null,ctx:null};
 function drawDarkRemnantAt(ctx,x,y,R,now,f,ph){ // the surface's Dark Remnant look at (x,y), void radius R; f scales its ring widths, blurs and sway (R ÷ the surface's own radius)
+  if(!(T.bhRingBeatMs>0)||!isFinite(x+y+R))return; // (the map has nothing to draw it with until the surface has sent its tuners)
   const k=f||1,o=ph||0,bh={x,y},c1={width:T.bhRingWidth*k,blurWide:T.bhBlurWide*k,blurMid:T.bhBlurMid*k,alphaWide:T.bhAlphaWide,alphaMid:T.bhAlphaMid,beatMs:T.bhRingBeatMs,pulseAmt:T.bhRingPulseAmt,swayR:T.bhRingSwayR*k,swaySpeed:T.bhRingSwaySpeed},
     c2={width:T.bhRing2Width*k,blurWide:T.bhRing2BlurWide*k,blurMid:T.bhRing2BlurMid*k,alphaWide:T.bhRing2AlphaWide,alphaMid:T.bhRing2AlphaMid,beatMs:T.bhRing2BeatMs,pulseAmt:T.bhRing2PulseAmt,swayR:T.bhRing2SwayR*k,swaySpeed:T.bhRing2SwaySpeed};
   const pad=T.bhDrawPad;T.bhDrawPad=pad*k; // (its drawing room scales with it)
