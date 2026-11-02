@@ -114,7 +114,7 @@ button:hover{background:rgba(255,255,255,0.15);}
   <div id="dock" class="bottom"><div id="inventoryPanel"></div><div id="touch-info"></div></div>
   <canvas id="cur"></canvas>
 </div>
-<script src="shared.js?v=20261102t"></script>
+<script src="shared.js?v=20261102u"></script>
 <script>
 const _SRC=document.documentElement.outerHTML; // kept so the Encyclopedia can run live scenes as embedded copies of the game
 // Safety: a negative / non-finite gradient radius would throw and kill the frame — clamp it, and log the first offender's stack so it can be traced.
@@ -13927,7 +13927,7 @@ function cardHTML(ev,mini){ // the one card format: name bar, art box, type line
   return `<div class="mtg${mini?' sm':''}" data-ev="${ev.id}" style="--rc:${r[0]}"><div class="nm"><b>${gEsc(ev.name)}</b><span class="gem"></span></div><div class="art" data-scene="${ev.scene}">${mini?`<canvas class="rl-m" width="64" height="64" data-k="${ev.ico}"></canvas>`:''}</div><div class="ty"><span>${gEsc(ev.type.replace(/^Event — /,''))}</span><span>${r[1]}</span></div><div class="tx">${ev.facts().map(f=>`<p>${gEsc(f)}</p>`).join('')}<p class="fl">${gEsc(ev.flavor)}</p></div></div>`;
 }
 function mountScene(h,w,hh){if(!h||h.firstChild||document.querySelectorAll('.rl-live iframe,.mtg .art iframe').length>=5)return;const f=document.createElement('iframe'),nm=h.dataset.s||h.dataset.scene;f.style.cssText='border:0;max-width:100%;pointer-events:none;background:#000;border-radius:6px;'+(w?`width:${w}px;height:${hh}px`:'width:100%;height:100%');
-  if(nm.slice(0,4)==='hub:')f.src='Surface_Map_HUB.html?v=20261102t&scene='+nm.slice(4)+'&T='+encodeURIComponent(JSON.stringify(mapSceneT()));else f.srcdoc=liveSrc(nm);h.appendChild(f);} // a Surface Map demo is played by the map itself
+  if(nm.slice(0,4)==='hub:')f.src='Surface_Map_HUB.html?v=20261102u&scene='+nm.slice(4)+'&T='+encodeURIComponent(JSON.stringify(mapSceneT()));else f.srcdoc=liveSrc(nm);h.appendChild(f);} // a Surface Map demo is played by the map itself
 function mapSceneT(){const o={};for(const k in T)if(/^(map|bh|duck|wake|glass|metal|dimGlow|glowHalo|maxSpeed)/.test(k))o[k]=T[k];return o;} // what a map demo needs of the tuners
 function showEventCard(id,review){
   const ev=EVENTS.find(e=>e.id===id);if(!ev)return;guideCSS();
@@ -14152,13 +14152,13 @@ function hubPost(m){if(HUB)window.parent.postMessage(Object.assign({il:1},m),'*'
 function hubIcons(){const o={};for(const k of ['leash','dial','weave','prism','knot','gate','key','lens','dim'])if(ICON_SVG[k])o[k]=ICON_SVG[k];return o;} // the map's dock shows the surface's own item icons
 function hubState(type){hubPost({type:type||'state',T:Object.assign({},T),inv:Object.assign({},inventory),disc:[...discSeen],ducks:duckLog,duckTypes:DUCK_TYPES,icons:hubIcons(),defs:TUNE_DEFS.filter(d=>d.key&&d.key.slice(0,3)==='map')});}
 function hubWake(){hubAsleep=false;if(!rafId)rafId=requestAnimationFrame(loop);}
-function hubIdle(){clearStage();feedAlert.until=0;levelCoverage=null;hubLevel=null;if(isPaused)togglePause();}
+function hubIdle(){clearStage();feedAlert.until=0;levelCoverage=null;hubLevel=null;if(isPaused)togglePause();if(!hubOverlay)hubAsleep=true;} // back on the map: the loop stops (it shares the map's thread); a Guide / event card over the map keeps it
 function hubOverlay_(on){hubOverlay=on;wrap.classList.toggle('hub-ov',on);if(on)hubWake();} // the map's Guide / event cards show over a bare black stage
 function hubOverlayCheck(){if(hubOverlay&&!_rulesOpen&&!_evOpen&&!_evQ.length){hubOverlay_(false);hubAsleep=true;hubState('overlayDone');}}
 function clearFootText(){return HUB?'right-click to return to the Surface Map':'right-click to rebuild';}
 
 // The particle layer a hex shows on the map: sample the surface at the map's lattice spots (uv in 0..1)
-let _shotCv=null,_shotGen=0;
+let _shotCv=null,_shotGen=0,_shotQ=[],_shotRun=false; // _shotQ: hexes waiting for a picture (a newer request joins it, never cancels it)
 function hexShot(size){ // the surface exactly as play renders it (pixel map, blur passes, α), cropped to the middle square and scaled to a hex
   nebBlurStale=true;nebBlurAt=-1e9;renderWorld(performance.now(),false,true);drawDucks(ctx,performance.now());
   if(!_shotCv)_shotCv=document.createElement('canvas');size=Math.max(8,size|0);_shotCv.width=_shotCv.height=size;
@@ -14167,14 +14167,15 @@ function hexShot(size){ // the surface exactly as play renders it (pixel map, bl
   return _shotCv.toDataURL('image/png');
 }
 async function hubPreviews(items,size){ // one hex per frame; stops the moment a surface is entered
-  const gen=++_shotGen;
-  for(const it of items){
+  for(const it of items){const i=_shotQ.findIndex(x=>x.key===it.key);if(i>=0)_shotQ[i]=it;else _shotQ.push(it);}if(_shotRun)return;_shotRun=true;
+  const gen=_shotGen;
+  while(_shotQ.length){const it=_shotQ.shift();
     if(hubLevel||gen!==_shotGen){hubPost({type:'preview',key:it.key,sig:it.sig,img:null});continue;}
     const t0=performance.now();ensureDarkRemnantTheme();levelCoverage=it.cov;lvHex=it.q!=null?[it.q,it.r]:null;rebuild(it.seed); // a hex shows its surface as it starts (dark), whatever the last surface ended in
     hubPost({type:'preview',key:it.key,sig:it.sig,img:hexShot(size),ms:performance.now()-t0});
     await new Promise(r=>{let d=0;const go=()=>{if(!d){d=1;setTimeout(r,0);}};requestAnimationFrame(go);setTimeout(go,40);}); // the map gets a frame between pictures (they share the page's thread)
   }
-  if(!hubLevel&&gen===_shotGen)hubIdle();
+  _shotRun=false;if(!hubLevel&&gen===_shotGen)hubIdle();
 }
 async function saveSession(){
   if(!HUB||!hubLevel||levelCleared)return null;
@@ -14207,7 +14208,7 @@ async function quitTo(dest){ // the pause menu's Quit buttons
   if(!HUB){if(dest==='main')location.href='index.html';return;}
   let rec=null;
   if(levelCleared)IDB.del('session').catch(()=>{});else rec=await saveSession();
-  const key=hubLevel&&hubLevel.key;hubIdle();hubAsleep=true;
+  const key=hubLevel&&hubLevel.key;hubIdle();
   hubPost({type:'quit',to:dest,key,cleared:!rec,img:rec?rec.img:null,T:Object.assign({},T),inv:Object.assign({},inventory),disc:[...discSeen]});
 }
 function hubLevelCleared(){if(!HUB||!hubLevel)return;IDB.del('session').catch(()=>{});hubPost({type:'cleared',key:hubLevel.key,kind:clearInfo&&clearInfo.type==='black'?'dark':'bright'});}
@@ -14528,7 +14529,7 @@ if(!window.__SCENE)registerGuideDisc();
   await loadConfig();
   if(T.wakeBudgetPerFrame>5000)T.wakeBudgetPerFrame=400;if(!(T.fadeBudgetMs>0))T.fadeBudgetMs=4; // (0 meant unlimited: one burst of fades could take seconds) // (old saves: 150000 meant unlimited; waking now queues instead of dropping, so a real budget is safe)
   buildTunePanel();updateRect();
-  if(HUB){hubIdle();hubAsleep=true;}else{rebuild();fireEvent('surface');}
+  if(HUB)hubIdle();else{rebuild();fireEvent('surface');}
   updateInventoryUI();applyDisc();updateSettleBtn();updateCacheBtn();if(T.soundOn)setSound(true,null,true);
   if(HUB)hubState('ready');else rafId=requestAnimationFrame(loop);
 })();
