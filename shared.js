@@ -248,22 +248,30 @@ function cursorBase(cx,x,y,cR,dimA,tintK,edgeCol,lw){
   cx.globalCompositeOperation='screen';cx.filter='blur(7px)';cx.globalAlpha=0.6*dimA; // the bloom behind the sharp ring
   cx.beginPath();cx.arc(x,y,cR,0,6.2832);cx.strokeStyle=`rgba(${edgeCol},0.9)`;cx.lineWidth=lw*2.5;cx.stroke();
   cx.filter='none';cx.globalAlpha=1;cx.globalCompositeOperation='source-over';}
+const _curTrail=[]; // where the cursor has just been: {x, y, t}
+function cursorTrail(cx,x,y,now,edgeCol,lw){ // a faint light trail behind the cursor that fades over T.cursorTrailMs (0 = off), so a cursor lost on a busy surface is easy to find
+  const ms=T.cursorTrailMs!=null?T.cursorTrailMs:700,A=T.cursorTrailA!=null?T.cursorTrailA:0.6;if(ms<=0||A<=0){_curTrail.length=0;return;}
+  const l=_curTrail[_curTrail.length-1];if(!l||Math.hypot(x-l.x,y-l.y)>1.5)_curTrail.push({x,y,t:now});else l.t=now;
+  while(_curTrail.length&&now-_curTrail[0].t>ms)_curTrail.shift();if(_curTrail.length<2)return;
+  cx.save();cx.lineCap='round';cx.lineJoin='round';cx.filter='blur(1px)';
+  for(let i=1;i<_curTrail.length;i++){const a=_curTrail[i-1],b=_curTrail[i],f=Math.max(0,1-(now-b.t)/ms);cx.strokeStyle=`rgba(${edgeCol},${(A*f).toFixed(3)})`;cx.lineWidth=lw*(0.8+2.2*f);cx.beginPath();cx.moveTo(a.x,a.y);cx.lineTo(b.x,b.y);cx.stroke();}
+  cx.restore();}
 function cursorRing(cx,x,y,cR,dimA,edgeCol,lw){cx.beginPath();cx.arc(x,y,cR,0,6.2832);cx.strokeStyle=`rgba(${edgeCol},${(0.80*dimA).toFixed(3)})`;cx.lineWidth=lw;cx.stroke();}
 function cursorDot(cx,x,y,dimA,edgeCol){
   cx.globalCompositeOperation='screen';cx.filter='blur(3px)';cx.globalAlpha=0.7*dimA;cx.beginPath();cx.arc(x,y,1.4,0,6.2832);cx.fillStyle=`rgba(${edgeCol},0.9)`;cx.fill();
   cx.filter='none';cx.globalAlpha=1;cx.globalCompositeOperation='source-over';cx.beginPath();cx.arc(x,y,0.75,0,6.2832);cx.fillStyle=`rgba(${edgeCol},${(0.65*dimA).toFixed(3)})`;cx.fill();}
 // ═════════════════════════ SHOPS (sold on the Surface Map; the surface, which keeps the purse, settles every purchase) ═════════════════════════
-// SHOPS: main street ones (street) stand side by side in the source hex, always there, lit only while open: hours are [open, close) on the map's clock (3 Twilight … 24 Midnight;
+// SHOPS: main street ones (street) stand round the source at angle a° (0 = right, −90 = behind it), always there, lit only while open: hours are [open, close) on the map's clock (3 Twilight … 24 Midnight;
 // 0–27 = 24 hours). Pop-ups open on a bright clear whose surface collected at least T.mapShop<Cur>1/2/3 of their collectable (cur, also what they
 // mostly charge in) — rank 1..3, the size of the store (SHOP_RANK_BLD); at: those thresholds' defaults. col: the colour its glass is lit with.
-// SHOP_BLD: each building and where its glass sits behind its empty windows (shops/*.png).
-const SHOP_BLD={s:{b:'bld_s',g:'glass_s',gx:7,gy:43},d:{b:'bld_s_dark',g:'glass_s',gx:7,gy:43},m:{b:'bld_m',g:'glass_m',gx:13,gy:31},l:{b:'bld_l',g:'glass_m',gx:13,gy:71},t:{b:'bld_t',g:'glass_t',gx:5,gy:16}};
+// SHOP_BLD: each building and where its glass sits behind its empty windows (shops/*.svg, in SVG units).
+const SHOP_BLD={s:{b:'bld_s',g:'glass_s',gx:1.75,gy:10.75},d:{b:'bld_s_dark',g:'glass_s',gx:1.75,gy:10.75},m:{b:'bld_m',g:'glass_m',gx:3.25,gy:7.75},l:{b:'bld_l',g:'glass_m',gx:3.25,gy:18},t:{b:'bld_t',g:'glass_t',gx:1.25,gy:4}};
 const SHOP_RANK_BLD=['s','m','l'];
 const SHOPS={
-  corner:{n:'CORNER STORE',tag:'The corners are conveniently cut.',street:1,open:0,close:27,col:'#fff1d0'},
-  clock:{n:'Clock smith.',tag:'Turn the Clock, be unlocked.',street:1,open:9,close:18,col:'#fff1d0'},
-  xact:{n:'XACT change',tag:'Exchange for spare change.',street:1,open:6,close:15,col:'#fff1d0'},
-  gift:{n:'GIFT SHOP',tag:'Souvenirs to remember with.',street:1,open:0,close:27,col:'#ffffff',bk:'d'},
+  corner:{n:'CORNER STORE',tag:'The corners are conveniently cut.',street:1,open:0,close:27,col:'#fff1d0',a:25},
+  clock:{n:'Clock smith.',tag:'Turn the Clock, be unlocked.',street:1,open:9,close:18,col:'#fff1d0',a:-58},
+  xact:{n:'XACT change',tag:'Exchange for spare change.',street:1,open:6,close:15,col:'#fff1d0',a:-122},
+  gift:{n:'GIFT SHOP',tag:'Souvenirs to remember with.',street:1,open:0,close:27,col:'#ffffff',bk:'d',a:155},
   bright:{n:'BRiGHT IDEAS',tag:'Like a spoon that is also a fork.',cur:'bright',col:'#00c3ff',at:[100,1000,10000]},
   dim:{n:'Dim’s: Carnival of Discovery',tag:'Natural phenomena.',cur:'dim',col:'#ff78e2',at:[100,1000,10000]},
   neutron:{n:'premium NEUTRINOS',tag:'Density, delivered.',cur:'neutron',col:'#8a3cff',at:[5,25,100]},

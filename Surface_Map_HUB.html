@@ -114,7 +114,7 @@ body.thru .shop{pointer-events:none} /* an armed map item, or the open source, r
 <div id="veil"></div>
 <canvas id="hcur"></canvas>
 <iframe id="neb" title="Surface"></iframe>
-<script src="shared.js?v=20261102x"></script>
+<script src="shared.js?v=20261102z"></script>
 <script>
 // ╔══════════════════════════════════════════════════════════════════════════════╗
 // ║  MAP ENGINE                                                                 ║
@@ -130,7 +130,7 @@ let clock=3,day=1,pool=6,fresh=true,burstFx=null,dayLog=[],dayCnt={b:0,d:0},pend
 // // clock: the hour (3 = Twilight … 24 = Midnight, the day's last turn); day: your attempts; pool: what the source put out at its last burst; fresh: no ring added yet since it
 let constel=[],armed=null,weaveSel=[],weaveAsk=null,clearFx={},mergeFx=[],feedMsg={t:'',d:'',at:-1e9}; // constellations {keys,type}; the armed map item; a Weave being drawn; animations; the final count
 const TIMES={3:'Twilight',6:'Dawn',9:'Morning',12:'Noon',15:'Afternoon',18:'Dusk',21:'Night',24:'Midnight'},STEP_H=3; // the day: eight turns of three hours
-const CACHE_V='20261102x'; // the build: bump with shared.js's
+const CACHE_V='20261102z'; // the build: bump with shared.js's
 const SCENE=new URLSearchParams(location.search).get('scene'); // a Guide / event demo: the map plays a scripted moment (no surface behind it)
 let phase='move',turnTimer=0,mergeTimer=0;
 let gameOverReason='';
@@ -438,7 +438,7 @@ const shotSize=()=>Math.round(2*HEX*(window.devicePixelRatio||1));
 function cellSeed(c){return Math.abs(Math.sin(depth*999+7.13)*43758.5453)%100;} // one field per depth: each hex is a window onto it at its place (q,r), so a hex's edge pattern carries into its neighbours
 function cellCov(c){const lo=T.mapCovMin!=null?T.mapCovMin:0.25,full=T.mapCovFull||1;return Math.round((lo+(1-lo)*Math.min(1,c.v/full))*4)/4;} // in quarter steps: a move nudges every hex's value, and only a visible change is worth re-shooting its picture
 function syncRenderSig(){ // any tuner that changes how a surface looks (not sound, discoveries or the map's own layout) re-shoots the hexes
-  let h=0;const str=JSON.stringify(Object.keys(T).filter(k=>!/^(dc_|soundOn|masterVol|mapAlpha|mapCov|mapClear|mapHexSize|mapShop|duck)/.test(k)).sort().map(k=>T[k]))+'|'+shotSize();
+  let h=0;const str=JSON.stringify(Object.keys(T).filter(k=>!/^(dc_|soundOn|masterVol|mapAlpha|mapCov|mapClear|mapHexSize|mapShop|mapStreet|duck)/.test(k)).sort().map(k=>T[k]))+'|'+shotSize();
   for(let i=0;i<str.length;i++)h=(h*31+str.charCodeAt(i))|0;renderSig=''+h;
 }
 function cellSig(c){return c.q+','+c.r+'|'+cellSeed(c).toFixed(6)+'|'+cellCov(c)+'|'+renderSig;}
@@ -764,27 +764,28 @@ function discTick(){
 let shopUI=null,giftWallet=0; // shopUI: the open menu {id, rank, page, exit (the Gift Shop's Exit? card), pick (choosing a duck), gift (inside the Gift Shop)}
 const SOUV_KEY='il_souvenirs_v1',shopPic={},shopCv={},shopEls={},fmtN=n=>Math.floor(n).toLocaleString('en-US');
 const shopHours=id=>{const S=SHOPS[id];return S.open<=0&&S.close>=27?'24 hours':TIMES[S.open]+' – '+TIMES[S.close];};
-function shopImg(n){if(!shopPic[n]){const im=new Image();im.onload=()=>{for(const k in shopCv)delete shopCv[k];};im.src='shops/'+n+'.png';shopPic[n]=im;}return shopPic[n];}
+function shopImg(n){if(!shopPic[n]){const im=new Image();im.onload=()=>{for(const k in shopCv)delete shopCv[k];};im.src='shops/'+n+'.svg';shopPic[n]=im;}return shopPic[n];}
 function popupFor(tally){ // the pop-up a bright clear opens: the shop whose collectable crossed the highest rank threshold (ties: the furthest past it)
   let best=null;for(const id in SHOPS){const S=SHOPS[id];if(S.street)continue;const n=(tally||{})[S.cur]||0;let r=0;for(let i=1;i<=3;i++){const t=T[shopTK(S.cur)+i];if(t>0&&n>=t)r=i;}
     const x=r?n/T[shopTK(S.cur)+r]:0;if(r&&(!best||r>best.rank||(r===best.rank&&x>best.x)))best={id,rank:r,x};}
   return best&&{id:best.id,rank:best.rank};}
-function shopSprite(id,bk,lit){ // glass (tinted with the shop's colour, dark when closed) behind the building's empty windows, then the sign above, glowing when lit
+function shopSprite(id,bk,lit){ // glass (tinted with the shop's colour, dark when closed) behind the building's empty windows, then the sign above, glowing when lit;
+  // the vectors are drawn at Q× their SVG size, so a shop stays crisp however near the camera or the menu shows it
   const gw=T.mapShopGlow!=null?T.mapShopGlow:1,key=id+bk+(lit?1:0)+gw;if(shopCv[key])return shopCv[key];
   const S=SHOPS[id],B=SHOP_BLD[bk],bi=shopImg(B.b),gi=shopImg(B.g),si=shopImg('sign_'+id);if(![bi,gi,si].every(i=>i.complete&&i.naturalWidth))return null;
-  const bw=bi.naturalWidth,bh=bi.naturalHeight,sk=Math.min(bw*0.9/si.naturalWidth,bw*0.72/si.naturalHeight),sw=si.naturalWidth*sk,sh=si.naturalHeight*sk,ov=bh*0.12,pad=44;
-  const cv=document.createElement('canvas');cv.width=Math.ceil(Math.max(bw,sw)+pad*2);cv.height=Math.ceil(sh+bh-ov+pad*2);const c=cv.getContext('2d'),bx=(cv.width-bw)/2,by=cv.height-pad-bh;
-  const gl=document.createElement('canvas');gl.width=gi.naturalWidth;gl.height=gi.naturalHeight;const g=gl.getContext('2d');
-  g.drawImage(gi,0,0);g.globalCompositeOperation='multiply';g.fillStyle=lit?S.col:'#3a3a42';g.fillRect(0,0,gl.width,gl.height);g.globalCompositeOperation='destination-in';g.drawImage(gi,0,0);
-  if(lit&&gw>0){c.save();c.shadowColor=S.col;c.shadowBlur=18*gw;c.drawImage(gl,bx+B.gx,by+B.gy);c.restore();}else c.drawImage(gl,bx+B.gx,by+B.gy);
-  c.drawImage(bi,bx,by);
-  if(lit&&gw>0){c.save();c.globalCompositeOperation='screen';c.filter='blur(5px)';c.globalAlpha=Math.min(1,0.55*gw);c.drawImage(gl,bx+B.gx,by+B.gy);c.restore();} // light spills out of the windows
+  const Q=4,bw=bi.naturalWidth*Q,bh=bi.naturalHeight*Q,gW=gi.naturalWidth*Q,gH=gi.naturalHeight*Q,sk=Math.min(bw*0.9/si.naturalWidth,bw*0.72/si.naturalHeight),sw=si.naturalWidth*sk,sh=si.naturalHeight*sk,ov=bh*0.12,pad=44;
+  const cv=document.createElement('canvas');cv.width=Math.ceil(Math.max(bw,sw)+pad*2);cv.height=Math.ceil(sh+bh-ov+pad*2);const c=cv.getContext('2d'),bx=(cv.width-bw)/2,by=cv.height-pad-bh,gx=bx+B.gx*Q,gy=by+B.gy*Q;
+  const gl=document.createElement('canvas');gl.width=gW;gl.height=gH;const g=gl.getContext('2d');
+  g.drawImage(gi,0,0,gW,gH);g.globalCompositeOperation='multiply';g.fillStyle=lit?S.col:'#3a3a42';g.fillRect(0,0,gW,gH);g.globalCompositeOperation='destination-in';g.drawImage(gi,0,0,gW,gH);
+  if(lit&&gw>0){c.save();c.shadowColor=S.col;c.shadowBlur=18*gw;c.drawImage(gl,gx,gy);c.restore();}else c.drawImage(gl,gx,gy);
+  c.drawImage(bi,bx,by,bw,bh);
+  if(lit&&gw>0){c.save();c.globalCompositeOperation='screen';c.filter='blur(5px)';c.globalAlpha=Math.min(1,0.55*gw);c.drawImage(gl,gx,gy);c.restore();} // light spills out of the windows
   c.save();if(lit&&gw>0){c.shadowColor=S.col;c.shadowBlur=26*gw;c.drawImage(si,(cv.width-sw)/2,by+ov-sh,sw,sh);c.shadowBlur=8*gw;}else if(!lit)c.filter='brightness(0.32) saturate(0.4)';
   c.drawImage(si,(cv.width-sw)/2,by+ov-sh,sw,sh);c.restore();
   cv._ax=cv.width/2;cv._ay=cv.height-pad;cv._bw=bw;return shopCv[key]=cv;}
-function shopList(){ // every shop on the map now: main street side by side across the source hex, pop-ups on their bright clears
-  const out=[],ms=Object.keys(SHOPS).filter(k=>SHOPS[k].street),w=HEX*(T.mapShopStreet||0.42);
-  ms.forEach((id,i)=>out.push({key:id,id,bk:SHOPS[id].bk||'s',wx:(i-(ms.length-1)/2)*w*1.05,wy:HEX*0.3,lit:shopIsOpen(id,clock),w}));
+function shopList(){ // every shop on the map now: main street hugging the source (two behind it, two in front), pop-ups on their bright clears
+  const out=[],w=HEX*(T.mapStreetSize||0.75),R=HEX*(T.mapStreetRing!=null?T.mapStreetRing:0.8);
+  for(const id in SHOPS){const S=SHOPS[id],a=(S.a||0)*Math.PI/180;if(S.street)out.push({key:id,id,bk:S.bk||'s',wx:R*Math.cos(a),wy:R*Math.sin(a),lit:shopIsOpen(id,clock),w});}
   for(const k in cells){const c=cells[k];if(c.shop&&isBright(k)){const[wx,wy]=a2w(c.q,c.r);out.push({key:k,id:c.shop.id,rank:c.shop.rank,bk:SHOP_RANK_BLD[c.shop.rank-1],wx,wy,lit:true});}}
   return out;}
 function shopTick(){if(SCENE)return;
@@ -863,7 +864,7 @@ function cursorTick(now){ // the surface's standard cursor (shared.js): brighter
   const k=hQ!==null?K(hQ,hR):null,c=k?cells[k]:null,act=!!ui||!!(c&&(armed==='leash'?c.cap:armed==='dial'?(!c.cap&&!c.isVoid):armed==='weave'?isBright(k):(k===K(pQ,pR)||getMoves().some(m=>K(m.q,m.r)===k))));
   const base=T.cursorBaseR||8,lw=T.cursorLineW||2,press=mDownAt>0?Math.min(1,(now-mDownAt)/(T.cursorClickDurMs||120)):0,cR=base*(1-(T.cursorClickShrink!=null?T.cursorClickShrink:0.7)*0.4*press);
   _curA+=((act?1:(T.cursorIdleAlphaMult!=null?T.cursorIdleAlphaMult:0.5))-_curA)*0.25;const ev=act?255:Math.round(255*(1-(T.cursorIdleBorderDark!=null?T.cursorIdleBorderDark:0.4))),col=armed?'255,220,120':`${ev},${ev},${ev}`;
-  cursorBase(hcx,mX,mY,cR,_curA,1,col,lw);cursorRing(hcx,mX,mY,cR,_curA,col,lw);cursorDot(hcx,mX,mY,_curA,col);}
+  cursorTrail(hcx,mX,mY,now,col,lw);cursorBase(hcx,mX,mY,cR,_curA,1,col,lw);cursorRing(hcx,mX,mY,cR,_curA,col,lw);cursorDot(hcx,mX,mY,_curA,col);}
 let _curA=0.5;
 
 // ╔══════════════════════════════════════════════════════════════════════════════╗
