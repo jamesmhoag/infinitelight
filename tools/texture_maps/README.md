@@ -28,4 +28,4 @@ To change a marking by hand:
 3. Save it in `tools/texture_edits/`.
 4. Re-bake.
 
-The bake uses your channel instead of the one it would generate, and says so (`hand-edited channel: …`). `texture_edits/3_texture_A_mouth.png` is the first such edit: the mouth runs the full length of the bill from the side and curves down to meet the corners from the front.
+The bake uses your channel instead of the one it would generate, and says so (`hand-edited channel: …`). `texture_edits/3_texture_A_mouth.png` is the first such edit. It keeps the side view's mouth and drops the front view's band, so from ahead the mouth is just the carved gap between the bills, with the side lines meeting at its corners.
