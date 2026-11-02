@@ -18,3 +18,14 @@ Written by `node tools/build_duck_meshes.js` on every bake, so they always match
 - **Bill colour.** It comes from a per-vertex bill weight, not the drawings. A vertex is bill when it is inside the side view's bill (map 4) and outside the head as it would be without one, either beyond its outline or standing proud of its sides (map 5). The front drawing's bill also colours faces looking ahead.
 - **The mouth.** It is drawn from the front drawing across the bill's front, and from the side drawing round the bill's sides, on the bill only.
 - **Carving.** Lines are cut into the mesh, except in the eyes and on the bill. Only the mouth is carved there, and the eyes stand proud.
+
+## Editing a map
+
+To change a marking by hand:
+
+1. Paint over the map, keeping the same file name and size.
+2. Keep the grey scale: 128 is the edge and brighter is inside.
+3. Save it in `tools/texture_edits/`.
+4. Re-bake.
+
+The bake uses your channel instead of the one it would generate, and says so (`hand-edited channel: …`). `texture_edits/3_texture_A_mouth.png` is the first such edit: the mouth runs the full length of the bill from the side and curves down to meet the corners from the front.

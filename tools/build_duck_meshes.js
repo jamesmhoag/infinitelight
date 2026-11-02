@@ -228,6 +228,11 @@ const dz=(a,k,bits)=>{const m=(1<<bits)-1,o=bits===8?new Uint8Array(a.length):ne
 const qz=(a,k)=>Int32Array.from(a,v=>Math.round(v*k));
 const C=buildGeo({}),B=buildGeo({head:+bh[1],bodyS:+bh[2]});
 const enc=m=>({R:+m.R.toFixed(4),p:dz(qz(m.pos,32000),3,16),n:dz(qz(m.nrm,127),3,8),h:z64(Int16Array.from(m.hp,v=>Math.round(v*32000)))});
+// ── texture_edits/: a hand-edited channel replaces the generated one (same file name and size as in texture_maps/, grey = the distance
+// field: 128 is the edge, brighter is inside) — paint over a map, save it here, re-bake
+for(const [c,name] of [[0,'3_texture_R_bill.png'],[1,'3_texture_G_eye.png'],[2,'3_texture_B_line.png'],[3,'3_texture_A_mouth.png']]){const file=path.join(__dirname,'texture_edits',name);
+  if(!fs.existsSync(file))continue;const e=readPNG(file);if(e.w!==TW||e.h!==TH){console.warn('texture_edits/'+name+' is '+e.w+'×'+e.h+', not '+TW+'×'+TH+': skipped');continue;}
+  for(let i=0;i<TW*TH;i++)tex[i*4+c]=e.data[i];console.log('hand-edited channel:',name);}
 const data={nv:C.nv,tex:{w:TW,h:TH,s:CW,t:CH,f:+fc.toFixed(2),p:PANELS,b:BUMP?1:0,d:z64(tex)},i:dz(Int32Array.from(C.idx),1,16),u:dz(Int32Array.from(C.uv),3,16),w:dz(Int32Array.from(C.bw),1,8),
   classic:enc(C),bighead:enc(B)}; // both shapes share topology and markings coordinates (Big Head only moves vertices)
 // self-check: decode exactly as the game does and compare
