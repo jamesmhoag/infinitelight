@@ -114,7 +114,7 @@ button:hover{background:rgba(255,255,255,0.15);}
   <div id="dock" class="bottom"><div id="inventoryPanel"></div><div id="touch-info"></div></div>
   <canvas id="cur"></canvas>
 </div>
-<script src="shared.js?v=20261102q"></script>
+<script src="shared.js?v=20261102r"></script>
 <script>
 const _SRC=document.documentElement.outerHTML; // kept so the Encyclopedia can run live scenes as embedded copies of the game
 // Safety: a negative / non-finite gradient radius would throw and kill the frame — clamp it, and log the first offender's stack so it can be traced.
@@ -5683,9 +5683,8 @@ function knotConsume(cap,now){
   _dormantFadeOnRemove=false;
   cap.mass+=pixMass;cap.energy=Math.max(cap.energy,cap.energy+pixE*T.mergeAbsorb);
   if(n>0){
-    cap.radMult=undefined;cap._radTo=undefined;cap.scaleState=undefined;cap.halfA=cap.halfB=cap._nhA=cap._nhB=cap._pulA=cap._pulB=cap._pulOff=cap.magTintCI2=undefined;cap._hToA=cap._hToB=undefined; // consumed something: same as a merge
     cap.ci=dominantCI(cap.masses);cap.balance=balanceScore(cap.masses);
-    const rgb=compositeRGB(cap.masses);cap.r=rgb.r;cap.g=rgb.g;cap.b=rgb.b;
+    const rgb=compositeRGB(cap.masses);cap.r=rgb.r;cap.g=rgb.g;cap.b=rgb.b;if(cap.whiteFx||cap.blackFx)enforceFx(cap); // consumed something: same as a merge (statuses stay, the colour takes in what it consumed)
     updateCached(cap);cap.fillDirty=true;
     refreshLifespan(cap,now);
     playFlute(cap.ci,cap.mass);
@@ -10936,7 +10935,6 @@ _pm('point-update');
       }
       // Immediately update captor with merged stats
       captor.mass+=captive.mass;
-      captor.radMult=undefined;captor._radTo=undefined;captor.scaleState=undefined; // merged into another: a Neutron Remnant's scale override ends
       for(let k=0;k<6;k++)captor.masses[k]+=captive.masses[k];
       captor.energy=mergeEnergy(captor,captive);
       captor.ci=dominantCI(captor.masses);
@@ -10944,7 +10942,7 @@ _pm('point-update');
       if(captor.collapsed&&!captor.failedCollapse&&!captor.isRemnant){
         captor.collapsedRadius=Math.max(captor.collapsedRadius,massToRadius(captor.mass,T.whiteMinR,T.whiteMaxR)); // never shrinks a Point that was scaled past the natural cap
       }
-      {const rgb=compositeRGB(captor.masses);captor.r=rgb.r;captor.g=rgb.g;captor.b=rgb.b;}
+      {const rgb=compositeRGB(captor.masses);captor.r=rgb.r;captor.g=rgb.g;captor.b=rgb.b;if(captor.whiteFx||captor.blackFx)enforceFx(captor);} // the consumed colour is mixed in; a CRYSTALIZE / ECLIPSE consumer keeps its look (its statuses — a Neutron's scale and the rest — stay too)
       updateCached(captor);captor.fillDirty=true;
       if(!captor.collapsed&&!captor.failedCollapse&&!captor.isRemnant&&isCollapseEligible(captor))tryCollapse(captor,rb);
       // Active transferance: color-point-to-color-point merges carry the click
@@ -13929,7 +13927,7 @@ function cardHTML(ev,mini){ // the one card format: name bar, art box, type line
   return `<div class="mtg${mini?' sm':''}" data-ev="${ev.id}" style="--rc:${r[0]}"><div class="nm"><b>${gEsc(ev.name)}</b><span class="gem"></span></div><div class="art" data-scene="${ev.scene}">${mini?`<canvas class="rl-m" width="64" height="64" data-k="${ev.ico}"></canvas>`:''}</div><div class="ty"><span>${gEsc(ev.type.replace(/^Event — /,''))}</span><span>${r[1]}</span></div><div class="tx">${ev.facts().map(f=>`<p>${gEsc(f)}</p>`).join('')}<p class="fl">${gEsc(ev.flavor)}</p></div></div>`;
 }
 function mountScene(h,w,hh){if(!h||h.firstChild||document.querySelectorAll('.rl-live iframe,.mtg .art iframe').length>=5)return;const f=document.createElement('iframe'),nm=h.dataset.s||h.dataset.scene;f.style.cssText='border:0;max-width:100%;pointer-events:none;background:#000;border-radius:6px;'+(w?`width:${w}px;height:${hh}px`:'width:100%;height:100%');
-  if(nm.slice(0,4)==='hub:')f.src='Surface_Map_HUB.html?v=20261102q&scene='+nm.slice(4)+'&T='+encodeURIComponent(JSON.stringify(mapSceneT()));else f.srcdoc=liveSrc(nm);h.appendChild(f);} // a Surface Map demo is played by the map itself
+  if(nm.slice(0,4)==='hub:')f.src='Surface_Map_HUB.html?v=20261102r&scene='+nm.slice(4)+'&T='+encodeURIComponent(JSON.stringify(mapSceneT()));else f.srcdoc=liveSrc(nm);h.appendChild(f);} // a Surface Map demo is played by the map itself
 function mapSceneT(){const o={};for(const k in T)if(/^(map|bh|duck|wake|glass|metal|dimGlow|glowHalo|maxSpeed)/.test(k))o[k]=T[k];return o;} // what a map demo needs of the tuners
 function showEventCard(id,review){
   const ev=EVENTS.find(e=>e.id===id);if(!ev)return;guideCSS();
