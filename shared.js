@@ -252,3 +252,73 @@ function cursorRing(cx,x,y,cR,dimA,edgeCol,lw){cx.beginPath();cx.arc(x,y,cR,0,6.
 function cursorDot(cx,x,y,dimA,edgeCol){
   cx.globalCompositeOperation='screen';cx.filter='blur(3px)';cx.globalAlpha=0.7*dimA;cx.beginPath();cx.arc(x,y,1.4,0,6.2832);cx.fillStyle=`rgba(${edgeCol},0.9)`;cx.fill();
   cx.filter='none';cx.globalAlpha=1;cx.globalCompositeOperation='source-over';cx.beginPath();cx.arc(x,y,0.75,0,6.2832);cx.fillStyle=`rgba(${edgeCol},${(0.65*dimA).toFixed(3)})`;cx.fill();}
+// ═════════════════════════ SHOPS (sold on the Surface Map; the surface, which keeps the purse, settles every purchase) ═════════════════════════
+// SHOPS: main street ones (street) stand round the source, lit only while open: hours are [open, close) on the map's clock (3 Predawn … 24 Midnight;
+// 0–27 = 24 hours). Pop-ups open on a bright clear whose surface collected at least T.mapShop<Cur>1/2/3 of their collectable (cur, also what they
+// mostly charge in) — rank 1..3, the size of the store (SHOP_RANK_BLD); at: those thresholds' defaults. col: the colour its glass is lit with.
+// dc: Dim to hold to discover a main street shop. SHOP_BLD: each building and where its glass sits behind its empty windows (shops/*.png).
+const SHOP_BLD={s:{b:'bld_s',g:'glass_s',gx:7,gy:43},d:{b:'bld_s_dark',g:'glass_s',gx:7,gy:43},m:{b:'bld_m',g:'glass_m',gx:13,gy:31},l:{b:'bld_l',g:'glass_m',gx:13,gy:71},t:{b:'bld_t',g:'glass_t',gx:5,gy:16}};
+const SHOP_RANK_BLD=['s','m','l'];
+const SHOPS={
+  corner:{n:'CORNER STORE',tag:'The corners are conveniently cut.',street:1,open:0,close:27,col:'#fff1d0',dc:25},
+  clock:{n:'Clock smith.',tag:'Turn the Clock, be unlocked.',street:1,open:9,close:18,col:'#fff1d0',dc:300},
+  xact:{n:'XACT change',tag:'Exchange for spare change.',street:1,open:6,close:15,col:'#fff1d0',dc:600},
+  gift:{n:'GIFT SHOP',tag:'Souvenirs to remember with.',street:1,open:0,close:27,col:'#ffffff',bk:'d',dc:0},
+  bright:{n:'BRiGHT IDEAS',tag:'Like a spoon that is also a fork.',cur:'bright',col:'#00c3ff',at:[100,1000,10000]},
+  dim:{n:'Dim’s: Carnival of Discovery',tag:'Natural phenomena.',cur:'dim',col:'#ff78e2',at:[100,1000,10000]},
+  neutron:{n:'premium NEUTRINOS',tag:'Density, delivered.',cur:'neutron',col:'#8a3cff',at:[5,25,100]},
+  magnetic:{n:'MAGNETS & STUFF',tag:'Opposites attract.',cur:'magnetic',col:'#ff6a00',at:[5,25,100]},
+  pulsing:{n:'the PULSE',tag:'Feel the beat.',cur:'pulsing',col:'#aaff00',at:[5,25,100]},
+  duck:{n:'DUCK SHOP',tag:'Quack, quack, quack, quack.',cur:'duck',col:'#ffe500',at:[1,3,6]}};
+// SHOP_ITEMS: [id, shop, name, cost, cur (blank: the shop's own, else bright), r (the pop-up rank that first carries it), fx, req (an item owned first), dc (Dim to
+// hold to discover it: the dc_si_<id> tuner), note]. fx: give {kind:n} · cap {kind:max} (raises a purse cap, once) · clock h (turns the map's clock) ·
+// duck roll | exotic | pick | Size | Colour | Material (a duck of that kind) · disc id (reveals an interface element, once) · souv (a Gift Shop souvenir) ·
+// up (an upgrade, once: its effect is still to come)
+const SHOP_ITEMS=[
+  ['spindle','corner','Spindle',199,'',1,{give:{leash:1}},0,0],['string','corner','String',299,'',1,{give:{dial:1}},0,0],['weave','corner','Weave',599,'',1,{give:{weave:1}},0,10],
+  ['prism','corner','Prism',1999,'',1,{give:{prism:1}},0,40],['knot','corner','Knot',2999,'',1,{give:{knot:1}},0,60],['lens','corner','Lens',5999,'',1,{give:{lens:1}},0,80],
+  ['midnight','clock','Midnight',1999999,'',1,{clock:24},0,1000],['dawn','clock','Dawn',199999,'',1,{clock:6},0,400],['noon','clock','Noon',19999,'',1,{clock:12},0,100],['dusk','clock','Dusk',1999,'',1,{clock:18},0,0],
+  ['x_dim','xact','100k Dim',9999,'',1,{give:{dim:100000}},0,0],['x_mag','xact','100 Magnetic',9999,'',1,{give:{magnetic:100}},0,0],['x_pul','xact','100 Pulsing',9999,'',1,{give:{pulsing:100}},0,0],['x_neu','xact','100 Neutron',9999,'',1,{give:{neutron:100}},0,0],
+  ['postcard','gift','Postcard',99999,'',1,{souv:1}],['keychain','gift','Key Chain',199999,'',1,{souv:1}],['hat','gift','Hat',1999999,'',1,{souv:1}],['stuffy','gift','Stuffy',9999999,'',1,{souv:1}],['tshirt','gift','T-shirt',9999999,'',1,{souv:1}],
+  ['cl4','bright','Constellation light limit 3>4',3000,'',1,{up:1},0,0,'Constellations are formed by leashes'],['sh4','bright','Item shape light limit 3>4',5000,'',1,{up:1},0,0,'Item shapes: Prisms, Knots, Lens and Gates'],
+  ['c_gate','bright','Gates on the Center',1000,'pulsing',1,{up:1}],['cap_gate','bright','Max Gates 1>5',200,'neutron',1,{cap:{gate:5}}],
+  ['cap_mag1','bright','Max Magnetics 99>999',50,'magnetic',1,{cap:{magnetic:999}}],['cap_neu1','bright','Max Neutrons 99>999',50,'neutron',1,{cap:{neutron:999}}],['cap_pul1','bright','Max Pulsings 99>999',50,'pulsing',1,{cap:{pulsing:999}}],
+  ['p_dim','bright','Dim as an item from the pouch',100,'magnetic',1,{up:1}],['p_bright','bright','Bright as an item from the pouch',100,'magnetic',1,{up:1}],
+  ['cl5','bright','Constellation light limit 4>5',30000,'',2,{up:1},'cl4'],['sh5','bright','Item shape light limit 4>5',50000,'',2,{up:1},'sh4'],
+  ['spd05','bright','0.5 × game speed',50000,'',2,{up:1}],['spd2','bright','2.0 × game speed',50000,'',2,{up:1}],['c_key','bright','Keys on the Center',5000,'pulsing',2,{up:1}],['cap_key','bright','Max Keys 1>5',5000,'neutron',2,{cap:{key:5}}],
+  ['cl_lens','bright','Fill constellations with Lens',200000,'',2,{up:1}],['cl_gate','bright','Fill constellations with Gates',200000,'',2,{up:1}],
+  ['sh_lens','bright','Fill item shapes with Lens',200000,'',2,{up:1}],['sh_gate','bright','Fill item shapes with Gates',200000,'',2,{up:1}],['orbit_lens','bright','A Lens on a dialing orbit',200000,'',2,{up:1}],
+  ['spd0','bright','0.0 × game speed',500000,'',3,{up:1},'spd05'],['spd8','bright','8.0 × game speed',500000,'',3,{up:1},'spd2'],['rect2','bright','Item shape rectangles from 2 lights',500000,'',3,{up:1}],
+  ['w_lens_c','bright','Wrap Lens with constellations',500000,'',3,{up:1}],['w_gate_c','bright','Wrap Gates with constellations',500000,'',3,{up:1}],['w_gate_s','bright','Wrap Gates with item shapes',500000,'',3,{up:1}],
+  ['u_dim','bright','Use Faint Remnants',500000,'',3,{up:1}],['u_bright','bright','Use Bright Remnants',500000,'',3,{up:1}],['u_neu','bright','Use Neutron Remnants',500000,'',3,{up:1}],
+  ['u_mag','bright','Use Magnetic Remnants',500000,'',3,{up:1}],['u_pul','bright','Use Pulsing Remnants',500000,'',3,{up:1}],
+  ['d_bright','bright','Random Duck',5000000,'',3,{duck:'roll'},0,0,'Dupes possible, no variations'],['pure_bright','bright','Pure Brightness',9999999,'',3,{up:1}],
+  ['boom','dim','Boom or Bust collection',1000000,'bright',1,{up:1},0,0,'Collects everything in range at its minimum or ×100 its energy value: 50 / 50 for each batch'],
+  ['luck','dim','More Luck',1000000,'',2,{up:1},0,0,'More likely to get a new duck than a Dark Remnant'],['pure_dim','dim','Pure Darkness',9999999,'',3,{up:1}],
+  ['cap_dial1','neutron','Max Strings 5>10',10,'',1,{cap:{dial:10}}],['cap_dim1','neutron','Max Faint 9,999>999,999',50,'',1,{cap:{dim:999999}}],['cap_bri1','neutron','Max Bright 9,999>999,999',50,'',1,{cap:{bright:999999}}],
+  ['cap_knot','neutron','Max Knots 1>5',100,'',1,{cap:{knot:5}}],['s_knot','neutron','Knots on Sectors',100,'pulsing',1,{up:1}],
+  ['s_lens','neutron','Lens on Sectors',200,'',2,{up:1}],['cap_lens','neutron','Max Lens 1>5',200,'',2,{cap:{lens:5}}],['cap_neu2','neutron','Max Neutrons 999>9,999',500,'',2,{cap:{neutron:9999}},'cap_neu1'],
+  ['c_knot','neutron','Knots on the Center',1000,'pulsing',2,{up:1}],['p_neu','neutron','Neutron as an item from the pouch',500,'magnetic',2,{up:1}],
+  ['cap_dim2','neutron','Max Faint 999,999>9,999,999',1000,'',3,{cap:{dim:9999999}},'cap_dim1'],['cap_bri2','neutron','Max Bright 999,999>9,999,999',1000,'',3,{cap:{bright:9999999}},'cap_bri1'],
+  ['c_lens','neutron','Lens on the Center',2000,'',3,{up:1}],['w_lens_s','neutron','Wrap Lens with item shapes',500000,'bright',3,{up:1}],
+  ['radii','neutron','Live effect radii layer',1000000,'bright',3,{disc:'mode_radii'}],['pure_neu','neutron','Pure Density',9999,'',3,{up:1}],
+  ['d_neu','neutron','Random Duck Variant',9999,'',3,{duck:'Size'},0,0,'A size variant (dupes possible)'],
+  ['act5','magnetic','Active maximum 1>5',10,'',1,{up:1}],['sweep','magnetic','Sweep selection',20,'',1,{up:1}],['blotch','magnetic','Blotch selection',50,'',1,{up:1}],['s_prism','magnetic','Prisms on Sectors',50,'',1,{up:1}],
+  ['act15','magnetic','Active maximum 5>15',100,'',2,{up:1},'act5'],['cap_prism','magnetic','Max Prisms 1>5',500,'',2,{cap:{prism:5}}],['p_mag','magnetic','Magnetic as an item from the pouch',500,'',2,{up:1}],
+  ['cap_mag2','magnetic','Max Magnetics 999>9,999',500,'',2,{cap:{magnetic:9999}},'cap_mag1'],['c_prism','magnetic','Prisms on the Center',500,'',2,{up:1}],
+  ['act20','magnetic','Active maximum 15>20',1000,'',3,{up:1},'act15'],['dk_hue','magnetic','Dark Remnant takes the predominant hue',2000,'',3,{up:1}],['dk_rainbow','magnetic','Rainbow Dark Remnant when the balance is bright',5000,'',3,{up:1}],
+  ['pure_mag','magnetic','Pure Harmony',9999,'',3,{up:1}],['d_mag','magnetic','Random Duck Variant',9999,'',3,{duck:'Colour'},0,0,'A colour variant (dupes possible)'],
+  ['s_dial','pulsing','Strings on Sectors',10,'',1,{up:1}],['s_leash','pulsing','Spindles on Sectors',50,'',1,{up:1}],['c_dial','pulsing','Strings on the Center',100,'',1,{up:1}],['p_pul','pulsing','Pulsing as an item from the pouch',500,'magnetic',1,{up:1}],
+  ['s_gate','pulsing','Gates on Sectors',200,'',2,{up:1}],['c_leash','pulsing','Spindles on the Center',300,'',2,{up:1}],['s_key','pulsing','Keys on Sectors',500,'',2,{up:1}],
+  ['cap_leash1','pulsing','Max Spindles 5>10',500,'',2,{cap:{leash:10}}],['cap_pul2','pulsing','Max Pulsings 999>9,999',500,'',2,{cap:{pulsing:9999}},'cap_pul1'],['cap_dial2','pulsing','Max Strings 10>50',100,'',2,{cap:{dial:50}},'cap_dial1'],
+  ['autofire','pulsing','String auto-fire',10000,'',3,{up:1}],['rapid','pulsing','String rapid fire rate',10000,'',3,{up:1}],['blast','pulsing','String double-click blast',10000,'',3,{up:1}],
+  ['cap_dial3','pulsing','Max Strings 50>99',2000,'',3,{cap:{dial:99}},'cap_dial2'],['cap_leash2','pulsing','Max Spindles 10>50',2000,'',3,{cap:{leash:50}},'cap_leash1'],
+  ['telem','pulsing','Live telemetry layer',1000000,'',3,{disc:'mode_telemetry'}],['pure_pul','pulsing','Pure Rhythm',9999,'',3,{up:1}],['d_pul','pulsing','Random Duck Variant',9999,'',3,{duck:'Material'},0,0,'A material variant (dupes possible)'],
+  ['flip','duck','Flip a Duck',1,'',1,{duck:'roll'},0,0,'One duck in, a random duck out'],['exotic','duck','Exotic Duck',5,'',2,{duck:'exotic'},0,0,'Five of one kind in, a new variant of that kind out'],
+  ['pickduck','duck','Pick a Duck',99,'',3,{duck:'pick'},0,0,'Ninety-nine ducks in, the duck of your choice out']
+].map(([id,shop,n,cost,cur,r,fx,req,dc,note])=>({id,shop,n,cost,cur:cur||SHOPS[shop].cur||'bright',r,fx,req:req||null,dc:dc||0,note:note||''}));
+const shopItem=id=>SHOP_ITEMS.find(i=>i.id===id);
+const shopOnce=it=>!!(it.fx.cap||it.fx.up||it.fx.disc); // bought once and kept (as the discovery 'up:<id>'); the rest can be bought again
+const shopTK=cur=>'mapShop'+cur[0].toUpperCase()+cur.slice(1); // a pop-up's threshold tuners: <this>1..3
+function shopCap(kind,has){let m=0;for(const it of SHOP_ITEMS)if(it.fx.cap&&it.fx.cap[kind]!=null&&has('up:'+it.id))m=Math.max(m,it.fx.cap[kind]);return m;} // the purse cap bought for a kind (0: none)
+function shopIsOpen(id,clock){const S=SHOPS[id];return!S.street||(clock>=S.open&&clock<S.close);}
