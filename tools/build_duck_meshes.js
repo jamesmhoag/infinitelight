@@ -85,7 +85,7 @@ function masks(lab,w,h,u){w=w||CW;h=h||CH;u=u||1;const T=w*h,mBeak=M(T),mEye=M(T
 // bill's drawn top edge (bill just below, none above), which from ahead is the line over the bill between the eyes.
 function frontMouth(labF,w,h,u){const fM=masks(extendOut(labF,8*u,w,h),w,h,u),out=M(w*h),up=new Float32Array(w*h),dn=new Float32Array(w*h);
   for(let x=0;x<w;x++){let last=-1e9;for(let y=0;y<h;y++){if(labF[y*w+x]===3)last=y;up[y*w+x]=y-last;}last=1e9;for(let y=h-1;y>=0;y--){if(labF[y*w+x]===3)last=y;dn[y*w+x]=last-y;}}
-  for(let i=0;i<w*h;i++){if(!fM.mMouth[i]&&!fM.mLine[i])continue;const a=up[i],b=dn[i];if((a>0&&a<=9*u&&b>0&&b<=9*u)||(b>0&&b<=3*u&&!(a>0&&a<=3*u)))out[i]=1;}
+  for(let i=0;i<w*h;i++){if(!fM.mMouth[i]&&!fM.mLine[i])continue;const a=up[i],b=dn[i];if(a>0&&a<=9*u&&b>0&&b<=9*u)out[i]=1;} // only the band between the upper and lower bill (the face → bill edge is the colour change itself)
   return{mBeakF:fM.mBeak,mMouthF:out};}
 const labF=viewLabels(1);let fc=0,fn=0;for(let i=0;i<N;i++)if(labF[i]===3){fc+=i%CW;fn++;}fc=fn?fc/fn:CW/2; // the front view's centre column: z = 0
 // ── exact Euclidean distance transform (Felzenszwalb) and signed distance of a mask
@@ -131,7 +131,7 @@ let th=new Float32Array(N);
 for(let y=0;y<CH;y++){let x=0;while(x<CW){if(!isIn(x,y)){x++;continue;}let b=x;while(b+1<CW&&isIn(b+1,y))b++;
   const c=(x+b)/2,hl=(b-x+1)/2,w=Math.min(half[y],hl*1.15);
   for(let k=x;k<=b;k++){const s=(k-c)/hl;let t=w*Math.sqrt(Math.max(0,1-s*s));
-    if(lab[y*CW+k]===3||mMouth[y*CW+k]){const tip=Math.sqrt(Math.min(1,(b-k+0.5)/3));t=Math.max(t,beakW[y]*tip);} // the bill: as wide as the front view draws it, round-tipped
+    if(lab[y*CW+k]===3||mMouth[y*CW+k])t=0; // the bill is not part of the body: it is built as its own shape below
     th[y*CW+k]=t;}x=b+1;}}
 for(let i=0;i<N;i++){if(!mSil[i])continue;const u=Math.min(1,Math.max(0,SIL[i])/7);th[i]*=Math.sqrt(1-(1-u)*(1-u));} // rounds over into the outline
 for(let it=0;it<2;it++){const o=new Float32Array(N);for(let y=0;y<CH;y++)for(let x=0;x<CW;x++){const i=y*CW+x;if(!mSil[i])continue;let s=0,n=0;
@@ -149,20 +149,27 @@ for(let j=0;j<NY;j++)for(let i=0;i<NX;i++){const x=X0+i*VOX,y=Y0+j*VOX,s=bil(SIL
   const pass=(src,dst,step,n,idxOf)=>{for(let o=0;o<F.length;o++){const p=idxOf(o);let v=0;for(let k=-2;k<=2;k++){const q=Math.max(0,Math.min(n-1,p+k));v+=src[o+(q-p)*step]*K[k+2];}dst[o]=v;}};
   pass(F,tmp,1,NX,o=>o%NX);pass(tmp,F,NX,NY,o=>((o/NX)|0)%NY);pass(F,tmp,NX*NY,NZ,o=>(o/(NX*NY))|0);F.set(tmp);
 }
-{ // THE BILL, its own shape attached at the same scale (after the blur, so it keeps its edges): a duck's bill is flat and wide, not a point.
-  // Side view: each bill column's top and bottom (its height); front view: its width (the widest the front view draws over those rows);
-  // its tip is rounded in plan (a spatula, not a wedge) and its cross-section is a flattened oval. It joins the face with a smooth union.
-  let bx0=1e9,bx1=-1;const top=new Float32Array(CW).fill(-1),bot=new Float32Array(CW).fill(-1);
-  for(let x=0;x<CW;x++)for(let y=0;y<CH;y++)if(lab[y*CW+x]===3){if(top[x]<0)top[x]=y;bot[x]=y+1;bx0=Math.min(bx0,x);bx1=Math.max(bx1,x+1);}
-  if(bx1>bx0){const wz=new Float32Array(CW);let wmax=0;for(let x=bx0;x<bx1;x++){if(top[x]<0)continue;let m=0;for(let y=top[x]|0;y<bot[x];y++)m=Math.max(m,beakW[y]);wz[x]=m;wmax=Math.max(wmax,m);}
-    const Rt=Math.min(wmax*0.8,(bx1-bx0)*0.45),P=2.6,KB=2.2; // tip radius in plan · cross-section squareness · how softly it joins the face
-    const at=(A,x)=>{const i=Math.max(bx0,Math.min(bx1-1,Math.floor(x)));return A[i];};
-    for(let j=0;j<NY;j++)for(let i=0;i<NX;i++){const x=X0+i*VOX,y=Y0+j*VOX;if(x<bx0||x>bx1+1||at(top,x)<0)continue; // (only the bill's own columns: no seam where it starts)
-      let w=Math.max(1,at(wz,x));const yc=(at(top,x)+at(bot,x))/2,hy=Math.max(2.8,Math.min((at(bot,x)-at(top,x))/2,w*0.4)); // flat (no taller than 0.8 × its width) and blunt (never thinner than ~5.6 px, so the tip is not a point)
-      const tx=x-(bx1-Rt);if(tx>0)w*=Math.sqrt(Math.max(0,1-(tx/Rt)*(tx/Rt))); // the rounded tip
-      for(let k=0;k<NZ;k++){const z=Z0+k*VOX;let d;
-        if(w<0.3)continue;else{const q=Math.pow(Math.pow(Math.abs(z)/w,P)+Math.pow(Math.abs(y-yc)/hy,P),1/P);d=(1-q)*Math.min(w,hy);}
-        const o=fi(i,j,k),a0=F[o],h=Math.max(0,Math.min(1,0.5+0.5*(d-a0)/KB));F[o]=a0+(d-a0)*h+KB*h*(1-h);}}} // smooth union
+const FB=new Float32Array(F.length),FBL=new Float32Array(F.length); // the face's field before the bill joins, and the bill's own
+{ // THE BILL, its own shapes attached at the same scale (after the blur, so they keep their edges): a duck's bill is flat and wide, not a point,
+  // and it is two parts — the upper bill and the lower bill, the mouth between them. In each side-view column every run of bill pixels (the
+  // mouth line splits them) is one part there: its height from that run, its width the widest the front view draws over those rows, its
+  // end rounded in plan (a spatula, not a wedge) and its cross-section a flattened oval. Each joins the face (and the other) with a smooth union.
+  const isB=(x,y)=>x>=0&&y>=0&&x<CW&&y<CH&&lab[y*CW+x]===3,reach=new Int16Array(N); // reach: bill columns to the right along this row
+  for(let y=0;y<CH;y++)for(let x=CW-1;x>=0;x--)reach[y*CW+x]=isB(x,y)?1+(x+1<CW?reach[y*CW+x+1]:0):0;
+  const runs=[];for(let x=0;x<CW;x++){let y=0;while(y<CH){if(!isB(x,y)){y++;continue;}let b=y;while(isB(x,b+1))b++;
+    let w=0;for(let yy=y;yy<=b;yy++)w=Math.max(w,beakW[yy]);const yc=(y+b+1)/2;runs.push({x,a:y,b:b+1,yc,w,tip:reach[Math.min(CH-1,Math.round(yc-0.5))*CW+x]||1});y=b+1;}}
+  const P=2.6,KB=1.6,byCol=new Map();FB.set(F);FBL.fill(-1e3);for(const r of runs){if(!byCol.has(r.x))byCol.set(r.x,[]);byCol.get(r.x).push(r);}
+  for(let j=0;j<NY;j++)for(let i=0;i<NX;i++){const x=X0+i*VOX,y=Y0+j*VOX,rs=byCol.get(Math.floor(x));if(!rs)continue;
+    for(const r of rs){let w=Math.max(1,r.w*1.18); /* a little wider than drawn: its sides sink into the rounded face, and from ahead it should read as wide as the drawing */const hy=Math.max(2.2,Math.min((r.b-r.a)/2,w*0.4)),Rt=Math.min(w*0.8,12),tx=Rt-(r.tip-(x-r.x)); // flat (no taller than 0.8 × its width), blunt (never a sliver)
+      if(tx>0)w*=Math.sqrt(Math.max(0,1-(tx/Rt)*(tx/Rt))); // the rounded end
+      if(w<0.3||Math.abs(y-r.yc)>hy+4)continue;
+      for(let k=0;k<NZ;k++){const z=Z0+k*VOX;if(Math.abs(z)>w+4)continue;const q=Math.pow(Math.pow(Math.abs(z)/w,P)+Math.pow(Math.abs(y-r.yc)/hy,P),1/P),d=(1-q)*Math.min(w,hy);
+        const o=fi(i,j,k);if(d>FBL[o])FBL[o]=d;}}} // the bill's own field (its parts together)
+  { // blurred like the body (it is built column by column: unblurred, every column leaves a ridge), then joined to the face with a smooth union
+    const K=[0.054,0.244,0.403,0.244,0.054],tmp=new Float32Array(F.length),cl=v=>Math.max(-6,v);for(let o=0;o<F.length;o++)FBL[o]=cl(FBL[o]);
+    const pass=(src,dst,step,n,idxOf)=>{for(let o=0;o<F.length;o++){const p=idxOf(o);let v=0;for(let k=-2;k<=2;k++){const q=Math.max(0,Math.min(n-1,p+k));v+=src[o+(q-p)*step]*K[k+2];}dst[o]=v;}};
+    pass(FBL,tmp,1,NX,o=>o%NX);pass(tmp,FBL,NX,NY,o=>((o/NX)|0)%NY);pass(FBL,tmp,NX*NY,NZ,o=>(o/(NX*NY))|0);FBL.set(tmp);
+    for(let o=0;o<F.length;o++){const a0=F[o],d=FBL[o],h=Math.max(0,Math.min(1,0.5+0.5*(d-a0)/KB));F[o]=a0+(d-a0)*h+KB*h*(1-h);}}
 }
 function surfaceNets(){
   const P=[],I=[],cell=new Int32Array(NX*NY*NZ).fill(-1);
@@ -181,8 +188,8 @@ function surfaceNets(){
   return{P:Float32Array.from(P),I:Uint32Array.from(I)};}
 const net=surfaceNets();
 function sampleF(x,y,z){return sf(x,y,z);}
-const sf=(x,y,z)=>{const gx=Math.max(0,Math.min(NX-1.001,(x-X0)/VOX)),gy=Math.max(0,Math.min(NY-1.001,(y-Y0)/VOX)),gz=Math.max(0,Math.min(NZ-1.001,(z-Z0)/VOX)),i=gx|0,j=gy|0,k=gz|0,tx=gx-i,ty=gy-j,tz=gz-k;
-    let v=0;for(let c=0;c<8;c++){const a=c&1,b=(c>>1)&1,d=(c>>2)&1;v+=F[fi(i+a,j+b,k+d)]*(a?tx:1-tx)*(b?ty:1-ty)*(d?tz:1-tz);}return v;};
+const sf=(x,y,z,A=F)=>{const gx=Math.max(0,Math.min(NX-1.001,(x-X0)/VOX)),gy=Math.max(0,Math.min(NY-1.001,(y-Y0)/VOX)),gz=Math.max(0,Math.min(NZ-1.001,(z-Z0)/VOX)),i=gx|0,j=gy|0,k=gz|0,tx=gx-i,ty=gy-j,tz=gz-k;
+    let v=0;for(let c=0;c<8;c++){const a=c&1,b=(c>>1)&1,d=(c>>2)&1;v+=A[fi(i+a,j+b,k+d)]*(a?tx:1-tx)*(b?ty:1-ty)*(d?tz:1-tz);}return v;};
 { // every triangle faces outward: against the field's gradient (the field is positive inside)
   const P=net.P,I=net.I;let flips=0;
   for(let t=0;t<I.length;t+=3){const a=I[t]*3,b=I[t+1]*3,c=I[t+2]*3,ux=P[b]-P[a],uy=P[b+1]-P[a+1],uz=P[b+2]-P[a+2],wx=P[c]-P[a],wy=P[c+1]-P[a+1],wz=P[c+2]-P[a+2];
@@ -216,11 +223,12 @@ function buildGeo(v){
   for(let i=0;i<nv;i++){const x=net.P[i*3],y=net.P[i*3+1],z=net.P[i*3+2],e=0.75;
     let gx=-(sampleF(x+e,y,z)-sampleF(x-e,y,z)),gy=sampleF(x,y+e,z)-sampleF(x,y-e,z),gz=-(sampleF(x,y,z+e)-sampleF(x,y,z-e));const l=Math.hypot(gx,gy,gz)||1;
     nrm[i*3]=gx/l;nrm[i*3+1]=gy/l;nrm[i*3+2]=gz/l;}
+  const bw=new Uint8Array(nv);for(let i=0;i<nv;i++){const x=net.P[i*3],y=net.P[i*3+1],z=net.P[i*3+2],e=sf(x,y,z,FBL)-sf(x,y,z,FB);bw[i]=Math.round(255*Math.max(0,Math.min(1,0.5+e/2.4)));} // how much of the bill (vs the face) this vertex is: the bill is its own colour, whatever the drawings project there
   const uv=new Uint16Array(nv*3);for(let i=0;i<nv;i++)for(let c=0;c<3;c++)uv[i*3+c]=Math.max(0,Math.min(65535,Math.round((net.P[i*3+c]+(c===2?128:0))*256))); // the strip pixel it came from (before Big Head) and its depth across (+128), ×256
   const ext=new Set(),K=420;for(let k=0;k<K;k++){const z=1-2*(k+0.5)/K,r=Math.sqrt(1-z*z),a=k*2.39996323,dx=r*Math.cos(a),dy=r*Math.sin(a);
     let bi=0,bd=-1e9;for(let i=0;i<nv;i++){const d=pos[i*3]*dx+pos[i*3+1]*dy+pos[i*3+2]*z;if(d>bd){bd=d;bi=i;}}ext.add(bi);}
   const hp=[];for(const i of ext)hp.push(pos[i*3],pos[i*3+1],pos[i*3+2]);
-  return{nv,R,pos,nrm,uv,idx,hp:Float32Array.from(hp)};}
+  return{nv,R,pos,nrm,uv,bw,idx,hp:Float32Array.from(hp)};}
 const html=fs.readFileSync(GAME,'utf8'),bh=/DUCK_TYPES\.bighead=\{[^}]*head:([\d.]+),bodyS:([\d.]+)/.exec(html);
 if(!bh)throw new Error('Big Head proportions not found in the game');
 const z64=a=>zlib.deflateRawSync(Buffer.from(a.buffer,a.byteOffset,a.byteLength),{level:9}).toString('base64');
@@ -229,7 +237,7 @@ const dz=(a,k,bits)=>{const m=(1<<bits)-1,o=bits===8?new Uint8Array(a.length):ne
 const qz=(a,k)=>Int32Array.from(a,v=>Math.round(v*k));
 const C=buildGeo({}),B=buildGeo({head:+bh[1],bodyS:+bh[2]});
 const enc=m=>({R:+m.R.toFixed(4),p:dz(qz(m.pos,32000),3,16),n:dz(qz(m.nrm,127),3,8),h:z64(Int16Array.from(m.hp,v=>Math.round(v*32000)))});
-const data={nv:C.nv,tex:{w:TW,h:TH,s:CW,t:CH,f:+fc.toFixed(2),p:PANELS,b:BUMP?1:0,d:z64(tex)},i:dz(Int32Array.from(C.idx),1,16),u:dz(Int32Array.from(C.uv),3,16),
+const data={nv:C.nv,tex:{w:TW,h:TH,s:CW,t:CH,f:+fc.toFixed(2),p:PANELS,b:BUMP?1:0,d:z64(tex)},i:dz(Int32Array.from(C.idx),1,16),u:dz(Int32Array.from(C.uv),3,16),w:dz(Int32Array.from(C.bw),1,8),
   classic:enc(C),bighead:enc(B)}; // both shapes share topology and markings coordinates (Big Head only moves vertices)
 // self-check: decode exactly as the game does and compare
 {const un=(t,k,bits,signed)=>{const r=zlib.inflateRawSync(Buffer.from(t,'base64')),a=bits===8?new Uint8Array(r.buffer,r.byteOffset,r.length):new Uint16Array(r.buffer,r.byteOffset,r.length/2),m=(1<<bits)-1,h=1<<(bits-1),o=new Int32Array(a.length);
