@@ -1,4 +1,4 @@
-// Bakes the two duck meshes (classic and Big Head) and the duck markings texture into chromatic_nebula.html — the game never builds a mesh.
+// Bakes the two duck meshes (classic and Big Head) and the duck markings texture into ducks.js (shared by the game and the Surface Map) — the game never builds a mesh.
 // Run from the repo root after changing the drawing or this pipeline:   (once: cd tools && npm install)   node tools/build_duck_meshes.js
 // Source: tools/Duck_Sheet.svg when present (DUCK_SVG=… for another file); DUCK_STRIP=tools/duck_strip.png bakes the old pixel strip instead.
 //
@@ -17,7 +17,8 @@
 // look up (lines over the head and back). Where a face turns away from every drawn view the nearest view's marking is stretched;
 // a view drawn for that direction is the fix, not smoothing the texture.
 const fs=require('fs'),zlib=require('zlib'),path=require('path');
-const GAME=process.env.DUCK_GAME||path.join(__dirname,'..','chromatic_nebula.html'),STRIP=process.env.DUCK_STRIP||path.join(__dirname,'duck_strip.png');
+const GAME=path.join(__dirname,'..','chromatic_nebula.html'),OUT=process.env.DUCK_OUT||path.join(__dirname,'..','ducks.js'), // the game holds the duck types (Big Head's proportions); ducks.js holds the baked meshes
+  STRIP=process.env.DUCK_STRIP||path.join(__dirname,'duck_strip.png');
 function readPNG(file){ // 8-bit, non-interlaced PNG → first channel
   const b=fs.readFileSync(file);let o=8,w=0,h=0,ct=0;const idat=[];
   while(o<b.length){const len=b.readUInt32BE(o),type=b.toString('ascii',o+4,o+8),d=b.subarray(o+8,o+8+len);
@@ -222,6 +223,6 @@ const data={nv:C.nv,tex:{w:TW,h:TH,s:CW,t:CH,f:+fc.toFixed(2),p:PANELS,b:BUMP?1:
   const ck=(name,got,want)=>{for(let i=0;i<want.length;i++)if(got[i]!==want[i])throw new Error(name+' mismatch at '+i+': '+got[i]+' vs '+want[i]);};
   ck('idx',un(data.i,1,16,false),C.idx);ck('uv',un(data.u,3,16,false),C.uv);ck('pos',un(data.classic.p,3,16,true),qz(C.pos,32000));ck('nrm',un(data.bighead.n,3,8,true),qz(B.nrm,127));}
 const line='const DUCK_MESH='+JSON.stringify(data)+'; // baked by tools/build_duck_meshes.js — do not edit by hand';
-const re=/^const DUCK_MESH=.*$/m;if(!re.test(html))throw new Error('DUCK_MESH line not found in the game');
-fs.writeFileSync(GAME,html.replace(re,()=>line));
+const re=/^const DUCK_MESH=.*$/m;
+const dst=fs.readFileSync(OUT,'utf8');if(!re.test(dst))throw new Error('DUCK_MESH line not found in '+OUT);fs.writeFileSync(OUT,dst.replace(re,()=>line));
 console.log(TOP?'top view: yes':'top view: none in the strip (4 views)');console.log('baked classic + bighead:',data.nv,'vertices each,',C.idx.length/3,'triangles · markings',TW+'×'+TH,'· in the game:',(line.length/1024).toFixed(0)+' KB');

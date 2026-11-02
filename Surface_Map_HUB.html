@@ -10,8 +10,7 @@
 body{background:#050608;overflow:hidden;font-family:'Share Tech Mono',monospace;color:#fff;user-select:none}
 #map-view{position:absolute;inset:0}
 #map-view{overflow:hidden}
-#mc{position:absolute;display:block;transform-origin:50% 50%} /* the map plane, larger than the screen and tilted away (applyView) */
-#pond{position:absolute;inset:0;width:100%;height:100%;pointer-events:none;z-index:5} /* the ducks and their ripples, drawn upright over the tilted plane */
+#scene{position:absolute;inset:0;width:100%;height:100%;display:block} /* the map as a 3D scene: the plane (drawn in 2D, then laid in the scene as its ground) and the ducks on it */
 /* the surface (chromatic_nebula.html): hidden with visibility, not display, so it keeps its size for the hex previews */
 #neb{position:fixed;inset:0;width:100%;height:100%;border:0;z-index:50;visibility:hidden;pointer-events:none;background:#000}
 #neb.show{visibility:visible;pointer-events:auto}
@@ -47,8 +46,7 @@ body{background:#050608;overflow:hidden;font-family:'Share Tech Mono',monospace;
 </head>
 <body>
 <div id="map-view">
-  <canvas id="mc"></canvas>
-  <canvas id="pond"></canvas>
+  <canvas id="scene"></canvas>
   <div id="turn-label"></div>
   <div id="merge-flash"></div>
   <div id="depth-display" data-disc="hub_depth"></div>
@@ -75,12 +73,14 @@ body{background:#050608;overflow:hidden;font-family:'Share Tech Mono',monospace;
   <div class="gl">Leave</div><button onclick="quitMain()">Quit to main menu</button>
 </div></div>
 <div id="veil"></div>
-<iframe id="neb" src="chromatic_nebula.html?hub=1&v=20261102a" title="Surface"></iframe>
+<iframe id="neb" src="chromatic_nebula.html?hub=1&v=20261102b" title="Surface"></iframe>
+<script src="ducks.js?v=20261102b"></script>
 <script>
 // ╔══════════════════════════════════════════════════════════════════════════════╗
 // ║  MAP ENGINE                                                                 ║
 // ╚══════════════════════════════════════════════════════════════════════════════╝
-const mc=document.getElementById('mc'),mctx=mc.getContext('2d');
+const mc=document.createElement('canvas'),mctx=mc.getContext('2d'),sc=document.getElementById('scene'); // mc: the plane, drawn in 2D every frame; sc: the 3D scene it is laid into
+let W=1,H=1,invertMode=false,DUCK_TYPES={}; // what the shared duck renderer (ducks.js) reads: the scene size, the colour scheme, the duck types (sent by the surface)
 let MW,MH,SW,SH,MK=1,viewZoom=1,_E=0; // MW×MH: the map plane's canvas (bigger than the screen SW×SH, so zooming out and tilting never show its edge); MK: its backing scale
 let HEX=34; // T.mapHexSize (tuned in the Esc menu / the surface's Tune menu)
 const DIRS=[[1,0],[1,-1],[0,-1],[-1,0],[-1,1],[0,1]];
@@ -228,16 +228,51 @@ function updateHint(){
     else{el.textContent=`Space / click to ${nebulaCellKey===K(pQ,pR)?'continue this surface':'enter this surface'} (${c.v.toFixed(2)}) · or move`;el.classList.add('show');}
   } else el.classList.remove('show');
 }
-// The plane is seen at an angle (T.mapTilt) in perspective (T.mapPersp), zoomed by viewZoom — a CSS transform on the plane's canvas.
-// proj / unproj are the same transform in maths: plane canvas px ↔ screen px (for clicks, and for drawing the ducks where they swim).
-function viewTf(){const th=(T.mapTilt!=null?T.mapTilt:32)*Math.PI/180,P=T.mapPersp||1400;return{th,P,c:Math.cos(th),s:Math.sin(th),z:viewZoom};}
-function proj(x,y){const v=viewTf(),u=(x-MW/2)*v.z,w=(y-MH/2)*v.z,k=v.P/(v.P-w*v.s);return[SW/2+u*k,SH/2+w*v.c*k,k*v.z];} // → screen x, y and px per plane px
-function unproj(X,Y){const v=viewTf(),d=Y-SH/2,w=d*v.P/(v.P*v.c+d*v.s),k=v.P/(v.P-w*v.s);return[MW/2+(X-SW/2)/k/v.z,MH/2+w/v.z];}
-function applyView(){const v=viewTf();Object.assign(mc.style,{left:((SW-MW)/2)+'px',top:((SH-MH)/2)+'px',width:MW+'px',height:MH+'px',transform:`perspective(${v.P}px) rotateX(${v.th*180/Math.PI}deg) scale(${v.z})`});}
+// ── The 3D scene: the plane lies flat (x right, y down, z up out of it); the camera looks at it from T.mapTilt off straight down, at
+// T.mapPersp px away (the perspective), zoomed by viewZoom. proj / unproj are that camera in maths: plane canvas px ↔ screen px (clicks,
+// what is on screen). Column-major 4×4 matrices.
+const m4={mul:(a,b)=>{const r=new Float32Array(16);for(let c=0;c<4;c++)for(let k=0;k<4;k++){const v=b[c*4+k];for(let i=0;i<4;i++)r[c*4+i]+=a[k*4+i]*v;}return r;},
+  inv:m=>{const a=m,o=new Float32Array(16),b00=a[0]*a[5]-a[1]*a[4],b01=a[0]*a[6]-a[2]*a[4],b02=a[0]*a[7]-a[3]*a[4],b03=a[1]*a[6]-a[2]*a[5],b04=a[1]*a[7]-a[3]*a[5],b05=a[2]*a[7]-a[3]*a[6],
+    b06=a[8]*a[13]-a[9]*a[12],b07=a[8]*a[14]-a[10]*a[12],b08=a[8]*a[15]-a[11]*a[12],b09=a[9]*a[14]-a[10]*a[13],b10=a[9]*a[15]-a[11]*a[13],b11=a[10]*a[15]-a[11]*a[14],d=1/(b00*b11-b01*b10+b02*b09+b03*b08-b04*b07+b05*b06);
+    o[0]=(a[5]*b11-a[6]*b10+a[7]*b09)*d;o[1]=(a[2]*b10-a[1]*b11-a[3]*b09)*d;o[2]=(a[13]*b05-a[14]*b04+a[15]*b03)*d;o[3]=(a[10]*b04-a[9]*b05-a[11]*b03)*d;
+    o[4]=(a[6]*b08-a[4]*b11-a[7]*b07)*d;o[5]=(a[0]*b11-a[2]*b08+a[3]*b07)*d;o[6]=(a[14]*b02-a[12]*b05-a[15]*b01)*d;o[7]=(a[8]*b05-a[10]*b02+a[11]*b01)*d;
+    o[8]=(a[4]*b10-a[5]*b08+a[7]*b06)*d;o[9]=(a[1]*b08-a[0]*b10-a[3]*b06)*d;o[10]=(a[12]*b04-a[13]*b02+a[15]*b00)*d;o[11]=(a[9]*b02-a[8]*b04-a[11]*b00)*d;
+    o[12]=(a[5]*b07-a[4]*b09-a[6]*b06)*d;o[13]=(a[0]*b09-a[1]*b07+a[2]*b06)*d;o[14]=(a[13]*b01-a[12]*b03-a[14]*b00)*d;o[15]=(a[8]*b03-a[9]*b01+a[10]*b00)*d;return o;},
+  tx:(m,v)=>{const o=[0,0,0,0];for(let i=0;i<4;i++)o[i]=m[i]*v[0]+m[4+i]*v[1]+m[8+i]*v[2]+m[12+i]*v[3];return o;}};
+let cam=null;
+function camUpdate(){ // view = translate(0,0,−P)·rotateX(−tilt)·scale(z,−z,z) (the flip: the plane's y runs down, the screen's up)
+  const th=(T.mapTilt!=null?T.mapTilt:32)*Math.PI/180,P=T.mapPersp||1400,z=viewZoom,c=Math.cos(th),s_=Math.sin(th),f=P/(SH/2),A=SW/SH,n=P*0.05,fa=P*30;
+  const view=new Float32Array([z,0,0,0, 0,-z*c,-z*s_,0, 0,-z*s_,z*c,0, 0,0,-P,1]),proj=new Float32Array([f/A,0,0,0, 0,f,0,0, 0,0,(fa+n)/(n-fa),-1, 0,0,2*fa*n/(n-fa),0]);
+  const pv=m4.mul(proj,view);cam={th,P,view,proj,pv,ipv:m4.inv(pv),viewRot:new Float32Array([1,0,0, 0,-c,-s_, 0,-s_,c])};W=SW;H=SH;}
+function proj(x,y){const p=m4.tx(cam.pv,[x-MW/2,y-MH/2,0,1]),q=m4.tx(cam.pv,[x-MW/2+1,y-MH/2,0,1]),X=(p[0]/p[3]+1)/2*SW,Y=(1-p[1]/p[3])/2*SH;return[X,Y,Math.abs((q[0]/q[3]+1)/2*SW-X)];} // → screen x, y and px per plane px
+function unproj(X,Y){const nx=X/SW*2-1,ny=1-Y/SH*2,a=m4.tx(cam.ipv,[nx,ny,-1,1]),b=m4.tx(cam.ipv,[nx,ny,1,1]),A=[a[0]/a[3],a[1]/a[3],a[2]/a[3]],B=[b[0]/b[3],b[1]/b[3],b[2]/b[3]],t=A[2]/(A[2]-B[2]);
+  return[A[0]+(B[0]-A[0])*t+MW/2,A[1]+(B[1]-A[1])*t+MH/2];} // the plane point the cursor's ray meets
 function mapResize(){SW=innerWidth;SH=innerHeight;const E=1.3/Math.min(1,Math.max(0.2,viewZoom));_E=E;MW=Math.round(SW*E);MH=Math.round(SH*E); // the plane only as big as this zoom needs (a smaller canvas is a faster frame)
   MK=Math.max(0.6,Math.min(Math.max(1,viewZoom)*(window.devicePixelRatio||1),Math.sqrt(5e6/(MW*MH)))); // sharp when zoomed in, within a pixel budget
-  mc.width=Math.round(MW*MK);mc.height=Math.round(MH*MK);const pd=document.getElementById('pond'),dp=window.devicePixelRatio||1;pd.width=Math.round(SW*dp);pd.height=Math.round(SH*dp);applyView();}
-function zoomView(f){const z=Math.max(T.mapZoomMin||0.55,Math.min(T.mapZoomMax||1.8,viewZoom*f));if(z===viewZoom)return;viewZoom=z;const E=1.3/Math.min(1,z);if(Math.abs(E-_E)>0.12||z>1)mapResize();else applyView();}
+  mc.width=Math.round(MW*MK);mc.height=Math.round(MH*MK);const dp=window.devicePixelRatio||1;sc.width=Math.round(SW*dp);sc.height=Math.round(SH*dp);camUpdate();}
+function zoomView(f){const z=Math.max(T.mapZoomMin||0.55,Math.min(T.mapZoomMax||1.8,viewZoom*f));if(z===viewZoom)return;viewZoom=z;const E=1.3/Math.min(1,z);if(Math.abs(E-_E)>0.12||z>1)mapResize();else camUpdate();}
+// ── drawing the scene: the plane (mc, uploaded as a texture) as the ground, then the ducks on it, in true 3D with the same camera
+let G3=null;
+function sceneInit(){
+  const gl=sc.getContext('webgl',{alpha:false,antialias:true,premultipliedAlpha:true});if(!gl)return null;
+  const sh=(t,src)=>{const o=gl.createShader(t);gl.shaderSource(o,src);gl.compileShader(o);return o;},pr=gl.createProgram();
+  gl.attachShader(pr,sh(gl.VERTEX_SHADER,'attribute vec2 aP;uniform mat4 uPV;uniform vec2 uS;varying vec2 vT;void main(){vT=aP;gl_Position=uPV*vec4((aP-0.5)*uS,0.0,1.0);}'));
+  gl.attachShader(pr,sh(gl.FRAGMENT_SHADER,'precision mediump float;varying vec2 vT;uniform sampler2D uT;void main(){gl_FragColor=texture2D(uT,vT);}'));gl.linkProgram(pr);
+  const buf=gl.createBuffer();gl.bindBuffer(gl.ARRAY_BUFFER,buf);gl.bufferData(gl.ARRAY_BUFFER,new Float32Array([0,0,1,0,0,1,1,1]),gl.STATIC_DRAW);
+  const tex=gl.createTexture();gl.bindTexture(gl.TEXTURE_2D,tex);for(const [p,v] of [[gl.TEXTURE_MIN_FILTER,gl.LINEAR],[gl.TEXTURE_MAG_FILTER,gl.LINEAR],[gl.TEXTURE_WRAP_S,gl.CLAMP_TO_EDGE],[gl.TEXTURE_WRAP_T,gl.CLAMP_TO_EDGE]])gl.texParameteri(gl.TEXTURE_2D,p,v);
+  return{gl,pr,buf,tex,aP:gl.getAttribLocation(pr,'aP'),uPV:gl.getUniformLocation(pr,'uPV'),uS:gl.getUniformLocation(pr,'uS'),uT:gl.getUniformLocation(pr,'uT'),duck:duckCtx(gl)};}
+function sceneRender(now){
+  if(!G3)G3=sceneInit();if(!G3||!cam)return;const gl=G3.gl;
+  gl.viewport(0,0,sc.width,sc.height);gl.clearColor(5/255,6/255,8/255,1);gl.clearDepth(1);gl.clear(gl.COLOR_BUFFER_BIT|gl.DEPTH_BUFFER_BIT);
+  gl.useProgram(G3.pr);gl.disable(gl.BLEND);gl.enable(gl.DEPTH_TEST);gl.depthFunc(gl.LEQUAL);
+  gl.activeTexture(gl.TEXTURE0);gl.bindTexture(gl.TEXTURE_2D,G3.tex);gl.pixelStorei(gl.UNPACK_PREMULTIPLY_ALPHA_WEBGL,false);gl.texImage2D(gl.TEXTURE_2D,0,gl.RGBA,gl.RGBA,gl.UNSIGNED_BYTE,mc);gl.uniform1i(G3.uT,0);
+  gl.bindBuffer(gl.ARRAY_BUFFER,G3.buf);gl.enableVertexAttribArray(G3.aP);gl.vertexAttribPointer(G3.aP,2,gl.FLOAT,false,0,0);for(let i=0;i<3;i++)gl.disableVertexAttribArray(i+1); // the ground (its texture: y runs down, as the plane's)
+  gl.uniformMatrix4fv(G3.uPV,false,cam.pv);gl.uniform2f(G3.uS,MW,MH);gl.drawArrays(gl.TRIANGLE_STRIP,0,4);
+  if(!G3.duck)return;let envd=false;
+  for(const d of pond){if(!d._s)continue;const v=DUCK_TYPES[d.type]||{},refl=v.mat==='metal'||v.mat==='gold'||v.mat==='glass',[px,py]=w2s(d.x,d.y),[X,Y,k]=proj(px,py);
+    if(refl&&!envd){duckEnvUpdate(mc,now,G3.duck);envd=true;}
+    const f=[Math.cos(d.hd),Math.sin(d.hd),0],size=d._s; // upright on the plane: its forward along its heading, its up out of the plane (mirrored across, as the view flips y)
+    drawDuckScene(G3.duck,d.type,{rot:new Float32Array([f[0],f[1],0, 0,0,1, -f[1],f[0],0]),size,pos:[px-MW/2,py-MH/2,size*(0.36+0.03*Math.sin(now/700+d.ph))],view:cam.view,proj:cam.proj,viewRot:cam.viewRot,env:{x:X,y:Y,lights:[]},px:size*k});}}
 let _glow=null;
 function glowSprite(bl,ba){ // one bright clear's glow (a wide and a mid blur pass and its soft white core), drawn once per hex size and setting
   const key=HEX+'|'+bl+'|'+ba+'|'+MK;if(_glow&&_glow.key===key)return _glow.cv;const R=HEX*(1.5+bl*2.2),S=Math.ceil(2*R*MK),cv=document.createElement('canvas');cv.width=cv.height=S;
@@ -335,7 +370,7 @@ function mapRender(){
   for(const g of mergeGroups){if(!g.cells.length)continue;const pts=g.cells.map(ck=>{const cc=cells[ck];return cc?w2s(...a2w(cc.q,cc.r)):null;}).filter(Boolean);if(pts.length<2)continue;mctx.strokeStyle='rgba(160,120,230,0.5)';mctx.lineWidth=1.2;for(let i=0;i<g.cells.length;i++)for(let j=i+1;j<g.cells.length;j++){const c1=cells[g.cells[i]],c2=cells[g.cells[j]];if(c1&&c2&&dist(c1.q,c1.r,c2.q,c2.r)===1){const[x1,y1]=w2s(...a2w(c1.q,c1.r));const[x2,y2]=w2s(...a2w(c2.q,c2.r));mctx.beginPath();mctx.moveTo(x1,y1);mctx.lineTo(x2,y2);mctx.stroke();}}const cx2=pts.reduce((s,p)=>s+p[0],0)/pts.length;const cy2=pts.reduce((s,p)=>s+p[1],0)/pts.length;const sr=g.type==='hex'?HEX*1.6:HEX*0.85;starPath(cx2,cy2,sr,sr*0.42,5);mctx.strokeStyle='rgba(160,120,230,0.55)';mctx.lineWidth=1.5;mctx.stroke();}
   // Direction line
   if(hoverMove&&phase!=='gameover'){const pts=[{q:pQ,r:pR},...hoverMove.path,{q:hoverMove.q,r:hoverMove.r}];mctx.beginPath();for(let i=0;i<pts.length;i++){const[sx,sy]=w2s(...a2w(pts[i].q,pts[i].r));if(!i)mctx.moveTo(sx,sy);else mctx.lineTo(sx,sy);}mctx.strokeStyle='rgba(0,210,210,0.6)';mctx.lineWidth=1.5;mctx.setLineDash([5,4]);mctx.stroke();mctx.setLineDash([]);const[dx,dy]=w2s(...a2w(hoverMove.q,hoverMove.r));mctx.beginPath();mctx.arc(dx,dy,3.5,0,Math.PI*2);mctx.fillStyle='rgba(0,220,220,0.7)';mctx.fill();}
-  requestPreviews(mapNeed);pondStep(now);
+  requestPreviews(mapNeed);pondStep(now);sceneRender(now);
   // HUD
   let dc=0;for(const k in cells)if(!cells[k].isVoid)dc++;
   document.getElementById('cell-count').innerHTML=dc+'<small>cells</small>';
@@ -349,15 +384,15 @@ function mapRender(){
 function startMapLoop(){if(!mapRafId)mapRafId=requestAnimationFrame(mapRender);}
 
 const evA=e=>p2a(...unproj(e.clientX,e.clientY)); // the hex under the cursor, through the tilt
-mc.addEventListener('mousemove',e=>{if(currentView==='map')[hQ,hR]=evA(e);});
+sc.addEventListener('mousemove',e=>{if(currentView==='map')[hQ,hR]=evA(e);});
 window.addEventListener('wheel',e=>{if(currentView!=='map'||menuOpen)return;e.preventDefault();zoomView(Math.exp(-e.deltaY*0.0015));},{passive:false});
-mc.addEventListener('click',e=>{
+sc.addEventListener('click',e=>{
   if(currentView!=='map'||phase==='gameover')return;
   const[q,r]=evA(e);
   if(q===pQ&&r===pR){doCapture();return;}
   const moves=getMoves();if(moves.find(m=>m.q===q&&m.r===r))doMove(q,r);
 });
-mc.addEventListener('mouseleave',()=>{hQ=null;hR=null;});
+sc.addEventListener('mouseleave',()=>{hQ=null;hR=null;});
 document.addEventListener('keydown',e=>{
   if(e.code==='Escape'){e.preventDefault();if(currentView==='map')toggleMenu();return;}
   if(menuOpen)return;
@@ -371,7 +406,7 @@ window.addEventListener('resize',mapResize);
 // ║  grid. The surface's own duck renderer draws them (one sheet per frame,      ║
 // ║  sent back as an ImageBitmap); the map moves them and draws their ripples.   ║
 // ╚══════════════════════════════════════════════════════════════════════════════╝
-let pond=[],ripples=[],sprites=new Map(),pondBusy=false,pondT=0,pondAsk=0,pondNext=0,water={at:0,pts:[],frac:0};
+let pond=[],ripples=[],pondT=0,pondNext=0,water={at:0,pts:[],frac:0};
 function isWater(wx,wy){ // world point well clear of every hex
   const q=(Math.sqrt(3)/3*wx-1/3*wy)/HEX,r=(2/3*wy)/HEX;for(let dq=-2;dq<=2;dq++)for(let dr=-2;dr<=2;dr++){const c=cells[K(Math.round(q)+dq,Math.round(r)+dr)];if(!c)continue;const[cx,cy]=a2w(c.q,c.r);if(Math.hypot(wx-cx,wy-cy)<HEX*1.7)return false;}return true;}
 function onWhite(wx,wy){ // the water is lit white here: a bright clear's glow, or the source's
@@ -395,11 +430,9 @@ function spawnLakeDuck(now){
     let x=P[0],y=P[1],ok=true;for(let k=0;k<80;k++){x-=dx*HEX*0.5;y-=dy*HEX*0.5;if(!isWater(x,y)){ok=false;break;}const[X,Y]=w2sc(x,y);if(offView(X,Y,HEX*1.2))break;} // back along its way until it is off screen
     if(!ok)continue;pond.push({type,x,y,hd,sp:0.45,cur:(Math.random()-0.5)*0.004,next:now+2000+Math.random()*2500,born:now,splash:false,seen:false,lastRip:0,ph:Math.random()*6.28});return;}}
 function pondStep(now){
-  const pd=document.getElementById('pond'),c=pd.getContext('2d'),dp=window.devicePixelRatio||1,dt=Math.min(50,now-(pondT||now))/16.67;pondT=now;
-  c.setTransform(dp,0,0,dp,0,0);c.clearRect(0,0,SW,SH);if(currentView!=='map')return;
+  const c=mctx,dt=Math.min(50,now-(pondT||now))/16.67;pondT=now;if(currentView!=='map')return; // ripples and glows go on the plane; the ducks are drawn in the scene (sceneRender)
   scanWater(now);const want=Math.round(Math.min(T.mapDucks!=null?T.mapDucks:5,duckRoster().length)*Math.min(1,water.frac*2.5)); // a little water on screen: fewer ducks (none for none)
   if(pond.length<want&&now>pondNext){spawnLakeDuck(now);pondNext=now+900+Math.random()*1500;}
-  const v=viewTf(),items=[];
   pond=pond.filter(d=>{
     if(now>d.next){d.next=now+1800+Math.random()*3000;d.cur=Math.random()<0.1?(Math.random()<0.5?-1:1)*0.03:(Math.random()-0.5)*0.006;} // mostly a gentle curve on its way across; now and then a doughnut
     const paddle=0.38+0.28*Math.max(0,Math.sin(now/260+d.ph)),go=d.splash&&now-d.born<900?0:paddle;d.sp+=(go-d.sp)*0.05*dt;
@@ -410,13 +443,10 @@ function pondStep(now){
     const[X,Y,k]=w2sc(d.x,d.y),off=offView(X,Y,HEX*1.5*k);if(!off)d.seen=true;
     if((d.seen&&off)||now-d.born>60000)return false; // gone off screen: another comes in elsewhere
     if(d.sp>0.1&&now-d.lastRip>320){d.lastRip=now;ripples.push({x:d.x,y:d.y,t:now,ink:onWhite(d.x,d.y)?'20,24,32':'255,255,255'});} // white rings on dark water, dark on white
-    const h=HEX*0.62*k,pop=d.splash?Math.min(1,(now-d.born)/700):1;d._at=[X,Y-h*0.12+Math.sin(now/700+d.ph)*h*0.03+(1-pop)*h*0.4];d._h=h*pop;
-    const ab=Math.round(((d.hd%6.2832)+6.2832)%6.2832/6.2832*32)%32,hb=Math.max(2,Math.round(d._h*dp/4)*4),key=d.type+'|'+ab+'|'+hb+'|'+Math.round(v.th*100); // a view: type, heading (32 steps), size (4 px steps), tilt
-    d._key=key;if(sprites.has(key))d._sp=sprites.get(key);else if(!items.some(x=>x.key===key))items.push({key,type:d.type,h:hb,ang:-ab/32*6.2832,tilt:v.th});return true;});
+    const t=DUCK_TYPES[d.type]||{},pop=d.splash?Math.min(1,(now-d.born)/700):1;d._s=HEX*0.62*(t.scale||1)/(t.head?1.25:1)*pop;return true;}); // world units per model unit (its type's size; a splash grows it up out of the water)
   ripples=ripples.filter(r=>now-r.t<1800);
-  for(const r of ripples){const a=(now-r.t)/1800,[X,Y,k]=w2sc(r.x,r.y),R=(4+a*HEX*(r.big?1.6:0.9))*k;c.strokeStyle=`rgba(${r.ink},${(0.5*(1-a)*(1-a)).toFixed(3)})`;c.lineWidth=r.big?2:1.4;c.beginPath();c.ellipse(X,Y,R,R*v.c,0,0,6.2832);c.stroke();}
-  for(const d of pond){const sp=d._sp;if(!sp||!d._at)continue;const S=sp.S/dp*(d._h*dp/Math.max(1,+d._key.split('|')[2]));c.drawImage(sp.bmp,d._at[0]-S/2,d._at[1]-S/2,S,S);} // the nearest view drawn so far, scaled to its exact size
-  if(!pondBusy&&items.length&&nebReady&&now-pondAsk>60){pondBusy=true;pondAsk=now;neb({cmd:'pond',items:items.slice(0,4)});setTimeout(()=>{pondBusy=false;},800);} // only views not drawn yet are asked for
+  for(const r of ripples){const a=(now-r.t)/1800,[X,Y]=w2s(r.x,r.y),R=4+a*HEX*(r.big?1.6:0.9);c.strokeStyle=`rgba(${r.ink},${(0.5*(1-a)*(1-a)).toFixed(3)})`;c.lineWidth=r.big?2:1.4;c.beginPath();c.arc(X,Y,R,0,6.2832);c.stroke();} // rings on the water (the camera foreshortens them)
+  for(const d of pond)if(d._s){const[X,Y]=w2s(d.x,d.y);duckGlow(c,d.type,X,Y,d._s,now,d.ph);} // a Bright / Shining / Dim duck lights the water round it
 }
 
 // ╔══════════════════════════════════════════════════════════════════════════════╗
@@ -453,7 +483,7 @@ function hubEvent(id){if(disc.has('ev:'+id)||evQ.includes(id))return;evQ.push(id
 function evPump(){if(currentView!=='map'||menuOpen||!nebReady||!evQ.length)return;const id=evQ.shift();if(disc.has('ev:'+id)){evPump();return;}currentView='overlay';showNeb(true);neb({cmd:'event',id});}
 function openGuide(){if(!nebReady||currentView!=='map')return;currentView='overlay';showNeb(true);neb({cmd:'guide'});}
 function takeState(m){
-  if(m.T){T=m.T;if(SW)applyView();}if(m.ducks)duckLog=m.ducks;if(m.inv)inv=m.inv;if(m.disc)disc=new Set(m.disc);if(m.defs&&m.defs.length)tuneDefs=m.defs;
+  if(m.T){T=m.T;if(SW)camUpdate();}if(m.ducks)duckLog=m.ducks;if(m.duckTypes)DUCK_TYPES=m.duckTypes;if(m.inv)inv=m.inv;if(m.disc)disc=new Set(m.disc);if(m.defs&&m.defs.length)tuneDefs=m.defs;
   if(T.mapHexSize&&T.mapHexSize!==HEX){HEX=T.mapHexSize;focusCam(false);}
   if(m.T)syncRenderSig();applyDisc();syncMenu();
 }
@@ -466,7 +496,6 @@ window.addEventListener('message',e=>{
     hubEvent('map');
   }
   if(m.type==='ready'||m.type==='state');
-  else if(m.type==='pond'){for(const x of m.sprites||[]){if(sprites.size>500){for(const k of sprites.keys()){sprites.get(k).bmp.close&&sprites.get(k).bmp.close();sprites.delete(k);if(sprites.size<400)break;}}sprites.set(x.key,x);}pondBusy=false;}
   else if(m.type==='preview'){prevPending.delete(m.key);if(cells[m.key]&&m.img)prev[m.key]={sig:m.sig,img:m.img};}
   else if(m.type==='overlayDone'){if(currentView==='overlay'){currentView='map';showNeb(false);evPump();}}
   else if(m.type==='cleared')completeCaptureForCell(m.key,m.kind); // the hex is captured right away; the player returns with a right-click
