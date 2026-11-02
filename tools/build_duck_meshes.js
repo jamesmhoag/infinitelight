@@ -1,4 +1,4 @@
-// Bakes the two duck meshes (classic and Big Head) and the duck markings texture into ducks.js (shared by the game and the Surface Map) — the game never builds a mesh.
+// Bakes the two duck meshes (classic and Big Head) and the duck markings texture into shared.js (shared by the game and the Surface Map) — the game never builds a mesh.
 // Run from the repo root after changing the drawing or this pipeline:   (once: cd tools && npm install)   node tools/build_duck_meshes.js
 // Source: tools/Duck_Sheet.svg when present (DUCK_SVG=… for another file); DUCK_STRIP=tools/duck_strip.png bakes the old pixel strip instead.
 //
@@ -17,7 +17,7 @@
 // look up (lines over the head and back). Where a face turns away from every drawn view the nearest view's marking is stretched;
 // a view drawn for that direction is the fix, not smoothing the texture.
 const fs=require('fs'),zlib=require('zlib'),path=require('path');
-const GAME=path.join(__dirname,'..','chromatic_nebula.html'),OUT=process.env.DUCK_OUT||path.join(__dirname,'..','ducks.js'), // the game holds the duck types (Big Head's proportions); ducks.js holds the baked meshes
+const GAME=path.join(__dirname,'..','chromatic_nebula.html'),OUT=process.env.DUCK_OUT||path.join(__dirname,'..','shared.js'), // the game holds the duck types (Big Head's proportions); shared.js holds the baked meshes
   STRIP=process.env.DUCK_STRIP||path.join(__dirname,'duck_strip.png');
 function readPNG(file){ // 8-bit, non-interlaced PNG → first channel
   const b=fs.readFileSync(file);let o=8,w=0,h=0,ct=0;const idat=[];

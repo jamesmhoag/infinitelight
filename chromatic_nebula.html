@@ -114,7 +114,7 @@ button:hover{background:rgba(255,255,255,0.15);}
   <div id="dock" class="bottom"><div id="inventoryPanel"></div><div id="touch-info"></div></div>
   <canvas id="cur"></canvas>
 </div>
-<script src="ducks.js?v=20261102f"></script>
+<script src="shared.js?v=20261102g"></script>
 <script>
 const _SRC=document.documentElement.outerHTML; // kept so the Encyclopedia can run live scenes as embedded copies of the game
 // Safety: a negative / non-finite gradient radius would throw and kill the frame — clamp it, and log the first offender's stack so it can be traced.
@@ -1552,12 +1552,11 @@ TUNE_DEFS.push({sec:'Time dilation & Risks',tab:'gameplay'},
  {key:'riskWarnMass',label:'Risk WARNING mass',min:1,max:5000,step:10,tip:'Points above this mass show a blinking WARNING (default: half the Dark Remnant formation mass)'},
  {key:'riskDangerMass',label:'Risk DANGER mass',min:1,max:400000,step:100,tip:'Points above this mass show DANGER'},
  {key:'cacheKeyR',label:'Cache keyhole pane R',min:6,max:40,step:1,tip:'Radius of the central keyhole glass pane of a Cache'});
-Object.assign(T,{masterVol:0.7,soundOn:0,mapHexSize:34,mapBurstRings:3,mapHoursPerTurn:1,mapCollapseMs:1400,mapSourceGlow:1,mapTilt:32,mapPersp:1400,mapZoomMin:0.55,mapZoomMax:1.8,mapDucks:5,mapZoom:1,mapAlpha:1,mapClearBlur:0.6,mapClearBleed:0.85,mapCovMin:0.25,mapCovFull:1});
+Object.assign(T,{masterVol:0.7,soundOn:0,mapHexSize:34,mapBurstRings:3,mapCollapseMs:1400,mapSourceGlow:1,mapTilt:32,mapPersp:1400,mapZoomMin:0.55,mapZoomMax:1.8,mapDucks:5,mapZoom:1,mapAlpha:1,mapClearBlur:0.6,mapClearBleed:0.85,mapCovMin:0.25,mapCovFull:1});
 TUNE_DEFS.push({sec:'Master volume',tab:'sounds'},{key:'masterVol',label:'Master volume',min:0,max:1,step:0.05,tip:'Overall volume (also in the Esc menu)'},
  {sec:'Surface Map — hex surface layer (drawn by the surface renderer: pixel map, blur passes and α all apply)',tab:'gameplay'},
  {key:'mapHexSize',label:'Hex size',min:20,max:90,step:1,tip:'Radius (px) of a Surface Map hex'},
  {key:'mapBurstRings',label:'Midnight burst rings',min:1,max:6,step:1,tip:'How many rings the source bursts out to at each midnight (each hex at 1.00)'},
- {key:'mapHoursPerTurn',label:'Hours per move',min:0.25,max:6,step:0.25,tip:'How far the day clock moves on per move or bright clear (24 hours: midnight to midnight)'},
  {key:'mapCollapseMs',label:'Midnight collapse ms',min:200,max:5000,step:100,tip:'How long the spill takes to fall back into the source at midnight before it bursts out again'},
  {key:'mapSourceGlow',label:'Source glow',min:0,max:3,step:0.05,tip:'Brightness of the white source at the centre of the map'},
  {key:'mapTilt',label:'Map tilt°',min:0,max:60,step:1,tip:'How far the Surface Map leans away (0 = straight down)'},
@@ -2147,6 +2146,13 @@ function screenShapeDist(px,py,rectangular){
   return rectangular?Math.max(Math.abs(nx),Math.abs(ny)):Math.sqrt(nx*nx+ny*ny);
 }
 var levelCoverage=null; // a Surface Map hex sets its own coverage (from its value); null = the Coverage tuner
+// A Surface Map hex is a window on ONE field shared by the whole map: its level samples the colour and coverage noise at its own place
+// (lvOff, in level px: the hex's centre in hex units × half the crop its picture shows), so a pattern runs on across hex edges. Colours are
+// then evened out against the field's own quantiles (fieldQuant) rather than the level's ranks, which would differ hex to hex.
+let lvHex=null,lvOff=null;const _fq=new Map();
+function mapFieldOff(q,r){const sq=Math.min(W,H)/Math.max(0.05,T.mapZoom||1),ux=Math.sqrt(3)*q+Math.sqrt(3)/2*r,uy=1.5*r;return[ux*sq/2,uy*sq/2];}
+function fieldQuant(seed){if(_fq.has(seed))return _fq.get(seed);const a=[];for(let i=0;i<6000;i++)a.push(fieldHue((Math.random()-0.5)*40000,(Math.random()-0.5)*40000,seed));a.sort((x,y)=>x-y);
+  const q=[0,1,2,3,4,5,6].map(k=>a[Math.min(a.length-1,Math.floor(k/6*a.length))]);q[0]=-1e9;q[6]=1e9;_fq.set(seed,q);return q;}
 function isCellCovered(px,py,seed){
   const cv=levelCoverage!=null?levelCoverage:T.coverage;
   if(cv>=1)return true;
@@ -2156,7 +2162,7 @@ function isCellCovered(px,py,seed){
   if(mode==='framed')  return screenShapeDist(px,py,true) >=(1-cv);
   if(mode==='ellipse') return screenShapeDist(px,py,false)<=cv;
   if(mode==='rectangle')return screenShapeDist(px,py,true) <=cv;
-  return coverageField(px,py,seed)<cv; // 'blob' (default)
+  return coverageField(px+(lvOff?lvOff[0]:0),py+(lvOff?lvOff[1]:0),seed)<cv; // 'blob' (default) — a Surface Map hex reads its own place in the map's one field
 }
 // ── Unified mass→radius scaling ─────────────────────────────────────────────
 // Single shared curve used everywhere an object's mass determines its size:
@@ -6686,56 +6692,12 @@ function processBlackRemnant(now,dt){
 // for both direct point consumption and passive dormant-particle absorption, so
 // every impact of a given mass reads as the exact same consistent round burst.
 function bhImpactSizeFor(mass){return Math.max(T.bhImpactMin,Math.sqrt(mass)*T.bhImpactSize);}
-function heartbeatPulse(phase){
-  const bump=(center,width,amp)=>{
-    let d=phase-center;
-    if(d>0.5)d-=1;else if(d<-0.5)d+=1;
-    return amp*Math.exp(-(d*d)/(2*width*width));
-  };
-  return bump(0.05,0.045,1.0)+bump(0.22,0.06,0.55);
-}
 // Renders one edge-glow ring layer for the black remnant to its own
 // offscreen buffer, then composites it onto the main canvas with a
 // wide/mid blur-pass treatment — shared by both the original ring and the
 // second, independently-tuned one. phaseOffset shifts where in the shared
 // heartbeat waveform this ring starts (0.5 = starts at the midpoint of a
 // ring with phaseOffset 0, so the two beat off-time from each other).
-function drawBHGlowRing(mainCtx,bh,R,now,phaseOffset,cfg,canvasHolder,drawVoidCore){
-  if(!canvasHolder.canvas){canvasHolder.canvas=document.createElement('canvas');canvasHolder.ctx=canvasHolder.canvas.getContext('2d');}
-  const bhCv=canvasHolder.canvas,bhCv2ctx=canvasHolder.ctx;
-  const beatPhase=(((now%cfg.beatMs)/cfg.beatMs)+phaseOffset+1)%1;
-  const pulse=heartbeatPulse(beatPhase)*cfg.pulseAmt;
-  const swayAng=now*0.001*cfg.swaySpeed;
-  const swayX=Math.cos(swayAng)*cfg.swayR;
-  const swayY=Math.sin(swayAng)*cfg.swayR*0.6;
-  const ringW=Math.max(0.5,cfg.width)*(1+pulse);
-  const pad=T.glowHalo*4+10+cfg.swayR+ringW*2+Math.max(cfg.blurWide,cfg.blurMid)*3+T.bhDrawPad;
-  const s=Math.ceil((R+pad)*2);
-  if(bhCv.width!==s||bhCv.height!==s){bhCv.width=s;bhCv.height=s;}
-  bhCv2ctx.clearRect(0,0,s,s);
-  const cx=s/2,cy=s/2;
-  if(drawVoidCore){
-    bhCv2ctx.globalCompositeOperation='source-over';
-    bhCv2ctx.beginPath();bhCv2ctx.arc(cx,cy,R,0,6.2832);bhCv2ctx.fillStyle='#000';bhCv2ctx.fill();
-  }
-  bhCv2ctx.globalCompositeOperation='lighter';
-  const bAlpha=1+pulse*0.6;
-  const ringGrad=bhCv2ctx.createRadialGradient(cx+swayX,cy+swayY,Math.max(0,R-ringW),cx+swayX,cy+swayY,R+ringW);
-  ringGrad.addColorStop(0,'rgba(0,0,0,0)');
-  ringGrad.addColorStop(0.3,`rgba(200,100,20,${(0.35*bAlpha).toFixed(3)})`);
-  ringGrad.addColorStop(0.5,`rgba(255,160,40,${(0.6*bAlpha).toFixed(3)})`);
-  ringGrad.addColorStop(0.7,`rgba(255,120,20,${(0.35*bAlpha).toFixed(3)})`);
-  ringGrad.addColorStop(1,'rgba(0,0,0,0)');
-  bhCv2ctx.fillStyle=ringGrad;bhCv2ctx.fillRect(0,0,s,s);
-  bhCv2ctx.globalCompositeOperation='source-over';
-  mainCtx.save();
-  const dx=bh.x-cx,dy=bh.y-cy;
-  mainCtx.imageSmoothingEnabled=true;mainCtx.imageSmoothingQuality='high';
-  if(cfg.blurWide>0){mainCtx.globalAlpha=cfg.alphaWide;mainCtx.filter=`blur(${cfg.blurWide}px)`;mainCtx.drawImage(bhCv,dx,dy);}
-  if(cfg.blurMid>0){mainCtx.globalAlpha=cfg.alphaMid;mainCtx.filter=`blur(${cfg.blurMid}px)`;mainCtx.drawImage(bhCv,dx,dy);}
-  mainCtx.filter='none';mainCtx.globalAlpha=1;
-  mainCtx.restore();
-}
 const bhCanvasHolder={canvas:null,ctx:null};
 const bhCanvas2Holder={canvas:null,ctx:null};
 // Expanding darkness: a large, heavily blurred black fill growing out to bh.activateR while phase==='expand' — the
@@ -7411,7 +7373,7 @@ function rebuild(seed){
   active=[];pressedIDs.clear();lastActivatedId=-1;pidCounter=0;maxWhites=0;fpsCount=0;fpsLast=performance.now();dispersions.length=0;flashes.length=0;blackHole=null;
   levelCleared=false;clearInfo=null;totalActivations=0;levelStartTime=performance.now();simulationStarted=false;surfaceTally={};surfaceLost={};ducks.length=0;
   {const dockEl=document.getElementById('dock');if(dockEl)dockEl.classList.remove('dr-hidden');}
-  buildSeed=typeof seed==='number'?seed:(hubLevel?hubLevel.seed:Math.random()*100);
+  buildSeed=typeof seed==='number'?seed:(hubLevel?hubLevel.seed:Math.random()*100);lvOff=lvHex?mapFieldOff(lvHex[0],lvHex[1]):null;
   prepareImageSample();
   // Populate grid: one macro-particle per cell, position jittered within the cell
   // so points emerge at organic intervals rather than a rigid uniform lattice.
@@ -7440,7 +7402,7 @@ function rebuild(seed){
         cells.push({idx:gy*GW+gx,wx,wy,hue:trueToU(rgb2hue(sr,sg,sb)),imgR:sr,imgG:sg,imgB:sb});
       }
     } else {
-      cells.push({idx:gy*GW+gx,wx,wy,hue:fieldHue(wx,wy,buildSeed)});
+      cells.push({idx:gy*GW+gx,wx,wy,hue:fieldHue(wx+(lvOff?lvOff[0]:0),wy+(lvOff?lvOff[1]:0),buildSeed)});
     }
   }
   // Pass 2: histogram-equalize by rank so each of the 6 color classes gets
@@ -7453,6 +7415,10 @@ function rebuild(seed){
   const N=cells.length;
   if(imgSampleData){
     for(let r=0;r<N;r++){cells[r].ci=hueToCI(cells[r].hue);cells[r].eqHue=cells[r].hue;}
+  } else if(lvOff){ // a map hex: even out against the field's quantiles, the same for every hex, so colours meet at the edges
+    const fq=fieldQuant(buildSeed);
+    for(const c of cells){let b=0;while(b<5&&c.hue>=fq[b+1])b++;const lo=b===0?fq[1]-(fq[2]-fq[1]):fq[b],hi=b===5?fq[5]+(fq[5]-fq[4]):fq[b+1],w=Math.max(0,Math.min(1,(c.hue-lo)/Math.max(1e-6,hi-lo)));
+      c.ci=b;c.eqHue=(b+(w-0.5)*T.seedSpread)/6;}
   } else {
     cells.sort((a,b)=>a.hue-b.hue);
     for(let r=0;r<N;r++){
@@ -11974,28 +11940,12 @@ function computeHoverAndCursor(now){
     // Darken interior — gives the ring/dot contrast when hovering over
     // highly saturated nebula colors instead of just blending in.
     const itemRing=!!(armedInvItem&&!heatLocked&&!inCreate&&ITEM_TOOLS.has(armedInvItem.kind)&&armedInvItem.kind!=='leash'); // a remnant item's own ring replaces the standard ring + centre dot
-    const innerGrad=cx.createRadialGradient(mouse.x,mouse.y,0,mouse.x,mouse.y,cR*0.85);
-    innerGrad.addColorStop(0,`rgba(0,0,0,${(0.5*dimA*tintK).toFixed(3)})`);
-    innerGrad.addColorStop(0.75,`rgba(0,0,0,${(0.28*dimA*tintK).toFixed(3)})`);
-    innerGrad.addColorStop(1,'rgba(0,0,0,0)');
-    cx.beginPath();cx.arc(mouse.x,mouse.y,cR*0.85,0,6.2832);cx.fillStyle=innerGrad;cx.fill();
-    // Bloom halo behind the sharp ring
-    cx.globalCompositeOperation='screen';
-    cx.filter='blur(7px)';cx.globalAlpha=0.6*dimA;
-    cx.beginPath();cx.arc(mouse.x,mouse.y,cR,0,6.2832);cx.strokeStyle=`rgba(${edgeCol},0.9)`;cx.lineWidth=cLw*2.5;cx.stroke();
-    cx.filter='none';cx.globalAlpha=1;cx.globalCompositeOperation='source-over';
-    // Sharp ring
+    cursorBase(cx,mouse.x,mouse.y,cR,dimA,tintK,edgeCol,cLw); // (shared.js: the same cursor on the Surface Map)
     if(itemRing){const ac0=armedCursorRGB();drawItemRing(cx,mouse.x,mouse.y,cR,armedInvItem.kind,armedInvItem.effect||0,`${ac0.r|0},${ac0.g|0},${ac0.b|0}`,dimA,cLw,now,Math.max(0,holdT));}
-    else{cx.beginPath();cx.arc(mouse.x,mouse.y,cR,0,6.2832);cx.strokeStyle=`rgba(${edgeCol},${(0.80*dimA).toFixed(3)})`;cx.lineWidth=cLw;cx.stroke();}
+    else cursorRing(cx,mouse.x,mouse.y,cR,dimA,edgeCol,cLw);
     drawHeatArc(cx,mouse.x,mouse.y,cR,now); // heat (or the cooldown draining) runs round the inside of the ring
     // Center dot, with its own small glow
-    if(!itemRing){
-    cx.globalCompositeOperation='screen';
-    cx.filter='blur(3px)';cx.globalAlpha=0.7*dimA;
-    cx.beginPath();cx.arc(mouse.x,mouse.y,1.4,0,6.2832);cx.fillStyle=`rgba(${edgeCol},0.9)`;cx.fill();
-    cx.filter='none';cx.globalAlpha=1;cx.globalCompositeOperation='source-over';
-    cx.beginPath();cx.arc(mouse.x,mouse.y,0.75,0,6.2832);cx.fillStyle=`rgba(${edgeCol},${(0.65*dimA).toFixed(3)})`;cx.fill();
-    }
+    if(!itemRing)cursorDot(cx,mouse.x,mouse.y,dimA,edgeCol);
     if(hoverObj){const hi=buildInfoFor(hoverObj,now);if(hi.scale>0){cx.beginPath();cx.arc(mouse.x,mouse.y,Math.max(0,hi.curR),0,6.2832);cx.strokeStyle=`rgba(${hi.r},${hi.g},${hi.b},${(hi.scale*10|0)/100})`;cx.lineWidth=0.75;cx.stroke();}}
     let symCol=edgeCol;
     if(armedInvItem&&!inCreate){const ac=armedCursorRGB();symCol=`${ac.r|0},${ac.g|0},${ac.b|0}`;} // the ring is the standard cursor; only the item's symbol carries the item colour
@@ -13923,7 +13873,9 @@ function cardHTML(ev,mini){ // the one card format: name bar, art box, type line
   const r=RARITY[ev.rar]||RARITY.c;
   return `<div class="mtg${mini?' sm':''}" data-ev="${ev.id}" style="--rc:${r[0]}"><div class="nm"><b>${gEsc(ev.name)}</b><span class="gem"></span></div><div class="art" data-scene="${ev.scene}">${mini?`<canvas class="rl-m" width="64" height="64" data-k="${ev.ico}"></canvas>`:''}</div><div class="ty"><span>${gEsc(ev.type.replace(/^Event — /,''))}</span><span>${r[1]}</span></div><div class="tx">${ev.facts().map(f=>`<p>${gEsc(f)}</p>`).join('')}<p class="fl">${gEsc(ev.flavor)}</p></div></div>`;
 }
-function mountScene(h,w,hh){if(!h||h.firstChild||document.querySelectorAll('.rl-live iframe,.mtg .art iframe').length>=5)return;const f=document.createElement('iframe');f.style.cssText='border:0;max-width:100%;pointer-events:none;background:#000;border-radius:6px;'+(w?`width:${w}px;height:${hh}px`:'width:100%;height:100%');f.srcdoc=liveSrc(h.dataset.s||h.dataset.scene);h.appendChild(f);}
+function mountScene(h,w,hh){if(!h||h.firstChild||document.querySelectorAll('.rl-live iframe,.mtg .art iframe').length>=5)return;const f=document.createElement('iframe'),nm=h.dataset.s||h.dataset.scene;f.style.cssText='border:0;max-width:100%;pointer-events:none;background:#000;border-radius:6px;'+(w?`width:${w}px;height:${hh}px`:'width:100%;height:100%');
+  if(nm.slice(0,4)==='hub:')f.src='Surface_Map_HUB.html?v=20261102g&scene='+nm.slice(4)+'&T='+encodeURIComponent(JSON.stringify(mapSceneT()));else f.srcdoc=liveSrc(nm);h.appendChild(f);} // a Surface Map demo is played by the map itself
+function mapSceneT(){const o={};for(const k in T)if(/^(map|bh|duck|wake|glass|metal|dimGlow|glowHalo|maxSpeed)/.test(k))o[k]=T[k];return o;} // what a map demo needs of the tuners
 function showEventCard(id,review){
   const ev=EVENTS.find(e=>e.id===id);if(!ev)return;guideCSS();
   _evOpen=true;_evReview=review;releaseMouseDown(performance.now());uiPress=false;
@@ -14144,7 +14096,8 @@ function closeRules(){
 var HUB=!window.__SCENE&&window.parent!==window&&/[?&]hub=1/.test(location.search);
 var hubAsleep=false,hubLevel=null,hubOverlay=false,hubShotSize=68,_menuOpen=false,_menuWasPaused=false;
 function hubPost(m){if(HUB)window.parent.postMessage(Object.assign({il:1},m),'*');}
-function hubState(type){hubPost({type:type||'state',T:Object.assign({},T),inv:Object.assign({},inventory),disc:[...discSeen],ducks:duckLog,duckTypes:DUCK_TYPES,defs:TUNE_DEFS.filter(d=>d.key&&d.key.slice(0,3)==='map')});}
+function hubIcons(){const o={};for(const k of ['leash','dial','weave','prism','knot','gate','key','lens','dim'])if(ICON_SVG[k])o[k]=ICON_SVG[k];return o;} // the map's dock shows the surface's own item icons
+function hubState(type){hubPost({type:type||'state',T:Object.assign({},T),inv:Object.assign({},inventory),disc:[...discSeen],ducks:duckLog,duckTypes:DUCK_TYPES,icons:hubIcons(),defs:TUNE_DEFS.filter(d=>d.key&&d.key.slice(0,3)==='map')});}
 function hubWake(){hubAsleep=false;if(!rafId)rafId=requestAnimationFrame(loop);}
 function hubIdle(){clearStage();feedAlert.until=0;levelCoverage=null;hubLevel=null;if(isPaused)togglePause();}
 function hubOverlay_(on){hubOverlay=on;wrap.classList.toggle('hub-ov',on);if(on)hubWake();} // the map's Guide / event cards show over a bare black stage
@@ -14167,7 +14120,7 @@ async function hubPreviews(items,size){ // one hex per frame; stops the moment a
   const gen=++_shotGen;
   for(const it of items){
     if(hubLevel||gen!==_shotGen){hubPost({type:'preview',key:it.key,sig:it.sig,img:null});continue;}
-    ensureDarkRemnantTheme();levelCoverage=it.cov;rebuild(it.seed); // a hex shows its surface as it starts (dark), whatever the last surface ended in
+    ensureDarkRemnantTheme();levelCoverage=it.cov;lvHex=it.q!=null?[it.q,it.r]:null;rebuild(it.seed); // a hex shows its surface as it starts (dark), whatever the last surface ended in
     hubPost({type:'preview',key:it.key,sig:it.sig,img:hexShot(size)});
     await new Promise(r=>setTimeout(r,0));
   }
@@ -14193,7 +14146,7 @@ function restoreSession(d){
 async function hubStartLevel(m){
   _shotGen++;hubWake();if(_menuOpen)closeGameMenu();
   let rec=null;if(m.resume){try{rec=await IDB.get('session');}catch(e){}}
-  hubLevel={key:m.key,seed:m.seed,cov:m.cov};levelCoverage=m.cov;
+  hubLevel={key:m.key,seed:m.seed,cov:m.cov};levelCoverage=m.cov;lvHex=m.q!=null?[m.q,m.r]:null;
   if(rec&&rec.key===m.key&&rec.data){try{restoreSession(rec.data);flashSaveStatus('Surface '+m.label+' — continued where you left it');}catch(e){console.error(e);rec=null;}}
   if(!rec||rec.key!==m.key){ensureDarkRemnantTheme();rebuild(m.seed);levelCoverage=m.cov;flashSaveStatus('Surface '+m.label);fireEvent('surface');}
   hubLevel.key=m.key;if(isPaused)togglePause();
@@ -14218,6 +14171,8 @@ window.addEventListener('message',e=>{
   else if(m.cmd==='sound')setSound(m.on,m.vol);
   else if(m.cmd==='tune'){Object.assign(T,m.T);debounceSave();}
   else if(m.cmd==='discover'){discSeen.add(m.id);saveInventory();hubState();}
+  else if(m.cmd==='spend'){inventory[m.kind]=Math.max(0,(inventory[m.kind]||0)-(m.n||1));saveInventory();updateInventoryUI();hubState();} // the map used an item (Spindle, String, Weave)
+  else if(m.cmd==='award'){addInventory(m.kind,m.n||1);hubState();} // a map constellation paid out
   else if(m.cmd==='state')hubState();
 });
 document.addEventListener('visibilitychange',()=>{if(document.hidden&&HUB&&hubLevel&&!hubAsleep)saveSession();}); // closing the tab mid-surface keeps it
@@ -14271,25 +14226,34 @@ RULE_TAB_COST.surf=5;
 RULE_BLURB.surf='The map of surfaces. Every hex is a spill to clean up.';
 RULES.push(
 ["menu","start","Pause menu (Esc)","dim","Esc pauses and opens the menu. ~ (or H) hides the panels.",[["Sound","Turn sound on or off and set the volume."],["Readouts","Switch telemetry, risks, dynamics, class and effect radii."],["Guide","Opens this guide."],["Leave","Quit to the Surface Map or the main menu. An unfinished surface is saved exactly as it is."]]],
-["hubmap","surf","Surface Map","particle","A map of hexes. Every hex is a surface covered in spilled particles.",[["Start","You stand on the first ring, around a void in the middle."],["Particle layer","An uncleared hex shows the particles still on it. The more value a hex holds, the more of it is covered."],["Value","All open hexes share a pool of 6 value. Locked hexes (next to a cleared one) keep theirs."],["Saved","The map is saved as you go. New map starts the map again but keeps every item you have."]]],
+["hubmap","surf","Surface Map","particle","A map of hexes around a white source. Every hex is a surface covered in spilled particles.",[["Start","At Predawn the source bursts out three rings, every hex at 1.00. You stand beside it."],["Particle layer","An uncleared hex shows the particles still on it, one pattern running on across the hexes. The more value a hex holds, the more of it is covered."],["Value","The open hexes share what the source put out. Locked hexes (next to a bright clear) keep theirs."],["Saved","The map is saved as you go. New map starts the map again but keeps every item you have."]]],
+["hubtime","surf","Time of day","nova","Every move, and every bright clear, is one time of day.",[["The day","Predawn, Dawn, Morning, Noon, Afternoon, Dusk, Night, Midnight: eight turns. Midnight is the last."],["Next day","After Midnight everything falls back into the source and it bursts out again. Days count your attempts."],["Free","A String move takes no time."]]],
 ["hubcell","surf","Entering a hex","particle","Click your own hex (or press Space) to enter its surface.",[["Same surface","A hex always makes the same surface."],["Leaving","Esc, then Quit, saves the surface at that exact moment. Enter the hex again to continue it."],["Continue","Continue on the main menu goes straight back to a surface you left from the main menu."]]],
-["hubmove","surf","Moving","pnt","Click a neighbouring hex to move there. Each move is a turn.",[["Turn","A new ring of hexes is added and the value is shared out again."],["Abandon","Moving away from an unfinished surface throws it away."],["Pass through","You can move through cleared hexes in a straight line."]]],
-["hubclear","surf","Clearing a hex","nova","Clean a surface and its hex is captured.",[["Bright","Cleared the normal way, the hex turns white."],["Dark","Cleared by a Dark Remnant, the hex keeps a dark remnant."],["Return","Right-click the SURFACE CLEARED box to return to the map."]]],
-["hubmerge","surf","Merges","prism","Captured hexes that touch can merge.",[["Triangle","3 touching captured hexes: one ring less."],["Hexagon","7 captured hexes (a centre and its ring): three rings less."]]],
+["hubmove","surf","Moving","pnt","Click a neighbouring hex to move there. Each move takes one time of day.",[["Spread","A new ring of hexes is added and the value is shared out again."],["Abandon","Moving away from an unfinished surface throws it away."],["Pass through","You can move through cleared hexes in a straight line."]]],
+["hubclear","surf","Clearing a hex","nova","Clean a surface and its hex is captured.",[["Bright","Cleared the normal way, the hex turns white, locks its neighbours and moves time on."],["Dark","Cleared by a Dark Remnant, the hex keeps its Dark Remnant. It locks nothing and takes no time, but the spill cannot spread past it."],["Return","Right-click the SURFACE CLEARED box to return to the map."]]],
+["hubmerge","surf","Merges","dark","Captured hexes that touch can merge.",[["Triangle","3 touching captured hexes: one ring less."],["Three Dark","3 touching Dark Remnant hexes swirl together into one great Dark Remnant: three rings less."],["Hexagon","7 captured hexes (a centre and its ring): three rings less."]]],
+["hubitems","surf","Items on the map","leash","Some items work on the map too (the dock at the bottom).",[["Spindle","Unwinds a cleared hex back to an open surface; the value spreads over one more hex. A great Dark Remnant takes 3."],["String","Move straight to any hex: 1 String per hex of distance, and no time passes."],["Weave","Joins bright hexes into a constellation (see Constellations)."]]],
+["hubconst","surf","Constellations","weave","Join bright hexes with a Weave: each time of day the constellation gives you one of its item.",[["Shapes","3 bright hexes: a Prism. 4: a Gate or a Knot. 5: a Key or a Lens."],["Crossing","A new constellation that crosses an older one breaks the older one. Any number can stand."],["Free moves","A String move takes no time, so it earns nothing."]]],
+["hubring","surf","Full circle","nova","A whole ring of cleared hexes around the source pulls the map back to it.",[["Collapse","Everything beyond the ring is gone, the ring itself is used up, and the value is shared over the open hexes inside. Time does not move."],["Stars","A ring all bright is a Bright Star; all dark, a Dark Star."],["The end","If every hex inside the ring is cleared, or the ring is the first, the game ends and your bright and dark hexes are counted. Start a new map to play again."]]],
 ["hubdecay","surf","Decay","dim","When the value an open hex gets drops below 0.01, the oldest capture becomes a void.",[["Game over","No captures left to give up, no turns left, or no moves left."]]],
-["hubdescend","surf","Descend","dark","Surround the centre void with three triangle merges, then step into it.",[["Deeper","A new, deeper map begins. Your score and items come with you."]]]);
-Object.assign(RULE_EV,{hubmap:'map',hubcell:'map',hubmove:'map',hubclear:'map_clear',hubmerge:'map_merge',hubdecay:'map_decay',hubdescend:'map_descend'});
-Object.assign(RULE_SCENES,{hubcell:['surface'],hubclear:['cleared','dark'],menu:['readouts']});
+["hubdescend","surf","Descend","dark","Surround the centre with three triangle merges, then step into it.",[["Deeper","A new, deeper map begins. Your score and items come with you."]]]);
+Object.assign(RULE_EV,{hubmap:'map',hubtime:'map',hubcell:'map',hubmove:'map',hubclear:'map_clear',hubmerge:'map_merge',hubitems:'map',hubconst:'map_constellation',hubring:'map_ring',hubdecay:'map_decay',hubdescend:'map_descend'});
+Object.assign(RULE_SCENES,{hubmap:['hub:map'],hubcell:['surface'],hubclear:['hub:clear'],hubmerge:['hub:merge'],hubconst:['hub:constellation'],hubring:['hub:ring'],hubdecay:['hub:decay'],hubdescend:['hub:descend'],menu:['readouts']});
 EVENTS.push(
- {id:'map',name:'The Surface Map',type:'Event — Surface Map',rar:'c',scene:'surface',ico:'particle',facts:()=>['Every hex is a surface covered in spilled particles. Click your hex to enter it.','Clear it and the hex is yours.'],flavor:'So many spills. So little time.'},
- {id:'map_clear',name:'Claimed',type:'Event — Surface Map',rar:'u',scene:'cleared',ico:'nova',facts:()=>['A cleared hex turns white, or keeps a dark remnant if a Dark Remnant cleared it.','Captured hexes next to each other can merge.'],flavor:'One clean surface. The map remembers.'},
- {id:'map_merge',name:'Merge',type:'Event — Surface Map',rar:'r',scene:'prism',ico:'prism',facts:()=>['Three touching captures merged: the map shrinks by a ring.','Seven in a hexagon shrink it by three.'],flavor:'Many surfaces, one shape.'},
- {id:'map_decay',name:'Decay',type:'Event — Surface Map',rar:'u',scene:'pointfail',ico:'dim',facts:()=>['Value ran too thin, so the oldest capture became a void.'],flavor:'Nothing stays clean forever.'},
- {id:'map_descend',name:'Descent',type:'Event — Surface Map',rar:'m',scene:'dark',ico:'dark',facts:()=>['You stepped into the centre void. A deeper map begins.'],flavor:'Under every surface, another.'});
+ {id:'map',name:'The Surface Map',type:'Event — Surface Map',rar:'c',scene:'hub:map',ico:'particle',facts:()=>['Every hex is a surface spilled from the white source at its centre. Click your hex to enter it.','Clear it and the hex is yours. The day runs from Predawn to Midnight.'],flavor:'So many spills. So little time.'},
+ {id:'map_clear',name:'Claimed',type:'Event — Surface Map',rar:'u',scene:'hub:clear',ico:'nova',facts:()=>['A cleared hex turns white, or keeps a dark remnant if a Dark Remnant cleared it.','Captured hexes next to each other can merge.'],flavor:'One clean surface. The map remembers.'},
+ {id:'map_merge',name:'Merge',type:'Event — Surface Map',rar:'r',scene:'hub:merge',ico:'dark',facts:()=>['Three touching captures merged: the map shrinks by a ring.','Three Dark Remnants swirl into one great one and pull in three rings.'],flavor:'Many surfaces, one shape.'},
+ {id:'map_decay',name:'Decay',type:'Event — Surface Map',rar:'u',scene:'hub:decay',ico:'dim',facts:()=>['Value ran too thin, so the oldest capture became a void.'],flavor:'Nothing stays clean forever.'},
+ {id:'map_descend',name:'Descent',type:'Event — Surface Map',rar:'m',scene:'hub:descend',ico:'dark',facts:()=>['You stepped into the centre. A deeper map begins.'],flavor:'Under every surface, another.'},
+ {id:'map_constellation',name:'Constellation',type:'Event — Surface Map',rar:'u',scene:'hub:constellation',ico:'weave',facts:()=>['A Weave joined bright hexes into a constellation.','Each time of day it gives you one of its item. A newer one crossing it breaks it.'],flavor:'Light, drawn between lights.'},
+ {id:'map_ring',name:'Full Circle',type:'Event — Surface Map',rar:'r',scene:'hub:ring',ico:'nova',facts:()=>['A whole ring of cleared hexes pulled the map back to it.','The ring is used up and the value is shared over what is left inside.'],flavor:'Everything comes back around.'},
+ {id:'map_brightstar',name:'Bright Star',type:'Event — Surface Map',rar:'m',scene:'hub:brightstar',ico:'bright',facts:()=>['A ring of nothing but bright hexes closed around the source.'],flavor:'A sun made of cleaned surfaces.'},
+ {id:'map_darkstar',name:'Dark Star',type:'Event — Surface Map',rar:'m',scene:'hub:darkstar',ico:'dark',facts:()=>['A ring of nothing but Dark Remnants closed around the source.'],flavor:'It shines inward.'},
+ {id:'map_end',name:'The Count',type:'Event — Ending',rar:'r',scene:'hub:end',ico:'nova',facts:()=>['The rings closed in as far as they can go. Your bright and dark hexes are counted.','Start a new map to play again.'],flavor:'Every spill, accounted for.'});
 // ═════════════════════════ DUCKS ═════════════════════════
 // A Dark Remnant can come out as a rubber duck instead (T.duckChance); the surface then carries on. Ducks are collected into a
 // collection (duckLog, saved with the inventory), never used as items. There are exactly two duck meshes (classic and Big Head),
-// baked into DUCK_MESH (ducks.js, shared with the Surface Map) by tools/build_duck_meshes.js — the game never builds a mesh. The renderer is in ducks.js too.
+// baked into DUCK_MESH (shared.js, shared with the Surface Map) by tools/build_duck_meshes.js — the game never builds a mesh. The renderer is in shared.js too.
 // ── Types: the classic duck plus exotics that change ONE thing (colour, size or material). Rare ones roll on their own, rarer chance.
 const DUCK_TYPES={classic:{name:'Rubber Duck',axis:'Classic',tex:'classic'}};
 for(let ci=0;ci<6;ci++){const a=ucol(ci/6,1,0.5),b=ucol(((ci+3)%6)/6,1,0.5);DUCK_TYPES['c'+ci]={name:EFFECT_NAMES[ci][0]+EFFECT_NAMES[ci].slice(1).toLowerCase()+' Duck',axis:'Colour',detail:EFFECT_NAMES[ci]+' body · '+EFFECT_NAMES[(ci+3)%6]+' beak',tex:'c'+ci,col:[a.r,a.g,a.b],col2:[b.r,b.g,b.b]};}

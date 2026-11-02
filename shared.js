@@ -1,4 +1,5 @@
-// ═════════════════════════ DUCKS (shared) ═════════════════════════
+// ═════════════════════════ SHARED (the surface and the Surface Map) ═════════════════════════
+// Everything both pages draw the same way: the rubber duck (below), the bow wake, the Dark Remnant's glow rings.
 // The rubber duck's baked meshes and markings (DUCK_MESH, written by tools/build_duck_meshes.js — never built at run time) and its WebGL
 // renderer, loaded by the surface (chromatic_nebula.html) and the Surface Map. Each page supplies, at call time: T (its tuners),
 // DUCK_TYPES (the surface defines them; the map receives them from it), W / H (the scene size reflections are taken against) and invertMode.
@@ -177,3 +178,68 @@ function drawWakeShape(c,x,y,fwX,fwY,R,spdRatio,alpha,hi,lo){
     c.fill();
     return true;
 }
+// ── The Dark Remnant's glow ring (shared): the surface draws its Dark Remnant with two of these (drawBlackRemnant), the Surface Map its
+// Dark Remnant hexes with the same two, scaled to the hex (drawDarkRemnantAt) — so they look identical, only smaller. ──
+function heartbeatPulse(phase){
+  const bump=(center,width,amp)=>{
+    let d=phase-center;
+    if(d>0.5)d-=1;else if(d<-0.5)d+=1;
+    return amp*Math.exp(-(d*d)/(2*width*width));
+  };
+  return bump(0.05,0.045,1.0)+bump(0.22,0.06,0.55);
+}
+function drawBHGlowRing(mainCtx,bh,R,now,phaseOffset,cfg,canvasHolder,drawVoidCore){
+  if(!canvasHolder.canvas){canvasHolder.canvas=document.createElement('canvas');canvasHolder.ctx=canvasHolder.canvas.getContext('2d');}
+  const bhCv=canvasHolder.canvas,bhCv2ctx=canvasHolder.ctx;
+  const beatPhase=(((now%cfg.beatMs)/cfg.beatMs)+phaseOffset+1)%1;
+  const pulse=heartbeatPulse(beatPhase)*cfg.pulseAmt;
+  const swayAng=now*0.001*cfg.swaySpeed;
+  const swayX=Math.cos(swayAng)*cfg.swayR;
+  const swayY=Math.sin(swayAng)*cfg.swayR*0.6;
+  const ringW=Math.max(0.5,cfg.width)*(1+pulse);
+  const pad=T.glowHalo*4+10+cfg.swayR+ringW*2+Math.max(cfg.blurWide,cfg.blurMid)*3+T.bhDrawPad;
+  const s=Math.ceil((R+pad)*2);
+  if(bhCv.width!==s||bhCv.height!==s){bhCv.width=s;bhCv.height=s;}
+  bhCv2ctx.clearRect(0,0,s,s);
+  const cx=s/2,cy=s/2;
+  if(drawVoidCore){
+    bhCv2ctx.globalCompositeOperation='source-over';
+    bhCv2ctx.beginPath();bhCv2ctx.arc(cx,cy,R,0,6.2832);bhCv2ctx.fillStyle='#000';bhCv2ctx.fill();
+  }
+  bhCv2ctx.globalCompositeOperation='lighter';
+  const bAlpha=1+pulse*0.6;
+  const ringGrad=bhCv2ctx.createRadialGradient(cx+swayX,cy+swayY,Math.max(0,R-ringW),cx+swayX,cy+swayY,R+ringW);
+  ringGrad.addColorStop(0,'rgba(0,0,0,0)');
+  ringGrad.addColorStop(0.3,`rgba(200,100,20,${(0.35*bAlpha).toFixed(3)})`);
+  ringGrad.addColorStop(0.5,`rgba(255,160,40,${(0.6*bAlpha).toFixed(3)})`);
+  ringGrad.addColorStop(0.7,`rgba(255,120,20,${(0.35*bAlpha).toFixed(3)})`);
+  ringGrad.addColorStop(1,'rgba(0,0,0,0)');
+  bhCv2ctx.fillStyle=ringGrad;bhCv2ctx.fillRect(0,0,s,s);
+  bhCv2ctx.globalCompositeOperation='source-over';
+  mainCtx.save();
+  const dx=bh.x-cx,dy=bh.y-cy;
+  mainCtx.imageSmoothingEnabled=true;mainCtx.imageSmoothingQuality='high';
+  if(cfg.blurWide>0){mainCtx.globalAlpha=cfg.alphaWide;mainCtx.filter=`blur(${cfg.blurWide}px)`;mainCtx.drawImage(bhCv,dx,dy);}
+  if(cfg.blurMid>0){mainCtx.globalAlpha=cfg.alphaMid;mainCtx.filter=`blur(${cfg.blurMid}px)`;mainCtx.drawImage(bhCv,dx,dy);}
+  mainCtx.filter='none';mainCtx.globalAlpha=1;
+  mainCtx.restore();
+}
+const _drMapH1={canvas:null,ctx:null},_drMapH2={canvas:null,ctx:null};
+function drawDarkRemnantAt(ctx,x,y,R,now,f,ph){ // the surface's Dark Remnant look at (x,y), void radius R; f scales its ring widths, blurs and sway (R ÷ the surface's own radius)
+  const k=f||1,o=ph||0,bh={x,y},c1={width:T.bhRingWidth*k,blurWide:T.bhBlurWide*k,blurMid:T.bhBlurMid*k,alphaWide:T.bhAlphaWide,alphaMid:T.bhAlphaMid,beatMs:T.bhRingBeatMs,pulseAmt:T.bhRingPulseAmt,swayR:T.bhRingSwayR*k,swaySpeed:T.bhRingSwaySpeed},
+    c2={width:T.bhRing2Width*k,blurWide:T.bhRing2BlurWide*k,blurMid:T.bhRing2BlurMid*k,alphaWide:T.bhRing2AlphaWide,alphaMid:T.bhRing2AlphaMid,beatMs:T.bhRing2BeatMs,pulseAmt:T.bhRing2PulseAmt,swayR:T.bhRing2SwayR*k,swaySpeed:T.bhRing2SwaySpeed};
+  const pad=T.bhDrawPad;T.bhDrawPad=pad*k; // (its drawing room scales with it)
+  drawBHGlowRing(ctx,bh,R,now+o,0,c1,_drMapH1,true);drawBHGlowRing(ctx,bh,R,now+o,0.5,c2,_drMapH2,false);T.bhDrawPad=pad;
+  ctx.save();ctx.beginPath();ctx.arc(x,y,R,0,6.2832);ctx.fillStyle='#000';ctx.fill();ctx.restore();}
+// ── The cursor (shared): the surface's standard cursor — a darkened centre, a bloom, a sharp ring and a centre dot — so the Surface Map's
+// cursor is the same one. cR: ring radius; dimA: idle dimming (1 = over a target); tintK: 1 − how much it steps aside over an object. ──
+function cursorBase(cx,x,y,cR,dimA,tintK,edgeCol,lw){
+  const g=cx.createRadialGradient(x,y,0,x,y,cR*0.85);g.addColorStop(0,`rgba(0,0,0,${(0.5*dimA*tintK).toFixed(3)})`);g.addColorStop(0.75,`rgba(0,0,0,${(0.28*dimA*tintK).toFixed(3)})`);g.addColorStop(1,'rgba(0,0,0,0)');
+  cx.beginPath();cx.arc(x,y,cR*0.85,0,6.2832);cx.fillStyle=g;cx.fill();
+  cx.globalCompositeOperation='screen';cx.filter='blur(7px)';cx.globalAlpha=0.6*dimA; // the bloom behind the sharp ring
+  cx.beginPath();cx.arc(x,y,cR,0,6.2832);cx.strokeStyle=`rgba(${edgeCol},0.9)`;cx.lineWidth=lw*2.5;cx.stroke();
+  cx.filter='none';cx.globalAlpha=1;cx.globalCompositeOperation='source-over';}
+function cursorRing(cx,x,y,cR,dimA,edgeCol,lw){cx.beginPath();cx.arc(x,y,cR,0,6.2832);cx.strokeStyle=`rgba(${edgeCol},${(0.80*dimA).toFixed(3)})`;cx.lineWidth=lw;cx.stroke();}
+function cursorDot(cx,x,y,dimA,edgeCol){
+  cx.globalCompositeOperation='screen';cx.filter='blur(3px)';cx.globalAlpha=0.7*dimA;cx.beginPath();cx.arc(x,y,1.4,0,6.2832);cx.fillStyle=`rgba(${edgeCol},0.9)`;cx.fill();
+  cx.filter='none';cx.globalAlpha=1;cx.globalCompositeOperation='source-over';cx.beginPath();cx.arc(x,y,0.75,0,6.2832);cx.fillStyle=`rgba(${edgeCol},${(0.65*dimA).toFixed(3)})`;cx.fill();}

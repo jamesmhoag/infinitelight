@@ -10,7 +10,20 @@
 body{background:#050608;overflow:hidden;font-family:'Share Tech Mono',monospace;color:#fff;user-select:none}
 #map-view{position:absolute;inset:0}
 #map-view{overflow:hidden}
-#scene{position:absolute;inset:0;width:100%;height:100%;display:block} /* the map as a 3D scene: the plane (drawn in 2D, then laid in the scene as its ground) and the ducks on it */
+#scene{position:absolute;inset:0;width:100%;height:100%;display:block}
+#map-view,#map-view *{cursor:none!important} /* the surface's own cursor, drawn on #hcur */
+#hcur{position:fixed;inset:0;width:100%;height:100%;pointer-events:none;z-index:45}
+/* the dock: the surface's item slots and feed, as on a surface */
+#hdock{position:absolute;left:50%;bottom:0;transform:translateX(-50%);display:flex;flex-direction:column;z-index:20;max-width:96vw;border-radius:8px 8px 0 0;overflow:hidden}
+#hinv{display:flex;gap:3px;justify-content:center;background:rgba(0,0,0,0.75);padding:3px 5px;border-bottom:1px solid rgba(255,255,255,0.12)}
+#hinv .slot{position:relative;display:flex;flex-direction:column;align-items:center;justify-content:center;width:34px;height:34px;border-radius:5px;border:1px solid rgba(255,255,255,0.15);background:rgba(255,255,255,0.05);font:9px/1.2 monospace;color:rgba(255,255,255,0.85);user-select:none}
+#hinv .slot:hover{background:rgba(255,255,255,0.12)}#hinv .slot.armed{background:rgba(255,220,120,0.28);border-color:rgba(255,220,120,0.8)}#hinv .slot.empty{opacity:0.4}
+#hinv .slot svg{width:18px;height:18px;color:#fff}#hinv .slot b{font-weight:400;margin-top:1px}#hinv .sep{width:6px}
+#hfeed{font:12px monospace;text-align:center;min-width:420px;height:30px;color:#fff;background:rgba(0,0,0,0.6);padding:3px 14px;display:flex;flex-direction:column;justify-content:center}
+#hfeed .fn{line-height:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}#hfeed .fd{font-size:9px;line-height:11px;opacity:0.62;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+#hfeed button{font:11px monospace;margin:0 4px;padding:1px 8px;background:rgba(255,220,120,0.2);border:1px solid rgba(255,220,120,0.7);color:#fff;border-radius:3px}
+#bottom-bar{bottom:76px}#legend{bottom:76px}
+body.scene .hbtn,body.scene #hdock,body.scene #legend,body.scene #bottom-bar,body.scene #cell-count,body.scene #depth-display,body.scene #capture-hint,body.scene #hcur{display:none!important} /* the map as a 3D scene: the plane (drawn in 2D, then laid in the scene as its ground) and the ducks on it */
 /* the surface (chromatic_nebula.html): hidden with visibility, not display, so it keeps its size for the hex previews */
 #neb{position:fixed;inset:0;width:100%;height:100%;border:0;z-index:50;visibility:hidden;pointer-events:none;background:#000}
 #neb.show{visibility:visible;pointer-events:auto}
@@ -19,7 +32,7 @@ body{background:#050608;overflow:hidden;font-family:'Share Tech Mono',monospace;
 #cell-count{position:absolute;top:16px;right:16px;font-family:'Orbitron',sans-serif;font-size:28px;color:rgba(255,255,255,0.4);text-align:right;z-index:10}
 #cell-count small{font-size:10px;display:block;color:rgba(255,255,255,0.2);margin-top:2px;font-family:'Share Tech Mono',monospace}
 #bottom-bar{position:absolute;bottom:16px;left:50%;transform:translateX(-50%);font-size:12px;color:rgba(255,255,255,0.45);white-space:nowrap;z-index:10}
-#capture-hint{position:absolute;bottom:40px;left:50%;transform:translateX(-50%);font-size:11px;color:rgba(0,210,210,0.55);pointer-events:none;white-space:nowrap;opacity:0;transition:opacity 0.2s;z-index:10}
+#capture-hint{display:none;position:absolute;bottom:40px;left:50%;transform:translateX(-50%);font-size:11px;color:rgba(0,210,210,0.55);pointer-events:none;white-space:nowrap;opacity:0;transition:opacity 0.2s;z-index:10}
 #capture-hint.show{opacity:1}
 .hbtn{position:absolute;font-family:'Share Tech Mono',monospace;font-size:11px;padding:5px 11px;background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.1);color:rgba(255,255,255,0.5);cursor:pointer;border-radius:4px;z-index:20}
 .hbtn:hover{background:rgba(255,255,255,0.07);color:#fff}
@@ -47,6 +60,7 @@ body{background:#050608;overflow:hidden;font-family:'Share Tech Mono',monospace;
 <body>
 <div id="map-view">
   <canvas id="scene"></canvas>
+  <div id="hdock"><div id="hinv"></div><div id="hfeed"><div class="fn"></div><div class="fd"></div></div></div>
   <div id="turn-label"></div>
   <div id="merge-flash"></div>
   <div id="depth-display" data-disc="hub_depth"></div>
@@ -73,20 +87,25 @@ body{background:#050608;overflow:hidden;font-family:'Share Tech Mono',monospace;
   <div class="gl">Leave</div><button onclick="quitMain()">Quit to main menu</button>
 </div></div>
 <div id="veil"></div>
-<iframe id="neb" src="chromatic_nebula.html?hub=1&v=20261102f" title="Surface"></iframe>
-<script src="ducks.js?v=20261102f"></script>
+<canvas id="hcur"></canvas>
+<iframe id="neb" title="Surface"></iframe>
+<script src="shared.js?v=20261102g"></script>
 <script>
 // ╔══════════════════════════════════════════════════════════════════════════════╗
 // ║  MAP ENGINE                                                                 ║
 // ╚══════════════════════════════════════════════════════════════════════════════╝
 const mc=document.createElement('canvas'),mctx=mc.getContext('2d'),sc=document.getElementById('scene'); // mc: the plane, drawn in 2D every frame; sc: the 3D scene it is laid into
-let W=1,H=1,invertMode=false,DUCK_TYPES={}; // what the shared duck renderer (ducks.js) reads: the scene size, the colour scheme, the duck types (sent by the surface)
+let W=1,H=1,invertMode=false,DUCK_TYPES={}; // what the shared renderers (shared.js) read: the scene size, the colour scheme, the duck types (sent by the surface)
 let MW,MH,SW,SH,MK=1,viewZoom=1,_E=0; // MW×MH: the map plane's canvas (bigger than the screen SW×SH, so zooming out and tilting never show its edge); MK: its backing scale
 let HEX=34; // T.mapHexSize (tuned in the Esc menu / the surface's Tune menu)
 const DIRS=[[1,0],[1,-1],[0,-1],[-1,0],[-1,1],[0,1]];
 let camX=0,camY=0,camTX=0,camTY=0;
 let cells={},turn=0,score=0,pQ=0,pR=0,totalCells=0; // turn: how many rings the spill has spread to (merges pull it back)
-let clock=0,day=1,pool=6,fresh=true,burstFx=null; // clock: hours since midnight; pool: the value the source put out at its last burst; fresh: no ring added yet since that burst
+let clock=3,day=1,pool=6,fresh=true,burstFx=null; // clock: the hour (3 = Predawn … 24 = Midnight, the day's last turn); day: your attempts; pool: what the source put out at its last burst; fresh: no ring added yet since it
+let constel=[],armed=null,weaveSel=[],weaveAsk=null,clearFx={},mergeFx=[],result=null,feedMsg={t:'',d:'',at:-1e9}; // constellations {keys,type}; the armed map item; a Weave being drawn; animations; the final count
+const TIMES={3:'Predawn',6:'Dawn',9:'Morning',12:'Noon',15:'Afternoon',18:'Dusk',21:'Night',24:'Midnight'},STEP_H=3; // the day: eight turns of three hours
+const CACHE_V='20261102g'; // the build: bump with shared.js's
+const SCENE=new URLSearchParams(location.search).get('scene'); // a Guide / event demo: the map plays a scripted moment (no surface behind it)
 let phase='move',turnTimer=0,mergeTimer=0;
 let gameOverReason='';
 const MIN_VAL=0.01;
@@ -151,14 +170,15 @@ function detectMerges(){
   let totalRed=0;
   for(const k in cells){const c=cells[k];if(!c.cap||c.isVoid)continue;const ns=neighbors(c.q,c.r);const nKeys=ns.map(([q,r])=>K(q,r));if(!nKeys.every(nk=>{const nc=cells[nk];return nc&&nc.cap&&!nc.isVoid;}))continue;const allKeys=[k,...nKeys];if(allKeys.some(ak=>{const ac=cells[ak];return ac&&ac.mergeId!=null;}))continue;const gid=mergeIdCounter++;mergeGroups.push({id:gid,type:'hex',cells:[...allKeys]});for(const ak of allKeys)if(cells[ak])cells[ak].mergeId=gid;consolidateCaptures(allKeys,gid);totalRed+=3;showMergeFlash('⬡ Hex Merge · Rings −3');}
   const capKeys=Object.keys(cells).filter(k=>{const c=cells[k];return c.cap&&!c.isVoid;});
-  for(let i=0;i<capKeys.length;i++){const[q1,r1]=parseK(capKeys[i]);const n1=neighbors(q1,r1).map(([q,r])=>K(q,r)).filter(nk=>capKeys.includes(nk));for(let j=0;j<n1.length;j++){const[q2,r2]=parseK(n1[j]);for(let jj=j+1;jj<n1.length;jj++){const[q3,r3]=parseK(n1[jj]);if(dist(q2,r2,q3,r3)!==1)continue;const triKeys=[capKeys[i],n1[j],n1[jj]].sort();if(triKeys.some(tk=>{const tc=cells[tk];return tc&&tc.mergeId!=null;}))continue;const gid=mergeIdCounter++;mergeGroups.push({id:gid,type:'tri',cells:[...triKeys]});for(const tk of triKeys)if(cells[tk])cells[tk].mergeId=gid;consolidateCaptures(triKeys,gid);totalRed+=1;showMergeFlash('△ Merge · Rings −1');}}}
-  if(totalRed>0){hubEvent('map_merge');turn-=totalRed;if(turn<=0){phase='gameover';gameOverReason='turn reduced to zero';return;}retractToTurn();redistribute();checkVoidAccess();}
+  for(let i=0;i<capKeys.length;i++){const[q1,r1]=parseK(capKeys[i]);const n1=neighbors(q1,r1).map(([q,r])=>K(q,r)).filter(nk=>capKeys.includes(nk));for(let j=0;j<n1.length;j++){const[q2,r2]=parseK(n1[j]);for(let jj=j+1;jj<n1.length;jj++){const[q3,r3]=parseK(n1[jj]);if(dist(q2,r2,q3,r3)!==1)continue;const triKeys=[capKeys[i],n1[j],n1[jj]].sort();if(triKeys.some(tk=>{const tc=cells[tk];return tc&&tc.mergeId!=null;}))continue;const gid=mergeIdCounter++,d3=triKeys.every(tk=>cells[tk]&&cells[tk].kind==='dark');mergeGroups.push({id:gid,type:d3?'dark3':'tri',cells:[...triKeys]});for(const tk of triKeys)if(cells[tk])cells[tk].mergeId=gid;consolidateCaptures(triKeys,gid);
+    if(d3){totalRed+=3;mergeFx.push({gid,t0:performance.now()});showMergeFlash('● Three Dark Remnants become one · Rings −3');}else{totalRed+=1;showMergeFlash('△ Merge · Rings −1');}}}} // three Dark Remnants swirl into one great one: three times the pull
+  if(totalRed>0){hubEvent('map_merge');turn-=totalRed;checkConstellations();if(turn<=0){phase='gameover';gameOverReason='turn reduced to zero';return;}retractToTurn();redistribute();checkVoidAccess();}
 }
 function consolidateCaptures(mk,mid){const ks=new Set(mk);const tr=[];const ac=new Set();for(let i=0;i<captureOrder.length;i++){const e=captureOrder[i];if(e.keys.some(k=>ks.has(k))){tr.push(i);for(const k of e.keys)ac.add(k);}}for(const k of mk)ac.add(k);for(let i=tr.length-1;i>=0;i--)captureOrder.splice(tr[i],1);captureOrder.push({keys:[...ac],mergeId:mid});}
-function showMergeFlash(t){const el=document.getElementById('merge-flash');el.textContent=t;el.classList.add('show');clearTimeout(mergeTimer);mergeTimer=setTimeout(()=>el.classList.remove('show'),1500);}
-function checkVoidAccess(){const vc=cells[K(0,0)];if(!vc||!vc.isVoid){voidOpen=false;return;}const ns=neighbors(0,0);if(!ns.every(([q,r])=>{const c=cells[K(q,r)];return c&&c.cap;})){voidOpen=false;return;}const tri=new Set();for(const[q,r]of ns)for(const g of mergeGroups)if(g.type==='tri'&&g.cells.includes(K(q,r)))tri.add(g.id);voidOpen=tri.size>=3;}
+function showMergeFlash(t){feed(t);const el=document.getElementById('merge-flash');el.textContent=t;el.classList.add('show');clearTimeout(mergeTimer);mergeTimer=setTimeout(()=>el.classList.remove('show'),1500);}
+function checkVoidAccess(){const vc=cells[K(0,0)];if(!vc||!vc.isVoid){voidOpen=false;return;}const ns=neighbors(0,0);if(!ns.every(([q,r])=>{const c=cells[K(q,r)];return c&&c.cap;})){voidOpen=false;return;}const tri=new Set();for(const[q,r]of ns)for(const g of mergeGroups)if((g.type==='tri'||g.type==='dark3')&&g.cells.includes(K(q,r)))tri.add(g.id);voidOpen=tri.size>=3;}
 function newMap(){ // a new map, a descent and every midnight: the source at the centre bursts out (T.mapBurstRings rings at 1.00), the player beside it
-  dropSession();cells={};totalCells=0;captureOrder=[];mergeGroups=[];mergeIdCounter=0;voidOpen=false;phase='move';gameOverReason='';prev={};
+  dropSession();cells={};totalCells=0;captureOrder=[];mergeGroups=[];mergeIdCounter=0;voidOpen=false;phase='move';gameOverReason='';prev={};constel=[];weaveSel=[];weaveAsk=null;armed=null;
   cells[K(0,0)]={q:0,r:0,v:0,cap:false,capVal:0,isP:false,locked:false,mergeId:null,isVoid:true};totalCells++;
   turn=Math.max(1,T.mapBurstRings||3);for(let n=1;n<=turn;n++)addRing(n);pool=0;for(const k in cells)if(!cells[k].isVoid){cells[k].v=1.0;pool+=1;}fresh=true;
   const r1=ring(1),si=Math.floor(Math.random()*r1.length);pQ=r1[si][0];pR=r1[si][1];
@@ -167,17 +187,17 @@ function newMap(){ // a new map, a descent and every midnight: the source at the
 function descendDepth(){if(!voidOpen)return;depth++;newMap();showTurn();focusCam(false);updateHint();showMergeFlash(`Descended to D${depth}`);hubEvent('map_descend');saveMap();}
 function focusCam(a){const[wx,wy]=a2w(pQ,pR);camTX=wx;camTY=wy;if(!a){camX=camTX;camY=camTY;}}
 function initGame(){ // a new map: score and depth start over; items, resources and discoveries live in the surface's save and are kept
-  score=0;depth=0;clock=0;day=1;newMap();
+  score=0;depth=0;clock=3;day=1;result=null;newMap();
   showTurn();mapResize();focusCam(false);updateHint();saveMap();
 }
-function advanceTurn(){ // time moves on (a move, or a bright clear): T.mapHoursPerTurn hours; the spill spreads a ring, except the first hour after a burst
-  clock+=T.mapHoursPerTurn||1;
-  if(clock>=24){clock-=24;day++;midnight();return;}
+function advanceTurn(){ // time moves on (a move, or a bright clear) by one time of day; the spill spreads a ring, except the first turn after a burst
+  awardConstellations();clock+=STEP_H;
+  if(clock>24){clock=3;day++;midnight();return;} // after Midnight: a new day (attempt)
   if(fresh)fresh=false;else{turn++;addRing(turn);}redistribute();decayCycle();showTurn();}
 function midnight(){ // everything collapses back into the source, then it bursts out again (score, depth and items are kept)
   burstFx={t0:performance.now(),kind:'collapse'};showTurn();phase='collapse';
   setTimeout(()=>{newMap();showTurn();focusCam(true);updateHint();saveMap();},T.mapCollapseMs||1400);}
-const clockStr=()=>{const h=Math.floor(clock)%24,m=Math.round((clock-Math.floor(clock))*60),h12=h%12||12;return h12+':'+String(m).padStart(2,'0')+(h===0&&m===0?' midnight':h<12?' AM':' PM');};
+const clockStr=()=>TIMES[clock]||TIMES[Math.max(3,Math.floor(clock/3)*3)]||'Predawn';
 function showTurn(){const el=document.getElementById('turn-label');el.textContent=clockStr()+' · Day '+day;el.classList.add('show');clearTimeout(turnTimer);turnTimer=setTimeout(()=>el.classList.remove('show'),1200);}
 
 function getMoves(){
@@ -205,6 +225,8 @@ function completeCaptureForCell(cellKey,kind){
   recomputeLocked();
   nebulaCellKey=null;
   detectMerges();
+  clearFx[cellKey]={t0:null}; // its picture resolves into the clear when the map is next on screen
+  if(ringCheck()){updateHint();hubEvent('map_clear');saveMap();return;}
   if(kind!=='dark'&&phase!=='gameover'){advanceTurn();if(phase==='collapse')return;phase='captured';} // a bright clear moves time on and spreads the spill; a dark one does neither
   updateHint();hubEvent('map_clear');saveMap();
 }
@@ -218,16 +240,76 @@ function doMove(tq,tr){
   if(phase==='move'&&!getMoves().length){phase='gameover';gameOverReason='no viable moves';}
   updateHint();saveMap();
 }
-function updateHint(){
-  const el=document.getElementById('capture-hint');const c=cells[K(pQ,pR)];
-  if(phase==='gameover'){el.textContent='game over: '+gameOverReason+' · a new map keeps your items';el.classList.add('show');}
-  else if(phase==='captured'){el.textContent='cleared! move on';el.classList.add('show');}
-  else if(phase==='collapse'){el.textContent='midnight: the spill falls back into the source…';el.classList.add('show');}
-  else if(c&&!c.cap&&!c.isVoid&&phase==='move'){
-    if(c.v<=0){el.textContent='no value — cannot capture';el.classList.add('show');}
-    else{el.textContent=`Space / click to ${nebulaCellKey===K(pQ,pR)?'continue this surface':'enter this surface'} (${c.v.toFixed(2)}) · or move`;el.classList.add('show');}
-  } else el.classList.remove('show');
-}
+let hintLine=['',''];
+function updateHint(){ // the feed's resting line: what you can do now
+  const c=cells[K(pQ,pR)];let a='',b='';
+  if(phase==='ended'&&result){a=`The count · ${result.bright} bright · ${result.dark} dark`;b='Start a new map to play again';}
+  else if(phase==='gameover'){a='Game over: '+gameOverReason;b='A new map keeps your items';}
+  else if(phase==='captured'){a='Cleared!';b='Move on';}
+  else if(phase==='collapse'){a='Midnight';b='The spill falls back into the source…';}
+  else if(armed==='weave'){a='Weave · click bright hexes, then the first again to close (3 to 5)';b=weaveSel.length?weaveSel.length+' chosen':'Esc or the slot again to stop';}
+  else if(armed==='dial'){a='String · click any open hex to go straight there';b='1 String per hex of distance · no time passes';}
+  else if(armed==='leash'){a='Spindle · click a cleared hex to unwind it';b='A great Dark Remnant takes 3';}
+  else if(c&&!c.cap&&!c.isVoid&&phase==='move'){a=c.v<=0?'No value here: nothing to clear':`Space / click to ${nebulaCellKey===K(pQ,pR)?'continue this surface':'enter this surface'} (${c.v.toFixed(2)})`;b=clockStr()+' · day '+day+' · or move';}
+  hintLine=[a,b];}
+function feed(t,d){feedMsg={t,d:d||'',at:performance.now()};} // a map message in the dock's feed (stays a few seconds)
+function hexInfo(c){ // what hovering a hex tells you
+  if(!c)return null;const k=K(c.q,c.r),g=c.mergeId!=null?mergeGroups.find(x=>x.id===c.mergeId):null,cn=constel.filter(x=>x.keys.includes(k));
+  if(c.isVoid&&c.q===0&&c.r===0)return['The source',voidOpen?'Open: step in to descend':'The spill pours from here · bursts at Predawn'];
+  if(c.isVoid)return['Void','Nothing left here'];
+  if(c.cap&&c.kind==='dark')return[g&&g.type==='dark3'?'Great Dark Remnant':'Dark Remnant clear',(g&&g.type==='dark3'?'Three swirled into one · a Spindle ×3 unwinds it':'Locks nothing · the spill cannot spread past it')+' · value '+c.capVal.toFixed(2)];
+  if(c.cap)return['Bright clear'+(cn.length?' · '+cn.map(x=>x.type).join(', ')+' star':''),'Locks its neighbours · value '+c.capVal.toFixed(2)+(g?' · merged':'')];
+  return[(c.isP?'You · ':'')+'Surface '+c.v.toFixed(2),(c.locked?'Locked by a bright clear · ':'')+'covered '+Math.round(cellCov(c)*100)+'%'+(k===nebulaCellKey?' · saved where you left it':'')];}
+// ── Items on the map: Spindle unwinds a clear; String moves without time; Weave joins bright hexes into constellations ──
+const isBright=k=>{const c=cells[k];return!!(c&&c.cap&&c.kind!=='dark');};
+function armItem(kind){if(phase==='ended'||phase==='collapse')return;armed=armed===kind?null:kind;weaveSel=[];weaveAsk=null;updateHint();syncDock();}
+function spend(kind,n){inv[kind]=Math.max(0,(inv[kind]||0)-n);neb({cmd:'spend',kind,n});syncDock();}
+function unclear(k){ // Spindle: a cleared hex back to an open surface (the value spreads over one more hex)
+  const c=cells[k];if(!c||!c.cap)return;const g=c.mergeId!=null?mergeGroups.find(x=>x.id===c.mergeId):null,big=g&&g.type==='dark3',cost=big?3:1;
+  if((inv.leash||0)<cost){feed('Spindle','This takes '+cost+' (you have '+(inv.leash||0)+')');return;}
+  const ks=big?g.cells:[k];spend('leash',cost);
+  if(g){mergeGroups=mergeGroups.filter(x=>x!==g);for(const gk of g.cells)if(cells[gk])cells[gk].mergeId=null;}
+  for(const kk of ks){const q=cells[kk];if(!q)continue;score=Math.round((score-q.capVal)*100)/100;q.cap=false;q.capVal=0;q.v=0;clearFx[kk]={t0:performance.now(),un:true,dk:q.kind==='dark'};delete q.kind;}
+  captureOrder=captureOrder.map(e=>({keys:e.keys.filter(x=>!ks.includes(x)),mergeId:e.mergeId})).filter(e=>e.keys.length);
+  checkConstellations();recomputeLocked();redistribute();checkVoidAccess();
+  feed('Unwound',big?'The great Dark Remnant is a surface again':'The hex is a surface again · the value spreads over it');updateHint();saveMap();}
+function stringMove(q,r){ // String: straight to any open hex, 1 per hex of distance, no time
+  const c=cells[K(q,r)];if(!c||c.cap||c.isVoid||(q===pQ&&r===pR))return;const n=dist(pQ,pR,q,r);
+  if((inv.dial||0)<n){feed('String','That is '+n+' away (you have '+(inv.dial||0)+')');return;}
+  spend('dial',n);const ok=cells[K(pQ,pR)];if(ok)ok.isP=false;dropSession();pQ=q;pR=r;c.isP=true;focusCam(true);phase='move';
+  feed('String',n+' hex'+(n>1?'es':'')+' · no time passed');updateHint();saveMap();}
+const WEAVE_KINDS={3:['prism'],4:['gate','knot'],5:['key','lens']},KIND_NAME={prism:'Prism',gate:'Gate',knot:'Knot',key:'Key',lens:'Lens',leash:'Spindle',dial:'String',weave:'Weave'};
+function weaveClick(k){
+  if(!isBright(k)){feed('Weave','Only bright hexes can be joined');return;}
+  if(weaveSel.length>=3&&k===weaveSel[0]){const kinds=WEAVE_KINDS[weaveSel.length];if(kinds.length===1)makeConstellation(kinds[0]);else{weaveAsk=kinds;syncDock();}return;}
+  if(weaveSel.includes(k))return;if(weaveSel.length>=5){feed('Weave','At most 5: click the first to close it');return;}
+  weaveSel.push(k);updateHint();}
+function segX(a,b,c,d){const o=(p,q,r)=>Math.sign((q[0]-p[0])*(r[1]-p[1])-(q[1]-p[1])*(r[0]-p[0]));return o(a,b,c)*o(a,b,d)<0&&o(c,d,a)*o(c,d,b)<0;} // proper crossing (touching ends do not count)
+const constEdges=c=>c.keys.map((k,i)=>[k,c.keys[(i+1)%c.keys.length]]);
+function makeConstellation(type){
+  if((inv.weave||0)<1){feed('Weave','You have no Weave');weaveSel=[];weaveAsk=null;return;}
+  const nc={keys:weaveSel.slice(),type},P=k=>a2w(...parseK(k)),broken=[];
+  for(const o of constel)if(constEdges(nc).some(([a,b])=>constEdges(o).some(([c,d])=>![c,d].includes(a)&&![c,d].includes(b)&&segX(P(a),P(b),P(c),P(d)))))broken.push(o); // a newer one crossing an older one breaks it
+  constel=constel.filter(o=>!broken.includes(o));constel.push(nc);spend('weave',1);weaveSel=[];weaveAsk=null;armed=null;
+  feed(KIND_NAME[type]+' constellation','Gives a '+KIND_NAME[type]+' every time of day'+(broken.length?' · broke '+broken.length+' older':''));hubEvent('map_constellation');updateHint();syncDock();saveMap();}
+function checkConstellations(){constel=constel.filter(c=>c.keys.every(isBright));}
+function awardConstellations(){checkConstellations();const got={};for(const c of constel){neb({cmd:'award',kind:c.type,n:1});got[c.type]=(got[c.type]||0)+1;}
+  const t=Object.keys(got);if(t.length)feed('Constellations',t.map(k=>'+'+got[k]+' '+KIND_NAME[k]).join(' · '));}
+// ── Full circle: a whole ring of clears pulls the map back to it ──
+function ringCheck(){
+  for(let n=1;n<=turn;n++){const ks=ring(n).map(([q,r])=>K(q,r));if(!ks.every(k=>cells[k]&&cells[k].cap))continue;collapseRing(n,ks);return true;}return false;}
+function collapseRing(n,ks){
+  const allB=ks.every(isBright),allD=ks.every(k=>cells[k].kind==='dark');
+  let nb=0,nd=0,inner=true;for(const k in cells){const c=cells[k];if(c.isVoid)continue;const rr=cellRing(c.q,c.r);if(c.cap){if(c.kind==='dark')nd++;else nb++;}if(rr<n&&!c.cap)inner=false;}
+  hubEvent('map_ring');if(allB)hubEvent('map_brightstar');if(allD)hubEvent('map_darkstar');burstFx={t0:performance.now(),kind:'ring',r:n};
+  if(n===1||inner){result={bright:nb,dark:nd,day};phase='ended';hubEvent('map_end');feed(`The count: ${nb} bright · ${nd} dark`,allB?'A Bright Star':allD?'A Dark Star':'Start a new map to play again');updateHint();saveMap();return;}
+  for(const k of Object.keys(cells)){const c=cells[k];if(c.isVoid)continue;const rr=cellRing(c.q,c.r);if(rr>n){delete cells[k];totalCells--;}}
+  for(const k of ks){const c=cells[k];c.cap=false;c.capVal=0;c.v=0;delete c.kind;c.mergeId=null;}
+  mergeGroups=mergeGroups.filter(g=>g.cells.every(k=>cells[k]&&cells[k].cap));for(const k in cells){const c=cells[k];if(c.mergeId!=null&&!mergeGroups.some(g=>g.id===c.mergeId))c.mergeId=null;}
+  captureOrder=captureOrder.map(e=>({keys:e.keys.filter(x=>cells[x]&&cells[x].cap),mergeId:e.mergeId})).filter(e=>e.keys.length);
+  turn=n;if(!cells[K(pQ,pR)]||cellRing(pQ,pR)>n){const o=cells[K(pQ,pR)];if(o)o.isP=false;const[q,r]=ring(n)[0];pQ=q;pR=r;cells[K(q,r)].isP=true;focusCam(true);}
+  checkConstellations();recomputeLocked();redistribute();checkVoidAccess();phase='move';
+  feed('Full circle',(allB?'A Bright Star! ':allD?'A Dark Star! ':'')+'The map falls back to ring '+n+' · its value is shared again');updateHint();saveMap();}
 // ── The 3D scene: the plane lies flat (x right, y down, z up out of it); the camera looks at it from T.mapTilt off straight down, at
 // T.mapPersp px away (the perspective), zoomed by viewZoom. proj / unproj are that camera in maths: plane canvas px ↔ screen px (clicks,
 // what is on screen). Column-major 4×4 matrices.
@@ -275,9 +357,9 @@ function sceneRender(now){
     drawDuckScene(G3.duck,d.type,{rot:new Float32Array([f[0],f[1],0, 0,0,1, -f[1],f[0],0]),size,pos:[px-MW/2,py-MH/2,size*(0.36+0.03*Math.sin(now/700+d.ph))],view:cam.view,proj:cam.proj,viewRot:cam.viewRot,env:{x:X,y:Y,lights:[]},px:size*k});}}
 let _glow=null;
 function glowSprite(bl,ba){ // one bright clear's glow (a wide and a mid blur pass and its soft white core), drawn once per hex size and setting
-  const key=HEX+'|'+bl+'|'+ba+'|'+MK;if(_glow&&_glow.key===key)return _glow.cv;const R=HEX*(1.5+bl*2.2),S=Math.ceil(2*R*MK),cv=document.createElement('canvas');cv.width=cv.height=S;
+  const key=HEX+'|'+bl+'|'+ba+'|'+MK;if(_glow&&_glow.key===key)return _glow.cv;const R=HEX*(1.7+bl*3.6),S=Math.ceil(2*R*MK),cv=document.createElement('canvas');cv.width=cv.height=S;
   const c=cv.getContext('2d'),m=S/2;c.scale(MK,MK);const hp=(r)=>{c.beginPath();for(let i=0;i<6;i++){const a=Math.PI/3*i-Math.PI/6;c[i?'lineTo':'moveTo'](m/MK+r*Math.cos(a),m/MK+r*Math.sin(a));}c.closePath();};
-  if(bl>0&&ba>0)for(const[k,al,sz]of [[1,ba,1.12],[0.4,ba*0.8,1]]){c.save();c.filter=`blur(${HEX*bl*k}px)`;c.globalCompositeOperation='screen';c.fillStyle=`rgba(255,255,255,${al})`;hp(HEX*sz);c.fill();c.restore();}
+  if(bl>0&&ba>0)for(const[k,al,sz]of [[2.2,ba*0.45,1.35],[1,ba*0.8,1.12],[0.4,ba*0.7,1]]){c.save();c.filter=`blur(${HEX*bl*k}px)`;c.globalCompositeOperation='screen';c.fillStyle=`rgba(255,255,255,${al})`;hp(HEX*sz);c.fill();c.restore();}
   c.save();c.filter=`blur(${HEX*0.12}px)`;c.fillStyle='rgba(255,255,255,0.95)';hp(HEX*0.8);c.fill();c.restore(); // a soft white core (no hard edge)
   _glow={key,cv};return cv;}
 function hexPath(cx,cy,s){mctx.beginPath();for(let i=0;i<6;i++){const a=Math.PI/3*i-Math.PI/6;if(!i)mctx.moveTo(cx+s*Math.cos(a),cy+s*Math.sin(a));else mctx.lineTo(cx+s*Math.cos(a),cy+s*Math.sin(a));}mctx.closePath();}
@@ -291,16 +373,16 @@ function starPath(cx,cy,or,ir,pts){mctx.beginPath();for(let i=0;i<pts*2;i++){con
 // An unfinished surface shows the snapshot taken when it was left.
 let prev={},prevPending=new Set(),mapNeed=[],renderSig='';
 const shotSize=()=>Math.round(2*HEX*(window.devicePixelRatio||1));
-function cellSeed(c){return Math.abs(Math.sin(c.q*127.1+c.r*311.7+depth*999)*43758.5453)%100;}
+function cellSeed(c){return Math.abs(Math.sin(depth*999+7.13)*43758.5453)%100;} // one field per depth: each hex is a window onto it at its place (q,r), so a hex's edge pattern carries into its neighbours
 function cellCov(c){const lo=T.mapCovMin!=null?T.mapCovMin:0.25,full=T.mapCovFull||1;return Math.round((lo+(1-lo)*Math.min(1,c.v/full))*4)/4;} // in quarter steps: a move nudges every hex's value, and only a visible change is worth re-shooting its picture
 function syncRenderSig(){ // any tuner that changes how a surface looks (not sound, discoveries or the map's own layout) re-shoots the hexes
   let h=0;const str=JSON.stringify(Object.keys(T).filter(k=>!/^(dc_|soundOn|masterVol|mapAlpha|mapCov|mapClear|mapHexSize|duck)/.test(k)).sort().map(k=>T[k]))+'|'+shotSize();
   for(let i=0;i<str.length;i++)h=(h*31+str.charCodeAt(i))|0;renderSig=''+h;
 }
-function cellSig(c){return cellSeed(c).toFixed(6)+'|'+cellCov(c)+'|'+renderSig;}
+function cellSig(c){return c.q+','+c.r+'|'+cellSeed(c).toFixed(6)+'|'+cellCov(c)+'|'+renderSig;}
 function requestPreviews(keys){
   if(!nebReady||!keys.length)return;
-  const items=[];for(const k of keys){if(prevPending.has(k))continue;const c=cells[k];prevPending.add(k);items.push({key:k,sig:cellSig(c),seed:cellSeed(c),cov:cellCov(c)});}
+  const items=[];for(const k of keys){if(prevPending.has(k))continue;const c=cells[k];prevPending.add(k);items.push({key:k,sig:cellSig(c),seed:cellSeed(c),cov:cellCov(c),q:c.q,r:c.r});}
   if(items.length)neb({cmd:'preview',items,size:shotSize()});
 }
 function shotImg(o,url){if(!o._im||o._im._u!==url){o._im=new Image();o._im._u=url;o._im.src=url;}return o._im.complete&&o._im.naturalWidth?o._im:null;}
@@ -323,7 +405,8 @@ function mapRender(){
   const ptSet=new Set();if(hoverMove)for(const p of hoverMove.path)ptSet.add(K(p.q,p.r));
   const mergedSet=new Set();for(const g of mergeGroups)for(const ck of g.cells)mergedSet.add(ck);
   const keys=Object.keys(cells);keys.sort((a,b)=>(cells[a].isP?1:0)-(cells[b].isP?1:0));
-  const now=performance.now(),brightOnes=[];
+  const now=performance.now(),brightOnes=[],d3=new Set();for(const g of mergeGroups)if(g.type==='dark3')for(const ck of g.cells)d3.add(ck);
+  const tgt=armed?(k=>{const c=cells[k];return armed==='leash'?!!(c&&c.cap):armed==='dial'?!!(c&&!c.cap&&!c.isVoid&&k!==K(pQ,pR)):isBright(k);}):null; // what the armed item can act on
   for(const k of keys){
     const c=cells[k];const[sx,sy]=w2s(...a2w(c.q,c.r));
     if(sx<-HEX*2||sx>MW+HEX*2||sy<-HEX*2||sy>MH+HEX*2)continue;
@@ -340,21 +423,24 @@ function mapRender(){
     if(c.isP){mctx.save();mctx.shadowColor='rgba(0,210,210,0.2)';mctx.shadowBlur=24;hexPath(sx,sy,s+3);mctx.fillStyle='rgba(0,210,210,0.05)';mctx.fill();mctx.restore();}
     if(c.isVoid&&c.q===0&&c.r===0&&voidOpen){mctx.save();mctx.shadowColor='rgba(160,120,230,0.25)';mctx.shadowBlur=28;hexPath(sx,sy,s+2);mctx.fillStyle='rgba(160,120,230,0.04)';mctx.fill();mctx.restore();}
     hexPath(sx,sy,s);mctx.fillStyle=fill;mctx.fill();
-    if(!c.cap&&!c.isVoid){const[vx,vy]=proj(sx,sy),img=cellLayer(k,c,vx>-HEX*2&&vx<SW+HEX*2&&vy>-HEX*2&&vy<SH+HEX*2);if(img){mctx.save();hexPath(sx,sy,s);mctx.clip();mctx.globalAlpha=T.mapAlpha!=null?T.mapAlpha:1;mctx.drawImage(img,sx-HEX,sy-HEX,2*HEX,2*HEX);mctx.restore();}}
-    if(dark){ // the dark remnant left on the hex
-      const rr=HEX*0.36,pul=0.5+0.5*Math.sin(now/700+c.q*1.7+c.r);
-      mctx.save();mctx.shadowColor='rgba(170,140,255,0.7)';mctx.shadowBlur=10+8*pul;mctx.beginPath();mctx.arc(sx,sy,rr,0,Math.PI*2);mctx.fillStyle='#000';mctx.fill();
-      mctx.strokeStyle=`rgba(190,165,255,${0.45+0.3*pul})`;mctx.lineWidth=1.5;mctx.stroke();mctx.restore();
-    }
-    hexPath(sx,sy,s);mctx.strokeStyle=stroke;mctx.lineWidth=sw;mctx.stroke();
+    if(SCENE&&!c.cap&&!c.isVoid){const[wx,wy]=a2w(c.q,c.r),fd=sceneField(),F=HEX*16;mctx.save();hexPath(sx,sy,s);mctx.clip();mctx.globalAlpha=0.35+0.65*Math.min(1,c.v);mctx.drawImage(fd,sx-wx-F/2,sy-wy-F/2,F,F);mctx.restore();}
+    else if(!c.cap&&!c.isVoid){const[vx,vy]=proj(sx,sy),img=cellLayer(k,c,vx>-HEX*2&&vx<SW+HEX*2&&vy>-HEX*2&&vy<SH+HEX*2);if(img){mctx.save();hexPath(sx,sy,s);mctx.clip();mctx.globalAlpha=T.mapAlpha!=null?T.mapAlpha:1;mctx.drawImage(img,sx-HEX,sy-HEX,2*HEX,2*HEX);mctx.restore();}}
+    const cf=clearFx[k],cp=cf&&cf.t0!=null?Math.min(1,(now-cf.t0)/(T.mapClearFxMs||1400)):cf?0:1;
+    if(dark&&!d3.has(k)&&!(mergeFx.length&&mergeFx.some(m=>{const g=mergeGroups.find(x=>x.id===m.gid);return g&&g.cells.includes(k);})))drawDarkRemnantAt(mctx,sx,sy,HEX*0.34*(0.4+0.6*cp),now,HEX*0.34/60,c.q*911+c.r*577); // the surface's own Dark Remnant, at hex size
+    if(cf&&cp<1){const p=prev[k],im=cf.un?null:(c.shot?shotImg(c,c.shot):p&&p.img?shotImg(p,p.img):null),e=1-cp; // the surface you left resolves into its clear
+      mctx.save();hexPath(sx,sy,s);mctx.clip();mctx.globalAlpha=e;if(im)mctx.drawImage(im,sx-HEX,sy-HEX,2*HEX,2*HEX);else{mctx.fillStyle=cf.un?(cf.dk?'#000':'#fff'):'rgba(14,17,22,0.9)';mctx.fill();}mctx.restore();
+      mctx.save();mctx.globalCompositeOperation='screen';mctx.strokeStyle=`rgba(255,255,255,${0.7*e})`;mctx.lineWidth=HEX*0.12*e+1;mctx.filter=`blur(${HEX*0.05}px)`;hexPath(sx,sy,s*(0.3+0.9*cp));mctx.stroke();mctx.restore();}
+    else if(cf&&cp>=1)delete clearFx[k];
+    if(!d3.has(k)){hexPath(sx,sy,s);mctx.strokeStyle=stroke;mctx.lineWidth=sw;mctx.stroke();}
+    if(tgt&&tgt(k)){mctx.save();mctx.setLineDash([HEX*0.12,HEX*0.08]);mctx.lineDashOffset=-now/40;hexPath(sx,sy,s*0.84);mctx.strokeStyle=armed==='weave'&&weaveSel.includes(k)?'rgba(255,220,120,0.95)':'rgba(255,220,120,0.55)';mctx.lineWidth=k===hoverKey?2.5:1.5;mctx.stroke();mctx.restore();}
     if(c.locked){const d=3.5;mctx.beginPath();mctx.moveTo(sx,sy-HEX*0.28-d);mctx.lineTo(sx+d,sy-HEX*0.28);mctx.lineTo(sx,sy-HEX*0.28+d);mctx.lineTo(sx-d,sy-HEX*0.28);mctx.closePath();mctx.fillStyle='rgba(220,185,50,0.6)';mctx.fill();}
     if(k===nebulaCellKey){mctx.font=`${Math.max(8,HEX*0.24)}px 'Share Tech Mono',monospace`;mctx.textAlign='center';mctx.textBaseline='middle';mctx.fillStyle='rgba(0,230,230,0.85)';mctx.fillText('❚❚ saved',sx,sy-HEX*0.5);}
     if(c.isVoid){if(c.q===0&&c.r===0&&voidOpen){mctx.font=`${HEX*0.45}px 'Orbitron',sans-serif`;mctx.textAlign='center';mctx.textBaseline='middle';mctx.fillStyle='rgba(180,140,255,0.5)';mctx.fillText('▽',sx,sy+1);}else if(c.q===0&&c.r===0){mctx.beginPath();mctx.arc(sx,sy,3,0,Math.PI*2);mctx.fillStyle='rgba(255,255,255,0.06)';mctx.fill();}else{const m=4;mctx.strokeStyle='rgba(255,255,255,0.08)';mctx.lineWidth=1;mctx.beginPath();mctx.moveTo(sx-m,sy-m);mctx.lineTo(sx+m,sy+m);mctx.stroke();mctx.beginPath();mctx.moveTo(sx+m,sy-m);mctx.lineTo(sx-m,sy+m);mctx.stroke();}}
-    if(bright)brightOnes.push([sx,sy,c.capVal,stroke,sw]); // drawn after the bleed below
+    if(bright)brightOnes.push([sx,sy,c.capVal,stroke,sw,cp]); // drawn after the bleed below
   }
   // Bright clears bleed into their neighbours: every bright hex together, blurred and screened over the map, then their outline and value on top
   if(brightOnes.length){const bl=T.mapClearBlur!=null?T.mapClearBlur:0.6,ba=T.mapClearBleed!=null?T.mapClearBleed:0.85;
-    const sp=glowSprite(bl,ba),hs=sp.width/MK/2;mctx.save();mctx.globalCompositeOperation='screen';for(const[x,y]of brightOnes)mctx.drawImage(sp,x-hs,y-hs,hs*2,hs*2);mctx.restore(); // the blurred glow, drawn once into a sprite
+    const sp=glowSprite(bl,ba),hs=sp.width/MK/2;mctx.save();mctx.globalCompositeOperation='screen';for(const[x,y,,,,p]of brightOnes){mctx.globalAlpha=p;mctx.drawImage(sp,x-hs,y-hs,hs*2,hs*2);}mctx.restore(); // the blurred glow, drawn once into a sprite
     for(const[x,y,v,st,sw]of brightOnes){if(st!=='#fff'){hexPath(x,y,HEX*0.92);mctx.strokeStyle=st;mctx.lineWidth=sw;mctx.stroke();} // a soft white core (no hard edge); only the player / merge outline stays crisp
 }}
   // The source: a big white point at the centre, glowing over the surfaces and bleeding into the first ring; at midnight the spill falls
@@ -363,11 +449,32 @@ function mapRender(){
     const flare=fx&&ft<1?(fx.kind==='collapse'?ft:1-ft):0,R=HEX*(2.3+0.25*pul+1.5*flare);
     if(g>0){mctx.save();mctx.globalCompositeOperation='screen';const gr=mctx.createRadialGradient(cx,cy,0,cx,cy,R);gr.addColorStop(0,`rgba(255,255,255,${Math.min(1,g)})`);gr.addColorStop(0.28,`rgba(255,255,255,${Math.min(1,0.95*g)})`);gr.addColorStop(0.5,`rgba(235,240,255,${0.45*g})`);gr.addColorStop(1,'rgba(220,230,255,0)');
       mctx.fillStyle=gr;mctx.beginPath();mctx.arc(cx,cy,R,0,6.2832);mctx.fill();mctx.restore();}
-    if(fx&&ft<1){const rB=HEX*1.75*(T.mapBurstRings||3)+HEX,r=fx.kind==='collapse'?rB*(1-ft):rB*ft;mctx.save();mctx.globalCompositeOperation='screen';mctx.strokeStyle=`rgba(255,255,255,${0.8*(1-ft*0.6)})`;mctx.lineWidth=HEX*0.35;mctx.filter=`blur(${HEX*0.15}px)`;mctx.beginPath();mctx.arc(cx,cy,Math.max(1,r),0,6.2832);mctx.stroke();mctx.restore();
+    if(fx&&ft<1){const rB=fx.kind==='ring'?HEX*1.75*(turn+1)+HEX:HEX*1.75*(T.mapBurstRings||3)+HEX,r=fx.kind==='collapse'?rB*(1-ft):fx.kind==='ring'?rB-(rB-HEX*1.75*fx.r)*ft:rB*ft;mctx.save();mctx.globalCompositeOperation='screen';mctx.strokeStyle=`rgba(255,255,255,${0.8*(1-ft*0.6)})`;mctx.lineWidth=HEX*0.35;mctx.filter=`blur(${HEX*0.15}px)`;mctx.beginPath();mctx.arc(cx,cy,Math.max(1,r),0,6.2832);mctx.stroke();mctx.restore();
       if(fx.kind==='collapse'){mctx.save();mctx.fillStyle=`rgba(5,6,8,${0.85*ft})`;mctx.beginPath();mctx.arc(cx,cy,rB*1.4,0,6.2832);mctx.arc(cx,cy,Math.max(1,rB*(1-ft)),0,6.2832,true);mctx.fill();mctx.restore();}} // what the ring has passed has fallen in
     else if(fx&&ft>=1)burstFx=null;}
   // Merge visuals
-  for(const g of mergeGroups){if(!g.cells.length)continue;const pts=g.cells.map(ck=>{const cc=cells[ck];return cc?w2s(...a2w(cc.q,cc.r)):null;}).filter(Boolean);if(pts.length<2)continue;mctx.strokeStyle='rgba(160,120,230,0.5)';mctx.lineWidth=1.2;for(let i=0;i<g.cells.length;i++)for(let j=i+1;j<g.cells.length;j++){const c1=cells[g.cells[i]],c2=cells[g.cells[j]];if(c1&&c2&&dist(c1.q,c1.r,c2.q,c2.r)===1){const[x1,y1]=w2s(...a2w(c1.q,c1.r));const[x2,y2]=w2s(...a2w(c2.q,c2.r));mctx.beginPath();mctx.moveTo(x1,y1);mctx.lineTo(x2,y2);mctx.stroke();}}const cx2=pts.reduce((s,p)=>s+p[0],0)/pts.length;const cy2=pts.reduce((s,p)=>s+p[1],0)/pts.length;const sr=g.type==='hex'?HEX*1.6:HEX*0.85;starPath(cx2,cy2,sr,sr*0.42,5);mctx.strokeStyle='rgba(160,120,230,0.55)';mctx.lineWidth=1.5;mctx.stroke();}
+  for(const g of mergeGroups){if(g.type!=='dark3'||!g.cells.length)continue;const cs=g.cells.map(ck=>cells[ck]).filter(Boolean);if(!cs.length)continue;
+    const pts=cs.map(cc=>w2s(...a2w(cc.q,cc.r))),cx=pts.reduce((a,p)=>a+p[0],0)/pts.length,cy=pts.reduce((a,p)=>a+p[1],0)/pts.length,set=new Set(g.cells);
+    // one space: only the group's outer edges (an edge shared with another of its hexes is faded out)
+    mctx.save();mctx.strokeStyle='rgba(150,130,200,0.35)';mctx.lineWidth=1.2;mctx.beginPath();for(const cc of cs){const[x,y]=w2s(...a2w(cc.q,cc.r));for(let i=0;i<6;i++){const a=Math.PI/3*i-Math.PI/6,b=a+Math.PI/3,mx=Math.cos(a+Math.PI/6),my=Math.sin(a+Math.PI/6),
+      [wx,wy]=a2w(cc.q,cc.r),nb=neighbors(cc.q,cc.r).find(([q2,r2])=>{const[ax,ay]=a2w(q2,r2);return Math.hypot(ax-wx-mx*HEX*1.732,ay-wy-my*HEX*1.732)<HEX*0.5;});if(nb&&set.has(K(nb[0],nb[1])))continue;
+      mctx.moveTo(x+HEX*0.92*Math.cos(a),y+HEX*0.92*Math.sin(a));mctx.lineTo(x+HEX*0.92*Math.cos(b),y+HEX*0.92*Math.sin(b));}}mctx.stroke();mctx.restore();
+    const fx=mergeFx.find(m=>m.gid===g.id),ft=fx?Math.min(1,(now-fx.t0)/(T.mapMergeMs||2200)):1,Rb=HEX*0.95;
+    if(fx&&ft<1){const sw=Math.min(1,ft/0.7),ease=sw*sw*(3-2*sw); // the three swirl in to the middle…
+      for(let i=0;i<pts.length;i++){const a0=Math.atan2(pts[i][1]-cy,pts[i][0]-cx),r0=Math.hypot(pts[i][0]-cx,pts[i][1]-cy),a=a0+ease*Math.PI*2.5,r=r0*(1-ease);
+        if(ease<0.98)drawDarkRemnantAt(mctx,cx+r*Math.cos(a),cy+r*Math.sin(a),HEX*0.34*(1-0.5*ease),now,HEX*0.34/60,i*1000);}
+      const ir=HEX*2.6*(1-ft); // …under a nova imploding from the three hexes' extent
+      mctx.save();mctx.globalCompositeOperation='screen';mctx.filter=`blur(${HEX*0.12}px)`;mctx.strokeStyle=`rgba(200,180,255,${0.85*Math.sin(Math.PI*ft)})`;mctx.lineWidth=HEX*(0.08+0.3*ft);mctx.beginPath();mctx.arc(cx,cy,Math.max(1,ir),0,6.2832);mctx.stroke();mctx.restore();
+      if(ft>0.6)drawDarkRemnantAt(mctx,cx,cy,Rb*(ft-0.6)/0.4,now,Rb*(ft-0.6)/0.4/60,g.id*313);}
+    else{if(fx)mergeFx=mergeFx.filter(m=>m!==fx);drawDarkRemnantAt(mctx,cx,cy,Rb,now,Rb/60,g.id*313);}}
+  for(const g of mergeGroups){if(g.type==='dark3'||!g.cells.length)continue;const pts=g.cells.map(ck=>{const cc=cells[ck];return cc?w2s(...a2w(cc.q,cc.r)):null;}).filter(Boolean);if(pts.length<2)continue;mctx.strokeStyle='rgba(160,120,230,0.5)';mctx.lineWidth=1.2;for(let i=0;i<g.cells.length;i++)for(let j=i+1;j<g.cells.length;j++){const c1=cells[g.cells[i]],c2=cells[g.cells[j]];if(c1&&c2&&dist(c1.q,c1.r,c2.q,c2.r)===1){const[x1,y1]=w2s(...a2w(c1.q,c1.r));const[x2,y2]=w2s(...a2w(c2.q,c2.r));mctx.beginPath();mctx.moveTo(x1,y1);mctx.lineTo(x2,y2);mctx.stroke();}}const cx2=pts.reduce((s,p)=>s+p[0],0)/pts.length;const cy2=pts.reduce((s,p)=>s+p[1],0)/pts.length;const sr=g.type==='hex'?HEX*1.6:HEX*0.85;starPath(cx2,cy2,sr,sr*0.42,5);mctx.strokeStyle='rgba(160,120,230,0.55)';mctx.lineWidth=1.5;mctx.stroke();}
+  // Constellations: lines between their bright nodes; the Weave being drawn follows the cursor
+  const CCOL={prism:'190,230,255',knot:'255,190,120',gate:'170,255,200',key:'255,230,140',lens:'220,180,255'},line=(ks,col,a,close)=>{if(ks.length<2&&!close)return;mctx.beginPath();ks.forEach((kk,i)=>{const[x,y]=w2s(...a2w(...parseK(kk)));mctx[i?'lineTo':'moveTo'](x,y);});if(close)mctx.closePath();mctx.strokeStyle=`rgba(${col},${a})`;mctx.stroke();};
+  mctx.save();mctx.globalCompositeOperation='screen';mctx.lineCap='round';mctx.lineJoin='round';
+  for(const c of constel){const tw=0.55+0.25*Math.sin(now/600+c.keys.length);mctx.filter=`blur(${HEX*0.06}px)`;mctx.lineWidth=HEX*0.14;line(c.keys,CCOL[c.type]||'255,255,255',0.35*tw,true);mctx.filter='none';mctx.lineWidth=1.6;line(c.keys,CCOL[c.type]||'255,255,255',0.9*tw,true);
+    for(const kk of c.keys){const[x,y]=w2s(...a2w(...parseK(kk)));mctx.beginPath();mctx.arc(x,y,HEX*0.09,0,6.2832);mctx.fillStyle=`rgba(${CCOL[c.type]},0.9)`;mctx.fill();}}
+  if(armed==='weave'&&weaveSel.length){mctx.setLineDash([6,5]);mctx.lineWidth=1.5;const ks=weaveSel.slice();if(hoverKey&&isBright(hoverKey)&&!weaveSel.includes(hoverKey)||hoverKey===weaveSel[0])ks.push(hoverKey);line(ks,'255,220,120',0.85,false);mctx.setLineDash([]);}
+  mctx.restore();
   // Direction line
   if(hoverMove&&phase!=='gameover'){const pts=[{q:pQ,r:pR},...hoverMove.path,{q:hoverMove.q,r:hoverMove.r}];mctx.beginPath();for(let i=0;i<pts.length;i++){const[sx,sy]=w2s(...a2w(pts[i].q,pts[i].r));if(!i)mctx.moveTo(sx,sy);else mctx.lineTo(sx,sy);}mctx.strokeStyle='rgba(0,210,210,0.6)';mctx.lineWidth=1.5;mctx.setLineDash([5,4]);mctx.stroke();mctx.setLineDash([]);const[dx,dy]=w2s(...a2w(hoverMove.q,hoverMove.r));mctx.beginPath();mctx.arc(dx,dy,3.5,0,Math.PI*2);mctx.fillStyle='rgba(0,220,220,0.7)';mctx.fill();}
   requestPreviews(mapNeed);pondStep(now);sceneRender(now);
@@ -378,23 +485,28 @@ function mapRender(){
   let st=`${clockStr()} · day ${day} · rings ${turn} · score ${score.toFixed(2)} · captures ${captureOrder.length}`;
   if(phase==='gameover')st+=' · game over: '+gameOverReason;
   document.getElementById('score-display').textContent=st;
-  discTick();
+  discTick();feedTick(now);cursorTick(now);
   mapRafId=requestAnimationFrame(mapRender);
 }
 function startMapLoop(){if(!mapRafId)mapRafId=requestAnimationFrame(mapRender);}
 
 const evA=e=>p2a(...unproj(e.clientX,e.clientY)); // the hex under the cursor, through the tilt
+let mX=-1,mY=-1,mDownAt=-1,mUpAt=-1; // the cursor (drawn by the shared cursor code, as on a surface)
 sc.addEventListener('mousemove',e=>{if(currentView==='map')[hQ,hR]=evA(e);});
+document.addEventListener('mousemove',e=>{mX=e.clientX;mY=e.clientY;},true);document.addEventListener('mousedown',()=>{mDownAt=performance.now();},true);document.addEventListener('mouseup',()=>{mUpAt=performance.now();mDownAt=-1;},true);
 window.addEventListener('wheel',e=>{if(currentView!=='map'||menuOpen)return;e.preventDefault();zoomView(Math.exp(-e.deltaY*0.0015));},{passive:false});
 sc.addEventListener('click',e=>{
-  if(currentView!=='map'||phase==='gameover')return;
-  const[q,r]=evA(e);
+  if(currentView!=='map'||phase==='gameover'||phase==='ended'||phase==='collapse')return;
+  const[q,r]=evA(e),k=K(q,r);
+  if(armed==='leash'){if(cells[k]&&cells[k].cap)unclear(k);return;} // an armed map item takes the click
+  if(armed==='dial'){stringMove(q,r);return;}
+  if(armed==='weave'){if(!weaveAsk)weaveClick(k);return;}
   if(q===pQ&&r===pR){doCapture();return;}
   const moves=getMoves();if(moves.find(m=>m.q===q&&m.r===r))doMove(q,r);
 });
 sc.addEventListener('mouseleave',()=>{hQ=null;hR=null;});
 document.addEventListener('keydown',e=>{
-  if(e.code==='Escape'){e.preventDefault();if(currentView==='map')toggleMenu();return;}
+  if(e.code==='Escape'){e.preventDefault();if(currentView==='map'&&armed){armed=null;weaveSel=[];weaveAsk=null;updateHint();syncDock();return;}if(currentView==='map')toggleMenu();return;}
   if(menuOpen)return;
   if(e.code==='Space'){e.preventDefault();if(currentView==='map')doCapture();}
   if(currentView==='map'&&(e.key==='+'||e.key==='='))zoomView(1.15);if(currentView==='map'&&(e.key==='-'||e.key==='_'))zoomView(1/1.15);
@@ -456,14 +568,15 @@ function pondStep(now){
 // ║  surface's own save, so a new map never touches them)                       ║
 // ╚══════════════════════════════════════════════════════════════════════════════╝
 function saveMap(){
+  if(SCENE)return; // a demo never touches your map
   const out={};for(const k in cells){const c=Object.assign({},cells[k]);delete c._im;out[k]=c;}
-  try{localStorage.setItem(MAP_KEY,JSON.stringify({v:2,cells:out,turn,clock,day,pool,fresh,score,pQ,pR,totalCells,phase,depth,gameOverReason,captureOrder,mergeGroups,mergeIdCounter,voidOpen,session:nebulaCellKey}));}catch(e){}
+  try{localStorage.setItem(MAP_KEY,JSON.stringify({v:3,cells:out,turn,clock,day,pool,fresh,constel,result,score,pQ,pR,totalCells,phase,depth,gameOverReason,captureOrder,mergeGroups,mergeIdCounter,voidOpen,session:nebulaCellKey}));}catch(e){}
 }
 function loadMap(){
   let d=null;try{d=JSON.parse(localStorage.getItem(MAP_KEY)||'null');}catch(e){}
   if(!d||!d.cells)return false;
-  if(d.v!==2)return false; // a map from before the day clock starts over
-  ({cells,turn,clock,day,pool,fresh,score,pQ,pR,totalCells,phase,depth,gameOverReason,captureOrder,mergeGroups,mergeIdCounter,voidOpen}=d);nebulaCellKey=d.session||null;
+  if(d.v!==3)return false; // a map from before the times of day starts over
+  ({cells,turn,clock,day,pool,fresh,constel,result,score,pQ,pR,totalCells,phase,depth,gameOverReason,captureOrder,mergeGroups,mergeIdCounter,voidOpen}=d);nebulaCellKey=d.session||null;
   mapResize();focusCam(false);updateHint();return true;
 }
 
@@ -477,15 +590,15 @@ function enterNebula(cellKey){
   const c=cells[cellKey];
   currentView='level';showNeb(true);
   const resume=nebulaCellKey===cellKey;nebulaCellKey=cellKey;saveMap();
-  neb({cmd:'level',key:cellKey,seed:cellSeed(c),cov:cellCov(c),label:`(${c.q},${c.r}) · value ${c.v.toFixed(2)}`,resume});
+  neb({cmd:'level',key:cellKey,seed:cellSeed(c),cov:cellCov(c),q:c.q,r:c.r,label:`(${c.q},${c.r}) · value ${c.v.toFixed(2)}`,resume});
 }
-function exitNebula(){currentView='map';showNeb(false);mapResize();pondSpawn();startMapLoop();updateHint();evPump();}
+function exitNebula(){currentView='map';const t=performance.now();for(const k in clearFx)if(clearFx[k].t0==null)clearFx[k].t0=t+250;showNeb(false);mapResize();pondSpawn();startMapLoop();updateHint();evPump();}
 let evQ=[];
-function hubEvent(id){if(disc.has('ev:'+id)||evQ.includes(id))return;evQ.push(id);evPump();}
+function hubEvent(id){if(SCENE)return;if(disc.has('ev:'+id)||evQ.includes(id))return;evQ.push(id);evPump();}
 function evPump(){if(currentView!=='map'||menuOpen||!nebReady||!evQ.length)return;const id=evQ.shift();if(disc.has('ev:'+id)){evPump();return;}currentView='overlay';showNeb(true);neb({cmd:'event',id});}
 function openGuide(){if(!nebReady||currentView!=='map')return;currentView='overlay';showNeb(true);neb({cmd:'guide'});}
 function takeState(m){
-  if(m.T){T=m.T;if(SW)camUpdate();}if(m.ducks)duckLog=m.ducks;if(m.duckTypes)DUCK_TYPES=m.duckTypes;if(m.inv)inv=m.inv;if(m.disc)disc=new Set(m.disc);if(m.defs&&m.defs.length)tuneDefs=m.defs;
+  if(m.T){T=m.T;if(SW)camUpdate();}if(m.ducks)duckLog=m.ducks;if(m.duckTypes)DUCK_TYPES=m.duckTypes;if(m.icons)icons=m.icons;if(m.inv){inv=m.inv;syncDock();}if(m.disc)disc=new Set(m.disc);if(m.defs&&m.defs.length)tuneDefs=m.defs;
   if(T.mapHexSize&&T.mapHexSize!==HEX){HEX=T.mapHexSize;focusCam(false);}
   if(m.T)syncRenderSig();applyDisc();syncMenu();
 }
@@ -547,9 +660,65 @@ function discTick(){
   else{dcMet=null;v.textContent=cost+' Dim';v.style.color='#666';}
 }
 
+// ╔══════════════════════════════════════════════════════════════════════════════╗
+// ║  DOCK, FEED AND CURSOR — the surface's own slots, feed line and cursor       ║
+// ╚══════════════════════════════════════════════════════════════════════════════╝
+let icons={};const DOCK_ITEMS=['leash','dial','weave'];
+function syncDock(){const box=document.getElementById('hinv');if(!box)return;
+  box.innerHTML=DOCK_ITEMS.map(k=>`<div class="slot${armed===k?' armed':''}${(inv[k]||0)<=0?' empty':''}" data-k="${k}" title="${KIND_NAME[k]}">${icons[k]||KIND_NAME[k][0]}<b>${inv[k]||0}</b></div>`).join('')+
+    '<div class="sep"></div>'+['prism','knot','gate','key','lens'].filter(k=>(inv[k]||0)>0).map(k=>`<div class="slot empty" data-k="${k}" title="${KIND_NAME[k]} (earned)">${icons[k]||KIND_NAME[k][0]}<b>${inv[k]}</b></div>`).join('');
+  for(const el of box.querySelectorAll('.slot'))if(DOCK_ITEMS.includes(el.dataset.k))el.onclick=()=>armItem(el.dataset.k);
+  const fd=document.getElementById('hfeed');if(weaveAsk){fd.innerHTML='<div class="fn">Make: '+weaveAsk.map(k=>`<button data-k="${k}">${KIND_NAME[k]}</button>`).join('')+'</div><div class="fd">'+weaveSel.length+' bright hexes · 1 Weave</div>';for(const b of fd.querySelectorAll('button'))b.onclick=()=>makeConstellation(b.dataset.k);}
+  else if(fd.querySelector('button'))fd.innerHTML='<div class="fn"></div><div class="fd"></div>';}
+function duckUnder(X,Y){let best=null,bd=1e9;for(const d of pond){if(!d._s)continue;const[px,py]=w2s(d.x,d.y),[sx,sy,k]=proj(px,py),r=d._s*k*0.9,dd=Math.hypot(X-sx,Y-sy);if(dd<r&&dd<bd){bd=dd;best=d;}}return best;}
+function feedTick(now){ // the feed: a recent message, else what the cursor is over (a duck, a hex), else what you can do now
+  if(weaveAsk)return;const fd=document.getElementById('hfeed');if(!fd)return;const fn=fd.querySelector('.fn'),fdd=fd.querySelector('.fd');if(!fn)return;
+  let a,b;const over=mX>=0&&currentView==='map'&&!menuOpen?document.elementFromPoint(mX,mY):null,onMap=over===sc;
+  const du=onMap?duckUnder(mX,mY):null,hc=onMap&&hQ!==null?cells[K(hQ,hR)]:null;
+  if(now-feedMsg.at<3500){a=feedMsg.t;b=feedMsg.d;}
+  else if(du){const v=DUCK_TYPES[du.type]||{};a=(v.rare?'★ ':'')+(v.name||'Duck')+' × '+(duckLog[du.type]||0);b=(v.axis||'')+(v.detail?': '+v.detail:'')+' · swimming on the lake';}
+  else if(hc){[a,b]=hexInfo(hc);}else{[a,b]=hintLine;}
+  if(fn.textContent!==a)fn.textContent=a||'';if(fdd.textContent!==(b||''))fdd.textContent=b||'';}
+const hcur=document.getElementById('hcur'),hcx=hcur.getContext('2d');
+function cursorTick(now){ // the surface's standard cursor (shared.js): brighter over something it can act on
+  const dp=window.devicePixelRatio||1;if(hcur.width!==Math.round(innerWidth*dp)){hcur.width=Math.round(innerWidth*dp);hcur.height=Math.round(innerHeight*dp);}
+  hcx.setTransform(dp,0,0,dp,0,0);hcx.clearRect(0,0,innerWidth,innerHeight);if(currentView!=='map'||menuOpen||mX<0)return;
+  const over=document.elementFromPoint(mX,mY),ui=over&&over!==sc&&over.closest&&over.closest('button,.slot,.hbtn');
+  const k=hQ!==null?K(hQ,hR):null,c=k?cells[k]:null,act=!!ui||!!(c&&(armed==='leash'?c.cap:armed==='dial'?(!c.cap&&!c.isVoid):armed==='weave'?isBright(k):(k===K(pQ,pR)||getMoves().some(m=>K(m.q,m.r)===k))));
+  const base=T.cursorBaseR||8,lw=T.cursorLineW||2,press=mDownAt>0?Math.min(1,(now-mDownAt)/(T.cursorClickDurMs||120)):0,cR=base*(1-(T.cursorClickShrink!=null?T.cursorClickShrink:0.7)*0.4*press);
+  _curA+=((act?1:(T.cursorIdleAlphaMult!=null?T.cursorIdleAlphaMult:0.5))-_curA)*0.25;const ev=act?255:Math.round(255*(1-(T.cursorIdleBorderDark!=null?T.cursorIdleBorderDark:0.4))),col=armed?'255,220,120':`${ev},${ev},${ev}`;
+  cursorBase(hcx,mX,mY,cR,_curA,1,col,lw);cursorRing(hcx,mX,mY,cR,_curA,col,lw);cursorDot(hcx,mX,mY,_curA,col);}
+let _curA=0.5;
+
+// ╔══════════════════════════════════════════════════════════════════════════════╗
+// ║  SCENES — the Guide's and event cards' live demos, played on the map itself  ║
+// ╚══════════════════════════════════════════════════════════════════════════════╝
+let _sf=null;
+function sceneField(){if(_sf)return _sf;const S=512,cv=document.createElement('canvas');cv.width=cv.height=S;const c=cv.getContext('2d');c.fillStyle='#07080c';c.fillRect(0,0,S,S);
+  const P=['255,60,80','255,170,40','70,200,255','150,90,255','60,230,150','255,90,200'];let sd=7;const rnd=()=>(sd=(sd*16807)%2147483647)/2147483647;
+  c.globalCompositeOperation='screen';for(let i=0;i<90;i++){const x=rnd()*S,y=rnd()*S,r=S*(0.03+rnd()*0.12),g=c.createRadialGradient(x,y,0,x,y,r);g.addColorStop(0,`rgba(${P[i%P.length]},${0.25+rnd()*0.4})`);g.addColorStop(1,'rgba(0,0,0,0)');c.fillStyle=g;c.fillRect(x-r,y-r,2*r,2*r);}
+  return _sf=cv;}
+const sceneCap=(k,kind)=>{const c=cells[k];if(!c||c.cap)return;c.cap=true;c.capVal=c.v;c.kind=kind;clearFx[k]={t0:performance.now()};}; // a clear, shown as it resolves
+const at=(ms,fn)=>sceneTimers.push(setTimeout(fn,ms));let sceneTimers=[];
+function sceneReset(rings){sceneTimers.forEach(clearTimeout);sceneTimers=[];const br=T.mapBurstRings;T.mapBurstRings=rings||br||3;score=0;depth=0;clock=3;day=1;result=null;newMap();T.mapBurstRings=br;clearFx={};mergeFx=[];
+  const o=cells[K(pQ,pR)];if(o)o.isP=false;pQ=1;pR=-1;cells[K(1,-1)].isP=true;camX=camTX=0;camY=camTY=0;}
+const SCENES={
+  map(){sceneReset();for(let i=0;i<9;i++)at(900+i*1300,()=>{const m=getMoves().filter(m=>!(m.q===0&&m.r===0));if(m.length){const t=m[(Math.random()*m.length)|0];doMove(t.q,t.r);camTX=camTY=0;}});return 13500;},
+  clear(){sceneReset();const ks=['1,-1','1,0','0,1','-1,1','2,-1'];ks.forEach((k,i)=>at(700+i*1100,()=>sceneCap(k,i%2?'dark':'bright')));return 7600;},
+  merge(){sceneReset(5);const ks=['1,0','0,1','1,1'];ks.forEach((k,i)=>at(500+i*600,()=>{if(i<2)sceneCap(k,'dark');else{completeCaptureForCell(k,'dark');clearFx[k].t0=performance.now();camTX=camTY=0;}}));return 7000;},
+  decay(){sceneReset();for(let i=0;i<6;i++)at(800+i*1100,()=>{advanceTurn();camTX=camTY=0;});return 8000;},
+  descend(){sceneReset();ring(1).forEach(([q,r],i)=>at(300+i*350,()=>sceneCap(K(q,r),'bright')));at(2700,()=>{voidOpen=true;});at(3600,()=>{const o=cells[K(pQ,pR)];if(o)o.isP=false;depth++;newMap();camTX=camTY=0;showMergeFlash('Descended to D'+depth);});return 6500;},
+  constellation(){sceneReset();const ks=['2,-1','1,1','-1,2','-2,1','-1,-1'];ks.forEach((k,i)=>at(300+i*250,()=>sceneCap(k,'bright')));armed='weave';weaveSel=[];
+    ks.forEach((k,i)=>at(1800+i*450,()=>weaveSel.push(k)));at(1800+5*450+300,()=>{constel=[{keys:ks.slice(),type:'lens'}];weaveSel=[];armed=null;showMergeFlash('✦ Constellation · Lens');});at(5200,()=>{advanceTurn();showMergeFlash('+1 Lens');});return 7500;},
+  ring(){return sceneRing(i=>i%3?'bright':'dark');},
+  brightstar(){return sceneRing(()=>'bright');},
+  darkstar(){return sceneRing(()=>'dark');},
+  end(){sceneReset();const r1=ring(1).map(([q,r])=>K(q,r));r1.forEach((k,i)=>at(400+i*300,()=>i<r1.length-1?sceneCap(k,'bright'):completeCaptureForCell(k,'bright')));return 7000;}};
+function sceneRing(kind){sceneReset();const r2=ring(2).map(([q,r])=>K(q,r));r2.forEach((k,i)=>at(300+i*220,()=>{if(i<r2.length-1)sceneCap(k,kind(i));else{completeCaptureForCell(k,kind(i));if(clearFx[k])clearFx[k].t0=performance.now();}}));return 300+r2.length*220+3600;}
+function sceneLoop(){const f=SCENES[SCENE]||SCENES.map;const ms=f();setTimeout(sceneLoop,ms);}
 // ═══ START ═══
-if(!loadMap())initGame();
-startMapLoop();neb({cmd:'state'});
+if(SCENE){document.body.classList.add('scene');try{T=JSON.parse(new URLSearchParams(location.search).get('T')||'{}');}catch(e){T={};}HEX=T.mapHexSize||HEX;viewZoom=1.3;mapResize();camUpdate&&SW&&camUpdate();sceneLoop();startMapLoop();}
+else{nebEl.src='chromatic_nebula.html?hub=1&v='+CACHE_V;if(!loadMap())initGame();startMapLoop();neb({cmd:'state'});}
 </script>
 </body>
 </html>
