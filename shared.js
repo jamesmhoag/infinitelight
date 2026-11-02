@@ -264,13 +264,13 @@ function cursorDot(cx,x,y,dimA,edgeCol){
 // SHOPS: main street ones (street) stand round the source at angle a° (0 = right, −90 = behind it), always there, lit only while open: hours are [open, close) on the map's clock (3 Twilight … 24 Midnight;
 // 0–27 = 24 hours). Pop-ups open on a bright clear whose surface collected at least T.mapShop<Cur>1/2/3 of their collectable (cur, also what they
 // mostly charge in) — rank 1..3, the size of the store (SHOP_RANK_BLD); at: those thresholds' defaults. col: the colour its glass is lit with.
-// SHOP_BLD: each building and where its glass sits behind its empty windows (shops/*.png).
-const SHOP_BLD={s:{b:'bld_s',g:'glass_s',gx:7,gy:43},d:{b:'bld_s_dark',g:'glass_s',gx:7,gy:43},m:{b:'bld_m',g:'glass_m',gx:13,gy:31},l:{b:'bld_l',g:'glass_m',gx:13,gy:71},t:{b:'bld_t',g:'glass_t',gx:5,gy:16}};
+// SHOP_BLD: each building and where its glass sits behind its empty windows (shops/*.svg, in SVG units).
+const SHOP_BLD={s:{b:'bld_s',g:'glass_s',gx:1.75,gy:10.75},d:{b:'bld_s_dark',g:'glass_s',gx:1.75,gy:10.75},m:{b:'bld_m',g:'glass_m',gx:3.25,gy:7.75},l:{b:'bld_l',g:'glass_m',gx:3.25,gy:18},t:{b:'bld_t',g:'glass_t',gx:1.25,gy:4}};
 const SHOP_RANK_BLD=['s','m','l'];
 const SHOPS={
   corner:{n:'CORNER STORE',tag:'The corners are conveniently cut.',street:1,open:0,close:27,col:'#fff1d0',a:25},
-  clock:{n:'Clock smith.',tag:'Turn the Clock, be unlocked.',street:1,open:9,close:18,col:'#fff1d0',a:-62},
-  xact:{n:'XACT change',tag:'Exchange for spare change.',street:1,open:6,close:15,col:'#fff1d0',a:-118},
+  clock:{n:'Clock smith.',tag:'Turn the Clock, be unlocked.',street:1,open:9,close:18,col:'#fff1d0',a:-58},
+  xact:{n:'XACT change',tag:'Exchange for spare change.',street:1,open:6,close:15,col:'#fff1d0',a:-122},
   gift:{n:'GIFT SHOP',tag:'Souvenirs to remember with.',street:1,open:0,close:27,col:'#ffffff',bk:'d',a:155},
   bright:{n:'BRiGHT IDEAS',tag:'Like a spoon that is also a fork.',cur:'bright',col:'#00c3ff',at:[100,1000,10000]},
   dim:{n:'Dim’s: Carnival of Discovery',tag:'Natural phenomena.',cur:'dim',col:'#ff78e2',at:[100,1000,10000]},
