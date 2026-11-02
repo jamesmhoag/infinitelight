@@ -114,7 +114,7 @@ button:hover{background:rgba(255,255,255,0.15);}
   <div id="dock" class="bottom"><div id="inventoryPanel"></div><div id="touch-info"></div></div>
   <canvas id="cur"></canvas>
 </div>
-<script src="ducks.js?v=20261102c"></script>
+<script src="ducks.js?v=20261102d"></script>
 <script>
 const _SRC=document.documentElement.outerHTML; // kept so the Encyclopedia can run live scenes as embedded copies of the game
 // Safety: a negative / non-finite gradient radius would throw and kill the frame — clamp it, and log the first offender's stack so it can be traced.
@@ -11258,10 +11258,12 @@ function renderWorld(now,suppressGlow,asPlay){
     // itself out at the same old rate while nothing new is being added to it.
     pointsCtx.fillStyle=invertMode?`rgba(255,255,255,${(0.10*(timeScale>0.0005?timeScale:0.5)).toFixed(4)})`:`rgba(0,0,0,${(0.10*(timeScale>0.0005?timeScale:0.5)).toFixed(4)})`;
     pointsCtx.fillRect(0,0,W,H);
-    // A see-through body (a pigment, a CRYSTALIZE one most of all) is drawn over its own fading trail every frame, so the trail showed
-    // through it as a hard chord where the last frame's edge was. Its own disc is cleared first: the trail now starts at its round back edge.
+    // Every body is drawn over its own fading trail each frame, so on a see-through one (a CRYSTALIZE pigment most of all) the trail showed
+    // through as a hard chord where the last frame's edge was. Each body's own disc is cleared first — the same for every kind — so a trail
+    // always starts at the round back edge of what made it.
     pointsCtx.save();pointsCtx.globalCompositeOperation='destination-out';pointsCtx.fillStyle='#000';
-    for(let i=0;i<active.length;i++){const p=active[i];if(p.isRemnant||p.captured||!(p.displayR>0.5))continue;wrapCopies(p.x,p.y,p.displayR,(ox,oy)=>{pointsCtx.beginPath();pointsCtx.arc(p.x+ox,p.y+oy,p.displayR,0,6.2832);pointsCtx.fill();});}
+    const cut=(x,y,R)=>{if(R>0.5)wrapCopies(x,y,R,(ox,oy)=>{pointsCtx.beginPath();pointsCtx.arc(x+ox,y+oy,R,0,6.2832);pointsCtx.fill();});}; // every kind alike: pigments, points, remnants
+    for(let i=0;i<active.length;i++){const p=active[i];if(p.captured)continue;cut(p.x,p.y,p.isRemnant?placedRadius(p):p.displayR);}
     pointsCtx.restore();
   } else {
     pointsCtx.clearRect(0,0,W,H); // fully transparent — no residue, no black square over the nebula
