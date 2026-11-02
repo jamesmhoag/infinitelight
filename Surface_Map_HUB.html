@@ -27,8 +27,8 @@ body.scene .hbtn,body.scene #hdock,body.scene #legend,body.scene #bottom-bar,bod
 /* the surface (chromatic_nebula.html): hidden with visibility, not display, so it keeps its size for the hex previews */
 #neb{position:fixed;inset:0;width:100%;height:100%;border:0;z-index:50;visibility:hidden;pointer-events:none;background:#000}
 #neb.show{visibility:visible;pointer-events:auto}
-#turn-label{position:absolute;top:18px;left:50%;transform:translateX(-50%);font-family:'Orbitron',sans-serif;font-size:26px;white-space:nowrap;color:rgba(255,255,255,0.8);pointer-events:none;opacity:0;transition:opacity 0.3s;letter-spacing:2px;z-index:10}
-#turn-label.show{opacity:1}
+#turn-label{position:absolute;top:40px;left:50%;transform:translateX(-50%);font-family:'Orbitron',sans-serif;font-size:16px;white-space:nowrap;color:rgba(255,255,255,0.7);pointer-events:none;transition:color 0.4s,text-shadow 0.4s;letter-spacing:2px;z-index:10}
+#turn-label.show{color:#fff;text-shadow:0 0 14px rgba(255,255,255,0.85)}
 #cell-count{position:absolute;top:16px;right:16px;font-family:'Orbitron',sans-serif;font-size:28px;color:rgba(255,255,255,0.4);text-align:right;z-index:10}
 #cell-count small{font-size:10px;display:block;color:rgba(255,255,255,0.2);margin-top:2px;font-family:'Share Tech Mono',monospace}
 #bottom-bar{position:absolute;bottom:16px;left:50%;transform:translateX(-50%);font-size:12px;color:rgba(255,255,255,0.45);white-space:nowrap;z-index:10}
@@ -47,14 +47,16 @@ body.scene .hbtn,body.scene #hdock,body.scene #legend,body.scene #bottom-bar,bod
 .disc-lock{opacity:0!important}
 #veil{position:fixed;z-index:70;pointer-events:none;display:none;align-items:center;justify-content:center;background:#000;border:1px solid #333;color:#666;font:10px monospace;border-radius:4px}
 /* Esc menu */
-#menu{position:fixed;inset:0;z-index:60;display:none;align-items:center;justify-content:center;background:rgba(0,0,0,.6)}
-#menu.show{display:flex}
-#menu .gm{min-width:300px;max-height:90vh;overflow:auto;background:rgba(8,10,16,.95);border:1px solid rgba(255,255,255,.18);border-radius:12px;padding:16px 18px;color:#e8ecf6;font:13px/1.4 system-ui,sans-serif;display:flex;flex-direction:column;gap:7px}
-#menu h2{margin:0 0 4px;font:600 15px 'Orbitron',sans-serif;letter-spacing:2px;text-align:center}
-#menu .gl{opacity:.55;font-size:11px;margin-top:5px;text-transform:uppercase;letter-spacing:1px}
-#menu button{font:13px system-ui;padding:7px 10px;text-align:left;cursor:pointer}
+#menu,#day-report{position:fixed;inset:0;z-index:60;display:none;align-items:center;justify-content:center;background:rgba(0,0,0,.6)}
+#menu.show,#day-report.show{display:flex}
+#menu .gm,#day-report .gm{min-width:300px;max-height:90vh;overflow:auto;background:rgba(8,10,16,.95);border:1px solid rgba(255,255,255,.18);border-radius:12px;padding:16px 18px;color:#e8ecf6;font:13px/1.4 system-ui,sans-serif;display:flex;flex-direction:column;gap:7px}
+#menu h2,#day-report h2{margin:0 0 4px;font:600 15px 'Orbitron',sans-serif;letter-spacing:2px;text-align:center}
+#menu .gl,#day-report .gl{opacity:.55;font-size:11px;margin-top:5px;text-transform:uppercase;letter-spacing:1px}
+#menu button,#day-report button{font:13px system-ui;padding:7px 10px;text-align:left;cursor:pointer}
 #menu .row{display:flex;gap:6px;align-items:center}#menu .row>span{flex:0 0 150px;font-size:12px;opacity:.8}#menu .row b{flex:0 0 40px;font-weight:400;font-size:11px;text-align:right}
 #menu input[type=range]{flex:1}
+.dlog{width:100%;border-collapse:collapse;font-size:12px}.dlog td,.dlog th{padding:2px 6px;text-align:left;font-weight:400}.dlog th{opacity:.55}.dlog tr.w td{color:#ffd76a}
+#day-report .dsum{font-size:13px;text-align:center;opacity:.85}
 </style>
 </head>
 <body>
@@ -85,12 +87,14 @@ body.scene .hbtn,body.scene #hdock,body.scene #legend,body.scene #bottom-bar,bod
   <div class="gl">Help</div><button id="mGuide" data-disc="hub_guide" onclick="toggleMenu();openGuide()">Guide</button>
   <div class="gl">Surface Map — hex surface layer</div><div id="mTune"></div>
   <div class="gl">Performance</div><button onclick="downloadHubLog()">Performance log</button>
+  <div class="gl">Days</div><div id="mDays"></div>
   <div class="gl">Leave</div><button onclick="quitMain()">Quit to main menu</button>
 </div></div>
+<div id="day-report"><div class="gm"><h2></h2><div class="dsum"></div><div class="gl">Days</div><div class="dlogbox"></div><button></button></div></div>
 <div id="veil"></div>
 <canvas id="hcur"></canvas>
 <iframe id="neb" title="Surface"></iframe>
-<script src="shared.js?v=20261102p"></script>
+<script src="shared.js?v=20261102q"></script>
 <script>
 // ╔══════════════════════════════════════════════════════════════════════════════╗
 // ║  MAP ENGINE                                                                 ║
@@ -102,10 +106,11 @@ let HEX=34; // T.mapHexSize (tuned in the Esc menu / the surface's Tune menu)
 const DIRS=[[1,0],[1,-1],[0,-1],[-1,0],[-1,1],[0,1]];
 let camX=0,camY=0,camTX=0,camTY=0;
 let cells={},turn=0,score=0,pQ=0,pR=0,totalCells=0; // turn: how many rings the spill has spread to (merges pull it back)
-let clock=3,day=1,pool=6,fresh=true,burstFx=null; // clock: the hour (3 = Predawn … 24 = Midnight, the day's last turn); day: your attempts; pool: what the source put out at its last burst; fresh: no ring added yet since it
-let constel=[],armed=null,weaveSel=[],weaveAsk=null,clearFx={},mergeFx=[],result=null,feedMsg={t:'',d:'',at:-1e9}; // constellations {keys,type}; the armed map item; a Weave being drawn; animations; the final count
+let clock=3,day=1,pool=6,fresh=true,burstFx=null,dayLog=[],dayCnt={b:0,d:0},pendingEnd=null; // dayLog: how each day ended {day,end,ring,b,d,win}; dayCnt: this day's bright / dark clears; pendingEnd: a day end still falling in
+// // clock: the hour (3 = Predawn … 24 = Midnight, the day's last turn); day: your attempts; pool: what the source put out at its last burst; fresh: no ring added yet since it
+let constel=[],armed=null,weaveSel=[],weaveAsk=null,clearFx={},mergeFx=[],feedMsg={t:'',d:'',at:-1e9}; // constellations {keys,type}; the armed map item; a Weave being drawn; animations; the final count
 const TIMES={3:'Predawn',6:'Dawn',9:'Morning',12:'Noon',15:'Afternoon',18:'Dusk',21:'Night',24:'Midnight'},STEP_H=3; // the day: eight turns of three hours
-const CACHE_V='20261102p'; // the build: bump with shared.js's
+const CACHE_V='20261102q'; // the build: bump with shared.js's
 const SCENE=new URLSearchParams(location.search).get('scene'); // a Guide / event demo: the map plays a scripted moment (no surface behind it)
 let phase='move',turnTimer=0,mergeTimer=0;
 let gameOverReason='';
@@ -188,18 +193,15 @@ function newMap(){ // a new map, a descent and every midnight: the source at the
 function descendDepth(){if(!voidOpen)return;depth++;newMap();showTurn();focusCam(false);updateHint();showMergeFlash(`Descended to D${depth}`);hubEvent('map_descend');saveMap();}
 function focusCam(a){const[wx,wy]=a2w(pQ,pR);camTX=wx;camTY=wy;if(!a){camX=camTX;camY=camTY;}}
 function initGame(){ // a new map: score and depth start over; items, resources and discoveries live in the surface's save and are kept
-  score=0;depth=0;clock=3;day=1;result=null;newMap();
+  score=0;depth=0;clock=3;day=1;dayLog=[];dayCnt={b:0,d:0};pendingEnd=null;newMap();
   showTurn();mapResize();focusCam(false);updateHint();saveMap();
 }
 function advanceTurn(){ // time moves on (a move, or a bright clear) by one time of day; the spill spreads a ring, except the first turn after a burst
   awardConstellations();clock+=STEP_H;
-  if(clock>24){clock=3;day++;midnight();return;} // after Midnight: a new day (attempt)
+  if(clock>24){clock=24;endDay('midnight',0);return;} // after Midnight: the day ends (the new day starts once it has all fallen in)
   if(fresh)fresh=false;else{turn++;addRing(turn);}redistribute();decayCycle();showTurn();}
-function midnight(){ // everything collapses back into the source, then it bursts out again (score, depth and items are kept)
-  burstFx={t0:performance.now(),kind:'collapse'};showTurn();phase='collapse';
-  setTimeout(()=>{newMap();showTurn();focusCam(true);updateHint();saveMap();},T.mapCollapseMs||1400);}
 const clockStr=()=>TIMES[clock]||TIMES[Math.max(3,Math.floor(clock/3)*3)]||'Predawn';
-function showTurn(){const el=document.getElementById('turn-label');el.textContent=clockStr()+' · Day '+day;el.classList.add('show');clearTimeout(turnTimer);turnTimer=setTimeout(()=>el.classList.remove('show'),1200);}
+function showTurn(){const el=document.getElementById('turn-label');el.textContent=clockStr()+' · Day '+day;el.classList.add('show');clearTimeout(turnTimer);turnTimer=setTimeout(()=>el.classList.remove('show'),1200);} // (always shown; it glows when the time changes)
 
 function getMoves(){
   const out=[];
@@ -219,7 +221,7 @@ function doCapture(){ // enter the surface of the hex you stand on
 }
 function completeCaptureForCell(cellKey,kind){
   const c=cells[cellKey];if(!c||c.cap)return;
-  c.cap=true;c.capVal=c.v;c.kind=kind;delete c.shot;delete c._im;
+  c.cap=true;c.capVal=c.v;c.kind=kind;delete c.shot;delete c._im;if(kind==='dark')dayCnt.d++;else dayCnt.b++;
   score=Math.round((score+c.v)*100)/100;
   captureOrder.push({keys:[cellKey],mergeId:null});
   phase='captured';
@@ -244,10 +246,10 @@ function doMove(tq,tr){
 let hintLine=['',''];
 function updateHint(){ // the feed's resting line: what you can do now
   const c=cells[K(pQ,pR)];let a='',b='';
-  if(phase==='ended'&&result){a=`The count · ${result.bright} bright · ${result.dark} dark`;b='Start a new map to play again';}
+  if(phase==='ended'){a='The run is won · '+dayLog.length+' day'+(dayLog.length===1?'':'s');b='Back to the main menu to start the days again';}
   else if(phase==='gameover'){a='Game over: '+gameOverReason;b='A new map keeps your items';}
   else if(phase==='captured'){a='Cleared!';b='Move on';}
-  else if(phase==='collapse'){a='Midnight';b='The spill falls back into the source…';}
+  else if(phase==='collapse'){a=pendingEnd?(pendingEnd.how==='midnight'?'Midnight':'Full circle'):'Day '+(day-1)+' cleared';b=pendingEnd?'The rings fall into the source…':'Close the report to start the day';}
   else if(armed==='weave'){a='Weave · click bright hexes, then the first again to close (3 to 5)';b=weaveSel.length?weaveSel.length+' chosen':'right-click, Esc or the slot again to stop';}
   else if(armed==='dial'){a='String · click any open hex to go straight there';b='1 String per hex of distance · no time passes';}
   else if(armed==='leash'){a='Spindle · click a cleared hex to unwind it';b='A great Dark Remnant takes 3';}
@@ -300,19 +302,52 @@ function awardConstellations(){checkConstellations();const got={};for(const c of
 function ringCheck(){checkVoidAccess();
   for(let n=1;n<=turn;n++){const ks=ring(n).map(([q,r])=>K(q,r));if(!ks.every(k=>cells[k]&&cells[k].cap)||!(ks.every(isBright)||ks.every(k=>cells[k].kind==='dark')))continue;
     if(n===1&&voidOpen)continue; // the descent comes first: a first ring that opens the centre is the way down, not the end
-    collapseRing(n,ks);return true;}return false;}
-function collapseRing(n,ks){
-  const allB=ks.every(isBright),allD=!allB;
-  let nb=0,nd=0,inner=true;for(const k in cells){const c=cells[k];if(c.isVoid)continue;const rr=cellRing(c.q,c.r);if(c.cap){if(c.kind==='dark')nd++;else nb++;}if(rr<n&&!c.cap)inner=false;}
-  hubEvent('map_ring');hubEvent(allB?'map_brightstar':'map_darkstar');burstFx={t0:performance.now(),kind:'ring',r:n};
-  if(n===1||inner){result={bright:nb,dark:nd,day};phase='ended';hubEvent('map_end');feed(`The count: ${nb} bright · ${nd} dark`,(allB?'A Bright Star':'A Dark Star')+' · start a new map to play again');updateHint();saveMap();return;}
-  for(const k of Object.keys(cells)){const c=cells[k];if(c.isVoid)continue;const rr=cellRing(c.q,c.r);if(rr>n){delete cells[k];totalCells--;}}
-  for(const k of ks){const c=cells[k];c.cap=false;c.capVal=0;c.v=0;delete c.kind;c.mergeId=null;}
-  mergeGroups=mergeGroups.filter(g=>g.cells.every(k=>cells[k]&&cells[k].cap));for(const k in cells){const c=cells[k];if(c.mergeId!=null&&!mergeGroups.some(g=>g.id===c.mergeId))c.mergeId=null;}
-  captureOrder=captureOrder.map(e=>({keys:e.keys.filter(x=>cells[x]&&cells[x].cap),mergeId:e.mergeId})).filter(e=>e.keys.length);
-  turn=n;if(!cells[K(pQ,pR)]||cellRing(pQ,pR)>n){const o=cells[K(pQ,pR)];if(o)o.isP=false;const[q,r]=ring(n)[0];pQ=q;pR=r;cells[K(q,r)].isP=true;focusCam(true);}
-  checkConstellations();recomputeLocked();redistribute();checkVoidAccess();phase='move';
-  feed('Full circle',(allB?'A Bright Star! ':allD?'A Dark Star! ':'')+'The map falls back to ring '+n+' · its value is shared again');updateHint();saveMap();}
+    endDay(ks.every(isBright)?'bright':'dark',n);return true;}
+  for(const k in cells)if(!cells[k].isVoid&&!cells[k].cap)return false;endDay('full',0);return true;} // every hex cleared: the run is won
+const END_NAME={midnight:'Neither · midnight',bright:'Bright collapse',dark:'Dark collapse',full:'Every hex cleared'};
+function endDay(how,n){ // the day ends as a sequence: the rings fall into the source one after another, the outer first and each faster than the last, then a
+  // flash, then the value is shared out again and a new day starts at Predawn. how: 'midnight' (it all falls in, a new burst), 'bright' / 'dark' (a full circle
+  // at ring n: the rings past it fall in, what is inside is kept), 'full' (every hex cleared). A full circle at ring 1 or 2, or nothing left uncleared inside it, wins the run.
+  let inner=true;for(const k in cells){const c=cells[k];if(!c.isVoid&&!c.cap&&cellRing(c.q,c.r)<n)inner=false;}
+  const win=how==='full'||(how!=='midnight'&&(n<=2||inner));
+  pendingEnd={how,n,win};phase='collapse';armed=null;weaveSel=[];weaveAsk=null;dropSession();
+  if(how!=='midnight'){hubEvent('map_ring');if(how!=='full')hubEvent(how==='bright'?'map_brightstar':'map_darkstar');}if(win)hubEvent('map_end');
+  let outer=0;for(const k in cells){const c=cells[k];if(!c.isVoid)outer=Math.max(outer,cellRing(c.q,c.r));}
+  const stop=(how==='midnight'||win)?0:n,base=T.mapCollapseMs||1400;let t=0;
+  for(let i=outer,j=0;i>stop;i--,j++){const dur=Math.max(110,base*0.55*Math.pow(0.7,j)),ri=i;at(t,()=>fallRing(ri,dur));t+=dur;} // accelerating: each ring falls in faster
+  at(t,()=>{burstFx={t0:performance.now(),kind:'flash',dur:700};});at(t+420,finishDay);
+  feed(how==='midnight'?'Midnight':win?'Full collapse':'Full circle',how==='midnight'?'The spill falls back into the source':win?'Everything falls into the source':'The rings past ring '+n+' fall into the source');
+  showTurn();updateHint();saveMap();}
+function fallRing(i,dur){ // one ring falls into the source
+  for(const k of Object.keys(cells)){const c=cells[k];if(!c.isVoid&&cellRing(c.q,c.r)===i){delete cells[k];totalCells--;}}
+  burstFx={t0:performance.now(),kind:'fall',r:i,dur};}
+function finishDay(){ // after the flash: the day goes into the log, the value is shared out again and a new day begins at Predawn (a win ends the run instead)
+  const e=pendingEnd;if(!e)return;pendingEnd=null;
+  dayLog.push({day,end:e.how,ring:e.n,b:dayCnt.b,d:dayCnt.d,win:e.win});dayCnt={b:0,d:0};
+  if(e.win){phase='ended';for(const k of Object.keys(cells))if(!cells[k].isVoid){delete cells[k];totalCells--;}updateHint();saveMap();if(SCENE)showMergeFlash('Full collapse · the run is won');else showDayReport();return;}
+  clock=3;day++;
+  if(e.how==='midnight'){newMap();feed('Day '+(day-1)+' ended at midnight',dayLog[dayLog.length-1].b+' bright · '+dayLog[dayLog.length-1].d+' dark · a new burst');}
+  else{const n=e.n,ks=ring(n).map(([q,r])=>K(q,r));
+    for(const k of Object.keys(cells)){const c=cells[k];if(!c.isVoid&&cellRing(c.q,c.r)>n){delete cells[k];totalCells--;}}
+    for(const k of ks){const c=cells[k];if(!c)continue;c.cap=false;c.capVal=0;c.v=0;delete c.kind;c.mergeId=null;}
+    mergeGroups=mergeGroups.filter(g=>g.cells.every(k=>cells[k]&&cells[k].cap));for(const k in cells){const c=cells[k];if(c.mergeId!=null&&!mergeGroups.some(g=>g.id===c.mergeId))c.mergeId=null;}
+    captureOrder=captureOrder.map(x=>({keys:x.keys.filter(k=>cells[k]&&cells[k].cap),mergeId:x.mergeId})).filter(x=>x.keys.length);
+    turn=n;fresh=true;if(!cells[K(pQ,pR)]||cellRing(pQ,pR)>n){const o=cells[K(pQ,pR)];if(o)o.isP=false;const[q,r]=ring(n)[0];pQ=q;pR=r;cells[K(q,r)].isP=true;}
+    checkConstellations();recomputeLocked();redistribute();checkVoidAccess();burstFx={t0:performance.now(),kind:'burst',r:n};
+    phase=SCENE?'move':'collapse';if(!SCENE)showDayReport();} // (the report holds the new day until it is closed)
+  focusCam(true);showTurn();updateHint();saveMap();}
+function dayLogHTML(){
+  if(!dayLog.length)return '<div class="dsum">No day has ended yet</div>';let tb=0,td=0;
+  const rows=dayLog.map(e=>{tb+=e.b;td+=e.d;return `<tr${e.win?' class="w"':''}><td>Day ${e.day}</td><td>${END_NAME[e.end]||e.end}${e.ring?' · ring '+e.ring:''}${e.win?' · won':''}</td><td>${e.b}</td><td>${e.d}</td></tr>`;}).join('');
+  return `<table class="dlog"><tr><th>Day</th><th>Ended</th><th>Bright</th><th>Dark</th></tr>${rows}<tr><th>All</th><th></th><th>${tb}</th><th>${td}</th></tr></table>`;}
+function showDayReport(){ // a day's report (or the run's, when won): how it ended, and the log of every day so far
+  const won=phase==='ended',e=dayLog[dayLog.length-1]||{day,end:'full',ring:0,b:0,d:0},el=document.getElementById('day-report'),b=el.querySelector('button');
+  el.querySelector('h2').textContent=won?'THE RUN IS WON':'DAY '+e.day+' CLEARED';
+  el.querySelector('.dsum').textContent=(END_NAME[e.end]||e.end)+(e.ring?' at ring '+e.ring:'')+' · '+e.b+' bright · '+e.d+' dark this day'+(won?' · your items and discoveries are kept':'');
+  el.querySelector('.dlogbox').innerHTML=dayLogHTML();
+  b.textContent=won?'Back to the main menu':'Day '+day+' · Predawn';b.onclick=won?newRun:closeDayReport;el.classList.add('show');}
+function closeDayReport(){document.getElementById('day-report').classList.remove('show');if(phase==='collapse'&&!pendingEnd)phase='move';updateHint();saveMap();}
+function newRun(){initGame();quitMain();} // a won run: the days start over (items and discoveries are the surface's own save, untouched)
 // ── The 3D scene: the plane lies flat (x right, y down, z up out of it); the camera looks at it from T.mapTilt off straight down, at
 // T.mapPersp px away (the perspective), zoomed by viewZoom. proj / unproj are that camera in maths: plane canvas px ↔ screen px (clicks,
 // what is on screen). Column-major 4×4 matrices.
@@ -475,14 +510,16 @@ function mapRender(){
     const sp=glowSprite(bl,ba),hs=sp.width/MK/2;mctx.save();mctx.globalCompositeOperation='screen';for(const[x,y,,,,p]of brightOnes){mctx.globalAlpha=p;mctx.drawImage(sp,x-hs,y-hs,hs*2,hs*2);}mctx.restore(); // the blurred glow, drawn once into a sprite
     for(const[x,y,v,st,sw]of brightOnes){if(st!=='#fff'){hexPath(x,y,HEX*0.92);mctx.strokeStyle=st;mctx.lineWidth=sw;mctx.stroke();} // a soft white core (no hard edge); only the player / merge outline stays crisp
 }}
-  // The source: a big white point at the centre, glowing over the surfaces and bleeding into the first ring; at midnight the spill falls
-  // back into it (a ring closing in) and it bursts out again (a ring opening to the burst rings)
-  if(Number.isFinite(MW)){const[cx,cy]=w2s(...a2w(0,0)),g=T.mapSourceGlow!=null?T.mapSourceGlow:1,pul=0.5+0.5*Math.sin(now/900),fx=burstFx,ft=fx?(now-fx.t0)/(fx.kind==='collapse'?(T.mapCollapseMs||1400):1600):1;
-    const flare=fx&&ft<1?(fx.kind==='collapse'?ft:1-ft):0,R=HEX*(2.3+0.25*pul+1.5*flare);
+  // The source: a big white point at the centre, glowing over the surfaces and bleeding into the first ring. When a day ends its rings fall into it one by
+  // one ('fall': a ring of light closing in, faster as it goes), it flashes ('flash'), and the spill bursts back out to its rings ('burst')
+  if(Number.isFinite(MW)){const[cx,cy]=w2s(...a2w(0,0)),g=T.mapSourceGlow!=null?T.mapSourceGlow:1,pul=0.5+0.5*Math.sin(now/900),fx=burstFx,ft=fx?(now-fx.t0)/(fx.dur||1600):1;
+    const flare=fx&&ft<1?(fx.kind==='fall'?0.4+0.6*ft*ft:fx.kind==='flash'?2.5*(1-ft):1-ft):0,R=HEX*(2.3+0.25*pul+1.5*flare);
     if(g>0){mctx.save();mctx.globalCompositeOperation='screen';const gr=mctx.createRadialGradient(cx,cy,0,cx,cy,R);gr.addColorStop(0,`rgba(255,255,255,${Math.min(1,g)})`);gr.addColorStop(0.28,`rgba(255,255,255,${Math.min(1,0.95*g)})`);gr.addColorStop(0.5,`rgba(235,240,255,${0.45*g})`);gr.addColorStop(1,'rgba(220,230,255,0)');
       mctx.fillStyle=gr;mctx.beginPath();mctx.arc(cx,cy,R,0,6.2832);mctx.fill();mctx.restore();}
-    if(fx&&ft<1){const rB=fx.kind==='ring'?HEX*1.75*(turn+1)+HEX:HEX*1.75*(T.mapBurstRings||3)+HEX,r=fx.kind==='collapse'?rB*(1-ft):fx.kind==='ring'?rB-(rB-HEX*1.75*fx.r)*ft:rB*ft;mctx.save();mctx.globalCompositeOperation='screen';mctx.strokeStyle=`rgba(255,255,255,${0.8*(1-ft*0.6)})`;mctx.lineWidth=HEX*0.35;mctx.filter=`blur(${HEX*0.15}px)`;mctx.beginPath();mctx.arc(cx,cy,Math.max(1,r),0,6.2832);mctx.stroke();mctx.restore();
-      if(fx.kind==='collapse'){mctx.save();mctx.fillStyle=`rgba(5,6,8,${0.85*ft})`;mctx.beginPath();mctx.arc(cx,cy,rB*1.4,0,6.2832);mctx.arc(cx,cy,Math.max(1,rB*(1-ft)),0,6.2832,true);mctx.fill();mctx.restore();}} // what the ring has passed has fallen in
+    if(fx&&ft<1){
+      if(fx.kind==='flash'){mctx.save();mctx.globalCompositeOperation='screen';mctx.fillStyle=`rgba(255,255,255,${(0.95*Math.pow(1-ft,1.5)).toFixed(3)})`;mctx.fillRect(-MW,-MH,MW*3,MH*3);mctx.restore();}
+      else{const r0=HEX*1.75*(fx.r||T.mapBurstRings||3)+HEX,r=fx.kind==='fall'?r0*(1-ft*ft):r0*ft; // a fall accelerates in; a burst opens out
+        mctx.save();mctx.globalCompositeOperation='screen';mctx.strokeStyle=`rgba(255,255,255,${0.8*(1-ft*0.6)})`;mctx.lineWidth=HEX*0.35;mctx.filter=`blur(${HEX*0.15}px)`;mctx.beginPath();mctx.arc(cx,cy,Math.max(1,r),0,6.2832);mctx.stroke();mctx.restore();}}
     else if(fx&&ft>=1)burstFx=null;}
   // Merge visuals
   for(const g of mergeGroups){if(g.type!=='dark3'||!g.cells.length)continue;const cs=g.cells.map(ck=>cells[ck]).filter(Boolean);if(!cs.length)continue;
@@ -517,6 +554,7 @@ function mapRender(){
   let st=`${clockStr()} · day ${day} · rings ${turn} · score ${score.toFixed(2)} · captures ${captureOrder.length}`;
   if(phase==='gameover')st+=' · game over: '+gameOverReason;
   document.getElementById('score-display').textContent=st;
+  {const el=document.getElementById('turn-label'),tl=clockStr()+' · Day '+day;if(el.textContent!==tl)el.textContent=tl;}
   discTick();feedTick(now);cursorTick(now);hubPh('hud');hubPerfFrame(now);
   mapRafId=requestAnimationFrame(mapRender);
 }
@@ -603,14 +641,15 @@ function pondStep(now){
 function saveMap(){
   if(SCENE)return; // a demo never touches your map
   const out={};for(const k in cells){const c=Object.assign({},cells[k]);delete c._im;out[k]=c;}
-  const rec=()=>JSON.stringify({v:3,cells:out,turn,clock,day,pool,fresh,constel,result,score,pQ,pR,totalCells,phase,depth,gameOverReason,captureOrder,mergeGroups,mergeIdCounter,voidOpen,session:nebulaCellKey});
+  const rec=()=>JSON.stringify({v:3,cells:out,turn,clock,day,pool,fresh,constel,dayLog,dayCnt,pendingEnd,score,pQ,pR,totalCells,phase,depth,gameOverReason,captureOrder,mergeGroups,mergeIdCounter,voidOpen,session:nebulaCellKey});
   try{localStorage.setItem(MAP_KEY,rec());}catch(e){for(const k in out)delete out[k].shot;try{localStorage.setItem(MAP_KEY,rec());}catch(x){}} // full: an unfinished hex's picture is the first thing to go
 }
 function loadMap(){
   let d=null;try{d=JSON.parse(localStorage.getItem(MAP_KEY)||'null');}catch(e){}
   if(!d||!d.cells)return false;
   if(d.v!==3)return false; // a map from before the times of day starts over
-  ({cells,turn,clock,day,pool,fresh,constel,result,score,pQ,pR,totalCells,phase,depth,gameOverReason,captureOrder,mergeGroups,mergeIdCounter,voidOpen}=d);nebulaCellKey=d.session||null;
+  ({cells,turn,clock,day,pool,fresh,constel,dayLog,dayCnt,pendingEnd,score,pQ,pR,totalCells,phase,depth,gameOverReason,captureOrder,mergeGroups,mergeIdCounter,voidOpen}=d);nebulaCellKey=d.session||null;dayLog=dayLog||[];dayCnt=dayCnt||{b:0,d:0};
+  if(pendingEnd)finishDay();else if(phase==='collapse')phase='move';else if(phase==='ended')showDayReport(); // a day left falling in finishes at once; a won run shows its report
   mapResize();focusCam(false);updateHint();return true;
 }
 
@@ -666,6 +705,7 @@ function toggleMenu(){menuOpen=!menuOpen;document.getElementById('menu').classLi
 const soundOn=()=>!!T.soundOn;
 function setSound(on,vol){T.soundOn=on?1:0;if(vol!=null)T.masterVol=+vol;neb({cmd:'sound',on,vol:vol!=null?+vol:null});syncMenu();}
 function syncMenu(){
+  document.getElementById('mDays').innerHTML=dayLogHTML();
   document.getElementById('mSnd').textContent='Sound: '+(soundOn()?'ON':'OFF');document.getElementById('mVol').value=T.masterVol!=null?T.masterVol:0.7;
   for(const el of document.querySelectorAll('#mTune input')){el.value=T[el.dataset.k];el.nextElementSibling.textContent=+(+T[el.dataset.k]).toFixed(2);}
 }
@@ -734,7 +774,7 @@ function sceneField(){if(_sf)return _sf;const S=512,cv=document.createElement('c
   return _sf=cv;}
 const sceneCap=(k,kind)=>{const c=cells[k];if(!c||c.cap)return;c.cap=true;c.capVal=c.v;c.kind=kind;clearFx[k]={t0:performance.now()};}; // a clear, shown as it resolves
 const at=(ms,fn)=>sceneTimers.push(setTimeout(fn,ms));let sceneTimers=[];
-function sceneReset(rings){sceneTimers.forEach(clearTimeout);sceneTimers=[];const br=T.mapBurstRings;T.mapBurstRings=rings||br||3;score=0;depth=0;clock=3;day=1;result=null;newMap();T.mapBurstRings=br;clearFx={};mergeFx=[];
+function sceneReset(rings){sceneTimers.forEach(clearTimeout);sceneTimers=[];const br=T.mapBurstRings;T.mapBurstRings=rings||br||3;score=0;depth=0;clock=3;day=1;pendingEnd=null;newMap();T.mapBurstRings=br;clearFx={};mergeFx=[];
   const o=cells[K(pQ,pR)];if(o)o.isP=false;pQ=1;pR=-1;cells[K(1,-1)].isP=true;camX=camTX=0;camY=camTY=0;}
 const SCENES={
   map(){sceneReset();for(let i=0;i<9;i++)at(900+i*1300,()=>{const m=getMoves().filter(m=>!(m.q===0&&m.r===0));if(m.length){const t=m[(Math.random()*m.length)|0];doMove(t.q,t.r);camTX=camTY=0;}});return 13500;},
@@ -748,7 +788,7 @@ const SCENES={
   brightstar(){return sceneRing(()=>'bright');},
   darkstar(){return sceneRing(()=>'dark');},
   end(){sceneReset();const r1=ring(1).map(([q,r])=>K(q,r));r1.forEach((k,i)=>at(400+i*300,()=>i<r1.length-1?sceneCap(k,'bright'):completeCaptureForCell(k,'bright')));return 7000;}};
-function sceneRing(kind){sceneReset();const r2=ring(2).map(([q,r])=>K(q,r));r2.forEach((k,i)=>at(300+i*220,()=>{if(i<r2.length-1)sceneCap(k,kind(i));else{completeCaptureForCell(k,kind(i));if(clearFx[k])clearFx[k].t0=performance.now();}}));return 300+r2.length*220+3600;}
+function sceneRing(kind){sceneReset(4);const r3=ring(3).map(([q,r])=>K(q,r));r3.forEach((k,i)=>at(300+i*140,()=>{if(i<r3.length-1)sceneCap(k,kind(i));else{completeCaptureForCell(k,kind(i));if(clearFx[k])clearFx[k].t0=performance.now();}}));return 300+r3.length*140+4200;}
 function sceneLoop(){const f=SCENES[SCENE]||SCENES.map;const ms=f();setTimeout(sceneLoop,ms);}
 // ═══ START ═══
 if(SCENE){document.body.classList.add('scene');try{T=JSON.parse(new URLSearchParams(location.search).get('T')||'{}');}catch(e){T={};}HEX=T.mapHexSize||HEX;viewZoom=1.3;mapResize();camUpdate&&SW&&camUpdate();sceneLoop();startMapLoop();}
