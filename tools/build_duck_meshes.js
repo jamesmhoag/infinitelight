@@ -1,6 +1,7 @@
 // Bakes the two duck meshes (classic and Big Head) and the duck markings texture into shared.js (shared by the game and the Surface Map) — the game never builds a mesh.
 // Run from the repo root after changing the drawing or this pipeline:   (once: cd tools && npm install)   node tools/build_duck_meshes.js
-// Source: tools/Duck_Sheet.svg when present (DUCK_SVG=… for another file); DUCK_STRIP=tools/duck_strip.png bakes the old pixel strip instead.
+// Sources: the SHAPE from tools/duck_strip.png (DUCK_SHAPE=svg builds it from the SVG instead); the MARKINGS from tools/Duck_Sheet.svg when
+// present (DUCK_SVG=… for another file; DUCK_STRIP=1 uses the strip's own pixel markings), each SVG view scaled and placed onto the strip's view.
 //
 // SHAPE. tools/duck_strip.png is four views (side-right, front, side-left, back), each pixel a section label (grey/40: 1 head,
 // 2 body, 3 beak, 4 eye, 5 drawn line). A 3D field is built from them: the side silhouette, the width at each height from the front
@@ -18,7 +19,7 @@
 // a view drawn for that direction is the fix, not smoothing the texture.
 const fs=require('fs'),zlib=require('zlib'),path=require('path');
 const GAME=path.join(__dirname,'..','chromatic_nebula.html'),OUT=process.env.DUCK_OUT||path.join(__dirname,'..','shared.js'), // the game holds the duck types (Big Head's proportions); shared.js holds the baked meshes
-  STRIP=process.env.DUCK_STRIP||path.join(__dirname,'duck_strip.png');
+  STRIP=process.env.DUCK_STRIP&&process.env.DUCK_STRIP!=='1'?process.env.DUCK_STRIP:path.join(__dirname,'duck_strip.png');
 function readPNG(file){ // 8-bit, non-interlaced PNG → first channel
   const b=fs.readFileSync(file);let o=8,w=0,h=0,ct=0;const idat=[];
   while(o<b.length){const len=b.readUInt32BE(o),type=b.toString('ascii',o+4,o+8),d=b.subarray(o+8,o+8+len);
@@ -34,19 +35,22 @@ function readPNG(file){ // 8-bit, non-interlaced PNG → first channel
 // ── SOURCE: tools/Duck_Sheet.svg when present (vector: the markings are read at HU× the strip grid, so their curves are exact), else the
 // label PNG. The SVG is rendered without its background and guide lines; each fill becomes a label by nearest colour: yellow = head/body
 // (split at the neck), orange = bill, white = eye, black = drawn line. Its views sit side by side, found by their own bounds, and share one height.
-const SVG=process.env.DUCK_SVG||path.join(__dirname,'Duck_Sheet.svg'),USE_SVG=!process.env.DUCK_STRIP&&fs.existsSync(SVG);
+const SVG=process.env.DUCK_SVG||path.join(__dirname,'Duck_Sheet.svg'),USE_SVG=!process.env.DUCK_STRIP&&fs.existsSync(SVG),SHAPE_SVG=USE_SVG&&(process.env.DUCK_SHAPE==='svg'||!fs.existsSync(STRIP));
 const CW=149,CH=138,N=CW*CH,HU=USE_SVG?8:1,HW=CW*HU,HH=CH*HU,HN=HW*HH; // 1× strip grid (shape) and the HU× grid (markings)
-let LAB1=[],LABH=null,NECK=46,TOP=false;const BUMP=USE_SVG; // BUMP: lines and eyes are shaded (bump) instead of carved into the mesh
+const STRIP_LAB=(()=>{if(!fs.existsSync(STRIP))return null;const png=readPNG(STRIP),AW=png.w,o=[];for(let v=0;v<(AW>=5*CW?5:4);v++){const a=new Uint8Array(CW*CH);for(let y=0;y<CH;y++)for(let x=0;x<CW;x++)a[y*CW+x]=Math.round(png.data[y*AW+v*CW+x]/40);o.push(a);}return o;})();
+const vb0=L=>{let x0=1e9,x1=-1,y0=1e9,y1=-1;for(let i=0;i<L.length;i++)if(L[i]){const x=i%CW,y=(i/CW)|0;x0=Math.min(x0,x);x1=Math.max(x1,x);y0=Math.min(y0,y);y1=Math.max(y1,y);}return{x0,x1,y0,y1};}; // a strip view's bounds
+let LAB1=[],LABH=null,NECK=46,TOP=false;const BUMP=SHAPE_SVG; // BUMP: lines and eyes are shaded (bump) instead of carved into the mesh
 if(USE_SVG){const {Resvg}=require('@resvg/resvg-js');let svg=fs.readFileSync(SVG,'utf8');const vb=/viewBox="([\d.\s-]+)"/.exec(svg)[1].split(/\s+/).map(Number);
   svg=svg.replace(new RegExp('<rect width="'+vb[2]+'" height="'+vb[3]+'"[^>]*/>'),'').replace(/<path[^>]*stroke="#EA00FF"[^>]*\/>/gi,''); // the background and the guides
   const draw=z=>new Resvg(svg,{fitTo:{mode:'zoom',value:z},background:'rgba(0,0,0,0)'}).render();
   const bounds=r=>{const W=r.width,H=r.height,p=r.pixels,col=new Uint32Array(W);let y0=H,y1=-1;for(let y=0;y<H;y++)for(let x=0;x<W;x++)if(p[(y*W+x)*4+3]>127){col[x]++;if(y<y0)y0=y;if(y>y1)y1=y;}
     const seg=[];let a=-1;for(let x=0;x<=W;x++){if(x<W&&col[x]){if(a<0)a=x;}else if(a>=0){seg.push([a,x-1]);a=-1;}}return{seg,y0,y1};};
-  const pr=bounds(draw(4)),sc=(CH-10)/((pr.y1-pr.y0+1)/4),Z=sc*HU,R=draw(Z),B=bounds(R),P=R.pixels,RW=R.width; // sc: strip px per SVG unit (the duck fills the cell's height less 5 px a side, as tall as the pixel strip's duck)
+  const SB0=STRIP_LAB&&!SHAPE_SVG?STRIP_LAB.map(vb0):null; // registering onto the strip: each SVG view as tall as the strip's duck, centred on its view, tops aligned
+  const pr=bounds(draw(4)),sc=(SB0?SB0[0].y1-SB0[0].y0+1:CH-10)/((pr.y1-pr.y0+1)/4),Z=sc*HU,R=draw(Z),B=bounds(R),P=R.pixels,RW=R.width; // sc: strip px per SVG unit (the duck fills the cell's height less 5 px a side, as tall as the pixel strip's duck)
   if(B.seg.length<4)throw new Error('expected 4 views in the SVG, found '+B.seg.length);TOP=B.seg.length>=5;
-  const oy=B.y0-5*HU; // a fill by its look, not by nearest colour: edge pixels where yellow meets the black outline are dark ochre, which is
+  const oy=SB0?B.y0-Math.min(...SB0.map(b=>b.y0))*HU:B.y0-5*HU; // (the sheet's top is its tallest view's, as is the strip's) // a fill by its look, not by nearest colour: edge pixels where yellow meets the black outline are dark ochre, which is
   const cls=(r,g,b)=>{const v=Math.max(r,g,b);return v<110?5:Math.min(r,g,b)>200?4:g/Math.max(1,r)>0.72?2:3;}; // nearer orange than black — but it is the outline
-  LABH=B.seg.slice(0,TOP?5:4).map(([a,b])=>{const ox=Math.round((a+b)/2-HW/2),L=new Uint8Array(HN);
+  LABH=B.seg.slice(0,TOP?5:4).map(([a,b],vi)=>{const ox=Math.round((a+b)/2-(SB0&&SB0[vi]?(SB0[vi].x0+SB0[vi].x1+1)/2*HU:HW/2)),L=new Uint8Array(HN);
     for(let y=0;y<HH;y++){const sy=oy+y;if(sy<0||sy>=R.height)continue;for(let x=0;x<HW;x++){const sx=ox+x;if(sx<0||sx>=RW)continue;const o=(sy*RW+sx)*4;if(P[o+3]<128)continue;
       const a=P[o+3]/255;L[y*HW+x]=cls(P[o]/a,P[o+1]/a,P[o+2]/a);}}
     const out=new Uint8Array(HN),st=[];for(let x=0;x<HW;x++)st.push(x,HN-HW+x);for(let y=0;y<HH;y++)st.push(y*HW,y*HW+HW-1); // holes: the sheet lets its black background show through
@@ -59,7 +63,8 @@ if(USE_SVG){const {Resvg}=require('@resvg/resvg-js');let svg=fs.readFileSync(SVG
   const head=(L,w,u)=>{const lim=NECK*u*w,st=[];for(let i=0;i<lim;i++)if(L[i]===4)st.push(i); // the head: what is joined to the eye above the neck (a wing tip that rises above it stays body)
     if(!st.length){for(let i=0;i<lim;i++)if(L[i]===2)L[i]=1;return;}const seen=new Uint8Array(lim);for(const i of st)seen[i]=1;
     while(st.length){const i=st.pop();if(L[i]===2)L[i]=1;const x=i%w;for(const j of [i-1,i+1,i-w,i+w]){if(j<0||j>=lim||seen[j]||!L[j]||(j===i-1&&x===0)||(j===i+1&&x===w-1))continue;seen[j]=1;st.push(j);}}};LAB1.forEach(L=>head(L,CW,1));LABH.forEach(L=>head(L,HW,HU));
-  console.log('SVG source:',B.seg.length,'views ·',sc.toFixed(2),'strip px per unit · neck row',NECK);}
+  if(!SHAPE_SVG&&STRIP_LAB){LAB1=STRIP_LAB.slice(0,LABH.length);NECK=46;} // the shape is the strip's
+  console.log('SVG markings:',B.seg.length,'views ·',sc.toFixed(2),'strip px per unit ·',SHAPE_SVG?'shape from the SVG · neck row '+NECK:'shape from the pixel strip');}
 else{const png=readPNG(STRIP),AW=png.w;TOP=AW>=5*CW;for(let v=0;v<(TOP?5:4);v++){const a=new Uint8Array(N);for(let y=0;y<CH;y++)for(let x=0;x<CW;x++)a[y*CW+x]=Math.round(png.data[y*AW+v*CW+x]/40);LAB1.push(a);}}
 const L=(v,x,y)=>LAB1[v][y*CW+x];
 // ── labels on any grid (w×h, u px per strip px): the drawn outline is handed to the section beside it (a 3D duck has no outline), interior lines stay
@@ -121,17 +126,21 @@ for(let y=0;y<TH;y++)for(let x=0;x<TW;x++){const pn=Math.floor(x/(CW*TS)),ux=Mat
 // 1× coverage of a fine distance field — for grooves and raised eyes (the PNG source only: from the SVG they are shaded instead)
 const cov1=S=>{const c=new Float32Array(N);for(let y=0;y<CH;y++)for(let x=0;x<CW;x++){let s=0;for(let j=0;j<U;j++)for(let i=0;i<U;i++)s+=S[(y*U+j)*UW+x*U+i]>0?1:0;c[y*CW+x]=s/(U*U);}return c;};
 const cLine=BUMP?M():cov1(SL),cMouth=BUMP?M():cov1(SM),cEye=BUMP?M():cov1(SE);
+{ // no grooves in the eyes (the pupils) or on the bill (its drawn ridges): only the mouth is carved there; the eyes stand proud
+  const near=(lv,r)=>{const m=M();for(let i=0;i<N;i++)if(lab[i]===lv)m[i]=1;const d=edt(m,CW,CH);return i=>d[i]<=r;},nE=near(4,2.5),nB=near(3,1.5);
+  for(let i=0;i<N;i++)if(nE(i)||nB(i))cLine[i]=0;}
 // ── thickness: half-width of the body at every side-view pixel
 const half=new Float32Array(CH),beakW=new Float32Array(CH);
 for(let y=0;y<CH;y++){let w=0,n=0;for(const v of [1,3]){let a=-1,b=-1;for(let x=0;x<CW;x++)if(L(v,x,y)){if(a<0)a=x;b=x;}if(a>=0){w+=(b-a+1)/2;n++;}}half[y]=n?w/n:0;
   let a=-1,b=-1;for(let x=0;x<CW;x++)if(L(1,x,y)===3){if(a<0)a=x;b=x;}beakW[y]=a>=0?(b-a+1)/2:0;}
 {const bw=beakW.slice();for(let y=0;y<CH;y++){let m=0;for(let k=-3;k<=3;k++){const yy=y+k;if(yy>=0&&yy<CH)m=Math.max(m,bw[yy]);}beakW[y]=m;}} // rows of the two views line up within a few px
 const SIL=signedDist(mSil,CW,CH); // side silhouette, signed distance in strip px (+ inside)
+const BSD=signedDist(Float32Array.from(lab,(l,i)=>l===3||mMouth[i]?1:0),CW,CH),BWZ=Float32Array.from(lab,(l,i)=>beakW[(i/CW)|0]); // the side view's bill (signed distance) and its width per row
 let th=new Float32Array(N);
 for(let y=0;y<CH;y++){let x=0;while(x<CW){if(!isIn(x,y)){x++;continue;}let b=x;while(b+1<CW&&isIn(b+1,y))b++;
   const c=(x+b)/2,hl=(b-x+1)/2,w=Math.min(half[y],hl*1.15);
   for(let k=x;k<=b;k++){const s=(k-c)/hl;let t=w*Math.sqrt(Math.max(0,1-s*s));
-    if(lab[y*CW+k]===3||mMouth[y*CW+k])t=0; // the bill is not part of the body: it is built as its own shape below
+    if(lab[y*CW+k]===3||mMouth[y*CW+k]){const tip=Math.sqrt(Math.min(1,(b-k+0.5)/3));t=Math.max(t,beakW[y]*tip);} // the bill: as wide as the front view draws it, round-tipped
     th[y*CW+k]=t;}x=b+1;}}
 for(let i=0;i<N;i++){if(!mSil[i])continue;const u=Math.min(1,Math.max(0,SIL[i])/7);th[i]*=Math.sqrt(1-(1-u)*(1-u));} // rounds over into the outline
 for(let it=0;it<2;it++){const o=new Float32Array(N);for(let y=0;y<CH;y++)for(let x=0;x<CW;x++){const i=y*CW+x;if(!mSil[i])continue;let s=0,n=0;
@@ -149,28 +158,7 @@ for(let j=0;j<NY;j++)for(let i=0;i<NX;i++){const x=X0+i*VOX,y=Y0+j*VOX,s=bil(SIL
   const pass=(src,dst,step,n,idxOf)=>{for(let o=0;o<F.length;o++){const p=idxOf(o);let v=0;for(let k=-2;k<=2;k++){const q=Math.max(0,Math.min(n-1,p+k));v+=src[o+(q-p)*step]*K[k+2];}dst[o]=v;}};
   pass(F,tmp,1,NX,o=>o%NX);pass(tmp,F,NX,NY,o=>((o/NX)|0)%NY);pass(F,tmp,NX*NY,NZ,o=>(o/(NX*NY))|0);F.set(tmp);
 }
-const FB=new Float32Array(F.length),FBL=new Float32Array(F.length); // the face's field before the bill joins, and the bill's own
-{ // THE BILL, its own shapes attached at the same scale (after the blur, so they keep their edges): a duck's bill is flat and wide, not a point,
-  // and it is two parts — the upper bill and the lower bill, the mouth between them. In each side-view column every run of bill pixels (the
-  // mouth line splits them) is one part there: its height from that run, its width the widest the front view draws over those rows, its
-  // end rounded in plan (a spatula, not a wedge) and its cross-section a flattened oval. Each joins the face (and the other) with a smooth union.
-  const isB=(x,y)=>x>=0&&y>=0&&x<CW&&y<CH&&lab[y*CW+x]===3,reach=new Int16Array(N); // reach: bill columns to the right along this row
-  for(let y=0;y<CH;y++)for(let x=CW-1;x>=0;x--)reach[y*CW+x]=isB(x,y)?1+(x+1<CW?reach[y*CW+x+1]:0):0;
-  const runs=[];for(let x=0;x<CW;x++){let y=0;while(y<CH){if(!isB(x,y)){y++;continue;}let b=y;while(isB(x,b+1))b++;
-    let w=0;for(let yy=y;yy<=b;yy++)w=Math.max(w,beakW[yy]);const yc=(y+b+1)/2;runs.push({x,a:y,b:b+1,yc,w,tip:reach[Math.min(CH-1,Math.round(yc-0.5))*CW+x]||1});y=b+1;}}
-  const P=2.6,KB=1.6,byCol=new Map();FB.set(F);FBL.fill(-1e3);for(const r of runs){if(!byCol.has(r.x))byCol.set(r.x,[]);byCol.get(r.x).push(r);}
-  for(let j=0;j<NY;j++)for(let i=0;i<NX;i++){const x=X0+i*VOX,y=Y0+j*VOX,rs=byCol.get(Math.floor(x));if(!rs)continue;
-    for(const r of rs){let w=Math.max(1,r.w*1.18); /* a little wider than drawn: its sides sink into the rounded face, and from ahead it should read as wide as the drawing */const hy=Math.max(2.2,Math.min((r.b-r.a)/2,w*0.4)),Rt=Math.min(w*0.8,12),tx=Rt-(r.tip-(x-r.x)); // flat (no taller than 0.8 × its width), blunt (never a sliver)
-      if(tx>0)w*=Math.sqrt(Math.max(0,1-(tx/Rt)*(tx/Rt))); // the rounded end
-      if(w<0.3||Math.abs(y-r.yc)>hy+4)continue;
-      for(let k=0;k<NZ;k++){const z=Z0+k*VOX;if(Math.abs(z)>w+4)continue;const q=Math.pow(Math.pow(Math.abs(z)/w,P)+Math.pow(Math.abs(y-r.yc)/hy,P),1/P),d=(1-q)*Math.min(w,hy);
-        const o=fi(i,j,k);if(d>FBL[o])FBL[o]=d;}}} // the bill's own field (its parts together)
-  { // blurred like the body (it is built column by column: unblurred, every column leaves a ridge), then joined to the face with a smooth union
-    const K=[0.054,0.244,0.403,0.244,0.054],tmp=new Float32Array(F.length),cl=v=>Math.max(-6,v);for(let o=0;o<F.length;o++)FBL[o]=cl(FBL[o]);
-    const pass=(src,dst,step,n,idxOf)=>{for(let o=0;o<F.length;o++){const p=idxOf(o);let v=0;for(let k=-2;k<=2;k++){const q=Math.max(0,Math.min(n-1,p+k));v+=src[o+(q-p)*step]*K[k+2];}dst[o]=v;}};
-    pass(FBL,tmp,1,NX,o=>o%NX);pass(tmp,FBL,NX,NY,o=>((o/NX)|0)%NY);pass(FBL,tmp,NX*NY,NZ,o=>(o/(NX*NY))|0);FBL.set(tmp);
-    for(let o=0;o<F.length;o++){const a0=F[o],d=FBL[o],h=Math.max(0,Math.min(1,0.5+0.5*(d-a0)/KB));F[o]=a0+(d-a0)*h+KB*h*(1-h);}}
-}
+
 function surfaceNets(){
   const P=[],I=[],cell=new Int32Array(NX*NY*NZ).fill(-1);
   const E=[[0,1],[2,3],[4,5],[6,7],[0,2],[1,3],[4,6],[5,7],[0,4],[1,5],[2,6],[3,7]],C=[[0,0,0],[1,0,0],[0,1,0],[1,1,0],[0,0,1],[1,0,1],[0,1,1],[1,1,1]];
@@ -223,7 +211,7 @@ function buildGeo(v){
   for(let i=0;i<nv;i++){const x=net.P[i*3],y=net.P[i*3+1],z=net.P[i*3+2],e=0.75;
     let gx=-(sampleF(x+e,y,z)-sampleF(x-e,y,z)),gy=sampleF(x,y+e,z)-sampleF(x,y-e,z),gz=-(sampleF(x,y,z+e)-sampleF(x,y,z-e));const l=Math.hypot(gx,gy,gz)||1;
     nrm[i*3]=gx/l;nrm[i*3+1]=gy/l;nrm[i*3+2]=gz/l;}
-  const bw=new Uint8Array(nv);for(let i=0;i<nv;i++){const x=net.P[i*3],y=net.P[i*3+1],z=net.P[i*3+2],e=sf(x,y,z,FBL)-sf(x,y,z,FB);bw[i]=Math.round(255*Math.max(0,Math.min(1,0.5+e/2.4)));} // how much of the bill (vs the face) this vertex is: the bill is its own colour, whatever the drawings project there
+  const bw=new Uint8Array(nv);for(let i=0;i<nv;i++){const x=net.P[i*3],y=net.P[i*3+1],z=net.P[i*3+2],sb=bil(BSD,x,y),wz=bil(BWZ,x,y)+1.2-Math.abs(z),c=v=>Math.max(0,Math.min(1,v));bw[i]=Math.round(255*c(0.5+sb/1.5)*c(0.5+wz/1.5));} // how much of the bill (vs the face) this vertex is: inside the side view's bill and within its front-view width — the bill is its own colour, whatever the drawings project there
   const uv=new Uint16Array(nv*3);for(let i=0;i<nv;i++)for(let c=0;c<3;c++)uv[i*3+c]=Math.max(0,Math.min(65535,Math.round((net.P[i*3+c]+(c===2?128:0))*256))); // the strip pixel it came from (before Big Head) and its depth across (+128), ×256
   const ext=new Set(),K=420;for(let k=0;k<K;k++){const z=1-2*(k+0.5)/K,r=Math.sqrt(1-z*z),a=k*2.39996323,dx=r*Math.cos(a),dy=r*Math.sin(a);
     let bi=0,bd=-1e9;for(let i=0;i<nv;i++){const d=pos[i*3]*dx+pos[i*3+1]*dy+pos[i*3+2]*z;if(d>bd){bd=d;bi=i;}}ext.add(bi);}
