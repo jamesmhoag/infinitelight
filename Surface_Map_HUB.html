@@ -73,8 +73,8 @@ body{background:#050608;overflow:hidden;font-family:'Share Tech Mono',monospace;
   <div class="gl">Leave</div><button onclick="quitMain()">Quit to main menu</button>
 </div></div>
 <div id="veil"></div>
-<iframe id="neb" src="chromatic_nebula.html?hub=1&v=20261102e" title="Surface"></iframe>
-<script src="ducks.js?v=20261102e"></script>
+<iframe id="neb" src="chromatic_nebula.html?hub=1&v=20261102f" title="Surface"></iframe>
+<script src="ducks.js?v=20261102f"></script>
 <script>
 // ╔══════════════════════════════════════════════════════════════════════════════╗
 // ║  MAP ENGINE                                                                 ║
@@ -434,8 +434,8 @@ function pondStep(now){
   scanWater(now);const want=Math.round(Math.min(T.mapDucks!=null?T.mapDucks:5,duckRoster().length)*Math.min(1,water.frac*2.5)); // a little water on screen: fewer ducks (none for none)
   if(pond.length<want&&now>pondNext){spawnLakeDuck(now);pondNext=now+900+Math.random()*1500;}
   pond=pond.filter(d=>{
-    if(now>d.next){d.next=now+1800+Math.random()*3000;d.cur=Math.random()<0.1?(Math.random()<0.5?-1:1)*0.03:(Math.random()-0.5)*0.006;} // mostly a gentle curve on its way across; now and then a doughnut
-    const paddle=0.38+0.28*Math.max(0,Math.sin(now/260+d.ph)),go=d.splash&&now-d.born<900?0:paddle;d.sp+=(go-d.sp)*0.05*dt;
+    if(now>d.next){d.next=now+1800+Math.random()*3000;d.cur=Math.random()<0.1?(Math.random()<0.5?-1:1)*0.03:(Math.random()-0.5)*0.006;d.dash=Math.random()<0.18?now+1200+Math.random()*1200:0;} // now and then a dash // mostly a gentle curve on its way across; now and then a doughnut
+    const paddle=(d.dash>now?1.5:0.38+0.28*Math.max(0,Math.sin(now/260+d.ph))),go=d.splash&&now-d.born<900?0:paddle;d.sp+=(go-d.sp)*0.05*dt;
     if(!isWater(d.x,d.y)){const l=Math.hypot(d.x,d.y)||1;d.x+=d.x/l*1.6*dt;d.y+=d.y/l*1.6*dt;const out=Math.atan2(d.y,d.x);d.hd+=Math.atan2(Math.sin(out-d.hd),Math.cos(out-d.hd))*0.08*dt;} // the growing spill pushes it out
     else{const ax=d.x+Math.cos(d.hd)*HEX*1.4,ay=d.y+Math.sin(d.hd)*HEX*1.4;if(!isWater(ax,ay)){const out=Math.atan2(d.y,d.x),tan=out+(Math.sin(d.hd-out)>0?1.2:-1.2);d.hd+=Math.atan2(Math.sin(tan-d.hd),Math.cos(tan-d.hd))*0.06*dt;} // the shore ahead: it veers along it
       else d.hd+=d.cur*dt;}
@@ -446,7 +446,9 @@ function pondStep(now){
     const t=DUCK_TYPES[d.type]||{},pop=d.splash?Math.min(1,(now-d.born)/700):1;d._s=HEX*0.62*(t.scale||1)/(t.head?1.25:1)*pop;return true;}); // world units per model unit (its type's size; a splash grows it up out of the water)
   ripples=ripples.filter(r=>now-r.t<1800);
   for(const r of ripples){const a=(now-r.t)/1800,[X,Y]=w2s(r.x,r.y),R=4+a*HEX*(r.big?1.6:0.9);c.strokeStyle=`rgba(${r.ink},${(0.5*(1-a)*(1-a)).toFixed(3)})`;c.lineWidth=r.big?2:1.4;c.beginPath();c.arc(X,Y,R,0,6.2832);c.stroke();} // rings on the water (the camera foreshortens them)
-  for(const d of pond)if(d._s){const[X,Y]=w2s(d.x,d.y);duckGlow(c,d.type,X,Y,d._s,now,d.ph);} // a Bright / Shining / Dim duck lights the water round it
+  for(const d of pond)if(d._s){const[X,Y]=w2s(d.x,d.y);duckGlow(c,d.type,X,Y,d._s,now,d.ph); // a Bright / Shining / Dim duck lights the water round it
+    const r=Math.max(0,Math.min(1,(d.sp-0.6)/0.9)); // paddling hard: the same bow wake a pigment pushes into particles, on the water ahead of it
+    if(r>0.02){const ink=onWhite(d.x,d.y)?[20,24,32]:[255,255,255];drawWakeShape(c,X,Y,Math.cos(d.hd),Math.sin(d.hd),d._s*1.4,r,Math.min(0.45,(T.wakeMaxA!=null?T.wakeMaxA:0.35)*1.2*Math.min(1,r*1.6)),ink,ink);}}
 }
 
 // ╔══════════════════════════════════════════════════════════════════════════════╗

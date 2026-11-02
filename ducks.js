@@ -136,3 +136,44 @@ function drawDuckScene(G,type,o){ // a duck straight into a scene (G = duckCtx o
 function duckGlow(c,type,x,y,h,now,ph){const v=DUCK_TYPES[type];if(v.mat!=='bright'&&v.mat!=='shining'&&v.mat!=='dim')return;
   const br=v.mat==='bright',col=br?'255,252,240':v.mat==='dim'?(T.dimGlowRed|0)+','+(T.dimGlowGreen|0)+','+(T.dimGlowBlue|0):v.col.join(','),R=h*T.duckGlow*(br?0.62:0.5),gr=c.createRadialGradient(x,y,0,x,y,R);
   gr.addColorStop(0,'rgba('+col+','+((br?0.55:0.35)+0.15*Math.sin(now/300+ph))+')');gr.addColorStop(1,'rgba('+col+',0)');c.save();c.globalCompositeOperation='lighter';c.fillStyle=gr;c.beginPath();c.arc(x,y,R,0,6.2832);c.fill();c.restore();}
+// ── The bow wake (shared): the crescent a pigment pushes ahead of it as it ploughs into particles, wider and closer-tailed the faster it
+// goes (T.wake* tuners, min config at T.wakeShow, max at T.maxSpeed). The surface draws it for pigments; the Surface Map for a duck
+// paddling fast. fw: unit heading; R: the mover's reach; hi / lo: the bright front and softer body colours. false = too faint to draw.
+function drawWakeShape(c,x,y,fwX,fwY,R,spdRatio,alpha,hi,lo){
+    const halfLen=(T.wakeLenMin+(T.wakeLenMax-T.wakeLenMin)*spdRatio)*R;
+    const thick=(T.wakeWidMin+(T.wakeWidMax-T.wakeWidMin)*spdRatio);
+    const curveH=halfLen*(T.wakeCrvMin+(T.wakeCrvMax-T.wakeCrvMin)*spdRatio);
+    const offset=halfLen*(T.wakeOffMin+(T.wakeOffMax-T.wakeOffMin)*spdRatio);
+    if(!(alpha>0.003)||halfLen<0.5)return false;
+    const prX=-fwY,prY=fwX;
+    const [lr,lg,lb]=hi,wt={r:lo[0],g:lo[1],b:lo[2]};
+    const bx=x+fwX*offset,by=y+fwY*offset;
+    const ax=bx+fwX*curveH,ay=by+fwY*curveH;
+    const flare=1.0+0.6/(1+halfLen*0.05);
+    const tailClose=spdRatio*spdRatio;
+    const oLx=bx-prX*halfLen*flare,oLy=by-prY*halfLen*flare;
+    const oRx=bx+prX*halfLen*flare,oRy=by+prY*halfLen*flare;
+    const tailDist=halfLen*0.8*tailClose;
+    const tx=bx-fwX*tailDist,ty=by-fwY*tailDist;
+    const innerFrac=Math.max(0.2,1-thick/(halfLen*flare||1));
+    const iLx=bx-prX*halfLen*flare*innerFrac,iLy=by-prY*halfLen*flare*innerFrac;
+    const iRx=bx+prX*halfLen*flare*innerFrac,iRy=by+prY*halfLen*flare*innerFrac;
+    const grad=c.createLinearGradient(ax,ay,bx-fwX*tailDist*0.5,by-fwY*tailDist*0.5);
+    grad.addColorStop(0,`rgba(${lr},${lg},${lb},${alpha.toFixed(3)})`);
+    grad.addColorStop(0.5,`rgba(${wt.r},${wt.g},${wt.b},${(alpha*0.5).toFixed(3)})`);
+    grad.addColorStop(1,'rgba(0,0,0,0)');
+    c.beginPath();
+    c.moveTo(oLx,oLy);
+    c.quadraticCurveTo(ax,ay,oRx,oRy);
+    if(tailClose>0.1){
+      c.quadraticCurveTo(bx+prX*halfLen*0.2,by+prY*halfLen*0.2,tx,ty);
+      c.quadraticCurveTo(bx-prX*halfLen*0.2,by-prY*halfLen*0.2,oLx,oLy);
+    } else {
+      c.lineTo(iRx,iRy);
+      c.quadraticCurveTo(ax,ay,iLx,iLy);
+    }
+    c.closePath();
+    c.fillStyle=grad;
+    c.fill();
+    return true;
+}

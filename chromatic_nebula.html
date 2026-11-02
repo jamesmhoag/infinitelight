@@ -114,7 +114,7 @@ button:hover{background:rgba(255,255,255,0.15);}
   <div id="dock" class="bottom"><div id="inventoryPanel"></div><div id="touch-info"></div></div>
   <canvas id="cur"></canvas>
 </div>
-<script src="ducks.js?v=20261102e"></script>
+<script src="ducks.js?v=20261102f"></script>
 <script>
 const _SRC=document.documentElement.outerHTML; // kept so the Encyclopedia can run live scenes as embedded copies of the game
 // Safety: a negative / non-finite gradient radius would throw and kill the frame — clamp it, and log the first offender's stack so it can be traced.
@@ -2625,45 +2625,10 @@ function drawWakes(ctx){
     const spd=Math.sqrt(p.vx*p.vx+p.vy*p.vy);
     if(spd<T.wakeShow*0.5){p.wakeI*=0.9;if(p.wakeI<0.005){p.wakeI=0;continue;}}
     const spdRatio=Math.min(1,Math.max(0,(spd-T.wakeShow)/(T.maxSpeed-T.wakeShow)));
-    const halfLen=(T.wakeLenMin+(T.wakeLenMax-T.wakeLenMin)*spdRatio)*effRadOf(p);
-    const thick=(T.wakeWidMin+(T.wakeWidMax-T.wakeWidMin)*spdRatio);
-    const curveH=halfLen*(T.wakeCrvMin+(T.wakeCrvMax-T.wakeCrvMin)*spdRatio);
-    const offset=halfLen*(T.wakeOffMin+(T.wakeOffMax-T.wakeOffMin)*spdRatio);
     const alpha=T.wakeMaxA*(isFinite(p.wakeI)?p.wakeI:0);
-    if(!(alpha>0.003)||halfLen<0.5)continue;
-    const fwX=spd>0.001?p.vx/spd:0,fwY=spd>0.001?p.vy/spd:1;
-    const prX=-fwY,prY=fwX;
+    if(!(alpha>0.003))continue;
     const wt=whiteTint(p.dr|0,p.dg|0,p.db|0,p.energy);
-    const lr=Math.min(255,wt.r+60)|0,lg=Math.min(255,wt.g+40)|0,lb=Math.min(255,wt.b+30)|0;
-    const bx=p.x+fwX*offset,by=p.y+fwY*offset;
-    const ax=bx+fwX*curveH,ay=by+fwY*curveH;
-    const flare=1.0+0.6/(1+halfLen*0.05);
-    const tailClose=spdRatio*spdRatio;
-    const oLx=bx-prX*halfLen*flare,oLy=by-prY*halfLen*flare;
-    const oRx=bx+prX*halfLen*flare,oRy=by+prY*halfLen*flare;
-    const tailDist=halfLen*0.8*tailClose;
-    const tx=bx-fwX*tailDist,ty=by-fwY*tailDist;
-    const innerFrac=Math.max(0.2,1-thick/(halfLen*flare||1));
-    const iLx=bx-prX*halfLen*flare*innerFrac,iLy=by-prY*halfLen*flare*innerFrac;
-    const iRx=bx+prX*halfLen*flare*innerFrac,iRy=by+prY*halfLen*flare*innerFrac;
-    const grad=wakeCtx.createLinearGradient(ax,ay,bx-fwX*tailDist*0.5,by-fwY*tailDist*0.5);
-    grad.addColorStop(0,`rgba(${lr},${lg},${lb},${alpha.toFixed(3)})`);
-    grad.addColorStop(0.5,`rgba(${wt.r},${wt.g},${wt.b},${(alpha*0.5).toFixed(3)})`);
-    grad.addColorStop(1,'rgba(0,0,0,0)');
-    wakeCtx.beginPath();
-    wakeCtx.moveTo(oLx,oLy);
-    wakeCtx.quadraticCurveTo(ax,ay,oRx,oRy);
-    if(tailClose>0.1){
-      wakeCtx.quadraticCurveTo(bx+prX*halfLen*0.2,by+prY*halfLen*0.2,tx,ty);
-      wakeCtx.quadraticCurveTo(bx-prX*halfLen*0.2,by-prY*halfLen*0.2,oLx,oLy);
-    } else {
-      wakeCtx.lineTo(iRx,iRy);
-      wakeCtx.quadraticCurveTo(ax,ay,iLx,iLy);
-    }
-    wakeCtx.closePath();
-    wakeCtx.fillStyle=grad;
-    wakeCtx.fill();
-    any=true;
+    if(drawWakeShape(wakeCtx,p.x,p.y,p.vx/(spd||1),spd>0.001?p.vy/spd:1,effRadOf(p),spdRatio,alpha,[Math.min(255,wt.r+60)|0,Math.min(255,wt.g+40)|0,Math.min(255,wt.b+30)|0],[wt.r,wt.g,wt.b]))any=true;
   }
   if(!any)return;
   ctx.save();ctx.globalCompositeOperation='screen';ctx.drawImage(wakeCanvas,0,0);ctx.restore(); // one soft pass (the tails are already gradients): no full-screen blur filter, no double-add
