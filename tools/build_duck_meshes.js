@@ -149,6 +149,21 @@ for(let j=0;j<NY;j++)for(let i=0;i<NX;i++){const x=X0+i*VOX,y=Y0+j*VOX,s=bil(SIL
   const pass=(src,dst,step,n,idxOf)=>{for(let o=0;o<F.length;o++){const p=idxOf(o);let v=0;for(let k=-2;k<=2;k++){const q=Math.max(0,Math.min(n-1,p+k));v+=src[o+(q-p)*step]*K[k+2];}dst[o]=v;}};
   pass(F,tmp,1,NX,o=>o%NX);pass(tmp,F,NX,NY,o=>((o/NX)|0)%NY);pass(F,tmp,NX*NY,NZ,o=>(o/(NX*NY))|0);F.set(tmp);
 }
+{ // THE BILL, its own shape attached at the same scale (after the blur, so it keeps its edges): a duck's bill is flat and wide, not a point.
+  // Side view: each bill column's top and bottom (its height); front view: its width (the widest the front view draws over those rows);
+  // its tip is rounded in plan (a spatula, not a wedge) and its cross-section is a flattened oval. It joins the face with a smooth union.
+  let bx0=1e9,bx1=-1;const top=new Float32Array(CW).fill(-1),bot=new Float32Array(CW).fill(-1);
+  for(let x=0;x<CW;x++)for(let y=0;y<CH;y++)if(lab[y*CW+x]===3){if(top[x]<0)top[x]=y;bot[x]=y+1;bx0=Math.min(bx0,x);bx1=Math.max(bx1,x+1);}
+  if(bx1>bx0){const wz=new Float32Array(CW);let wmax=0;for(let x=bx0;x<bx1;x++){if(top[x]<0)continue;let m=0;for(let y=top[x]|0;y<bot[x];y++)m=Math.max(m,beakW[y]);wz[x]=m;wmax=Math.max(wmax,m);}
+    const Rt=Math.min(wmax*0.8,(bx1-bx0)*0.45),P=2.6,KB=2.2; // tip radius in plan · cross-section squareness · how softly it joins the face
+    const at=(A,x)=>{const i=Math.max(bx0,Math.min(bx1-1,Math.floor(x)));return A[i];};
+    for(let j=0;j<NY;j++)for(let i=0;i<NX;i++){const x=X0+i*VOX,y=Y0+j*VOX;if(x<bx0||x>bx1+1||at(top,x)<0)continue; // (only the bill's own columns: no seam where it starts)
+      let w=Math.max(1,at(wz,x));const yc=(at(top,x)+at(bot,x))/2,hy=Math.max(2.8,Math.min((at(bot,x)-at(top,x))/2,w*0.4)); // flat (no taller than 0.8 × its width) and blunt (never thinner than ~5.6 px, so the tip is not a point)
+      const tx=x-(bx1-Rt);if(tx>0)w*=Math.sqrt(Math.max(0,1-(tx/Rt)*(tx/Rt))); // the rounded tip
+      for(let k=0;k<NZ;k++){const z=Z0+k*VOX;let d;
+        if(w<0.3)continue;else{const q=Math.pow(Math.pow(Math.abs(z)/w,P)+Math.pow(Math.abs(y-yc)/hy,P),1/P);d=(1-q)*Math.min(w,hy);}
+        const o=fi(i,j,k),a0=F[o],h=Math.max(0,Math.min(1,0.5+0.5*(d-a0)/KB));F[o]=a0+(d-a0)*h+KB*h*(1-h);}}} // smooth union
+}
 function surfaceNets(){
   const P=[],I=[],cell=new Int32Array(NX*NY*NZ).fill(-1);
   const E=[[0,1],[2,3],[4,5],[6,7],[0,2],[1,3],[4,6],[5,7],[0,4],[1,5],[2,6],[3,7]],C=[[0,0,0],[1,0,0],[0,1,0],[1,1,0],[0,0,1],[1,0,1],[0,1,1],[1,1,1]];

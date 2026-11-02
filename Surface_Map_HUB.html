@@ -27,7 +27,7 @@ body.scene .hbtn,body.scene #hdock,body.scene #legend,body.scene #bottom-bar,bod
 /* the surface (chromatic_nebula.html): hidden with visibility, not display, so it keeps its size for the hex previews */
 #neb{position:fixed;inset:0;width:100%;height:100%;border:0;z-index:50;visibility:hidden;pointer-events:none;background:#000}
 #neb.show{visibility:visible;pointer-events:auto}
-#turn-label{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);font-family:'Orbitron',sans-serif;font-size:32px;color:rgba(255,255,255,0.8);pointer-events:none;opacity:0;transition:opacity 0.3s;letter-spacing:2px;z-index:10}
+#turn-label{position:absolute;top:18px;left:50%;transform:translateX(-50%);font-family:'Orbitron',sans-serif;font-size:26px;white-space:nowrap;color:rgba(255,255,255,0.8);pointer-events:none;opacity:0;transition:opacity 0.3s;letter-spacing:2px;z-index:10}
 #turn-label.show{opacity:1}
 #cell-count{position:absolute;top:16px;right:16px;font-family:'Orbitron',sans-serif;font-size:28px;color:rgba(255,255,255,0.4);text-align:right;z-index:10}
 #cell-count small{font-size:10px;display:block;color:rgba(255,255,255,0.2);margin-top:2px;font-family:'Share Tech Mono',monospace}
@@ -90,7 +90,7 @@ body.scene .hbtn,body.scene #hdock,body.scene #legend,body.scene #bottom-bar,bod
 <div id="veil"></div>
 <canvas id="hcur"></canvas>
 <iframe id="neb" title="Surface"></iframe>
-<script src="shared.js?v=20261102i"></script>
+<script src="shared.js?v=20261102j"></script>
 <script>
 // ╔══════════════════════════════════════════════════════════════════════════════╗
 // ║  MAP ENGINE                                                                 ║
@@ -105,7 +105,7 @@ let cells={},turn=0,score=0,pQ=0,pR=0,totalCells=0; // turn: how many rings the 
 let clock=3,day=1,pool=6,fresh=true,burstFx=null; // clock: the hour (3 = Predawn … 24 = Midnight, the day's last turn); day: your attempts; pool: what the source put out at its last burst; fresh: no ring added yet since it
 let constel=[],armed=null,weaveSel=[],weaveAsk=null,clearFx={},mergeFx=[],result=null,feedMsg={t:'',d:'',at:-1e9}; // constellations {keys,type}; the armed map item; a Weave being drawn; animations; the final count
 const TIMES={3:'Predawn',6:'Dawn',9:'Morning',12:'Noon',15:'Afternoon',18:'Dusk',21:'Night',24:'Midnight'},STEP_H=3; // the day: eight turns of three hours
-const CACHE_V='20261102i'; // the build: bump with shared.js's
+const CACHE_V='20261102j'; // the build: bump with shared.js's
 const SCENE=new URLSearchParams(location.search).get('scene'); // a Guide / event demo: the map plays a scripted moment (no surface behind it)
 let phase='move',turnTimer=0,mergeTimer=0;
 let gameOverReason='';
@@ -248,7 +248,7 @@ function updateHint(){ // the feed's resting line: what you can do now
   else if(phase==='gameover'){a='Game over: '+gameOverReason;b='A new map keeps your items';}
   else if(phase==='captured'){a='Cleared!';b='Move on';}
   else if(phase==='collapse'){a='Midnight';b='The spill falls back into the source…';}
-  else if(armed==='weave'){a='Weave · click bright hexes, then the first again to close (3 to 5)';b=weaveSel.length?weaveSel.length+' chosen':'Esc or the slot again to stop';}
+  else if(armed==='weave'){a='Weave · click bright hexes, then the first again to close (3 to 5)';b=weaveSel.length?weaveSel.length+' chosen':'right-click, Esc or the slot again to stop';}
   else if(armed==='dial'){a='String · click any open hex to go straight there';b='1 String per hex of distance · no time passes';}
   else if(armed==='leash'){a='Spindle · click a cleared hex to unwind it';b='A great Dark Remnant takes 3';}
   else if(c&&!c.cap&&!c.isVoid&&phase==='move'){a=c.v<=0?'No value here: nothing to clear':`Space / click to ${nebulaCellKey===K(pQ,pR)?'continue this surface':'enter this surface'} (${c.v.toFixed(2)})`;b=clockStr()+' · day '+day+' · or move';}
@@ -387,11 +387,18 @@ function syncRenderSig(){ // any tuner that changes how a surface looks (not sou
   for(let i=0;i<str.length;i++)h=(h*31+str.charCodeAt(i))|0;renderSig=''+h;
 }
 function cellSig(c){return c.q+','+c.r+'|'+cellSeed(c).toFixed(6)+'|'+cellCov(c)+'|'+renderSig;}
+// Pictures are cached in IndexedDB by their signature (hex, depth, coverage step, every tuner that changes how a surface looks, picture size):
+// a hex is built by the surface once per coverage step, then comes straight from the cache — this visit and every later one.
+function setPrev(k,sig,img){if(!cells[k]||!img)return;const o=prev[k];prev[k]={sig,img,old:o&&o.img&&o.sig!==sig?o:null};}
 function requestPreviews(keys){
   if(!nebReady||!keys.length)return;
-  const items=[];for(const k of keys){if(prevPending.has(k))continue;const c=cells[k];prevPending.add(k);items.push({key:k,sig:cellSig(c),seed:cellSeed(c),cov:cellCov(c),q:c.q,r:c.r});}
-  if(items.length)neb({cmd:'preview',items,size:shotSize()});
+  for(const k of keys){if(prevPending.has(k))continue;const c=cells[k],sig=cellSig(c);prevPending.add(k);
+    IDB.get('pv:'+sig).then(img=>{if(img){prevPending.delete(k);setPrev(k,sig,img);hubLog('picture '+k+' from the cache');}else{_pvMiss.push({key:k,sig,seed:cellSeed(c),cov:cellCov(c),q:c.q,r:c.r});pvFlush();}})
+      .catch(()=>{_pvMiss.push({key:k,sig,seed:cellSeed(c),cov:cellCov(c),q:c.q,r:c.r});pvFlush();});}
 }
+const _pvMiss=[];let _pvT=0;
+function pvFlush(){if(_pvT)return;_pvT=setTimeout(()=>{_pvT=0;if(_pvMiss.length)neb({cmd:'preview',items:_pvMiss.splice(0),size:shotSize()});},0);} // the misses go to the surface together
+function pvPrune(){IDB.keys().then(ks=>{for(const k of ks)if(typeof k==='string'&&k.slice(0,3)==='pv:'&&k.slice(k.lastIndexOf('|')+1)!==renderSig)IDB.del(k).catch(()=>{});}).catch(()=>{});} // pictures from other settings are dropped
 function shotImg(o,url){if(!o._im||o._im._u!==url){o._im=new Image();o._im._u=url;o._im.src=url;}return o._im.complete&&o._im.naturalWidth?o._im:null;}
 function cellLayer(k,c,vis){
   if(c.shot)return shotImg(c,c.shot); // an unfinished surface: as it was left
@@ -520,6 +527,7 @@ let mX=-1,mY=-1,mDownAt=-1,mUpAt=-1; // the cursor (drawn by the shared cursor c
 sc.addEventListener('mousemove',e=>{if(currentView==='map')[hQ,hR]=evA(e);});
 document.addEventListener('mousemove',e=>{mX=e.clientX;mY=e.clientY;},true);document.addEventListener('mousedown',()=>{mDownAt=performance.now();},true);document.addEventListener('mouseup',()=>{mUpAt=performance.now();mDownAt=-1;},true);
 window.addEventListener('wheel',e=>{if(currentView!=='map'||menuOpen)return;e.preventDefault();zoomView(Math.exp(-e.deltaY*0.0015));},{passive:false});
+sc.addEventListener('contextmenu',e=>{e.preventDefault();if(currentView==='map'&&armed){armed=null;weaveSel=[];weaveAsk=null;updateHint();syncDock();}}); // right-click puts a selected item down
 sc.addEventListener('click',e=>{
   if(currentView!=='map'||phase==='gameover'||phase==='ended'||phase==='collapse')return;
   const[q,r]=evA(e),k=K(q,r);
@@ -595,7 +603,8 @@ function pondStep(now){
 function saveMap(){
   if(SCENE)return; // a demo never touches your map
   const out={};for(const k in cells){const c=Object.assign({},cells[k]);delete c._im;out[k]=c;}
-  try{localStorage.setItem(MAP_KEY,JSON.stringify({v:3,cells:out,turn,clock,day,pool,fresh,constel,result,score,pQ,pR,totalCells,phase,depth,gameOverReason,captureOrder,mergeGroups,mergeIdCounter,voidOpen,session:nebulaCellKey}));}catch(e){}
+  const rec=()=>JSON.stringify({v:3,cells:out,turn,clock,day,pool,fresh,constel,result,score,pQ,pR,totalCells,phase,depth,gameOverReason,captureOrder,mergeGroups,mergeIdCounter,voidOpen,session:nebulaCellKey});
+  try{localStorage.setItem(MAP_KEY,rec());}catch(e){for(const k in out)delete out[k].shot;try{localStorage.setItem(MAP_KEY,rec());}catch(x){}} // full: an unfinished hex's picture is the first thing to go
 }
 function loadMap(){
   let d=null;try{d=JSON.parse(localStorage.getItem(MAP_KEY)||'null');}catch(e){}
@@ -631,12 +640,12 @@ window.addEventListener('message',e=>{
   const m=e.data;if(e.source!==nebEl.contentWindow||!m||!m.il)return;
   if(m.T||m.disc)takeState(m);
   if(!nebReady&&m.T){ // the first word from the surface ('ready', or its answer to the 'state' asked for at start — whichever page loaded first)
-    nebReady=true;buildTune();mapResize();pondSpawn();
+    nebReady=true;buildTune();mapResize();pondSpawn();setTimeout(pvPrune,3000);
     if(/[?&]resume=1/.test(location.search)){history.replaceState(null,'',location.pathname);const c=nebulaCellKey&&cells[nebulaCellKey];if(c&&!c.cap&&c.q===pQ&&c.r===pR){enterNebula(nebulaCellKey);return;}}
     hubEvent('map');
   }
   if(m.type==='ready'||m.type==='state');
-  else if(m.type==='preview'){prevPending.delete(m.key);hubLog('preview '+m.key+(m.ms!=null?' built in '+m.ms.toFixed(0)+' ms':'')+(m.img?'':' (skipped)'));if(cells[m.key]&&m.img){const o=prev[m.key];prev[m.key]={sig:m.sig,img:m.img,old:o&&o.img?o:null};}}
+  else if(m.type==='preview'){prevPending.delete(m.key);hubLog('preview '+m.key+(m.ms!=null?' built in '+m.ms.toFixed(0)+' ms':'')+(m.img?'':' (skipped)'));if(m.img){IDB.put('pv:'+m.sig,m.img).catch(()=>{});setPrev(m.key,m.sig,m.img);}}
   else if(m.type==='overlayDone'){if(currentView==='overlay'){currentView='map';showNeb(false);evPump();}}
   else if(m.type==='cleared')completeCaptureForCell(m.key,m.kind); // the hex is captured right away; the player returns with a right-click
   else if(m.type==='return')exitNebula();

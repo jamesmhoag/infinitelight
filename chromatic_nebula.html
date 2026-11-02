@@ -114,7 +114,7 @@ button:hover{background:rgba(255,255,255,0.15);}
   <div id="dock" class="bottom"><div id="inventoryPanel"></div><div id="touch-info"></div></div>
   <canvas id="cur"></canvas>
 </div>
-<script src="shared.js?v=20261102i"></script>
+<script src="shared.js?v=20261102j"></script>
 <script>
 const _SRC=document.documentElement.outerHTML; // kept so the Encyclopedia can run live scenes as embedded copies of the game
 // Safety: a negative / non-finite gradient radius would throw and kill the frame — clamp it, and log the first offender's stack so it can be traced.
@@ -3210,11 +3210,28 @@ function cycleKeyRing(){if(keyShapes.length>1)keyShapes.push(keyShapes.shift());
   try{const raw=localStorage.getItem(KEYSHAPE_STORAGE_KEY);if(raw){const a=JSON.parse(raw);if(Array.isArray(a))keyShapes=a.filter(validKeyShape);}}catch(e){}
   syncKeyShapes();
 })();
+// The save is shared by every open copy of the surface (the Surface Map's, the title's Guide, a tab): before writing, what another copy saved is
+// merged in — discoveries are a union and duck counts the larger — so one copy can never write away what another found. It is backed up in
+// IndexedDB too, so a full or cleared localStorage loses nothing.
+let _discReset=false;
+function invPayload(){return Object.assign({},inventory,{disabled:[...invDisabled],discovered:[...discSeen],ducks:duckLog,at:Date.now()});}
+function invMerge(saved){if(!saved)return false;let ch=false;
+  if(!_discReset&&Array.isArray(saved.discovered))for(const d of saved.discovered)if(!discSeen.has(d)){discSeen.add(d);ch=true;}
+  if(saved.ducks&&typeof saved.ducks==='object')for(const k in saved.ducks){const n=saved.ducks[k]|0;if(n>(duckLog[k]||0)){duckLog[k]=n;ch=true;}}
+  return ch;}
 function saveInventory(){
   if(window.__SCENE)return;
   syncKeyShapes();
-  try{localStorage.setItem(INV_STORAGE_KEY,JSON.stringify(Object.assign({},inventory,{disabled:[...invDisabled],discovered:[...discSeen],ducks:duckLog})));localStorage.setItem(KEYSHAPE_STORAGE_KEY,JSON.stringify(keyShapes));}catch(e){}
+  try{const raw=localStorage.getItem(INV_STORAGE_KEY);if(raw)invMerge(JSON.parse(raw));}catch(e){}
+  const js=JSON.stringify(invPayload());_discReset=false;
+  try{localStorage.setItem(INV_STORAGE_KEY,js);}catch(e){console.warn('localStorage refused the inventory ('+e.name+'); it is kept in IndexedDB');}
+  try{localStorage.setItem(KEYSHAPE_STORAGE_KEY,JSON.stringify(keyShapes));}catch(e){}
+  IDB.put('inventory',js).catch(()=>{});
 }
+window.addEventListener('storage',e=>{if(e.key!==INV_STORAGE_KEY||!e.newValue||window.__SCENE)return;try{if(invMerge(JSON.parse(e.newValue))){applyDisc();updateInventoryUI();}}catch(x){}}); // another copy saved: take what it found
+if(!window.__SCENE)IDB.get('inventory').then(raw=>{if(!raw)return;const b=JSON.parse(raw);let loc=null;try{loc=JSON.parse(localStorage.getItem(INV_STORAGE_KEY)||'null');}catch(e){}
+  const older=!loc||(b.at||0)>(loc.at||0);if(older)for(const k of INV_KINDS)if(typeof b[k]==='number')inventory[k]=b[k]; // the backup is newer (or the only copy): its counts too
+  if(invMerge(b)||older){applyDisc();updateInventoryUI();saveInventory();}}).catch(()=>{});
 function fmtCount(n){n=Math.floor(n||0);if(n<=9999)return''+n;if(n<100000)return(Math.floor(n/100)/10).toFixed(1)+'k';if(n<1000000)return Math.floor(n/1000)+'k';return(Math.floor(n/10000)/100).toFixed(2)+'m';} // 99.9k · 999k · 9.99m
 function invMaxFor(kind){return T['invMax'+kind[0].toUpperCase()+kind.slice(1)];}
 // Adds (or, with a negative amount, spends) units of one inventory kind,
@@ -5582,7 +5599,7 @@ function discTick(){ // a locked element is fully covered by a veil showing its 
 let _dcX=-1,_dcY=-1,_dcVeil=null,_dcMet=null;
 document.addEventListener('mousemove',e=>{_dcX=e.clientX;_dcY=e.clientY;},true);
 function discVeil(){if(!_dcVeil){_dcVeil=document.createElement('div');_dcVeil.style.cssText='position:fixed;z-index:70;pointer-events:none;display:none;align-items:center;justify-content:center;background:#000;border:1px solid #333;color:#666;font:10px monospace;box-sizing:border-box;border-radius:4px';document.body.appendChild(_dcVeil);}return _dcVeil;}
-function resetDiscoveries(){discSeen=new Set();saveInventory();applyDisc();flashSaveStatus('Discoveries reset.');}
+function resetDiscoveries(){discSeen=new Set();_discReset=true;saveInventory();applyDisc();flashSaveStatus('Discoveries reset.');}
 window.resetDiscoveries=resetDiscoveries;
 for(const ev of ['mousedown','mouseup','click','dblclick','contextmenu','wheel'])document.addEventListener(ev,e=>{const el=e.target.closest&&e.target.closest('.disc-lock');if(el){e.stopPropagation();e.preventDefault();}},true); // an undiscovered element cannot be used
 function updateInventoryUI(){
@@ -13903,7 +13920,7 @@ function cardHTML(ev,mini){ // the one card format: name bar, art box, type line
   return `<div class="mtg${mini?' sm':''}" data-ev="${ev.id}" style="--rc:${r[0]}"><div class="nm"><b>${gEsc(ev.name)}</b><span class="gem"></span></div><div class="art" data-scene="${ev.scene}">${mini?`<canvas class="rl-m" width="64" height="64" data-k="${ev.ico}"></canvas>`:''}</div><div class="ty"><span>${gEsc(ev.type.replace(/^Event — /,''))}</span><span>${r[1]}</span></div><div class="tx">${ev.facts().map(f=>`<p>${gEsc(f)}</p>`).join('')}<p class="fl">${gEsc(ev.flavor)}</p></div></div>`;
 }
 function mountScene(h,w,hh){if(!h||h.firstChild||document.querySelectorAll('.rl-live iframe,.mtg .art iframe').length>=5)return;const f=document.createElement('iframe'),nm=h.dataset.s||h.dataset.scene;f.style.cssText='border:0;max-width:100%;pointer-events:none;background:#000;border-radius:6px;'+(w?`width:${w}px;height:${hh}px`:'width:100%;height:100%');
-  if(nm.slice(0,4)==='hub:')f.src='Surface_Map_HUB.html?v=20261102i&scene='+nm.slice(4)+'&T='+encodeURIComponent(JSON.stringify(mapSceneT()));else f.srcdoc=liveSrc(nm);h.appendChild(f);} // a Surface Map demo is played by the map itself
+  if(nm.slice(0,4)==='hub:')f.src='Surface_Map_HUB.html?v=20261102j&scene='+nm.slice(4)+'&T='+encodeURIComponent(JSON.stringify(mapSceneT()));else f.srcdoc=liveSrc(nm);h.appendChild(f);} // a Surface Map demo is played by the map itself
 function mapSceneT(){const o={};for(const k in T)if(/^(map|bh|duck|wake|glass|metal|dimGlow|glowHalo|maxSpeed)/.test(k))o[k]=T[k];return o;} // what a map demo needs of the tuners
 function showEventCard(id,review){
   const ev=EVENTS.find(e=>e.id===id);if(!ev)return;guideCSS();
@@ -14132,10 +14149,7 @@ function hubIdle(){clearStage();feedAlert.until=0;levelCoverage=null;hubLevel=nu
 function hubOverlay_(on){hubOverlay=on;wrap.classList.toggle('hub-ov',on);if(on)hubWake();} // the map's Guide / event cards show over a bare black stage
 function hubOverlayCheck(){if(hubOverlay&&!_rulesOpen&&!_evOpen&&!_evQ.length){hubOverlay_(false);hubAsleep=true;hubState('overlayDone');}}
 function clearFootText(){return HUB?'right-click to return to the Surface Map':'right-click to rebuild';}
-const IDB={db:null,
-  open(){return this.db||(this.db=new Promise((ok,no)=>{const r=indexedDB.open('infiniteLight',1);r.onupgradeneeded=()=>r.result.createObjectStore('kv');r.onsuccess=()=>ok(r.result);r.onerror=()=>no(r.error);}));},
-  async run(mode,fn){const db=await this.open();return new Promise((ok,no)=>{const tx=db.transaction('kv',mode),st=tx.objectStore('kv'),q=fn(st);tx.oncomplete=()=>ok(q&&q.result);tx.onerror=()=>no(tx.error);});},
-  get(k){return this.run('readonly',st=>st.get(k));},put(k,v){return this.run('readwrite',st=>st.put(v,k));},del(k){return this.run('readwrite',st=>st.delete(k));}};
+
 // The particle layer a hex shows on the map: sample the surface at the map's lattice spots (uv in 0..1)
 let _shotCv=null,_shotGen=0;
 function hexShot(size){ // the surface exactly as play renders it (pixel map, blur passes, α), cropped to the middle square and scaled to a hex
