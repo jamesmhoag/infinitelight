@@ -804,7 +804,8 @@ const T={
   keySeqStepMs:    875,    // Key sequence: time between demonstrated notes
   keySeqBgR:       120,    // Key sequence: radius (px) the background targets are laid out within (a full Dark Remnant centre)
   volKeySeq:       1,      // Key sequence notes + the failure timpani
-  fadeBudgetMs:    0,      // particle fades share this much time per frame (0 = unlimited); fades not reached this frame keep their last look and go first next frame
+  fadeBudgetMs:    4,      // ms: fades, glides and fade-ins share this much time per frame (0 = unlimited); any not reached keep their last look and go first next frame
+  fadeBusyMs:      1.5,    // …the same budget while the simulation is running behind (Sim busy ms)
   maxDimFields:  1,      // how many Dim DEPTHS can stand at once (the oldest is removed only when this is exceeded)
   maxBrightFields: 1,      // how many Bright BALANCES can stand at once
   prismMagHoldMs:  3000, // Prism whose first node is Magnetic: how long each stable Magnetic colour is applied
@@ -1315,7 +1316,8 @@ const TUNE_DEFS=[
   {key:'keySeqStepMs', label:'Key note gap ms', min:200,max:2000,step:25, tip:'Key sequence: time between the demonstrated notes'},
   {key:'keySeqBgR', label:'Key area radius', min:40,max:300,step:5, tip:'Key sequence on the background: the radius the coloured targets are laid out within (a full Dark Remnant centre)'},
   {key:'volKeySeq', label:'Key sequence vol', min:0,max:3,step:0.05, tip:'Key sequence: the demonstrated / played notes and the failure timpani', test:()=>playXylo(2,1)},
-  {key:'fadeBudgetMs', label:'Fade budget ms', min:0,max:20,step:0.5, tip:'Fading particles share this much time each frame (0 = unlimited). Fades not reached this frame keep their last look and are updated first next frame'},
+  {key:'fadeBusyMs', label:'Fade budget busy', min:0.5,max:10,step:0.5, tip:'Fade budget ms while the simulation is running behind (Sim busy ms)'},
+  {key:'fadeBudgetMs', label:'Fade budget ms', min:0,max:20,step:0.5, tip:'Fading, gliding and fading-in particles share this much time each frame (0 = unlimited). Fades not reached this frame keep their last look and are updated first next frame'},
   {key:'maxDimFields', label:'Max DEPTHS', min:1,max:20,step:1, tip:'How many Dim DEPTHS can stand at once; the oldest is removed only when this is exceeded. A new one removes whatever it overlaps'},
   {key:'maxBrightFields', label:'Max BALANCES', min:1,max:20,step:1, tip:'How many Bright BALANCES can stand at once; the oldest is removed only when this is exceeded. A new one removes whatever it overlaps'},
   {key:'neutronItemBurstK', label:'Item burst x mass', min:1,max:200,step:1, tip:'Neutron item: an enlarged object bursts like a nova of this times its mass (kept between 10 and the Burst mass)'},
@@ -2961,7 +2963,7 @@ function setPointWhite(q){
 // one for its secondary); if two fields are pure opposites it turns WHITE and stays crystallised — no effect — until a single or
 // non-whitened effect colour reaches it again.
 function particleFxPass(p){ // asleep particles in a Neutron's / Magnetic's field are rescaled / recoloured WITHOUT being woken (status: stays after it leaves)
-  if(effSerial%6!==0||remnantWakesParticles(p)||p.captured)return;
+  if((effSerial+(p.id|0))%6!==0||remnantWakesParticles(p)||p.captured)return; // every 6th frame per remnant, staggered by id so a crowd of remnants never scans on the same frame
   const R=activeRemnantRange(p);if(!(R>0))return;
   if(p.remKind==='neutron'){
     const m=p.neutronState==='max'?T.neutronBoostMult:T.neutronShrinkMult;
@@ -6954,6 +6956,7 @@ function addTransition(x,y,r,g,b,energy,mass,scaleMul){
 // Per-frame: write decaying alpha back into nebData so the blur layer fades smoothly.
 const _transNb=new Set();
 let _trRot=0,_trCost=0.03;
+function fadeMaxN(cost){const b=simBusy()?T.fadeBusyMs:T.fadeBudgetMs;return b>0?Math.max(4,Math.floor(b/Math.max(0.005,cost))):1e9;} // how many fade / glide repaints fit this frame's budget, from what one cost lately
 function stepTransitions(){
   if(transitions.length===0)return;
   // Old way: every fading particle erased itself and then re-stamped up to 8 neighbours, every frame — the same neighbour was
@@ -6964,12 +6967,12 @@ function stepTransitions(){
   const fading=[],doneIdx=[];
   const n0=transitions.length,t0=performance.now(),startK=_trRot%n0;
   // how many fades fit the budget: judged from what each one cost last frame (the stamping happens after this loop, so a clock check here would not see it)
-  const maxN=T.fadeBudgetMs>0?Math.max(6,Math.floor(T.fadeBudgetMs/Math.max(0.005,_trCost))):1e9;
+  const maxN=fadeMaxN(_trCost);
   let stopK=n0,processed=0;
   for(let k=0;k<n0;k++){
     const i=(startK+k)%n0,t=transitions[i];
     t.age++;
-    if(t.age>=T.transMaxAge){doneIdx.push(i);continue;} // finished: cleared below
+    if(t.age>=T.transMaxAge){if(processed>=maxN){t.age=T.transMaxAge;continue;}processed++;doneIdx.push(i);continue;} // finished: cleared below (within the budget too — a burst of endings waits its turn)
     if(stopK===n0&&processed>=maxN)stopK=k;
     if(stopK<n0)continue; // out of budget this frame: it keeps what was last painted and goes first next frame
     processed++;
@@ -6991,8 +6994,8 @@ function stepTransitions(){
     }
   }
   _trRot=(startK+Math.min(stopK,n0))%n0; // next frame resumes where this one ran out of time
-  doneIdx.sort((p,q)=>q-p);
-  for(const i of doneIdx){const t=transitions[i];nebClear(t.x,t.y,t.mass,t.scaleMul);nebDirty=true;transitions.splice(i,1);}
+  for(const i of doneIdx){const t=transitions[i];nebClear(t.x,t.y,t.mass,t.scaleMul);t._done=1;}
+  if(doneIdx.length){let w=0;for(let i=0;i<transitions.length;i++){const t=transitions[i];if(!t._done)transitions[w++]=t;}transitions.length=w;nebDirty=true;} // one compaction (a splice per ending made a big burst quadratic)
   _transNb.forEach(ni=>{
     const np=dormant[ni];if(!np)return;
     const nwt=whiteTint(np.r,np.g,np.b,np.energy);
@@ -8640,16 +8643,16 @@ function _sfAddNb(px,py){
     _sfNb.add(ngy*GW+ngx);
   }
 }
-const _sfG=[],_sfI=[],_sfGD=[],_sfID=[],_sfPool=[],_sfList=[];let _sfSer=0;
+const _sfG=[],_sfI=[],_sfGD=[],_sfID=[],_sfPool=[],_sfList=[],_sfSkip=[];let _sfSer=0,_sfCost=0.03;
 function updateSettleFades(timeScale){
   const gl=settleFades,il=interpList;
   if(gl.length===0&&il.length===0)return;
-  const step=1/Math.max(1,T.settleFadeFrames),snap=simBusy(),kx=NEB_SS/PIXEL_SIZE,ky=NEB_SS/PIXEL_SY; // busy: every glide / fade-in finishes this frame
+  const step=1/Math.max(1,T.settleFadeFrames),kx=NEB_SS/PIXEL_SIZE,ky=NEB_SS/PIXEL_SY,t0=performance.now(),maxN=fadeMaxN(_sfCost);let nJ=0; // repaints share the fade budget; the rest wait, first in line next frame
   const eas=pr=>pr<0.5?2*pr*pr:1-Math.pow(-2*pr+2,2)/2;
   _sfNb.clear();_sfSer++;
   const gJobs=_sfG,iJobs=_sfI,gDone=_sfGD,iDone=_sfID;gJobs.length=iJobs.length=gDone.length=iDone.length=0;
   // ── phase A: advance everything; only what has visibly changed (≥ 1 nebula pixel moved, or a visible alpha / size step) is erased and repainted
-  let w=0;
+  let w=0;const skip=_sfSkip;skip.length=0;
   for(let i=0;i<gl.length;i++){
     const g=gl[i],p=g.p;
     if(g.dead){glideById.delete(p.id);continue;}
@@ -8657,22 +8660,26 @@ function updateSettleFades(timeScale){
     if(dormant[g.idx]!==p){ // no longer a dormant particle there: erase what is painted, never leave a ghost
       nebStamp(g.visX,g.visY,0,0,0,0,true,sz);_sfAddNb(g.visX,g.visY);glideById.delete(p.id);continue;
     }
-    g.progress=snap?1:Math.min(1,g.progress+step);
+    g.progress=Math.min(1,g.progress+step);
     const e=eas(g.progress),nx=g.fx+(p.x-g.fx)*e,ny=g.fy+(p.y-g.fy)*e;
     if(g.progress<1&&Math.abs(nx-g.visX)*kx<1&&Math.abs(ny-g.visY)*ky<1){gl[w++]=g;continue;} // not a nebula pixel further yet: nothing to repaint
+    if(nJ>=maxN){skip.push(g);continue;} // over budget: keeps its look (finished or not) and goes first next frame
+    nJ++;
     nebStamp(g.visX,g.visY,0,0,0,0,true,sz);_sfAddNb(g.visX,g.visY);
     gJobs.push(g,nx,ny,sz);g._sfS=_sfSer;
     if(g.progress<1)gl[w++]=g;else gDone.push(g);
   }
-  gl.length=w;
+  gl.length=w;if(skip.length){gl.unshift(...skip);}
   let wi=0;
   for(let i=0;i<il.length;i++){
     const e=il[i];
     if(e.dead)continue;
-    e.progress=snap?1:Math.min(1,e.progress+(e.step||step));
+    e.progress=Math.min(1,e.progress+(e.step||step));
     const p=dormant[e.idx],to=p?visOf(p):ZERO_V;
     const cur=lerpV(e.from,to,eas(e.progress));
     if(e.progress<1&&e.cur&&Math.abs(cur.a-e.cur.a)<3&&Math.abs(cur.s-e.cur.s)<0.03){il[wi++]=e;continue;} // no visible step yet
+    if(nJ>=maxN&&e.cur){il[wi++]=e;continue;} // over budget: keeps its look and is reached again next frame
+    nJ++;
     nebStamp(e.x,e.y,0,0,0,0,true,Math.max(e.prevS,cur.s,0.05));_sfAddNb(e.x,e.y);
     iJobs.push(e,cur);e._sfS=_sfSer;
     if(e.progress<1)il[wi++]=e;else iDone.push(e);
@@ -8701,6 +8708,7 @@ function updateSettleFades(timeScale){
   }
   for(const g of gDone)glideById.delete(g.p.id);
   for(const e of iDone)if(interpByCell.get(e.idx)===e)interpByCell.delete(e.idx);
+  if(nJ>0)_sfCost+=(((performance.now()-t0)/nJ)-_sfCost)*0.2;
   nebDirty=true;
 }
 
@@ -14229,7 +14237,7 @@ const DUCK_PNG='data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAlQAAACKCAAAAABJWI
 const DUCK_CW=149,DUCK_CH=138,DUCK_NECK=[46,45,46,47]; // one view cell of the strip (side-right, front, side-left, back); the neck row splits head from body
 let duckLab=null;
 (function(){const im=new Image();im.onload=()=>{const c=document.createElement('canvas');c.width=im.width;c.height=im.height;const g=c.getContext('2d');g.drawImage(im,0,0);
-  const d=g.getImageData(0,0,c.width,c.height).data;duckLab=new Uint8Array(c.width*c.height);for(let i=0;i<duckLab.length;i++)duckLab[i]=Math.round(d[i*4]/40);_duckModels.clear();_dgl=null;};im.src=DUCK_PNG;})();
+  const d=g.getImageData(0,0,c.width,c.height).data;duckLab=new Uint8Array(c.width*c.height);for(let i=0;i<duckLab.length;i++)duckLab[i]=Math.round(d[i*4]/40);_duckModels.clear();_dgl=null;duckPrebuild();};im.src=DUCK_PNG;})();
 // ── Types: the classic duck plus exotics that change ONE thing (colour, size or material). Rare ones roll on their own, rarer chance.
 const DUCK_YEL=[255,222,40],DUCK_ORA=[255,128,10];
 const DUCK_TYPES={classic:{name:'Rubber Duck',axis:'Classic',tex:'classic'}};
@@ -14270,9 +14278,14 @@ function rollDuckType(){const r=Math.random(),pick=a=>a[Math.floor(Math.random()
 // and its material (plastic, wood, glass, metal, gold, dim, bright, shining) is shaded per pixel by the WebGL material shader.
 const DUCK_MAT={plastic:0,wood:1,metal:2,glass:3,dim:4,bright:5,shining:6,gold:7};
 const _duckModels=new Map();let _dgl=null;
-function duckModel(type,hi){ // hi: full strip resolution (the viewer); otherwise every 2nd pixel (surface, icons, collision)
-  const key=type+(hi?'|hi':''),g=hi?1:2;if(_duckModels.has(key))return _duckModels.get(key);if(!duckLab)return null;
-  const v=DUCK_TYPES[type]||DUCK_TYPES.classic,CW=DUCK_CW,CH=DUCK_CH,AW=CW*4,N=CW*CH,L=(vw,x,y)=>duckLab[y*AW+vw*CW+x];
+function duckModel(type,hi){ // a type = the shared geometry for its shape + its own colours and material (cheap: only Big Head has its own geometry)
+  const key=type+(hi?'|hi':'');if(_duckModels.has(key))return _duckModels.get(key);
+  const v=DUCK_TYPES[type]||DUCK_TYPES.classic,geo=duckGeo(v.head?type:'',hi);if(!geo)return null;
+  const M={g:geo,mat:v.tex==='rainbow'?8:DUCK_MAT[v.mat||'plastic'],c1:(v.col||DUCK_YEL).map(c=>c/255),c2:(v.col2||DUCK_ORA).map(c=>c/255)};
+  _duckModels.set(key,M);return M;}
+function duckGeo(shapeType,hi){ // hi: full strip resolution (the viewer); otherwise every 2nd pixel (surface, icons, collision)
+  const key='geo|'+shapeType+(hi?'|hi':''),g=hi?1:2;if(_duckModels.has(key))return _duckModels.get(key);if(!duckLab)return null;
+  const v=DUCK_TYPES[shapeType]||DUCK_TYPES.classic,CW=DUCK_CW,CH=DUCK_CH,AW=CW*4,N=CW*CH,L=(vw,x,y)=>duckLab[y*AW+vw*CW+x];
   const half=new Float32Array(CH); // the duck's half-width at each height, from the front and back views
   for(let y=0;y<CH;y++){let w=0,n=0;for(const vw of [1,3]){let a=-1,b=-1;for(let x=0;x<CW;x++)if(L(vw,x,y)){if(a<0)a=x;b=x;}if(a>=0){w+=(b-a+1)/2;n++;}}half[y]=n?w/n:0;}
   const lab=new Uint8Array(N);for(let y=0;y<CH;y++)for(let x=0;x<CW;x++)lab[y*CW+x]=L(0,x,y);
@@ -14306,16 +14319,21 @@ function duckModel(type,hi){ // hi: full strip resolution (the viewer); otherwis
   const cx=(x0+x1)/2,cy=(y0+y1)/2,nv=P.length/3,pos=new Float32Array(nv*3);let R=0;
   for(let i=0;i<nv;i++){pos[i*3]=(P[i*3]-cx)/CH;pos[i*3+1]=(cy-P[i*3+1])/CH;pos[i*3+2]=P[i*3+2]/CH;R=Math.max(R,Math.hypot(pos[i*3],pos[i*3+1],pos[i*3+2]));} // model units: 1 = the strip cell height; x forward (beak), y up, z across
   const idx=new Uint16Array(I),nrm=new Float32Array(nv*3);
-  { const nb=Array.from({length:nv},()=>new Set());for(let t=0;t<idx.length;t+=3)for(let k=0;k<3;k++){nb[idx[t+k]].add(idx[t+(k+1)%3]);nb[idx[t+k]].add(idx[t+(k+2)%3]);}
-    for(let it=0;it<4;it++){const o=pos.slice();for(let i=0;i<nv;i++){let sx=0,sy=0,sz=0,n=0;for(const j of nb[i]){sx+=o[j*3];sy+=o[j*3+1];sz+=o[j*3+2];n++;}if(!n)continue; // smoothing: the pixel steps of the strip melt into a smooth surface
+  { const dg=new Int32Array(nv+1);for(let t=0;t<idx.length;t++)dg[idx[t]+1]+=2;for(let i=0;i<nv;i++)dg[i+1]+=dg[i]; // neighbour lists as flat arrays (deduplicated)
+    const adj=new Int32Array(dg[nv]),fl=dg.slice(0,nv),st=new Int32Array(nv+1);
+    for(let t=0;t<idx.length;t+=3)for(let k=0;k<3;k++){const a=idx[t+k];adj[fl[a]++]=idx[t+(k+1)%3];adj[fl[a]++]=idx[t+(k+2)%3];}
+    let wa=0;for(let i=0;i<nv;i++){st[i]=wa;const sl=adj.subarray(dg[i],dg[i+1]).sort();let last=-1;for(let k=0;k<sl.length;k++){const j=sl[k];if(j!==last){adj[wa++]=j;last=j;}}}st[nv]=wa;
+    for(let it=0;it<4;it++){const o=pos.slice();for(let i=0;i<nv;i++){let sx=0,sy=0,sz=0,n=0;for(let k=st[i];k<st[i+1];k++){const j=adj[k];sx+=o[j*3];sy+=o[j*3+1];sz+=o[j*3+2];n++;}if(!n)continue; // smoothing: the pixel steps of the strip melt into a smooth surface
       const l=it%2?-0.53:0.5;pos[i*3]+=l*(sx/n-o[i*3]);pos[i*3+1]+=l*(sy/n-o[i*3+1]);pos[i*3+2]+=l*(sz/n-o[i*3+2]);}} }
   for(let t=0;t<idx.length;t+=3){const a=idx[t]*3,b=idx[t+1]*3,c=idx[t+2]*3,ux=pos[b]-pos[a],uy=pos[b+1]-pos[a+1],uz=pos[b+2]-pos[a+2],wx=pos[c]-pos[a],wy=pos[c+1]-pos[a+1],wz=pos[c+2]-pos[a+2];
     const nx=uy*wz-uz*wy,ny=uz*wx-ux*wz,nz=ux*wy-uy*wx;for(const o of [a,b,c]){nrm[o]+=nx;nrm[o+1]+=ny;nrm[o+2]+=nz;}}
   for(let i=0;i<nrm.length;i+=3){const l=Math.hypot(nrm[i],nrm[i+1],nrm[i+2])||1;nrm[i]/=l;nrm[i+1]/=l;nrm[i+2]/=l;}
   const hp=[];for(let i=0;i<N;i++){if(top[i]<0)continue;const x=i%CW,y=(i/CW)|0;if(ge[i]?(x+y)%(3*g):(x%4||y%4))continue;for(const vi of ge[i]?[top[i]]:[top[i],botI[i]])hp.push(pos[vi*3],pos[vi*3+1],pos[vi*3+2]);} // collision samples: the outline and a grid over both halves
-  const M={pos,nrm,sec:new Float32Array(S),uv:new Float32Array(U),idx,R,hp:new Float32Array(hp),buf:null,mat:v.tex==='rainbow'?8:DUCK_MAT[v.mat||'plastic'],
-    c1:(v.col||DUCK_YEL).map(c=>c/255),c2:(v.col2||DUCK_ORA).map(c=>c/255)};
-  _duckModels.set(key,M);return M;}
+  const G={pos,nrm,sec:new Float32Array(S),uv:new Float32Array(U),idx,R,hp:new Float32Array(hp),buf:null};
+  _duckModels.set(key,G);return G;}
+function duckPrebuild(){ // the surface geometries are built while the browser is idle, so a duck never costs a frame its model
+  const idle=window.requestIdleCallback?(f=>requestIdleCallback(f,{timeout:1500})):(f=>setTimeout(f,200));const jobs=[['',false],['bighead',false]]; // (idle with a deadline: a busy game loop never leaves the browser idle)
+  const next=()=>{const j=jobs.shift();if(!j)return;idle(()=>{duckGeo(j[0],j[1]);next();});};next();}
 // ── WebGL: one shared offscreen renderer; each duck is drawn into it and copied onto the 2D canvas ──
 function duckGL(){
   if(_dgl!==null)return _dgl;_dgl=false;
@@ -14348,18 +14366,18 @@ function quatTurn(q,ax,ay,az){const a=Math.hypot(ax,ay,az);if(a<1e-9)return q;co
 function drawDuck3D(c,type,q,at,h,alpha,maxS){ // the type's model turned by q, h px per model unit, drawn centred on each [x,y] of at
   const G=duckGL(),M=duckModel(type,h>160);
   if(!G||!M){c.save();c.fillStyle='rgba(255,222,40,'+alpha+')';for(const p of at){c.beginPath();c.arc(p[0],p[1],h*0.35,0,6.2832);c.fill();}c.restore();return;}
-  const gl=G.gl,S=Math.max(4,Math.min(maxS||2048,Math.ceil(2*M.R*h)+4));
+  const gl=G.gl,S=Math.max(4,Math.min(maxS||2048,Math.ceil(2*M.g.R*h)+4));
   if(G.cv.width<S||G.cv.height<S){G.cv.width=G.cv.height=Math.min(2048,Math.max(S,G.cv.width*2));}
-  if(!M.buf){M.buf={};for(const [k,a,n] of [['p',M.pos,3],['n',M.nrm,3],['s',M.sec,1],['u',M.uv,2]]){const b=gl.createBuffer();gl.bindBuffer(gl.ARRAY_BUFFER,b);gl.bufferData(gl.ARRAY_BUFFER,a,gl.STATIC_DRAW);M.buf[k]=[b,n];}
-    M.buf.i=gl.createBuffer();gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER,M.buf.i);gl.bufferData(gl.ELEMENT_ARRAY_BUFFER,M.idx,gl.STATIC_DRAW);}
+  const Gm=M.g;if(!Gm.buf){Gm.buf={};for(const [k,a,n] of [['p',Gm.pos,3],['n',Gm.nrm,3],['s',Gm.sec,1],['u',Gm.uv,2]]){const b=gl.createBuffer();gl.bindBuffer(gl.ARRAY_BUFFER,b);gl.bufferData(gl.ARRAY_BUFFER,a,gl.STATIC_DRAW);Gm.buf[k]=[b,n];}
+    Gm.buf.i=gl.createBuffer();gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER,Gm.buf.i);gl.bufferData(gl.ELEMENT_ARRAY_BUFFER,Gm.idx,gl.STATIC_DRAW);}
   gl.useProgram(G.pr);gl.viewport(0,0,S,S);gl.enable(gl.SCISSOR_TEST);gl.scissor(0,0,S,S);gl.clearColor(0,0,0,0);gl.clearDepth(1);gl.clear(gl.COLOR_BUFFER_BIT|gl.DEPTH_BUFFER_BIT);
-  for(const [k,an] of [['p','aP'],['n','aN'],['s','aS'],['u','aU']]){gl.bindBuffer(gl.ARRAY_BUFFER,M.buf[k][0]);gl.enableVertexAttribArray(G.at[an]);gl.vertexAttribPointer(G.at[an],M.buf[k][1],gl.FLOAT,false,0,0);}
-  gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER,M.buf.i);const u=G.un;
-  gl.uniformMatrix3fv(u.uR,false,quatMat(q));gl.uniform2f(u.uK,2*h/S,1/(M.R+0.01));gl.uniform3fv(u.uC1,M.c1);gl.uniform3fv(u.uC2,M.c2);gl.uniform1f(u.uM,M.mat);
+  for(const [k,an] of [['p','aP'],['n','aN'],['s','aS'],['u','aU']]){gl.bindBuffer(gl.ARRAY_BUFFER,Gm.buf[k][0]);gl.enableVertexAttribArray(G.at[an]);gl.vertexAttribPointer(G.at[an],Gm.buf[k][1],gl.FLOAT,false,0,0);}
+  gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER,Gm.buf.i);const u=G.un;
+  gl.uniformMatrix3fv(u.uR,false,quatMat(q));gl.uniform2f(u.uK,2*h/S,1/(Gm.R+0.01));gl.uniform3fv(u.uC1,M.c1);gl.uniform3fv(u.uC2,M.c2);gl.uniform1f(u.uM,M.mat);
   gl.uniform1f(u.uGl,T.duckGloss);gl.uniform1f(u.uTr,T.duckTrans);gl.uniform1f(u.uA,1);
   gl.enable(gl.DEPTH_TEST);gl.depthFunc(gl.LEQUAL);gl.enable(gl.BLEND);gl.blendFunc(gl.ONE,gl.ONE_MINUS_SRC_ALPHA);gl.enable(gl.CULL_FACE);
-  if(M.mat===3){gl.cullFace(gl.FRONT);gl.drawElements(gl.TRIANGLES,M.idx.length,gl.UNSIGNED_SHORT,0);} // glass: the inside wall shows through first
-  gl.cullFace(gl.BACK);gl.drawElements(gl.TRIANGLES,M.idx.length,gl.UNSIGNED_SHORT,0);
+  if(M.mat===3){gl.cullFace(gl.FRONT);gl.drawElements(gl.TRIANGLES,Gm.idx.length,gl.UNSIGNED_SHORT,0);} // glass: the inside wall shows through first
+  gl.cullFace(gl.BACK);gl.drawElements(gl.TRIANGLES,Gm.idx.length,gl.UNSIGNED_SHORT,0);
   const sy=G.cv.height-S;c.save();c.globalAlpha*=alpha;for(const p of at)c.drawImage(G.cv,0,sy,S,S,p[0]-S/2,p[1]-S/2,S,S);c.restore();}
 // ── On the surface: a solid body. Its footprint is its 3D shape projected onto the plane; things bounce off it like a CRYSTALIZE
 // point (elastic, it never breaks); any change in its 2D motion also tumbles it in 3D; only a Dark Remnant can take it. ──
@@ -14371,7 +14389,7 @@ function duckInit(d){if(!d.q){const a=d.ang||0;d.q=[0,Math.sin(a/2),0,Math.cos(a
 function duckSizeOf(d){return T.duckSize*(DUCK_TYPES[d.type].scale||1);}
 function duckMass(d){const s=DUCK_TYPES[d.type].scale||1;return Math.max(0.01,T.duckMass*s*s*s);}
 function duckHull(d){ // its footprint: the model's sample points turned by its orientation, projected onto the plane (px from its centre, y down), convex hull; each point keeps its depth
-  const M=duckModel(d.type);if(!M)return null;const R=quatMat(d.q),P=M.hp,h=duckSizeOf(d),pts=[];
+  const M=duckModel(d.type);if(!M)return null;const R=quatMat(d.q),P=M.g.hp,h=duckSizeOf(d),pts=[];
   for(let i=0;i<P.length;i+=3){const x=P[i],y=P[i+1],z=P[i+2];pts.push([(R[0]*x+R[3]*y+R[6]*z)*h,-(R[1]*x+R[4]*y+R[7]*z)*h,(R[2]*x+R[5]*y+R[8]*z)*h]);}
   pts.sort((a,b)=>a[0]-b[0]||a[1]-b[1]);const cr=(o,a,b)=>(a[0]-o[0])*(b[1]-o[1])-(a[1]-o[1])*(b[0]-o[0]),lo=[],up=[];
   for(const p of pts){while(lo.length>1&&cr(lo[lo.length-2],lo[lo.length-1],p)<=0)lo.pop();lo.push(p);}
@@ -14497,7 +14515,7 @@ if(!window.__SCENE)registerGuideDisc();
 (async()=>{
   if(window.__SCENE){sceneBoot(window.__SCENE,window.__T);return;}
   await loadConfig();
-  if(T.wakeBudgetPerFrame>5000)T.wakeBudgetPerFrame=400; // (old saves: 150000 meant unlimited; waking now queues instead of dropping, so a real budget is safe)
+  if(T.wakeBudgetPerFrame>5000)T.wakeBudgetPerFrame=400;if(!(T.fadeBudgetMs>0))T.fadeBudgetMs=4; // (0 meant unlimited: one burst of fades could take seconds) // (old saves: 150000 meant unlimited; waking now queues instead of dropping, so a real budget is safe)
   buildTunePanel();updateRect();
   if(HUB){hubIdle();hubAsleep=true;}else{rebuild();fireEvent('surface');}
   updateInventoryUI();applyDisc();updateSettleBtn();updateCacheBtn();if(T.soundOn)setSound(true,null,true);
