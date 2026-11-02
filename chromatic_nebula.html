@@ -114,7 +114,7 @@ button:hover{background:rgba(255,255,255,0.15);}
   <div id="dock" class="bottom"><div id="inventoryPanel"></div><div id="touch-info"></div></div>
   <canvas id="cur"></canvas>
 </div>
-<script src="shared.js?v=20261102w"></script>
+<script src="shared.js?v=20261102x"></script>
 <script>
 const _SRC=document.documentElement.outerHTML; // kept so the Encyclopedia can run live scenes as embedded copies of the game
 // Safety: a negative / non-finite gradient radius would throw and kill the frame — clamp it, and log the first offender's stack so it can be traced.
@@ -957,7 +957,7 @@ const T={
 };
 
 const DISC_LIST=[["Top level (1–100)", [["slot_vol", "Sound toggle", 0], ["slot_speedctl", "Game speed control", 200], ["slot_guide", "Guide (circled i)", 0], ["hud_rebuild", "Rebuild button", 0], ["mode_sound", "Sound mode", 0], ["hud_modes", "Modes menu", 0], ["stats_collapse", "Stats collapse", 0], ["stats_line", "Stats line pick", 0]]], ["Inventory items", [["slot_dim", "DEPTH (Dim) slot", 0], ["slot_bright", "BALANCE (Bright) slot", 10], ["slot_magnetic", "HARMONY slot", 30], ["slot_pulsing", "RHYTHM slot", 40], ["slot_neutron", "DYNAMISM slot", 50], ["slot_dial", "String slot", 60], ["slot_leash", "Spindle slot", 70], ["slot_weave", "Weave slot", 80], ["slot_prism", "Prism slot", 120], ["slot_knot", "Knot slot", 130], ["slot_gate", "Gate slot", 140], ["slot_lens", "Lens slot", 150], ["slot_key", "Key slot", 200]]], ["Tools & panels", [["hud_tune", "Tune menu", 0], ["mode_pause", "Pause mode", 0], ["mode_invert", "Invert mode", 0], ["mode_trails", "Trails mode", 9999999], ["mode_particlemap", "Particle map mode", 9999999], ["mode_radii", "Effect radii mode", 100000], ["mode_telemetry", "Telemetry mode", 100000], ["mode_dynamics", "Dynamics mode", 100000], ["mode_class", "Class mode", 100000], ["mode_savemap", "Save map", 0], ["mode_loadmap", "Load map", 0], ["mode_shape", "Cell shape mode", 0], ["mode_coverage", "Coverage mode", 400], ["mode_settle", "Settle mode", 900], ["mode_clearstage", "Clear stage", 1500], ["stats_log", "Performance log", 2500], ["hud_image", "Image button", 3000], ["hud_clearimg", "Clear image button", 3000], ["mode_cache", "Item cache mode", 0], ["slot_cache-clear", "Cache: clear slot", 5000], ["slot_cache-fill", "Cache: fill slot", 0], ["slot_cache-disable", "Cache: disable slot", 8000]]], ["Advanced", [["mode_create", "Create item mode", 0], ["slot_create", "Create item slot", 0]]], ["Feed & object info (feed and telemetry unlock separately, same cost)", [["feed_msg", "Feed: any message", 0], ["obj_particle", "Particle", 0], ["obj_pigment", "Pigment", 0], ["obj_point", "Point", 5], ["obj_dim", "Dim remnant", 0], ["obj_bright", "Bright remnant", 10], ["obj_neutron", "Neutron remnant", 25], ["obj_magnetic", "Magnetic remnant", 25], ["obj_pulsing", "Pulsing remnant", 25], ["obj_dark", "Dark remnant", 50], ["obj_relic", "Relic (enriched)", 100], ["obj_eclipse", "ECLIPSE", 15], ["obj_crystal", "CRYSTALIZE", 15]]], ["Surface Map & main menu", [["main_guide", "Main menu: Guide", 5], ["hub_guide", "Map: Guide button", 0], ["hub_score", "Map: score bar", 1], ["hub_legend", "Map: legend", 2], ["hub_restart", "Map: New map button", 3], ["hub_cells", "Map: cell count", 4], ["hub_depth", "Map: depth", 6]]]];
-DISC_LIST.push(['Surface Map shops (the shop, then what it sells)',[...Object.keys(SHOPS).filter(k=>SHOPS[k].street).map(k=>['shop_'+k,'Shop: '+SHOPS[k].n,SHOPS[k].dc]),...SHOP_ITEMS.map(i=>['si_'+i.id,SHOPS[i.shop].n+': '+i.n,i.dc])]]);
+DISC_LIST.push(['Surface Map shops (what each sells)',[...SHOP_ITEMS.map(i=>['si_'+i.id,SHOPS[i.shop].n+': '+i.n,i.dc])]]);
 const DISC_ALL=[];for(const g of DISC_LIST)for(const d of g[1]){DISC_ALL.push(d);T['dc_'+d[0]]=d[2];} // Discoveries: Dim needed (on hover) to reveal each interface element
 const TUNE_DEFS=[
   {sec:'Forces — base power',tab:'gameplay'},
@@ -1584,10 +1584,10 @@ TUNE_DEFS.push({sec:'Master volume',tab:'sounds'},{key:'masterVol',label:'Master
  {key:'mapCovMin',label:'Hex min coverage',min:0,max:1,step:0.05,tip:'Coverage of a surface whose hex value is 0'},
  {key:'mapCovFull',label:'Hex full coverage value',min:0.1,max:6,step:0.1,tip:'Hex value at which a surface is fully covered with particles'},
  {sec:'Surface Map — shops',tab:'gameplay'},
- {key:'mapShopSize',label:'Shop size',min:0.3,max:4,step:0.05,tip:'Width of a shop building on the Surface Map (× hex size)'},
- {key:'mapShopRing',label:'Main street ring',min:0,max:4,step:0.05,tip:'How far from the source the main street shops stand (× hex size)'},
+ {key:'mapShopSize',label:'Pop-up shop size',min:0.3,max:4,step:0.05,tip:'Width of a pop-up shop building on the Surface Map (× hex size)'},
+ {key:'mapShopStreet',label:'Main street shop size',min:0.15,max:1.5,step:0.01,tip:'Width of each main street shop (× hex size); they stand side by side in the source hex'},
  {key:'mapShopGlow',label:'Shop neon glow',min:0,max:3,step:0.05,tip:'How strongly an open shop\'s sign and windows glow'});
-Object.assign(T,{mapShopSize:1,mapShopRing:1.6,mapShopGlow:1});
+Object.assign(T,{mapShopSize:1,mapShopStreet:0.42,mapShopGlow:1});
 for(const id in SHOPS){const S=SHOPS[id];if(S.street)continue;for(let i=1;i<=3;i++){const k=shopTK(S.cur)+i;T[k]=S.at[i-1];TUNE_DEFS.push({key:k,label:S.n.slice(0,18)+' rank '+i+' at',min:0,max:9999999,step:1,tip:'A bright clear whose surface collected at least this much '+S.cur+' opens a rank '+i+' '+S.n+' on its hex (0 = never)'});}}
 let tuneTab='gameplay',tuneFilter='',tuneSel=null,tuneBuf='';
 document.addEventListener('keydown',e=>{ // type digits / '.' to set the last-touched tuner row; clamps to its min/max and snaps to its step
@@ -3190,7 +3190,7 @@ let gateFx=null,keyFx=null; // the Gate's rewind transition / the Key's insert-t
 let keyShapes=[];        // one entry per Key in the purse, oldest first — each remembers the Pattern that formed it
 let inventory={bright:0,dim:0,neutron:0,magnetic:0,pulsing:0,dial:0,leash:0,prism:0,gate:0,knot:0,key:0,lens:0,weave:0};
 let invDisabled=new Set(),invDisableMode=false,discSeen=new Set();
-let ducks=[],duckLog={}; // rubber ducks on this surface / the duck collection (type → count, saved with the inventory)
+let ducks=[],duckLog={},duckLuck={d:0,e:0}; // rubber ducks on this surface / the duck collection (type → count, saved with the inventory) / failed tries since the last duck (d) and the last exotic (e): each adds T.duckLuckStep to its chance (saved, so it carries across surfaces and days)
 let invFlash={kind:null,at:0};   // last slot that gained an item (its icon pulses)
 let earnFx=[],constellationFx=[]; // real-time visual effects (see drawEarnFx / drawConstellationFx)
 (function loadInventory(){
@@ -3200,6 +3200,7 @@ let earnFx=[],constellationFx=[]; // real-time visual effects (see drawEarnFx / 
     if(Array.isArray(saved.disabled))invDisabled=new Set(saved.disabled);
     if(Array.isArray(saved.discovered))discSeen=new Set(saved.discovered);
     if(saved.ducks&&typeof saved.ducks==='object')duckLog=saved.ducks;
+    if(saved.luck)duckLuck=Object.assign({d:0,e:0},saved.luck);
       if(typeof saved.notch==='number')inventory.knot=Math.min(invMaxFor('knot'),inventory.knot+saved.notch);
     for(const k of ['prism','knot','gate','key','lens'])if(inventory[k]>0)discSeen.add('ev:pat_'+k);} // Pattern items already held (from before forming one revealed it) show in the Guide
   }catch(e){/* localStorage unavailable — start fresh, still fully playable */}
@@ -3221,7 +3222,7 @@ function cycleKeyRing(){if(keyShapes.length>1)keyShapes.push(keyShapes.shift());
 // merged in — discoveries are a union and duck counts the larger — so one copy can never write away what another found. It is backed up in
 // IndexedDB too, so a full or cleared localStorage loses nothing.
 let _discReset=false;
-function invPayload(){return Object.assign({},inventory,{disabled:[...invDisabled],discovered:[...discSeen],ducks:duckLog,at:Date.now()});}
+function invPayload(){return Object.assign({},inventory,{disabled:[...invDisabled],discovered:[...discSeen],ducks:duckLog,luck:duckLuck,at:Date.now()});}
 function invMerge(saved){if(!saved)return false;let ch=false;const rk=_discReset==='all'||_discReset==='ducks'; // _discReset: true (discoveries reset), 'ducks' (ducks spent in a shop), 'all' (the Gift Shop wipe): what this save must not merge back
   if((_discReset!==true&&_discReset!=='all')&&Array.isArray(saved.discovered))for(const d of saved.discovered)if(!discSeen.has(d)){discSeen.add(d);ch=true;}
   if(!rk&&saved.ducks&&typeof saved.ducks==='object')for(const k in saved.ducks){const n=saved.ducks[k]|0;if(n>(duckLog[k]||0)){duckLog[k]=n;ch=true;}} // (a Gift Shop wipe: nothing is merged back)
@@ -3237,7 +3238,7 @@ function saveInventory(){
 }
 window.addEventListener('storage',e=>{if(e.key!==INV_STORAGE_KEY||!e.newValue||window.__SCENE)return;try{if(invMerge(JSON.parse(e.newValue))){applyDisc();updateInventoryUI();}}catch(x){}}); // another copy saved: take what it found
 if(!window.__SCENE)IDB.get('inventory').then(raw=>{if(!raw)return;const b=JSON.parse(raw);let loc=null;try{loc=JSON.parse(localStorage.getItem(INV_STORAGE_KEY)||'null');}catch(e){}
-  const older=!loc||(b.at||0)>(loc.at||0);if(older)for(const k of INV_KINDS)if(typeof b[k]==='number')inventory[k]=b[k]; // the backup is newer (or the only copy): its counts too
+  const older=!loc||(b.at||0)>(loc.at||0);if(older){for(const k of INV_KINDS)if(typeof b[k]==='number')inventory[k]=b[k];if(b.luck)duckLuck=Object.assign({d:0,e:0},b.luck);} // the backup is newer (or the only copy): its counts too
   if(invMerge(b)||older){applyDisc();updateInventoryUI();saveInventory();}}).catch(()=>{});
 function fmtCount(n){n=Math.floor(n||0);if(n<=9999)return''+n;if(n<100000)return(Math.floor(n/100)/10).toFixed(1)+'k';if(n<1000000)return Math.floor(n/1000)+'k';return(Math.floor(n/10000)/100).toFixed(2)+'m';} // 99.9k · 999k · 9.99m
 function invMaxFor(kind){return Math.max(T['invMax'+kind[0].toUpperCase()+kind.slice(1)],shopCap(kind,k=>discSeen.has(k)));} // the tuner, or a bigger cap bought in a shop
@@ -6522,7 +6523,8 @@ function avoidDockFor(x,y,r){
 function triggerBlackRemnant(x,y,now,mass,energy,fromGate,rift){ // rift: a Rift (too much mass in one place) is always a Dark Remnant, never a duck
   if(blackHole)return; // only one remnant event at a time
   if(!fromGate){const lg=gateAtPoint(x,y);if(lg){lockDarkInGate(lg,x,y,now,mass,energy);return;}} // formed inside a Gate: it stays locked in there
-  const asDuck=!fromGate&&!rift&&!window.__SCENE&&Math.random()<T.duckChance&&(dormantCount>0||active.some(q=>!q.isRemnant&&!q.dying&&!q.captured&&Math.hypot(q.x-x,q.y-y)>60)); // a duck instead — only while the surface still has something to play
+  const canDuck=!fromGate&&!rift&&!window.__SCENE&&(dormantCount>0||active.some(q=>!q.isRemnant&&!q.dying&&!q.captured&&Math.hypot(q.x-x,q.y-y)>60)),asDuck=canDuck&&Math.random()<T.duckChance+duckLuck.d*T.duckLuckStep; // a duck instead — only while the surface still has something to play
+  if(canDuck){duckLuck.d=asDuck?0:duckLuck.d+1;saveInventory();} // a miss makes the next one likelier; a duck rebases it
   if(fromGate!=='nogrow'&&!(performance.now()-_lastNovaAt<400&&Math.hypot(_lastNovaX-x,_lastNovaY-y)<250)){ // every Dark Remnant begins with a nova (mergers and deaths already fired theirs)
     const nm=Math.min(mass||0,T.massScaleMax*T.blackMult),synthN={x,y,vx:0,vy:0,rot:0,rotation:0,pvx:0,pvy:0,mass:Math.max(1,nm),energy:Math.max(0.001,Math.min(energy||0.5,5)),masses:randomColorMasses(),sigR:255,sigG:255,sigB:255,peakEffectR:0};
     const deb=triggerNova(synthN,now,undefined,true);if(deb)for(const d of deb)active.push(d);
@@ -13934,7 +13936,7 @@ function cardHTML(ev,mini){ // the one card format: name bar, art box, type line
   return `<div class="mtg${mini?' sm':''}" data-ev="${ev.id}" style="--rc:${r[0]}"><div class="nm"><b>${gEsc(ev.name)}</b><span class="gem"></span></div><div class="art" data-scene="${ev.scene}">${mini?`<canvas class="rl-m" width="64" height="64" data-k="${ev.ico}"></canvas>`:''}</div><div class="ty"><span>${gEsc(ev.type.replace(/^Event — /,''))}</span><span>${r[1]}</span></div><div class="tx">${ev.facts().map(f=>`<p>${gEsc(f)}</p>`).join('')}<p class="fl">${gEsc(ev.flavor)}</p></div></div>`;
 }
 function mountScene(h,w,hh){if(!h||h.firstChild||document.querySelectorAll('.rl-live iframe,.mtg .art iframe').length>=5)return;const f=document.createElement('iframe'),nm=h.dataset.s||h.dataset.scene;f.style.cssText='border:0;max-width:100%;pointer-events:none;background:#000;border-radius:6px;'+(w?`width:${w}px;height:${hh}px`:'width:100%;height:100%');
-  if(nm.slice(0,4)==='hub:')f.src='Surface_Map_HUB.html?v=20261102w&scene='+nm.slice(4)+'&T='+encodeURIComponent(JSON.stringify(mapSceneT()));else f.srcdoc=liveSrc(nm);h.appendChild(f);} // a Surface Map demo is played by the map itself
+  if(nm.slice(0,4)==='hub:')f.src='Surface_Map_HUB.html?v=20261102x&scene='+nm.slice(4)+'&T='+encodeURIComponent(JSON.stringify(mapSceneT()));else f.srcdoc=liveSrc(nm);h.appendChild(f);} // a Surface Map demo is played by the map itself
 function mapSceneT(){const o={};for(const k in T)if(/^(map|bh|duck|wake|glass|metal|dimGlow|glowHalo|maxSpeed)/.test(k))o[k]=T[k];return o;} // what a map demo needs of the tuners
 function showEventCard(id,review){
   const ev=EVENTS.find(e=>e.id===id);if(!ev)return;guideCSS();
@@ -14233,7 +14235,7 @@ window.addEventListener('message',e=>{
   else if(m.cmd==='spend'){inventory[m.kind]=Math.max(0,(inventory[m.kind]||0)-(m.n||1));saveInventory();updateInventoryUI();hubState();} // the map used an item (Spindle, String, Weave)
   else if(m.cmd==='award'){addInventory(m.kind,m.n||1);hubState();} // a map constellation paid out
   else if(m.cmd==='buy'){hubPost(Object.assign({type:'bought',id:m.id},shopBuy(m.id,m.arg)));hubState();} // a shop on the map: this pays and hands it over
-  else if(m.cmd==='wipe'){for(const k of INV_KINDS)inventory[k]=0;duckLog={};discSeen=new Set();invDisabled=new Set();keyShapes=[];_discReset='all';IDB.del('session').catch(()=>{});saveInventory();updateInventoryUI();applyDisc();hubState();} // the Gift Shop: everything goes
+  else if(m.cmd==='wipe'){for(const k of INV_KINDS)inventory[k]=0;duckLog={};duckLuck={d:0,e:0};discSeen=new Set();invDisabled=new Set();keyShapes=[];_discReset='all';IDB.del('session').catch(()=>{});saveInventory();updateInventoryUI();applyDisc();hubState();} // the Gift Shop: everything goes
   else if(m.cmd==='state')hubState();
 });
 // ── Shops (shared.js SHOP_ITEMS): the price is paid from the purse (or the duck collection, most-held kind first), then what was bought is handed over ──
@@ -14305,27 +14307,27 @@ RULE_TAB_COST.surf=5;
 RULE_BLURB.surf='The map of surfaces. Every hex is a spill to clean up.';
 RULES.push(
 ["menu","start","Pause menu (Esc)","dim","Esc pauses and opens the menu. ~ (or H) hides the panels.",[["Sound","Turn sound on or off and set the volume."],["Readouts","Switch telemetry, risks, dynamics, class and effect radii."],["Guide","Opens this guide."],["Leave","Quit to the Surface Map or the main menu. An unfinished surface is saved exactly as it is."]]],
-["hubmap","surf","Surface Map","particle","A map of hexes around a white source. Every hex is a surface covered in spilled particles.",[["Start","At Predawn the source bursts out three rings, every hex at 1.00. You stand beside it."],["Particle layer","An uncleared hex shows the particles still on it, one pattern running on across the hexes. The more value a hex holds, the more of it is covered."],["Value","The open hexes share what the source put out. Locked hexes (next to a bright clear) keep theirs."],["Saved","The map is saved as you go. New map starts the map again but keeps every item you have."]]],
-["hubtime","surf","Time of day","nova","Every move, and every bright clear, is one time of day.",[["The day","Predawn, Dawn, Morning, Noon, Afternoon, Dusk, Night, Midnight: eight turns. Midnight is the last."],["Next day","After Midnight the rings fall back into the source one by one, faster each time, it flashes and bursts out again: a new day at Predawn. Days count your attempts."],["Day log","Each day is logged: how it ended (Bright collapse, Dark collapse, or neither at Midnight) and how many bright and dark hexes you cleared."],["Free","A String move takes no time."]]],
+["hubmap","surf","Surface Map","particle","A map of hexes around a white source. Every hex is a surface covered in spilled particles.",[["Start","At Twilight the source bursts out three rings, every hex at 1.00. You stand beside it."],["Particle layer","An uncleared hex shows the particles still on it, one pattern running on across the hexes. The more value a hex holds, the more of it is covered."],["Value","The open hexes share what the source put out. Locked hexes (next to a bright clear) keep theirs."],["Saved","The map is saved as you go. New map starts the map again but keeps every item you have."]]],
+["hubtime","surf","Time of day","nova","Every move, and every bright clear, is one time of day.",[["The day","Twilight, Dawn, Morning, Noon, Afternoon, Dusk, Night, Midnight: eight turns. Midnight is the last."],["Next day","After Midnight the rings fall back into the source one by one, faster each time, it flashes and bursts out again: a new day at Twilight. Days count your attempts."],["Day log","Each day is logged: how it ended (Bright collapse, Dark collapse, or neither at Midnight) and how many bright and dark hexes you cleared."],["Free","A String move takes no time."]]],
 ["hubcell","surf","Entering a hex","particle","Click your own hex (or press Space) to enter its surface.",[["Same surface","A hex always makes the same surface."],["Leaving","Esc, then Quit, saves the surface at that exact moment. Enter the hex again to continue it."],["Continue","Continue on the main menu goes straight back to a surface you left from the main menu."]]],
 ["hubmove","surf","Moving","pnt","Click a neighbouring hex to move there. Each move takes one time of day.",[["Spread","A new ring of hexes is added and the value is shared out again."],["Abandon","Moving away from an unfinished surface throws it away."],["Pass through","You can move through cleared hexes in a straight line."]]],
 ["hubclear","surf","Clearing a hex","nova","Clean a surface and its hex is captured.",[["Bright","Cleared the normal way, the hex turns white, locks its neighbours and moves time on."],["Dark","Cleared by a Dark Remnant, the hex keeps its Dark Remnant. It locks nothing and takes no time, but the spill cannot spread past it."],["Return","Right-click the SURFACE CLEARED box to return to the map."]]],
 ["hubmerge","surf","Merges","dark","Captured hexes that touch can merge.",[["Triangle","3 touching captured hexes: one ring less."],["Three Dark","3 touching Dark Remnant hexes swirl together into one great Dark Remnant: three rings less."],["Hexagon","7 captured hexes (a centre and its ring): three rings less."]]],
 ["hubitems","surf","Items on the map","leash","Some items work on the map too (the dock at the bottom).",[["Spindle","Unwinds a cleared hex back to an open surface; the value spreads over one more hex. A great Dark Remnant takes 3."],["String","Move straight to any hex: 1 String per hex of distance, and no time passes."],["Weave","Joins bright hexes into a constellation (see Constellations)."]]],
 ["hubconst","surf","Constellations","weave","Join bright hexes with a Weave: each time of day the constellation gives you one of its item.",[["Shapes","3 bright hexes: a Prism. 4: a Gate or a Knot. 5: a Key or a Lens."],["Crossing","A new constellation that crosses an older one breaks the older one. Any number can stand."],["Free moves","A String move takes no time, so it earns nothing."]]],
-["hubring","surf","Full circle","nova","A whole ring of clears all of one kind (all bright or all dark) around the source ends the day early. The hexes inside can be any kind.",[["Collapse","The rings beyond it fall into the source one by one, faster each time, then a flash; the ring itself is used up and the value is shared over the open hexes inside. A report of the day follows, and a new day starts at Predawn with what you kept."],["Stars","A bright ring is a Bright Star; a dark ring, a Dark Star."],["The win","A full circle at ring 1 or 2, or every hex cleared, is a full collapse: everything falls in, the run is won and you return to the main menu. The days start over; your items and discoveries are kept."]]],
+["hubring","surf","Full circle","nova","A whole ring of clears all of one kind (all bright or all dark) around the source ends the day early. The hexes inside can be any kind.",[["Collapse","The rings beyond it fall into the source one by one, faster each time, then a flash; the ring itself is used up and the value is shared over the open hexes inside. A report of the day follows, and a new day starts at Twilight with what you kept."],["Stars","A bright ring is a Bright Star; a dark ring, a Dark Star."],["The win","A full circle at ring 1 or 2, or every hex cleared, is a full collapse: everything falls in, the run is won and you return to the main menu. The days start over; your items and discoveries are kept."]]],
 ["hubdecay","surf","Decay","dim","When the value an open hex gets drops below 0.01, the oldest capture becomes a void.",[["Game over","No captures left to give up, no turns left, or no moves left."]]],
 ["hubdescend","surf","Descend","dark","Surround the centre with three triangle merges, then step into it.",[["Deeper","A new, deeper map begins. Your score and items come with you."]]]);
 Object.assign(RULE_EV,{hubmap:'map',hubtime:'map',hubcell:'map',hubmove:'map',hubclear:'map_clear',hubmerge:'map_merge',hubitems:'map',hubconst:'map_constellation',hubring:'map_ring',hubdecay:'map_decay',hubdescend:'map_descend'});
 Object.assign(RULE_SCENES,{hubmap:['hub:map'],hubcell:['surface'],hubclear:['hub:clear'],hubmerge:['hub:merge'],hubconst:['hub:constellation'],hubring:['hub:ring'],hubdecay:['hub:decay'],hubdescend:['hub:descend'],menu:['readouts']});
 EVENTS.push(
- {id:'map',name:'The Surface Map',type:'Event — Surface Map',rar:'c',scene:'hub:map',ico:'particle',facts:()=>['Every hex is a surface spilled from the white source at its centre. Click your hex to enter it.','Clear it and the hex is yours. The day runs from Predawn to Midnight.'],flavor:'So many spills. So little time.'},
+ {id:'map',name:'The Surface Map',type:'Event — Surface Map',rar:'c',scene:'hub:map',ico:'particle',facts:()=>['Every hex is a surface spilled from the white source at its centre. Click your hex to enter it.','Clear it and the hex is yours. The day runs from Twilight to Midnight.'],flavor:'So many spills. So little time.'},
  {id:'map_clear',name:'Claimed',type:'Event — Surface Map',rar:'u',scene:'hub:clear',ico:'nova',facts:()=>['A cleared hex turns white, or keeps a dark remnant if a Dark Remnant cleared it.','Captured hexes next to each other can merge.'],flavor:'One clean surface. The map remembers.'},
  {id:'map_merge',name:'Merge',type:'Event — Surface Map',rar:'r',scene:'hub:merge',ico:'dark',facts:()=>['Three touching captures merged: the map shrinks by a ring.','Three Dark Remnants swirl into one great one and pull in three rings.'],flavor:'Many surfaces, one shape.'},
  {id:'map_decay',name:'Decay',type:'Event — Surface Map',rar:'u',scene:'hub:decay',ico:'dim',facts:()=>['Value ran too thin, so the oldest capture became a void.'],flavor:'Nothing stays clean forever.'},
  {id:'map_descend',name:'Descent',type:'Event — Surface Map',rar:'m',scene:'hub:descend',ico:'dark',facts:()=>['You stepped into the centre. A deeper map begins.'],flavor:'Under every surface, another.'},
  {id:'map_constellation',name:'Constellation',type:'Event — Surface Map',rar:'u',scene:'hub:constellation',ico:'weave',facts:()=>['A Weave joined bright hexes into a constellation.','Each time of day it gives you one of its item. A newer one crossing it breaks it.'],flavor:'Light, drawn between lights.'},
- {id:'map_ring',name:'Full Circle',type:'Event — Surface Map',rar:'r',scene:'hub:ring',ico:'nova',facts:()=>['A whole ring of clears, all of one kind, ended the day: the rings beyond it fell into the source.','The ring is used up, the value is shared over what is left inside, and a new day begins at Predawn.'],flavor:'Everything comes back around.'},
+ {id:'map_ring',name:'Full Circle',type:'Event — Surface Map',rar:'r',scene:'hub:ring',ico:'nova',facts:()=>['A whole ring of clears, all of one kind, ended the day: the rings beyond it fell into the source.','The ring is used up, the value is shared over what is left inside, and a new day begins at Twilight.'],flavor:'Everything comes back around.'},
  {id:'map_brightstar',name:'Bright Star',type:'Event — Surface Map',rar:'m',scene:'hub:brightstar',ico:'bright',facts:()=>['A ring of nothing but bright hexes closed around the source.'],flavor:'A sun made of cleaned surfaces.'},
  {id:'map_darkstar',name:'Dark Star',type:'Event — Surface Map',rar:'m',scene:'hub:darkstar',ico:'dark',facts:()=>['A ring of nothing but Dark Remnants closed around the source.'],flavor:'It shines inward.'},
  {id:'map_end',name:'Full Collapse',type:'Event — Ending',rar:'r',scene:'hub:end',ico:'nova',facts:()=>['A full circle at ring 1 or 2, or every hex cleared: everything fell into the source. The run is won.','Back at the main menu the days start over. Your items and discoveries are kept.'],flavor:'Every spill, accounted for.'});
@@ -14342,10 +14344,11 @@ DUCK_TYPES.bighead={name:'Big Head Duck',axis:'Size',detail:'huge head, small bo
 [['wood','Wooden',[176,118,64],[128,78,38]],['glass','Glass',DUCK_YEL,DUCK_ORA],['metal','Metal',[196,200,210],[150,154,166]],['dim','Dim',[150,70,30],[110,48,20]],['bright','Bright',[255,250,232],[255,226,196]],['shining','Shining',DUCK_YEL,DUCK_ORA],['gold','Gold',[255,196,52],[226,146,34]]]
   .forEach(([id,n,c1,c2])=>DUCK_TYPES[id]={name:n+' Duck',axis:'Material',detail:id==='wood'?'wood':id==='dim'?'black, lit by a Dim Remnant glow':n.toLowerCase(),tex:id,mat:id,col:c1,col2:c2,rare:id==='gold'?1:0});
 const DUCK_IDS=Object.keys(DUCK_TYPES);
-Object.assign(T,{duckChance:0.25,duckExoticChance:0.2,duckRareChance:0.03,duckSize:46,duckSpin:0.5,duckDrift:6,duckGloss:0.9,duckBump:1,duckTrans:0.35,duckGlow:2.5,duckMass:40,duckTumble:0.6,duckSpinDamp:0.4,duckMaxSpin:0.25,volDuck:1});
+Object.assign(T,{duckChance:0.25,duckExoticChance:0.2,duckLuckStep:0.01,duckRareChance:0.03,duckSize:46,duckSpin:0.5,duckDrift:6,duckGloss:0.9,duckBump:1,duckTrans:0.35,duckGlow:2.5,duckMass:40,duckTumble:0.6,duckSpinDamp:0.4,duckMaxSpin:0.25,volDuck:1});
 TUNE_DEFS.push({sec:'Ducks',tab:'gameplay'},
  {key:'duckChance',label:'Duck chance',min:0,max:1,step:0.01,tip:'Chance a Dark Remnant comes out as a duck instead (the surface then carries on)'},
  {key:'duckExoticChance',label:'Exotic chance',min:0,max:1,step:0.01,tip:'Chance a duck is an exotic (one colour, size or material change)'},
+ {key:'duckLuckStep',label:'Duck luck per miss',min:0,max:0.2,step:0.005,tip:'Added to Duck chance for every Dark Remnant that was not a duck, and to Exotic chance for every duck that was classic; back to the base on a hit (game data: carried from surface to surface and day to day)'},
  {key:'duckRareChance',label:'Rare exotic chance',min:0,max:1,step:0.005,tip:'Chance a duck is a rare exotic: Rainbow, Big Head or Gold'},
  {key:'duckSize',label:'Duck size',min:16,max:140,step:1,tip:'Height (px) of a classic duck on the surface'},
  {key:'duckSpin',label:'Duck turn speed',min:0,max:3,step:0.05,tip:'How fast a resting duck turns about its upright axis (radians per second); a tumble eases back to this'},
@@ -14360,9 +14363,8 @@ TUNE_DEFS.push({sec:'Ducks',tab:'gameplay'},
  {key:'duckGlow',label:'Shining duck glow',min:0,max:6,step:0.1,tip:'Size of the light a Bright or Shining duck gives off (× its size)'},
  {key:'volDuck',label:'Duck voice vol',min:0,max:3,step:0.05,tip:'Quacks and squeaks when a duck is hit',test:()=>duckVoice({type:'classic'},1)});
 function rollDuckType(){const r=Math.random(),pick=a=>a[Math.floor(Math.random()*a.length)];
-  if(r<T.duckRareChance)return pick(DUCK_IDS.filter(k=>DUCK_TYPES[k].rare));
-  if(r<T.duckRareChance+T.duckExoticChance)return pick(DUCK_IDS.filter(k=>k!=='classic'&&!DUCK_TYPES[k].rare));
-  return 'classic';}
+  if(r<T.duckRareChance+T.duckExoticChance+duckLuck.e*T.duckLuckStep){duckLuck.e=0;return r<T.duckRareChance?pick(DUCK_IDS.filter(k=>DUCK_TYPES[k].rare)):pick(DUCK_IDS.filter(k=>k!=='classic'&&!DUCK_TYPES[k].rare));} // an exotic rebases the luck
+  duckLuck.e++;return 'classic';}
 // ── The model pipeline: SHAPE from the strip, TEXTURE from the type ──
 // One pipeline makes every type (the classic and all its exotics, and any added later). SHAPE: the side view's silhouette is
 // inflated into a closed body. Each row of it is cut into runs; a run gets an elliptical cross-section whose width is the duck's

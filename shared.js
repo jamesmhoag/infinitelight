@@ -253,17 +253,17 @@ function cursorDot(cx,x,y,dimA,edgeCol){
   cx.globalCompositeOperation='screen';cx.filter='blur(3px)';cx.globalAlpha=0.7*dimA;cx.beginPath();cx.arc(x,y,1.4,0,6.2832);cx.fillStyle=`rgba(${edgeCol},0.9)`;cx.fill();
   cx.filter='none';cx.globalAlpha=1;cx.globalCompositeOperation='source-over';cx.beginPath();cx.arc(x,y,0.75,0,6.2832);cx.fillStyle=`rgba(${edgeCol},${(0.65*dimA).toFixed(3)})`;cx.fill();}
 // ═════════════════════════ SHOPS (sold on the Surface Map; the surface, which keeps the purse, settles every purchase) ═════════════════════════
-// SHOPS: main street ones (street) stand round the source, lit only while open: hours are [open, close) on the map's clock (3 Predawn … 24 Midnight;
+// SHOPS: main street ones (street) stand side by side in the source hex, always there, lit only while open: hours are [open, close) on the map's clock (3 Twilight … 24 Midnight;
 // 0–27 = 24 hours). Pop-ups open on a bright clear whose surface collected at least T.mapShop<Cur>1/2/3 of their collectable (cur, also what they
 // mostly charge in) — rank 1..3, the size of the store (SHOP_RANK_BLD); at: those thresholds' defaults. col: the colour its glass is lit with.
-// dc: Dim to hold to discover a main street shop. SHOP_BLD: each building and where its glass sits behind its empty windows (shops/*.png).
+// SHOP_BLD: each building and where its glass sits behind its empty windows (shops/*.png).
 const SHOP_BLD={s:{b:'bld_s',g:'glass_s',gx:7,gy:43},d:{b:'bld_s_dark',g:'glass_s',gx:7,gy:43},m:{b:'bld_m',g:'glass_m',gx:13,gy:31},l:{b:'bld_l',g:'glass_m',gx:13,gy:71},t:{b:'bld_t',g:'glass_t',gx:5,gy:16}};
 const SHOP_RANK_BLD=['s','m','l'];
 const SHOPS={
-  corner:{n:'CORNER STORE',tag:'The corners are conveniently cut.',street:1,open:0,close:27,col:'#fff1d0',dc:25},
-  clock:{n:'Clock smith.',tag:'Turn the Clock, be unlocked.',street:1,open:9,close:18,col:'#fff1d0',dc:300},
-  xact:{n:'XACT change',tag:'Exchange for spare change.',street:1,open:6,close:15,col:'#fff1d0',dc:600},
-  gift:{n:'GIFT SHOP',tag:'Souvenirs to remember with.',street:1,open:0,close:27,col:'#ffffff',bk:'d',dc:0},
+  corner:{n:'CORNER STORE',tag:'The corners are conveniently cut.',street:1,open:0,close:27,col:'#fff1d0'},
+  clock:{n:'Clock smith.',tag:'Turn the Clock, be unlocked.',street:1,open:9,close:18,col:'#fff1d0'},
+  xact:{n:'XACT change',tag:'Exchange for spare change.',street:1,open:6,close:15,col:'#fff1d0'},
+  gift:{n:'GIFT SHOP',tag:'Souvenirs to remember with.',street:1,open:0,close:27,col:'#ffffff',bk:'d'},
   bright:{n:'BRiGHT IDEAS',tag:'Like a spoon that is also a fork.',cur:'bright',col:'#00c3ff',at:[100,1000,10000]},
   dim:{n:'Dim’s: Carnival of Discovery',tag:'Natural phenomena.',cur:'dim',col:'#ff78e2',at:[100,1000,10000]},
   neutron:{n:'premium NEUTRINOS',tag:'Density, delivered.',cur:'neutron',col:'#8a3cff',at:[5,25,100]},

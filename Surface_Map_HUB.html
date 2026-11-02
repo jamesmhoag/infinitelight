@@ -60,7 +60,7 @@ body.scene .hbtn,body.scene #shops,body.scene #hdock,body.scene #legend,body.sce
 /* shops: upright on the plane (placed through the camera each frame); open ones glow like neon */
 #shops{position:absolute;inset:0;pointer-events:none;z-index:6;overflow:hidden}
 .shop{position:absolute;left:0;top:0;transform-origin:0 0;pointer-events:auto}.shop canvas{display:block}
-body.armed .shop{pointer-events:none} /* an armed map item reaches the hexes under them */
+body.thru .shop{pointer-events:none} /* an armed map item, or the open source, reaches the hexes under them */
 .shop.lit canvas{animation:neon 5s infinite}
 @keyframes neon{0%,100%{filter:brightness(1)}46%{filter:brightness(1.06)}48%{filter:brightness(.82)}50%{filter:brightness(1.08)}53%{filter:brightness(.95)}}
 /* a shop's menu: its sign and store over a black card (name left, price right); grey squares turn the page */
@@ -114,7 +114,7 @@ body.armed .shop{pointer-events:none} /* an armed map item reaches the hexes und
 <div id="veil"></div>
 <canvas id="hcur"></canvas>
 <iframe id="neb" title="Surface"></iframe>
-<script src="shared.js?v=20261102w"></script>
+<script src="shared.js?v=20261102x"></script>
 <script>
 // ╔══════════════════════════════════════════════════════════════════════════════╗
 // ║  MAP ENGINE                                                                 ║
@@ -127,10 +127,10 @@ const DIRS=[[1,0],[1,-1],[0,-1],[-1,0],[-1,1],[0,1]];
 let camX=0,camY=0,camTX=0,camTY=0;
 let cells={},turn=0,score=0,pQ=0,pR=0,totalCells=0; // turn: how many rings the spill has spread to (merges pull it back)
 let clock=3,day=1,pool=6,fresh=true,burstFx=null,dayLog=[],dayCnt={b:0,d:0},pendingEnd=null; // dayLog: how each day ended {day,end,ring,b,d,win}; dayCnt: this day's bright / dark clears; pendingEnd: a day end still falling in
-// // clock: the hour (3 = Predawn … 24 = Midnight, the day's last turn); day: your attempts; pool: what the source put out at its last burst; fresh: no ring added yet since it
+// // clock: the hour (3 = Twilight … 24 = Midnight, the day's last turn); day: your attempts; pool: what the source put out at its last burst; fresh: no ring added yet since it
 let constel=[],armed=null,weaveSel=[],weaveAsk=null,clearFx={},mergeFx=[],feedMsg={t:'',d:'',at:-1e9}; // constellations {keys,type}; the armed map item; a Weave being drawn; animations; the final count
-const TIMES={3:'Predawn',6:'Dawn',9:'Morning',12:'Noon',15:'Afternoon',18:'Dusk',21:'Night',24:'Midnight'},STEP_H=3; // the day: eight turns of three hours
-const CACHE_V='20261102w'; // the build: bump with shared.js's
+const TIMES={3:'Twilight',6:'Dawn',9:'Morning',12:'Noon',15:'Afternoon',18:'Dusk',21:'Night',24:'Midnight'},STEP_H=3; // the day: eight turns of three hours
+const CACHE_V='20261102x'; // the build: bump with shared.js's
 const SCENE=new URLSearchParams(location.search).get('scene'); // a Guide / event demo: the map plays a scripted moment (no surface behind it)
 let phase='move',turnTimer=0,mergeTimer=0;
 let gameOverReason='';
@@ -220,7 +220,7 @@ function advanceTurn(){ // time moves on (a move, or a bright clear) by one time
   awardConstellations();clock+=STEP_H;
   if(clock>24){clock=24;endDay('midnight',0);return;} // after Midnight: the day ends (the new day starts once it has all fallen in)
   if(fresh)fresh=false;else{turn++;addRing(turn);}redistribute();decayCycle();showTurn();}
-const clockStr=()=>TIMES[clock]||TIMES[Math.max(3,Math.floor(clock/3)*3)]||'Predawn';
+const clockStr=()=>TIMES[clock]||TIMES[Math.max(3,Math.floor(clock/3)*3)]||'Twilight';
 function showTurn(){const el=document.getElementById('turn-label');el.textContent=clockStr()+' · Day '+day;el.classList.add('show');clearTimeout(turnTimer);turnTimer=setTimeout(()=>el.classList.remove('show'),1200);} // (always shown; it glows when the time changes)
 
 function getMoves(){
@@ -278,7 +278,7 @@ function updateHint(){ // the feed's resting line: what you can do now
 function feed(t,d){feedMsg={t,d:d||'',at:performance.now()};} // a map message in the dock's feed (stays a few seconds)
 function hexInfo(c){ // what hovering a hex tells you
   if(!c)return null;const k=K(c.q,c.r),g=c.mergeId!=null?mergeGroups.find(x=>x.id===c.mergeId):null,cn=constel.filter(x=>x.keys.includes(k));
-  if(c.isVoid&&c.q===0&&c.r===0)return['The source',voidOpen?'Open: step in to descend':'The spill pours from here · bursts at Predawn'];
+  if(c.isVoid&&c.q===0&&c.r===0)return['The source',voidOpen?'Open: step in to descend':'The spill pours from here · bursts at Twilight'];
   if(c.isVoid)return['Void','Nothing left here'];
   if(c.cap&&c.kind==='dark')return[g&&g.type==='dark3'?'Great Dark Remnant':'Dark Remnant clear',(g&&g.type==='dark3'?'Three swirled into one · a Spindle ×3 unwinds it':'Locks nothing · the spill cannot spread past it')+' · value '+c.capVal.toFixed(2)];
   if(c.cap)return['Bright clear'+(cn.length?' · '+cn.map(x=>x.type).join(', ')+' star':''),'Locks its neighbours · value '+c.capVal.toFixed(2)+(g?' · merged':'')];
@@ -326,7 +326,7 @@ function ringCheck(){checkVoidAccess();
   for(const k in cells)if(!cells[k].isVoid&&!cells[k].cap)return false;endDay('full',0);return true;} // every hex cleared: the run is won
 const END_NAME={midnight:'Neither · midnight',bright:'Bright collapse',dark:'Dark collapse',full:'Every hex cleared'};
 function endDay(how,n){ // the day ends as a sequence: the rings fall into the source one after another, the outer first and each faster than the last, then a
-  // flash, then the value is shared out again and a new day starts at Predawn. how: 'midnight' (it all falls in, a new burst), 'bright' / 'dark' (a full circle
+  // flash, then the value is shared out again and a new day starts at Twilight. how: 'midnight' (it all falls in, a new burst), 'bright' / 'dark' (a full circle
   // at ring n: the rings past it fall in, what is inside is kept), 'full' (every hex cleared). A full circle at ring 1 or 2, or nothing left uncleared inside it, wins the run.
   let inner=true;for(const k in cells){const c=cells[k];if(!c.isVoid&&!c.cap&&cellRing(c.q,c.r)<n)inner=false;}
   const win=how==='full'||(how!=='midnight'&&(n<=2||inner));
@@ -341,7 +341,7 @@ function endDay(how,n){ // the day ends as a sequence: the rings fall into the s
 function fallRing(i,dur){ // one ring falls into the source
   for(const k of Object.keys(cells)){const c=cells[k];if(!c.isVoid&&cellRing(c.q,c.r)===i){delete cells[k];totalCells--;}}
   burstFx={t0:performance.now(),kind:'fall',r:i,dur};}
-function finishDay(){ // after the flash: the day goes into the log, the value is shared out again and a new day begins at Predawn (a win ends the run instead)
+function finishDay(){ // after the flash: the day goes into the log, the value is shared out again and a new day begins at Twilight (a win ends the run instead)
   const e=pendingEnd;if(!e)return;pendingEnd=null;
   dayLog.push({day,end:e.how,ring:e.n,b:dayCnt.b,d:dayCnt.d,win:e.win});dayCnt={b:0,d:0};
   if(e.win){phase='ended';for(const k of Object.keys(cells))if(!cells[k].isVoid){delete cells[k];totalCells--;}updateHint();saveMap();if(SCENE)showMergeFlash('Full collapse · the run is won');else showDayReport();return;}
@@ -365,7 +365,7 @@ function showDayReport(){ // a day's report (or the run's, when won): how it end
   el.querySelector('h2').textContent=won?'THE RUN IS WON':'DAY '+e.day+' CLEARED';
   el.querySelector('.dsum').textContent=(END_NAME[e.end]||e.end)+(e.ring?' at ring '+e.ring:'')+' · '+e.b+' bright · '+e.d+' dark this day'+(won?' · your items and discoveries are kept':'');
   el.querySelector('.dlogbox').innerHTML=dayLogHTML();
-  b.textContent=won?'Back to the main menu':'Day '+day+' · Predawn';b.onclick=won?newRun:closeDayReport;el.classList.add('show');}
+  b.textContent=won?'Back to the main menu':'Day '+day+' · Twilight';b.onclick=won?newRun:closeDayReport;el.classList.add('show');}
 function closeDayReport(){document.getElementById('day-report').classList.remove('show');if(phase==='collapse'&&!pendingEnd)phase='move';updateHint();saveMap();}
 function newRun(){initGame();quitMain();} // a won run: the days start over (items and discoveries are the surface's own save, untouched)
 // ── The 3D scene: the plane lies flat (x right, y down, z up out of it); the camera looks at it from T.mapTilt off straight down, at
@@ -782,20 +782,19 @@ function shopSprite(id,bk,lit){ // glass (tinted with the shop's colour, dark wh
   c.save();if(lit&&gw>0){c.shadowColor=S.col;c.shadowBlur=26*gw;c.drawImage(si,(cv.width-sw)/2,by+ov-sh,sw,sh);c.shadowBlur=8*gw;}else if(!lit)c.filter='brightness(0.32) saturate(0.4)';
   c.drawImage(si,(cv.width-sw)/2,by+ov-sh,sw,sh);c.restore();
   cv._ax=cv.width/2;cv._ay=cv.height-pad;cv._bw=bw;return shopCv[key]=cv;}
-function shopList(){ // every shop on the map now: main street on an arc behind the source, pop-ups on their bright clears
-  const out=[],ms=Object.keys(SHOPS).filter(k=>SHOPS[k].street),R=HEX*(T.mapShopRing!=null?T.mapShopRing:1.6);
-  ms.forEach((id,i)=>{const a=-Math.PI*(i+0.5)/ms.length;out.push({key:id,id,bk:SHOPS[id].bk||'s',wx:R*Math.cos(a),wy:R*Math.sin(a),lit:shopIsOpen(id,clock)});});
+function shopList(){ // every shop on the map now: main street side by side across the source hex, pop-ups on their bright clears
+  const out=[],ms=Object.keys(SHOPS).filter(k=>SHOPS[k].street),w=HEX*(T.mapShopStreet||0.42);
+  ms.forEach((id,i)=>out.push({key:id,id,bk:SHOPS[id].bk||'s',wx:(i-(ms.length-1)/2)*w*1.05,wy:HEX*0.3,lit:shopIsOpen(id,clock),w}));
   for(const k in cells){const c=cells[k];if(c.shop&&isBright(k)){const[wx,wy]=a2w(c.q,c.r);out.push({key:k,id:c.shop.id,rank:c.shop.rank,bk:SHOP_RANK_BLD[c.shop.rank-1],wx,wy,lit:true});}}
   return out;}
 function shopTick(){if(SCENE)return;
-  const box=document.getElementById('shops'),seen=new Set();let added=false;
+  document.body.classList.toggle('thru',!!armed||voidOpen);const box=document.getElementById('shops'),seen=new Set();
   for(const s of shopList()){const cv=shopSprite(s.id,s.bk,s.lit);if(!cv)continue;seen.add(s.key);let el=shopEls[s.key];
-    if(!el){el=shopEls[s.key]=document.createElement('div');el.className='shop';el.dataset.key=s.key;if(SHOPS[s.id].street)el.dataset.disc='shop_'+s.id;el.onclick=()=>openShop(s.key);box.appendChild(el);added=true;}
+    if(!el){el=shopEls[s.key]=document.createElement('div');el.className='shop';el.dataset.key=s.key;el.onclick=()=>openShop(s.key);box.appendChild(el);}
     if(el._cv!==cv){el._cv=cv;const d=document.createElement('canvas');d.width=cv.width;d.height=cv.height;d.getContext('2d').drawImage(cv,0,0);el.innerHTML='';el.appendChild(d);}el.classList.toggle('lit',s.lit);el._s=s; // (its own copy: two pop-ups can share a sprite)
-    const[X,Y,k]=proj(...w2s(s.wx,s.wy)),sc_=HEX*(T.mapShopSize||1)*k/cv._bw;
+    const[X,Y,k]=proj(...w2s(s.wx,s.wy)),sc_=(s.w||HEX*(T.mapShopSize||1))*k/cv._bw;
     el.style.transform=`translate(${(X-cv._ax*sc_).toFixed(1)}px,${(Y-cv._ay*sc_).toFixed(1)}px) scale(${sc_.toFixed(4)})`;el.style.zIndex=Math.round(Y);}
-  for(const k in shopEls)if(!seen.has(k)){shopEls[k].remove();delete shopEls[k];}
-  if(added)applyDisc();}
+  for(const k in shopEls)if(!seen.has(k)){shopEls[k].remove();delete shopEls[k];}}
 function shopInfo(key){const el=shopEls[key],s=el&&el._s;if(!s)return['',''];const S=SHOPS[s.id];
   return S.street?[S.n,(s.lit?'Open':'Closed')+' · '+shopHours(s.id)+(s.lit?' · click to shop':'')]:[S.n+' · pop-up','Rank '+s.rank+' · open while its bright clear lasts · click to shop'];}
 function openShop(key){const el=shopEls[key],s=el&&el._s;if(!s||phase==='collapse')return;
@@ -840,7 +839,7 @@ document.getElementById('shop').addEventListener('contextmenu',e=>{e.preventDefa
 // ║  DOCK, FEED AND CURSOR — the surface's own slots, feed line and cursor       ║
 // ╚══════════════════════════════════════════════════════════════════════════════╝
 let icons={};const DOCK_ITEMS=['leash','dial','weave'];
-function syncDock(){document.body.classList.toggle('armed',!!armed);const box=document.getElementById('hinv');if(!box)return;
+function syncDock(){const box=document.getElementById('hinv');if(!box)return;
   box.innerHTML=DOCK_ITEMS.map(k=>`<div class="slot${armed===k?' armed':''}${(inv[k]||0)<=0?' empty':''}" data-k="${k}" title="${KIND_NAME[k]}">${icons[k]||KIND_NAME[k][0]}<b>${inv[k]||0}</b></div>`).join('')+
     '<div class="sep"></div>'+['prism','knot','gate','key','lens'].filter(k=>(inv[k]||0)>0).map(k=>`<div class="slot empty" data-k="${k}" title="${KIND_NAME[k]} (earned)">${icons[k]||KIND_NAME[k][0]}<b>${inv[k]}</b></div>`).join('');
   for(const el of box.querySelectorAll('.slot'))if(DOCK_ITEMS.includes(el.dataset.k))el.onclick=()=>armItem(el.dataset.k);
