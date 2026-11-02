@@ -75,20 +75,21 @@ body{background:#050608;overflow:hidden;font-family:'Share Tech Mono',monospace;
   <div class="gl">Leave</div><button onclick="quitMain()">Quit to main menu</button>
 </div></div>
 <div id="veil"></div>
-<iframe id="neb" src="chromatic_nebula.html?hub=1&v=20261101r" title="Surface"></iframe>
+<iframe id="neb" src="chromatic_nebula.html?hub=1&v=20261102a" title="Surface"></iframe>
 <script>
 // ╔══════════════════════════════════════════════════════════════════════════════╗
 // ║  MAP ENGINE                                                                 ║
 // ╚══════════════════════════════════════════════════════════════════════════════╝
 const mc=document.getElementById('mc'),mctx=mc.getContext('2d');
-let MW,MH,SW,SH,MK=1,viewZoom=1; // MW×MH: the map plane's canvas (bigger than the screen SW×SH, so zooming out and tilting never show its edge); MK: its backing scale
+let MW,MH,SW,SH,MK=1,viewZoom=1,_E=0; // MW×MH: the map plane's canvas (bigger than the screen SW×SH, so zooming out and tilting never show its edge); MK: its backing scale
 let HEX=34; // T.mapHexSize (tuned in the Esc menu / the surface's Tune menu)
 const DIRS=[[1,0],[1,-1],[0,-1],[-1,0],[-1,1],[0,1]];
 let camX=0,camY=0,camTX=0,camTY=0;
-let cells={},turn=0,score=0,pQ=0,pR=0,totalCells=0;
+let cells={},turn=0,score=0,pQ=0,pR=0,totalCells=0; // turn: how many rings the spill has spread to (merges pull it back)
+let clock=0,day=1,pool=6,fresh=true,burstFx=null; // clock: hours since midnight; pool: the value the source put out at its last burst; fresh: no ring added yet since that burst
 let phase='move',turnTimer=0,mergeTimer=0;
 let gameOverReason='';
-const POOL=6.0,MIN_VAL=0.01;
+const MIN_VAL=0.01;
 let hQ=null,hR=null;
 let captureOrder=[],mergeGroups=[],mergeIdCounter=0;
 let depth=0,voidOpen=false;
@@ -109,7 +110,7 @@ function dist(q1,r1,q2,r2){return(Math.abs(q1-q2)+Math.abs(q1+r1-q2-r2)+Math.abs
 function cellRing(q,r){return Math.max(Math.abs(q),Math.abs(r),Math.abs(q+r));}
 function ring(n){if(!n)return[[0,0]];const res=[];let q=n,r=0;for(let d=0;d<6;d++)for(let i=0;i<n;i++){res.push([q,r]);q+=DIRS[(d+2)%6][0];r+=DIRS[(d+2)%6][1];}return res;}
 function neighbors(q,r){return DIRS.map(([dq,dr])=>[q+dq,r+dr]);}
-function adjCaptured(q,r){for(const[nq,nr]of neighbors(q,r)){const c=cells[K(nq,nr)];if(c&&c.cap)return true;}return false;}
+function adjCaptured(q,r){for(const[nq,nr]of neighbors(q,r)){const c=cells[K(nq,nr)];if(c&&c.cap&&c.kind!=='dark')return true;}return false;} // only a bright clear locks its neighbours
 
 function retractToTurn(){
   const maxRing=turn;const toRemove=[];
@@ -118,7 +119,8 @@ function retractToTurn(){
   for(const k of actual){delete cells[k];totalCells--;}
   recomputeLocked();
 }
-function addRing(n){for(const[q,r]of ring(n)){const k=K(q,r);if(!cells[k]){cells[k]={q,r,v:0,cap:false,capVal:0,isP:false,locked:false,mergeId:null,isVoid:false};totalCells++;}}}
+function addRing(n){for(const[q,r]of ring(n)){const k=K(q,r);if(n>1&&!neighbors(q,r).some(([a,b])=>{const c=cells[K(a,b)];return c&&cellRing(a,b)<n&&!(c.cap&&c.kind==='dark');}))continue; // a Dark Remnant clear holds the spill back: nothing spreads past it
+  if(!cells[k]){cells[k]={q,r,v:0,cap:false,capVal:0,isP:false,locked:false,mergeId:null,isVoid:false};totalCells++;}}}
 function recomputeLocked(){for(const k in cells){const c=cells[k];c.locked=(!c.cap&&!c.isVoid&&adjCaptured(c.q,c.r));}}
 function dropSession(){ // the unfinished surface is thrown away (values changed, or a new map)
   if(!nebulaCellKey)return;const c=cells[nebulaCellKey];if(c){delete c.shot;delete c._im;}nebulaCellKey=null;neb({cmd:'drop'});
@@ -127,7 +129,7 @@ function redistribute(){
   recomputeLocked();let exSum=0,exN=0,voidN=0;
   for(const k in cells){const c=cells[k];if(c.isVoid){voidN++;continue;}if(c.cap){exSum+=c.capVal;exN++;}else if(c.locked){exSum+=c.v;exN++;}}
   const freeN=totalCells-exN-voidN;if(freeN<=0)return;
-  const pv=(POOL-exSum)/freeN;
+  const pv=(pool-exSum)/freeN;
   for(const k in cells){const c=cells[k];if(c.isVoid||c.cap||c.locked)continue;c.v=Math.round(Math.max(0,pv)*10000)/10000;}
   dropSession(); // moving resets an unfinished surface
 }
@@ -155,21 +157,28 @@ function detectMerges(){
 function consolidateCaptures(mk,mid){const ks=new Set(mk);const tr=[];const ac=new Set();for(let i=0;i<captureOrder.length;i++){const e=captureOrder[i];if(e.keys.some(k=>ks.has(k))){tr.push(i);for(const k of e.keys)ac.add(k);}}for(const k of mk)ac.add(k);for(let i=tr.length-1;i>=0;i--)captureOrder.splice(tr[i],1);captureOrder.push({keys:[...ac],mergeId:mid});}
 function showMergeFlash(t){const el=document.getElementById('merge-flash');el.textContent=t;el.classList.add('show');clearTimeout(mergeTimer);mergeTimer=setTimeout(()=>el.classList.remove('show'),1500);}
 function checkVoidAccess(){const vc=cells[K(0,0)];if(!vc||!vc.isVoid){voidOpen=false;return;}const ns=neighbors(0,0);if(!ns.every(([q,r])=>{const c=cells[K(q,r)];return c&&c.cap;})){voidOpen=false;return;}const tri=new Set();for(const[q,r]of ns)for(const g of mergeGroups)if(g.type==='tri'&&g.cells.includes(K(q,r)))tri.add(g.id);voidOpen=tri.size>=3;}
-function newMap(){ // shared by a new map and a descent: one ring around the centre void, the player on a random hex of it
-  dropSession();cells={};turn=1;totalCells=0;captureOrder=[];mergeGroups=[];mergeIdCounter=0;voidOpen=false;phase='move';gameOverReason='';prev={};
+function newMap(){ // a new map, a descent and every midnight: the source at the centre bursts out (T.mapBurstRings rings at 1.00), the player beside it
+  dropSession();cells={};totalCells=0;captureOrder=[];mergeGroups=[];mergeIdCounter=0;voidOpen=false;phase='move';gameOverReason='';prev={};
   cells[K(0,0)]={q:0,r:0,v:0,cap:false,capVal:0,isP:false,locked:false,mergeId:null,isVoid:true};totalCells++;
-  addRing(1);for(const k in cells)if(!cells[k].isVoid)cells[k].v=1.0;
+  turn=Math.max(1,T.mapBurstRings||3);for(let n=1;n<=turn;n++)addRing(n);pool=0;for(const k in cells)if(!cells[k].isVoid){cells[k].v=1.0;pool+=1;}fresh=true;
   const r1=ring(1),si=Math.floor(Math.random()*r1.length);pQ=r1[si][0];pR=r1[si][1];
-  cells[K(pQ,pR)].isP=true;
+  cells[K(pQ,pR)].isP=true;burstFx={t0:performance.now(),kind:'burst'};
 }
 function descendDepth(){if(!voidOpen)return;depth++;newMap();showTurn();focusCam(false);updateHint();showMergeFlash(`Descended to D${depth}`);hubEvent('map_descend');saveMap();}
 function focusCam(a){const[wx,wy]=a2w(pQ,pR);camTX=wx;camTY=wy;if(!a){camX=camTX;camY=camTY;}}
 function initGame(){ // a new map: score and depth start over; items, resources and discoveries live in the surface's save and are kept
-  score=0;depth=0;newMap();
+  score=0;depth=0;clock=0;day=1;newMap();
   showTurn();mapResize();focusCam(false);updateHint();saveMap();
 }
-function advanceTurn(){turn++;addRing(turn);redistribute();decayCycle();showTurn();}
-function showTurn(){const el=document.getElementById('turn-label');el.textContent='Turn '+turn;el.classList.add('show');clearTimeout(turnTimer);turnTimer=setTimeout(()=>el.classList.remove('show'),1200);}
+function advanceTurn(){ // time moves on (a move, or a bright clear): T.mapHoursPerTurn hours; the spill spreads a ring, except the first hour after a burst
+  clock+=T.mapHoursPerTurn||1;
+  if(clock>=24){clock-=24;day++;midnight();return;}
+  if(fresh)fresh=false;else{turn++;addRing(turn);}redistribute();decayCycle();showTurn();}
+function midnight(){ // everything collapses back into the source, then it bursts out again (score, depth and items are kept)
+  burstFx={t0:performance.now(),kind:'collapse'};showTurn();phase='collapse';
+  setTimeout(()=>{newMap();showTurn();focusCam(true);updateHint();saveMap();},T.mapCollapseMs||1400);}
+const clockStr=()=>{const h=Math.floor(clock)%24,m=Math.round((clock-Math.floor(clock))*60),h12=h%12||12;return h12+':'+String(m).padStart(2,'0')+(h===0&&m===0?' midnight':h<12?' AM':' PM');};
+function showTurn(){const el=document.getElementById('turn-label');el.textContent=clockStr()+' · Day '+day;el.classList.add('show');clearTimeout(turnTimer);turnTimer=setTimeout(()=>el.classList.remove('show'),1200);}
 
 function getMoves(){
   const out=[];
@@ -181,7 +190,7 @@ function getMoves(){
   return out;
 }
 function doCapture(){ // enter the surface of the hex you stand on
-  if(phase==='gameover'||!nebReady)return;
+  if(phase==='gameover'||phase==='collapse'||!nebReady)return;
   const c=cells[K(pQ,pR)];
   if(!c||c.cap||c.isVoid)return;
   if(c.v<=0){showMergeFlash('no value — cannot capture');return;}
@@ -196,22 +205,24 @@ function completeCaptureForCell(cellKey,kind){
   recomputeLocked();
   nebulaCellKey=null;
   detectMerges();
+  if(kind!=='dark'&&phase!=='gameover'){advanceTurn();if(phase==='collapse')return;phase='captured';} // a bright clear moves time on and spreads the spill; a dark one does neither
   updateHint();hubEvent('map_clear');saveMap();
 }
 function doMove(tq,tr){
-  if(phase==='gameover')return;
+  if(phase==='gameover'||phase==='collapse')return;
   const tc=cells[K(tq,tr)];
   if(tc&&tc.isVoid&&voidOpen&&tq===0&&tr===0){const ok=cells[K(pQ,pR)];if(ok)ok.isP=false;descendDepth();return;}
   const ok=cells[K(pQ,pR)];if(ok)ok.isP=false;
   pQ=tq;pR=tr;tc.isP=true;focusCam(true);
-  advanceTurn();if(phase!=='gameover')phase='move';
+  advanceTurn();if(phase==='collapse'){updateHint();saveMap();return;}if(phase!=='gameover')phase='move';
   if(phase==='move'&&!getMoves().length){phase='gameover';gameOverReason='no viable moves';}
   updateHint();saveMap();
 }
 function updateHint(){
   const el=document.getElementById('capture-hint');const c=cells[K(pQ,pR)];
   if(phase==='gameover'){el.textContent='game over: '+gameOverReason+' · a new map keeps your items';el.classList.add('show');}
-  else if(phase==='captured'){el.textContent='captured! move to end turn';el.classList.add('show');}
+  else if(phase==='captured'){el.textContent='cleared! move on';el.classList.add('show');}
+  else if(phase==='collapse'){el.textContent='midnight: the spill falls back into the source…';el.classList.add('show');}
   else if(c&&!c.cap&&!c.isVoid&&phase==='move'){
     if(c.v<=0){el.textContent='no value — cannot capture';el.classList.add('show');}
     else{el.textContent=`Space / click to ${nebulaCellKey===K(pQ,pR)?'continue this surface':'enter this surface'} (${c.v.toFixed(2)}) · or move`;el.classList.add('show');}
@@ -223,10 +234,17 @@ function viewTf(){const th=(T.mapTilt!=null?T.mapTilt:32)*Math.PI/180,P=T.mapPer
 function proj(x,y){const v=viewTf(),u=(x-MW/2)*v.z,w=(y-MH/2)*v.z,k=v.P/(v.P-w*v.s);return[SW/2+u*k,SH/2+w*v.c*k,k*v.z];} // → screen x, y and px per plane px
 function unproj(X,Y){const v=viewTf(),d=Y-SH/2,w=d*v.P/(v.P*v.c+d*v.s),k=v.P/(v.P-w*v.s);return[MW/2+(X-SW/2)/k/v.z,MH/2+w/v.z];}
 function applyView(){const v=viewTf();Object.assign(mc.style,{left:((SW-MW)/2)+'px',top:((SH-MH)/2)+'px',width:MW+'px',height:MH+'px',transform:`perspective(${v.P}px) rotateX(${v.th*180/Math.PI}deg) scale(${v.z})`});}
-function mapResize(){SW=innerWidth;SH=innerHeight;const E=1.25/Math.max(0.2,T.mapZoomMin||0.55);MW=Math.round(SW*E);MH=Math.round(SH*E);
-  MK=Math.max(0.6,Math.min(Math.max(1,viewZoom)*(window.devicePixelRatio||1),Math.sqrt(9e6/(MW*MH)))); // sharp when zoomed in, within a pixel budget
+function mapResize(){SW=innerWidth;SH=innerHeight;const E=1.3/Math.min(1,Math.max(0.2,viewZoom));_E=E;MW=Math.round(SW*E);MH=Math.round(SH*E); // the plane only as big as this zoom needs (a smaller canvas is a faster frame)
+  MK=Math.max(0.6,Math.min(Math.max(1,viewZoom)*(window.devicePixelRatio||1),Math.sqrt(5e6/(MW*MH)))); // sharp when zoomed in, within a pixel budget
   mc.width=Math.round(MW*MK);mc.height=Math.round(MH*MK);const pd=document.getElementById('pond'),dp=window.devicePixelRatio||1;pd.width=Math.round(SW*dp);pd.height=Math.round(SH*dp);applyView();}
-function zoomView(f){const z=Math.max(T.mapZoomMin||0.55,Math.min(T.mapZoomMax||1.8,viewZoom*f));if(z===viewZoom)return;const sharp=Math.max(1,z)!==Math.max(1,viewZoom);viewZoom=z;if(sharp)mapResize();else applyView();}
+function zoomView(f){const z=Math.max(T.mapZoomMin||0.55,Math.min(T.mapZoomMax||1.8,viewZoom*f));if(z===viewZoom)return;viewZoom=z;const E=1.3/Math.min(1,z);if(Math.abs(E-_E)>0.12||z>1)mapResize();else applyView();}
+let _glow=null;
+function glowSprite(bl,ba){ // one bright clear's glow (a wide and a mid blur pass and its soft white core), drawn once per hex size and setting
+  const key=HEX+'|'+bl+'|'+ba+'|'+MK;if(_glow&&_glow.key===key)return _glow.cv;const R=HEX*(1.5+bl*2.2),S=Math.ceil(2*R*MK),cv=document.createElement('canvas');cv.width=cv.height=S;
+  const c=cv.getContext('2d'),m=S/2;c.scale(MK,MK);const hp=(r)=>{c.beginPath();for(let i=0;i<6;i++){const a=Math.PI/3*i-Math.PI/6;c[i?'lineTo':'moveTo'](m/MK+r*Math.cos(a),m/MK+r*Math.sin(a));}c.closePath();};
+  if(bl>0&&ba>0)for(const[k,al,sz]of [[1,ba,1.12],[0.4,ba*0.8,1]]){c.save();c.filter=`blur(${HEX*bl*k}px)`;c.globalCompositeOperation='screen';c.fillStyle=`rgba(255,255,255,${al})`;hp(HEX*sz);c.fill();c.restore();}
+  c.save();c.filter=`blur(${HEX*0.12}px)`;c.fillStyle='rgba(255,255,255,0.95)';hp(HEX*0.8);c.fill();c.restore(); // a soft white core (no hard edge)
+  _glow={key,cv};return cv;}
 function hexPath(cx,cy,s){mctx.beginPath();for(let i=0;i<6;i++){const a=Math.PI/3*i-Math.PI/6;if(!i)mctx.moveTo(cx+s*Math.cos(a),cy+s*Math.sin(a));else mctx.lineTo(cx+s*Math.cos(a),cy+s*Math.sin(a));}mctx.closePath();}
 function starPath(cx,cy,or,ir,pts){mctx.beginPath();for(let i=0;i<pts*2;i++){const a=Math.PI/pts*i-Math.PI/2,r=i%2?ir:or;if(!i)mctx.moveTo(cx+r*Math.cos(a),cy+r*Math.sin(a));else mctx.lineTo(cx+r*Math.cos(a),cy+r*Math.sin(a));}mctx.closePath();}
 
@@ -239,7 +257,7 @@ function starPath(cx,cy,or,ir,pts){mctx.beginPath();for(let i=0;i<pts*2;i++){con
 let prev={},prevPending=new Set(),mapNeed=[],renderSig='';
 const shotSize=()=>Math.round(2*HEX*(window.devicePixelRatio||1));
 function cellSeed(c){return Math.abs(Math.sin(c.q*127.1+c.r*311.7+depth*999)*43758.5453)%100;}
-function cellCov(c){const lo=T.mapCovMin!=null?T.mapCovMin:0.25,full=T.mapCovFull||1;return Math.round((lo+(1-lo)*Math.min(1,c.v/full))*1000)/1000;}
+function cellCov(c){const lo=T.mapCovMin!=null?T.mapCovMin:0.25,full=T.mapCovFull||1;return Math.round((lo+(1-lo)*Math.min(1,c.v/full))*4)/4;} // in quarter steps: a move nudges every hex's value, and only a visible change is worth re-shooting its picture
 function syncRenderSig(){ // any tuner that changes how a surface looks (not sound, discoveries or the map's own layout) re-shoots the hexes
   let h=0;const str=JSON.stringify(Object.keys(T).filter(k=>!/^(dc_|soundOn|masterVol|mapAlpha|mapCov|mapClear|mapHexSize|duck)/.test(k)).sort().map(k=>T[k]))+'|'+shotSize();
   for(let i=0;i<str.length;i++)h=(h*31+str.charCodeAt(i))|0;renderSig=''+h;
@@ -251,10 +269,10 @@ function requestPreviews(keys){
   if(items.length)neb({cmd:'preview',items,size:shotSize()});
 }
 function shotImg(o,url){if(!o._im||o._im._u!==url){o._im=new Image();o._im._u=url;o._im.src=url;}return o._im.complete&&o._im.naturalWidth?o._im:null;}
-function cellLayer(k,c){
+function cellLayer(k,c,vis){
   if(c.shot)return shotImg(c,c.shot); // an unfinished surface: as it was left
   const p=prev[k];
-  if(!p||p.sig!==cellSig(c)){if(!prevPending.has(k))mapNeed.push(k);} // re-shoot; the old picture stays up until the new one arrives
+  if(vis&&(!p||p.sig!==cellSig(c))){if(!prevPending.has(k))mapNeed.push(k);} // only hexes on screen are (re-)shot // re-shoot; the old picture stays up until the new one arrives
   return p&&p.img?shotImg(p,p.img):null;
 }
 
@@ -287,7 +305,7 @@ function mapRender(){
     if(c.isP){mctx.save();mctx.shadowColor='rgba(0,210,210,0.2)';mctx.shadowBlur=24;hexPath(sx,sy,s+3);mctx.fillStyle='rgba(0,210,210,0.05)';mctx.fill();mctx.restore();}
     if(c.isVoid&&c.q===0&&c.r===0&&voidOpen){mctx.save();mctx.shadowColor='rgba(160,120,230,0.25)';mctx.shadowBlur=28;hexPath(sx,sy,s+2);mctx.fillStyle='rgba(160,120,230,0.04)';mctx.fill();mctx.restore();}
     hexPath(sx,sy,s);mctx.fillStyle=fill;mctx.fill();
-    if(!c.cap&&!c.isVoid){const img=cellLayer(k,c);if(img){mctx.save();hexPath(sx,sy,s);mctx.clip();mctx.globalAlpha=T.mapAlpha!=null?T.mapAlpha:1;mctx.drawImage(img,sx-HEX,sy-HEX,2*HEX,2*HEX);mctx.restore();}}
+    if(!c.cap&&!c.isVoid){const[vx,vy]=proj(sx,sy),img=cellLayer(k,c,vx>-HEX*2&&vx<SW+HEX*2&&vy>-HEX*2&&vy<SH+HEX*2);if(img){mctx.save();hexPath(sx,sy,s);mctx.clip();mctx.globalAlpha=T.mapAlpha!=null?T.mapAlpha:1;mctx.drawImage(img,sx-HEX,sy-HEX,2*HEX,2*HEX);mctx.restore();}}
     if(dark){ // the dark remnant left on the hex
       const rr=HEX*0.36,pul=0.5+0.5*Math.sin(now/700+c.q*1.7+c.r);
       mctx.save();mctx.shadowColor='rgba(170,140,255,0.7)';mctx.shadowBlur=10+8*pul;mctx.beginPath();mctx.arc(sx,sy,rr,0,Math.PI*2);mctx.fillStyle='#000';mctx.fill();
@@ -301,11 +319,18 @@ function mapRender(){
   }
   // Bright clears bleed into their neighbours: every bright hex together, blurred and screened over the map, then their outline and value on top
   if(brightOnes.length){const bl=T.mapClearBlur!=null?T.mapClearBlur:0.6,ba=T.mapClearBleed!=null?T.mapClearBleed:0.85;
-    if(bl>0&&ba>0)for(const[k,al,sz]of [[1,ba,1.12],[0.4,ba*0.8,1]]){mctx.save();mctx.filter=`blur(${HEX*bl*k}px)`;mctx.globalCompositeOperation='screen';mctx.fillStyle=`rgba(255,255,255,${al})`;mctx.beginPath(); // a wide and a mid blur pass
-      for(const[x,y]of brightOnes)for(let i=0;i<6;i++){const a=Math.PI/3*i-Math.PI/6,r=HEX*sz;if(!i)mctx.moveTo(x+r*Math.cos(a),y+r*Math.sin(a));else mctx.lineTo(x+r*Math.cos(a),y+r*Math.sin(a));}
-      mctx.fill();mctx.restore();}
-    for(const[x,y,v,st,sw]of brightOnes){mctx.save();mctx.filter=`blur(${HEX*0.12}px)`;hexPath(x,y,HEX*0.8);mctx.fillStyle='rgba(255,255,255,0.95)';mctx.fill();mctx.restore();if(st!=='#fff'){hexPath(x,y,HEX*0.92);mctx.strokeStyle=st;mctx.lineWidth=sw;mctx.stroke();} // a soft white core (no hard edge); only the player / merge outline stays crisp
+    const sp=glowSprite(bl,ba),hs=sp.width/MK/2;mctx.save();mctx.globalCompositeOperation='screen';for(const[x,y]of brightOnes)mctx.drawImage(sp,x-hs,y-hs,hs*2,hs*2);mctx.restore(); // the blurred glow, drawn once into a sprite
+    for(const[x,y,v,st,sw]of brightOnes){if(st!=='#fff'){hexPath(x,y,HEX*0.92);mctx.strokeStyle=st;mctx.lineWidth=sw;mctx.stroke();} // a soft white core (no hard edge); only the player / merge outline stays crisp
 }}
+  // The source: a big white point at the centre, glowing over the surfaces and bleeding into the first ring; at midnight the spill falls
+  // back into it (a ring closing in) and it bursts out again (a ring opening to the burst rings)
+  if(Number.isFinite(MW)){const[cx,cy]=w2s(...a2w(0,0)),g=T.mapSourceGlow!=null?T.mapSourceGlow:1,pul=0.5+0.5*Math.sin(now/900),fx=burstFx,ft=fx?(now-fx.t0)/(fx.kind==='collapse'?(T.mapCollapseMs||1400):1600):1;
+    const flare=fx&&ft<1?(fx.kind==='collapse'?ft:1-ft):0,R=HEX*(2.3+0.25*pul+1.5*flare);
+    if(g>0){mctx.save();mctx.globalCompositeOperation='screen';const gr=mctx.createRadialGradient(cx,cy,0,cx,cy,R);gr.addColorStop(0,`rgba(255,255,255,${Math.min(1,g)})`);gr.addColorStop(0.28,`rgba(255,255,255,${Math.min(1,0.95*g)})`);gr.addColorStop(0.5,`rgba(235,240,255,${0.45*g})`);gr.addColorStop(1,'rgba(220,230,255,0)');
+      mctx.fillStyle=gr;mctx.beginPath();mctx.arc(cx,cy,R,0,6.2832);mctx.fill();mctx.restore();}
+    if(fx&&ft<1){const rB=HEX*1.75*(T.mapBurstRings||3)+HEX,r=fx.kind==='collapse'?rB*(1-ft):rB*ft;mctx.save();mctx.globalCompositeOperation='screen';mctx.strokeStyle=`rgba(255,255,255,${0.8*(1-ft*0.6)})`;mctx.lineWidth=HEX*0.35;mctx.filter=`blur(${HEX*0.15}px)`;mctx.beginPath();mctx.arc(cx,cy,Math.max(1,r),0,6.2832);mctx.stroke();mctx.restore();
+      if(fx.kind==='collapse'){mctx.save();mctx.fillStyle=`rgba(5,6,8,${0.85*ft})`;mctx.beginPath();mctx.arc(cx,cy,rB*1.4,0,6.2832);mctx.arc(cx,cy,Math.max(1,rB*(1-ft)),0,6.2832,true);mctx.fill();mctx.restore();}} // what the ring has passed has fallen in
+    else if(fx&&ft>=1)burstFx=null;}
   // Merge visuals
   for(const g of mergeGroups){if(!g.cells.length)continue;const pts=g.cells.map(ck=>{const cc=cells[ck];return cc?w2s(...a2w(cc.q,cc.r)):null;}).filter(Boolean);if(pts.length<2)continue;mctx.strokeStyle='rgba(160,120,230,0.5)';mctx.lineWidth=1.2;for(let i=0;i<g.cells.length;i++)for(let j=i+1;j<g.cells.length;j++){const c1=cells[g.cells[i]],c2=cells[g.cells[j]];if(c1&&c2&&dist(c1.q,c1.r,c2.q,c2.r)===1){const[x1,y1]=w2s(...a2w(c1.q,c1.r));const[x2,y2]=w2s(...a2w(c2.q,c2.r));mctx.beginPath();mctx.moveTo(x1,y1);mctx.lineTo(x2,y2);mctx.stroke();}}const cx2=pts.reduce((s,p)=>s+p[0],0)/pts.length;const cy2=pts.reduce((s,p)=>s+p[1],0)/pts.length;const sr=g.type==='hex'?HEX*1.6:HEX*0.85;starPath(cx2,cy2,sr,sr*0.42,5);mctx.strokeStyle='rgba(160,120,230,0.55)';mctx.lineWidth=1.5;mctx.stroke();}
   // Direction line
@@ -315,7 +340,7 @@ function mapRender(){
   let dc=0;for(const k in cells)if(!cells[k].isVoid)dc++;
   document.getElementById('cell-count').innerHTML=dc+'<small>cells</small>';
   document.getElementById('depth-display').textContent=`D${depth}`;
-  let st=`turn ${turn} · rings ${turn} · score ${score.toFixed(2)} · captures ${captureOrder.length}`;
+  let st=`${clockStr()} · day ${day} · rings ${turn} · score ${score.toFixed(2)} · captures ${captureOrder.length}`;
   if(phase==='gameover')st+=' · game over: '+gameOverReason;
   document.getElementById('score-display').textContent=st;
   discTick();
@@ -346,50 +371,67 @@ window.addEventListener('resize',mapResize);
 // ║  grid. The surface's own duck renderer draws them (one sheet per frame,      ║
 // ║  sent back as an ImageBitmap); the map moves them and draws their ripples.   ║
 // ╚══════════════════════════════════════════════════════════════════════════════╝
-let pond=[],ripples=[],pondSheet=null,pondBusy=false,pondT=0;
+let pond=[],ripples=[],sprites=new Map(),pondBusy=false,pondT=0,pondAsk=0,pondNext=0,water={at:0,pts:[],frac:0};
 function isWater(wx,wy){ // world point well clear of every hex
   const q=(Math.sqrt(3)/3*wx-1/3*wy)/HEX,r=(2/3*wy)/HEX;for(let dq=-2;dq<=2;dq++)for(let dr=-2;dr<=2;dr++){const c=cells[K(Math.round(q)+dq,Math.round(r)+dr)];if(!c)continue;const[cx,cy]=a2w(c.q,c.r);if(Math.hypot(wx-cx,wy-cy)<HEX*1.7)return false;}return true;}
+function onWhite(wx,wy){ // the water is lit white here: a bright clear's glow, or the source's
+  if(Math.hypot(wx,wy)<HEX*2.6)return true;const q=Math.round((Math.sqrt(3)/3*wx-1/3*wy)/HEX),r=Math.round((2/3*wy)/HEX);
+  for(let dq=-3;dq<=3;dq++)for(let dr=-3;dr<=3;dr++){const c=cells[K(q+dq,r+dr)];if(c&&c.cap&&c.kind!=='dark'){const[cx,cy]=a2w(c.q,c.r);if(Math.hypot(wx-cx,wy-cy)<HEX*2.4)return true;}}return false;}
 const s2wp=(X,Y)=>{const[x,y]=unproj(X,Y);return s2w(x,y);},w2sc=(wx,wy)=>proj(...w2s(wx,wy)); // screen ↔ world, through the tilt
-function pondSpawn(){ // each time the map shows: a few of your ducks where there is open water on screen
-  pond=[];ripples=[];const got=Object.keys(duckLog).filter(k=>duckLog[k]>0);if(!got.length||!SW)return;
-  const n=Math.min(T.mapDucks!=null?T.mapDucks:5,got.length+2),now=performance.now();
-  for(let i=0,tries=0;i<n&&tries<400;tries++){const X=Math.random()*SW,Y=SH*0.08+Math.random()*SH*0.88,[wx,wy]=s2wp(X,Y);if(!isWater(wx,wy))continue;
-    pond.push({type:got[(Math.random()*got.length)|0],x:wx,y:wy,hd:Math.random()*6.283,sp:0,tw:0,ph:Math.random()*6.283,next:now+Math.random()*1500,born:now+i*260,lastRip:0});i++;}}
+const offView=(X,Y,m)=>X<-m||X>SW+m||Y<-m||Y>SH+m;
+function duckRoster(){ // which ducks may swim: one of each type you own; several of one type only when that is the only type you own
+  const own=Object.keys(duckLog).filter(k=>duckLog[k]>0);if(own.length===1)return Array(Math.min(12,duckLog[own[0]])).fill(own[0]);return own;}
+function pondSpawn(){pond=[];ripples=[];pondNext=0;water.at=0;} // the map shows: the lake starts empty and ducks swim (or splash) in
+function scanWater(now){ // where on screen there is open water (sampled every half second)
+  if(now-water.at<500)return;water.at=now;water.pts=[];let n=0;
+  for(let j=0;j<7;j++)for(let i=0;i<10;i++){const X=SW*(i+0.5)/10,Y=SH*(0.06+0.9*(j+0.5)/7),w=s2wp(X,Y);n++;if(isWater(w[0],w[1]))water.pts.push(w);}
+  water.frac=water.pts.length/n;}
+function spawnLakeDuck(now){
+  const roster=duckRoster(),used={};for(const d of pond)used[d.type]=(used[d.type]||0)+1;
+  const free=roster.filter((t,i)=>(used[t]||0)<roster.slice(0,i+1).filter(x=>x===t).length);if(!free.length||!water.pts.length)return;
+  const type=free[(Math.random()*free.length)|0];
+  for(let tries=0;tries<12;tries++){const P=water.pts[(Math.random()*water.pts.length)|0],hd=Math.random()*6.2832,dx=Math.cos(hd),dy=Math.sin(hd);
+    if(Math.random()<0.3){pond.push({type,x:P[0],y:P[1],hd,sp:0,cur:0,next:now+1500,born:now,splash:true,seen:true,lastRip:0,ph:Math.random()*6.28});ripples.push({x:P[0],y:P[1],t:now,ink:onWhite(P[0],P[1])?'20,24,32':'255,255,255',big:1});return;} // splashes up from under the surface
+    let x=P[0],y=P[1],ok=true;for(let k=0;k<80;k++){x-=dx*HEX*0.5;y-=dy*HEX*0.5;if(!isWater(x,y)){ok=false;break;}const[X,Y]=w2sc(x,y);if(offView(X,Y,HEX*1.2))break;} // back along its way until it is off screen
+    if(!ok)continue;pond.push({type,x,y,hd,sp:0.45,cur:(Math.random()-0.5)*0.004,next:now+2000+Math.random()*2500,born:now,splash:false,seen:false,lastRip:0,ph:Math.random()*6.28});return;}}
 function pondStep(now){
   const pd=document.getElementById('pond'),c=pd.getContext('2d'),dp=window.devicePixelRatio||1,dt=Math.min(50,now-(pondT||now))/16.67;pondT=now;
-  c.setTransform(dp,0,0,dp,0,0);c.clearRect(0,0,SW,SH);if(!pond.length)return;
+  c.setTransform(dp,0,0,dp,0,0);c.clearRect(0,0,SW,SH);if(currentView!=='map')return;
+  scanWater(now);const want=Math.round(Math.min(T.mapDucks!=null?T.mapDucks:5,duckRoster().length)*Math.min(1,water.frac*2.5)); // a little water on screen: fewer ducks (none for none)
+  if(pond.length<want&&now>pondNext){spawnLakeDuck(now);pondNext=now+900+Math.random()*1500;}
   const v=viewTf(),items=[];
-  for(const d of pond){
-    if(now<d.born)continue;
-    if(now>d.next){d.next=now+900+Math.random()*2600;d.tw=(Math.random()-0.5)*0.03;d.go=Math.random()<0.8;} // a duck's way of going: glide, turn a little, sometimes rest
-    const paddle=d.go?0.35+0.25*Math.max(0,Math.sin(now/260+d.ph)):0;d.sp+=(paddle-d.sp)*0.04*dt; // little bursts of paddling
-    const ax=d.x+Math.cos(d.hd)*HEX*1.2,ay=d.y+Math.sin(d.hd)*HEX*1.2,[sx,sy]=w2sc(ax,ay);
-    if(!isWater(ax,ay)||sx<20||sx>SW-20||sy<SH*0.05||sy>SH-20)d.hd+=0.06*dt; // shore or the edge of view ahead: turn away
-    else d.hd+=d.tw*dt;
+  pond=pond.filter(d=>{
+    if(now>d.next){d.next=now+1800+Math.random()*3000;d.cur=Math.random()<0.1?(Math.random()<0.5?-1:1)*0.03:(Math.random()-0.5)*0.006;} // mostly a gentle curve on its way across; now and then a doughnut
+    const paddle=0.38+0.28*Math.max(0,Math.sin(now/260+d.ph)),go=d.splash&&now-d.born<900?0:paddle;d.sp+=(go-d.sp)*0.05*dt;
+    if(!isWater(d.x,d.y)){const l=Math.hypot(d.x,d.y)||1;d.x+=d.x/l*1.6*dt;d.y+=d.y/l*1.6*dt;const out=Math.atan2(d.y,d.x);d.hd+=Math.atan2(Math.sin(out-d.hd),Math.cos(out-d.hd))*0.08*dt;} // the growing spill pushes it out
+    else{const ax=d.x+Math.cos(d.hd)*HEX*1.4,ay=d.y+Math.sin(d.hd)*HEX*1.4;if(!isWater(ax,ay)){const out=Math.atan2(d.y,d.x),tan=out+(Math.sin(d.hd-out)>0?1.2:-1.2);d.hd+=Math.atan2(Math.sin(tan-d.hd),Math.cos(tan-d.hd))*0.06*dt;} // the shore ahead: it veers along it
+      else d.hd+=d.cur*dt;}
     d.x+=Math.cos(d.hd)*d.sp*dt;d.y+=Math.sin(d.hd)*d.sp*dt;
-    if(d.sp>0.1&&now-d.lastRip>320){d.lastRip=now;const[X,Y]=w2sc(d.x,d.y);let ink='255,255,255';
-      try{const[px,py]=w2s(d.x,d.y),p=mctx.getImageData(Math.max(0,px*MK|0),Math.max(0,py*MK|0),1,1).data;if(p[0]*0.3+p[1]*0.59+p[2]*0.11>128)ink='20,24,32';}catch(e){} // the water's own ground: white rings on black, dark rings on white
-      ripples.push({x:d.x,y:d.y,t:now,ink});}
-    const[X,Y,k]=w2sc(d.x,d.y),h=HEX*0.62*k,pop=Math.min(1,(now-d.born)/500);
-    d._at=[X,Y-h*0.12+Math.sin(now/700+d.ph)*h*0.03];d._h=h*pop; // it bobs
-    items.push({type:d.type,h:d._h*dp,ang:-d.hd,tilt:v.th,roll:Math.sin(now/650+d.ph)*0.05});} // the surface sizes it by its type and turns it (pondSheet)
+    const[X,Y,k]=w2sc(d.x,d.y),off=offView(X,Y,HEX*1.5*k);if(!off)d.seen=true;
+    if((d.seen&&off)||now-d.born>60000)return false; // gone off screen: another comes in elsewhere
+    if(d.sp>0.1&&now-d.lastRip>320){d.lastRip=now;ripples.push({x:d.x,y:d.y,t:now,ink:onWhite(d.x,d.y)?'20,24,32':'255,255,255'});} // white rings on dark water, dark on white
+    const h=HEX*0.62*k,pop=d.splash?Math.min(1,(now-d.born)/700):1;d._at=[X,Y-h*0.12+Math.sin(now/700+d.ph)*h*0.03+(1-pop)*h*0.4];d._h=h*pop;
+    const ab=Math.round(((d.hd%6.2832)+6.2832)%6.2832/6.2832*32)%32,hb=Math.max(2,Math.round(d._h*dp/4)*4),key=d.type+'|'+ab+'|'+hb+'|'+Math.round(v.th*100); // a view: type, heading (32 steps), size (4 px steps), tilt
+    d._key=key;if(sprites.has(key))d._sp=sprites.get(key);else if(!items.some(x=>x.key===key))items.push({key,type:d.type,h:hb,ang:-ab/32*6.2832,tilt:v.th});return true;});
   ripples=ripples.filter(r=>now-r.t<1800);
-  for(const r of ripples){const a=(now-r.t)/1800,[X,Y,k]=w2sc(r.x,r.y),R=(4+a*HEX*0.9)*k;c.strokeStyle=`rgba(${r.ink},${(0.5*(1-a)*(1-a)).toFixed(3)})`;c.lineWidth=1.4;c.beginPath();c.ellipse(X,Y,R,R*v.c,0,0,6.2832);c.stroke();}
-  const S=pondSheet;if(S&&S.bmp){let i=0;for(const d of pond){if(now<d.born)continue;const rc=S.rects[i++];if(!rc||!d._at)continue;c.drawImage(S.bmp,rc[0],rc[1],rc[2],rc[2],d._at[0]-rc[2]/dp/2,d._at[1]-rc[2]/dp/2,rc[2]/dp,rc[2]/dp);}}
-  if(!pondBusy&&items.length&&nebReady&&currentView==='map'){pondBusy=true;neb({cmd:'pond',items});setTimeout(()=>{pondBusy=false;},500);}
+  for(const r of ripples){const a=(now-r.t)/1800,[X,Y,k]=w2sc(r.x,r.y),R=(4+a*HEX*(r.big?1.6:0.9))*k;c.strokeStyle=`rgba(${r.ink},${(0.5*(1-a)*(1-a)).toFixed(3)})`;c.lineWidth=r.big?2:1.4;c.beginPath();c.ellipse(X,Y,R,R*v.c,0,0,6.2832);c.stroke();}
+  for(const d of pond){const sp=d._sp;if(!sp||!d._at)continue;const S=sp.S/dp*(d._h*dp/Math.max(1,+d._key.split('|')[2]));c.drawImage(sp.bmp,d._at[0]-S/2,d._at[1]-S/2,S,S);} // the nearest view drawn so far, scaled to its exact size
+  if(!pondBusy&&items.length&&nebReady&&now-pondAsk>60){pondBusy=true;pondAsk=now;neb({cmd:'pond',items:items.slice(0,4)});setTimeout(()=>{pondBusy=false;},800);} // only views not drawn yet are asked for
 }
+
 // ╔══════════════════════════════════════════════════════════════════════════════╗
 // ║  SAVE — the map is kept between sessions (items and discoveries are the     ║
 // ║  surface's own save, so a new map never touches them)                       ║
 // ╚══════════════════════════════════════════════════════════════════════════════╝
 function saveMap(){
   const out={};for(const k in cells){const c=Object.assign({},cells[k]);delete c._im;out[k]=c;}
-  try{localStorage.setItem(MAP_KEY,JSON.stringify({v:1,cells:out,turn,score,pQ,pR,totalCells,phase,depth,gameOverReason,captureOrder,mergeGroups,mergeIdCounter,voidOpen,session:nebulaCellKey}));}catch(e){}
+  try{localStorage.setItem(MAP_KEY,JSON.stringify({v:2,cells:out,turn,clock,day,pool,fresh,score,pQ,pR,totalCells,phase,depth,gameOverReason,captureOrder,mergeGroups,mergeIdCounter,voidOpen,session:nebulaCellKey}));}catch(e){}
 }
 function loadMap(){
   let d=null;try{d=JSON.parse(localStorage.getItem(MAP_KEY)||'null');}catch(e){}
   if(!d||!d.cells)return false;
-  ({cells,turn,score,pQ,pR,totalCells,phase,depth,gameOverReason,captureOrder,mergeGroups,mergeIdCounter,voidOpen}=d);nebulaCellKey=d.session||null;
+  if(d.v!==2)return false; // a map from before the day clock starts over
+  ({cells,turn,clock,day,pool,fresh,score,pQ,pR,totalCells,phase,depth,gameOverReason,captureOrder,mergeGroups,mergeIdCounter,voidOpen}=d);nebulaCellKey=d.session||null;
   mapResize();focusCam(false);updateHint();return true;
 }
 
@@ -424,7 +466,7 @@ window.addEventListener('message',e=>{
     hubEvent('map');
   }
   if(m.type==='ready'||m.type==='state');
-  else if(m.type==='pond'){pondSheet=m;pondBusy=false;}
+  else if(m.type==='pond'){for(const x of m.sprites||[]){if(sprites.size>500){for(const k of sprites.keys()){sprites.get(k).bmp.close&&sprites.get(k).bmp.close();sprites.delete(k);if(sprites.size<400)break;}}sprites.set(x.key,x);}pondBusy=false;}
   else if(m.type==='preview'){prevPending.delete(m.key);if(cells[m.key]&&m.img)prev[m.key]={sig:m.sig,img:m.img};}
   else if(m.type==='overlayDone'){if(currentView==='overlay'){currentView='map';showNeb(false);evPump();}}
   else if(m.type==='cleared')completeCaptureForCell(m.key,m.kind); // the hex is captured right away; the player returns with a right-click

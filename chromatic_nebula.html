@@ -1549,10 +1549,14 @@ TUNE_DEFS.push({sec:'Time dilation & Risks',tab:'gameplay'},
  {key:'riskWarnMass',label:'Risk WARNING mass',min:1,max:5000,step:10,tip:'Points above this mass show a blinking WARNING (default: half the Dark Remnant formation mass)'},
  {key:'riskDangerMass',label:'Risk DANGER mass',min:1,max:400000,step:100,tip:'Points above this mass show DANGER'},
  {key:'cacheKeyR',label:'Cache keyhole pane R',min:6,max:40,step:1,tip:'Radius of the central keyhole glass pane of a Cache'});
-Object.assign(T,{masterVol:0.7,soundOn:0,mapHexSize:34,mapTilt:32,mapPersp:1400,mapZoomMin:0.55,mapZoomMax:1.8,mapDucks:5,mapZoom:1,mapAlpha:1,mapClearBlur:0.6,mapClearBleed:0.85,mapCovMin:0.25,mapCovFull:1});
+Object.assign(T,{masterVol:0.7,soundOn:0,mapHexSize:34,mapBurstRings:3,mapHoursPerTurn:1,mapCollapseMs:1400,mapSourceGlow:1,mapTilt:32,mapPersp:1400,mapZoomMin:0.55,mapZoomMax:1.8,mapDucks:5,mapZoom:1,mapAlpha:1,mapClearBlur:0.6,mapClearBleed:0.85,mapCovMin:0.25,mapCovFull:1});
 TUNE_DEFS.push({sec:'Master volume',tab:'sounds'},{key:'masterVol',label:'Master volume',min:0,max:1,step:0.05,tip:'Overall volume (also in the Esc menu)'},
  {sec:'Surface Map — hex surface layer (drawn by the surface renderer: pixel map, blur passes and α all apply)',tab:'gameplay'},
  {key:'mapHexSize',label:'Hex size',min:20,max:90,step:1,tip:'Radius (px) of a Surface Map hex'},
+ {key:'mapBurstRings',label:'Midnight burst rings',min:1,max:6,step:1,tip:'How many rings the source bursts out to at each midnight (each hex at 1.00)'},
+ {key:'mapHoursPerTurn',label:'Hours per move',min:0.25,max:6,step:0.25,tip:'How far the day clock moves on per move or bright clear (24 hours: midnight to midnight)'},
+ {key:'mapCollapseMs',label:'Midnight collapse ms',min:200,max:5000,step:100,tip:'How long the spill takes to fall back into the source at midnight before it bursts out again'},
+ {key:'mapSourceGlow',label:'Source glow',min:0,max:3,step:0.05,tip:'Brightness of the white source at the centre of the map'},
  {key:'mapTilt',label:'Map tilt°',min:0,max:60,step:1,tip:'How far the Surface Map leans away (0 = straight down)'},
  {key:'mapPersp',label:'Map perspective px',min:400,max:4000,step:50,tip:'Viewing distance for the tilt: smaller = stronger perspective'},
  {key:'mapZoomMin',label:'Map zoom out',min:0.3,max:1,step:0.05,tip:'Furthest the map zooms out (wheel or −)'},
@@ -14562,8 +14566,8 @@ function duckPondDraw(now){
   for(const d of P.list){d.q=quatTurn(d.q,d.wx,d.wy,0);d.wx*=0.985;d.wy*=0.985;const v=DUCK_TYPES[d.k],refl=v.mat==='metal'||v.mat==='gold'||v.mat==='glass',x=d.x*k,y=(d.y+Math.sin(now/900+d.ph)*d.h*0.03)*k;
     if(refl&&!envd){duckEnvUpdate(canvas,now);envd=true;}duckGlow(c,d.k,x,y,d.h*k,now,d.ph);drawDuck3D(c,d.k,d.q,[[x,y]],d.h*k,1,0,refl?{x:W/2,y:H/2,lights:[]}:null);}
   const h=P.hov;if(h){const v=DUCK_TYPES[h.k];c.font=(12*k)+'px system-ui,sans-serif';c.textAlign='center';c.fillStyle='rgba(240,240,240,0.9)';c.fillText((v.rare?'★ ':'')+v.name+' × '+duckLog[h.k],h.x*k,Math.max(14*k,(h.y-h.h*0.7)*k));}}
-// The Surface Map's lake: the map sends where its ducks swim; each is drawn here (its size from its type, upright on the tilted plane:
-// turned about its up axis to its heading, then laid back by 90° − tilt) into one sheet, returned as an ImageBitmap the map places.
+// The Surface Map's lake: the map asks for duck views it has not drawn yet (type, heading, size, tilt); each is drawn here (its size from
+// its type, upright on the tilted plane: turned about its up axis to its heading, then laid back by 90° − tilt) and sent back as an ImageBitmap.
 let _pondCv=null;
 function pondSheet(items){
   const cv=_pondCv||(_pondCv=document.createElement('canvas')),now=performance.now(),rects=[],sz=[];let x=0,y=0,rh=0,w=0;
@@ -14574,8 +14578,9 @@ function pondSheet(items){
   items.forEach((it,i)=>{const r=rects[i],cx=r[0]+r[2]/2,cy=r[1]+r[2]/2,v=DUCK_TYPES[it.type]||DUCK_TYPES.classic,refl=v.mat==='metal'||v.mat==='gold'||v.mat==='glass';
     const q=quatTurn(quatTurn(quatTurn([0,0,0,1],it.roll||0,0,0),0,it.ang||0,0),Math.PI/2-(it.tilt||0),0,0);
     c.save();c.beginPath();c.rect(r[0],r[1],r[2],r[2]);c.clip();duckGlow(c,it.type,cx,cy,sz[i],now,i);if(refl)duckEnvUpdate(canvas,now);drawDuck3D(c,it.type,q,[[cx,cy]],sz[i],1,0,refl?{x:W/2,y:H/2,lights:[]}:null);c.restore();});
-  if(!items.length||!window.createImageBitmap){hubPost({type:'pond',bmp:null,rects});return;}
-  createImageBitmap(cv,0,0,Math.max(1,w),Math.max(1,H)).then(b=>window.parent.postMessage({il:1,type:'pond',bmp:b,rects},'*',[b])).catch(()=>hubPost({type:'pond',bmp:null,rects}));}
+  if(!items.length||!window.createImageBitmap){hubPost({type:'pond',sprites:[]});return;}
+  Promise.all(items.map((it,i)=>createImageBitmap(cv,rects[i][0],rects[i][1],rects[i][2],rects[i][2]).then(bmp=>({key:it.key,bmp,S:rects[i][2]})))) // one sprite per duck view: the map keeps them and asks only for views it has not seen
+    .then(sp=>window.parent.postMessage({il:1,type:'pond',sprites:sp},'*',sp.map(x=>x.bmp))).catch(()=>hubPost({type:'pond',sprites:[]}));}
 function drawDuckIcon(c,S,type){const k=DUCK_TYPES[type]?type:'classic';drawDuck3D(c,k,DUCK_ICON_Q,[[S/2,S/2]],S*0.8/(DUCK_TYPES[k].head?1.25:1),1);}
 function openDuckViewer(type){
   if(document.getElementById('duckView')||!DUCK_TYPES[type])return;const v=DUCK_TYPES[type],dpr=Math.min(2,window.devicePixelRatio||1),SZ=Math.max(200,Math.min(560,innerWidth-40,innerHeight-110)),N=Math.round(SZ*dpr);
