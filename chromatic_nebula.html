@@ -114,7 +114,7 @@ button:hover{background:rgba(255,255,255,0.15);}
   <div id="dock" class="bottom"><div id="inventoryPanel"></div><div id="touch-info"></div></div>
   <canvas id="cur"></canvas>
 </div>
-<script src="ducks.js?v=20261102d"></script>
+<script src="ducks.js?v=20261102e"></script>
 <script>
 const _SRC=document.documentElement.outerHTML; // kept so the Encyclopedia can run live scenes as embedded copies of the game
 // Safety: a negative / non-finite gradient radius would throw and kill the frame — clamp it, and log the first offender's stack so it can be traced.
@@ -847,7 +847,7 @@ const T={
   // collects, Prism/Gate/Key symbols). Max counts are each independently
   // tunable "purses"; detection counts/durations are exposed too.
   invMaxBright: 9999999, invMaxDim: 9999999, invMaxDial: 99, invMaxLeash: 10, invMaxWeave: 10,
-  weaveRadius: 120, weaveMinPoints: 5, weaveSeconds: 3, weaveStarMs: 1500, minPointDist: 14, patternCost: 1, patternMs: 5000, stringHomeR: 60, unwindMass: 5, unwindMs: 200, unwindMaxWidth: 60, unwindGrowMs: 3000, // Spindle unwind: mass per tick · ms per tick · widest spread · ms still to reach it
+  weaveRadius: 120, weaveMinPoints: 5, weaveSeconds: 3, weaveStarMs: 1500, minPointDist: 14, patternCost: 1, patternMs: 5000, stringHomeR: 60, unwindPct: 5, unwindMs: 200, unwindMaxWidth: 60, unwindGrowMs: 3000, // Spindle unwind: mass per tick · ms per tick · widest spread · ms still to reach it
   // Weave: points inside this radius (more than 5) held for N s · universal min gap for String / Spindle / Weave members · a Pattern spends this many of its own item (Prism / Knot) per interval
   invMaxNeutron: 9999, invMaxMagnetic: 9999, invMaxPulsing: 9999,
   invMaxLens: 5,  invMaxPrism: 5,  invMaxGate: 5,  invMaxKnot: 5,  invMaxKey: 5,
@@ -1382,7 +1382,7 @@ const TUNE_DEFS=[
   {key:'leashFadeInMs',label:'String fade ms',min:0,max:5000,step:100,tip:'How long the leash indicator takes to fade in once it starts to appear'},
   {key:'invMaxWeave',label:'Max Weave',min:0,max:99,step:1,tip:'Purse cap for collected Weaves'},
   {key:'stringHomeR',label:'String homing R',min:0,max:300,step:5,tip:'String shots lock onto the nearest object within this distance of where they were aimed and keep following it (0 = off)'},
-  {key:'unwindMass',label:'Unwind mass/tick',min:1,max:50,step:1,tip:'Spindle: mass a Point / Pigment gives back each tick'},
+  {key:'unwindPct',label:'Unwind % per tick',min:0.5,max:50,step:0.5,tip:'Spindle: share of its starting mass a Point / Pigment gives back each tick — every size unwinds in the same time (100 ÷ % ticks × tick ms)'},
   {key:'unwindMs',label:'Unwind tick ms',min:1,max:1000,step:1,tip:'Spindle: ms per unwind tick'},
   {key:'unwindMaxWidth',label:'Unwind width',min:0,max:300,step:5,tip:'Spindle: widest spread of the new particles around a target that stays still'},
   {key:'unwindGrowMs',label:'Unwind widen ms',min:100,max:20000,step:100,tip:'Spindle: how long a still target takes to reach full width (moving ones leave a narrow line)'},
@@ -3091,7 +3091,7 @@ function tintBeamReaches(p,q){ // the coloured secondary beam of a tinted Pulsin
 }
 function dialFxMul(q){if(q.dialT===undefined)return 1;if(q.dialT<T.dialMs)return 0;return Math.min(1,(q.dialT-T.dialMs)/Math.max(1,T.dialRampMs));}
 function applyActiveRemnantEffect(p,q){
-  if(q._embed||q._stasis)return;
+  if(q._embed||q._stasis||q.unwind)return;
   if(q._whirlAt>_nullNow)return; // swirling in a Dim WHIRL: no other effect reaches it // embedded in a Lens: nothing affects it
   if(dialFxMul(q)<=0)return; // String-launched points ignore every effect field until their time is up, then feel them gradually
   if(q===p||q.captured||q.dying)return;
@@ -3328,7 +3328,7 @@ function updateOrbitAndChase(now,dt){
 // ── Spindle unwind: a Point / Pigment gives its mass back as nebula particles around it, then is removed (no remnant). Width grows the longer it lingers still. ──
 function startUnwind(o,now){
   if(o.unwind||o.isRemnant||o.failedCollapse||o.dying||o.captured)return false;
-  deactivatePoint(o);o.unwind={acc:0,ling:0,ePer:(o.energy||0)/Math.max(1e-6,o.mass)};return true;
+  deactivatePoint(o);o.unwind={acc:0,ling:0,m0:o.mass,ePer:(o.energy||0)/Math.max(1e-6,o.mass)};return true;
 }
 function unwindDeposit(p,m,u,now){ // one lump of mass: a new particle in an empty cell (Nova colour blend, world mass jitter) or added to the particle already there
   if(GW<=0)return;
@@ -3355,8 +3355,9 @@ function processUnwinds(now,dt){
     u.ling=Math.hypot(p.vx,p.vy)>0.05?Math.max(0,u.ling-dt*2):u.ling+dt;u.acc+=dt;
     const iv=Math.max(1,T.unwindMs);
     while(u.acc>=iv&&p.mass>1e-4){
-      u.acc-=iv;const spend=Math.min(p.mass,T.unwindMass);let rem=spend,g=0;
-      while(rem>1e-4&&g++<64){const m=Math.min(rem,jitterParticleMass());unwindDeposit(p,m,u,now);rem-=m;}
+      u.acc-=iv;const spend=Math.min(p.mass,u.m0*T.unwindPct/100);let rem=spend,g=0; // a share of its STARTING mass a tick: every size unwinds in the same time (100 ÷ % ticks)
+      const lump=Math.max(jitterParticleMass(),spend/64); // a big one gives back bigger lumps rather than thousands of tiny ones (and none of its mass is dropped)
+      while(rem>1e-4&&g++<64){const m=Math.min(rem,g<64?Math.max(jitterParticleMass(),lump):rem);unwindDeposit(p,m,u,now);rem-=m;}
       const old=p.mass;p.mass=old-spend;const f=p.mass/old;for(let k=0;k<6;k++)p.masses[k]*=f;
     }
     if(p.mass<=1e-4){active.splice(i,1);pressedIDs.delete(p.id);continue;}
@@ -3721,7 +3722,7 @@ function _fxSet(q,t,D){
   if(pix&&idx>=0){q._lgUntil=performance.now()+(lg?D*T.particleLingerMul+100:0);q._lgStep=1/Math.max(1,D*0.06*T.particleLingerMul);startInterp(idx,from,q.x,q.y);}
 }
 function shiftTo(q,target,now){
-  if(!q||q._stasis||fieldProtects(q.x,q.y)||q.dying||q.captured||(q.isRemnant&&(q.remKind==='brown'||q.remKind==='black'||target==='b')))return; // Dim / Dark remnants keep their fixed colour
+  if(!q||q._stasis||q.unwind||fieldProtects(q.x,q.y)||q.dying||q.captured||(q.isRemnant&&(q.remKind==='brown'||q.remKind==='black'||target==='b')))return; // Dim / Dark remnants keep their fixed colour
   if(q._shTo===target)return; // already on its way there
   const D=Math.max(0,T.colorLingerMs),cur=fxStateOf(q),busy=q._shTo!==undefined;
   if(cur===target&&!busy)return;
@@ -3774,7 +3775,7 @@ function colourFxSource(src,kind,contact){
     R=Math.min(src.wakeProgress,eR);if(R<=0)return;
   }
   const note=(q,idx)=>{
-    if(q._fxTieUntil>now||q._stasis||fieldProtects(q.x,q.y))return;
+    if(q._fxTieUntil>now||q._stasis||q.unwind||fieldProtects(q.x,q.y))return;
     if(isFxSource(q)&&((kind==='w'&&q.blackFx)||(kind==='b'&&q.whiteFx))){_fxTies.add(q);_fxTies.add(src);return;} // an active CRYSTALIZE touching an active ECLIPSE: BOTH change
     let e=_fxP.get(q);if(!e){e={w:0,b:0,idx:idx,from:(idx>=0&&(cellVisual(idx)||visOf(q)))||null};_fxP.set(q,e);}e[kind]=1;};
   if(contact){
@@ -7200,7 +7201,7 @@ function triggerNova(p,now,forceR,noParticles){
   fillRadiusBuf(p.x,p.y,nebR);
   for(let ni=0;ni<_radLen;ni++){const q=active[_radBuf[ni]];
     if(q===p)continue;
-    if(q._stasis)continue;
+    if(q._stasis||q.unwind)continue;
     if(_zoneList.length&&gateSide(q.x,q.y)!==novaSide)continue;
     let ddx=q.x-p.x,ddy=q.y-p.y;
     if(ddx>HW)ddx-=W;else if(ddx<-HW)ddx+=W;
@@ -8589,7 +8590,7 @@ function rebuildNebula(){
 
 // ── Force ─────────────────────────────────────────────────────────────────────
 function applyForce(src,tgt,scale,dt,eR){
-  if(tgt._stasis)return;
+  if(tgt._stasis||tgt.unwind||src.unwind)return; // unwinding: nothing pushes it and it pushes nothing
   if(tgt._whirlAt>_nullNow&&!src._whirl)return; // inside a Dim WHIRL nothing else can push it
   if(tgt===src||tgt.captured||tgt._embed||scale<=0||src.failedCollapse)return; // (embedded Lens remnants: no effect reaches them)
   scale*=dialFxMul(tgt);if(scale<=0)return; // launched by the String: unaffected during its time, then gradually affected
@@ -11138,7 +11139,7 @@ function pulseEnforceCap(){ // the cursor's snake rule (T.maxActivePoints): the 
     for(let i=0;i<active.length;i++){const p=active[i];if(p.id===id){p.touchStart=-1;break;}}}
 }
 function pulseSetActive(q,on,ep){ // switches a point ON (or OFF); already in that state = nothing happens
-  if(!q||q.isRemnant||q.failedCollapse||q.captured||q.dying||q._embed||q._stasis||q.isActiveRemnant)return;
+  if(!q||q.isRemnant||q.failedCollapse||q.captured||q.dying||q._embed||q._stasis||q.unwind||q.isActiveRemnant)return;
   if(underGlass(q.x,q.y))return; // nothing under a Lens can be activated, by cursor or by beam
   const has=pressedIDs.has(q.id);if(on===has)return;
   if(on&&ep!==undefined){if(q._pulEp===ep)return;q._pulEp=ep;} // once per beam pass: a point the snake already pushed out isn't re-activated until the next first side
@@ -13840,7 +13841,7 @@ const RULES=[
 ["HARMONY","items","HARMONY","magnetic","Costs 1 Magnetic per touched thing.",[["Does","Each touched thing gets one new random colour (sometimes black). Everything touched in one go gets the same colour."]]],
 ["RHYTHM","items","RHYTHM","pulsing","Costs 1 Pulsing per touched thing.",[["Does","Touched things get the same random direction, speed and spin. Particles wake first."]]],
 ["String","items","String","dial","Fires loaded pigments and Points at the cursor.",[["Earn","One point follows another with the same speed and spin and a steady gap for a few seconds. A faint line and counter show the hold, and +1 shows when you win."],["Globe","Use a Lens on a chasing pair: a globe forms, its size set by their speed. The pair flies to its edge, wraps to the back side (shrunk, lens bending the other way) and returns. Each full lap earns 1 String."],["Load","Shining things load when you pick the String. A ring marks each one. Dab, wipe or double dab more, up to Max shining. With none loaded, a double dab on empty space loads the nearest."],["Fire","A lone dab on empty space fires them all, one after another, at the cursor. Hold fires one at a time and its target follows the cursor. A double dab fires all, then loads the nearest."],["Flying","Rounds fly at double speed, ignore effects, and collect remnants. A target marks the spot and bursts into sparks."]]],
-["Spindle","items","Spindle","leash","Unwinds Points and Pigments back into particles.",[["Earn","One point circles a still one enough times. A faint counter shows the laps, and +1 shows when you win. A Lens on that pair keeps it going until the Lens is cracked."],["Use","Dab, wipe or double dab Points and Pigments (never particles or remnants). 1 Spindle per target, and the same heat rules as every item."],["Unwind","Each tick the target gives back Unwind mass (jittered like world particles) as new particles around it, coloured from its colour balance with the Nova blend. A still target spreads wider over time; a moving one leaves a narrow line. Mass and energy also add to particles already there."],["While unwinding","No effect of its own and it cannot be consumed, but other colour effects still move it. New particles are protected from absorption while they form."],["End","When the mass is gone it disappears. No remnant."]]],
+["Spindle","items","Spindle","leash","Unwinds Points and Pigments back into particles.",[["Earn","One point circles a still one enough times. A faint counter shows the laps, and +1 shows when you win. A Lens on that pair keeps it going until the Lens is cracked."],["Use","Dab, wipe or double dab Points and Pigments (never particles or remnants). 1 Spindle per target, and the same heat rules as every item."],["Untouchable","While it unwinds nothing collides with it or affects it, and it affects nothing."],["Unwind","Each tick the target gives back the same share of its starting mass (Unwind %), so a huge Point unwinds as fast as a small Pigment, as new particles around it, coloured from its colour balance with the Nova blend. A still target spreads wider over time; a moving one leaves a narrow line. Mass and energy also add to particles already there."],["While unwinding","No effect of its own and it cannot be consumed, but other colour effects still move it. New particles are protected from absorption while they form."],["End","When the mass is gone it disappears. No remnant."]]],
 ["Weave","items","Weave","weave","Earned by five points holding perfectly still, close together. It builds Patterns and keeps them alive.",[["Earn","Five points (Weave points) inside the Weave radius, each at least the Min point gap apart, ALL with no motion and no spin, held for Weave seconds. If any one moves or spins the count restarts. A pentagram is drawn between them (A→C→E→B→D→A)."],["Mode","Click the Weave item, then click lit points in order to link a shape. Each completed Pattern uses 1 Weave. 3 corners Prism, 4 Gate, 5 Lens; a 3 loop with a spur inside is a Knot; spurs out on both sides a Key."],["Patterns","A Prism or Knot Pattern costs 1 of its own item to place, then the Pattern cost of that item each Pattern interval (same interval for both). With none left it breaks. Lenses and Gates cost nothing, and a Pattern made fixed stops paying."],["Min gap","Points closer than Min point gap never count for Weave, String orbits or Spindle leashes."]]],
 ["discover","start","Discoveries","dim","Interface elements start hidden. Hold enough Dim while hovering one and it appears.",[["Hidden","An element you have not discovered is invisible. Hovering it shows a black shape with its Dim cost in dark grey. It cannot be clicked or scrolled."],["Revealing","Hover it while the Dim you hold is at least its cost. Nothing is spent. It dissolves into particles and stays discovered (saved with your inventory)."],["Inactive","A discovered element whose requirement is not met, such as an item at 0, still shows as inactive."],["Always visible","The feed, telemetry and the H / Esc keys are never gated. The DEPTH (Dim) slot costs 0 so you can always see your Dim."],["Costs","Set every element's cost on the Discoveries tuner tab. Typing a number sets the last row you touched."]]],
 ["cache","start","Item cache","dim","A set of one-shot tools in the inventory, shown from the Modes menu.",[["Clear","Sets every item to 0 (one shot)."],["Fill","Sets every item to its max (one shot). That includes Dim, so it discovers everything."],["Off","Toggles disable mode. While it is on, clicking an item switches it off or on. A disabled item is dimmed, cannot be armed or cycled to, but can still be collected. The list saves with your inventory and with map saves."]]],
@@ -13925,7 +13926,7 @@ const CONV={
  relic:{t:'Relics',f:()=>['two Dim Remnants of mass ≥ '+T.dimMassMax+' (Dim max mass) merge: one becomes a relic (enriched) with the combined mass and energy','two relics of that mass meeting make a nova and a Dark Remnant','an ECLIPSE Point that dies leaves an enriched Dim, a CRYSTALIZE Point an enriched Bright; relics are never eaten, merged or damaged and collect as ×100']},
  collect:{t:'Collecting',f:()=>['Bright / Dim: ceil(energy × 10), at least 1; relics ceil(energy × 100)','Neutron / Magnetic / Pulsing remnants: 1 (relics 100), plus +'+Math.ceil(T.statusEnergy*10)+' (relic +'+Math.ceil(T.statusEnergy*100)+') per stacked status','so a remnant with energy '+cvn(2.3,1)+' collects as '+Math.ceil(2.3*10)+' (relic '+Math.ceil(2.3*100)+')']},
  status:{t:'Status energy',f:()=>['a Dim, Bright or relic gains +'+T.statusEnergy+' energy for every new status it picks up: Enlarged, Shrunk, or (Bright only) a colour','an active remnant stacks them too, from the other two active types: Enlarged, Shrunk, each colour pair, each Pulsing beat — up to '+T.activeStatusMax,'+'+T.statusEnergy+' energy collects as +'+Math.ceil(T.statusEnergy*10)+' (relic +'+Math.ceil(T.statusEnergy*100)+')']},
- unwind:{t:'Spindle unwind',f:()=>['every '+T.unwindMs+' ms the target gives back '+T.unwindMass+' mass as particles (each lump jittered like world particles)','each lump carries energy = lump mass × (target energy ÷ target mass), so energy is conserved per mass','a still target spreads up to '+T.unwindMaxWidth+' px over '+T.unwindGrowMs+' ms; when its mass is gone it disappears (no remnant)']}
+ unwind:{t:'Spindle unwind',f:()=>['every '+T.unwindMs+' ms the target gives back '+T.unwindPct+'% of its starting mass as particles, so any size unwinds in '+(Math.ceil(100/T.unwindPct)*T.unwindMs/1000).toFixed(1)+' s','while it unwinds nothing touches it and it touches nothing: no collisions, no effects either way','each lump carries energy = lump mass × (target energy ÷ target mass), so energy is conserved per mass','a still target spreads up to '+T.unwindMaxWidth+' px over '+T.unwindGrowMs+' ms; when its mass is gone it disappears (no remnant)']}
 };
 // ── Events: the first time something happens, a card pauses the game and unlocks its Guide entries ──
 const EVENTS=[
