@@ -89,7 +89,7 @@ body.scene .hbtn,body.scene #hdock,body.scene #legend,body.scene #bottom-bar,bod
 <div id="veil"></div>
 <canvas id="hcur"></canvas>
 <iframe id="neb" title="Surface"></iframe>
-<script src="shared.js?v=20261102g"></script>
+<script src="shared.js?v=20261102h"></script>
 <script>
 // ╔══════════════════════════════════════════════════════════════════════════════╗
 // ║  MAP ENGINE                                                                 ║
@@ -104,7 +104,7 @@ let cells={},turn=0,score=0,pQ=0,pR=0,totalCells=0; // turn: how many rings the 
 let clock=3,day=1,pool=6,fresh=true,burstFx=null; // clock: the hour (3 = Predawn … 24 = Midnight, the day's last turn); day: your attempts; pool: what the source put out at its last burst; fresh: no ring added yet since it
 let constel=[],armed=null,weaveSel=[],weaveAsk=null,clearFx={},mergeFx=[],result=null,feedMsg={t:'',d:'',at:-1e9}; // constellations {keys,type}; the armed map item; a Weave being drawn; animations; the final count
 const TIMES={3:'Predawn',6:'Dawn',9:'Morning',12:'Noon',15:'Afternoon',18:'Dusk',21:'Night',24:'Midnight'},STEP_H=3; // the day: eight turns of three hours
-const CACHE_V='20261102g'; // the build: bump with shared.js's
+const CACHE_V='20261102h'; // the build: bump with shared.js's
 const SCENE=new URLSearchParams(location.search).get('scene'); // a Guide / event demo: the map plays a scripted moment (no surface behind it)
 let phase='move',turnTimer=0,mergeTimer=0;
 let gameOverReason='';
@@ -295,14 +295,16 @@ function makeConstellation(type){
 function checkConstellations(){constel=constel.filter(c=>c.keys.every(isBright));}
 function awardConstellations(){checkConstellations();const got={};for(const c of constel){neb({cmd:'award',kind:c.type,n:1});got[c.type]=(got[c.type]||0)+1;}
   const t=Object.keys(got);if(t.length)feed('Constellations',t.map(k=>'+'+got[k]+' '+KIND_NAME[k]).join(' · '));}
-// ── Full circle: a whole ring of clears pulls the map back to it ──
-function ringCheck(){
-  for(let n=1;n<=turn;n++){const ks=ring(n).map(([q,r])=>K(q,r));if(!ks.every(k=>cells[k]&&cells[k].cap))continue;collapseRing(n,ks);return true;}return false;}
+// ── Full circle: a ring of clears all of one kind (all bright or all dark) pulls the map back to it; what is inside can be either ──
+function ringCheck(){checkVoidAccess();
+  for(let n=1;n<=turn;n++){const ks=ring(n).map(([q,r])=>K(q,r));if(!ks.every(k=>cells[k]&&cells[k].cap)||!(ks.every(isBright)||ks.every(k=>cells[k].kind==='dark')))continue;
+    if(n===1&&voidOpen)continue; // the descent comes first: a first ring that opens the centre is the way down, not the end
+    collapseRing(n,ks);return true;}return false;}
 function collapseRing(n,ks){
-  const allB=ks.every(isBright),allD=ks.every(k=>cells[k].kind==='dark');
+  const allB=ks.every(isBright),allD=!allB;
   let nb=0,nd=0,inner=true;for(const k in cells){const c=cells[k];if(c.isVoid)continue;const rr=cellRing(c.q,c.r);if(c.cap){if(c.kind==='dark')nd++;else nb++;}if(rr<n&&!c.cap)inner=false;}
-  hubEvent('map_ring');if(allB)hubEvent('map_brightstar');if(allD)hubEvent('map_darkstar');burstFx={t0:performance.now(),kind:'ring',r:n};
-  if(n===1||inner){result={bright:nb,dark:nd,day};phase='ended';hubEvent('map_end');feed(`The count: ${nb} bright · ${nd} dark`,allB?'A Bright Star':allD?'A Dark Star':'Start a new map to play again');updateHint();saveMap();return;}
+  hubEvent('map_ring');hubEvent(allB?'map_brightstar':'map_darkstar');burstFx={t0:performance.now(),kind:'ring',r:n};
+  if(n===1||inner){result={bright:nb,dark:nd,day};phase='ended';hubEvent('map_end');feed(`The count: ${nb} bright · ${nd} dark`,(allB?'A Bright Star':'A Dark Star')+' · start a new map to play again');updateHint();saveMap();return;}
   for(const k of Object.keys(cells)){const c=cells[k];if(c.isVoid)continue;const rr=cellRing(c.q,c.r);if(rr>n){delete cells[k];totalCells--;}}
   for(const k of ks){const c=cells[k];c.cap=false;c.capVal=0;c.v=0;delete c.kind;c.mergeId=null;}
   mergeGroups=mergeGroups.filter(g=>g.cells.every(k=>cells[k]&&cells[k].cap));for(const k in cells){const c=cells[k];if(c.mergeId!=null&&!mergeGroups.some(g=>g.id===c.mergeId))c.mergeId=null;}
@@ -710,7 +712,7 @@ const SCENES={
   descend(){sceneReset();ring(1).forEach(([q,r],i)=>at(300+i*350,()=>sceneCap(K(q,r),'bright')));at(2700,()=>{voidOpen=true;});at(3600,()=>{const o=cells[K(pQ,pR)];if(o)o.isP=false;depth++;newMap();camTX=camTY=0;showMergeFlash('Descended to D'+depth);});return 6500;},
   constellation(){sceneReset();const ks=['2,-1','1,1','-1,2','-2,1','-1,-1'];ks.forEach((k,i)=>at(300+i*250,()=>sceneCap(k,'bright')));armed='weave';weaveSel=[];
     ks.forEach((k,i)=>at(1800+i*450,()=>weaveSel.push(k)));at(1800+5*450+300,()=>{constel=[{keys:ks.slice(),type:'lens'}];weaveSel=[];armed=null;showMergeFlash('✦ Constellation · Lens');});at(5200,()=>{advanceTurn();showMergeFlash('+1 Lens');});return 7500;},
-  ring(){return sceneRing(i=>i%3?'bright':'dark');},
+  ring(){return sceneRing(()=>'bright');},
   brightstar(){return sceneRing(()=>'bright');},
   darkstar(){return sceneRing(()=>'dark');},
   end(){sceneReset();const r1=ring(1).map(([q,r])=>K(q,r));r1.forEach((k,i)=>at(400+i*300,()=>i<r1.length-1?sceneCap(k,'bright'):completeCaptureForCell(k,'bright')));return 7000;}};
