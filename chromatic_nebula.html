@@ -114,7 +114,7 @@ button:hover{background:rgba(255,255,255,0.15);}
   <div id="dock" class="bottom"><div id="inventoryPanel"></div><div id="touch-info"></div></div>
   <canvas id="cur"></canvas>
 </div>
-<script src="shared.js?v=20261102h"></script>
+<script src="shared.js?v=20261102i"></script>
 <script>
 const _SRC=document.documentElement.outerHTML; // kept so the Encyclopedia can run live scenes as embedded copies of the game
 // Safety: a negative / non-finite gradient radius would throw and kill the frame — clamp it, and log the first offender's stack so it can be traced.
@@ -433,6 +433,10 @@ const T={
   kAttract:     0.3,
   kDamp:        0.3,
   pulsingFacing: 90,  // degrees: how far a Pulsing remnant's glyph and beam are turned from its spin angle (its first-half thrust points forward)
+  fxCatchMs:   650, // ms: an Orbit / Fling / Pull / DEPTH first catches what enters it (its own momentum is neutralised toward the intended path), then eases the effect in over this time
+  fxCatchK:      3, // how much harder than its normal rate the effect brakes stray momentum while it is catching
+  fxHoldReach: 1.3, // × the effect's radius: something it has caught is held this far out (only a fast mover, above fxEscapeSpd × Max speed, or a Fling's own spiral gets out)
+  fxEscapeSpd:0.85,
   orbitSteer:   1, // how much of its heading error an Orbit / Fling / Pull turns out per frame (the turn itself is limited by Max rot spd and the K·Rot-force rate)
   spiralRate:   0.13, // px/frame: how fast Fling widens (and Pull narrows) an orbit's radius
   exitSpinKeep: 0.3,  // share of its spin a thing keeps once it leaves an Orbit / Fling / Whirl ring (the rest bleeds off, so it sails away)
@@ -739,6 +743,8 @@ const T={
   settleFr:     1,
   settleBt:     50,     // candidate cells reconsidered per settle tick (1–100; small + every frame = a continuous trickle)
   settleBlendRate:0.1,   // 0..1: chance any given sampled cell reconsiders its state at all this tick (speed knob — direction always follows local majority)
+  paintFadeMax:  300, // at most this many particles ease into a change at once; past it (a mass recolour) changes are painted at once
+  paintFadeFrames:14, // frames a particle takes to ease into a new colour / strength / size (or in, when painted); 0 = at once
   settleFadeFrames:90,   // frames a settled cell takes to fade in (newly filled) or fade out (newly voided) instead of popping instantly
   settleBlendMix: 0.2,   // 0..1: how far a cell jumps toward its neighbors' majority color when it stays/becomes populated
 
@@ -965,6 +971,10 @@ const TUNE_DEFS=[
   {key:'kDamp',       label:'SNARE',   min:0,max:1.00,step:0.05,tip:'SNARE (#FE04C1): velocity damping'},
   {key:'pulsingFacing',label:'Pulsing facing',min:-180,max:180,step:5,tip:'Degrees a Pulsing remnant is turned from its spin angle: its glyph and beam (the first-half thrust) point this way'},
   {sec:'Forces — sub-ratios',tab:'gameplay'},
+  {key:'fxCatchMs',label:'Catch ms',min:0,max:3000,step:50,tip:'Orbit / Fling / Pull / DEPTH: how long the effect takes to ease in after catching something (its stray momentum is neutralised first)'},
+  {key:'fxCatchK',label:'Catch brake',min:1,max:10,step:0.5,tip:'How much harder than normal the effect brakes the momentum of something it is catching'},
+  {key:'fxHoldReach',label:'Hold reach',min:1,max:2,step:0.05,tip:'× effect radius: how far out something already caught is still held (stops things entering at speed from slipping out)'},
+  {key:'fxEscapeSpd',label:'Escape speed',min:0.3,max:1,step:0.05,tip:'× Max speed: a caught object moving faster than this can still escape the hold'},
   {key:'orbitSteer',label:'Orbit steer',min:0,max:1,step:0.05,tip:'Share of its heading error an Orbit / Fling / Pull turns out each frame (turn rate itself is capped by Max rot spd)'},
   {key:'spiralRate',label:'Spiral rate',min:0,max:1,step:0.01,tip:'px/frame: Fling widens, Pull narrows an orbit by this much'},
   {key:'exitSpinKeep',label:'Exit spin keep',min:0,max:1,step:0.05,tip:'Share of its spin a thing keeps after leaving an Orbit / Fling / Whirl ring: the rest bleeds off over Exit spin ms, so its path straightens and it moves away from the source'},
@@ -1233,6 +1243,7 @@ const TUNE_DEFS=[
   {key:'settleFr',    label:'Settle int',  min:1,max:300,step:1,      tip:'Frames between settle steps'},
   {key:'settleBt',    label:'Settle bat',  min:1,max:100,step:1,      tip:'Candidate cells reconsidered per settle step. Small batch + interval 1 = a continuous every-frame trickle; big batch + long interval = the slow, chunky effect'},
   {key:'settleBlendRate',label:'Churn chance',min:0,max:1,step:0.05, tip:'Chance any sampled cell reconsiders its state this tick — direction always follows local majority (void counts as a state too)'},
+  {key:'paintFadeFrames',label:'Paint fade',min:0,max:60,step:1,tip:'Frames a particle takes to ease into a new colour / strength / size, or to fade in when painted (0 = at once)'},
   {key:'settleFadeFrames',label:'Settle fade',min:0,max:90,step:1,   tip:'Frames a settled cell takes to fade in when it appears, or fade out when it disappears'},
   {key:'settleBlendMix',label:'Churn jump', min:0.1,max:1,step:0.05, tip:'How far a cell jumps toward its neighbors\' majority color when it stays/becomes populated'},
 
@@ -1552,7 +1563,7 @@ TUNE_DEFS.push({sec:'Time dilation & Risks',tab:'gameplay'},
  {key:'riskWarnMass',label:'Risk WARNING mass',min:1,max:5000,step:10,tip:'Points above this mass show a blinking WARNING (default: half the Dark Remnant formation mass)'},
  {key:'riskDangerMass',label:'Risk DANGER mass',min:1,max:400000,step:100,tip:'Points above this mass show DANGER'},
  {key:'cacheKeyR',label:'Cache keyhole pane R',min:6,max:40,step:1,tip:'Radius of the central keyhole glass pane of a Cache'});
-Object.assign(T,{masterVol:0.7,soundOn:0,mapHexSize:34,mapBurstRings:3,mapCollapseMs:1400,mapSourceGlow:1,mapTilt:32,mapPersp:1400,mapZoomMin:0.55,mapZoomMax:1.8,mapDucks:5,mapZoom:1,mapAlpha:1,mapClearBlur:0.6,mapClearBleed:0.85,mapCovMin:0.25,mapCovFull:1});
+Object.assign(T,{masterVol:0.7,soundOn:0,mapHexSize:34,mapBurstRings:3,mapCollapseMs:1400,mapSourceGlow:1,mapTilt:32,mapPersp:1400,mapZoomMin:0.55,mapZoomMax:1.8,mapDucks:5,mapDuckRefl:0.4,mapZoom:1,mapAlpha:1,mapClearBlur:0.6,mapClearBleed:0.85,mapCovMin:0.25,mapCovFull:1});
 TUNE_DEFS.push({sec:'Master volume',tab:'sounds'},{key:'masterVol',label:'Master volume',min:0,max:1,step:0.05,tip:'Overall volume (also in the Esc menu)'},
  {sec:'Surface Map — hex surface layer (drawn by the surface renderer: pixel map, blur passes and α all apply)',tab:'gameplay'},
  {key:'mapHexSize',label:'Hex size',min:20,max:90,step:1,tip:'Radius (px) of a Surface Map hex'},
@@ -1564,6 +1575,7 @@ TUNE_DEFS.push({sec:'Master volume',tab:'sounds'},{key:'masterVol',label:'Master
  {key:'mapZoomMin',label:'Map zoom out',min:0.3,max:1,step:0.05,tip:'Furthest the map zooms out (wheel or −)'},
  {key:'mapZoomMax',label:'Map zoom in',min:1,max:3,step:0.05,tip:'Closest the map zooms in (wheel or +)'},
  {key:'mapDucks',label:'Lake ducks',min:0,max:12,step:1,tip:'How many of your collected ducks swim in the open space around the map'},
+ {key:'mapDuckRefl',label:'Duck reflection',min:0,max:1,step:0.05,tip:'How strongly each lake duck is mirrored in the surface beneath it on the Surface Map (0 = no reflection)'},
  {key:'mapZoom',label:'Hex zoom',min:0.25,max:8,step:0.05,tip:'How much of its surface a hex shows: 1 = the middle square of the screen; higher zooms in'},
  {key:'mapClearBlur',label:'Clear edge blur',min:0,max:1.5,step:0.05,tip:'How far a bright cleared hex blurs into its neighbours (× hex size)'},
  {key:'mapClearBleed',label:'Clear edge glow α',min:0,max:1,step:0.05,tip:'Strength of the white that bleeds from a bright cleared hex into its neighbours'},
@@ -2325,6 +2337,9 @@ function nebPaint(p){
   const wt=p.blackFx?(invertMode?{r:255,g:255,b:255}:{r:0,g:0,b:0}):whiteTint(p.r,p.g,p.b,p.energy);
   if(interpByCell.size){const ci0=Math.min(GW-1,Math.max(0,(p.x/PIXEL_SIZE)|0))+Math.min(GH-1,Math.max(0,(p.y/PIXEL_SY)|0))*GW;if(interpByCell.has(ci0))return;} // a morphing cell paints itself every frame
   const g=glideById.size?glideById.get(p.id):null; // a particle that is mid-glide is painted where it is currently seen
+  const v={s:nebSizeMultOf(p),a,r:wt.r,g:wt.g,b:wt.b},pv=p._pv;p._pv=v;
+  if(!g&&pv&&T.paintFadeFrames>0&&interpList.length<T.paintFadeMax&&(Math.abs(pv.a-v.a)>=6||Math.abs(pv.s-v.s)>0.04||Math.abs(pv.r-v.r)+Math.abs(pv.g-v.g)+Math.abs(pv.b-v.b)>=12)){
+    const idx=cellOf(p.x,p.y);if(dormant[idx]===p){startInterp(idx,pv);interpByCell.get(idx).step=1/T.paintFadeFrames;return;}} // a change of colour / strength / size eases in
   nebRepaintDimAware(p,g?g.visX:p.x,g?g.visY:p.y,wt.r,wt.g,wt.b,a,nebSizeMultOf(p));
   repaintNeighborsAround(p.x,p.y,p.mass,p.zSeq,nebSizeMultOf(p)); // anything ABOVE this particle in draw order is put back on top of it (sized by its CURRENT scale, enlarged or shrunk)
 }
@@ -2361,8 +2376,8 @@ function repaintNeighborsAround(px,py,mass,minZ,szMul){
   }
   nb.sort((u,v)=>u.zSeq-v.zSeq); // oldest first, newest last = on top
   for(const np of nb){
-    const nwt=whiteTint(np.r,np.g,np.b,np.energy);
-    nebStamp(np.x,np.y,nwt.r,nwt.g,nwt.b,(nebAlphaForEnergy(np.energy)*255+0.5)|0,false,nebSizeMultOf(np));
+    const ie=interpByCell.size?interpByCell.get(cellOf(np.x,np.y)):null,nv=ie&&ie.cur?ie.cur:(np._pv||visOf(np)); // as it is seen right now (mid-morph included)
+    nebStamp(np.x,np.y,nv.r,nv.g,nv.b,nv.a,false,nv.s);
   }
 }
 // Cell shape: 'circle' or 'square'. Rebuild the nebula composite after
@@ -2597,17 +2612,17 @@ function initWoken(dp,birth){
 function removeDormant(idx,now){
   const p=dormant[idx];if(!p)return;
   { // a particle that is mid-glide snaps to its true cell first, so removal clears exactly what is painted (no ghost left behind)
-    const gl=glideById.get(p.id);
-    if(gl){nebMoveVisual(p,gl.visX,gl.visY,p.x,p.y);gl.dead=true;glideById.delete(p.id);}
+    var fx=p.x,fy=p.y;const gl=glideById.get(p.id);
+    if(gl){fx=gl.visX;fy=gl.visY;gl.dead=true;glideById.delete(p.id);} // fades out where it is seen, not from a snap to its cell
     if(interpByCell.size)snapInterp(idx);
   }
-  p.activatedAt=now;
-  if(!_dormantFadeOnRemove || !addTransition(p.x,p.y,p.r,p.g,p.b,p.energy,p.mass,p.scaleMul)){
+  p.activatedAt=now;p._pv=undefined;
+  if(_dormantInstant || !addTransition(fx,fy,p.r,p.g,p.b,p.energy,p.mass,p.scaleMul,p.blackFx)){
     // Either a plain instant-clear removal, or the fade queue is full this
     // frame (large-scale wake burst) — either way, clear nebData immediately
     // so the cell can never end up painted with no dormant/transition entry
     // still tracking it.
-    nebClear(p.x,p.y,p.mass,p.scaleMul);
+    nebClear(fx,fy,p.mass,p.scaleMul);
   }
   dormant[idx]=null;
   dormantCount--;
@@ -3042,7 +3057,7 @@ function applyMagTarget(q,ci){
 function tintForce(p,q,R,ci){
   if(q.failedCollapse||q.captured||R<=0||q.isActiveRemnant)return; // Active Remnants never push each other
   if(ci===undefined)ci=curTintCI(p);if(ci===undefined)return;
-  let src=p._tintSrc;if(!src)src=p._tintSrc={failedCollapse:false};
+  let src=p._tintSrc;if(!src)src=p._tintSrc={id:'tint'+p.id,failedCollapse:false};
   src.x=p.x;src.y=p.y;src.ci=ci;src.energy=T.tintForceE;
   applyForce(src,q,1,_effDt,R);
 }
@@ -5351,7 +5366,7 @@ function stepFixedShapes(now,dt){
     }
     if(sh.crate&&sh._shatterAt&&sh.gate)shatterCrate(sh,now);
     if(sh.glass&&!sh.lk&&sh.tint!==null&&sh.tint!==undefined&&sh._c&&(sh.held||now<(sh.pulseUntil||0))){ // tinted glass: everything passing under it gets that colour's effect at its BASE strength (no mass / energy scaling)
-      const src=sh._srcP||(sh._srcP={failedCollapse:false,energy:0});
+      const src=sh._srcP||(sh._srcP={id:'glass'+(++_fxSrcSeq),failedCollapse:false,energy:0});
       src.x=sh._c[0];src.y=sh._c[1];src.ci=sh.tint;src.energy=0;
       const bb=sh._bb;
       if(sh.tint===6||sh.tint===7){ // ECLIPSE / CRYSTALIZE glass: everything under it turns into that (particles stay asleep), as a colour change that lingers
@@ -5534,7 +5549,12 @@ function objKey(p){ // which object TYPE this is (feed and telemetry are unlocke
   if(!p)return 'pigment';if(p.isDormant)return 'particle';
   if(p.isRemnant){if(p.remKind==='black')return 'dark';if(p.enriched)return 'relic';return p.remKind==='brown'?'dim':p.remKind==='white'?'bright':p.remKind;}
   if(p.blackFx)return 'eclipse';if(p.whiteFx)return 'crystal';if(p.failedCollapse)return 'dim';return p.collapsed?'point':'pigment';}
-function feedLock(p){const k=objKey(p),id='of_'+k;if(discHas(id))return false;if(overFeed&&discTry(id))return false;setFeed('▒ undiscovered','hover this feed holding '+fmtCount(discCostOf(id))+' Dim to discover this kind of object','rgba(255,255,255,0.55)');return true;}
+// An object type's feed info is discovered by using one: activating it, hovering one for T.discHoverMs in total, or collecting it (no Dim needed)
+const _discHov={};let _discHovAt=0;
+function discObj(p){const id='of_'+objKey(p);if(discHas(id))return;discSeen.add(id);saveInventory();}
+function discHoverTick(p,now){const dt=Math.min(100,now-(_discHovAt||now));_discHovAt=now;if(!p)return;const k=objKey(p);if(discHas('of_'+k))return;_discHov[k]=(_discHov[k]||0)+dt;if(_discHov[k]>=(T.discHoverMs||1000))discObj(p);}
+function feedLock(p){const id='of_'+objKey(p);if(discHas(id))return false;if(pressedIDs.has(p.id)){discObj(p);return false;}
+  const k=objKey(p),f=Math.min(1,(_discHov[k]||0)/(T.discHoverMs||1000));setFeed('▒ undiscovered',f>0?'discovering '+'▮'.repeat(Math.round(f*8))+'▯'.repeat(8-Math.round(f*8)):'hover one, activate one or collect one to discover it','rgba(255,255,255,0.55)');return true;}
 function applyDisc(){
   for(const m of DISC_MAP){const el=document.querySelector(m[0]);if(el)el.dataset.disc=m[1];}
   document.querySelectorAll('#inventoryPanel .slot').forEach(el=>{el.dataset.disc='slot_'+el.dataset.kind;});
@@ -5872,12 +5892,12 @@ function stepOneField(h,now,dtMs){
   if(h.acc>=every){h.acc-=every;if(inventory[kind]<cost){destroyFieldObj(h,now);flashSaveStatus((kind==='dim'?'DEPTH':'BALANCE')+' ran out.');return;}addInventory(kind,-cost);}
   if(kind==='dim'){
     if(isPaused)return;refreshActiveGrid(); // DEPTH: pulls everything in reach round and in
-    const src={x:h.x,y:h.y,ci:3,energy:0.6,failedCollapse:false,_whirl:true},dt=dtMs*speedMult;
+    const src=h._src||(h._src={id:'depth'+h.id,ci:3,energy:0.6,failedCollapse:false,_whirl:true}),dt=dtMs*speedMult;src.x=h.x;src.y=h.y; // (one source per DEPTH, so what it has caught stays caught)
     { _dormantFadeOnRemove=true;let woke=0;const nw=[]; // particles in the swirl are woken (activated) and drawn in
       wakeRing(h.x,h.y,0,R,now,(dp)=>{initWoken(dp,0);dp._whirlPx=true;woke++;nw.push(dp);},()=>woke<40);
       for(const dp of nw)active.push(dp);if(nw.length)refreshActiveGrid(); }
-    fillRadiusBuf(h.x,h.y,R);for(let ni=0;ni<_radLen;ni++){const q=active[_radBuf[ni]];if(!q||q.dying)continue;
-      q._nullAt=now;q._whirlAt=now; // its own effects are nullified AND no other source can touch it while it swirls
+    fillRadiusBuf(h.x,h.y,fxReach(src,R));for(let ni=0;ni<_radLen;ni++){const q=active[_radBuf[ni]];if(!q||q.dying)continue;
+      if(q._orbSrc!==src.id&&Math.hypot(_wrapD(q.x-h.x,W),_wrapD(q.y-h.y,H))>R)continue;q._nullAt=now;q._whirlAt=now; // its own effects are nullified AND no other source can touch it while it swirls
       if(q.remKind!=='black')applyForce(src,q,1,dt,R);}
   } else { // BALANCE: whatever was inside stays exactly as frozen; whatever reaches the edge bounces off
     fillRadiusBuf(h.x,h.y,R+40);for(let ni=0;ni<_radLen;ni++){const p=active[_radBuf[ni]];
@@ -6324,7 +6344,7 @@ function collectRemnant(c){
   c.inShape=!!bondOf(c.p);
   if(!c.free){ const hn=performance.now(); if(heatBlocked(hn))return false; // an overheated cursor collects nothing
     if(_collHeatPress===mouseDownAt)heatAdd(1,hn);else _collHeatPress=mouseDownAt; } // (a String shot collecting costs no heat) the first object of a press is free; each further one adds heat, like a swipe
-  c.p._collected=true;if(blackHole)c.p._bhGone=true;lastCollectDoneAt=performance.now();
+  c.p._collected=true;if(blackHole)c.p._bhGone=true;lastCollectDoneAt=performance.now();discObj(c.p);
   if(inventory[c.kind]>=invMaxFor(c.kind)){flashSaveStatus(INV_LABEL[c.kind]+' is full');return false;}
   for(let bi=activeBonds.length-1;bi>=0;bi--){const bd=activeBonds[bi];if(bd.chain.indexOf(c.p)!==-1)popBond(bd,bi);} // a node taken out breaks its Pattern / prism / knot; the other nodes drift free
   const idx=active.indexOf(c.p);if(idx>=0)active.splice(idx,1);
@@ -6925,9 +6945,9 @@ const transitions=[];
 // back to an instant clear, or the particle would stay painted in nebData forever
 // with nothing left tracking it (visible, but orphaned from both dormant[] and
 // transitions[] — a "locked" ghost particle).
-function addTransition(x,y,r,g,b,energy,mass,scaleMul){
+function addTransition(x,y,r,g,b,energy,mass,scaleMul,bk){
   if(transitions.length>=T.maxTransitions)return false;
-  transitions.push({x,y,r,g,b,energy,mass,scaleMul,age:0});
+  transitions.push({x,y,r,g,b,energy,mass,scaleMul,age:0,bk:!!bk});
   return true;
 }
 
@@ -6976,13 +6996,13 @@ function stepTransitions(){
   if(doneIdx.length){let w=0;for(let i=0;i<transitions.length;i++){const t=transitions[i];if(!t._done)transitions[w++]=t;}transitions.length=w;nebDirty=true;} // one compaction (a splice per ending made a big burst quadratic)
   _transNb.forEach(ni=>{
     const np=dormant[ni];if(!np)return;
-    const nwt=whiteTint(np.r,np.g,np.b,np.energy);
-    nebStamp(np.x,np.y,nwt.r,nwt.g,nwt.b,(nebAlphaForEnergy(np.energy)*255+0.5)|0,false,nebSizeMultOf(np));
+    const ie=interpByCell.size?interpByCell.get(cellOf(np.x,np.y)):null,nv=ie&&ie.cur?ie.cur:(np._pv||visOf(np)); // as it is seen right now (mid-morph included)
+    nebStamp(np.x,np.y,nv.r,nv.g,nv.b,nv.a,false,nv.s);
   });
   for(let k=0;k<fading.length;k+=3){
     const t=fading[k],a=fading[k+1],sz=fading[k+2];
     // (a transition removed above this frame still gets its last fade stamp, exactly as before)
-    const wt=whiteTint(t.r,t.g,t.b,t.energy);
+    const wt=t.bk?(invertMode?{r:255,g:255,b:255}:{r:0,g:0,b:0}):whiteTint(t.r,t.g,t.b,t.energy);
     nebStamp(t.x,t.y,wt.r,wt.g,wt.b,a,false,sz);
     t._lastPaintA=a;
   }
@@ -6995,7 +7015,7 @@ function drawTransitions(ctx){}
 
 // Flag: when true, removeDormant adds a fade transition instead of instantly clearing nebData.
 // Set at each call site that should fade; all others (rebuild, BH bulk clear) use instant.
-let _dormantFadeOnRemove=false;
+let _dormantFadeOnRemove=false,_dormantInstant=false; // (every removal fades now; _dormantInstant is the rare exception)
 
 // ── Nebula dispersions — radial macro-particle fields from dying whites ──────────
 // Iterates in grid-cell space (GW×GH) instead of particle space — much fewer ops.
@@ -8513,13 +8533,15 @@ function rebuildNebula(){
     const a=(nebAlphaForEnergy(p.energy)*255+0.5)|0;
     const wt=whiteTint(p.r,p.g,p.b,p.energy);
     nebStamp(p.x,p.y,wt.r,wt.g,wt.b,a,false,nebSizeMultOf(p)); // buffer is freshly zeroed — plain stamp is exact, no dim-tracking needed here
-    p._lastPaintA=a; // keep in sync so a later normal repaint's dim-check is accurate, not stale from before this rebuild
+    p._pv={s:nebSizeMultOf(p),a,r:wt.r,g:wt.g,b:wt.b};p._lastPaintA=a; // keep in sync so a later normal repaint's dim-check is accurate, not stale from before this rebuild
   }
   nebCtx.putImageData(nebImgData,0,0);nebDX0=nebDY0=1e9;nebDX1=nebDY1=-1;
   nebDirty=false;
 }
 
 // ── Force ─────────────────────────────────────────────────────────────────────
+let _fxSrcSeq=0;
+const fxReach=(src,R)=>(src.ci===1||src.ci===2||src.ci===3)?R*T.fxHoldReach:R; // how far out an effect looks: a spin effect holds what it has caught a little past its edge
 function applyForce(src,tgt,scale,dt,eR){
   if(tgt._stasis||tgt.unwind||src.unwind)return; // unwinding: nothing pushes it and it pushes nothing
   if(tgt._whirlAt>_nullNow&&!src._whirl)return; // inside a Dim WHIRL nothing else can push it
@@ -8527,7 +8549,9 @@ function applyForce(src,tgt,scale,dt,eR){
   scale*=dialFxMul(tgt);if(scale<=0)return; // launched by the String: unaffected during its time, then gradually affected
   let dx=tgt.x-src.x,dy=tgt.y-src.y;
   if(dx>W*0.5)dx-=W;else if(dx<-W*0.5)dx+=W;if(dy>H*0.5)dy-=H;else if(dy<-H*0.5)dy+=H;
-  const d2=dx*dx+dy*dy;if(d2>eR*eR||d2<0.25)return;
+  const spin=src.ci===1||src.ci===2||src.ci===3,wallT=performance.now(),held=spin&&tgt._orbSrc===src.id&&wallT-(tgt._orbT||0)<150;
+  const reach=held&&Math.hypot(tgt.vx-(src.vx||0),tgt.vy-(src.vy||0))<T.maxSpeed*T.fxEscapeSpd?eR*T.fxHoldReach:eR; // once caught it is held a little beyond the edge, unless it is fast
+  const d2=dx*dx+dy*dy;if(d2>reach*reach||d2<0.25)return;
   const d=Math.sqrt(d2),nx=dx/d,ny=dy/d,tx=ny,ty=-nx;
   const dtS=dt/16.67;
   const eContrib=T.forceFloor+T.forceCeil*Math.min(src.energy,1.0);
@@ -8538,7 +8562,7 @@ function applyForce(src,tgt,scale,dt,eR){
     const lk=Math.min(1,imp*K*T.kStraighten),rvx=tgt.vx-(src.vx||0),rvy=tgt.vy-(src.vy||0),vt=rvx*tx+rvy*ty;
     tgt.vx-=tx*vt*lk;tgt.vy-=ty*vt*lk;tgt.rot=(tgt.rot||0)*(1-Math.min(1,lk*2));tgt.rotGoal=undefined;
   };
-  if(src.ci===1||src.ci===2||src.ci===3){
+  if(spin){
     // ORBIT (2) / FLING (1) / PULL (3). Anything inside the effect HAS to be moving at an orbital speed: the fastest speed the spin cap can still hold in
     // a circle at this distance (Max rot spd × distance), never above Max speed. Too fast and it is slowed to that; too slow (or still) and it is sped
     // up to it, along the intended heading, no faster than the force rate (K × (floor+ceil)) allows. Its spin is then driven to the turn rate that
@@ -8548,22 +8572,25 @@ function applyForce(src,tgt,scale,dt,eR){
     let dir=tgt._orbDir||0;
     if(s0>0.02&&Math.abs(tv)>0.15*s0)dir=tv>0?1:-1;else if(!dir)dir=tgt.rot?(tgt.rot>0?-1:1):1; // keep the sense it is already circling in
     tgt._orbDir=dir;
-    const rate=src.ci===2?0:(src.ci===1?T.spiralRate:-T.spiralRate),wallT=performance.now();
-    if(tgt._orbSrc!==src.id||wallT-(tgt._orbT||0)>150){tgt._orbSrc=src.id;tgt._orbR=d;} // locked at the distance it was at when the effect took hold
-    tgt._orbT=wallT;tgt._orbR+=rate*dtS;
+    const rate=src.ci===2?0:(src.ci===1?T.spiralRate:-T.spiralRate);
+    if(!held){tgt._orbSrc=src.id;tgt._orbR=Math.min(d,eR*0.85);tgt._orbAge=0;} // caught: its path is locked at the distance it entered at (kept inside the edge)
+    tgt._orbT=wallT;tgt._orbAge+=dt; // (simulation time, so slow motion slows the catch too)
+    const cu=Math.min(1,tgt._orbAge/Math.max(1,T.fxCatchMs)),c=cu*cu*(3-2*cu); // the catch: 0 → 1, eased; the effect itself only builds as it takes control
+    tgt._orbR+=rate*dtS*c;
     const sOrb=Math.max(0.05,Math.min(T.maxSpeed,T.maxRotSpeed*T.rotCurveMult*d)); // orbital speed here
     const rvDes=rate+T.orbitSteer*0.1*(tgt._orbR-d); // radial speed that keeps it on the intended radius
     const sinB=Math.max(-0.9,Math.min(0.9,rvDes/sOrb)),cosB=Math.sqrt(1-sinB*sinB);
     const hx=dir*cosB*tx+sinB*nx,hy=dir*cosB*ty+sinB*ny; // intended heading
     const K=src.ci===1?T.kFling:(src.ci===2?T.kOrbit:T.kPull),acc=K*(T.forceFloor+T.forceCeil)*FORCE_BASE*Math.max(0,scale)*dtS; // velocity change allowed per frame
-    let dvx=hx*sOrb-rvx,dvy=hy*sOrb-rvy;const dm=Math.hypot(dvx,dvy);
-    if(dm>acc){dvx*=acc/dm;dvy*=acc/dm;}
+    const cap=acc*(1+(T.fxCatchK-1)*(1-c)); // stray momentum is neutralised quickly first…
+    let dvx=hx*sOrb*c-rvx,dvy=hy*sOrb*c-rvy;const dm=Math.hypot(dvx,dvy); // …toward the intended path, whose speed builds as the catch completes
+    if(dm>cap){dvx*=cap/dm;dvy*=cap/dm;}
     tgt.vx+=dvx;tgt.vy+=dvy;
     const nvx=tgt.vx-(src.vx||0),nvy=tgt.vy-(src.vy||0),s1=Math.hypot(nvx,nvy);
     const e=s1>0.01?Math.atan2(nvx*hy-nvy*hx,nvx*hx+nvy*hy):0; // turn that would line its velocity up with the intended heading
     const cmd=(-dir*s1*cosB/d+T.orbitSteer*e)/Math.max(0.0001,T.rotCurveMult);
     const maxStep=K*T.rotForceMult*(T.forceFloor+T.forceCeil)*FORCE_BASE*Math.max(0,scale)*dtS;
-    const want=Math.max(-T.maxRotSpeed,Math.min(T.maxRotSpeed,cmd));
+    const want=Math.max(-T.maxRotSpeed,Math.min(T.maxRotSpeed,cmd))*c; // spin is eased in too, so nothing entering is spun out
     tgt.rot+=Math.max(-maxStep,Math.min(maxStep,want-(tgt.rot||0)));
     return;
   }
@@ -8626,16 +8653,20 @@ function _sfAddNb(px,py){
     _sfNb.add(ngy*GW+ngx);
   }
 }
-const _sfG=[],_sfI=[],_sfGD=[],_sfID=[],_sfPool=[],_sfList=[],_sfSkip=[];let _sfSer=0,_sfCost=0.03;
+const _sfG=[],_sfI=[],_sfGD=[],_sfID=[],_sfPool=[],_sfList=[];let _sfSer=0,_sfCost=0.03,_sfWait=0;
 function updateSettleFades(timeScale){
   const gl=settleFades,il=interpList;
   if(gl.length===0&&il.length===0)return;
-  const step=1/Math.max(1,T.settleFadeFrames),kx=NEB_SS/PIXEL_SIZE,ky=NEB_SS/PIXEL_SY,t0=performance.now(),maxN=fadeMaxN(_sfCost);let nJ=0; // repaints share the fade budget; the rest wait, first in line next frame
+  // Every glide and fade-in is repainted together each frame it runs: a re-stamp blends into its overlaps, so repainting some of them on
+  // alternate frames made those overlaps flicker. Past the fade budget the whole set runs every few frames instead, a bigger step each time.
+  const maxN=fadeMaxN(_sfCost),n=gl.length+il.length;let mul=1;
+  if(n>maxN){if(++_sfWait<Math.min(3,Math.ceil(n/maxN)))return;mul=_sfWait;}_sfWait=0; // (at most every 3rd frame: past that it simply costs more)
+  const step=mul/Math.max(1,T.settleFadeFrames),t0=performance.now();let nJ=0; // repaints share the fade budget; the rest wait, first in line next frame
   const eas=pr=>pr<0.5?2*pr*pr:1-Math.pow(-2*pr+2,2)/2;
   _sfNb.clear();_sfSer++;
   const gJobs=_sfG,iJobs=_sfI,gDone=_sfGD,iDone=_sfID;gJobs.length=iJobs.length=gDone.length=iDone.length=0;
   // ── phase A: advance everything; only what has visibly changed (≥ 1 nebula pixel moved, or a visible alpha / size step) is erased and repainted
-  let w=0;const skip=_sfSkip;skip.length=0;
+  let w=0;
   for(let i=0;i<gl.length;i++){
     const g=gl[i],p=g.p;
     if(g.dead){glideById.delete(p.id);continue;}
@@ -8645,14 +8676,12 @@ function updateSettleFades(timeScale){
     }
     g.progress=Math.min(1,g.progress+step);
     const e=eas(g.progress),nx=g.fx+(p.x-g.fx)*e,ny=g.fy+(p.y-g.fy)*e;
-    if(g.progress<1&&Math.abs(nx-g.visX)*kx<1&&Math.abs(ny-g.visY)*ky<1){gl[w++]=g;continue;} // not a nebula pixel further yet: nothing to repaint
-    if(nJ>=maxN){skip.push(g);continue;} // over budget: keeps its look (finished or not) and goes first next frame
     nJ++;
     nebStamp(g.visX,g.visY,0,0,0,0,true,sz);_sfAddNb(g.visX,g.visY);
     gJobs.push(g,nx,ny,sz);g._sfS=_sfSer;
     if(g.progress<1)gl[w++]=g;else gDone.push(g);
   }
-  gl.length=w;if(skip.length){gl.unshift(...skip);}
+  gl.length=w;
   let wi=0;
   for(let i=0;i<il.length;i++){
     const e=il[i];
@@ -8660,8 +8689,6 @@ function updateSettleFades(timeScale){
     e.progress=Math.min(1,e.progress+(e.step||step));
     const p=dormant[e.idx],to=p?visOf(p):ZERO_V;
     const cur=lerpV(e.from,to,eas(e.progress));
-    if(e.progress<1&&e.cur&&Math.abs(cur.a-e.cur.a)<3&&Math.abs(cur.s-e.cur.s)<0.03){il[wi++]=e;continue;} // no visible step yet
-    if(nJ>=maxN&&e.cur){il[wi++]=e;continue;} // over budget: keeps its look and is reached again next frame
     nJ++;
     nebStamp(e.x,e.y,0,0,0,0,true,Math.max(e.prevS,cur.s,0.05));_sfAddNb(e.x,e.y);
     iJobs.push(e,cur);e._sfS=_sfSer;
@@ -8684,8 +8711,8 @@ function updateSettleFades(timeScale){
   for(let k=0;k<iJobs.length;k+=2){const e=iJobs[k],po=dormant[e.idx];put((po&&po.zSeq)||0,2,e,iJobs[k+1]);}
   stamps.sort((A,B)=>A.z-B.z);
   for(const st of stamps){
-    if(st.k===0){const np=st.a,wt=whiteTint(np.r,np.g,np.b,np.energy);nebStamp(np.x,np.y,wt.r,wt.g,wt.b,(nebAlphaForEnergy(np.energy)*255+0.5)|0,false,nebSizeMultOf(np));}
-    else if(st.k===1){const g=st.a,p=g.p,wt=whiteTint(p.r,p.g,p.b,p.energy);nebStamp(st.b,st.c,wt.r,wt.g,wt.b,(nebAlphaForEnergy(p.energy)*255+0.5)|0,false,st.d);g.visX=st.b;g.visY=st.c;}
+    if(st.k===0){const np=st.a,v=np._pv||visOf(np);nebStamp(np.x,np.y,v.r,v.g,v.b,v.a,false,v.s);}
+    else if(st.k===1){const g=st.a,p=g.p,v=visOf(p);nebStamp(st.b,st.c,v.r,v.g,v.b,v.a,false,st.d);g.visX=st.b;g.visY=st.c;p._pv=v;}
     else{const e=st.a,v=st.b;if(v.a>0&&v.s>0)nebStamp(e.x,e.y,v.r|0,v.g|0,v.b|0,v.a|0,false,v.s);e.cur=v;e.prevS=v.s;}
     st.a=st.b=null; // release references
   }
@@ -8703,8 +8730,9 @@ function updateSettleFades(timeScale){
 const interpByCell=new Map(); // cell index -> {idx,x,y,from,cur,progress,prevS}
 let interpList=[];
 const ZERO_V={s:0,a:0,r:0,g:0,b:0};
+function cellOf(x,y){return((((Math.floor((y-GRID_OY)/PIXEL_SY))%GH)+GH)%GH)*GW+((((Math.floor((x-GRID_OX)/PIXEL_SIZE))%GW)+GW)%GW);} // the grid cell under a point
 function visOf(p){
-  const wt=whiteTint(p.r,p.g,p.b,p.energy);
+  const wt=p.blackFx?(invertMode?{r:255,g:255,b:255}:{r:0,g:0,b:0}):whiteTint(p.r,p.g,p.b,p.energy);
   return{s:nebSizeMultOf(p),a:(nebAlphaForEnergy(p.energy)*255+0.5)|0,r:wt.r,g:wt.g,b:wt.b};
 }
 function cellVisual(idx){const e=interpByCell.get(idx);if(e)return e.cur;const p=dormant[idx];return p?visOf(p):null;}
@@ -9880,7 +9908,7 @@ function createParticleAt(mx,my,variant,h){ // h: an exact hue for a new coloure
   if(white){np.whiteFx=true;np.masses=[np.mass/6,np.mass/6,np.mass/6,np.mass/6,np.mass/6,np.mass/6];}
   if(black)blackFields(np);
   dormant[idx]=np;dormantCount++;
-  nebPaint(np);
+  np._pv=visOf(np);startInterp(idx,ZERO_V);interpByCell.get(idx).step=1/Math.max(1,T.paintFadeFrames); // it fades in (painting stays responsive)
   return np;
 }
 // Point / White point: a free (non grid-locked) active particle, added to
@@ -10506,7 +10534,7 @@ _pm('prep');  wakeBudget=Math.max(0,Math.min(simBusy()?T.wakeBusyBudget:T.wakeBu
       // Any active/pressed point within another active point's radius still
       // gets pushed/pulled/etc — activation no longer makes a point immune to
       // other active points' effects, only to being captured mid-merge.
-      if(curR>0){fillRadiusBuf(src.x,src.y,curR);const brake=src.ci===5;for(let ni=0;ni<_radLen;ni++){const p=active[_radBuf[ni]];if(brake&&p.vx*p.vx+p.vy*p.vy<0.0001&&p.rot*p.rot<1e-8)continue;applyForce(src,p,sc,dt,curR);}for(const d of ducks)applyForce(src,d,sc,dt,curR);}
+      if(curR>0){fillRadiusBuf(src.x,src.y,fxReach(src,curR));const brake=src.ci===5;for(let ni=0;ni<_radLen;ni++){const p=active[_radBuf[ni]];if(brake&&p.vx*p.vx+p.vy*p.vy<0.0001&&p.rot*p.rot<1e-8)continue;applyForce(src,p,sc,dt,curR);}for(const d of ducks)applyForce(src,d,sc,dt,curR);}
     }
   }
 
@@ -10515,7 +10543,7 @@ _pm('activated-forces');
   if(!(blackHole&&blackHole.phase!=='active'))
   for(let i=0;i<n;i++){const p=active[i];
     if((p.whiteFx||p.blackFx)&&p.collapsed&&!p._tweenW&&!p.failedCollapse&&!p.isRemnant&&!p.captured&&!p.dying&&!isBonded(p)&&!(p._nullAt>_nullNow)&&!pressedIDs.has(p.id)){colourFxSource(p,p.blackFx?'b':'w',true);continue;} // an UNSELECTED Bright CRYSTALIZE / ECLIPSE has no effect radius: it only changes what it touches (an ECLIPSE what it passes over, a CRYSTALIZE what it bonks)
-    if(!p.collapsed||p.failedCollapse||p.isRemnant||p.captured||p.dying||p.unwind||isBonded(p)||p.whiteFx||p.blackFx||p._stasis||p._nullAt>_nullNow)continue;const curR=p.wakeProgress;if(curR<=0)continue;if(curR>p.peakEffectR)p.peakEffectR=curR;fillRadiusBuf(p.x,p.y,curR);const brake=p.ci===5;for(let ni=0;ni<_radLen;ni++){const q=active[_radBuf[ni]];if(brake&&q.vx*q.vx+q.vy*q.vy<0.0001&&q.rot*q.rot<1e-8)continue;applyForce(p,q,1.0,dt,curR);}for(const d of ducks)applyForce(p,d,1.0,dt,curR);}
+    if(!p.collapsed||p.failedCollapse||p.isRemnant||p.captured||p.dying||p.unwind||isBonded(p)||p.whiteFx||p.blackFx||p._stasis||p._nullAt>_nullNow)continue;const curR=p.wakeProgress;if(curR<=0)continue;if(curR>p.peakEffectR)p.peakEffectR=curR;fillRadiusBuf(p.x,p.y,fxReach(p,curR));const brake=p.ci===5;for(let ni=0;ni<_radLen;ni++){const q=active[_radBuf[ni]];if(brake&&q.vx*q.vx+q.vy*q.vy<0.0001&&q.rot*q.rot<1e-8)continue;applyForce(p,q,1.0,dt,curR);}for(const d of ducks)applyForce(p,d,1.0,dt,curR);}
 
 _pm('white-wake');
   // Active Remnant effects (Neutron/Magnetic/Pulsing) — each type wakes every dormant particle inside its effect
@@ -12035,6 +12063,7 @@ function updateInfoAndStats(now,hoverObj){
     if(pressedIDs.has(lastActivatedId)){for(let i=0;i<active.length;i++){if(active[i].id===lastActivatedId){infoSrc=active[i];break;}}}
     if(!infoSrc){let best=null;for(let i=0;i<active.length;i++){const p=active[i];if(pressedIDs.has(p.id)&&(!best||p.mass>best.mass))best=p;}infoSrc=best;}
   }
+  discHoverTick(hoverObj,now);
   if(!infoSrc)infoSrc=hoverObj;
   if(!infoSrc&&lastActivatedId>=0){
     for(let i=0;i<active.length;i++){if(active[i].id===lastActivatedId){infoSrc=active[i];break;}}
@@ -13721,7 +13750,7 @@ const RULES=[
 ["goal","start","The goal","pnt","Shine particles off the surface, let them turn into remnants, then collect the remnants.",[["1","Dab a particle. It wakes up as a pigment."],["2","Shining pigments push things around. Pigments that bump can join and grow."],["3","A big, balanced, energetic pigment becomes a Point. A weak one dims."],["4","Points run out of life and burst. Remnants stay behind."],["5","Click remnants to collect them. They become items you can use."]]],
 ["tips","start","Good to know","dim","Small facts that explain a lot.",[["Life","A pigment only loses life while it is shining. A Point always loses life. Remnants never do. (So shining a pigment is how you finish it off.)"],["Cap","Only Max shining things can shine at once. A new one makes the oldest stop."],["Pause","Wheel down pauses. Wheel down again goes to x1. Wheel up from a pause goes back to the speed you had. Wheel up while playing: x0.25, x0.5, x1, x2, x4, x8."]]],
 ["cleared","start","Surface cleared","nova","When nothing is left to shine, the surface washes to white and every remnant is collected for you.",[["Clean","No particles, pigments or Points left: only remnants. The scheme washes over to white."],["Box","A SURFACE CLEARED box lists everything collected (and, after a Dark Remnant, what it swallowed)."],["Again","Right-click the box to make a new surface."]]],
-["info","start","Object info","pnt","The feed and the readouts only describe an object type once you have discovered it.",[["Feed","Shine or select a thing, then hover the feed holding enough Dim: its type is discovered (nothing is spent)."],["Readouts","Telemetry, dynamics, class and effect radii unlock per type too: turn one on, hover or shine the thing and hold enough Dim."],["Costs","Every cost is on the Discoveries tuner tab."]]],
+["info","start","Object info","pnt","The feed and the readouts only describe an object type once you have discovered it.",[["Feed","Activate one, hover one for a second in total, or collect one: its type is discovered and the feed describes it from then on."],["Readouts","Telemetry, dynamics, class and effect radii unlock per type too: turn one on, hover or shine the thing and hold enough Dim."],["Costs","Every cost is on the Discoveries tuner tab."]]],
 ["dab","touch","Dab (click)","particle","A click is a dab.",[["On a particle","Forms it into a pigment, and it shines."],["On a shining thing","Feeds it a little extra mass. It grows."],["On a remnant","Collects it. Two quick dabs on one remnant collect the nearest ones of that type too."],["Limit","Past Max shining, the oldest shining thing stops."]]],
 ["wipe","touch","Wipe (swipe)","particle","Press, then drag. Everything you slide over shines.",[["Order","Each thing is picked once. Sliding back over it does not turn it off."],["Heat","The first thing is free. Each extra one adds heat."],["Over remnants","If you started on a remnant, the wipe collects remnants only."]]],
 ["mop","touch","Mop (hold)","pnt","Hold still while things are shining.",[["Drain","Shining things drain faster and faster until they dim or burst. You hear a violin chord until the last one is cleaned up."],["Not shining","With nothing shining, holding feeds what is under the cursor: more mass and energy."],["On a remnant","Holding collects the remnants you drag over."]]],
@@ -13874,7 +13903,7 @@ function cardHTML(ev,mini){ // the one card format: name bar, art box, type line
   return `<div class="mtg${mini?' sm':''}" data-ev="${ev.id}" style="--rc:${r[0]}"><div class="nm"><b>${gEsc(ev.name)}</b><span class="gem"></span></div><div class="art" data-scene="${ev.scene}">${mini?`<canvas class="rl-m" width="64" height="64" data-k="${ev.ico}"></canvas>`:''}</div><div class="ty"><span>${gEsc(ev.type.replace(/^Event — /,''))}</span><span>${r[1]}</span></div><div class="tx">${ev.facts().map(f=>`<p>${gEsc(f)}</p>`).join('')}<p class="fl">${gEsc(ev.flavor)}</p></div></div>`;
 }
 function mountScene(h,w,hh){if(!h||h.firstChild||document.querySelectorAll('.rl-live iframe,.mtg .art iframe').length>=5)return;const f=document.createElement('iframe'),nm=h.dataset.s||h.dataset.scene;f.style.cssText='border:0;max-width:100%;pointer-events:none;background:#000;border-radius:6px;'+(w?`width:${w}px;height:${hh}px`:'width:100%;height:100%');
-  if(nm.slice(0,4)==='hub:')f.src='Surface_Map_HUB.html?v=20261102h&scene='+nm.slice(4)+'&T='+encodeURIComponent(JSON.stringify(mapSceneT()));else f.srcdoc=liveSrc(nm);h.appendChild(f);} // a Surface Map demo is played by the map itself
+  if(nm.slice(0,4)==='hub:')f.src='Surface_Map_HUB.html?v=20261102i&scene='+nm.slice(4)+'&T='+encodeURIComponent(JSON.stringify(mapSceneT()));else f.srcdoc=liveSrc(nm);h.appendChild(f);} // a Surface Map demo is played by the map itself
 function mapSceneT(){const o={};for(const k in T)if(/^(map|bh|duck|wake|glass|metal|dimGlow|glowHalo|maxSpeed)/.test(k))o[k]=T[k];return o;} // what a map demo needs of the tuners
 function showEventCard(id,review){
   const ev=EVENTS.find(e=>e.id===id);if(!ev)return;guideCSS();
@@ -14120,9 +14149,9 @@ async function hubPreviews(items,size){ // one hex per frame; stops the moment a
   const gen=++_shotGen;
   for(const it of items){
     if(hubLevel||gen!==_shotGen){hubPost({type:'preview',key:it.key,sig:it.sig,img:null});continue;}
-    ensureDarkRemnantTheme();levelCoverage=it.cov;lvHex=it.q!=null?[it.q,it.r]:null;rebuild(it.seed); // a hex shows its surface as it starts (dark), whatever the last surface ended in
-    hubPost({type:'preview',key:it.key,sig:it.sig,img:hexShot(size)});
-    await new Promise(r=>setTimeout(r,0));
+    const t0=performance.now();ensureDarkRemnantTheme();levelCoverage=it.cov;lvHex=it.q!=null?[it.q,it.r]:null;rebuild(it.seed); // a hex shows its surface as it starts (dark), whatever the last surface ended in
+    hubPost({type:'preview',key:it.key,sig:it.sig,img:hexShot(size),ms:performance.now()-t0});
+    await new Promise(r=>{let d=0;const go=()=>{if(!d){d=1;setTimeout(r,0);}};requestAnimationFrame(go);setTimeout(go,40);}); // the map gets a frame between pictures (they share the page's thread)
   }
   if(!hubLevel&&gen===_shotGen)hubIdle();
 }

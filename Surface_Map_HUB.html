@@ -84,12 +84,13 @@ body.scene .hbtn,body.scene #hdock,body.scene #legend,body.scene #bottom-bar,bod
   <div class="gl">Sound</div><div class="row"><button id="mSnd" onclick="setSound(!soundOn())"></button><input id="mVol" type="range" min="0" max="1" step="0.05" oninput="setSound(true,this.value)"></div>
   <div class="gl">Help</div><button id="mGuide" data-disc="hub_guide" onclick="toggleMenu();openGuide()">Guide</button>
   <div class="gl">Surface Map — hex surface layer</div><div id="mTune"></div>
+  <div class="gl">Performance</div><button onclick="downloadHubLog()">Performance log</button>
   <div class="gl">Leave</div><button onclick="quitMain()">Quit to main menu</button>
 </div></div>
 <div id="veil"></div>
 <canvas id="hcur"></canvas>
 <iframe id="neb" title="Surface"></iframe>
-<script src="shared.js?v=20261102h"></script>
+<script src="shared.js?v=20261102i"></script>
 <script>
 // ╔══════════════════════════════════════════════════════════════════════════════╗
 // ║  MAP ENGINE                                                                 ║
@@ -104,7 +105,7 @@ let cells={},turn=0,score=0,pQ=0,pR=0,totalCells=0; // turn: how many rings the 
 let clock=3,day=1,pool=6,fresh=true,burstFx=null; // clock: the hour (3 = Predawn … 24 = Midnight, the day's last turn); day: your attempts; pool: what the source put out at its last burst; fresh: no ring added yet since it
 let constel=[],armed=null,weaveSel=[],weaveAsk=null,clearFx={},mergeFx=[],result=null,feedMsg={t:'',d:'',at:-1e9}; // constellations {keys,type}; the armed map item; a Weave being drawn; animations; the final count
 const TIMES={3:'Predawn',6:'Dawn',9:'Morning',12:'Noon',15:'Afternoon',18:'Dusk',21:'Night',24:'Midnight'},STEP_H=3; // the day: eight turns of three hours
-const CACHE_V='20261102h'; // the build: bump with shared.js's
+const CACHE_V='20261102i'; // the build: bump with shared.js's
 const SCENE=new URLSearchParams(location.search).get('scene'); // a Guide / event demo: the map plays a scripted moment (no surface behind it)
 let phase='move',turnTimer=0,mergeTimer=0;
 let gameOverReason='';
@@ -331,7 +332,7 @@ function camUpdate(){ // view = translate(0,0,−P)·rotateX(tilt)·scale(z,−z
 function proj(x,y){const p=m4.tx(cam.pv,[x-MW/2,y-MH/2,0,1]),q=m4.tx(cam.pv,[x-MW/2+1,y-MH/2,0,1]),X=(p[0]/p[3]+1)/2*SW,Y=(1-p[1]/p[3])/2*SH;return[X,Y,Math.abs((q[0]/q[3]+1)/2*SW-X)];} // → screen x, y and px per plane px
 function unproj(X,Y){const nx=X/SW*2-1,ny=1-Y/SH*2,a=m4.tx(cam.ipv,[nx,ny,-1,1]),b=m4.tx(cam.ipv,[nx,ny,1,1]),A=[a[0]/a[3],a[1]/a[3],a[2]/a[3]],B=[b[0]/b[3],b[1]/b[3],b[2]/b[3]],t=A[2]/(A[2]-B[2]);
   return[A[0]+(B[0]-A[0])*t+MW/2,A[1]+(B[1]-A[1])*t+MH/2];} // the plane point the cursor's ray meets
-function mapResize(){SW=innerWidth;SH=innerHeight;const E=1.3/Math.min(1,Math.max(0.2,viewZoom));_E=E;MW=Math.round(SW*E);MH=Math.round(SH*E); // the plane only as big as this zoom needs (a smaller canvas is a faster frame)
+function mapResize(){hubLog('resize / zoom');SW=innerWidth;SH=innerHeight;const E=1.3/Math.min(1,Math.max(0.2,viewZoom));_E=E;MW=Math.round(SW*E);MH=Math.round(SH*E); // the plane only as big as this zoom needs (a smaller canvas is a faster frame)
   MK=Math.max(0.6,Math.min(Math.max(1,viewZoom)*(window.devicePixelRatio||1),Math.sqrt(5e6/(MW*MH)))); // sharp when zoomed in, within a pixel budget
   mc.width=Math.round(MW*MK);mc.height=Math.round(MH*MK);const dp=window.devicePixelRatio||1;sc.width=Math.round(SW*dp);sc.height=Math.round(SH*dp);camUpdate();}
 function zoomView(f){const z=Math.max(T.mapZoomMin||0.55,Math.min(T.mapZoomMax||1.8,viewZoom*f));if(z===viewZoom)return;viewZoom=z;const E=1.3/Math.min(1,z);if(Math.abs(E-_E)>0.12||z>1)mapResize();else camUpdate();}
@@ -353,6 +354,10 @@ function sceneRender(now){
   gl.bindBuffer(gl.ARRAY_BUFFER,G3.buf);gl.enableVertexAttribArray(G3.aP);gl.vertexAttribPointer(G3.aP,2,gl.FLOAT,false,0,0);for(let i=0;i<3;i++)gl.disableVertexAttribArray(i+1); // the ground (its texture: y runs down, as the plane's)
   gl.uniformMatrix4fv(G3.uPV,false,cam.pv);gl.uniform2f(G3.uS,MW,MH);gl.drawArrays(gl.TRIANGLE_STRIP,0,4);
   if(!G3.duck)return;let envd=false;
+  const ra=T.mapDuckRefl!=null?T.mapDuckRefl:0.4; // ducks are mirrored in the surface beneath them
+  if(ra>0){gl.clear(gl.DEPTH_BUFFER_BIT);for(const d of pond){if(!d._s)continue;const[px,py]=w2s(d.x,d.y),[X,Y,k]=proj(px,py),f=[Math.cos(d.hd),Math.sin(d.hd),0],size=d._s,bob=size*(0.36+0.03*Math.sin(now/700+d.ph));
+    drawDuckScene(G3.duck,d.type,{rot:new Float32Array([f[0],f[1],0, 0,0,-1, -f[1],f[0],0]),size,pos:[px-MW/2,py-MH/2,-bob],view:cam.view,proj:cam.proj,viewRot:cam.viewRot,env:{x:X,y:Y,lights:[]},px:size*k,alpha:ra*(d.fade!=null?d.fade:1),mirror:true});}
+    gl.clear(gl.DEPTH_BUFFER_BIT);}
   for(const d of pond){if(!d._s)continue;const v=DUCK_TYPES[d.type]||{},refl=v.mat==='metal'||v.mat==='gold'||v.mat==='glass',[px,py]=w2s(d.x,d.y),[X,Y,k]=proj(px,py);
     if(refl&&!envd){duckEnvUpdate(mc,now,G3.duck);envd=true;}
     const f=[Math.cos(d.hd),Math.sin(d.hd),0],size=d._s; // upright on the plane: its forward along its heading, its up out of the plane (mirrored across, as the view flips y)
@@ -392,11 +397,27 @@ function cellLayer(k,c,vis){
   if(c.shot)return shotImg(c,c.shot); // an unfinished surface: as it was left
   const p=prev[k];
   if(vis&&(!p||p.sig!==cellSig(c))){if(!prevPending.has(k))mapNeed.push(k);} // only hexes on screen are (re-)shot // re-shoot; the old picture stays up until the new one arrives
-  return p&&p.img?shotImg(p,p.img):null;
+  const im=p&&p.img?shotImg(p,p.img):null;if(im&&p.t0==null)p.t0=performance.now();return im;
 }
+function prevFade(k){const p=prev[k];if(!p||p.t0==null)return 1;const f=Math.min(1,(performance.now()-p.t0)/(T.mapPrevFadeMs||450));if(f>=1)p.old=null;return f;} // a hex's picture eases in over the one it replaces
 
+// ── Performance log (Menu → Performance log): every frame's time split by phase, the slowest frames with the events just before them ──
+const hubPerf={fr:[],worst:[],ev:[],last:0,ph:{}};let _hpT=0;
+function hubLog(m){hubPerf.ev.push({t:performance.now(),m});if(hubPerf.ev.length>400)hubPerf.ev.shift();}
+function hubPh(n){const t=performance.now();hubPerf.ph[n]=(hubPerf.ph[n]||0)+t-_hpT;_hpT=t;}
+function hubPerfFrame(now){const gap=hubPerf.last?now-hubPerf.last:0;hubPerf.last=now;const work=performance.now()-hubPerf.t0,e={t:now,gap,work,ph:hubPerf.ph};hubPerf.ph={};
+  hubPerf.fr.push(e);if(hubPerf.fr.length>600)hubPerf.fr.shift();
+  if(gap>(T.perfLogSimMs||30)){e.ev=hubPerf.ev.filter(x=>now-x.t<1500).slice(-12);hubPerf.worst.push(e);hubPerf.worst.sort((a,b)=>b.gap-a.gap);if(hubPerf.worst.length>25)hubPerf.worst.length=25;}}
+function downloadHubLog(){const L=[],now=performance.now(),f=hubPerf.fr,avg=k=>f.length?(f.reduce((s,e)=>s+(k?e.ph[k]||0:e.work),0)/f.length):0;
+  L.push('Surface Map — performance log  ('+new Date().toISOString()+')');L.push('screen '+SW+'x'+SH+'  plane '+MW+'x'+MH+' ×'+MK.toFixed(2)+'  zoom '+viewZoom.toFixed(2)+'  hexes '+Object.keys(cells).length+'  pictures '+Object.keys(prev).length+'  waiting '+prevPending.size+'  ducks '+pond.length+'  '+navigator.userAgent);
+  const phs=[...new Set(f.flatMap(e=>Object.keys(e.ph)))];L.push('');L.push('== AVERAGE OVER THE LAST '+f.length+' FRAMES ==');L.push('frame gap '+(f.length?f.reduce((s,e)=>s+e.gap,0)/f.length:0).toFixed(1)+' ms · map work '+avg().toFixed(1)+' ms · '+phs.map(k=>k+' '+avg(k).toFixed(2)).join(' · '));
+  L.push('');L.push('== SLOWEST FRAMES (gap since the previous frame; the surface building pictures runs on the same thread and shows up as gap without map work) ==');
+  for(const e of hubPerf.worst){L.push('');L.push('gap '+e.gap.toFixed(0)+' ms · map work '+e.work.toFixed(1)+' ms  ('+((now-e.t)/1000).toFixed(1)+' s ago)');L.push('   phases: '+Object.entries(e.ph).sort((a,b)=>b[1]-a[1]).map(x=>x[0]+' '+x[1].toFixed(1)).join(' · '));L.push('   before it: '+((e.ev||[]).map(x=>((x.t-e.t)/1000).toFixed(2)+'s '+x.m).join(' | ')||'—'));}
+  L.push('');L.push('== LAST EVENTS ==');for(const x of hubPerf.ev.slice(-120))L.push(((now-x.t)/1000).toFixed(2)+'s ago  '+x.m);
+  L.push('');L.push('== LAST 200 FRAMES (gap | work) ==');L.push(f.slice(-200).map(e=>e.gap.toFixed(0)+'|'+e.work.toFixed(1)).join('  '));
+  const blob=new Blob([L.join('\n')],{type:'text/plain'}),a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='surface-map-perf-log.txt';document.body.appendChild(a);a.click();setTimeout(()=>{URL.revokeObjectURL(a.href);a.remove();},500);}
 function mapRender(){
-  if(currentView==='level'){mapRafId=null;return;}
+  if(currentView==='level'){mapRafId=null;return;}hubPerf.t0=_hpT=performance.now();
   camX+=(camTX-camX)*0.1;camY+=(camTY-camY)*0.1;
   mctx.setTransform(MK,0,0,MK,0,0);mctx.fillStyle='#050608';mctx.fillRect(0,0,MW,MH);
   mapNeed=[];
@@ -426,7 +447,8 @@ function mapRender(){
     if(c.isVoid&&c.q===0&&c.r===0&&voidOpen){mctx.save();mctx.shadowColor='rgba(160,120,230,0.25)';mctx.shadowBlur=28;hexPath(sx,sy,s+2);mctx.fillStyle='rgba(160,120,230,0.04)';mctx.fill();mctx.restore();}
     hexPath(sx,sy,s);mctx.fillStyle=fill;mctx.fill();
     if(SCENE&&!c.cap&&!c.isVoid){const[wx,wy]=a2w(c.q,c.r),fd=sceneField(),F=HEX*16;mctx.save();hexPath(sx,sy,s);mctx.clip();mctx.globalAlpha=0.35+0.65*Math.min(1,c.v);mctx.drawImage(fd,sx-wx-F/2,sy-wy-F/2,F,F);mctx.restore();}
-    else if(!c.cap&&!c.isVoid){const[vx,vy]=proj(sx,sy),img=cellLayer(k,c,vx>-HEX*2&&vx<SW+HEX*2&&vy>-HEX*2&&vy<SH+HEX*2);if(img){mctx.save();hexPath(sx,sy,s);mctx.clip();mctx.globalAlpha=T.mapAlpha!=null?T.mapAlpha:1;mctx.drawImage(img,sx-HEX,sy-HEX,2*HEX,2*HEX);mctx.restore();}}
+    else if(!c.cap&&!c.isVoid){const[vx,vy]=proj(sx,sy),img=cellLayer(k,c,vx>-HEX*2&&vx<SW+HEX*2&&vy>-HEX*2&&vy<SH+HEX*2);const pf=img?prevFade(k):1,po=prev[k]&&prev[k].old,oi=pf<1&&po?shotImg(po,po.img):null,ma=T.mapAlpha!=null?T.mapAlpha:1;
+      if(img||oi){mctx.save();hexPath(sx,sy,s);mctx.clip();if(oi){mctx.globalAlpha=ma;mctx.drawImage(oi,sx-HEX,sy-HEX,2*HEX,2*HEX);}if(img){mctx.globalAlpha=ma*pf;mctx.drawImage(img,sx-HEX,sy-HEX,2*HEX,2*HEX);}mctx.restore();}}
     const cf=clearFx[k],cp=cf&&cf.t0!=null?Math.min(1,(now-cf.t0)/(T.mapClearFxMs||1400)):cf?0:1;
     if(dark&&!d3.has(k)&&!(mergeFx.length&&mergeFx.some(m=>{const g=mergeGroups.find(x=>x.id===m.gid);return g&&g.cells.includes(k);})))drawDarkRemnantAt(mctx,sx,sy,HEX*0.34*(0.4+0.6*cp),now,HEX*0.34/60,c.q*911+c.r*577); // the surface's own Dark Remnant, at hex size
     if(cf&&cp<1){const p=prev[k],im=cf.un?null:(c.shot?shotImg(c,c.shot):p&&p.img?shotImg(p,p.img):null),e=1-cp; // the surface you left resolves into its clear
@@ -440,6 +462,7 @@ function mapRender(){
     if(c.isVoid){if(c.q===0&&c.r===0&&voidOpen){mctx.font=`${HEX*0.45}px 'Orbitron',sans-serif`;mctx.textAlign='center';mctx.textBaseline='middle';mctx.fillStyle='rgba(180,140,255,0.5)';mctx.fillText('▽',sx,sy+1);}else if(c.q===0&&c.r===0){mctx.beginPath();mctx.arc(sx,sy,3,0,Math.PI*2);mctx.fillStyle='rgba(255,255,255,0.06)';mctx.fill();}else{const m=4;mctx.strokeStyle='rgba(255,255,255,0.08)';mctx.lineWidth=1;mctx.beginPath();mctx.moveTo(sx-m,sy-m);mctx.lineTo(sx+m,sy+m);mctx.stroke();mctx.beginPath();mctx.moveTo(sx+m,sy-m);mctx.lineTo(sx-m,sy+m);mctx.stroke();}}
     if(bright)brightOnes.push([sx,sy,c.capVal,stroke,sw,cp]); // drawn after the bleed below
   }
+  hubPh('hexes');
   // Bright clears bleed into their neighbours: every bright hex together, blurred and screened over the map, then their outline and value on top
   if(brightOnes.length){const bl=T.mapClearBlur!=null?T.mapClearBlur:0.6,ba=T.mapClearBleed!=null?T.mapClearBleed:0.85;
     const sp=glowSprite(bl,ba),hs=sp.width/MK/2;mctx.save();mctx.globalCompositeOperation='screen';for(const[x,y,,,,p]of brightOnes){mctx.globalAlpha=p;mctx.drawImage(sp,x-hs,y-hs,hs*2,hs*2);}mctx.restore(); // the blurred glow, drawn once into a sprite
@@ -479,7 +502,7 @@ function mapRender(){
   mctx.restore();
   // Direction line
   if(hoverMove&&phase!=='gameover'){const pts=[{q:pQ,r:pR},...hoverMove.path,{q:hoverMove.q,r:hoverMove.r}];mctx.beginPath();for(let i=0;i<pts.length;i++){const[sx,sy]=w2s(...a2w(pts[i].q,pts[i].r));if(!i)mctx.moveTo(sx,sy);else mctx.lineTo(sx,sy);}mctx.strokeStyle='rgba(0,210,210,0.6)';mctx.lineWidth=1.5;mctx.setLineDash([5,4]);mctx.stroke();mctx.setLineDash([]);const[dx,dy]=w2s(...a2w(hoverMove.q,hoverMove.r));mctx.beginPath();mctx.arc(dx,dy,3.5,0,Math.PI*2);mctx.fillStyle='rgba(0,220,220,0.7)';mctx.fill();}
-  requestPreviews(mapNeed);pondStep(now);sceneRender(now);
+  hubPh('overlays');requestPreviews(mapNeed);hubPh('previews');pondStep(now);hubPh('ducks');sceneRender(now);hubPh('3d');
   // HUD
   let dc=0;for(const k in cells)if(!cells[k].isVoid)dc++;
   document.getElementById('cell-count').innerHTML=dc+'<small>cells</small>';
@@ -487,7 +510,7 @@ function mapRender(){
   let st=`${clockStr()} · day ${day} · rings ${turn} · score ${score.toFixed(2)} · captures ${captureOrder.length}`;
   if(phase==='gameover')st+=' · game over: '+gameOverReason;
   document.getElementById('score-display').textContent=st;
-  discTick();feedTick(now);cursorTick(now);
+  discTick();feedTick(now);cursorTick(now);hubPh('hud');hubPerfFrame(now);
   mapRafId=requestAnimationFrame(mapRender);
 }
 function startMapLoop(){if(!mapRafId)mapRafId=requestAnimationFrame(mapRender);}
@@ -613,7 +636,7 @@ window.addEventListener('message',e=>{
     hubEvent('map');
   }
   if(m.type==='ready'||m.type==='state');
-  else if(m.type==='preview'){prevPending.delete(m.key);if(cells[m.key]&&m.img)prev[m.key]={sig:m.sig,img:m.img};}
+  else if(m.type==='preview'){prevPending.delete(m.key);hubLog('preview '+m.key+(m.ms!=null?' built in '+m.ms.toFixed(0)+' ms':'')+(m.img?'':' (skipped)'));if(cells[m.key]&&m.img){const o=prev[m.key];prev[m.key]={sig:m.sig,img:m.img,old:o&&o.img?o:null};}}
   else if(m.type==='overlayDone'){if(currentView==='overlay'){currentView='map';showNeb(false);evPump();}}
   else if(m.type==='cleared')completeCaptureForCell(m.key,m.kind); // the hex is captured right away; the player returns with a right-click
   else if(m.type==='return')exitNebula();

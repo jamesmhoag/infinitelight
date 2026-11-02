@@ -133,7 +133,7 @@ function drawDuckScene(G,type,o){ // a duck straight into a scene (G = duckCtx o
   duckBind(G,M,o.env,o.px||o.size);
   gl.uniform1f(u.uSc,1);gl.uniform1f(u.uBp,DUCK_MESH.tex.b?T.duckBump/_duckTex.t*o.size:0);
   gl.uniformMatrix3fv(u.uR,false,o.rot);gl.uniform1f(u.uMS,o.size);gl.uniform3fv(u.uPos,o.pos);gl.uniformMatrix4fv(u.uV,false,o.view);gl.uniformMatrix4fv(u.uPj,false,o.proj);gl.uniformMatrix3fv(u.uVR,false,o.viewRot);
-  gl.uniform1f(u.uA,o.alpha==null?1:o.alpha);duckDrawCalls(G,M);}
+  gl.uniform1f(u.uA,o.alpha==null?1:o.alpha);if(o.mirror)gl.frontFace(gl.CW);duckDrawCalls(G,M);if(o.mirror)gl.frontFace(gl.CCW);} // o.mirror: a reflection (its turn mirrored), so its faces wind the other way
 function duckGlow(c,type,x,y,h,now,ph){const v=DUCK_TYPES[type];if(v.mat!=='bright'&&v.mat!=='shining'&&v.mat!=='dim')return;
   const br=v.mat==='bright',col=br?'255,252,240':v.mat==='dim'?(T.dimGlowRed|0)+','+(T.dimGlowGreen|0)+','+(T.dimGlowBlue|0):v.col.join(','),R=h*T.duckGlow*(br?0.62:0.5),gr=c.createRadialGradient(x,y,0,x,y,R);
   gr.addColorStop(0,'rgba('+col+','+((br?0.55:0.35)+0.15*Math.sin(now/300+ph))+')');gr.addColorStop(1,'rgba('+col+',0)');c.save();c.globalCompositeOperation='lighter';c.fillStyle=gr;c.beginPath();c.arc(x,y,R,0,6.2832);c.fill();c.restore();}
