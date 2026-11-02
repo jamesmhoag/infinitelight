@@ -1,0 +1,8 @@
+{
+  "name": "infinitelight-tools",
+  "private": true,
+  "description": "Offline tools for Infinite Light (the duck bake reads tools/Duck_Sheet.svg)",
+  "dependencies": {
+    "@resvg/resvg-js": "^2.6.2"
+  }
+}

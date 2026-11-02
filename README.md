@@ -11,7 +11,7 @@ Served as a static site (GitHub Pages: Settings → Pages → Deploy from branch
 | `TitleSplash.html` | Title screen: Continue / Start (New map) / Guide (discovered first), sound |
 | `Surface_Map_HUB.html` | The Surface Map: hex grid of surfaces, hex particle layers, map save, Esc menu |
 | `chromatic_nebula.html` | The surface (one level). Runs on its own, or inside the map / title screen with `?hub=1` |
-| `tools/build_duck_meshes.js` | Bakes the two 3D duck meshes (classic, Big Head) and the duck markings texture from `tools/duck_strip.png` into `chromatic_nebula.html`. Run `node tools/build_duck_meshes.js` only after changing the strip or the mesh pipeline |
+| `tools/build_duck_meshes.js` | Bakes the two 3D duck meshes (classic, Big Head) and the duck markings texture into `chromatic_nebula.html`, from `tools/Duck_Sheet.svg` (vector views: crisp markings, a lighter mesh, lines and eyes shaded by bump) or, with `DUCK_STRIP=tools/duck_strip.png`, the old pixel strip. First `cd tools && npm install` (SVG rendering), then `node tools/build_duck_meshes.js` after changing the drawing or the pipeline |
 
 **New nebula versions must keep the name `chromatic_nebula.html`** — the map and title screen load it by that name. When you replace it, bump the `&v=` number on its `<iframe>` in `Surface_Map_HUB.html` and `TitleSplash.html` so browsers fetch the new copy instead of a cached one.
 

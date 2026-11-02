@@ -14304,7 +14304,7 @@ DUCK_TYPES.bighead={name:'Big Head Duck',axis:'Size',detail:'huge head, small bo
 [['wood','Wooden',[176,118,64],[128,78,38]],['glass','Glass',DUCK_YEL,DUCK_ORA],['metal','Metal',[196,200,210],[150,154,166]],['dim','Dim',[150,70,30],[110,48,20]],['bright','Bright',[255,250,232],[255,226,196]],['shining','Shining',DUCK_YEL,DUCK_ORA],['gold','Gold',[255,196,52],[226,146,34]]]
   .forEach(([id,n,c1,c2])=>DUCK_TYPES[id]={name:n+' Duck',axis:'Material',detail:id==='wood'?'wood':id==='dim'?'black, lit by a Dim Remnant glow':n.toLowerCase(),tex:id,mat:id,col:c1,col2:c2,rare:id==='gold'?1:0});
 const DUCK_IDS=Object.keys(DUCK_TYPES);
-Object.assign(T,{duckChance:0.25,duckExoticChance:0.2,duckRareChance:0.03,duckSize:46,duckSpin:0.5,duckDrift:6,duckGloss:0.9,duckTrans:0.35,duckGlow:2.5,duckMass:40,duckTumble:0.6,duckSpinDamp:0.4,duckMaxSpin:0.25,volDuck:1});
+Object.assign(T,{duckChance:0.25,duckExoticChance:0.2,duckRareChance:0.03,duckSize:46,duckSpin:0.5,duckDrift:6,duckGloss:0.9,duckBump:1,duckTrans:0.35,duckGlow:2.5,duckMass:40,duckTumble:0.6,duckSpinDamp:0.4,duckMaxSpin:0.25,volDuck:1});
 TUNE_DEFS.push({sec:'Ducks',tab:'gameplay'},
  {key:'duckChance',label:'Duck chance',min:0,max:1,step:0.01,tip:'Chance a Dark Remnant comes out as a duck instead (the surface then carries on)'},
  {key:'duckExoticChance',label:'Exotic chance',min:0,max:1,step:0.01,tip:'Chance a duck is an exotic (one colour, size or material change)'},
@@ -14317,6 +14317,7 @@ TUNE_DEFS.push({sec:'Ducks',tab:'gameplay'},
  {key:'duckSpinDamp',label:'Duck tumble damping',min:0,max:3,step:0.05,tip:'How fast (per second) a tumble eases back to the resting turn'},
  {key:'duckMaxSpin',label:'Duck max spin',min:0.02,max:1,step:0.01,tip:'Cap on a duck\'s 3D spin (radians per frame)'},
  {key:'duckGloss',label:'Duck gloss',min:0,max:2,step:0.05,tip:'Shine of the plastic'},
+ {key:'duckBump',label:'Duck line depth',min:0,max:4,step:0.1,tip:'How deep the drawn lines and mouth look pressed in, and how proud the eyes stand (shading on the SVG-baked duck)'},
  {key:'duckTrans',label:'Duck translucency',min:0,max:1,step:0.05,tip:'How much light passes through the plastic at thin edges'},
  {key:'duckGlow',label:'Shining duck glow',min:0,max:6,step:0.1,tip:'Size of the light a Bright or Shining duck gives off (× its size)'},
  {key:'volDuck',label:'Duck voice vol',min:0,max:3,step:0.05,tip:'Quacks and squeaks when a duck is hit',test:()=>duckVoice({type:'classic'},1)});
@@ -14361,9 +14362,9 @@ function duckGL(){
   const dd=!!gl.getExtension('OES_standard_derivatives');
   const sh=(t,src)=>{const s=gl.createShader(t);gl.shaderSource(s,src);gl.compileShader(s);if(!gl.getShaderParameter(s,gl.COMPILE_STATUS))console.error(gl.getShaderInfoLog(s));return s;};
   const pr=gl.createProgram();
-  gl.attachShader(pr,sh(gl.VERTEX_SHADER,'attribute vec3 aP;attribute vec3 aN;attribute vec3 aU;uniform mat3 uR;uniform vec2 uK;varying vec3 vN;varying vec3 vM;varying vec3 vU;'+
-    'void main(){vec3 p=uR*aP;vN=uR*aN;vM=aN;vU=aU;gl_Position=vec4(p.xy*uK.x,-p.z*uK.y,1.0);}'));
-  gl.attachShader(pr,sh(gl.FRAGMENT_SHADER,(dd?'#extension GL_OES_standard_derivatives : enable\n':'')+'precision mediump float;varying vec3 vN;varying vec3 vM;varying vec3 vU;'+
+  gl.attachShader(pr,sh(gl.VERTEX_SHADER,'attribute vec3 aP;attribute vec3 aN;attribute vec3 aU;uniform mat3 uR;uniform vec2 uK;varying vec3 vN;varying vec3 vM;varying vec3 vU;varying vec3 vP;'+
+    'void main(){vec3 p=uR*aP;vP=p;vN=uR*aN;vM=aN;vU=aU;gl_Position=vec4(p.xy*uK.x,-p.z*uK.y,1.0);}'));
+  gl.attachShader(pr,sh(gl.FRAGMENT_SHADER,(dd?'#extension GL_OES_standard_derivatives : enable\n':'')+'precision mediump float;varying vec3 vN;varying vec3 vM;varying vec3 vU;varying vec3 vP;uniform float uBp;'+
     'uniform vec3 uC1;uniform vec3 uC2;uniform float uM;uniform float uGl;uniform float uTr;uniform float uA;uniform sampler2D uTex;uniform vec4 uTS;'+
     'uniform sampler2D uEnv;uniform vec3 uEP;uniform float uEA;uniform vec4 uLd[6];uniform vec3 uLc[6];uniform vec3 uDim;uniform float uAA;'+
     'vec3 hue(float h){return clamp(abs(mod(h*6.0+vec3(0.0,4.0,2.0),6.0)-3.0)-1.0,0.0,1.0);}'+
@@ -14375,6 +14376,9 @@ function duckGL(){
     'float nb=smoothstep(-2.55,-1.2,(mk.r*255.0-128.0)/48.0)*smoothstep(0.0,0.4,mn.x);'+ // near the bill in the side view and facing ahead: the front view decides (the bill's swollen sides and corners)
     'float tw=uTS.w>2.5?smoothstep(0.55,0.85,mn.y):0.0;'+ // faces looking up read the top view, when the strip has one
     'float beak=max(mix(cov(mk.r),cov(mf.r),fw),cov(mf.r)*nb),eye=cov(mk.g)*side,ln=max(max(max(cov(mk.b)*side,cov(mk.a)),cov(mf.a)*max(fw,nb)),cov(mt.b)*tw);'+ // eyes and lines on the side faces; the mouth wraps round the bill and shows as the front view's dark band from ahead // eyes and drawn lines on the side faces; the mouth wraps round the bill
+    (dd?'if(uBp>0.0){float sd=smoothstep(-1.4,0.6,(mk.b*255.0-128.0)/48.0)*side,sm=max(smoothstep(-1.4,0.6,(mk.a*255.0-128.0)/48.0),smoothstep(-1.4,0.6,(mf.a*255.0-128.0)/48.0)*max(fw,nb)),se=smoothstep(-1.4,0.6,(mk.g*255.0-128.0)/48.0)*side;'+ // bump: lines and the mouth dip, the eyes stand proud — shading, not geometry (the SVG-baked mesh carries no grooves)
+      'float hb=(0.55*se-0.9*max(sd,sm))*uBp;vec3 dpx=dFdx(vP),dpy=dFdy(vP);float hx=dFdx(hb),hy=dFdy(hb);vec3 r1=cross(dpy,n),r2=cross(n,dpx);float det=dot(dpx,r1);'+
+      'if(abs(det)>1e-9){n=normalize(abs(det)*n-sign(det)*(hx*r1+hy*r2));dif=max(0.0,dot(n,L));nh=max(0.0,dot(n,H));nz=max(0.0,n.z);edg=1.0-nz;rim=pow(edg,3.0);}}':'')+
     'float m=uM;vec3 c=mix(uC1,uC2,beak);if(m==8.0){c=mix(hue(fract(vU.x/149.0+vU.y/138.0*0.6)),uC2,beak);m=0.0;}'+
     'float g=0.5+0.5*sin(vU.x*0.33+4.0*sin(vU.y*0.06+vU.x*0.01)+vU.y*0.04);vec3 eC=vec3(0.98),lC=vec3(0.086,0.086,0.1);'+
     'if(m==1.0){eC=uC1*(1.05+0.35*g);lC=uC1*(0.22+0.12*g);}'+ // wood: wooden eyes, darkened wood in the mouth and lines
@@ -14396,7 +14400,7 @@ function duckGL(){
     'a*=uA;gl_FragColor=vec4(min(col,vec3(1.0))*a,a);}'));
   gl.linkProgram(pr);if(!gl.getProgramParameter(pr,gl.LINK_STATUS)){console.error(gl.getProgramInfoLog(pr));return false;}
   const at={},un={};for(const k of ['aP','aN','aU'])at[k]=gl.getAttribLocation(pr,k);
-  for(const k of ['uR','uK','uC1','uC2','uM','uGl','uTr','uA','uTex','uTS','uEnv','uEP','uEA','uLd','uLc','uDim','uAA'])un[k]=gl.getUniformLocation(pr,k);
+  for(const k of ['uR','uK','uC1','uC2','uM','uGl','uTr','uA','uTex','uTS','uEnv','uEP','uEA','uLd','uLc','uDim','uAA','uBp'])un[k]=gl.getUniformLocation(pr,k);
   const envT=gl.createTexture();gl.bindTexture(gl.TEXTURE_2D,envT);gl.texImage2D(gl.TEXTURE_2D,0,gl.RGBA,1,1,0,gl.RGBA,gl.UNSIGNED_BYTE,new Uint8Array([0,0,0,255]));
   for(const [p,v] of [[gl.TEXTURE_MIN_FILTER,gl.LINEAR],[gl.TEXTURE_MAG_FILTER,gl.LINEAR],[gl.TEXTURE_WRAP_S,gl.CLAMP_TO_EDGE],[gl.TEXTURE_WRAP_T,gl.CLAMP_TO_EDGE]])gl.texParameteri(gl.TEXTURE_2D,p,v);
   _dgl={cv,gl,pr,at,un,envT,envCv:document.createElement('canvas'),envAt:-1};return _dgl;}
@@ -14429,7 +14433,7 @@ function drawDuck3D(c,type,q,at,h,alpha,maxS,env){ // the type's model turned by
     (env.lights||[]).slice(0,6).forEach((l,i)=>{const dx=l[0]-env.x,dy=-(l[1]-env.y),dz=Math.max(20,l[6]*0.6),mix=v=>(v+255*1.6)/2.6/255; // glints mostly white, tinted by the light (as on the game's metal)
       ld.set([dx,dy,dz,l[5]*T.metalLightA],i*4);lc.set([mix(l[2]),mix(l[3]),mix(l[4])],i*3);});}
   else{gl.uniform3f(u.uEP,0.5,0.5,0.22);gl.uniform1f(u.uEA,refl?0.5:0);}
-  gl.uniform4fv(u.uLd,ld);gl.uniform3fv(u.uLc,lc);gl.uniform3f(u.uDim,T.dimGlowRed/255,T.dimGlowGreen/255,T.dimGlowBlue/255);gl.uniform1f(u.uAA,Math.max(0.05,0.6/Math.max(1,h*0.01)));
+  gl.uniform4fv(u.uLd,ld);gl.uniform3fv(u.uLc,lc);gl.uniform3f(u.uDim,T.dimGlowRed/255,T.dimGlowGreen/255,T.dimGlowBlue/255);gl.uniform1f(u.uAA,Math.max(0.05,0.6/Math.max(1,h*0.01)));gl.uniform1f(u.uBp,DUCK_MESH.tex.b?T.duckBump/_duckTex.t:0); // bump depth in model units (a strip px is 1/t of one)
   gl.uniformMatrix3fv(u.uR,false,quatMat(q));gl.uniform2f(u.uK,2*h/S,1/(Gm.R+0.01));gl.uniform3fv(u.uC1,M.c1);gl.uniform3fv(u.uC2,M.c2);gl.uniform1f(u.uM,M.mat);
   gl.uniform1f(u.uGl,T.duckGloss);gl.uniform1f(u.uTr,T.duckTrans);gl.uniform1f(u.uA,1);
   gl.enable(gl.DEPTH_TEST);gl.depthFunc(gl.LEQUAL);gl.enable(gl.BLEND);gl.blendFunc(gl.ONE,gl.ONE_MINUS_SRC_ALPHA);gl.enable(gl.CULL_FACE);
