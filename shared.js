@@ -248,13 +248,14 @@ function cursorBase(cx,x,y,cR,dimA,tintK,edgeCol,lw){
   cx.globalCompositeOperation='screen';cx.filter='blur(7px)';cx.globalAlpha=0.6*dimA; // the bloom behind the sharp ring
   cx.beginPath();cx.arc(x,y,cR,0,6.2832);cx.strokeStyle=`rgba(${edgeCol},0.9)`;cx.lineWidth=lw*2.5;cx.stroke();
   cx.filter='none';cx.globalAlpha=1;cx.globalCompositeOperation='source-over';}
-const _curTrail=[]; // where the cursor has just been: {x, y, t}
-function cursorTrail(cx,x,y,now,edgeCol,lw){ // a faint light trail behind the cursor that fades over T.cursorTrailMs (0 = off), so a cursor lost on a busy surface is easy to find
-  const ms=T.cursorTrailMs!=null?T.cursorTrailMs:700,A=T.cursorTrailA!=null?T.cursorTrailA:0.6;if(ms<=0||A<=0){_curTrail.length=0;return;}
-  const l=_curTrail[_curTrail.length-1];if(!l||Math.hypot(x-l.x,y-l.y)>1.5)_curTrail.push({x,y,t:now});else l.t=now;
+const _curTrail=[]; // where the cursor has just been: {x, y, t, gap (it was off the scene: the line breaks)}
+function cursorTrail(cx,x,y,now,edgeCol,lw,on){ // a faint light trail behind the cursor that fades over T.cursorTrailLife ms (0 = off), so a cursor lost on a busy surface
+  // is easy to find. cx: the trail's own layer, just above the scene and under every panel; on: the cursor is over the scene itself (no trail over anything else)
+  const ms=T.cursorTrailLife!=null?T.cursorTrailLife:230,A=T.cursorTrailA!=null?T.cursorTrailA:0.6;if(ms<=0||A<=0){_curTrail.length=0;return;}
+  const l=_curTrail[_curTrail.length-1];if(!on){if(l&&!l.gap)_curTrail.push({x,y,t:now,gap:1});}else if(!l||l.gap||Math.hypot(x-l.x,y-l.y)>1.5)_curTrail.push({x,y,t:now});else l.t=now;
   while(_curTrail.length&&now-_curTrail[0].t>ms)_curTrail.shift();if(_curTrail.length<2)return;
   cx.save();cx.lineCap='round';cx.lineJoin='round';cx.filter='blur(1px)';
-  for(let i=1;i<_curTrail.length;i++){const a=_curTrail[i-1],b=_curTrail[i],f=Math.max(0,1-(now-b.t)/ms);cx.strokeStyle=`rgba(${edgeCol},${(A*f).toFixed(3)})`;cx.lineWidth=lw*(0.8+2.2*f);cx.beginPath();cx.moveTo(a.x,a.y);cx.lineTo(b.x,b.y);cx.stroke();}
+  for(let i=1;i<_curTrail.length;i++){const a=_curTrail[i-1],b=_curTrail[i];if(a.gap||b.gap)continue;const f=Math.max(0,1-(now-b.t)/ms);cx.strokeStyle=`rgba(${edgeCol},${(A*f).toFixed(3)})`;cx.lineWidth=lw*(1.2+3.3*f);cx.beginPath();cx.moveTo(a.x,a.y);cx.lineTo(b.x,b.y);cx.stroke();}
   cx.restore();}
 function cursorRing(cx,x,y,cR,dimA,edgeCol,lw){cx.beginPath();cx.arc(x,y,cR,0,6.2832);cx.strokeStyle=`rgba(${edgeCol},${(0.80*dimA).toFixed(3)})`;cx.lineWidth=lw;cx.stroke();}
 function cursorDot(cx,x,y,dimA,edgeCol){

@@ -16,6 +16,7 @@ button:hover{background:rgba(255,255,255,0.15);}
 #dock.dr-hidden{opacity:0;pointer-events:none!important;}
 #dock, #dock *{cursor:none !important;} /* the game's own cursor is used over the inventory / feed too */
 #cur{position:absolute;left:0;top:0;width:100%;height:100%;pointer-events:none;z-index:40;}
+#trail{position:absolute;left:0;top:0;width:100%;height:100%;pointer-events:none;z-index:1;} /* the cursor's trail: over the surface, under every panel */
 #dock.bottom{bottom:0;top:auto;border-radius:8px 8px 0 0;}
 #dock.top{top:0;bottom:auto;flex-direction:column-reverse;border-radius:0 0 8px 8px;}
 #wrap.dock-top #saveStatus{top:auto;bottom:14px;}
@@ -74,6 +75,7 @@ button:hover{background:rgba(255,255,255,0.15);}
 </style>
 <div id="wrap">
   <canvas id="c"></canvas>
+  <canvas id="trail"></canvas>
   <div id="hud">
     <button onclick="rebuild()">Rebuild</button>
     
@@ -114,7 +116,7 @@ button:hover{background:rgba(255,255,255,0.15);}
   <div id="dock" class="bottom"><div id="inventoryPanel"></div><div id="touch-info"></div></div>
   <canvas id="cur"></canvas>
 </div>
-<script src="shared.js?v=20261102z"></script>
+<script src="shared.js?v=20261102za"></script>
 <script>
 const _SRC=document.documentElement.outerHTML; // kept so the Encyclopedia can run live scenes as embedded copies of the game
 // Safety: a negative / non-finite gradient radius would throw and kill the frame — clamp it, and log the first offender's stack so it can be traced.
@@ -190,8 +192,8 @@ function jitterParticleMass(){
 }
 
 const canvas=document.getElementById('c'),ctx=canvas.getContext('2d');
-const curCanvas=document.getElementById('cur'),curCtx=curCanvas.getContext('2d'); // cursor layer — sits above the inventory dock
-function syncCursorCanvas(){if(curCanvas.width!==W||curCanvas.height!==H){curCanvas.width=W;curCanvas.height=H;}}
+const curCanvas=document.getElementById('cur'),curCtx=curCanvas.getContext('2d'),trailCanvas=document.getElementById('trail'),trailCtx=trailCanvas.getContext('2d'); // cursor layer — sits above the inventory dock; its trail's layer — under every panel
+function syncCursorCanvas(){for(const cv of [curCanvas,trailCanvas])if(cv.width!==W||cv.height!==H){cv.width=W;cv.height=H;}}
 let uiPress=false,cursorUiTarget=false; // a press that began on the interface / whether the cursor is over something clickable there
 let pressConsumed=false; // the press that just used up the armed item's last unit: idle until a NEW click starts
 let overUI=false,hoverInvKind=null,overFeed=false; // pointer is over ANY interface element (scene input is ignored) / inventory slot being hovered (its info shows in the feed)
@@ -470,7 +472,7 @@ const T={
   cursorLineW:      2, // px: ring/edge line width
   cursorClickShrink:0.7, // 0..1: fraction the ring shrinks to at the instant of a click
   cursorClickDurMs: 100, // ms: duration of the shrink -> regrow punch after a click
-  cursorTrailMs:    700, // ms: how long the cursor's light trail takes to fade (0 = no trail)
+  cursorTrailLife:  230, // ms: how long the cursor's light trail takes to fade (0 = no trail)
   cursorTrailA:    0.6,  // 0..1: the trail's brightness where it is newest
   cursorIdleAlphaMult:0.5,// 0..1: overall alpha multiplier applied when not hovering a target
   cursorIdleBorderDark:0.4,// 0..1: how far the ring/edge color is mixed toward black when not hovering a target
@@ -1008,7 +1010,7 @@ const TUNE_DEFS=[
   {key:'cursorLineW',  label:'Line width', min:0,max:4,step:0.1,     tip:'Ring/edge line width'},
   {key:'cursorClickShrink',label:'Click shrink',min:0,max:0.9,step:0.05,tip:'Fraction the ring shrinks to at the instant of a click'},
   {key:'cursorClickDurMs', label:'Click ms',    min:50,max:800,step:10, tip:'Duration of the shrink -> regrow punch after a click'},
-  {key:'cursorTrailMs', label:'Trail ms',    min:0,max:3000,step:50, tip:'How long the light trail the cursor leaves takes to fade, on surfaces and the Surface Map (0 = no trail)'},
+  {key:'cursorTrailLife', label:'Trail ms',    min:0,max:3000,step:50, tip:'How long the light trail the cursor leaves takes to fade, on surfaces and the Surface Map (0 = no trail)'},
   {key:'cursorTrailA',  label:'Trail α',     min:0,max:1,step:0.05,  tip:'Brightness of the cursor trail where it is newest'},
   {key:'cursorIdleAlphaMult',label:'Idle α ×',  min:0,max:1.0,step:0.05,tip:'Alpha multiplier when not hovering a target'},
   {key:'cursorIdleBorderDark',label:'Idle dark',min:0,max:1.0,step:0.05, tip:'How far the idle ring color is mixed toward black'},
@@ -11927,7 +11929,7 @@ function drawSymbolFor(cx,x,y,cR,sp,holdT){
   cx.restore();
 }
 function computeHoverAndCursor(now){
-  syncCursorCanvas();curCtx.clearRect(0,0,W,H);
+  syncCursorCanvas();curCtx.clearRect(0,0,W,H);trailCtx.clearRect(0,0,W,H);
   const mouseInBounds=mouse.x>0&&mouse.x<W&&mouse.y>0&&mouse.y<H;
   heatTick(now);const heatLocked=heat.until>now; // overheated: the cursor drops to its idle look until the cooldown has run out
   let hoverObj=(mouseInBounds&&!overUI&&!heatLocked)?findHoverObject(mouse.x,mouse.y):null;
@@ -12008,7 +12010,7 @@ function computeHoverAndCursor(now){
     // Darken interior — gives the ring/dot contrast when hovering over
     // highly saturated nebula colors instead of just blending in.
     const itemRing=!!(armedInvItem&&!heatLocked&&!inCreate&&ITEM_TOOLS.has(armedInvItem.kind)&&armedInvItem.kind!=='leash'); // a remnant item's own ring replaces the standard ring + centre dot
-    cursorTrail(cx,mouse.x,mouse.y,now,edgeCol,cLw);cursorBase(cx,mouse.x,mouse.y,cR,dimA,tintK,edgeCol,cLw); // (shared.js: the same cursor, and its trail, on the Surface Map)
+    cursorTrail(trailCtx,mouse.x,mouse.y,now,edgeCol,cLw,!overUI&&mouseInBounds);cursorBase(cx,mouse.x,mouse.y,cR,dimA,tintK,edgeCol,cLw); // (shared.js: the same cursor, and its trail, on the Surface Map)
     if(itemRing){const ac0=armedCursorRGB();drawItemRing(cx,mouse.x,mouse.y,cR,armedInvItem.kind,armedInvItem.effect||0,`${ac0.r|0},${ac0.g|0},${ac0.b|0}`,dimA,cLw,now,Math.max(0,holdT));}
     else cursorRing(cx,mouse.x,mouse.y,cR,dimA,edgeCol,cLw);
     drawHeatArc(cx,mouse.x,mouse.y,cR,now); // heat (or the cooldown draining) runs round the inside of the ring
@@ -13941,7 +13943,7 @@ function cardHTML(ev,mini){ // the one card format: name bar, art box, type line
   return `<div class="mtg${mini?' sm':''}" data-ev="${ev.id}" style="--rc:${r[0]}"><div class="nm"><b>${gEsc(ev.name)}</b><span class="gem"></span></div><div class="art" data-scene="${ev.scene}">${mini?`<canvas class="rl-m" width="64" height="64" data-k="${ev.ico}"></canvas>`:''}</div><div class="ty"><span>${gEsc(ev.type.replace(/^Event — /,''))}</span><span>${r[1]}</span></div><div class="tx">${ev.facts().map(f=>`<p>${gEsc(f)}</p>`).join('')}<p class="fl">${gEsc(ev.flavor)}</p></div></div>`;
 }
 function mountScene(h,w,hh){if(!h||h.firstChild||document.querySelectorAll('.rl-live iframe,.mtg .art iframe').length>=5)return;const f=document.createElement('iframe'),nm=h.dataset.s||h.dataset.scene;f.style.cssText='border:0;max-width:100%;pointer-events:none;background:#000;border-radius:6px;'+(w?`width:${w}px;height:${hh}px`:'width:100%;height:100%');
-  if(nm.slice(0,4)==='hub:')f.src='Surface_Map_HUB.html?v=20261102z&scene='+nm.slice(4)+'&T='+encodeURIComponent(JSON.stringify(mapSceneT()));else f.srcdoc=liveSrc(nm);h.appendChild(f);} // a Surface Map demo is played by the map itself
+  if(nm.slice(0,4)==='hub:')f.src='Surface_Map_HUB.html?v=20261102za&scene='+nm.slice(4)+'&T='+encodeURIComponent(JSON.stringify(mapSceneT()));else f.srcdoc=liveSrc(nm);h.appendChild(f);} // a Surface Map demo is played by the map itself
 function mapSceneT(){const o={};for(const k in T)if(/^(map|bh|duck|wake|glass|metal|dimGlow|glowHalo|maxSpeed)/.test(k))o[k]=T[k];return o;} // what a map demo needs of the tuners
 function showEventCard(id,review){
   const ev=EVENTS.find(e=>e.id===id);if(!ev)return;guideCSS();
@@ -14077,7 +14079,7 @@ function guideCSS(){
 .rl-x{margin:4px 0}.rl-live{display:inline-block;vertical-align:top;margin:4px 6px 4px 0;min-width:340px;min-height:200px;background:#000;border-radius:6px}
 .rl-math{margin:4px 0}.rl-mh{font-weight:bold;margin-top:6px}.rl-math ul,#mapInfo ul{margin:3px 0 3px 18px;padding:0}
 #rulesOverlay,#rulesOverlay *,#evOverlay,#evOverlay *{cursor:auto!important}#rulesOverlay button,#rulesOverlay .rl-h,#evOverlay button,.mtg.sm{cursor:pointer!important}
-#wrap.rules-open #cur,#wrap.ev-open #cur,#wrap.menu-open #cur{display:none!important}
+#wrap.rules-open #cur,#wrap.ev-open #cur,#wrap.menu-open #cur,#wrap.rules-open #trail,#wrap.ev-open #trail,#wrap.menu-open #trail{display:none!important}
 #rulesOverlay canvas.rl-m{position:static!important;display:block}
 #rlFind{width:100%;box-sizing:border-box;padding:8px 12px;border-radius:8px;border:1px solid rgba(128,128,128,.4);background:rgba(128,128,128,.12);color:inherit;font-size:14px;margin-bottom:8px}
 #mapCv{position:relative;left:auto;top:auto;width:100%;display:block;border-radius:8px;background:#05060a;touch-action:none}.lc{display:flex;gap:14px;align-items:flex-start}.lc-l{flex:1 1 auto;min-width:0}.lc-r{flex:0 0 350px;position:sticky;top:0;max-height:calc(100vh - 170px);overflow:auto}#mapInfo h3{margin:4px 0}#mapInfo .rl-live{margin:6px 0}@media (max-width:820px){.lc{flex-direction:column}.lc-r{flex-basis:auto;position:static;max-height:none;width:100%}}
