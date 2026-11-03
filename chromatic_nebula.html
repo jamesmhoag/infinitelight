@@ -112,7 +112,7 @@ button:hover{background:rgba(255,255,255,0.15);}
   <div id="dock" class="bottom"><div id="inventoryPanel"></div><div id="touch-info"></div></div>
   <canvas id="cur"></canvas>
 </div>
-<script src="content.js?v=20261103x"></script><script src="shared.js?v=20261103x"></script>
+<script src="content.js?v=20261103y"></script><script src="shared.js?v=20261103y"></script>
 <script>
 txtApply(); // the page's own labels (content/strings.csv)
 const _SRC=document.documentElement.outerHTML; // kept so the Encyclopedia can run live scenes as embedded copies of the game
@@ -609,7 +609,7 @@ const pressedIDs=new Set();
 const EFFECT_NAMES=['THROW','FLING','ORBIT','WHIRL','CATCH','SNARE'];  // Push out · Fling out · Orbit · Pull in · Attract · Brake
 const COLOR_NAMES=EFFECT_NAMES;
 // The six effect colours, in effect order. Opposites are 3 apart (THROW/WHIRL, FLING/CATCH, ORBIT/SNARE) — their hues sit ~180° apart.
-const EFFECT_HEX=['#FF690E','#B0FF06','#01FF6B','#08BAFF','#4E05FF','#FE04C1'];
+
 const EFFECT_HUE=EFFECT_HEX.map(h=>{const r=parseInt(h.slice(1,3),16)/255,g=parseInt(h.slice(3,5),16)/255,b=parseInt(h.slice(5,7),16)/255,mx=Math.max(r,g,b),mn=Math.min(r,g,b),d=mx-mn;let hh=0;
   if(d>0){if(mx===r)hh=((g-b)/d)%6;else if(mx===g)hh=(b-r)/d+2;else hh=(r-g)/d+4;}return((hh/6)+1)%1;});
 // Internal hue u (colour i sits at u = i/6, anything between is a blend) -> displayed hue. Each effect only owns +/- hueRangeDeg
@@ -12644,7 +12644,7 @@ function sceneBoot(name,TT){
 let _rulesOpen=false,_rulesWasPaused=false,_rulesTab='disc',_rulesFilter='',_rulesMode='guide',_rulesLast={guide:'disc',coll:'status'};
 window._rulesOpen=false;
 const RULE_TABS=['disc','map','items','shapes','surf','shops','ducks','book'].map(k=>[k,txt('guide.tab.'+k)]); // (their names: content/strings.csv)
-const COLL_TABS=['status','coll','notes','souv'].map(k=>[k,txt('coll.tab.'+k)]); // Status and your collections (your buoy, or its slot in the inventory): the same menu as the Guide, its own tabs
+const COLL_TABS=['status','buoy','coll','notes','souv'].map(k=>[k,txt('coll.tab.'+k)]); // Status and your collections (your buoy, or its slot in the inventory): the same menu as the Guide, its own tabs
 // where an entry's own section (RULES[i][1]) shows: How to play / How to clean up are Discoveries; particles, points and remnants are the Taxonomy
 const RULE_HOME={start:['disc','How to play'],touch:['disc','How to clean up'],things:['map','Taxonomy'],bright:['map','Taxonomy'],rem:['map','Taxonomy'],items:['items','Items'],shapes:['shapes','Shapes'],surf:['surf','Surface Map'],shops:['shops','Shops'],ducks:['ducks','Ducks']};
 // [id, tab, name, picture, one-line summary, [[label,text],…]]
@@ -12737,7 +12737,7 @@ function cardHTML(ev,mini){ // the one card format: name bar, art box, type line
   return `<div class="mtg${mini?' sm':''}" data-ev="${ev.id}" style="--rc:${TIER_COL[t]}"><div class="nm"><b>${gEsc(ev.name)}</b><span class="gem"></span></div><div class="art" data-scene="${ev.scene}">${mini?`<canvas class="rl-m" width="64" height="64" data-k="${ev.ico}"></canvas>`:''}</div><div class="ty"><span>${gEsc(ev.type.replace(/^Event — /,''))}</span><span>Tier ${TIER[t]}</span></div><div class="tx">${(mini?ev.facts().slice(0,1):ev.facts()).map(f=>`<p${ev.fx?' class="fx"':''}>${gEsc(f)}</p>`).join('')}${ev.flavor?`<p class="fl">${gEsc(ev.flavor)}</p>`:''}</div></div>`; // (small: its first line and its flavour; the rest when it is opened) (fx: the lines are changes to play, set apart from the flavour)
 }
 function mountScene(h,w,hh){if(!h||h.firstChild||document.querySelectorAll('.rl-live iframe,.mtg .art iframe').length>=5)return;const f=document.createElement('iframe'),nm=h.dataset.s||h.dataset.scene;f.style.cssText='border:0;max-width:100%;pointer-events:none;background:#000;border-radius:6px;'+(w?`width:${w}px;height:${hh}px`:'width:100%;height:100%');
-  if(nm.slice(0,4)==='hub:'){const[sn,dk]=nm.slice(4).split(':');f.src='Surface_Map_HUB.html?v=20261103x&scene='+sn+'&T='+encodeURIComponent(JSON.stringify(mapSceneT()))+'&D='+encodeURIComponent(JSON.stringify(dk&&DUCK_TYPES[dk]?{[dk]:DUCK_TYPES[dk]}:Object.fromEntries(Object.entries(DUCK_TYPES).slice(0,4))));}else f.srcdoc=liveSrc(nm);h.appendChild(f);} // a Surface Map demo is played by the map itself
+  if(nm.slice(0,4)==='hub:'){const[sn,dk]=nm.slice(4).split(':');f.src='Surface_Map_HUB.html?v=20261103y&scene='+sn+'&T='+encodeURIComponent(JSON.stringify(mapSceneT()))+'&D='+encodeURIComponent(JSON.stringify(dk&&DUCK_TYPES[dk]?{[dk]:DUCK_TYPES[dk]}:Object.fromEntries(Object.entries(DUCK_TYPES).slice(0,4))));}else f.srcdoc=liveSrc(nm);h.appendChild(f);} // a Surface Map demo is played by the map itself
 function mapSceneT(){const o={};for(const k in T)if(/^(map|bh|duck|wake|glass|metal|dimGlow|glowHalo|maxSpeed)/.test(k))o[k]=T[k];return o;} // what a map demo needs of the tuners
 function showCardHTML(html){ // a Guide card (an entry or a shop) opened over the Guide, where an event card shows
   guideCSS();_evOpen=true;_evReview=true;const ov=evOverlayEl();ov.innerHTML=`<div class="ev-box">${html}<button id="evOk">${txt('card.close')}</button></div>`;ov.style.display='flex';wrap.classList.add('ev-open');
@@ -12967,6 +12967,10 @@ function rulesRender(){
   } else if(_rulesTab==='shops'){
     body.innerHTML='<p class="rl-note">Main street round the source, and the pop-ups a cleared surface can open. A shop is discovered the first time it opens; until then only the shape of its sign shows.</p>'+sec('How shops work',cards(RULES.filter(e=>e[1]==='shops')))+sec('The shops','<div class="rl-cards">'+Object.keys(SHOPS).map(k=>shopCardHTML(k,true)).join('')+'</div>');
   } else if(_rulesTab==='coll'){body.innerHTML='';body.insertAdjacentHTML('beforeend',duckCollectionHTML());const sw=document.getElementById('pondSw');if(sw)sw.onclick=()=>{_pondMode=_pondMode==='pond'?'space':'pond';try{localStorage.setItem('il_pondmode',_pondMode);}catch(e){}rulesRender();};
+  } else if(_rulesTab==='buoy'){let nm='',cl=BUOY_COLS[0];try{nm=localStorage.getItem('il_name_v1')||'';cl=localStorage.getItem('il_buoycol_v1')||cl;}catch(e){} // your buoy: its name and its colour (the map's own keys)
+    body.innerHTML=`<p class="rl-note">${txt('coll.buoy.note')}</p><p><input id="byName" maxlength="20" value="${gEsc(nm)}" style="background:transparent;color:inherit;border:1px solid currentColor;padding:4px 8px;font:inherit;width:240px"></p><div class="ncols" style="display:flex;flex-wrap:wrap;gap:6px;max-width:420px">${BUOY_COLS.map(c=>`<span data-c="${c}" style="width:26px;height:26px;cursor:pointer;background:${c};border:1px solid rgba(128,128,128,.6);box-sizing:border-box;${c===cl?'outline:2px solid currentColor;outline-offset:2px':''}"></span>`).join('')}</div>`;
+    const save=(k,v)=>{try{localStorage.setItem(k,v);}catch(e){}hubPost({type:'buoy'});};document.getElementById('byName').onchange=e=>{const v=e.target.value.trim().slice(0,20);if(v)save('il_name_v1',v);};
+    body.querySelector('.ncols').onclick=e=>{const c=e.target.dataset&&e.target.dataset.c;if(c){save('il_buoycol_v1',c);rulesRender();}};
   } else if(_rulesTab==='souv'){const sv=souvenirs(),L=SHOP_ITEMS.filter(i=>i.fx.souv); // the Gift Shop's souvenirs: kept through every new start, and hung on your buoy
     body.innerHTML=`<p class="rl-note">${txt('coll.souv.note')}</p><div class="rl-cards">`+L.map(i=>(sv[i.id]||0)>0?`<div class="mtg sm sv"><div class="sv-i">${BUOY_SOUV_ICO[i.id]||'★'}</div><b>${gEsc(i.n)}</b><span>× ${sv[i.id]}</span></div>`:'<div class="mtg sm back">?</div>').join('')+'</div>'+(L.some(i=>sv[i.id]>0)?'':`<p class="rl-note">${txt('coll.souv.none')}</p>`);
   } else if(_rulesTab==='book'){const f=_rulesFilter.trim().toLowerCase(),list=RULES.slice().sort((a,b)=>a[2].localeCompare(b[2])).filter(e=>!f||(e[2]+' '+e[4]+' '+e[5].map(r=>r[1]).join(' ')).toLowerCase().includes(f));
