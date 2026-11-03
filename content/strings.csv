@@ -819,6 +819,8 @@ map.rift_moved,The tear threw your buoy clear: to the innermost free hex (or bac
 map.tap.far,"Not a move from here: the hexes next to yours, or straight across clears",Surface Map,
 map.tap.void,Nothing is left there to stand on,Surface Map,
 build.menu,Build ▾,Build mode,
+map.parade,A parade!,Surface Map,
+map.parade_d,"You have every {kind} duck: here they all come, in a line across the lake.",Surface Map,"kind = $0 — the kind (Colour, Size or Material)"
 value.life_ms,T.lifeColor,values (shared: any text can use {life_ms}),a pigment's life factor (Life colour tuner)
 value.dim_mass_pct,Math.round(T.remMassFrac*100),values (shared: any text can use {dim_mass_pct}),% of its mass a failed collapse keeps
 value.dim_energy_pct,Math.round(T.remEnergyFrac*100),values (shared: any text can use {dim_energy_pct}),% of its energy a failed collapse keeps
