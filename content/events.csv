@@ -60,7 +60,8 @@ map_brightstar,Bright Star,Event — Surface Map,m,hub:brightstar,bright,A ring 
 map_darkstar,Dark Star,Event — Surface Map,m,hub:darkstar,dark,A ring of nothing but Dark Remnants closed around the source.,It shines inward.
 map_end,Full Collapse,Event — Ending,r,hub:end,nova,"A full circle at ring 1 or 2, or every hex cleared: everything fell into the source. The run is won.
 Back at the main menu the days start over. Your items and discoveries are kept.","Every spill, accounted for."
-rift,The Rift,Event — Ending,m,rift,dark,"Mass of {rift_mass} or more gathered in one place and tore the surface.
-A Rift is always a Dark Remnant, never a duck.",Too much light in one place.
+rift,The Rift,Event — Ending,m,rift,dark,"Mass of {rift_mass} or more gathered in one place and tore the surface open along a line.
+Whatever it opened over was lost; everything else was drawn across to it.
+On the Surface Map the hex is gone: a scar, and the hexes beside it drained.",Too much light in one place.
 duck,Rubber Duck,Event — Duck,r,duck,duck:classic,"A Dark Remnant came out as a rubber duck. The surface carries on.
 Click it to add it to your collection (Guide → Ducks).",Squeak.

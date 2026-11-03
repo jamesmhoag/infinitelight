@@ -716,6 +716,10 @@ map.name.note,"Your buoy floats wherever you are on the map, with your name on i
 map.name.placeholder,Your name,Surface Map (a new game),
 map.name.go,Set sail,Surface Map (a new game),
 map.name.set,Your buoy is afloat.,Surface Map (a new game),
+map.rift,Rift,Surface Map,
+map.rift_info,"A scar where the surface tore. Nothing can cross it, and a String cannot shoot through it. Gone at Midnight.",Surface Map,
+map.rift_tore,"The surface tore: the hex is gone, and the hexes beside it are drained.",Surface Map,
+map.rift_in_the_way,A Rift is in the way: a String only goes in a straight line.,Surface Map,
 value.life_ms,T.lifeColor,values (shared: any text can use {life_ms}),a pigment's life factor (Life colour tuner)
 value.dim_mass_pct,Math.round(T.remMassFrac*100),values (shared: any text can use {dim_mass_pct}),% of its mass a failed collapse keeps
 value.dim_energy_pct,Math.round(T.remEnergyFrac*100),values (shared: any text can use {dim_energy_pct}),% of its energy a failed collapse keeps
