@@ -77,14 +77,17 @@ function buoyModel(name,souv,col){ // name: up to 20 characters; souv: the souve
   beam([0,0.28,0],[0,1.76,0],0.07,2);for(let i=0;i<3;i++){const a=i/3*6.2832+0.5;beam([0.42*Math.cos(a),0.24,0.42*Math.sin(a)],[0,1.3,0],0.05,0);} // the mast, and its cage
   const sh=0.4,sw=sh*tw/160,y0=1.3,u0=(A-tw)/2/A,u1=1-u0,v0=512/A,v1=672/A,F=[[u0,v1],[u1,v1],[u1,v0],[u0,v0]]; // the sign, on the mast: a framed board, thick, the name on both faces
   box(-sw/2-0.03,y0-0.03,-0.04,sw/2+0.03,y0+sh+0.03,0.04,2);quad([[-sw/2,y0,0.042],[sw/2,y0,0.042],[sw/2,y0+sh,0.042],[-sw/2,y0+sh,0.042]],[0,0,1],F);quad([[sw/2,y0,-0.042],[-sw/2,y0,-0.042],[-sw/2,y0+sh,-0.042],[sw/2,y0+sh,-0.042]],[0,0,-1],F);
-  box(-0.12,1.76,-0.12,0.12,1.81,0.12,2);for(let i=0;i<4;i++){const a=i/4*6.2832+0.785;beam([0.1*Math.cos(a),1.81,0.1*Math.sin(a)],[0.1*Math.cos(a),2.02,0.1*Math.sin(a)],0.025,2);} // the lantern: a base, four posts,
-  glow(()=>lathe([[0,0.06],[0.03,0.085],[0.18,0.085],[0.21,0.05]],14,[3],1.81)); // its lit glass,
-  lathe([[0,0.14],[0.05,0.1],[0.1,0.03],[0.13,0]],14,[2],2.02);beam([0,2.14,0],[0,2.2,0],0.03,2); // and its cap
+  box(-0.07,1.74,-0.07,0.07,1.79,0.07,2);beam([-0.11,1.79,0],[-0.11,1.93,0],0.03,2);beam([0.11,1.79,0],[0.11,1.93,0],0.03,2);beam([-0.11,1.79,0],[0.11,1.79,0],0.03,2); // the yoke its can light turns in (the can: buoyCanModel)
   souv.forEach((id,i)=>{const a=i/Math.max(1,souv.length)*6.2832+1.1,x=0.62*Math.cos(a),z=0.62*Math.sin(a),k=BUOY_SOUV[id]||6; // each souvenir, hung on the float's rim
     if(id==='keychain'){beam([x,0.3,z],[x,0.12,z],0.015,2);box(x-0.05,0.05,z-0.05,x+0.05,0.13,z+0.05,k);}else if(id==='postcard')box(x-0.11,0.12,z-0.02,x+0.11,0.28,z+0.02,k);
     else if(id==='hat'){box(x-0.1,0.28,z-0.1,x+0.1,0.31,z+0.1,k);box(x-0.06,0.31,z-0.06,x+0.06,0.4,z+0.06,k);}else if(id==='stuffy')box(x-0.08,0.28,z-0.08,x+0.08,0.44,z+0.08,k);else box(x-0.1,0.1,z-0.02,x+0.1,0.28,z+0.02,k);});
   _duckModels.set(type,{g:K.geo(2.3),nomk:1,mat:13,c1:[1,1,1],c2:[1,1,1],img:tx});return type;}
-const BUOY_LAMP=1.93; // the lantern's height, in its own units (where its spot light comes from)
+const BUOY_LAMP=1.9; // the can light's height, in its own units (where its spot light comes from)
+function buoyCanModel(){ // the buoy's can light: a short metal can, its lit lens at one end (+y), drawn turned to point where its light goes
+  const type='buoycan';if(_duckModels.has(type))return type;const A=256,tx=document.createElement('canvas');tx.width=tx.height=A;const c=tx.getContext('2d');['#2a2c33','#fff4c8','#55585f'].forEach((cl,i)=>{c.fillStyle=cl;c.fillRect(i*32,0,32,32);});
+  const K=meshKit(A,false),{uv,lathe}=K;lathe([[-0.13,0],[-0.13,0.065],[-0.1,0.08],[0.11,0.09],[0.135,0.092]],16,[2,0,0,2],0); // its back, its body, its rim
+  const n=uv.length/4;lathe([[0.13,0.085],[0.13,0]],16,[1],0);for(let k=n;k<uv.length/4;k++)uv[k*4+2]=1; // the lens, lit
+  _duckModels.set(type,{g:K.geo(0.2),nomk:1,mat:13,c1:[1,1,1],c2:[1,1,1],img:tx});return type;}
 // ── A shop: its building as a 3D model the duck renderer draws (material 13, painted): walls with window and door openings, the lit room
 // behind them, frames and a roof edge, scaffolding on the roof and the sign mounted on it. One texture holds its colours, the room and the sign. ──
 function shopModel(id,bk,lit,fl,si,open){ // si: the sign's loaded image; open: its doors stand open (its menu is open) → the model's type, for drawDuck3D

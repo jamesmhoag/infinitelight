@@ -570,6 +570,7 @@ mapDuckDunkMs,1300,Duck dunk ms,300,4000,50,Surface Map — lake and bottles,map
 mapDuckRefl,0.4,Duck reflection,0,1,0.05,Surface Map — lake and bottles,map,,,,How strongly each lake duck is mirrored in the surface beneath it on the Surface Map (0 = no reflection),
 mapSpotMs,16000,Buoy spot light lap ms,4000,60000,500,Surface Map — your buoy,map,,,,How long your buoy's spot light takes to circle the hexes next to it once (clockwise),
 mapBuoySway,0.09,Buoy sway,0,0.4,0.01,Surface Map — your buoy,map,,,,How far your buoy rocks as it floats (radians),
+mapEnterMs,900,Enter a surface ms,0,3000,50,Surface Map — your buoy,map,,,,"How long your buoy takes to dunk and the camera to go down into the hex before its surface fades in",
 mapBottleMs,90000,Bottle every ms,5000,600000,5000,Surface Map — lake and bottles,map,,,,About how long between messages in a bottle floating onto the lake (one at a time),
 mapBottleDuck,0.25,Bottle duck chance,0,1,0.05,Surface Map — lake and bottles,map,,,,Chance a message in a bottle holds a duck instead of a letter (opening it adds the duck to your collection),
 mapStreetSize,0.75,Shop size,0.15,1.5,0.01,Surface Map — shops,map,,,,"Width of a main street shop (× hex size); every shop, pop-ups too, is drawn at this scale",
