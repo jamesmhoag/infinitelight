@@ -117,7 +117,7 @@ body.thru .shop{pointer-events:none} /* an armed map item, or the open source, r
 <div id="veil"></div>
 <canvas id="hcur"></canvas>
 <iframe id="neb" title="Surface"></iframe>
-<script src="shared.js?v=20261102zd"></script>
+<script src="shared.js?v=20261102ze"></script>
 <script>
 // ╔══════════════════════════════════════════════════════════════════════════════╗
 // ║  MAP ENGINE                                                                 ║
@@ -133,7 +133,7 @@ let clock=3,day=1,pool=6,fresh=true,burstFx=null,dayLog=[],dayCnt={b:0,d:0},pend
 // // clock: the hour (3 = Twilight … 24 = Midnight, the day's last turn); day: your attempts; pool: what the source put out at its last burst; fresh: no ring added yet since it
 let constel=[],armed=null,weaveSel=[],weaveAsk=null,clearFx={},mergeFx=[],feedMsg={t:'',d:'',at:-1e9}; // constellations {keys,type}; the armed map item; a Weave being drawn; animations; the final count
 const TIMES={3:'Twilight',6:'Dawn',9:'Morning',12:'Noon',15:'Afternoon',18:'Dusk',21:'Night',24:'Midnight'},STEP_H=3; // the day: eight turns of three hours
-const CACHE_V='20261102zd'; // the build: bump with shared.js's
+const CACHE_V='20261102ze'; // the build: bump with shared.js's
 const SCENE=new URLSearchParams(location.search).get('scene'); // a Guide / event demo: the map plays a scripted moment (no surface behind it)
 let phase='move',turnTimer=0,mergeTimer=0;
 let gameOverReason='';
@@ -447,12 +447,12 @@ function syncRenderSig(){ // any tuner that changes how a surface looks (not sou
 function cellSig(c){return c.q+','+c.r+'|'+cellSeed(c).toFixed(6)+'|'+cellCov(c)+'|'+renderSig;}
 // Pictures are cached in IndexedDB by their signature (hex, depth, coverage step, every tuner that changes how a surface looks, picture size):
 // a hex is built by the surface once per coverage step, then comes straight from the cache — this visit and every later one.
-function setPrev(k,sig,img){if(!cells[k]||!img)return;const im=new Image();im._u=img;im.src=img; // decoded off the frame before it is shown (a first draw would decode it there)
-  im.decode().catch(()=>{}).then(()=>{if(!cells[k])return;const o=prev[k];prev[k]={sig,img,_im:im,old:o&&o.img&&o.sig!==sig?o:null};});}
+function setPrev(k,sig,img){if(!cells[k]||!img){prevPending.delete(k);return;}const im=new Image();im._u=img;im.src=img; // decoded off the frame before it is shown (a first draw would decode it there)
+  im.decode().catch(()=>{}).then(()=>{prevPending.delete(k);if(!cells[k])return;const o=prev[k];prev[k]={sig,img,_im:im,old:o&&o.img&&o.sig!==sig?o:null};});} // the hex stays waiting until then, so it is not asked for again every frame
 function requestPreviews(keys){
   if(!nebReady||!keys.length)return;
   for(const k of keys){if(prevPending.has(k))continue;const c=cells[k],sig=cellSig(c);prevPending.add(k);
-    IDB.get('pv:'+sig).then(img=>{if(img){prevPending.delete(k);setPrev(k,sig,img);hubLog('picture '+k+' from the cache');}else{_pvMiss.push({key:k,sig,seed:cellSeed(c),cov:cellCov(c),q:c.q,r:c.r});pvFlush();}})
+    IDB.get('pv:'+sig).then(img=>{if(img){setPrev(k,sig,img);hubLog('picture '+k+' from the cache');}else{_pvMiss.push({key:k,sig,seed:cellSeed(c),cov:cellCov(c),q:c.q,r:c.r});pvFlush();}})
       .catch(()=>{_pvMiss.push({key:k,sig,seed:cellSeed(c),cov:cellCov(c),q:c.q,r:c.r});pvFlush();});}
 }
 const _pvMiss=[];let _pvT=0;
@@ -580,7 +580,7 @@ function mapRender(){
   if(phase==='gameover')st+=' · game over: '+gameOverReason;
   document.getElementById('score-display').textContent=st;
   {const el=document.getElementById('turn-label'),tl=clockStr()+' · Day '+day;if(el.textContent!==tl)el.textContent=tl;}
-  ptOver=mX>=0?document.elementFromPoint(mX,mY):null;shopTick();discTick();feedTick(now);cursorTick(now);hubPh('hud'); // ptOver: one hit test a frame, before the shops move (a hit test after a style change forces a layout)hubPerfFrame(now);
+  ptOver=mX>=0?document.elementFromPoint(mX,mY):null;shopTick();discTick();feedTick(now);cursorTick(now);hubPh('hud');hubPerfFrame(now); // ptOver: one hit test a frame, before the shops move (a hit test after a style change forces a layout)
   mapRafId=requestAnimationFrame(mapRender);
 }
 function startMapLoop(){if(!mapRafId){hubPerf.last=0;mapRafId=requestAnimationFrame(mapRender);}} // (the time the loop was stopped is not a slow frame)
@@ -710,7 +710,7 @@ window.addEventListener('message',e=>{
     hubEvent('map');
   }
   if(m.type==='ready'||m.type==='state');
-  else if(m.type==='preview'){prevPending.delete(m.key);hubLog('preview '+m.key+(m.ms!=null?' built in '+m.ms.toFixed(0)+' ms':'')+(m.img?'':' (skipped)'));if(m.img){IDB.put('pv:'+m.sig,m.img).catch(()=>{});setPrev(m.key,m.sig,m.img);}}
+  else if(m.type==='preview'){if(!m.img)prevPending.delete(m.key);hubLog('preview '+m.key+(m.ms!=null?' built in '+m.ms.toFixed(0)+' ms':'')+(m.img?'':' (skipped)'));if(m.img){IDB.put('pv:'+m.sig,m.img).catch(()=>{});setPrev(m.key,m.sig,m.img);}}
   else if(m.type==='overlayDone'){if(currentView==='overlay'){currentView='map';showNeb(false);evPump();}}
   else if(m.type==='cleared')completeCaptureForCell(m.key,m.kind,m.tally);
   else if(m.type==='bought')shopBought(m); // the hex is captured right away; the player returns with a right-click
