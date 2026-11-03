@@ -112,7 +112,7 @@ button:hover{background:rgba(255,255,255,0.15);}
   <div id="dock" class="bottom"><div id="inventoryPanel"></div><div id="touch-info"></div></div>
   <canvas id="cur"></canvas>
 </div>
-<script src="content.js?v=20261103z"></script><script src="shared.js?v=20261103z"></script>
+<script src="content.js?v=20261104a"></script><script src="shared.js?v=20261104a"></script>
 <script>
 txtApply(); // the page's own labels (content/strings.csv)
 const _SRC=document.documentElement.outerHTML; // kept so the Encyclopedia can run live scenes as embedded copies of the game
@@ -5230,7 +5230,7 @@ function collectRemnant(c){
   if(_batchSnd){}else if(collectHold&&collectSeen.size>1)playScaleStep();else{const cp=c.p.remKind?c.p:Object.assign({},c.p,{remKind:'brown'});_playRemnantActionSoundInner(cp,false,1);} // exactly the tuner's pickup sound for that remnant type
    // wiping up: a rising glissando links the pickups
   spawnCollectSparks(c.p); // the remnant's edge breaks into particles that gather inward and rise
-  earnFx.push({kind:'plus',x:c.p.x,y:c.p.y-14,text:(_collectFor?'Friend ':'')+INV_ICON[c.kind]+' +'+got,born:performance.now(),dur:1100});if(_collectFor)return true;
+  earnFx.push({kind:'plus',x:c.p.x,y:c.p.y-14,text:(_collectFor?(_collectFor.name||'Friend')+' ':'')+INV_ICON[c.kind]+' +'+got,born:performance.now(),dur:1100});if(_collectFor)return true;
   {const nf=performance.now();if(collectFeed.kind===c.kind&&nf-collectFeed.t<1500){collectFeed.n++;collectFeed.got+=got;}else collectFeed={kind:c.kind,n:1,got,t:nf};collectFeed.t=nf;flashSaveStatus(txt('surf.collected_for',INV_ICON[c.kind],collectFeed.n,COLLECT_NAME[c.kind],(collectFeed.n===1?'':txt('surf.s')),collectFeed.got,INV_LABEL[c.kind]));}
   return true;
 }
@@ -12737,7 +12737,7 @@ function cardHTML(ev,mini){ // the one card format: name bar, art box, type line
   return `<div class="mtg${mini?' sm':''}" data-ev="${ev.id}" style="--rc:${TIER_COL[t]}"><div class="nm"><b>${gEsc(ev.name)}</b><span class="gem"></span></div><div class="art" data-scene="${ev.scene}">${mini?`<canvas class="rl-m" width="64" height="64" data-k="${ev.ico}"></canvas>`:''}</div><div class="ty"><span>${gEsc(ev.type.replace(/^Event — /,''))}</span><span>Tier ${TIER[t]}</span></div><div class="tx">${(mini?ev.facts().slice(0,1):ev.facts()).map(f=>`<p${ev.fx?' class="fx"':''}>${gEsc(f)}</p>`).join('')}${ev.flavor?`<p class="fl">${gEsc(ev.flavor)}</p>`:''}</div></div>`; // (small: its first line and its flavour; the rest when it is opened) (fx: the lines are changes to play, set apart from the flavour)
 }
 function mountScene(h,w,hh){if(!h||h.firstChild||document.querySelectorAll('.rl-live iframe,.mtg .art iframe').length>=5)return;const f=document.createElement('iframe'),nm=h.dataset.s||h.dataset.scene;f.style.cssText='border:0;max-width:100%;pointer-events:none;background:#000;border-radius:6px;'+(w?`width:${w}px;height:${hh}px`:'width:100%;height:100%');
-  if(nm.slice(0,4)==='hub:'){const[sn,dk]=nm.slice(4).split(':');f.src='Surface_Map_HUB.html?v=20261103z&scene='+sn+'&T='+encodeURIComponent(JSON.stringify(mapSceneT()))+'&D='+encodeURIComponent(JSON.stringify(dk&&DUCK_TYPES[dk]?{[dk]:DUCK_TYPES[dk]}:Object.fromEntries(Object.entries(DUCK_TYPES).slice(0,4))));}else f.srcdoc=liveSrc(nm);h.appendChild(f);} // a Surface Map demo is played by the map itself
+  if(nm.slice(0,4)==='hub:'){const[sn,dk]=nm.slice(4).split(':');f.src='Surface_Map_HUB.html?v=20261104a&scene='+sn+'&T='+encodeURIComponent(JSON.stringify(mapSceneT()))+'&D='+encodeURIComponent(JSON.stringify(dk&&DUCK_TYPES[dk]?{[dk]:DUCK_TYPES[dk]}:Object.fromEntries(Object.entries(DUCK_TYPES).slice(0,4))));}else f.srcdoc=liveSrc(nm);h.appendChild(f);} // a Surface Map demo is played by the map itself
 function mapSceneT(){const o={};for(const k in T)if(/^(map|bh|duck|wake|glass|metal|dimGlow|glowHalo|maxSpeed)/.test(k))o[k]=T[k];return o;} // what a map demo needs of the tuners
 function showCardHTML(html){ // a Guide card (an entry or a shop) opened over the Guide, where an event card shows
   guideCSS();_evOpen=true;_evReview=true;const ov=evOverlayEl();ov.innerHTML=`<div class="ev-box">${html}<button id="evOk">${txt('card.close')}</button></div>`;ov.style.display='flex';wrap.classList.add('ev-open');
@@ -13250,6 +13250,9 @@ window.addEventListener('message',e=>{
   else if(m.cmd==='day'){if(m.newRun)runState=runFresh();else if(m.day!==runState.day)Object.assign(runState,{fortune:runState.dimNext||null,dimNext:null,charm:0,draw:null,dimDone:{}});runState.day=m.day;runState.clock=3;runExpire(); /* (yesterday's dim fortune is today's; a Daily Wonder runs on to its time) */saveInventory();updateInventoryUI();hubState();} // a new day: today's fortune, bonus and Luck Charms are over // a shop on the map: this pays and hands it over
   else if(m.cmd==='wipe'){for(const k of INV_KINDS)inventory[k]=0;duckLog={};duckLuck={d:0,e:0};runState=runFresh();discSeen=new Set();invDisabled=new Set();keyShapes=[];_discReset='all';IDB.del('session').catch(()=>{});saveInventory();updateInventoryUI();applyDisc();hubState();} // the Gift Shop: everything goes
   else if(m.cmd==='state')hubState('state',true);
+  else if(m.cmd==='remote')remoteOn(m); // a map player's pointer on this surface
+  else if(m.cmd==='remoteClear')REMOTES.clear();
+  else if(m.cmd==='mpShare')_mpShare=!!m.on; // playing together on the map: this surface is being watched
   else if(m.cmd==='clock'){runState.clock=m.clock;if(m.day)runState.day=m.day;if(runExpire()){saveInventory();updateInventoryUI();}hubState();} // the map's time of day moved on
   else if(m.cmd==='tap')playGlassTap(); // a closed shop's glass tapped on the map
   else if(m.cmd==='quack'){if(DUCK_TYPES[m.type])duckVoice({type:m.type},m.v||1);} // a lake duck on the map was bumped or dunked
@@ -13298,7 +13301,7 @@ document.addEventListener('visibilitychange',()=>{if(document.hidden&&HUB&&hubLe
 // here it shines and collects with the same shine caps (one Max shining for both), its own heat, and what it collects is theirs (it goes to their save) ──
 const MP={peer:null,conn:null,call:null,bc:null,id:null,score:{host:0,guest:0},sent:0};
 let _collectFor=null; // while a second player's pickup runs: that player
-const GUEST={x:-9999,y:-9999,down:false,downAt:0,downX:0,downY:0,drag:false,downOn:null,hold:false,seen:new Set(),cseen:new Set(),mine:new Set(),heat:{v:0,disp:0,until:0,dur:1,needNew:false,last:0},at:0};
+var GUEST={x:-9999,y:-9999,down:false,downAt:0,downX:0,downY:0,drag:false,downOn:null,hold:false,seen:new Set(),cseen:new Set(),mine:new Set(),heat:{v:0,disp:0,until:0,dur:1,needNew:false,last:0},at:0};
 function mpSend(o){try{if(MP.conn&&MP.conn.open)MP.conn.send(o);else if(MP.bc)MP.bc.postMessage(o);}catch(e){}}
 function mpLink(){return new URL('join.html?room='+encodeURIComponent(MP.id)+(MP.bc?'&net=bc':''),location.href).href;}
 function mpShow(t){const el=document.getElementById('gmLink');if(el){el.style.display='';el.innerHTML=t;}flashSaveStatus(String(t).replace(/<[^>]+>/g,' '));}
@@ -13313,27 +13316,35 @@ function mpHost(){ // starts hosting (once): a share link for a friend; ?net=bc 
   if(window.Peer)go();else{const sc=document.createElement('script');sc.src='https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js';sc.onload=go;sc.onerror=()=>mpShow(txt('surf.could_not_load_the'));document.head.appendChild(sc);}}
 function mpJoined(){MP.live=true;MP.score={host:0,guest:0};mpShow(txt('surf.your_friend_is_here'));mpSend({t:'hi',W,H});}
 function mpLeft(){MP.live=false;MP.conn=null;GUEST.x=-9999;GUEST.down=false;mpShow(txt('surf.your_friend_left_the'));}
-function mpGot(kind,n){MP.score.guest+=n;mpSend({t:'got',kind,n});}
-function mpOn(m){ // the friend's pointer (x, y as fractions of this surface)
+function mpGot(kind,n){if(_collectFor&&_collectFor.pid){hubPost({type:'mpGot',pid:_collectFor.pid,kind,n});return;}MP.score.guest+=n;mpSend({t:'got',kind,n});} // (a map player's: theirs, through the map)
+function mpOn(m,GUEST=window.GUEST){ // the friend's pointer (x, y as fractions of this surface); GUEST: which friend (one joined by link, or a map player)
   if(!m||!m.t)return;const now=performance.now(),x=m.x*W,y=m.y*H;
-  if(m.t==='join'&&MP.bc){mpJoined();return;}if(m.t==='bye'){mpLeft();return;}
+  if(GUEST.pid==null){if(m.t==='join'&&MP.bc){mpJoined();return;}if(m.t==='bye'){mpLeft();return;}}
   if(m.t==='move'){GUEST.x=x;GUEST.y=y;GUEST.at=now;if(GUEST.down&&!GUEST.drag&&Math.hypot(x-GUEST.downX,y-GUEST.downY)>DRAG_DEADZONE&&now-GUEST.downAt>DRAG_HOLD_MS){GUEST.drag=true;GUEST.seen.clear();}}
   else if(m.t==='down'){GUEST.x=x;GUEST.y=y;if(levelCleared||blackHole)return;if(GUEST.heat.needNew&&now>=GUEST.heat.until)GUEST.heat.needNew=false;
     Object.assign(GUEST,{down:true,downAt:now,downX:x,downY:y,drag:false,hold:false});GUEST.seen.clear();GUEST.cseen.clear();GUEST.downOn=collectableAt(x,y);}
   else if(m.t==='up'){if(!GUEST.down)return;GUEST.down=false;if(GUEST.hold||GUEST.drag||levelCleared||blackHole||x<0||y<0||x>=W||y>=H)return;
-    const c=collectableAt(x,y);if(c&&c.kind)mpAs(()=>collectRemnant(c));else mpAs(()=>{activateAt(x,y,now,true);if(lastActivatedId>=0)GUEST.mine.add(lastActivatedId);});}
+    const c=collectableAt(x,y);if(c&&c.kind)mpAs(()=>collectRemnant(c),GUEST);else mpAs(()=>{activateAt(x,y,now,true);if(lastActivatedId>=0)GUEST.mine.add(lastActivatedId);},GUEST);}
   else if(m.t==='rclick'){for(const id of GUEST.mine)pressedIDs.delete(id);for(const p of active)if(GUEST.mine.has(p.id))p.touchStart=-1;GUEST.mine.clear();} // puts out only what they lit
 }
-function mpAs(fn){_collectFor=GUEST;try{return withHeat(GUEST.heat,fn);}finally{_collectFor=null;}}
-function mpTick(now){ // each frame: the friend's held press (wiping and mopping, or a collecting sweep), their heat, and what they need to draw
-  if(!MP.live)return;withHeat(GUEST.heat,()=>heatTick(now));
+function mpAs(fn,G=GUEST){_collectFor=G;try{return withHeat(G.heat,fn);}finally{_collectFor=null;}}
+const REMOTES=new Map(); // map players watching this surface (playing together on the map): each its own pointer, heat and pickups
+function remoteOf(pid,name,col){let G=REMOTES.get(pid);if(!G){G={pid,name,col,x:-9999,y:-9999,down:false,downAt:0,downX:0,downY:0,drag:false,downOn:null,hold:false,seen:new Set(),cseen:new Set(),mine:new Set(),heat:{v:0,disp:0,until:0,dur:1,needNew:false,last:0},at:0};REMOTES.set(pid,G);}G.name=name||G.name;G.col=col||G.col;return G;}
+function remoteOn(m){const G=remoteOf(m.pid,m.name,m.col),p=m.m||{};if(!m.can&&(p.t==='down'||p.t==='up'||p.t==='rclick')){G.down=false;return;}mpOn(p,G);} // elsewhere on the map: they only watch (their pointer shows)
+let _remFrame=0,_remCv=null,_mpShare=false;
+function mpTickOne(GUEST,now){withHeat(GUEST.heat,()=>heatTick(now));
   if(GUEST.down&&!blackHole&&!levelCleared){
-    if(GUEST.downOn){if(!GUEST.hold&&(GUEST.drag||now-GUEST.downAt>=HOLD_CHARGE_DELAY_MS)){GUEST.hold=true;GUEST.cseen.add(GUEST.downOn.p.id);mpAs(()=>collectRemnant(GUEST.downOn));}if(GUEST.hold)mpAs(()=>collectUnder(GUEST.x,GUEST.y,GUEST.cseen));}
-    else if(GUEST.drag)mpAs(()=>{if(!heatBlocked(now)){const n0=lastActivatedId;heldActivateAt(GUEST.x,GUEST.y,GUEST.seen,now);if(lastActivatedId!==n0&&lastActivatedId>=0)GUEST.mine.add(lastActivatedId);}});}
+    if(GUEST.downOn){if(!GUEST.hold&&(GUEST.drag||now-GUEST.downAt>=HOLD_CHARGE_DELAY_MS)){GUEST.hold=true;GUEST.cseen.add(GUEST.downOn.p.id);mpAs(()=>collectRemnant(GUEST.downOn),GUEST);}if(GUEST.hold)mpAs(()=>collectUnder(GUEST.x,GUEST.y,GUEST.cseen),GUEST);}
+    else if(GUEST.drag)mpAs(()=>{if(!heatBlocked(now)){const n0=lastActivatedId;heldActivateAt(GUEST.x,GUEST.y,GUEST.seen,now);if(lastActivatedId!==n0&&lastActivatedId>=0)GUEST.mine.add(lastActivatedId);}},GUEST);}
+} // one friend's held press (wiping and mopping, or a collecting sweep) and their heat
+function mpTick(now){ // each frame: every friend's press and heat, and what they need to see
+  if((REMOTES.size||_mpShare)&&HUB){for(const G of REMOTES.values())mpTickOne(G,now);if(_mpShare&&now-_remFrame>140){_remFrame=now;try{const w=Math.min(720,W),h=Math.round(H*w/W);_remCv=_remCv||document.createElement('canvas');if(_remCv.width!==w){_remCv.width=w;_remCv.height=h;}_remCv.getContext('2d').drawImage(canvas,0,0,w,h);hubPost({type:'frame',url:_remCv.toDataURL('image/jpeg',0.55)});}catch(e){}}} // (the map passes the frames to everyone watching)
+  if(!MP.live)return;mpTickOne(GUEST,now);
   if(now-MP.sent>33){MP.sent=now;const st={t:'st',hx:mouse.x/W,hy:mouse.y/H,heat:{disp:GUEST.heat.disp,until:GUEST.heat.until-now,v:GUEST.heat.v},score:MP.score,cleared:levelCleared};
     if(MP.bc&&now-(MP.frameAt||0)>120){MP.frameAt=now;try{st.frame=canvas.toDataURL('image/jpeg',0.5);}catch(e){}} // (two tabs: frames instead of a video)
     mpSend(st);}}
-function mpDrawGuest(cx,now){ // the friend's cursor over this surface: a gold ring with their heat, and the score
+function mpDrawGuest(cx,now){ // the friend's cursor over this surface: a gold ring with their heat, and the score (and each map player watching: their colour, their name)
+  for(const G of REMOTES.values())if(G.x>=0&&now-G.at<4000){const R=(T.cursorBaseR||8)*1.1;cx.save();cx.strokeStyle=G.col||'#fc0';cx.lineWidth=2;cx.beginPath();cx.arc(G.x,G.y,R,0,6.2832);cx.stroke();cx.fillStyle=G.col||'#fc0';cx.font='10px system-ui';cx.textAlign='center';cx.fillText(G.name||'',G.x,G.y-R-4);cx.restore();drawHeatArc(cx,G.x,G.y,R,now,G.heat);}
   if(!MP.live)return;
   if(GUEST.x>=0&&now-GUEST.at<4000){const R=(T.cursorBaseR||8)*1.1;cx.save();cx.strokeStyle='rgba(255,205,90,0.9)';cx.lineWidth=2;cx.beginPath();cx.arc(GUEST.x,GUEST.y,R,0,6.2832);cx.stroke();
     cx.fillStyle='rgba(255,205,90,0.9)';cx.font='10px system-ui';cx.textAlign='center';cx.fillText('Friend',GUEST.x,GUEST.y-R-4);cx.restore();drawHeatArc(cx,GUEST.x,GUEST.y,R,now,GUEST.heat);}
