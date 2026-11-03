@@ -11,8 +11,7 @@ body{background:#050608;overflow:hidden;font-family:'Share Tech Mono',monospace;
 #map-view{position:absolute;inset:0}
 #map-view{overflow:hidden}
 #scene{position:absolute;inset:0;width:100%;height:100%;display:block}#beam{position:absolute;inset:0;width:100%;height:100%;pointer-events:none;z-index:1} /* the buoy's spot light, over the scene */
-#map-view,#map-view *{cursor:none!important} /* the surface's own cursor, drawn on #hcur */
-#hcur{position:fixed;inset:0;width:100%;height:100%;pointer-events:none;z-index:45}
+#map-view,#map-view *{cursor:none!important} /* the game's own cursor (content.js gameCursor) */
 /* the dock: the surface's item slots and feed, as on a surface */
 #hdock{position:absolute;left:50%;bottom:0;transform:translateX(-50%);display:flex;flex-direction:column;z-index:20;max-width:96vw;border-radius:8px 8px 0 0;overflow:hidden}
 #hinv{display:flex;gap:3px;justify-content:center;padding:3px 5px} /* no common backing: each item stands on its own */
@@ -24,12 +23,13 @@ body.dock-min #hfeed{display:none} /* the dock's own hide (its ▾): the feed go
 body.dock-min:not(.shop-open) #hinv .slot:not(.up):not(:hover)>*,body.dock-min:not(.shop-open) #hinv .slot:not(.up):not(:hover)::before{transform:translateY(130%);opacity:0} /* each item down out of the way until you point at its own place: then it comes up from below */
 body.ui-hidden #hinv .dmin{display:none}#hinv .slot.armed::before{background:rgba(255,220,120,0.28);border-color:rgba(255,220,120,0.8)}#hinv .slot.empty{opacity:0.4}
 #hinv .slot svg{width:18px;height:18px;color:#fff}#hinv .slot b{font-weight:400;margin-top:1px}#hinv .sep{width:6px}
+#hfeed.flash{animation:feedFlash .6s ease-out}@keyframes feedFlash{0%{background:rgba(255,255,255,.35)}100%{background:rgba(0,0,0,.6)}} /* the feed flashes: why that click did nothing */
 #hfeed{font:12px monospace;text-align:center;min-width:420px;height:30px;color:#fff;background:rgba(0,0,0,0.6);padding:3px 14px;display:flex;flex-direction:column;justify-content:center}
 #hfeed .fn{line-height:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}#hfeed .fd{font-size:9px;line-height:11px;opacity:0.62;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 #hfeed button{font:11px monospace;margin:0 4px;padding:1px 8px;background:rgba(255,220,120,0.2);border:1px solid rgba(255,220,120,0.7);color:#fff;border-radius:3px}
 #bottom-bar{bottom:76px}#legend{bottom:76px}
 body.scene-calm #turn-label{display:none!important} /* a fortune's lake: just its ducks */
-body.scene .hbtn,body.scene:not(.scene-shops) #shops,body.scene #hdock,body.scene #legend,body.scene #bottom-bar,body.scene body.scene #capture-hint,body.scene #hcur{display:none!important} /* the map as a 3D scene: the plane (drawn in 2D, then laid in the scene as its ground) and the ducks on it */
+body.scene .hbtn,body.scene:not(.scene-shops) #shops,body.scene #hdock,body.scene #legend,body.scene #bottom-bar,body.scene body.scene #capture-hint,body.scene .x-none{display:none!important} /* the map as a 3D scene: the plane (drawn in 2D, then laid in the scene as its ground) and the ducks on it */
 /* the surface (chromatic_nebula.html): hidden with visibility, not display, so it keeps its size for the hex previews */
 #neb{position:fixed;inset:0;width:100%;height:100%;border:0;z-index:50;visibility:hidden;pointer-events:none;background:#000}
 #neb.show{visibility:visible;pointer-events:auto;animation:nebIn .45s ease-out}@keyframes nebIn{from{opacity:0}to{opacity:1}} /* (fades in over the map) */
@@ -161,9 +161,9 @@ body.shop-open #hdock{z-index:59}#hinv .slot.wal::before{border-color:rgba(255,2
 <div id="nameAsk"><div class="scard"><h2 data-tx="map.name.title"></h2><div data-tx="map.name.note"></div><input maxlength="20" autocomplete="off" spellcheck="false" data-tp="map.name.placeholder"><div class="nlen"></div><div class="ncl" data-tx="map.name.colour"></div><div class="ncols"></div><button data-tx="map.name.go"></button></div></div>
 <div id="shop"><div class="sbox"><div class="scol"><canvas class="sart"></canvas><div class="scard"></div></div><div class="sstat"></div></div></div>
 <div id="veil"></div>
-<div id="bfx"></div><canvas id="hcur"></canvas>
+<div id="bfx"></div>
 <iframe id="neb" data-tt="map.ui.surface"></iframe>
-<script src="content.js?v=20261104b"></script><script src="shared.js?v=20261104b"></script>
+<script src="content.js?v=20261104c"></script><script src="shared.js?v=20261104c"></script>
 <script>
 // ╔══════════════════════════════════════════════════════════════════════════════╗
 // ║  MAP ENGINE                                                                 ║
@@ -182,7 +182,7 @@ let clock=3,day=1,pool=6,fresh=true,burstFx=null,dayLog=[],dayCnt={b:0,d:0},pend
 // // clock: the hour (3 = Twilight … 24 = Midnight, the day's last turn); day: your attempts; pool: what the source put out at its last burst; fresh: no ring added yet since it
 let constel=[],armed=null,weaveSel=[],weaveAsk=null,clearFx={},mergeFx=[],feedMsg={t:'',d:'',at:-1e9}; // constellations {keys,type}; the armed map item; a Weave being drawn; animations; the final count
 const STEP_H=3; // the day: eight turns of three hours
-const CACHE_V='20261104b'; // the build: bump with shared.js's
+const CACHE_V='20261104c'; // the build: bump with shared.js's
 const SCENE=new URLSearchParams(location.search).get('scene'); // a Guide / event demo: the map plays a scripted moment (no surface behind it)
 let phase='move',turnTimer=0,mergeTimer=0;
 let gameOverReason='';
@@ -740,13 +740,14 @@ sc.addEventListener('contextmenu',e=>{e.preventDefault();if(currentView!=='map')
 let drag=null; // a left-button drag pans the map
 function panCam(dx,dy){const x=camTX+dx,y=camTY+dy;camX+=x-camTX;camY+=y-camTY;camTX=x;camTY=y;camFrame();} // (camFrame keeps the view on the spill)
 sc.addEventListener('mousedown',e=>{if(e.button===0&&currentView==='map')drag={x:e.clientX,y:e.clientY,moved:false};});
-document.addEventListener('mousemove',e=>{if(!drag)return;if(!(e.buttons&1)){drag=null;return;}if(!drag.moved&&Math.hypot(e.clientX-drag.x,e.clientY-drag.y)<6)return;drag.moved=true;const a=s2wp(drag.x,drag.y),b=s2wp(e.clientX,e.clientY);panCam(a[0]-b[0],a[1]-b[1]);drag.x=e.clientX;drag.y=e.clientY;});
+document.addEventListener('mousemove',e=>{if(!drag)return;if(!(e.buttons&1)){drag=null;return;}if(!drag.moved&&Math.hypot(e.clientX-drag.x,e.clientY-drag.y)<6)return;drag.moved=true;swipeMark(e.clientX,e.clientY);const a=s2wp(drag.x,drag.y),b=s2wp(e.clientX,e.clientY);panCam(a[0]-b[0],a[1]-b[1]);drag.x=e.clientX;drag.y=e.clientY;});
 document.addEventListener('mouseup',()=>{if(drag&&!drag.moved)drag=null;}); // (a drag's own click is swallowed below)
 sc.addEventListener('click',e=>{
   if(drag&&drag.moved){drag=null;return;} // the end of a drag, not a click
   if(currentView!=='map')return;
   if(phase==='gameover'||phase==='ended'||phase==='collapse')return;
-  const[q,r]=evA(e);
+  const[q,r]=evA(e),k0=K(q,r),c0=cells[k0];{const[wx,wy]=s2wp(e.clientX,e.clientY),now=performance.now();ripples.push({x:wx,y:wy,t:now,dk:onWhite(wx,wy),sm:1});} // a click: a little ripple
+  if(c0&&!(armed?itemOK(k0):(q===pQ&&r===pR||(!tired()&&getMoves().some(m=>m.q===q&&m.r===r))))&&!(armed==='weave')){hexTap(k0);return;} // nothing it could do there: the hex rings like tapped glass, and the feed says why
   if(MP.on&&!mpMine()&&!(armed==='weave')){feed(txt('mp.title'),txt('mp.not_your_turn',(mpP(mpTurn())||{}).name||''));return;} // playing together: on your turn
   if(MP.role==='guest'&&armed!=='weave'){mpSend('click',{q,r,armed});if(armed==='dial')armed=null;return;} // a friend: the host plays it
   mapClick(q,r);
@@ -759,6 +760,17 @@ function mapClick(q,r){const k=K(q,r); // a click on a hex (yours, or a friend's
   const moves=getMoves();if(moves.find(m=>m.q===q&&m.r===r))doMove(q,r); // (at Midnight it only says you are too tired)
 }
 sc.addEventListener('mouseleave',()=>{hQ=null;hR=null;});
+sc.addEventListener('dblclick',e=>{if(currentView!=='map')return;const[wx,wy]=s2wp(e.clientX,e.clientY),now=performance.now();for(let i=0;i<3;i++)ripples.push({x:wx,y:wy,t:now+i*120,dk:onWhite(wx,wy),big:1});splashes.push({x:wx,y:wy,t:now,n:9,a:Math.random()*6.28});}); // a double click: a splash
+let swipeWake=[],splashes=[],hexTaps=[],_swAt=0,_swP=null;
+function swipeMark(X,Y){const now=performance.now();if(now-_swAt<55)return;_swAt=now;const[wx,wy]=s2wp(X,Y),dk=onWhite(wx,wy);ripples.push({x:wx,y:wy,t:now,dk,sm:1}); // a click-swipe over the map: ripples behind it, and a wake
+  if(_swP&&now-_swP.t<300){const dx=wx-_swP.x,dy=wy-_swP.y,l=Math.hypot(dx,dy);if(l>1)swipeWake.push({x:wx,y:wy,fx:dx/l,fy:dy/l,sp:Math.min(1,l/(HEX*0.4)),t:now,dk});}_swP={x:wx,y:wy,t:now};}
+function hexTap(k){const now=performance.now(),c=cells[k];hexTaps.push({k,t:now});neb({cmd:'tap'});if(!c)return; // a click that does nothing to a hex: it flashes like tapped glass; the feed tells you why (what pointing at it says)
+  const[a,b]=armed?itemInfo(armed,c):hexInfo(c);feed(a,armed?b:txt(tired()?'map.too_tired_to_move':c.isVoid?'map.tap.void':'map.tap.far')+(b?' · '+b:''));const fd=document.getElementById('hfeed');if(fd){fd.classList.remove('flash');void fd.offsetWidth;fd.classList.add('flash');}}
+function clickFx(c,now){ // on the plane: the swipe's wake, splashes, tapped hexes
+  swipeWake=swipeWake.filter(w=>now-w.t<900);for(const w of swipeWake){const[X,Y]=w2s(w.x,w.y),f=1-(now-w.t)/900,ink=w.dk?[20,24,32]:sunInk();drawWakeShape(c,X,Y,w.fx,w.fy,HEX*0.3,w.sp,0.35*f,ink,ink);}
+  splashes=splashes.filter(p=>now-p.t<700);for(const p of splashes){const u=(now-p.t)/700,[X,Y]=w2s(p.x,p.y);c.save();c.fillStyle=`rgba(${(onWhite(p.x,p.y)?[20,24,32]:sunInk()).join(',')},${(0.7*(1-u)).toFixed(3)})`;
+    for(let i=0;i<p.n;i++){const a=p.a+i/p.n*6.2832,r=HEX*0.5*Math.sqrt(u)*(0.7+0.3*Math.sin(i*7.1)),h=HEX*0.25*Math.sin(Math.PI*u);c.beginPath();c.arc(X+Math.cos(a)*r,Y+Math.sin(a)*r*0.6-h,Math.max(0.5,HEX*0.04*(1-u)),0,6.2832);c.fill();}c.restore();}
+  hexTaps=hexTaps.filter(t=>now-t.t<300);for(const t of hexTaps){const c2=cells[t.k];if(!c2)continue;const u=(now-t.t)/300,[X,Y]=w2s(...a2w(c2.q,c2.r));hexPath(X,Y,HEX*0.92);c.fillStyle=`rgba(255,255,255,${(0.22*(1-u)).toFixed(3)})`;c.fill();c.strokeStyle=`rgba(255,255,255,${(0.6*(1-u)).toFixed(3)})`;c.lineWidth=1.5;c.stroke();}}
 document.addEventListener('click',e=>{ // a lake duck clicked (even under a read-out like the legend): dunked, it comes back up — and the click goes no further
   if(drag&&drag.moved)return;if(currentView!=='map'||menuOpen||shopUI||!(e.target===sc||(e.target.closest&&!e.target.closest('button,.slot,.shop,input,select,#hdock,#tuneP,#mModes,#shop,#menu,#day-report,#letter,#nameAsk'))))return;
   if(!SCENE&&buoyHit(e.clientX,e.clientY)){e.stopPropagation();openCollections('status');return;} // your buoy: Status and your collections
@@ -911,7 +923,7 @@ function pondStep(now){
     if(d.sp>0.1&&now-d.lastRip>320){d.lastRip=now;ripples.push({x:d.x,y:d.y,t:now,dk:onWhite(d.x,d.y)});} // white rings on dark water, dark on white
     const t=d.bottle?{scale:1.4}:DUCK_TYPES[d.type]||{};d._s=HEX*0.62*(t.scale||1)/(t.head?1.25:1);return true;}); // world units per model unit (its type's size)
   ripples=ripples.filter(r=>now-r.t<1800);
-  for(const r of ripples){const a=(now-r.t)/1800,[X,Y]=w2s(r.x,r.y),R=4+a*HEX*(r.big?1.6:0.9);c.strokeStyle=`rgba(${r.dk?'20,24,32':sunInk().join(',')},${(0.5*(1-a)*(1-a)).toFixed(3)})`;c.lineWidth=r.big?2:1.4;c.beginPath();c.arc(X,Y,R,0,6.2832);c.stroke();} // rings on the water (the camera foreshortens them)
+  clickFx(c,now);for(const r of ripples){if(now<r.t)continue;const a=(now-r.t)/1800,[X,Y]=w2s(r.x,r.y),R=4+a*HEX*(r.big?1.6:r.sm?0.4:0.9);c.strokeStyle=`rgba(${r.dk?'20,24,32':sunInk().join(',')},${(0.5*(1-a)*(1-a)).toFixed(3)})`;c.lineWidth=r.big?2:1.4;c.beginPath();c.arc(X,Y,R,0,6.2832);c.stroke();} // rings on the water (the camera foreshortens them)
   for(const d of pond)if(d._s){const[X,Y]=w2s(d.x,d.y);if(d.bottle){if(d.isNew&&!d.empty)duckGlow(c,'shining',X,Y,d._s*1.2,now,d.ph);continue;}if((DUCK_TYPES[d.type]||{}).mat==='shadow'&&cam){const f=duckFace(d,now),R=cam.viewRot,r=[f[0],f[1],0, 0,0,1, -f[1],f[0],0],m=new Float32Array(9),b=duckBob(d,now); // a Silhouette: its glow in the outline the camera sees, laid on the water under it
       for(let i=0;i<3;i++)for(let j=0;j<3;j++)m[j*3+i]=R[i]*r[j*3]+R[3+i]*r[j*3+1]+R[6+i]*r[j*3+2];duckGlow(c,d.type,X,Y-b*Math.tan(cam.th),d._s,now,d.ph,m,1/Math.cos(cam.th));}
     else duckGlow(c,d.type,X,Y,d._s,now,d.ph); // a Bright / Shining / Dim duck lights the water round it
@@ -1310,16 +1322,11 @@ function feedTick(now){ // the feed: a recent message, else what the cursor is o
   else if(du){const v=DUCK_TYPES[du.type]||{};a=txt('map.duck.name',duckStar(v)+(v.name||''),duckLog[du.type]||0);b=txt('map.duck.info',(v.axis||'')+(v.detail?': '+v.detail:''));}
   else if(hc&&armed){[a,b]=itemInfo(armed,hc);a=hexInfo(hc)[0]+' · '+a;}else if(hc){[a,b]=hexInfo(hc);}else{[a,b]=armed?itemInfo(armed):hintLine;}
   if(fn.textContent!==a)fn.textContent=a||'';if(fdd.textContent!==(b||''))fdd.textContent=b||'';}
-const hcur=document.getElementById('hcur'),hcx=hcur.getContext('2d');
-function cursorTick(now){ // the surface's standard cursor (shared.js): brighter over something it can act on
-  const dp=window.devicePixelRatio||1;if(hcur.width!==Math.round(innerWidth*dp)){hcur.width=Math.round(innerWidth*dp);hcur.height=Math.round(innerHeight*dp);}
-  hcx.setTransform(dp,0,0,dp,0,0);hcx.clearRect(0,0,innerWidth,innerHeight);if(currentView!=='map'||menuOpen||shopUI||mX<0)return;
-  const over=ptOver,ui=over&&over!==sc&&over.closest&&over.closest('button,.slot,.hbtn,.shop,input,select');
-  const k=hQ!==null?K(hQ,hR):null,c=k?cells[k]:null,act=!!ui||!!(c&&(armed?itemOK(k):(k===K(pQ,pR)||(!tired()&&getMoves().some(m=>K(m.q,m.r)===k)))));
-  const base=T.cursorBaseR||8,lw=T.cursorLineW||2,press=mDownAt>0?Math.min(1,(now-mDownAt)/(T.cursorClickDurMs||120)):0,cR=base*(1-(T.cursorClickShrink!=null?T.cursorClickShrink:0.7)*0.4*press);
-  _curA+=((act?1:(T.cursorIdleAlphaMult!=null?T.cursorIdleAlphaMult:0.5))-_curA)*0.25;const ev=act?255:Math.round(255*(1-(T.cursorIdleBorderDark!=null?T.cursorIdleBorderDark:0.4))),col=armed?'255,220,120':`${ev},${ev},${ev}`;
-  {const[wx,wy]=s2wp(mX,mY);cursorTrailRecord(wx,wy,now,overScene());}cursorBase(hcx,mX,mY,cR,_curA,1,col,lw);cursorRing(hcx,mX,mY,cR,_curA,col,lw);cursorDot(hcx,mX,mY,_curA,col);}
-let _curA=0.5;
+function cursorTick(now){ // the map's cursor (content.js gameCursor, over every menu and card too): here only its trail, on the ground
+  if(currentView==='map'&&mX>=0&&!menuOpen&&!shopUI){const[wx,wy]=s2wp(mX,mY);cursorTrailRecord(wx,wy,now,overScene());}}
+const mapCurAct=el=>{if(el!==sc)return gcActEl(el)||!!(el&&el.closest&&el.closest('.hbtn,.shop'));const k=hQ!==null?K(hQ,hR):null,c=k?cells[k]:null; // over a hex: whatever you could do there
+  return!!(c&&(armed?itemOK(k):(k===K(pQ,pR)||(!tired()&&getMoves().some(m=>K(m.q,m.r)===k)))))||!!duckUnder(mX,mY);};
+if(!SCENE)gameCursor({act:mapCurAct,col:el=>armed&&el===sc?[255,220,120]:null,hide:()=>nebEl.classList.contains('show')}); // (over a surface or its cards the surface draws its own)
 
 // ╔══════════════════════════════════════════════════════════════════════════════╗
 // ║  SCENES — the Guide's and event cards' live demos, played on the map itself  ║

@@ -409,12 +409,6 @@ function drawDarkRemnantAt(ctx,x,y,R,now,f,ph){ // the surface's Dark Remnant lo
   ctx.save();ctx.beginPath();ctx.arc(x,y,R,0,6.2832);ctx.fillStyle='#000';ctx.fill();ctx.restore();}
 // ── The cursor (shared): the surface's standard cursor — a darkened centre, a bloom, a sharp ring and a centre dot — so the Surface Map's
 // cursor is the same one. cR: ring radius; dimA: idle dimming (1 = over a target); tintK: 1 − how much it steps aside over an object. ──
-function cursorBase(cx,x,y,cR,dimA,tintK,edgeCol,lw){
-  const g=cx.createRadialGradient(x,y,0,x,y,cR*0.85);g.addColorStop(0,`rgba(0,0,0,${(0.5*dimA*tintK).toFixed(3)})`);g.addColorStop(0.75,`rgba(0,0,0,${(0.28*dimA*tintK).toFixed(3)})`);g.addColorStop(1,'rgba(0,0,0,0)');
-  cx.beginPath();cx.arc(x,y,cR*0.85,0,6.2832);cx.fillStyle=g;cx.fill();
-  cx.globalCompositeOperation='screen';cx.filter='blur(7px)';cx.globalAlpha=0.6*dimA; // the bloom behind the sharp ring
-  cx.beginPath();cx.arc(x,y,cR,0,6.2832);cx.strokeStyle=`rgba(${edgeCol},0.9)`;cx.lineWidth=lw*2.5;cx.stroke();
-  cx.filter='none';cx.globalAlpha=1;cx.globalCompositeOperation='source-over';}
 // ── The cursor's stain: where it has just been, laid INTO the scene (under a surface's particles; flat on the map's ground, under its shops), so a
 // cursor gone faint on a busy surface is easy to find. Even toned: the path is drawn as one mask in which overlaps never add up, fading with age from the start.
 const _curTrail=[];let _stainCv=null; // {x, y, t, gap (off the scene: the stain breaks)} — in the scene's own coordinates; the stain's two work canvases
@@ -443,10 +437,6 @@ function cursorStain(cx,now,w,dark,toXY){ // drawn over a finished scene, but on
   if(dark){s.globalCompositeOperation='difference';s.fillStyle='#fff';s.fillRect(0,0,cw,ch);cx.globalCompositeOperation='multiply';} // a light scene: the amount darkens it
   else cx.globalCompositeOperation='screen';
   cx.drawImage(_stainCv[0],0,0,cw,ch,x0,y0,cw,ch);cx.restore();}
-function cursorRing(cx,x,y,cR,dimA,edgeCol,lw){cx.beginPath();cx.arc(x,y,cR,0,6.2832);cx.strokeStyle=`rgba(${edgeCol},${(0.80*dimA).toFixed(3)})`;cx.lineWidth=lw;cx.stroke();}
-function cursorDot(cx,x,y,dimA,edgeCol){
-  cx.globalCompositeOperation='screen';cx.filter='blur(3px)';cx.globalAlpha=0.7*dimA;cx.beginPath();cx.arc(x,y,1.4,0,6.2832);cx.fillStyle=`rgba(${edgeCol},0.9)`;cx.fill();
-  cx.filter='none';cx.globalAlpha=1;cx.globalCompositeOperation='source-over';cx.beginPath();cx.arc(x,y,0.75,0,6.2832);cx.fillStyle=`rgba(${edgeCol},${(0.65*dimA).toFixed(3)})`;cx.fill();}
 // ═════════════════════════ SHOPS (sold on the Surface Map; the surface, which keeps the purse, settles every purchase) ═════════════════════════
 // SHOPS: main street ones (street) stand round the source at angle a° (0 = right, 90 = in front, −90 = behind it; flip: its door on the other side), always there, lit only while open: hours are [open, close) on the map's clock (3 Twilight … 24 Midnight;
 // 0–27 = 24 hours). Pop-ups open on a bright clear whose surface collected at least T.mapShop<Cur>1/2/3 of their collectable (cur, also what they
