@@ -545,6 +545,7 @@ riftEveryMs,250,Rift check ms,50,2000,50,Rift,gameplay,,,,How often the surface 
 riftWMin,40,Rift width min px,10,200,2,Rift,gameplay,,,,The narrowest a Rift's black stripe opens (its width is random between this and the max),
 riftWMax,80,Rift width max px,10,300,2,Rift,gameplay,,,,The widest a Rift's black stripe opens,
 riftCrackMs,1100,Rift crack ms,200,5000,50,Rift,gameplay,,,,How long the crack takes to run across the screen before the Rift opens,
+prefabEdgeBuf,20,Prefab edge buffer px,0,200,2,Build mode,gameplay,,,,"How far past the screen's edge a prefab (or a Move / Duplicate) placed at an edge is pushed, to wait until its motion carries it on",
 mapHexSize,34,Hex size,20,90,1,Surface Map — the map and camera,map,,,,Radius (px) of a Surface Map hex,
 mapTilt,32,Map tilt°,0,60,1,Surface Map — the map and camera,map,,,,How far the Surface Map leans away (0 = straight down),
 mapPersp,1400,Map perspective px,400,4000,50,Surface Map — the map and camera,map,,,,Viewing distance for the tilt: smaller = stronger perspective,

@@ -736,7 +736,7 @@ build.delete_ask,Delete “{name}” from this browser?,Build mode,name = $0 —
 build.deleted,Deleted “{name}”.,Build mode,name = $0 — the level's name
 build.exported,"Exported levels.json ({levels} levels, {prefabs} prefabs): put it in the content folder.",Build mode,"levels = $0 — how many levels
 prefabs = $1 — how many prefabs"
-build.testing,"Testing: the surface plays as it would in a game (it can be cleared). Back to build puts it back.",Build mode,
+build.testing,Testing: the surface plays as it would in a game (it can be cleared). Back to build puts it back.,Build mode,
 build.back_to_build,Back to the surface as it was.,Build mode,
 build.dark_placed,"A Dark Remnant, placed: it waits until the surface is tested.",Build mode,
 build.surface_tool,Surface: {kind} (click to turn the surface {kind}),Build mode (Create),kind = $0 — dark or bright
@@ -744,6 +744,34 @@ build.dark,dark,Build mode (Create),
 build.bright,bright,Build mode (Create),
 build.surface_dark,The surface is dark.,Build mode (Create),
 build.surface_bright,The surface is bright (white).,Build mode (Create),
+pre.tool.select,"Prefab — Select: click parts or drag a box ({n} selected), then name and save it in the bar",Build mode (Prefab),n = $0 — how many parts are selected
+pre.tool.phaser,"Prefab — Phaser: click a selected part to set its own phasing, or anywhere else for the whole prefab",Build mode (Prefab),
+pre.tool.place,Prefab — Place “{name}”: click to phase it in (at an edge it waits off the screen),Build mode (Prefab),name = $1 — the prefab chosen in the bar
+pre.phaser_part,Phaser: part {n}.,Build mode (Prefab),n = $0 — the part
+pre.phaser_whole,Phaser: the whole prefab.,Build mode (Prefab),
+pre.select_hint,"Select a part first: click one, or drag a box.",Build mode (Prefab),
+pre.selected,{n} parts selected.,Build mode (Prefab),n = $0 — how many
+pre.pick_first,Choose the prefab to place in the bar first.,Build mode (Prefab),
+pre.never_on_still,It would never come onto the screen: it isn't moving. Give it motion first (the Inertializer).,Build mode (Prefab),
+pre.never_on_away,It would never come onto the screen: it is moving away from it.,Build mode (Prefab),
+pre.waits_off,Placed off the edge: it waits there until its motion carries it on.,Build mode (Prefab),
+pre.title,PREFAB,Build mode (Prefab),
+pre.place,Place,Build mode (Prefab),
+pre.place_hint,click to phase it in; at an edge it waits off the screen,Build mode (Prefab),
+pre.delete,Delete prefab,Build mode (Prefab),
+pre.parts,{n} parts,Build mode (Prefab),n = $0 — how many
+pre.name,Prefab name,Build mode (Prefab),
+pre.from,appears from,Build mode (Prefab),
+pre.to,to,Build mode (Prefab),
+pre.phase_part,Part {n} phases,Build mode (Prefab),n = $0 — the part
+pre.phase_whole,Phases,Build mode (Prefab),
+pre.in,in,Build mode (Prefab),
+pre.out,out,Build mode (Prefab),
+pre.stay,stays,Build mode (Prefab),
+pre.clear_part,Use the prefab's,Build mode (Prefab),
+pre.save,Save prefab,Build mode (Prefab),
+pre.saved,Saved prefab “{name}” ({n} parts).,Build mode (Prefab),"name = $0 — its name
+n = $1 — how many parts"
 value.life_ms,T.lifeColor,values (shared: any text can use {life_ms}),a pigment's life factor (Life colour tuner)
 value.dim_mass_pct,Math.round(T.remMassFrac*100),values (shared: any text can use {dim_mass_pct}),% of its mass a failed collapse keeps
 value.dim_energy_pct,Math.round(T.remEnergyFrac*100),values (shared: any text can use {dim_energy_pct}),% of its energy a failed collapse keeps
