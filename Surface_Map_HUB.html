@@ -154,7 +154,7 @@ body.shop-open #hdock{z-index:59}#hinv .slot.wal::before{border-color:rgba(255,2
 <div id="veil"></div>
 <div id="bfx"></div><canvas id="hcur"></canvas>
 <iframe id="neb" data-tt="map.ui.surface"></iframe>
-<script src="content.js?v=20261103q"></script><script src="shared.js?v=20261103q"></script>
+<script src="content.js?v=20261103r"></script><script src="shared.js?v=20261103r"></script>
 <script>
 // ╔══════════════════════════════════════════════════════════════════════════════╗
 // ║  MAP ENGINE                                                                 ║
@@ -173,7 +173,7 @@ let clock=3,day=1,pool=6,fresh=true,burstFx=null,dayLog=[],dayCnt={b:0,d:0},pend
 // // clock: the hour (3 = Twilight … 24 = Midnight, the day's last turn); day: your attempts; pool: what the source put out at its last burst; fresh: no ring added yet since it
 let constel=[],armed=null,weaveSel=[],weaveAsk=null,clearFx={},mergeFx=[],feedMsg={t:'',d:'',at:-1e9}; // constellations {keys,type}; the armed map item; a Weave being drawn; animations; the final count
 const TIMES={3:txt('map.twilight'),6:txt('map.dawn'),9:txt('map.morning'),12:txt('map.noon'),15:txt('map.afternoon'),18:txt('map.dusk'),21:txt('map.night'),24:txt('map.midnight')},STEP_H=3; // the day: eight turns of three hours
-const CACHE_V='20261103q'; // the build: bump with shared.js's
+const CACHE_V='20261103r'; // the build: bump with shared.js's
 const SCENE=new URLSearchParams(location.search).get('scene'); // a Guide / event demo: the map plays a scripted moment (no surface behind it)
 let phase='move',turnTimer=0,mergeTimer=0;
 let gameOverReason='';
@@ -753,6 +753,7 @@ function bottleFill(){ // what a bottle holds, decided as it floats in: a letter
   const ids=Object.keys(DUCK_TYPES);if(!ids.length||!(Math.random()<(T.mapBottleDuck!=null?T.mapBottleDuck:0.25)))return{col:['clear','green','brown'][(Math.random()*3)|0],duck:null};
   const tier=Math.random(),pool=tier>=0.5?['classic']:ids.filter(k=>{const v=DUCK_TYPES[k];return k!=='classic'&&(tier<0.05?v.rare:tier<0.15?v.mid:!v.rare&&!v.mid);}),duck=(pool.length?pool:ids)[(Math.random()*(pool.length||ids.length))|0];
   return{duck,col:duck==='classic'?'white':'gold',isNew:!(duckLog[duck]>0)};}
+let pondAsk=[]; // ducks made on a surface (Create → Duck on the pond), put on the lake once the map is showing
 function pondPut(type,x,y,now){pond.push({type,x,y,hd:Math.random()*6.2832,sp:0,cur:0,next:now+1500,born:now,splash:true,seen:true,lastRip:0,ph:Math.random()*6.28});ripples.push({x,y,t:now,dk:onWhite(x,y),big:1});} // a duck bobbing up out of the water there
 function openBottle(d){ // clicked: the cork comes out and the letter is unrolled to read (one you have not read yet, while there are any)
   d.empty=true;d.kick=2;d.dash=performance.now()+800;ripples.push({x:d.x,y:d.y,t:performance.now(),dk:onWhite(d.x,d.y),big:1}); // the empty bottle goes back on the water
@@ -768,23 +769,24 @@ function closeLetter(){letter=null;document.getElementById('letter').classList.r
 const LETTER_KEY='il_letters_v1';
 function pondStep(now){
   const c=mctx,dt=Math.min(50,now-(pondT||now))/16.67;pondT=now;if(currentView!=='map')return; // ripples and glows go on the plane; the ducks are drawn in the scene (sceneRender)
-  scanWater(now);const want=Math.round(Math.min(T.mapDucks!=null?T.mapDucks:5,duckRoster().length)*Math.min(1,water.frac*2.5)); // a little water on screen: fewer ducks (none for none)
+  scanWater(now);if(pondAsk.length&&water.pts.length){const P=water.pts[(Math.random()*water.pts.length)|0];pondPut(pondAsk.shift(),P[0],P[1],now);} // (it bobs up out of the water)
+  const want=Math.round(Math.min(T.mapDucks!=null?T.mapDucks:5,duckRoster().length)*Math.min(1,water.frac*2.5)); // a little water on screen: fewer ducks (none for none)
   const nd=pond.filter(d=>!d.bottle).length;if(nd<want&&now>pondNext){spawnLakeDuck(now);pondNext=now+900+Math.random()*1500;}
   if(!SCENE&&now>bottleNext&&water.frac>0.05&&!pond.some(d=>d.bottle)){spawnLakeDuck(now,true);bottleNext=now+(T.mapBottleMs||90000)*(0.6+0.8*Math.random());} // one bottle at a time
   const cw=mX>=0&&!menuOpen&&!shopUI&&overScene()?s2wp(mX,mY):null;let cv=0,ca=0; // the cursor on the water, and how fast it moves (world px per ms)
   if(cw&&_cwPrev&&now>_cwPrev.t){const dx=cw[0]-_cwPrev.x,dy=cw[1]-_cwPrev.y;cv=Math.hypot(dx,dy)/(now-_cwPrev.t);ca=Math.atan2(dy,dx);}_cwPrev=cw?{x:cw[0],y:cw[1],t:now}:null;
   pond=pond.filter(d=>{
     const cd=cw&&d._s?Math.hypot(cw[0]-d.x,cw[1]-d.y):1e9;if(cd>(d._s||0)*1.05)d.touch=0; // a touch counts once, until the cursor has come fully off it
-    if(!d.touch&&!d.dunk&&cd<d._s*0.8){d.touch=1;const vf=T.mapDuckBumpV!=null?T.mapDuckBumpV:0.35;
-      if(cv<vf)d.spin={t0:now,dur:1500,rate:(Math.random()<0.5?-1:1)*(0.12+0.25*cv/vf)}; // a slow touch: it spins where it is
-      else{d.hd=ca;d.kick=Math.min(5,1+2.5*cv/vf);d.dash=now+900+Math.min(1500,600*cv/vf);ripples.push({x:d.x,y:d.y,t:now,dk:onWhite(d.x,d.y)});} // a hit: it putters off the way it was pushed
+    if(!d.touch&&!d.dunk&&cd<d._s*0.8){d.touch=1;const vf=T.mapDuckBumpV!=null?T.mapDuckBumpV:0.35,f=cv/vf,rx=d.x-cw[0],ry=d.y-cw[1],sg=Math.sign(Math.cos(ca)*ry-Math.sin(ca)*rx)||(Math.random()<0.5?-1:1); // f: the cursor's speed (1 = a hit); sg: which way it was brushed past
+      if(cv<vf)d.spin={t0:now,dur:900+900*f,rate:sg*Math.max(0.03,0.4*f)}; // a slow touch: it spins where it is, faster and longer the faster the brush
+      else{d.hd=ca;d.kick=Math.min(9,3.2*f);d.dash=now+Math.min(3000,700*f);d.twist=sg*Math.min(0.5,0.12*f);ripples.push({x:d.x,y:d.y,t:now,dk:onWhite(d.x,d.y)});} // a hit: pushed off the way it was hit, as hard as it was hit, turning as it goes
       if(!d.bottle)neb({cmd:'quack',type:d.type,v:Math.min(1,cv/vf/3)});}
     const sp_=d.spin&&now-d.spin.t0<d.spin.dur?d.spin:null;if(sp_)d.hd+=sp_.rate*dt*(1-(now-sp_.t0)/sp_.dur);else d.spin=null;
     const dk=d.dunk?(now-d.dunk)/(T.mapDuckDunkMs||1300):1;let sink=0; // a dunk: it goes down into the water (what is under it is hidden by the waterline), stays under a moment, then bobs back up
     if(dk>=1)d.dunk=0;else if(dk<0.3){const u=dk/0.3;sink=u*u;}else if(dk<0.55)sink=1;else{if(!d._up){d._up=1;ripples.push({x:d.x,y:d.y,t:now,dk:onWhite(d.x,d.y),big:1});}const u=(dk-0.55)/0.45;sink=-(2.7*Math.pow(u-1,3)+1.7*Math.pow(u-1,2));} // (up with a little bob past its floating height)
     if(d.splash&&now-d.born<700)sink=Math.max(sink,1-(now-d.born)/700);d._sink=sink; // a splash: it comes up out of the water
     if(!d.dunk)d._up=0;
-    if(d.kick){d.kick*=Math.pow(0.97,dt);if(d.kick<0.05)d.kick=0;}
+    if(d.kick){d.kick*=Math.pow(0.97,dt);if(d.kick<0.05)d.kick=0;}if(d.twist){d.hd+=d.twist*dt;d.twist*=Math.pow(0.94,dt);if(Math.abs(d.twist)<0.002)d.twist=0;}
     if(now>d.next){d.next=now+1800+Math.random()*3000;d.cur=Math.random()<0.1?(Math.random()<0.5?-1:1)*0.03:(Math.random()-0.5)*0.006;d.dash=Math.random()<0.18?now+1200+Math.random()*1200:0;} // now and then a dash // mostly a gentle curve on its way across; now and then a doughnut
     const paddle=d.bottle?0.12+(d.kick||0)*0.6:(d.dash>now?1.5:0.38+0.28*Math.max(0,Math.sin(now/260+d.ph)))+(d.kick||0),go=(d.splash&&now-d.born<900)||sp_||d.dunk?0:paddle;d.sp+=(go-d.sp)*(d.kick?0.2:0.05)*dt; // spinning or under water: it stops
     if(!isWater(d.x,d.y)){const l=Math.hypot(d.x,d.y)||1;d.x+=d.x/l*1.6*dt;d.y+=d.y/l*1.6*dt;const out=Math.atan2(d.y,d.x);d.hd+=Math.atan2(Math.sin(out-d.hd),Math.cos(out-d.hd))*0.08*dt;} // the growing spill pushes it out
@@ -866,6 +868,7 @@ window.addEventListener('message',e=>{
   else if(m.type==='picked')shopPicked(m); // the hex is captured right away; the player returns with a right-click
   else if(m.type==='return')exitNebula();
   else if(m.type==='levelReady')loading('level',false);
+  else if(m.type==='pondDuck'&&DUCK_TYPES[m.duck])pondAsk.push(m.duck);
   else if(m.type==='quit'){
     const c=cells[m.key];
     if(c&&!c.cap&&!m.cleared&&m.img){c.shot=m.img;nebulaCellKey=m.key;}else nebulaCellKey=null;
