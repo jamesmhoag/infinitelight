@@ -91,7 +91,8 @@ body.focus-clock #turn-label,body.focus-items #hdock{z-index:59;filter:drop-shad
 #shop .srow{display:flex;justify-content:space-between;gap:10px;cursor:pointer;padding:0 2px}#shop .srow:hover{background:rgba(255,255,255,.12)}
 #shop .srow b{font-weight:400;text-align:right;white-space:nowrap}#shop .srow i{font-style:normal;opacity:.5;font-size:10px;margin-left:4px}
 #shop .srow.poor{opacity:.38}#shop .srow.own{opacity:.5;cursor:default}#shop .srow.c{justify-content:center;text-align:center;margin:10px 0}
-#shop .sfoot{margin-top:16px;min-height:30px;font-size:10px;line-height:1.4;opacity:.6;text-align:center}
+#shop .srows{height:108px;margin-bottom:6px}#shop .stabs{display:flex;justify-content:center;gap:4px;margin:-12px 0 12px;flex-wrap:wrap}#shop .stabs span{border:1px solid rgba(255,255,255,.35);padding:1px 7px;font-size:10px;cursor:pointer;opacity:.55}#shop .stabs span.on{opacity:1;border-color:#fff;background:rgba(255,255,255,.12)}
+body.shop-open #hdock{z-index:59}#hinv .slot.wal{border-color:rgba(255,255,255,.6);background:rgba(255,255,255,.12)}
 </style>
 </head>
 <body>
@@ -134,7 +135,7 @@ body.focus-clock #turn-label,body.focus-items #hdock{z-index:59;filter:drop-shad
 <div id="veil"></div>
 <canvas id="hcur"></canvas>
 <iframe id="neb" title="Surface"></iframe>
-<script src="shared.js?v=20261102zm"></script>
+<script src="shared.js?v=20261102zn"></script>
 <script>
 // ╔══════════════════════════════════════════════════════════════════════════════╗
 // ║  MAP ENGINE                                                                 ║
@@ -150,7 +151,7 @@ let clock=3,day=1,pool=6,fresh=true,burstFx=null,dayLog=[],dayCnt={b:0,d:0},pend
 // // clock: the hour (3 = Twilight … 24 = Midnight, the day's last turn); day: your attempts; pool: what the source put out at its last burst; fresh: no ring added yet since it
 let constel=[],armed=null,weaveSel=[],weaveAsk=null,clearFx={},mergeFx=[],feedMsg={t:'',d:'',at:-1e9}; // constellations {keys,type}; the armed map item; a Weave being drawn; animations; the final count
 const TIMES={3:'Twilight',6:'Dawn',9:'Morning',12:'Noon',15:'Afternoon',18:'Dusk',21:'Night',24:'Midnight'},STEP_H=3; // the day: eight turns of three hours
-const CACHE_V='20261102zm'; // the build: bump with shared.js's
+const CACHE_V='20261102zn'; // the build: bump with shared.js's
 const SCENE=new URLSearchParams(location.search).get('scene'); // a Guide / event demo: the map plays a scripted moment (no surface behind it)
 let phase='move',turnTimer=0,mergeTimer=0;
 let gameOverReason='';
@@ -192,16 +193,16 @@ function dropSession(){ // the unfinished surface is thrown away (values changed
 }
 function redistribute(){
   recomputeLocked();let exSum=0,exN=0,voidN=0;
-  for(const k in cells){const c=cells[k];if(c.isVoid){voidN++;continue;}if(c.cap){exSum+=c.capVal;exN++;}else if(c.locked){exSum+=c.v;exN++;}}
+  for(const k in cells){const c=cells[k];if(c.isVoid){voidN++;continue;}if(c.cap){exSum+=c.capVal;exN++;}else if(c.locked||c.full){exSum+=c.v;exN++;}}
   const freeN=totalCells-exN-voidN;if(freeN<=0)return;
   const pv=(pool-exSum)/freeN;
-  for(const k in cells){const c=cells[k];if(c.isVoid||c.cap||c.locked)continue;c.v=Math.round(Math.max(0,pv)*10000)/10000;}
+  for(const k in cells){const c=cells[k];if(c.isVoid||c.cap||c.locked||c.full)continue;c.v=Math.round(Math.max(0,pv)*10000)/10000;}
   dropSession(); // moving resets an unfinished surface
 }
 function decayCycle(){
   let mx=200;
   while(mx-->0){
-    let fv=null;for(const k in cells){const c=cells[k];if(!c.cap&&!c.isVoid&&!c.locked){fv=c.v;break;}}
+    let fv=null;for(const k in cells){const c=cells[k];if(!c.cap&&!c.isVoid&&!c.locked&&!c.full){fv=c.v;break;}}
     if(fv===null||fv>=MIN_VAL)break;
     if(captureOrder.length===0){phase='gameover';gameOverReason='all captures dissipated';return;}
     const oldest=captureOrder.shift();
@@ -261,8 +262,7 @@ function doCapture(){ // enter the surface of the hex you stand on
 }
 function completeCaptureForCell(cellKey,kind,tally){
   const c=cells[cellKey];if(!c||c.cap)return;
-  c.cap=true;c.capVal=c.v;c.kind=kind;c.shop=null;if(kind!=='dark')c.tally=tally||{};{const p=popupFor(tally,kind==='dark');if(p){const fr=p.from,o={id:p.id,rank:p.rank};shopTearDown(fr);if(kind==='dark')hubPop[p.slot]=o;else c.shop=o; // a dark clear's opens in the source hex
-    feed((fr?'A pop-up moved up: ':'A pop-up opened: ')+SHOPS[p.id].n,'Rank '+p.rank+(kind==='dark'?' · in the source':'')+' · click it to shop');}}delete c.shot;delete c._im;if(kind==='dark')dayCnt.d++;else dayCnt.b++;
+  c.cap=true;c.capVal=c.v;c.kind=kind;c.shop=null;c.tally=tally||{};popPlace(cellKey);delete c.shot;delete c._im;if(kind==='dark')dayCnt.d++;else dayCnt.b++;
   score=Math.round((score+c.v)*100)/100;
   captureOrder.push({keys:[cellKey],mergeId:null});
   phase='captured';
@@ -293,7 +293,7 @@ function updateHint(){ // the feed's resting line: what you can do now
   else if(phase==='collapse'){a=pendingEnd?(pendingEnd.how==='midnight'?'Midnight':'Full circle'):'Day '+(day-1)+' cleared';b=pendingEnd?'The rings fall into the source…':'Close the report to start the day';}
   else if(armed==='weave'){a='Weave · click bright hexes, then the first again to close (3 to 5)';b=weaveSel.length?weaveSel.length+' chosen':'right-click, Esc or the slot again to stop';}
   else if(armed==='dial'){a='String · click any open hex to go straight there';b='1 String per hex of distance · no time passes';}
-  else if(armed==='leash'){a='Spindle · click a cleared hex to unwind it';b='A great Dark Remnant takes 3';}
+  else if(armed==='leash'){a='Spindle · click a cleared hex to unwind it, or an open one to wind it up to 1.00';b='A great Dark Remnant takes 3';}
   else if(c&&!c.cap&&!c.isVoid&&phase==='move'){a=c.v<=0?'No value here: nothing to clear':`Space / click to ${nebulaCellKey===K(pQ,pR)?'continue this surface':'enter this surface'} (${c.v.toFixed(2)})`;b=clockStr()+' · day '+day+' · or move';}
   hintLine=[a,b];}
 function feed(t,d){feedMsg={t,d:d||'',at:performance.now()};} // a map message in the dock's feed (stays a few seconds)
@@ -303,17 +303,20 @@ function hexInfo(c){ // what hovering a hex tells you
   if(c.isVoid)return['Void','Nothing left here'];
   if(c.cap&&c.kind==='dark')return[g&&g.type==='dark3'?'Great Dark Remnant':'Dark Remnant clear',(g&&g.type==='dark3'?'Three swirled into one · a Spindle ×3 unwinds it':'Locks nothing · the spill cannot spread past it')+' · value '+c.capVal.toFixed(2)];
   if(c.cap)return['Bright clear'+(cn.length?' · '+cn.map(x=>x.type).join(', ')+' star':''),'Locks its neighbours · value '+c.capVal.toFixed(2)+(g?' · merged':'')];
-  return[(c.isP?'You · ':'')+'Surface '+c.v.toFixed(2),(c.locked?'Locked by a bright clear · ':'')+'covered '+Math.round(cellCov(c)*100)+'%'+(k===nebulaCellKey?' · saved where you left it':'')];}
+  return[(c.isP?'You · ':'')+'Surface '+c.v.toFixed(2),(c.full?'Wound up by a Spindle: held at 1.00 · ':c.locked?'Locked by a bright clear · ':'')+'covered '+Math.round(cellCov(c)*100)+'%'+(k===nebulaCellKey?' · saved where you left it':'')];}
 // ── Items on the map: Spindle unwinds a clear; String moves without time; Weave joins bright hexes into constellations ──
 const isBright=k=>{const c=cells[k];return!!(c&&c.cap&&c.kind!=='dark');};
 function armItem(kind){if(phase==='ended'||phase==='collapse')return;armed=armed===kind?null:kind;weaveSel=[];weaveAsk=null;updateHint();syncDock();}
 function spend(kind,n){inv[kind]=Math.max(0,(inv[kind]||0)-n);neb({cmd:'spend',kind,n});syncDock();}
+function spindleFill(k){ // Spindle on an open hex below 1.00: wound up to 1.00, and held there (like a locked hex) until it is cleared
+  const c=cells[k];if(!c||c.cap||c.isVoid||c.v>=1)return;if((inv.leash||0)<1){feed('Spindle','You have none');return;}
+  spend('leash',1);c.v=1;c.full=true;redistribute();feed('Spindle','Surface wound up to 1.00 · it holds until cleared');updateHint();saveMap();}
 function unclear(k){ // Spindle: a cleared hex back to an open surface (the value spreads over one more hex)
   const c=cells[k];if(!c||!c.cap)return;const g=c.mergeId!=null?mergeGroups.find(x=>x.id===c.mergeId):null,big=g&&g.type==='dark3',cost=big?3:1;
   if((inv.leash||0)<cost){feed('Spindle','This takes '+cost+' (you have '+(inv.leash||0)+')');return;}
   const ks=big?g.cells:[k];spend('leash',cost);
   if(g){mergeGroups=mergeGroups.filter(x=>x!==g);for(const gk of g.cells)if(cells[gk])cells[gk].mergeId=null;}
-  for(const kk of ks){const q=cells[kk];if(!q)continue;score=Math.round((score-q.capVal)*100)/100;q.cap=false;q.capVal=0;q.v=0;clearFx[kk]={t0:performance.now(),un:true,dk:q.kind==='dark'};delete q.kind;}
+  for(const kk of ks){const q=cells[kk];if(!q)continue;score=Math.round((score-q.capVal)*100)/100;q.cap=false;q.capVal=0;q.v=0;delete q.full;clearFx[kk]={t0:performance.now(),un:true,dk:q.kind==='dark'};delete q.kind;}
   captureOrder=captureOrder.map(e=>({keys:e.keys.filter(x=>!ks.includes(x)),mergeId:e.mergeId})).filter(e=>e.keys.length);
   checkConstellations();recomputeLocked();redistribute();checkVoidAccess();
   feed('Unwound',big?'The great Dark Remnant is a surface again':'The hex is a surface again · the value spreads over it');updateHint();saveMap();}
@@ -518,7 +521,7 @@ function mapRender(){
   const mergedSet=new Set();for(const g of mergeGroups)for(const ck of g.cells)mergedSet.add(ck);
   const keys=Object.keys(cells);keys.sort((a,b)=>(cells[a].isP?1:0)-(cells[b].isP?1:0));
   const now=performance.now(),brightOnes=[],d3=new Set();for(const g of mergeGroups)if(g.type==='dark3')for(const ck of g.cells)d3.add(ck);
-  const tgt=armed?(k=>{const c=cells[k];return armed==='leash'?!!(c&&c.cap):armed==='dial'?!!(c&&!c.cap&&!c.isVoid&&k!==K(pQ,pR)):isBright(k);}):null; // what the armed item can act on
+  const tgt=armed?(k=>{const c=cells[k];return armed==='leash'?!!(c&&(c.cap||(!c.isVoid&&c.v<1))):armed==='dial'?!!(c&&!c.cap&&!c.isVoid&&k!==K(pQ,pR)):isBright(k);}):null; // what the armed item can act on
   for(const k of keys){
     const c=cells[k];const[sx,sy]=w2s(...a2w(c.q,c.r));
     if(sx<-HEX*2||sx>MW+HEX*2||sy<-HEX*2||sy>MH+HEX*2)continue;
@@ -528,7 +531,7 @@ function mapRender(){
     else if(bright){fill=isPT?'rgba(225,240,255,0.85)':'rgba(255,255,255,0.92)';stroke=isMerged?'rgba(190,160,250,0.9)':c.isP?'rgba(0,220,220,0.9)':'#fff';sw=c.isP?2.5:1.5;}
     else if(dark){fill='rgba(0,0,0,0.96)';stroke=isMerged?'rgba(190,160,250,0.7)':c.isP?'rgba(0,220,220,0.8)':'rgba(150,130,200,0.5)';sw=c.isP?2.5:1.5;}
     else if(c.isP){fill='rgba(0,185,185,0.10)';stroke='rgba(0,220,220,0.6)';sw=2;}
-    else if(c.locked){fill=isHov?'rgba(200,165,40,0.14)':'rgba(180,148,35,0.09)';stroke=isHov?'rgba(225,190,55,0.6)':'rgba(210,175,45,0.38)';sw=isHov?1.5:1;}
+    else if(c.locked||c.full){fill=isHov?'rgba(200,165,40,0.14)':'rgba(180,148,35,0.09)';stroke=isHov?'rgba(225,190,55,0.6)':'rgba(210,175,45,0.38)';sw=isHov?1.5:1;}
     else if(isCand){fill=isHov?'rgba(0,170,170,0.12)':'rgba(18,22,28,0.75)';stroke=isHov?'rgba(0,210,210,0.45)':'rgba(255,255,255,0.14)';sw=isHov?1.5:1;}
     else{fill='rgba(14,17,22,0.75)';stroke='rgba(255,255,255,0.08)';}
 
@@ -624,7 +627,7 @@ sc.addEventListener('click',e=>{
   if(currentView!=='map')return;
   if(phase==='gameover'||phase==='ended'||phase==='collapse')return;
   const[q,r]=evA(e),k=K(q,r);
-  if(armed==='leash'){if(cells[k]&&cells[k].cap)unclear(k);return;} // an armed map item takes the click
+  if(armed==='leash'){if(cells[k]&&cells[k].cap)unclear(k);else spindleFill(k);return;} // an armed map item takes the click
   if(armed==='dial'){stringMove(q,r);return;}
   if(armed==='weave'){if(!weaveAsk)weaveClick(k);return;}
   if(q===pQ&&r===pR){doCapture();return;}
@@ -740,7 +743,8 @@ function enterNebula(cellKey){
 function exitNebula(){currentView='map';const t=performance.now();for(const k in clearFx)if(clearFx[k].t0==null)clearFx[k].t0=t+250;showNeb(false);mapResize();pondSpawn();startMapLoop();updateHint();evPump();}
 let evQ=[];
 function hubEvent(id){if(SCENE)return;if(disc.has('ev:'+id)||evQ.includes(id))return;evQ.push(id);evPump();}
-function evPump(){if(currentView!=='map'||menuOpen||shopUI||!nebReady||!evQ.length)return;const id=evQ.shift();if(disc.has('ev:'+id)){evPump();return;}currentView='overlay';showNeb(true);neb({cmd:'event',id});}
+function evPump(){if(currentView==='overlay'&&evQ.length&&nebReady){neb({cmd:'event',ids:evQ.splice(0)});return;} // joins the hand already showing
+  if(currentView!=='map'||menuOpen||shopUI||!nebReady||!evQ.length)return;const ids=evQ.splice(0).filter(i=>!disc.has('ev:'+i));if(!ids.length)return;currentView='overlay';showNeb(true);neb({cmd:'event',ids});} // together, as one hand
 function openGuide(){if(!nebReady||currentView!=='map')return;currentView='overlay';showNeb(true);neb({cmd:'guide'});}
 function takeState(m){
   // a tuner just set here wins over a message the surface sent before it got it
@@ -758,7 +762,7 @@ window.addEventListener('message',e=>{
   }
   if(m.type==='ready'||m.type==='state');
   else if(m.type==='preview'){if(!m.img)prevPending.delete(m.key);hubLog('preview '+m.key+(m.ms!=null?' built in '+m.ms.toFixed(0)+' ms':'')+(m.img?'':' (skipped)'));if(m.img){IDB.put('pv:'+m.sig,m.img).catch(()=>{});setPrev(m.key,m.sig,m.img);}}
-  else if(m.type==='overlayDone'){if(currentView==='overlay'){currentView='map';showNeb(false);evPump();}}
+  else if(m.type==='overlayDone'){if(currentView==='overlay'){currentView='map';showNeb(false);if(shopUI)renderShop();evPump();}}
   else if(m.type==='cleared')completeCaptureForCell(m.key,m.kind,m.tally);
   else if(m.type==='bought')shopBought(m);
   else if(m.type==='picked')shopPicked(m); // the hex is captured right away; the player returns with a right-click
@@ -842,17 +846,20 @@ let shopUI=null,giftWallet=0; // shopUI: the open menu {id, rank, page, exit (th
 const SOUV_KEY='il_souvenirs_v1',shopPic={},shopCv={},shopEls={},fmtN=n=>Math.floor(n).toLocaleString('en-US');
 const shopHours=id=>{const S=SHOPS[id];return S.open<=0&&S.close>=27?'24 hours':TIMES[S.open]+' – '+TIMES[S.close];};
 function shopImg(n){if(!shopPic[n]){const im=new Image();im.onload=()=>{for(const k in shopCv)delete shopCv[k];};im.src='shops/'+n+(n.includes('.')?'':'.svg');shopPic[n]=im;}return shopPic[n];}
-function popupFor(tally,dark){ // the pop-up a bright clear opens. Each shop crossing a threshold is a candidate unless one of it already stands at that rank or better (one of each:
-  // a better rank moves it here, and the old one is torn down). First the Duck Shop, then the best-ranked exotic shop (a tie: at random), then BRiGHT IDEAS, last Dim's
-  // dark: a Dark Remnant clear — its pop-up goes to a free spot in the source hex (HUB_SLOTS), and only as a new shop: one that already stands can not move up there
-  const slot=dark?hubPop.findIndex(x=>!x):-1;if(runBad(run,'holiday')||(dark&&slot<0))return null;const c=[];
+function popupFor(tally){ // the pop-up a cleared surface earns. Each shop crossing a threshold is a candidate unless one of it already stands at that rank or better (one of each:
+  // a better rank moves it, and the old one is torn down). First the Duck Shop, then the best-ranked exotic shop (a tie: at random), then BRiGHT IDEAS, last Dim's
+  if(runBad(run,'holiday'))return null;const c=[];
   for(const id in SHOPS){const S=SHOPS[id];if(S.street)continue;const n=(tally||{})[S.cur]||0;let r=0;for(let i=1;i<=3;i++){const t=T[shopTK(S.cur)+i];if(t>0&&n>=t)r=i;}if(!r)continue;
     const hs=hubPop.findIndex(x=>x&&x.id===id),from=hs>=0?'hub'+hs:Object.keys(cells).find(k=>cells[k].shop&&cells[k].shop.id===id&&isBright(k)),had=from?(hs>=0?hubPop[hs]:cells[from].shop).rank:0;
-    if(from&&(dark||had>=r))continue;c.push({id,rank:r,from,tier:SHOP_TIER(id),z:Math.random()});}
-  c.sort((a,b)=>a.tier-b.tier||b.rank-a.rank||a.z-b.z);return c[0]?{id:c[0].id,rank:c[0].rank,from:c[0].from,slot}:null;}
-function shopTearDown(fr){if(!fr)return;if(fr.slice(0,3)==='hub')hubPop[+fr[3]]=null;else if(cells[fr]){delete cells[fr].shop;cells[fr].freed=1;}} // a shop moved up a rank: the old one goes (its hex may open another the next turn)
-function freedShops(){for(const k in cells){const c=cells[k];if(!c.freed)continue;delete c.freed;if(!isBright(k)||c.shop)continue;const p=popupFor(c.tally,false);if(!p)continue; // the turn after a shop left a bright hex: what its surface earned may open another there
-    shopTearDown(p.from);c.shop={id:p.id,rank:p.rank};feed((p.from?'A pop-up moved up: ':'A pop-up opened: ')+SHOPS[p.id].n,'Rank '+p.rank+' · where a shop moved out');}}
+    if(from&&had>=r)continue;c.push({id,rank:r,from,tier:SHOP_TIER(id),z:Math.random()});}
+  c.sort((a,b)=>a.tier-b.tier||b.rank-a.rank||a.z-b.z);return c[0]?{id:c[0].id,rank:c[0].rank,from:c[0].from}:null;}
+function popPlace(k){ // opens (or moves up) the pop-up hex k's surface earned: on its own bright hex, or for a Dark Remnant clear on the nearest open bright hex or free spot in the source hex
+  const c=cells[k];if(!c||!c.cap||!c.tally)return false;const dark=!isBright(k);if(!dark&&c.shop)return false;const p=popupFor(c.tally);if(!p)return false;let at=k;
+  if(dark){const free=Object.keys(cells).filter(j=>isBright(j)&&!cells[j].shop).map(j=>[j,dist(cells[j].q,cells[j].r,c.q,c.r)]),hs=hubPop.findIndex(x=>!x);if(hs>=0)free.push(['hub'+hs,dist(0,0,c.q,c.r)]);if(!free.length)return false;at=free.sort((a,b)=>a[1]-b[1])[0][0];}
+  if(p.from===at)return false;shopTearDown(p.from);const o={id:p.id,rank:p.rank};if(at.slice(0,3)==='hub')hubPop[+at[3]]=o;else cells[at].shop=o;
+  feed((p.from?'A pop-up moved up: ':'A pop-up opened: ')+SHOPS[p.id].n,'Rank '+p.rank+(at.slice(0,3)==='hub'?' · in the source':'')+' · click it to shop');return true;}
+function shopTearDown(fr){if(!fr)return;if(fr.slice(0,3)==='hub')hubPop[+fr[3]]=null;else if(cells[fr])delete cells[fr].shop;} // a shop moved up a rank: the old one goes (its hex may open another the next turn)
+function freedShops(){for(const k in cells)popPlace(k);} // each turn every cleared surface that earned a pop-up and has none open tries again (a hex a shop moved out of, a Dark Remnant clear that found no room, a holiday)
 function shopSprite(id,bk,lit){ // glass (tinted with the shop's colour, dark when closed) behind the building's empty windows, then the sign above, glowing when lit;
   // the vectors are drawn at Q× their SVG size, so a shop stays crisp however near the camera or the menu shows it
   const gw=T.mapShopGlow!=null?T.mapShopGlow:1,fl=bk===(SHOPS[id].bk||'s')&&SHOPS[id].flip,key=id+bk+(lit?1:0)+gw;if(shopCv[key])return shopCv[key];
@@ -872,9 +879,9 @@ function shopSprite(id,bk,lit){ // glass (tinted with the shop's colour, dark wh
   c.drawImage(si,(cv.width-sw)/2,by+ov-sh,sw,sh);c.restore();
   cv._ax=cv.width/2;cv._ay=cv.height-pad;cv._bw=bw;return shopCv[key]=cv;}
 function shopList(){ // every shop on the map now: main street hugging the source (two behind it, two in front), pop-ups on their bright clears
-  const out=[],w=HEX*(T.mapStreetSize||0.75),R=HEX*(T.mapStreetRing!=null?T.mapStreetRing:0.8);
-  for(const id in SHOPS){const S=SHOPS[id],a=(S.a||0)*Math.PI/180;if(S.street)out.push({key:id,id,bk:S.bk||'s',wx:R*Math.cos(a),wy:R*Math.sin(a),lit:shopIsOpen(id,clock,run),w});}
-  hubPop.forEach((h,i)=>{if(!h)return;const a=HUB_SLOTS[i]*Math.PI/180;out.push({key:'hub'+i,id:h.id,rank:h.rank,bk:SHOP_RANK_BLD[h.rank-1],wx:R*1.15*Math.cos(a),wy:R*1.15*Math.sin(a),lit:true,w});}); // (a little further out than main street) // pop-ups from dark clears, in the source hex
+  const out=[],R=HEX*(T.mapStreetRing!=null?T.mapStreetRing:0.8);
+  for(const id in SHOPS){const S=SHOPS[id],a=(S.a||0)*Math.PI/180;if(S.street)out.push({key:id,id,bk:S.bk||'s',wx:R*Math.cos(a),wy:R*Math.sin(a),lit:shopIsOpen(id,clock,run)});}
+  hubPop.forEach((h,i)=>{if(!h)return;const a=HUB_SLOTS[i]*Math.PI/180;out.push({key:'hub'+i,id:h.id,rank:h.rank,bk:SHOP_RANK_BLD[h.rank-1],wx:R*1.15*Math.cos(a),wy:R*1.15*Math.sin(a),lit:true});}); // (a little further out than main street) // pop-ups from dark clears, in the source hex
   for(const k in cells){const c=cells[k];if(c.shop&&isBright(k)){const[wx,wy]=a2w(c.q,c.r);out.push({key:k,id:c.shop.id,rank:c.shop.rank,bk:SHOP_RANK_BLD[c.shop.rank-1],wx,wy,lit:true});}}
   return out;}
 function shopTick(){if(SCENE&&SCENE!=='shops')return;
@@ -883,7 +890,7 @@ function shopTick(){if(SCENE&&SCENE!=='shops')return;
     if(!el){el=shopEls[s.key]=document.createElement('div');el.className='shop';el.dataset.key=s.key;el.onclick=()=>openShop(s.key);box.appendChild(el);
       let h=7;for(const ch of s.key)h=(h*31+ch.charCodeAt(0))>>>0;el._fl=`neon${h%4} ${(2.5+(h>>4)%60/10).toFixed(1)}s ${-((h>>10)%50)/10}s infinite`;} // its own flicker: which, how fast, where in it
     if(el._cv!==cv){el._cv=cv;const d=document.createElement('canvas');d.width=cv.width;d.height=cv.height;d.getContext('2d').drawImage(cv,0,0);d.style.animation=s.lit?el._fl:'none';el.innerHTML='';el.appendChild(d);}el.classList.toggle('lit',s.lit);el._s=s; // (its own copy: two pop-ups can share a sprite)
-    const[X,Y,k]=proj(...w2s(s.wx,s.wy)),sc_=(s.w||HEX*(T.mapShopSize||1))*k/cv._bw;
+    const[X,Y,k]=proj(...w2s(s.wx,s.wy)),sc_=HEX*(T.mapStreetSize||0.75)*k/(shopImg('bld_s').naturalWidth*4||cv._bw); // every shop at main street's scale: the set keeps its own sizes
     const tf=`translate(${(X-cv._ax*sc_).toFixed(1)}px,${(Y-cv._ay*sc_).toFixed(1)}px) scale(${sc_.toFixed(4)})`;if(el._tf!==tf){el._tf=tf;el.style.transform=tf;el.style.zIndex=Math.round(Y);}} // (only when it moved)
   for(const k in shopEls)if(!seen.has(k)){shopEls[k].remove();delete shopEls[k];}}
 function shopInfo(key){const el=shopEls[key],s=el&&el._s;if(!s)return['',''];const S=SHOPS[s.id];
@@ -898,26 +905,32 @@ function shopRows(){const u=shopUI,has=k=>disc.has(k);
   if(u.exit)return[{c:1,n:'Yes',sub:'(enter the GIFT SHOP)',go:giftEnter},{c:1,n:'No',sub:'(not yet)',go:closeShop}];
   if(u.pick)return Object.keys(DUCK_TYPES).map(t=>({n:(DUCK_TYPES[t].rare?'★ ':'')+DUCK_TYPES[t].name,p:'× '+(duckLog[t]||0),go:()=>shopBuy(shopItem('pickduck'),t)}));
   const ducks=Object.values(duckLog).reduce((a,b)=>a+(b|0),0),souv=souvenirs();
-  return SHOP_ITEMS.filter(i=>i.shop===u.id&&i.r<=u.rank&&(!i.req||has('up:'+i.req))).map(i=>{const own=shopOnce(i)&&has('up:'+i.id),held=i.fx.souv?giftWallet:i.cur==='duck'?ducks:(inv[i.cur]||0);
-    const pr=shopPrice(i,run),done=i.fx.draw==='daily'&&run.daily===run.day;
-    return{it:i,n:i.n,p:own?'✓ yours':done?'tomorrow':fmtN(pr),unit:i.cur!==(SHOPS[u.id].cur||'bright')&&!own&&!done?i.cur:'',own:own||done,poor:!own&&held<pr,disc:'si_'+i.id,note:(i.note?i.note+' · ':'')+(i.fx.up?'its effect is still to come':i.fx.souv?'kept: you have '+(souv[i.id]||0):'')||'',
+  return SHOP_ITEMS.filter(i=>i.shop===u.id&&i.r<=u.rank&&(!i.req||has('up:'+i.req))&&!(i.fx.draw==='secret'&&run.secrets===0)).map(i=>{const own=shopOnce(i)&&has('up:'+i.id),held=i.fx.souv?giftWallet:i.cur==='duck'?ducks:(inv[i.cur]||0);
+    const pr=shopPrice(i,run),done=!!(i.fx.draw&&(run.dimDone||{})[i.fx.draw]);
+    return{it:i,cur:shopCur(i),n:i.n,p:own?'✓ yours':done?'tomorrow':fmtN(pr),own:own||done,poor:!own&&held<pr,disc:'si_'+i.id,note:(i.note?i.note+' · ':'')+(i.fx.up?'its effect is still to come':i.fx.souv?'kept: you have '+(souv[i.id]||0):'')||'',
       go:()=>i.fx.duck==='pick'?(shopUI.pick=true,shopUI.page=0,renderShop()):shopBuy(i)};});}
-function renderShop(){const el=document.getElementById('shop');el.classList.toggle('show',!!shopUI);if(!shopUI){document.body.classList.remove('focus-clock','focus-items');return;}
-  const u=shopUI,S=SHOPS[u.id],rows=shopRows(),per=6,pages=Math.max(1,Math.ceil(rows.length/per));u.page=Math.min(u.page,pages-1);
+const shopCur=i=>i.fx.souv?'gift':i.cur; // what an item is paid with (souvenirs: your last Bright)
+function shopWallet(c){return c==='gift'?giftWallet:c==='duck'?Object.values(duckLog).reduce((a,b)=>a+(b|0),0):(inv[c]||0);}
+let shopHover=null; // the item under the cursor: its details go to the feed, so the menu keeps one length
+function renderShop(){const el=document.getElementById('shop');el.classList.toggle('show',!!shopUI&&currentView!=='overlay'); // (hidden while a card the shop gave is showing)
+  document.body.classList.toggle('shop-open',!!shopUI);if(!shopUI){syncDock();document.body.classList.remove('focus-clock','focus-items');return;}
+  const u=shopUI,S=SHOPS[u.id],all=shopRows(),curs=[...new Set(all.filter(r=>r.cur).map(r=>r.cur))];if(!curs.includes(u.tab))u.tab=curs.includes(S.cur)?S.cur:curs[0];
+  const rows=u.pick||u.exit?all:all.filter(r=>r.cur===u.tab),per=6,pages=Math.max(1,Math.ceil(rows.length/per));u.page=Math.min(u.page,pages-1);
   const art=el.querySelector('.sart'),sp=shopSprite(u.id,S.street?(S.bk||'s'):SHOP_RANK_BLD[u.rank-1],true),card=el.querySelector('.scard');
   if(sp){const w=Math.min(150,sp.width*0.45),h=w*sp.height/sp.width;art.width=sp.width;art.height=sp.height;art.style.width=w+'px';art.style.height=h+'px';art.getContext('2d').drawImage(sp,0,0);}
-  const wal=u.gift?'Your last '+fmtN(giftWallet)+' bright':S.cur==='duck'?'You have '+fmtN(Object.values(duckLog).reduce((a,b)=>a+(b|0),0))+' ducks':'You have '+fmtN(inv[S.cur||'bright']||0)+' '+(S.cur||'bright');
+  shopHover=null;syncDock(); // the wallet slot for the tab shown, in the dock
   document.body.classList.toggle('focus-clock',u.id==='clock');document.body.classList.toggle('focus-items',u.id==='corner'); // what the shop works on, over the dimmed map
   const st=el.querySelector('.sstat');st.style.display=u.exit?'none':'';st.innerHTML='<div class="sth">Status</div>'+statusHTML(runStatus);
   if(u.draw){const d=u.draw;card.innerHTML=`<h2>${S.n}</h2><div class="stag">${d.res?d.res.title:d.kind==='daily'?'Keep one of three, for today.':'Pick a card.'}</div><div class="scards">`+d.cards.map((c,i)=>`<div class="scardx${c.back&&!(d.res&&d.res.i===i)?' back':''}${d.res&&d.res.i===i?' on':''}${d.res&&d.res.i!==i?' off':''}" data-i="${i}">${d.res&&d.res.i===i?d.res.text:c.back?'?':'<b>'+c.n+'</b>'+c.t}</div>`).join('')+'</div>'+(d.res?'<div class="srow c" data-ok="1"><span>OK</span></div>':'');
     card.querySelectorAll('.scardx').forEach(x=>x.onclick=()=>{if(!d.res&&!d.wait){d.wait=1;d.at=+x.dataset.i;neb({cmd:'pick',i:+x.dataset.i});}});const ok=card.querySelector('[data-ok]');if(ok)ok.onclick=()=>{shopUI.draw=null;renderShop();};return;}
   card.innerHTML=`<h2>${u.exit?'EXIT?':u.pick?'Pick a Duck':S.n}</h2><div class="stag">${u.exit?'You will lose everything.<br>Are you ready to escape?':u.pick?'Ninety-nine ducks for the one you choose.':S.tag}</div>`+
+    (curs.length>1&&!u.pick&&!u.exit?'<div class="stabs">'+curs.map(c=>`<span class="${c===u.tab?'on':''}" data-t="${c}">${c==='gift'?'souvenirs':KIND_NAME[c]||c}</span>`).join('')+'</div>':'')+'<div class="srows">'+
     (pages>1?`<div class="sarr l${u.page?'':' off'}"></div><div class="sarr r${u.page<pages-1?'':' off'}"></div>`:'')+
     rows.slice(u.page*per,u.page*per+per).map((r,i)=>r.c?`<div class="srow c" data-i="${i}"><span>${r.n}<br>${r.sub}</span></div>`:
-      `<div class="srow${r.poor?' poor':''}${r.own?' own':''}" data-i="${i}"${r.disc?` data-disc="${r.disc}"`:''}><span>${r.n}</span><b>${r.p}${r.unit?`<i>${r.unit}</i>`:''}</b></div>`).join('')+
-    `<div class="sfoot">${u.exit?'':wal}</div>`;
-  const pr=rows.slice(u.page*per,u.page*per+per),foot=card.querySelector('.sfoot');
-  card.querySelectorAll('.srow').forEach(r=>{const row=pr[+r.dataset.i];r.onclick=()=>{if(!row.own)row.go();};r.onmouseenter=()=>{if(row.note)foot.textContent=row.note;};r.onmouseleave=()=>{foot.textContent=u.exit?'':wal;};});
+      `<div class="srow${r.poor?' poor':''}${r.own?' own':''}" data-i="${i}"${r.disc?` data-disc="${r.disc}"`:''}><span>${r.n}</span><b>${r.p}</b></div>`).join('')+'</div>';
+  const pr=rows.slice(u.page*per,u.page*per+per);
+  card.querySelectorAll('.srow').forEach(r=>{const row=pr[+r.dataset.i];r.onclick=()=>{if(!row.own)row.go();};r.onmouseenter=()=>{shopHover=row.it?[row.n,row.note||'']:null;};r.onmouseleave=()=>{shopHover=null;};});
+  card.querySelectorAll('.stabs span').forEach(t=>t.onclick=()=>{u.tab=t.dataset.t;u.page=0;renderShop();});
   const a=card.querySelectorAll('.sarr');if(a.length){a[0].onclick=()=>{if(u.page>0){u.page--;renderShop();}};a[1].onclick=()=>{if(u.page<pages-1){u.page++;renderShop();}};}
   applyDisc();}
 function shopBuy(it,arg){
@@ -927,7 +940,8 @@ function shopBought(m){const it=shopItem(m.id);if(!it)return;feed(m.ok?'Bought: 
   if(m.ok&&it.fx.clock){clock=it.fx.clock;showTurn();updateHint();saveMap();} // the Clock smith turns the day's clock
   if(m.ok&&m.draw&&shopUI)shopUI.draw=m.draw; // cards to pick from
   if(m.ok&&shopUI&&shopUI.pick)shopUI.pick=false;if(shopUI)renderShop();}
-function shopPicked(m){if(!shopUI||!shopUI.draw)return;shopUI.draw.res=Object.assign({i:shopUI.draw.at},m);feed(m.title||'',m.text||'');renderShop();} // the card turned over
+function shopPicked(m){if(!shopUI||!shopUI.draw)return;if(m.show){shopUI.draw=null;document.getElementById('shop').classList.remove('show');currentView='overlay';showNeb(true);feed(m.title||'',m.text||'');return;} // a secret: its own card, shown by the surface; the shop comes back when it closes
+shopUI.draw.res=Object.assign({i:shopUI.draw.at},m);feed(m.title||'',m.text||'');renderShop();} // the card turned over
 function souvenirs(){try{return JSON.parse(localStorage.getItem(SOUV_KEY)||'{}')||{};}catch(e){return{};}}
 function giftEnter(){ // Yes: everything is lost (the purse, ducks, discoveries and the map); souvenirs are bought from your last Bright and kept
   giftWallet=inv.bright||0;neb({cmd:'wipe'});try{localStorage.removeItem(MAP_KEY);}catch(e){}initGame();shopUI={id:'gift',rank:3,page:0,gift:true};renderShop();}
@@ -937,10 +951,11 @@ document.getElementById('shop').addEventListener('contextmenu',e=>{e.preventDefa
 // ╔══════════════════════════════════════════════════════════════════════════════╗
 // ║  DOCK, FEED AND CURSOR — the surface's own slots, feed line and cursor       ║
 // ╚══════════════════════════════════════════════════════════════════════════════╝
-let icons={};const DOCK_ITEMS=['leash','dial','weave'];
+let icons={};const DUCK_ICO='<svg viewBox="0 0 22 22"><path fill="currentColor" d="M8 4a3.5 3.5 0 0 1 3.4 4.4L15 8l-2.2 2.2c2.6.2 5.2 1 6.2-1 .6 3.6-1.6 8.8-8 8.8-4.4 0-7-2.4-7-5.4 0-2 1.3-3.2 2.4-3.8A3.5 3.5 0 0 1 8 4z"/></svg>';const DOCK_ITEMS=['leash','dial','weave'];
 function syncDock(){const box=document.getElementById('hinv');if(!box)return;
   box.innerHTML=DOCK_ITEMS.map(k=>`<div class="slot${armed===k?' armed':''}${(inv[k]||0)<=0?' empty':''}" data-k="${k}" title="${KIND_NAME[k]}">${icons[k]||KIND_NAME[k][0]}<b>${inv[k]||0}</b></div>`).join('')+
-    '<div class="sep"></div>'+['prism','knot','gate','key','lens'].filter(k=>(inv[k]||0)>0).map(k=>`<div class="slot empty" data-k="${k}" title="${KIND_NAME[k]} (earned)">${icons[k]||KIND_NAME[k][0]}<b>${inv[k]}</b></div>`).join('');
+    '<div class="sep"></div>'+['prism','knot','gate','key','lens'].filter(k=>(inv[k]||0)>0).map(k=>`<div class="slot empty" data-k="${k}" title="${KIND_NAME[k]} (earned)">${icons[k]||KIND_NAME[k][0]}<b>${inv[k]}</b></div>`).join('')+
+    (shopUI&&shopUI.tab?(()=>{const c=shopUI.tab,n=c==='gift'?'Your last Bright':KIND_NAME[c]||c;return `<div class="sep"></div><div class="slot wal" data-k="${c}" title="${n}">${icons[c==='gift'?'bright':c]||DUCK_ICO}<b>${fmtN(shopWallet(c))}</b></div>`;})():''); // the purse the shop's tab spends
   for(const el of box.querySelectorAll('.slot'))if(DOCK_ITEMS.includes(el.dataset.k))el.onclick=()=>armItem(el.dataset.k);
   const fd=document.getElementById('hfeed');if(weaveAsk){fd.innerHTML='<div class="fn">Make: '+weaveAsk.map(k=>`<button data-k="${k}">${KIND_NAME[k]}</button>`).join('')+'</div><div class="fd">'+weaveSel.length+' bright hexes · 1 Weave</div>';for(const b of fd.querySelectorAll('button'))b.onclick=()=>makeConstellation(b.dataset.k);}
   else if(fd.querySelector('button'))fd.innerHTML='<div class="fn"></div><div class="fd"></div>';}
@@ -950,6 +965,7 @@ function feedTick(now){ // the feed: a recent message, else what the cursor is o
   let a,b;const over=currentView==='map'&&!menuOpen?ptOver:null,onMap=over===sc;
   const du=onMap?duckUnder(mX,mY):null,hc=onMap&&hQ!==null?cells[K(hQ,hR)]:null;
   if(now-feedMsg.at<3500){a=feedMsg.t;b=feedMsg.d;}
+  else if(shopUI){[a,b]=shopHover||[SHOPS[shopUI.id].n,shopUI.exit?'':'Point at an item to read about it'];}
   else if(over&&over.closest&&over.closest('.shop')){[a,b]=shopInfo(over.closest('.shop').dataset.key);}
   else if(du){const v=DUCK_TYPES[du.type]||{};a=(v.rare?'★ ':'')+(v.name||'Duck')+' × '+(duckLog[du.type]||0);b=(v.axis||'')+(v.detail?': '+v.detail:'')+' · swimming on the lake';}
   else if(hc){[a,b]=hexInfo(hc);}else{[a,b]=hintLine;}
@@ -959,7 +975,7 @@ function cursorTick(now){ // the surface's standard cursor (shared.js): brighter
   const dp=window.devicePixelRatio||1;if(hcur.width!==Math.round(innerWidth*dp)){hcur.width=Math.round(innerWidth*dp);hcur.height=Math.round(innerHeight*dp);}
   hcx.setTransform(dp,0,0,dp,0,0);hcx.clearRect(0,0,innerWidth,innerHeight);if(currentView!=='map'||menuOpen||shopUI||mX<0)return;
   const over=ptOver,ui=over&&over!==sc&&over.closest&&over.closest('button,.slot,.hbtn,.shop,input,select');
-  const k=hQ!==null?K(hQ,hR):null,c=k?cells[k]:null,act=!!ui||!!(c&&(armed==='leash'?c.cap:armed==='dial'?(!c.cap&&!c.isVoid):armed==='weave'?isBright(k):(k===K(pQ,pR)||getMoves().some(m=>K(m.q,m.r)===k))));
+  const k=hQ!==null?K(hQ,hR):null,c=k?cells[k]:null,act=!!ui||!!(c&&(armed==='leash'?(c.cap||(!c.isVoid&&c.v<1)):armed==='dial'?(!c.cap&&!c.isVoid):armed==='weave'?isBright(k):(k===K(pQ,pR)||getMoves().some(m=>K(m.q,m.r)===k))));
   const base=T.cursorBaseR||8,lw=T.cursorLineW||2,press=mDownAt>0?Math.min(1,(now-mDownAt)/(T.cursorClickDurMs||120)):0,cR=base*(1-(T.cursorClickShrink!=null?T.cursorClickShrink:0.7)*0.4*press);
   _curA+=((act?1:(T.cursorIdleAlphaMult!=null?T.cursorIdleAlphaMult:0.5))-_curA)*0.25;const ev=act?255:Math.round(255*(1-(T.cursorIdleBorderDark!=null?T.cursorIdleBorderDark:0.4))),col=armed?'255,220,120':`${ev},${ev},${ev}`;
   {const[wx,wy]=s2wp(mX,mY);cursorTrailRecord(wx,wy,now,overScene());}cursorBase(hcx,mX,mY,cR,_curA,1,col,lw);cursorRing(hcx,mX,mY,cR,_curA,col,lw);cursorDot(hcx,mX,mY,_curA,col);}
