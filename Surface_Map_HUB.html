@@ -134,7 +134,7 @@ body.thru .shop{pointer-events:none} /* an armed map item, or the open source, r
 <div id="veil"></div>
 <canvas id="hcur"></canvas>
 <iframe id="neb" title="Surface"></iframe>
-<script src="shared.js?v=20261102zg"></script>
+<script src="shared.js?v=20261102zh"></script>
 <script>
 // ╔══════════════════════════════════════════════════════════════════════════════╗
 // ║  MAP ENGINE                                                                 ║
@@ -150,7 +150,7 @@ let clock=3,day=1,pool=6,fresh=true,burstFx=null,dayLog=[],dayCnt={b:0,d:0},pend
 // // clock: the hour (3 = Twilight … 24 = Midnight, the day's last turn); day: your attempts; pool: what the source put out at its last burst; fresh: no ring added yet since it
 let constel=[],armed=null,weaveSel=[],weaveAsk=null,clearFx={},mergeFx=[],feedMsg={t:'',d:'',at:-1e9}; // constellations {keys,type}; the armed map item; a Weave being drawn; animations; the final count
 const TIMES={3:'Twilight',6:'Dawn',9:'Morning',12:'Noon',15:'Afternoon',18:'Dusk',21:'Night',24:'Midnight'},STEP_H=3; // the day: eight turns of three hours
-const CACHE_V='20261102zg'; // the build: bump with shared.js's
+const CACHE_V='20261102zh'; // the build: bump with shared.js's
 const SCENE=new URLSearchParams(location.search).get('scene'); // a Guide / event demo: the map plays a scripted moment (no surface behind it)
 let phase='move',turnTimer=0,mergeTimer=0;
 let gameOverReason='';
@@ -432,13 +432,13 @@ function sceneRender(now){
   {let tg=clock;if(tg<_sunH-12)tg+=24;_sunH+=(tg-_sunH)*Math.min(1,0.025*(now-(_sunT||now))/16.7);_sunT=now;if(_sunH>=24&&clock<12)_sunH-=24; // the time of day's light eases round to the new hour
     const s=duckSun(_sunH),R=cam.viewRot,l=[s.d[0],-s.d[1],s.d[2]];DUCK_SUN={d:[0,1,2].map(i=>R[i]*l[0]+R[3+i]*l[1]+R[6+i]*l[2]),c:s.c};} // (the plane's y runs down the screen)
   const ra=T.mapDuckRefl!=null?T.mapDuckRefl:0.4; // ducks are mirrored in the surface beneath them
-  if(ra>0){gl.clear(gl.DEPTH_BUFFER_BIT);for(const d of pond){if(!d._s)continue;const[px,py]=w2s(d.x,d.y),[X,Y,k]=proj(px,py),f=[Math.cos(d.hd),Math.sin(d.hd),0],size=d._s,bob=size*(0.36+0.03*Math.sin(now/700+d.ph));if(d._dz<0)continue; // (no mirror image while it is under)
+  if(ra>0){gl.clear(gl.DEPTH_BUFFER_BIT);for(const d of pond){if(!d._s)continue;const[px,py]=w2s(d.x,d.y),[X,Y,k]=proj(px,py),f=[Math.cos(d.hd),Math.sin(d.hd),0],size=d._s,bob=size*(0.36+0.03*Math.sin(now/700+d.ph));
     drawDuckScene(G3.duck,d.type,{rot:new Float32Array([f[0],f[1],0, 0,0,-1, -f[1],f[0],0]),size,pos:[px-MW/2,py-MH/2,-bob],view:cam.view,proj:cam.proj,viewRot:cam.viewRot,env:{x:X,y:Y,lights:[]},px:size*k,alpha:ra*(d.fade!=null?d.fade:1),mirror:true});}
     gl.clear(gl.DEPTH_BUFFER_BIT);}
   for(const d of pond){if(!d._s)continue;const v=DUCK_TYPES[d.type]||{},refl=v.mat==='metal'||v.mat==='gold'||v.mat==='glass',[px,py]=w2s(d.x,d.y),[X,Y,k]=proj(px,py);
     if(refl&&!envd){duckEnvUpdate(mc,now,G3.duck);envd=true;}
     const f=[Math.cos(d.hd),Math.sin(d.hd),0],size=d._s; // upright on the plane: its forward along its heading, its up out of the plane (mirrored across, as the view flips y)
-    drawDuckScene(G3.duck,d.type,{rot:new Float32Array([f[0],f[1],0, 0,0,1, -f[1],f[0],0]),size,pos:[px-MW/2,py-MH/2,size*(0.36+0.03*Math.sin(now/700+d.ph))+(d._dz||0)],view:cam.view,proj:cam.proj,viewRot:cam.viewRot,env:{x:X,y:Y,lights:[]},px:size*k});}}
+    drawDuckScene(G3.duck,d.type,{rot:new Float32Array([f[0],f[1],0, 0,0,1, -f[1],f[0],0]),size,pos:[px-MW/2,py-MH/2,size*(0.36+0.03*Math.sin(now/700+d.ph))],view:cam.view,proj:cam.proj,viewRot:cam.viewRot,env:{x:X,y:Y,lights:[]},px:size*k});}}
 let _glow=null;
 function glowSprite(bl,ba){ // one bright clear's glow (a wide and a mid blur pass and its soft white core), drawn once per hex size and setting
   const key=HEX+'|'+bl+'|'+ba+'|'+MK;if(_glow&&_glow.key===key)return _glow.cv;const R=HEX*(1.7+bl*3.6),S=Math.ceil(2*R*MK),cv=document.createElement('canvas');cv.width=cv.height=S;
@@ -615,7 +615,6 @@ window.addEventListener('wheel',e=>{if(currentView!=='map'||menuOpen||shopUI||(e
 sc.addEventListener('contextmenu',e=>{e.preventDefault();if(currentView==='map'&&armed){armed=null;weaveSel=[];weaveAsk=null;updateHint();syncDock();}}); // right-click puts a selected item down
 sc.addEventListener('click',e=>{
   if(currentView!=='map')return;
-  {const du=duckUnder(e.clientX,e.clientY);if(du&&!(du.dunk&&performance.now()-du.dunk<(T.mapDuckDunkMs||1300))){du.dunk=performance.now();ripples.push({x:du.x,y:du.y,t:du.dunk,ink:onWhite(du.x,du.y)?'20,24,32':'255,255,255',big:1});neb({cmd:'quack',type:du.type,v:1});return;}} // a lake duck: dunked, it pops back up
   if(phase==='gameover'||phase==='ended'||phase==='collapse')return;
   const[q,r]=evA(e),k=K(q,r);
   if(armed==='leash'){if(cells[k]&&cells[k].cap)unclear(k);return;} // an armed map item takes the click
@@ -625,6 +624,10 @@ sc.addEventListener('click',e=>{
   const moves=getMoves();if(moves.find(m=>m.q===q&&m.r===r))doMove(q,r);
 });
 sc.addEventListener('mouseleave',()=>{hQ=null;hR=null;});
+document.addEventListener('click',e=>{ // a lake duck clicked (even under a read-out like the legend): dunked, it comes back up — and the click goes no further
+  if(currentView!=='map'||menuOpen||shopUI||!(e.target===sc||(e.target.closest&&!e.target.closest('button,.slot,.shop,input,select,#hdock,#tuneP,#mModes,#shop,#menu,#day-report'))))return;
+  const du=duckUnder(e.clientX,e.clientY);if(!du||du.dunk)return;e.stopPropagation();
+  du.dunk=performance.now();ripples.push({x:du.x,y:du.y,t:du.dunk,ink:onWhite(du.x,du.y)?'20,24,32':'255,255,255',big:1});neb({cmd:'quack',type:du.type,v:1});},true);
 document.addEventListener('keydown',e=>{
   if(e.code==='Escape'){e.preventDefault();if(shopUI){closeShop();return;}if(currentView==='map'&&armed){armed=null;weaveSel=[];weaveAsk=null;updateHint();syncDock();return;}if(currentView==='map')toggleMenu();return;}
   if(menuOpen||shopUI)return;
@@ -675,8 +678,9 @@ function pondStep(now){
       else{d.hd=ca;d.kick=Math.min(5,1+2.5*cv/vf);d.dash=now+900+Math.min(1500,600*cv/vf);ripples.push({x:d.x,y:d.y,t:now,ink:onWhite(d.x,d.y)?'20,24,32':'255,255,255'});} // a hit: it putters off the way it was pushed
       neb({cmd:'quack',type:d.type,v:Math.min(1,cv/vf/3)});}
     const sp_=d.spin&&now-d.spin.t0<d.spin.dur?d.spin:null;if(sp_)d.hd+=sp_.rate*dt*(1-(now-sp_.t0)/sp_.dur);else d.spin=null;
-    const dk=d.dunk?(now-d.dunk)/(T.mapDuckDunkMs||1300):1;if(dk>=1){if(d.dunk){ripples.push({x:d.x,y:d.y,t:now,ink:onWhite(d.x,d.y)?'20,24,32':'255,255,255',big:1});}d.dunk=0;d._dz=0;} // back up: a splash
-    else{const r=dk<0.25?dk/0.25:dk<0.55?1:1-(dk-0.55)/0.45,ob=dk>0.55?Math.sin(Math.PI*(dk-0.55)/0.45)*0.25:0;d._dz=-(1.3*r*r-ob)*(d._s||0);} // under, a moment, then up with a bob past the surface
+    const dk=d.dunk?(now-d.dunk)/(T.mapDuckDunkMs||1300):1;let dkS=1; // a dunk: the way a duck splashes up, backwards — it sinks into the water, stays under a moment, then comes back up out of it
+    if(dk>=1)d.dunk=0;else if(dk<0.3){const u=dk/0.3;dkS=1-u*u;}else if(dk<0.55)dkS=0;else{if(!d._up){d._up=1;ripples.push({x:d.x,y:d.y,t:now,ink:onWhite(d.x,d.y)?'20,24,32':'255,255,255',big:1});}const u=(dk-0.55)/0.45;dkS=1+2.7*Math.pow(u-1,3)+1.7*Math.pow(u-1,2);} // (up with a little bob past full size)
+    if(!d.dunk)d._up=0;
     if(d.kick){d.kick*=Math.pow(0.97,dt);if(d.kick<0.05)d.kick=0;}
     if(now>d.next){d.next=now+1800+Math.random()*3000;d.cur=Math.random()<0.1?(Math.random()<0.5?-1:1)*0.03:(Math.random()-0.5)*0.006;d.dash=Math.random()<0.18?now+1200+Math.random()*1200:0;} // now and then a dash // mostly a gentle curve on its way across; now and then a doughnut
     const paddle=(d.dash>now?1.5:0.38+0.28*Math.max(0,Math.sin(now/260+d.ph)))+(d.kick||0),go=(d.splash&&now-d.born<900)||sp_||d.dunk?0:paddle;d.sp+=(go-d.sp)*(d.kick?0.2:0.05)*dt; // spinning or under water: it stops
@@ -687,7 +691,7 @@ function pondStep(now){
     const[X,Y,k]=w2sc(d.x,d.y),off=offView(X,Y,HEX*1.5*k);if(!off)d.seen=true;
     if((d.seen&&off)||now-d.born>60000)return false; // gone off screen: another comes in elsewhere
     if(d.sp>0.1&&now-d.lastRip>320){d.lastRip=now;ripples.push({x:d.x,y:d.y,t:now,ink:onWhite(d.x,d.y)?'20,24,32':'255,255,255'});} // white rings on dark water, dark on white
-    const t=DUCK_TYPES[d.type]||{},pop=d.splash?Math.min(1,(now-d.born)/700):1;d._s=HEX*0.62*(t.scale||1)/(t.head?1.25:1)*pop;return true;}); // world units per model unit (its type's size; a splash grows it up out of the water)
+    const t=DUCK_TYPES[d.type]||{},pop=(d.splash?Math.min(1,(now-d.born)/700):1)*dkS;d._s=HEX*0.62*(t.scale||1)/(t.head?1.25:1)*pop;return true;}); // world units per model unit (its type's size; a splash grows it up out of the water)
   ripples=ripples.filter(r=>now-r.t<1800);
   for(const r of ripples){const a=(now-r.t)/1800,[X,Y]=w2s(r.x,r.y),R=4+a*HEX*(r.big?1.6:0.9);c.strokeStyle=`rgba(${r.ink},${(0.5*(1-a)*(1-a)).toFixed(3)})`;c.lineWidth=r.big?2:1.4;c.beginPath();c.arc(X,Y,R,0,6.2832);c.stroke();} // rings on the water (the camera foreshortens them)
   for(const d of pond)if(d._s){const[X,Y]=w2s(d.x,d.y);duckGlow(c,d.type,X,Y,d._s,now,d.ph); // a Bright / Shining / Dim duck lights the water round it
