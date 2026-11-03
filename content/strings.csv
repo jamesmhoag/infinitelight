@@ -688,6 +688,9 @@ status.none,none yet,"cards, Guide, Status",
 card.continue,Continue,"cards, Guide, Status",
 load.text,less than infinity remaining…,loading screen,
 shop.open.sign,OPEN,the neon sign in an open shop's window,
+guide.title,Guide,the Guide,
+guide.invert,Invert colours,the Guide,
+guide.back,Back to the game ✕,the Guide,
 value.life_ms,T.lifeColor,values (shared: any text can use {life_ms}),a pigment's life factor (Life colour tuner)
 value.dim_mass_pct,Math.round(T.remMassFrac*100),values (shared: any text can use {dim_mass_pct}),% of its mass a failed collapse keeps
 value.dim_energy_pct,Math.round(T.remEnergyFrac*100),values (shared: any text can use {dim_energy_pct}),% of its energy a failed collapse keeps

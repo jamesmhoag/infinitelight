@@ -93,7 +93,7 @@ function shopModel(id,bk,lit,fl,si,open){ // si: the sign's loaded image; open: 
   const cy=(yb+sH)/2;let Rm=0;for(let i=1;i<pos.length;i+=3){pos[i]-=cy;Rm=Math.max(Rm,Math.hypot(pos[i-1],pos[i],pos[i+1]));} // centred (for the renderer's square); its foot is at y −cy
   _duckModels.set(type,{g:{pos:new Float32Array(pos),nrm:new Float32Array(nrm),uv:new Float32Array(uv),idx:new Uint16Array(idx),R:Rm,foot:-cy},nomk:1,mat:13,c1:[1,1,1],c2:[1,1,1],img:tx});
   pos.length=nrm.length=uv.length=idx.length=0;for(const[a,b,e,f,z]of panes)quad([[a,b-cy,z],[e,b-cy,z],[e,f-cy,z],[a,f-cy,z]],[0,0,1],sw_(0)); // its glass, apart: drawn as glass (it reflects what is round it), after the building
-  const gc=[0.84,0.92,0.95];_duckModels.set(type+'|glass',{g:{pos:new Float32Array(pos),nrm:new Float32Array(nrm),uv:new Float32Array(uv),idx:new Uint16Array(idx),R:Rm},nomk:1,mat:3,c1:gc,c2:gc});return type;}
+  const gc=[0.84,0.92,0.95];_duckModels.set(type+'|glass',{g:{pos:new Float32Array(pos),nrm:new Float32Array(nrm),uv:new Float32Array(uv),idx:new Uint16Array(idx),R:Rm},nomk:1,mat:3,c1:gc,c2:gc,ew:1/(W*1.6)});return type;} // (ew: across the building, its glass reflects a stretch of the street, scaled to its small windows)
 function duckGeo(shape){return _duckModels.get('geo|'+shape)||null;} // decoded once at load (duckLoad)
 async function duckLoad(){ // the two baked meshes and the markings texture: decompressed and decoded once, at load
   const D=DUCK_MESH;if(!D.nv)return;
@@ -120,7 +120,7 @@ function duckCtx(gl){
     'void main(){vec3 P=aP,N=aN;if(uFl>0.0){P.z*=uFl;N=vec3(0.0,0.0,aN.z>=0.0?1.0:-1.0);}'+ // Paper: pressed flat to a thin card, each face the side view as drawn
     'vM=N;vU=aU;vH=0.0;if(uSc>0.5){vec3 w=uPos+uR*P*uMS;vH=w.z;vec4 v=uV*vec4(w,1.0);vP=v.xyz;vN=uVR*(uR*N);gl_Position=uPj*v;}'+
     'else{vec3 p=uR*P;vP=p;vN=uR*N;gl_Position=vec4(p.xy*uK.x,-p.z*uK.y,1.0);}}'));
-  gl.attachShader(pr,sh(gl.FRAGMENT_SHADER,(dd?'#extension GL_OES_standard_derivatives : enable\n':'')+'precision mediump float;varying vec3 vN;varying vec3 vM;varying vec4 vU;varying vec3 vP;varying float vH;uniform float uCl;uniform float uNk;uniform float uBp;uniform sampler2D uImg;uniform float uEo;'+
+  gl.attachShader(pr,sh(gl.FRAGMENT_SHADER,(dd?'#extension GL_OES_standard_derivatives : enable\n':'')+'precision mediump float;varying vec3 vN;varying vec3 vM;varying vec4 vU;varying vec3 vP;varying float vH;uniform float uCl;uniform float uNk;uniform float uBp;uniform sampler2D uImg;uniform float uEo;uniform float uEW;'+
     'uniform vec3 uC1;uniform vec3 uC2;uniform float uM;uniform float uGl;uniform float uTr;uniform float uA;uniform sampler2D uTex;uniform vec4 uTS;'+
     'uniform sampler2D uEnv;uniform vec3 uEP;uniform float uEA;uniform vec4 uLd[6];uniform vec3 uLc[6];uniform vec3 uDim;uniform float uAA;uniform vec3 uSunL;uniform vec3 uSunC;'+
     'vec3 hue(float h){return clamp(abs(mod(h*6.0+vec3(0.0,4.0,2.0),6.0)-3.0)-1.0,0.0,1.0);}'+
@@ -141,7 +141,7 @@ function duckCtx(gl){
     'float g=0.5+0.5*sin(vU.x*0.33+4.0*sin(vU.y*0.06+vU.x*0.01)+vU.y*0.04);vec3 eC=vec3(0.98),lC=vec3(0.086,0.086,0.1);'+
     'if(m==1.0){eC=uC1*(1.05+0.35*g);lC=uC1*(0.22+0.12*g);}'+ // wood: wooden eyes, darkened wood in the mouth and lines
     'c=mix(c,eC,eye);c=mix(c,lC,ln);'+
-    'vec3 env=vec3(0.0),gs=vec3(0.0);if(m==2.0||m==3.0||m==7.0){vec3 r=reflect(-V,n);env=texture2D(uEnv,clamp(uEP.xy-r.xy*uEP.z,0.0,1.0)).rgb;'+
+    'vec3 env=vec3(0.0),gs=vec3(0.0);if(m==2.0||m==3.0||m==7.0){vec3 r=reflect(-V,n);env=texture2D(uEnv,clamp(uEP.xy-r.xy*uEP.z+vec2(vP.x,-vP.y)*uEW,0.0,1.0)).rgb;'+
     'for(int i=0;i<6;i++){if(uLd[i].w>0.0)gs+=uLc[i]*uLd[i].w*pow(max(0.0,dot(n,normalize(normalize(uLd[i].xyz)+V))),90.0);}}'+ // (empty light slots are skipped: normalize(0) is NaN)
     'vec3 col;float a=1.0;bool em=m==13.0&&((vU.z>0.5&&vU.z<1.5)||vU.z>2.5);if(uEo>0.5&&!em){gl_FragColor=vec4(0.0);return;}'+ // em: what glows on a painted model (uEo: draw only that — a shop's neon glow is blurred from it)
     'if(m==1.0){col=c*(0.62+0.32*g)*(0.35+0.75*dif)+pow(nh,12.0)*0.12*uGl;}'+
@@ -163,7 +163,7 @@ function duckCtx(gl){
     'a*=uA;gl_FragColor=vec4(min(col,vec3(1.0))*a,a);}'));
   gl.linkProgram(pr);if(!gl.getProgramParameter(pr,gl.LINK_STATUS)){console.error(gl.getProgramInfoLog(pr));return null;}
   const at={},un={};for(const k of ['aP','aN','aU'])at[k]=gl.getAttribLocation(pr,k);
-  for(const k of ['uImg','uEo','uNk','uCl','uFl','uR','uK','uC1','uC2','uM','uGl','uTr','uA','uTex','uTS','uEnv','uEP','uEA','uLd','uLc','uDim','uAA','uBp','uSc','uV','uPj','uVR','uPos','uMS','uSunL','uSunC'])un[k]=gl.getUniformLocation(pr,k);
+  for(const k of ['uEW','uImg','uEo','uNk','uCl','uFl','uR','uK','uC1','uC2','uM','uGl','uTr','uA','uTex','uTS','uEnv','uEP','uEA','uLd','uLc','uDim','uAA','uBp','uSc','uV','uPj','uVR','uPos','uMS','uSunL','uSunC'])un[k]=gl.getUniformLocation(pr,k);
   const envT=gl.createTexture();gl.bindTexture(gl.TEXTURE_2D,envT);gl.texImage2D(gl.TEXTURE_2D,0,gl.RGBA,1,1,0,gl.RGBA,gl.UNSIGNED_BYTE,new Uint8Array([0,0,0,255]));
   for(const [p,v] of [[gl.TEXTURE_MIN_FILTER,gl.LINEAR],[gl.TEXTURE_MAG_FILTER,gl.LINEAR],[gl.TEXTURE_WRAP_S,gl.CLAMP_TO_EDGE],[gl.TEXTURE_WRAP_T,gl.CLAMP_TO_EDGE]])gl.texParameteri(gl.TEXTURE_2D,p,v);
   return{gl,pr,at,un,envT,envCv:document.createElement('canvas'),envAt:-1,bufs:new Map(),mtex:null,itex:new Map()};}
@@ -204,7 +204,7 @@ function duckBind(G,M,env,hpx){ // everything a duck draw shares: its mesh and m
   if(M.img){let t=G.itex.get(M.img);if(!t){t=gl.createTexture();gl.bindTexture(gl.TEXTURE_2D,t);gl.pixelStorei(gl.UNPACK_PREMULTIPLY_ALPHA_WEBGL,false);gl.texImage2D(gl.TEXTURE_2D,0,gl.RGBA,gl.RGBA,gl.UNSIGNED_BYTE,M.img);gl.generateMipmap(gl.TEXTURE_2D); // a painted model's texture (once per context)
       for(const [p,v] of [[gl.TEXTURE_MIN_FILTER,gl.LINEAR_MIPMAP_LINEAR],[gl.TEXTURE_MAG_FILTER,gl.LINEAR],[gl.TEXTURE_WRAP_S,gl.CLAMP_TO_EDGE],[gl.TEXTURE_WRAP_T,gl.CLAMP_TO_EDGE]])gl.texParameteri(gl.TEXTURE_2D,p,v);G.itex.set(M.img,t);}
     gl.activeTexture(gl.TEXTURE2);gl.bindTexture(gl.TEXTURE_2D,t);gl.uniform1i(u.uImg,2);}
-  gl.uniform1f(u.uEo,M.eo?1:0);
+  gl.uniform1f(u.uEo,M.eo?1:0);gl.uniform1f(u.uEW,M.ew||0);
   const refl=M.mat===2||M.mat===3||M.mat===7,ld=new Float32Array(24),lc=new Float32Array(18);
   if(refl&&env){gl.uniform3f(u.uEP,1-env.x/Math.max(1,W),env.y/Math.max(1,H),0.22);gl.uniform1f(u.uEA,M.mat===3?T.glassReflect:T.metalReflA);
     (env.lights||[]).slice(0,6).forEach((l,i)=>{const dx=l[0]-env.x,dy=-(l[1]-env.y),dz=Math.max(20,l[6]*0.6),mix=v=>(v+255*1.6)/2.6/255; // glints mostly white, tinted by the light (as on the game's metal)
