@@ -4481,6 +4481,7 @@ function updateInventoryUI(){
     <div class="cnt">${st==='pause'?'❚❚':speedLabel(speedMult)}</div>
   </div>`;
   html+=`<div class="slot" data-kind="guide" onclick="openRules()" title="Guide"><div class="ic"><svg width="16" height="16" viewBox="0 0 16 16"><circle cx="8" cy="8" r="7" fill="none" stroke="currentColor" stroke-width="1.3"/><rect x="7.2" y="7" width="1.6" height="5" fill="currentColor"/><circle cx="8" cy="4.6" r="1" fill="currentColor"/></svg></div></div>`;
+  html+=`<div class="slot" data-kind="buoy" onclick="openCollections()" title="${txt('coll.title')}"><div class="ic">${BUOY_ICO}</div></div>`; // your buoy: Status and your collections
   html+=readoutSlotHTML();
   for(const kind of INV_KINDS){ // shown whether paused or not
     const count=inventory[kind];
@@ -12630,9 +12631,10 @@ function sceneBoot(name,TT){
 
 // ═════════════════════════ RULES MENU ═════════════════════════
 // A tabbed, plain-language guide. Every entry has a small live rendering (it follows the Invert setting) and the Encyclopedia tab lists every entry.
-let _rulesOpen=false,_rulesWasPaused=false,_rulesTab='disc',_rulesFilter='';
+let _rulesOpen=false,_rulesWasPaused=false,_rulesTab='disc',_rulesFilter='',_rulesMode='guide',_rulesLast={guide:'disc',coll:'status'};
 window._rulesOpen=false;
-const RULE_TABS=['disc','map','items','shapes','surf','shops','ducks','book','notes','status'].map(k=>[k,txt('guide.tab.'+k)]); // (their names: content/strings.csv)
+const RULE_TABS=['disc','map','items','shapes','surf','shops','ducks','book'].map(k=>[k,txt('guide.tab.'+k)]); // (their names: content/strings.csv)
+const COLL_TABS=['status','coll','notes','souv'].map(k=>[k,txt('coll.tab.'+k)]); // Status and your collections (your buoy, or its slot in the inventory): the same menu as the Guide, its own tabs
 // where an entry's own section (RULES[i][1]) shows: How to play / How to clean up are Discoveries; particles, points and remnants are the Taxonomy
 const RULE_HOME={start:['disc','How to play'],touch:['disc','How to clean up'],things:['map','Taxonomy'],bright:['map','Taxonomy'],rem:['map','Taxonomy'],items:['items','Items'],shapes:['shapes','Shapes'],surf:['surf','Surface Map'],shops:['shops','Shops'],ducks:['ducks','Ducks']};
 // [id, tab, name, picture, one-line summary, [[label,text],…]]
@@ -12861,6 +12863,7 @@ function guideCSS(){
   st.textContent=`
 #rulesOverlay{position:absolute;inset:2% 4%;z-index:60;display:flex;flex-direction:column;background:rgba(0,0,0,.96);color:#fff;border:1px solid #fff;border-radius:0;font:13px/1.5 system-ui,'Inter',sans-serif;letter-spacing:.4px;box-shadow:0 10px 50px rgba(0,0,0,.6);overflow:hidden} /* as the main and shop menus: black, a white line, plain type */
 #rulesOverlay.inv{background:rgba(255,255,255,.97);color:#000;border-color:#000}
+.mtg.sm.sv{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;text-align:center}.mtg.sm.sv .sv-i{font-size:30px;line-height:1}.mtg.sm.sv span{opacity:.7} /* a souvenir kept */
 #rlHead{display:flex;align-items:center;gap:10px;padding:8px 14px;border-bottom:1px solid rgba(128,128,128,.3);flex-wrap:wrap}
 #rlHead h2{margin:0;font:700 19px/1.25 system-ui,'Inter',sans-serif;letter-spacing:1.6px;flex:1 1 auto}
 .gbtn,#rlClose,#evOk{background:#000;color:#fff;border:1px solid #fff;border-radius:0;padding:5px 14px;font:12px/1.5 system-ui,'Inter',sans-serif;letter-spacing:.6px;cursor:pointer}.gbtn:hover,#rlClose:hover,#evOk:hover{background:#fff;color:#000} /* a menu's button; its call to action goes white on hover */
@@ -12953,22 +12956,27 @@ function rulesRender(){
       sec('Events','<div class="ev-grid">'+EVENTS.map(ev=>evSeen(ev.id)?cardHTML(ev,true):ev.id.slice(0,5)==='shop_'?shopBackHTML(ev.id.slice(5)):'<div class="mtg sm back">?</div>').join('')+'</div>');
   } else if(_rulesTab==='shops'){
     body.innerHTML='<p class="rl-note">Main street round the source, and the pop-ups a cleared surface can open. A shop is discovered the first time it opens; until then only the shape of its sign shows.</p>'+sec('How shops work',cards(RULES.filter(e=>e[1]==='shops')))+sec('The shops','<div class="rl-cards">'+Object.keys(SHOPS).map(k=>shopCardHTML(k,true)).join('')+'</div>');
+  } else if(_rulesTab==='coll'){body.innerHTML='';body.insertAdjacentHTML('beforeend',duckCollectionHTML());const sw=document.getElementById('pondSw');if(sw)sw.onclick=()=>{_pondMode=_pondMode==='pond'?'space':'pond';try{localStorage.setItem('il_pondmode',_pondMode);}catch(e){}rulesRender();};
+  } else if(_rulesTab==='souv'){const sv=souvenirs(),L=SHOP_ITEMS.filter(i=>i.fx.souv); // the Gift Shop's souvenirs: kept through every new start, and hung on your buoy
+    body.innerHTML=`<p class="rl-note">${txt('coll.souv.note')}</p><div class="rl-cards">`+L.map(i=>(sv[i.id]||0)>0?`<div class="mtg sm sv"><div class="sv-i">${BUOY_SOUV_ICO[i.id]||'★'}</div><b>${gEsc(i.n)}</b><span>× ${sv[i.id]}</span></div>`:'<div class="mtg sm back">?</div>').join('')+'</div>'+(L.some(i=>sv[i.id]>0)?'':`<p class="rl-note">${txt('coll.souv.none')}</p>`);
   } else if(_rulesTab==='book'){const f=_rulesFilter.trim().toLowerCase(),list=RULES.slice().sort((a,b)=>a[2].localeCompare(b[2])).filter(e=>!f||(e[2]+' '+e[4]+' '+e[5].map(r=>r[1]).join(' ')).toLowerCase().includes(f));
     body.innerHTML=`<input id="rlFind" type="search" placeholder="Find a word…" value="${_rulesFilter.replace(/"/g,'&quot;')}"><p class="rl-note">Every object, item and shape in the game, A to Z.</p>`+cards(list);
       const fi=document.getElementById('rlFind');fi.addEventListener('input',()=>{_rulesFilter=fi.value;const pos=fi.selectionStart;rulesRender();const n=document.getElementById('rlFind');n.focus();n.setSelectionRange(pos,pos);});
-  } else body.innerHTML=(RULE_BLURB[_rulesTab]?`<p class="rl-note">${RULE_BLURB[_rulesTab]}</p>`:'')+cards(RULES.filter(e=>e[1]===_rulesTab))+(_rulesTab==='ducks'?duckCollectionHTML():'');
+  } else body.innerHTML=(RULE_BLURB[_rulesTab]?`<p class="rl-note">${RULE_BLURB[_rulesTab]}</p>`:'')+cards(RULES.filter(e=>e[1]===_rulesTab))+(_rulesTab==='coll'?duckCollectionHTML():'');
   body.querySelectorAll('canvas.rl-m').forEach(cv=>rulesDraw(cv,cv.dataset.k));duckPondMount();
   applyDisc();cardSize(ov);
   if(!_rulesLoop)_rulesLoop=requestAnimationFrame(rulesTick);body.scrollTop=0;
 }
-function rulesTick(now){if(!_rulesOpen){_rulesLoop=0;return;}if(_rulesTab==='map')mapDraw(now);if(_rulesTab==='ducks')duckPondDraw(now);_rulesLoop=requestAnimationFrame(rulesTick);}
+function rulesTick(now){if(!_rulesOpen){_rulesLoop=0;return;}if(_rulesTab==='map')mapDraw(now);if(_rulesTab==='coll')duckPondDraw(now);_rulesLoop=requestAnimationFrame(rulesTick);}
 const RULE_BLURB={surf:'The Surface Map: the hexes round the source, the day, the lake and how to look around.',start:'Welcome! Tap a card to open it. Tap again to close it.',touch:'Particles are spilled on the surface. These are the ways to shine them off and clean up the spill.',things:'The glowing bits everything starts as. Each colour does a different job.',bright:'The big, bright and dark things that grow from points.',rem:'What is left behind. Click them to collect.',items:'Things you can hold and use. Each costs 1 per use unless it says so.',shapes:'Walls, boxes and loops you can build.'};
-function openRules(){
-  if(_rulesOpen)return;_rulesOpen=true;window._rulesOpen=true;guideCSS();wrap.classList.add('rules-open');_rulesWasPaused=isPaused;if(!isPaused)togglePause();
+function openCollections(tab){openRules('coll',tab);} // Status, ducks, letters and souvenirs
+function openRules(mode,tab){mode=mode==='coll'?'coll':'guide';const tabs=mode==='coll'?COLL_TABS:RULE_TABS;
+  if(_rulesOpen&&_rulesMode===mode&&!tab)return;_rulesLast[_rulesMode]=_rulesTab;_rulesMode=mode;_rulesTab=tab&&tabs.some(t=>t[0]===tab)?tab:tabs.some(t=>t[0]===_rulesLast[mode])?_rulesLast[mode]:tabs[0][0];
+  if(_rulesOpen){rulesHead();rulesRender();return;}_rulesOpen=true;window._rulesOpen=true;guideCSS();wrap.classList.add('rules-open');_rulesWasPaused=isPaused;if(!isPaused)togglePause();
   let ov=document.getElementById('rulesOverlay');
   if(!ov){
     ov=document.createElement('div');ov.id='rulesOverlay';
-    ov.innerHTML=`<div id="rlHead"><h2>${txt('guide.title')}</h2><button id="rlInv" class="gbtn sub">${txt('guide.invert')}</button><button id="rlClose">${txt('guide.back')}</button></div><div id="rlTabs">${RULE_TABS.map(t=>`<button data-t="${t[0]}">${t[1]}</button>`).join('')}</div><div id="rlBody"></div>`;
+    ov.innerHTML=`<div id="rlHead"><h2></h2><button id="rlInv" class="gbtn sub">${txt('guide.invert')}</button><button id="rlClose">${txt('guide.back')}</button></div><div id="rlTabs"></div><div id="rlBody"></div>`;
     wrap.appendChild(ov);
     ov.addEventListener('mousedown',e=>e.stopPropagation());ov.addEventListener('mouseup',e=>e.stopPropagation());ov.addEventListener('contextmenu',e=>e.stopPropagation());ov.addEventListener('wheel',e=>e.stopPropagation(),{passive:true});
     document.getElementById('rlClose').addEventListener('click',closeRules);document.getElementById('rlInv').addEventListener('click',()=>{toggleInvertMode();rulesRender();});
@@ -12977,10 +12985,11 @@ function openRules(){
       const c=e.target.closest('.mtg.sm');if(!c||c.closest('.disc-lock')||c.classList.contains('back'))return;
       if(c.dataset.ev)showEventCard(c.dataset.ev,true);else if(c.dataset.rule)showCardHTML(ruleCardHTML(RULES.find(x=>x[0]===c.dataset.rule),false));else if(c.dataset.shop)showCardHTML(shopCardHTML(c.dataset.shop,false));});
   }
-  ov.style.display='flex';rulesRender();
+  ov.style.display='flex';rulesHead();rulesRender();
 }
+function rulesHead(){const ov=document.getElementById('rulesOverlay');if(!ov)return;ov.querySelector('#rlHead h2').textContent=txt(_rulesMode==='coll'?'coll.title':'guide.title');ov.querySelector('#rlTabs').innerHTML=(_rulesMode==='coll'?COLL_TABS:RULE_TABS).map(t=>`<button data-t="${t[0]}">${t[1]}</button>`).join('');} // the menu's title and tabs: the Guide's, or Status and your collections'
 function closeRules(){
-  if(!_rulesOpen)return;_rulesOpen=false;window._rulesOpen=false;wrap.classList.remove('rules-open');
+  if(!_rulesOpen)return;_rulesOpen=false;window._rulesOpen=false;_rulesLast[_rulesMode]=_rulesTab;wrap.classList.remove('rules-open');
   const ov=document.getElementById('rulesOverlay');if(ov){ov.style.display='none';ov.querySelectorAll('iframe').forEach(f=>f.remove());}
   if(!_rulesWasPaused&&isPaused)togglePause();
   hubOverlayCheck();
@@ -13072,7 +13081,8 @@ window.addEventListener('message',e=>{
   if(m.cmd==='level')hubStartLevel(m);
   else if(m.cmd==='preview')hubPreviews(m.items,m.size);
   else if(m.cmd==='drop')IDB.del('session').catch(()=>{});
-  else if(m.cmd==='guide'){hubOverlay_(true);if(m.tab)_rulesTab=m.tab;openRules();}
+  else if(m.cmd==='guide'){hubOverlay_(true);openRules('guide',m.tab);}
+  else if(m.cmd==='collections'){hubOverlay_(true);openCollections(m.tab);} // your buoy on the map (or its slot in the map's dock)
   else if(m.cmd==='event'){const ids=(m.ids||[m.id]).filter(i=>!discSeen.has('ev:'+i));if(!ids.length){hubState('overlayDone');return;}hubOverlay_(true);ids.forEach(fireEvent);}
   else if(m.cmd==='sound')setSound(m.on,m.vol);
   else if(m.cmd==='giveDuck'){if(DUCK_TYPES[m.type]){duckLog[m.type]=(duckLog[m.type]||0)+1;saveInventory();hubState();}} // a duck from a bottle on the lake
@@ -13344,18 +13354,18 @@ function drawDucks(c,now){
 const DUCK_ICON_Q=quatTurn(quatTurn([0,0,0,1],0,Math.PI*0.3,0),0.25,0,0);
 function duckCollectionHTML(){
   const got=DUCK_IDS.filter(k=>duckLog[k]>0),total=got.reduce((s,k)=>s+duckLog[k],0);
-  return '<h3 style="margin:14px 0 6px">Collection · '+total+' duck'+(total===1?'':'s')+' · '+got.length+' of '+DUCK_IDS.length+' types</h3>'+(got.length?'<p class="rl-note">Every type you have, together at true size. Swipe across a duck to spin it; click one to turn it and zoom in.</p><canvas id="duckPond" style="position:relative;left:auto;top:auto;display:block;width:100%;height:240px;border-radius:10px;background:radial-gradient(ellipse at 50% 40%,#2a2a33,#0d0d12);touch-action:none;cursor:pointer"></canvas>':'<p class="rl-note">No ducks yet. Some Dark Remnants come out as ducks.</p>');}
+  return '<h3 style="margin:14px 0 6px">Collection · '+total+' duck'+(total===1?'':'s')+' · '+got.length+' of '+DUCK_IDS.length+' types</h3>'+(got.length?`<p class="rl-note">${txt(_pondMode==='pond'?'coll.pond.note':'coll.space.note')} <button id="pondSw" class="gbtn sub">${txt(_pondMode==='pond'?'coll.to_space':'coll.to_pond')}</button></p><canvas id="duckPond" style="position:relative;left:auto;top:auto;display:block;width:100%;height:240px;border-radius:10px;touch-action:none;cursor:pointer"></canvas>`:'<p class="rl-note">No ducks yet. Some Dark Remnants come out as ducks.</p>');}
 // The pond (Guide → Ducks): one of each collected type, sized by its own scale so sizes compare. A swipe across a duck spins it by the swipe's
 // direction and speed (it keeps turning and slows); a click opens it in the viewer. Drawn from rulesTick while the Ducks tab is open.
-let duckPond=null;
+let duckPond=null,_pondMode='pond';try{_pondMode=localStorage.getItem('il_pondmode')||'pond';}catch(e){} // the collection floats on a pond, or in space (white in Invert)
 function duckPondMount(){
   duckPond=null;const cv=document.getElementById('duckPond');if(!cv)return;const got=DUCK_IDS.filter(k=>duckLog[k]>0);if(!got.length)return;
   const Wc=cv.clientWidth||600,sc=k=>DUCK_TYPES[k].scale||1,fp=k=>1.55*sc(k)*(DUCK_TYPES[k].head?1.2:1);let base=70,rows,rh;
   for(;base>6;base*=0.93){rows=[[]];let w=0;for(const k of got){const f=fp(k)*base;if(w+f>Wc-10&&rows[rows.length-1].length){rows.push([]);w=0;}rows[rows.length-1].push(k);w+=f;}
     rh=rows.map(r=>Math.max(...r.map(fp))*base*0.85);if(rh.reduce((a,b)=>a+b,0)<=380)break;}
   const Hc=Math.ceil(rh.reduce((a,b)=>a+b,0)+16),dpr=Math.min(2,window.devicePixelRatio||1);cv.style.height=Hc+'px';cv.width=Math.round(Wc*dpr);cv.height=Math.round(Hc*dpr);
-  const P=duckPond={cv,c:cv.getContext('2d'),dpr,list:[],hov:null,last:null,down:null};let y=8;
-  rows.forEach((r,ri)=>{let x=(Wc-r.reduce((a,k)=>a+fp(k)*base,0))/2;for(const k of r){const f=fp(k)*base;P.list.push({k,x:x+f/2,y:y+rh[ri]/2,h:sc(k)*base,q:DUCK_ICON_Q.slice(),wx:0,wy:0,ph:Math.random()*6});x+=f;}y+=rh[ri];});
+  const P=duckPond={cv,c:cv.getContext('2d'),dpr,list:[],hov:null,last:null,down:null,W:Wc,H:Hc,stars:Array.from({length:Math.round(Wc*Hc/900)},()=>[Math.random()*Wc,Math.random()*Hc,Math.random()])};let y=8;
+  rows.forEach((r,ri)=>{let x=(Wc-r.reduce((a,k)=>a+fp(k)*base,0))/2;for(const k of r){const f=fp(k)*base;P.list.push({k,x:x+f/2,y:y+rh[ri]/2,h:sc(k)*base,q:DUCK_ICON_Q.slice(),wx:0,wy:0,yaw:0,ph:Math.random()*6});x+=f;}y+=rh[ri];});
   const at=e=>{const b=cv.getBoundingClientRect();return[e.clientX-b.left,e.clientY-b.top];},hit=(x,y)=>{let best=null,bd=1e9;for(const d of P.list){const r=Math.hypot(x-d.x,y-d.y);if(r<d.h*0.8&&r<bd){bd=r;best=d;}}return best;};
   cv.addEventListener('pointerdown',e=>{const p=at(e);P.down={p,t:performance.now()};P.last=p;});
   cv.addEventListener('pointermove',e=>{const p=at(e);P.hov=hit(p[0],p[1]);
@@ -13363,10 +13373,17 @@ function duckPondMount(){
   cv.addEventListener('pointerleave',()=>{P.last=null;P.hov=null;});
   cv.addEventListener('pointerup',e=>{const p=at(e),D=P.down;P.down=null;if(D&&Math.hypot(p[0]-D.p[0],p[1]-D.p[1])<6&&performance.now()-D.t<450){const d=hit(p[0],p[1]);if(d)openDuckViewer(d.k);}});}
 function duckPondDraw(now){
-  const P=duckPond;if(!P||!P.cv.isConnected){duckPond=null;return;}const c=P.c,k=P.dpr;c.clearRect(0,0,P.cv.width,P.cv.height);let envd=false;
-  for(const d of P.list){d.q=quatTurn(d.q,d.wx,d.wy,0);d.wx*=0.985;d.wy*=0.985;const v=DUCK_TYPES[d.k],refl=v.mat==='metal'||v.mat==='gold'||v.mat==='glass',x=d.x*k,y=(d.y+Math.sin(now/900+d.ph)*d.h*0.03)*k;
-    if(refl&&!envd){duckEnvUpdate(canvas,now);envd=true;}duckGlow(c,d.k,x,y,d.h*k,now,d.ph,d.q);drawDuck3D(c,d.k,d.q,[[x,y]],d.h*k,1,0,refl?{x:W/2,y:H/2,lights:[]}:null);}
-  const h=P.hov;if(h){const v=DUCK_TYPES[h.k];c.font=(12*k)+'px system-ui,sans-serif';c.textAlign='center';c.fillStyle='rgba(240,240,240,0.9)';c.fillText(duckStar(v)+v.name+' × '+duckLog[h.k],h.x*k,Math.max(14*k,(h.y-h.h*0.7)*k));}}
+  const P=duckPond;if(!P||!P.cv.isConnected){duckPond=null;return;}const c=P.c,k=P.dpr,inv=!!invertMode,pd=_pondMode==='pond';let envd=false;
+  let bg;if(pd){bg=c.createLinearGradient(0,0,0,P.H*k);bg.addColorStop(0,inv?'#ffffff':'#173149');bg.addColorStop(1,inv?'#dfe4e8':'#07121d');}else bg=inv?'#f6f6f2':'#05060b';
+  c.fillStyle=bg;c.fillRect(0,0,P.cv.width,P.cv.height);
+  if(!pd)for(const[x,y,b]of P.stars){c.fillStyle=inv?`rgba(20,22,30,${0.15+0.5*b})`:`rgba(255,255,255,${0.2+0.6*b*(0.7+0.3*Math.sin(now/700+x))})`;c.fillRect(x*k,y*k,(0.6+b)*k,(0.6+b)*k);} // space: its stars (dark specks on white)
+  for(const d of P.list){d.wx*=0.985;d.wy*=0.985;const v=DUCK_TYPES[d.k],refl=v.mat==='metal'||v.mat==='gold'||v.mat==='glass';let x,y;
+    if(pd){d.wx=0;d.yaw+=d.wy+0.0015*Math.sin(now/4000+d.ph);d.q=quatTurn(DUCK_ICON_Q,0,d.yaw,0);x=d.x*k;y=(d.y+Math.sin(now/900+d.ph)*d.h*0.03)*k;} // on the pond: upright, each in its place, turning only about its up (a swipe spins it round)
+    else{d.q=quatTurn(d.q,d.wx+0.0012*Math.sin(d.ph),d.wy+0.0016,0);x=(d.x+Math.sin(now/3100+d.ph)*d.h*0.12)*k;y=(d.y+Math.cos(now/2700+d.ph*1.3)*d.h*0.1)*k;} // in space: tumbling slowly, drifting round its place
+    if(pd){const wl=y+d.h*k*0.22,t=(now/2400+d.ph)%1;c.strokeStyle=inv?`rgba(40,50,60,${0.35*(1-t)})`:`rgba(200,225,255,${0.35*(1-t)})`;c.lineWidth=k;c.beginPath();c.ellipse(x,wl,d.h*k*(0.6+0.5*t),d.h*k*(0.12+0.1*t),0,0,6.2832);c.stroke();} // its ripple
+    if(refl&&!envd){duckEnvUpdate(canvas,now);envd=true;}duckGlow(c,d.k,x,y,d.h*k,now,d.ph,d.q);drawDuck3D(c,d.k,d.q,[[x,y]],d.h*k,1,0,refl?{x:W/2,y:H/2,lights:[]}:null);
+    if(pd){const wl=y+d.h*k*0.22;c.save();c.globalAlpha=0.62;c.fillStyle=bg;c.fillRect(x-d.h*k,wl,d.h*k*2,d.h*k*0.8);c.restore();}} // under the waterline: the pond over it (it floats half in)
+  const h=P.hov;if(h){const v=DUCK_TYPES[h.k];c.font=(12*k)+'px system-ui,sans-serif';c.textAlign='center';c.fillStyle=inv?'rgba(20,20,24,0.9)':'rgba(240,240,240,0.9)';c.fillText(duckStar(v)+v.name+' × '+duckLog[h.k],h.x*k,Math.max(14*k,(h.y-h.h*0.7)*k));}}
 function drawDuckIcon(c,S,type){const k=DUCK_TYPES[type]?type:'classic';drawDuck3D(c,k,DUCK_ICON_Q,[[S/2,S/2]],S*0.8/(DUCK_TYPES[k].head?1.25:1),1);}
 function openDuckViewer(type){
   if(document.getElementById('duckView')||!DUCK_TYPES[type])return;const v=DUCK_TYPES[type],dpr=Math.min(2,window.devicePixelRatio||1),SZ=Math.max(200,Math.min(560,innerWidth-40,innerHeight-110)),N=Math.round(SZ*dpr);

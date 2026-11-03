@@ -38,6 +38,45 @@ function bottleModel(type){const[,col,part]=type.split(':');let g=_duckModels.ge
   const c=part==='glass'?BOTTLE_COL[col]||BOTTLE_COL.clear:part==='cork'?[176,126,78]:[238,228,198],M={g,nomk:1,mat:part==='glass'?(col==='gold'?7:col==='white'?0:3):1,c1:c.map(v=>v/255),c2:c.map(v=>v/255)};_duckModels.set(type,M);return M;}
 function drawBottleScene(G,d,o){ // a bottle on the lake: its letter (a glass one, until opened), the cork, then the bottle (a duck's bottle is gold or opaque white: what is in it is a surprise)
   for(const part of d.empty?['glass']:d.duck?['cork','glass']:['note','cork','glass'])drawDuckScene(G,'bottle:'+d.col+':'+part,o);}
+// ── Painted models (shops, buoys): a mesh built of quads, boxes and beams, each face pointing at its colour in one texture (A px square; colours are 32 px swatches along its top) ──
+function meshKit(A,fl){ // fl: mirrored left to right (but for what is kept, a sign's face)
+  const pos=[],nrm=[],uv=[],idx=[],sw_=i=>{const u=(i*32+16)/A,v=16/A;return[[u,v],[u,v],[u,v],[u,v]];};
+  const quad=(P,n,U,f,keep)=>{const b=pos.length/3,mx=fl&&!keep?-1:1;for(let i=0;i<4;i++){pos.push(P[i][0]*mx,P[i][1],P[i][2]);nrm.push(n[0]*mx,n[1],n[2]);uv.push(U[i][0],U[i][1],f||0,-1);} // (fl: mirrored, but for the sign)
+    const g=j=>pos.slice((b+j)*3,(b+j)*3+3),a=g(0),e1=g(1).map((v,i)=>v-a[i]),e2=g(2).map((v,i)=>v-a[i]),N=[n[0]*mx,n[1],n[2]],cz=(e1[1]*e2[2]-e1[2]*e2[1])*N[0]+(e1[2]*e2[0]-e1[0]*e2[2])*N[1]+(e1[0]*e2[1]-e1[1]*e2[0])*N[2];
+    if(cz>=0)idx.push(b,b+1,b+2,b,b+2,b+3);else idx.push(b,b+2,b+1,b,b+3,b+2);}; // wound to face its normal
+  const box=(x0,y0,a0,x1,y1,a1,i)=>{const U=sw_(i);quad([[x0,y0,a1],[x1,y0,a1],[x1,y1,a1],[x0,y1,a1]],[0,0,1],U);quad([[x1,y0,a0],[x0,y0,a0],[x0,y1,a0],[x1,y1,a0]],[0,0,-1],U);
+    quad([[x1,y0,a1],[x1,y0,a0],[x1,y1,a0],[x1,y1,a1]],[1,0,0],U);quad([[x0,y0,a0],[x0,y0,a1],[x0,y1,a1],[x0,y1,a0]],[-1,0,0],U);quad([[x0,y1,a1],[x1,y1,a1],[x1,y1,a0],[x0,y1,a0]],[0,1,0],U);quad([[x0,y0,a0],[x1,y0,a0],[x1,y0,a1],[x0,y0,a1]],[0,-1,0],U);};
+  const beam=(p,q,t,i)=>{const d=q.map((v,j)=>v-p[j]),l=Math.hypot(...d)||1,u=d.map(v=>v/l),up=Math.abs(u[1])<0.9?[0,1,0]:[1,0,0],cr=(a,b)=>[a[1]*b[2]-a[2]*b[1],a[2]*b[0]-a[0]*b[2],a[0]*b[1]-a[1]*b[0]],nz=v=>{const k=Math.hypot(...v)||1;return v.map(x=>x/k);},
+    e1=nz(cr(u,up)),e2=nz(cr(u,e1)),h=t/2,U=sw_(i),C=(o,s1,s2)=>o.map((v,j)=>v+e1[j]*s1*h+e2[j]*s2*h); // a square beam from p to q
+    for(const [s1,s2,s3,s4,n] of [[1,-1,1,1,e1],[-1,1,-1,-1,e1.map(v=>-v)],[1,1,-1,1,e2],[-1,-1,1,-1,e2.map(v=>-v)]])quad([C(p,s1,s2),C(q,s1,s2),C(q,s3,s4),C(p,s3,s4)],n,U);};
+  const lathe=(prof,seg,cols,y0)=>{ // a round part (prof: [[y, r], …] round the y axis, from y0 up); cols[i]: the swatch of each band
+    for(let i=0;i<prof.length-1;i++){const[ya,ra]=prof[i],[yb,rb]=prof[i+1],dy=yb-ya,dr=rb-ra,l=Math.hypot(dy,dr)||1,ny=-dr/l,nr=dy/l,U=sw_(cols[Math.min(i,cols.length-1)]);
+      for(let j=0;j<seg;j++){const t0=j/seg*6.2832,t1=(j+1)/seg*6.2832,c0=Math.cos(t0),s0=Math.sin(t0),c1=Math.cos(t1),s1=Math.sin(t1),tm=(t0+t1)/2;
+        quad([[ra*c0,y0+ya,ra*s0],[ra*c1,y0+ya,ra*s1],[rb*c1,y0+yb,rb*s1],[rb*c0,y0+yb,rb*s0]],[nr*Math.cos(tm),ny,nr*Math.sin(tm)],U);}}};
+  const geo=R=>({pos:new Float32Array(pos),nrm:new Float32Array(nrm),uv:new Float32Array(uv),idx:new Uint16Array(idx),R});
+  return{pos,nrm,uv,idx,sw_,quad,box,beam,lathe,geo};}
+// ── A player's buoy (the Surface Map): a striped float, a mast with a lamp and a spot light, the player's name on a sign, and the souvenirs they have kept hung round it ──
+const BUOY_SOUV={postcard:6,keychain:5,hat:7,stuffy:8,tshirt:9}; // each souvenir's swatch on it
+const BUOY_SOUV_ICO={postcard:'✉️',keychain:'🔑',hat:'🎩',stuffy:'🧸',tshirt:'👕'}; // each souvenir in Collections
+const BUOY_ICO='<svg viewBox="0 0 22 22" width="16" height="16"><path fill="currentColor" d="M10.2 2h1.6v3h1.4v2.4h-1.4V9h2.4l2.3 6.2H5.5L7.8 9h2.4V7.4H8.8V5h1.4z"/><path fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" d="M2 18.4c2 0 2-1.2 4-1.2s2 1.2 4 1.2 2-1.2 4-1.2 2 1.2 4 1.2 2-1.2 2-1.2"/></svg>'; // the dock's and inventory's slot for your buoy (Status and your collections)
+const SOUV_KEY='il_souvenirs_v1'; // the Gift Shop's souvenirs: kept through every new start
+function souvenirs(){try{return JSON.parse(localStorage.getItem(SOUV_KEY)||'{}')||{};}catch(e){return{};}}
+function buoyModel(name,souv){ // name: up to 20 characters; souv: the souvenir ids kept (the latest of each kind) → the model's type, for drawDuckScene (its sign: type+'|sign', drawn facing you)
+  name=String(name||'').slice(0,20);const type='buoy:'+name+'|'+souv.join(',');if(_duckModels.has(type))return type;const A=1024,tx=document.createElement('canvas');tx.width=tx.height=A;const c=tx.getContext('2d');
+  ['#d8342c','#f2f0ea','#2a2c33','#fff1b0','#142033','#e0b040','#f4e8cf','#3f6fd8','#9a6a44','#e04a8a'].forEach((col,i)=>{c.fillStyle=col;c.fillRect(i*32,0,32,32);}); // red, white, metal, lamp, sign, then the souvenirs
+  c.font='bold 84px system-ui,sans-serif';c.textAlign='center';c.textBaseline='middle';const nw=c.measureText(name||' ').width,fs=84*Math.min(1,(A-80)/Math.max(1,nw)),tw=Math.max(240,Math.min(A-16,nw*fs/84+64)); // the sign: the name at a size 20 characters still fit, on a board as wide as it needs
+  c.fillStyle='#142033';c.fillRect((A-tw)/2,512,tw,160);c.strokeStyle='#f2f0ea';c.lineWidth=7;c.strokeRect((A-tw)/2+8,520,tw-16,144);c.font='bold '+fs.toFixed(0)+'px system-ui,sans-serif';c.fillStyle='#ffffff';c.fillText(name,A/2,594);
+  const K=meshKit(A,false),{uv,quad,box,beam,lathe}=K,glow=(f)=>{const n=uv.length/4;f();for(let k=n;k<uv.length/4;k++)uv[k*4+2]=1;};
+  lathe([[-0.55,0],[-0.5,0.22],[-0.25,0.5],[0,0.58],[0.12,0.58],[0.22,0.46],[0.28,0.2],[0.3,0]],22,[0,0,0,1,1,0,0],0); // the float: red, its white band at the waterline
+  beam([0,0.28,0],[0,1.72,0],0.07,2);for(let i=0;i<3;i++){const a=i/3*6.2832+0.5;beam([0.42*Math.cos(a),0.24,0.42*Math.sin(a)],[0,1.34,0],0.05,0);} // the mast, and its red cage
+  glow(()=>box(-0.09,1.72,-0.09,0.09,1.9,0.09,3));box(-0.12,1.9,-0.12,0.12,1.95,0.12,2); // the lamp (it lights the spot)
+  const S=meshKit(A,false),sh=0.5,sw=sh*tw/160,y0=2.0,u0=(A-tw)/2/A,u1=1-u0,v0=512/A,v1=672/A; // the sign board on top, in proportion to its face (its own model: it turns to face you as the buoy turns)
+  beam([0,1.95,0],[0,y0,0],0.07,2);S.box(-sw/2,y0,-0.04,sw/2,y0+sh,0.04,4);S.quad([[-sw/2,y0,0.045],[sw/2,y0,0.045],[sw/2,y0+sh,0.045],[-sw/2,y0+sh,0.045]],[0,0,1],[[u0,v1],[u1,v1],[u1,v0],[u0,v0]],1); // (its face lit)
+  S.quad([[sw/2,y0,-0.045],[-sw/2,y0,-0.045],[-sw/2,y0+sh,-0.045],[sw/2,y0+sh,-0.045]],[0,0,-1],[[u0,v1],[u1,v1],[u1,v0],[u0,v0]],1); // (both faces read the right way round)
+  souv.forEach((id,i)=>{const a=i/Math.max(1,souv.length)*6.2832+1.1,x=0.62*Math.cos(a),z=0.62*Math.sin(a),k=BUOY_SOUV[id]||6; // each souvenir, hung on the float's rim
+    if(id==='keychain'){beam([x,0.3,z],[x,0.12,z],0.015,2);box(x-0.05,0.05,z-0.05,x+0.05,0.13,z+0.05,k);}else if(id==='postcard')box(x-0.11,0.12,z-0.02,x+0.11,0.28,z+0.02,k);
+    else if(id==='hat'){box(x-0.1,0.28,z-0.1,x+0.1,0.31,z+0.1,k);box(x-0.06,0.31,z-0.06,x+0.06,0.4,z+0.06,k);}else if(id==='stuffy')box(x-0.08,0.28,z-0.08,x+0.08,0.44,z+0.08,k);else box(x-0.1,0.1,z-0.02,x+0.1,0.28,z+0.02,k);});
+  _duckModels.set(type,{g:K.geo(2.1),nomk:1,mat:13,c1:[1,1,1],c2:[1,1,1],img:tx});_duckModels.set(type+'|sign',{g:S.geo(2.6),nomk:1,mat:13,c1:[1,1,1],c2:[1,1,1],img:tx});return type;}
 // ── A shop: its building as a 3D model the duck renderer draws (material 13, painted): walls with window and door openings, the lit room
 // behind them, frames and a roof edge, scaffolding on the roof and the sign mounted on it. One texture holds its colours, the room and the sign. ──
 function shopModel(id,bk,lit,fl,si,open){ // si: the sign's loaded image; open: its doors stand open (its menu is open) → the model's type, for drawDuck3D
@@ -48,15 +87,7 @@ function shopModel(id,bk,lit,fl,si,open){ // si: the sign's loaded image; open: 
   if(lit){c.save();c.font='bold 66px system-ui,sans-serif';c.textAlign='center';c.textBaseline='middle';c.lineJoin='round';c.strokeStyle='#ff2d5a';c.lineWidth=10;c.beginPath();c.roundRect?c.roundRect(10,72,236,80,18):c.rect(10,72,236,80);c.stroke(); // an OPEN sign (neon tubes: its letters and its border; the rest is cut away)
     c.lineWidth=7;c.strokeText(txt('shop.open.sign'),128,113);c.fillStyle='#ff6f8f';c.fillText(txt('shop.open.sign'),128,113);c.restore();}
   const iw=si.naturalWidth||1,ih=si.naturalHeight||1,r=Math.min(500/iw,248/ih),sw=iw*r,sh=ih*r,sx=(A-sw)/2,sy=256+(256-sh)/2;if(!lit)c.filter='brightness(0.32) saturate(0.4)';c.drawImage(si,sx,sy,sw,sh);c.filter='none'; // the sign (dim when closed)
-  const pos=[],nrm=[],uv=[],idx=[],W=B.w,H=B.h,D=B.d,z0=D/2,sw_=i=>{const u=(i*32+16)/A,v=16/A;return[[u,v],[u,v],[u,v],[u,v]];};
-  const quad=(P,n,U,f,keep)=>{const b=pos.length/3,mx=fl&&!keep?-1:1;for(let i=0;i<4;i++){pos.push(P[i][0]*mx,P[i][1],P[i][2]);nrm.push(n[0]*mx,n[1],n[2]);uv.push(U[i][0],U[i][1],f||0,-1);} // (fl: mirrored, but for the sign)
-    const g=j=>pos.slice((b+j)*3,(b+j)*3+3),a=g(0),e1=g(1).map((v,i)=>v-a[i]),e2=g(2).map((v,i)=>v-a[i]),N=[n[0]*mx,n[1],n[2]],cz=(e1[1]*e2[2]-e1[2]*e2[1])*N[0]+(e1[2]*e2[0]-e1[0]*e2[2])*N[1]+(e1[0]*e2[1]-e1[1]*e2[0])*N[2];
-    if(cz>=0)idx.push(b,b+1,b+2,b,b+2,b+3);else idx.push(b,b+2,b+1,b,b+3,b+2);}; // wound to face its normal
-  const box=(x0,y0,a0,x1,y1,a1,i)=>{const U=sw_(i);quad([[x0,y0,a1],[x1,y0,a1],[x1,y1,a1],[x0,y1,a1]],[0,0,1],U);quad([[x1,y0,a0],[x0,y0,a0],[x0,y1,a0],[x1,y1,a0]],[0,0,-1],U);
-    quad([[x1,y0,a1],[x1,y0,a0],[x1,y1,a0],[x1,y1,a1]],[1,0,0],U);quad([[x0,y0,a0],[x0,y0,a1],[x0,y1,a1],[x0,y1,a0]],[-1,0,0],U);quad([[x0,y1,a1],[x1,y1,a1],[x1,y1,a0],[x0,y1,a0]],[0,1,0],U);quad([[x0,y0,a0],[x1,y0,a0],[x1,y0,a1],[x0,y0,a1]],[0,-1,0],U);};
-  const beam=(p,q,t,i)=>{const d=q.map((v,j)=>v-p[j]),l=Math.hypot(...d)||1,u=d.map(v=>v/l),up=Math.abs(u[1])<0.9?[0,1,0]:[1,0,0],cr=(a,b)=>[a[1]*b[2]-a[2]*b[1],a[2]*b[0]-a[0]*b[2],a[0]*b[1]-a[1]*b[0]],nz=v=>{const k=Math.hypot(...v)||1;return v.map(x=>x/k);},
-    e1=nz(cr(u,up)),e2=nz(cr(u,e1)),h=t/2,U=sw_(i),C=(o,s1,s2)=>o.map((v,j)=>v+e1[j]*s1*h+e2[j]*s2*h); // a square beam from p to q
-    for(const [s1,s2,s3,s4,n] of [[1,-1,1,1,e1],[-1,1,-1,-1,e1.map(v=>-v)],[1,1,-1,1,e2],[-1,-1,1,-1,e2.map(v=>-v)]])quad([C(p,s1,s2),C(q,s1,s2),C(q,s3,s4),C(p,s3,s4)],n,U);};
+  const K=meshKit(A,fl),{pos,nrm,uv,idx,sw_,quad,box,beam}=K,W=B.w,H=B.h,D=B.d,z0=D/2;
   const L=-W/2,WN=B.win.map(([a,b,e,f])=>[L+a,b,L+e,f]),xs=[...new Set([L,W/2,...WN.flatMap(w=>[w[0],w[2]])])].sort((a,b)=>a-b),ys=[...new Set([0,H,...WN.flatMap(w=>[w[1],w[3]])])].sort((a,b)=>a-b),U0=sw_(0);
   for(let i=0;i<xs.length-1;i++)for(let j=0;j<ys.length-1;j++){const cx=(xs[i]+xs[i+1])/2,cy=(ys[j]+ys[j+1])/2;if(WN.some(w=>cx>w[0]&&cx<w[2]&&cy>w[1]&&cy<w[3]))continue; // the front wall, round its openings
     quad([[xs[i],ys[j],z0],[xs[i+1],ys[j],z0],[xs[i+1],ys[j+1],z0],[xs[i],ys[j+1],z0]],[0,0,1],U0);}
