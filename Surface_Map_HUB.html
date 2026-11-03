@@ -134,7 +134,7 @@ body.focus-clock #turn-label,body.focus-items #hdock{z-index:59;filter:drop-shad
 <div id="veil"></div>
 <canvas id="hcur"></canvas>
 <iframe id="neb" title="Surface"></iframe>
-<script src="shared.js?v=20261102zk"></script>
+<script src="shared.js?v=20261102zl"></script>
 <script>
 // ╔══════════════════════════════════════════════════════════════════════════════╗
 // ║  MAP ENGINE                                                                 ║
@@ -150,7 +150,7 @@ let clock=3,day=1,pool=6,fresh=true,burstFx=null,dayLog=[],dayCnt={b:0,d:0},pend
 // // clock: the hour (3 = Twilight … 24 = Midnight, the day's last turn); day: your attempts; pool: what the source put out at its last burst; fresh: no ring added yet since it
 let constel=[],armed=null,weaveSel=[],weaveAsk=null,clearFx={},mergeFx=[],feedMsg={t:'',d:'',at:-1e9}; // constellations {keys,type}; the armed map item; a Weave being drawn; animations; the final count
 const TIMES={3:'Twilight',6:'Dawn',9:'Morning',12:'Noon',15:'Afternoon',18:'Dusk',21:'Night',24:'Midnight'},STEP_H=3; // the day: eight turns of three hours
-const CACHE_V='20261102zk'; // the build: bump with shared.js's
+const CACHE_V='20261102zl'; // the build: bump with shared.js's
 const SCENE=new URLSearchParams(location.search).get('scene'); // a Guide / event demo: the map plays a scripted moment (no surface behind it)
 let phase='move',turnTimer=0,mergeTimer=0;
 let gameOverReason='';
@@ -162,7 +162,7 @@ let currentView='map'; // 'map' | 'level' (a surface is open) | 'overlay' (the G
 let nebulaCellKey=null; // the hex whose unfinished surface is saved (one at a time)
 let mapRafId=null;
 // Shared with the surface: its tuners, the inventory and the discoveries (the surface owns and saves them)
-let T={},inv={dim:0},disc=new Set(),tuneDefs=[],nebReady=false,duckLog={},run={},status=null; // run: the surface's run state (today's fortune and wonder…); status: its Status page
+let T={},inv={dim:0},disc=new Set(),tuneDefs=[],nebReady=false,duckLog={},run={},runStatus=null; // run: the surface's run state (today's fortune and wonder…); runStatus: its Status page
 const MAP_KEY='il_map_v1';
 
 const K=(q,r)=>q+','+r;
@@ -237,7 +237,7 @@ function initGame(){ // a new map: score and depth start over; items, resources 
   showTurn();mapResize();focusCam(false);updateHint();saveMap();
 }
 function advanceTurn(){ // time moves on (a move) by one time of day; the spill spreads a ring, except the first turn after a burst
-  awardConstellations();clock+=STEP_H;
+  awardConstellations();freedShops();clock+=STEP_H;
   if(clock>24){clock=24;endDay('midnight',0);return;} // after Midnight: the day ends (the new day starts once it has all fallen in)
   if(fresh)fresh=false;else{turn++;addRing(turn);}redistribute();decayCycle();showTurn();}
 const clockStr=()=>TIMES[clock]||TIMES[Math.max(3,Math.floor(clock/3)*3)]||'Twilight';
@@ -261,7 +261,7 @@ function doCapture(){ // enter the surface of the hex you stand on
 }
 function completeCaptureForCell(cellKey,kind,tally){
   const c=cells[cellKey];if(!c||c.cap)return;
-  c.cap=true;c.capVal=c.v;c.kind=kind;c.shop=null;{const p=popupFor(tally,kind==='dark');if(p){const fr=p.from,o={id:p.id,rank:p.rank};shopTearDown(fr);if(kind==='dark')hubPop[p.slot]=o;else c.shop=o; // a dark clear's opens in the source hex
+  c.cap=true;c.capVal=c.v;c.kind=kind;c.shop=null;if(kind!=='dark')c.tally=tally||{};{const p=popupFor(tally,kind==='dark');if(p){const fr=p.from,o={id:p.id,rank:p.rank};shopTearDown(fr);if(kind==='dark')hubPop[p.slot]=o;else c.shop=o; // a dark clear's opens in the source hex
     feed((fr?'A pop-up moved up: ':'A pop-up opened: ')+SHOPS[p.id].n,'Rank '+p.rank+(kind==='dark'?' · in the source':'')+' · click it to shop');}}delete c.shot;delete c._im;if(kind==='dark')dayCnt.d++;else dayCnt.b++;
   score=Math.round((score+c.v)*100)/100;
   captureOrder.push({keys:[cellKey],mergeId:null});
@@ -744,7 +744,7 @@ function evPump(){if(currentView!=='map'||menuOpen||!nebReady||!evQ.length)retur
 function openGuide(){if(!nebReady||currentView!=='map')return;currentView='overlay';showNeb(true);neb({cmd:'guide'});}
 function takeState(m){
   // a tuner just set here wins over a message the surface sent before it got it
-  if(m.T){const now=performance.now();for(const k in _tuneLocal)if(now-_tuneLocal[k]<1500)m.T[k]=T[k];else delete _tuneLocal[k];T=m.T;if(SW)camUpdate();}if(m.ducks)duckLog=m.ducks;if(m.duckTypes)DUCK_TYPES=m.duckTypes;if(m.icons)icons=m.icons;if(m.inv){inv=m.inv;syncDock();}if(m.disc)disc=new Set(m.disc);if(m.defs&&m.defs.length)tuneDefs=m.defs;if(m.run)run=m.run;if(m.status)status=m.status;
+  if(m.T){const now=performance.now();for(const k in _tuneLocal)if(now-_tuneLocal[k]<1500)m.T[k]=T[k];else delete _tuneLocal[k];T=m.T;if(SW)camUpdate();}if(m.ducks)duckLog=m.ducks;if(m.duckTypes)DUCK_TYPES=m.duckTypes;if(m.icons)icons=m.icons;if(m.inv){inv=m.inv;syncDock();}if(m.disc)disc=new Set(m.disc);if(m.defs&&m.defs.length)tuneDefs=m.defs;if(m.run)run=m.run;if(m.status)runStatus=m.status;
   if(T.mapHexSize&&T.mapHexSize!==HEX){HEX=T.mapHexSize;focusCam(false);}
   if(m.T)syncRenderSig();applyDisc();syncMenu();if(shopUI)renderShop();
 }
@@ -850,7 +850,9 @@ function popupFor(tally,dark){ // the pop-up a bright clear opens. Each shop cro
     const hs=hubPop.findIndex(x=>x&&x.id===id),from=hs>=0?'hub'+hs:Object.keys(cells).find(k=>cells[k].shop&&cells[k].shop.id===id&&isBright(k)),had=from?(hs>=0?hubPop[hs]:cells[from].shop).rank:0;
     if(from&&(dark||had>=r))continue;c.push({id,rank:r,from,tier:SHOP_TIER(id),z:Math.random()});}
   c.sort((a,b)=>a.tier-b.tier||b.rank-a.rank||a.z-b.z);return c[0]?{id:c[0].id,rank:c[0].rank,from:c[0].from,slot}:null;}
-function shopTearDown(fr){if(!fr)return;if(fr.slice(0,3)==='hub')hubPop[+fr[3]]=null;else if(cells[fr])delete cells[fr].shop;} // a shop moved up a rank: the old one goes
+function shopTearDown(fr){if(!fr)return;if(fr.slice(0,3)==='hub')hubPop[+fr[3]]=null;else if(cells[fr]){delete cells[fr].shop;cells[fr].freed=1;}} // a shop moved up a rank: the old one goes (its hex may open another the next turn)
+function freedShops(){for(const k in cells){const c=cells[k];if(!c.freed)continue;delete c.freed;if(!isBright(k)||c.shop)continue;const p=popupFor(c.tally,false);if(!p)continue; // the turn after a shop left a bright hex: what its surface earned may open another there
+    shopTearDown(p.from);c.shop={id:p.id,rank:p.rank};feed((p.from?'A pop-up moved up: ':'A pop-up opened: ')+SHOPS[p.id].n,'Rank '+p.rank+' · where a shop moved out');}}
 function shopSprite(id,bk,lit){ // glass (tinted with the shop's colour, dark when closed) behind the building's empty windows, then the sign above, glowing when lit;
   // the vectors are drawn at Q× their SVG size, so a shop stays crisp however near the camera or the menu shows it
   const gw=T.mapShopGlow!=null?T.mapShopGlow:1,fl=bk===(SHOPS[id].bk||'s')&&SHOPS[id].flip,key=id+bk+(lit?1:0)+gw;if(shopCv[key])return shopCv[key];
@@ -906,7 +908,7 @@ function renderShop(){const el=document.getElementById('shop');el.classList.togg
   if(sp){const w=Math.min(150,sp.width*0.45),h=w*sp.height/sp.width;art.width=sp.width;art.height=sp.height;art.style.width=w+'px';art.style.height=h+'px';art.getContext('2d').drawImage(sp,0,0);}
   const wal=u.gift?'Your last '+fmtN(giftWallet)+' bright':S.cur==='duck'?'You have '+fmtN(Object.values(duckLog).reduce((a,b)=>a+(b|0),0))+' ducks':'You have '+fmtN(inv[S.cur||'bright']||0)+' '+(S.cur||'bright');
   document.body.classList.toggle('focus-clock',u.id==='clock');document.body.classList.toggle('focus-items',u.id==='corner'); // what the shop works on, over the dimmed map
-  const st=el.querySelector('.sstat');st.style.display=u.exit?'none':'';st.innerHTML='<div class="sth">Status</div>'+statusHTML(status);
+  const st=el.querySelector('.sstat');st.style.display=u.exit?'none':'';st.innerHTML='<div class="sth">Status</div>'+statusHTML(runStatus);
   if(u.draw){const d=u.draw;card.innerHTML=`<h2>${S.n}</h2><div class="stag">${d.res?d.res.title:d.kind==='daily'?'Keep one of three, for today.':'Pick a card.'}</div><div class="scards">`+d.cards.map((c,i)=>`<div class="scardx${c.back&&!(d.res&&d.res.i===i)?' back':''}${d.res&&d.res.i===i?' on':''}${d.res&&d.res.i!==i?' off':''}" data-i="${i}">${d.res&&d.res.i===i?d.res.text:c.back?'?':'<b>'+c.n+'</b>'+c.t}</div>`).join('')+'</div>'+(d.res?'<div class="srow c" data-ok="1"><span>OK</span></div>':'');
     card.querySelectorAll('.scardx').forEach(x=>x.onclick=()=>{if(!d.res&&!d.wait){d.wait=1;d.at=+x.dataset.i;neb({cmd:'pick',i:+x.dataset.i});}});const ok=card.querySelector('[data-ok]');if(ok)ok.onclick=()=>{shopUI.draw=null;renderShop();};return;}
   card.innerHTML=`<h2>${u.exit?'EXIT?':u.pick?'Pick a Duck':S.n}</h2><div class="stag">${u.exit?'You will lose everything.<br>Are you ready to escape?':u.pick?'Ninety-nine ducks for the one you choose.':S.tag}</div>`+
