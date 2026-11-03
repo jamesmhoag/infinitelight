@@ -114,7 +114,7 @@ button:hover{background:rgba(255,255,255,0.15);}
   <div id="dock" class="bottom"><div id="inventoryPanel"></div><div id="touch-info"></div></div>
   <canvas id="cur"></canvas>
 </div>
-<script src="content.js?v=20261103m"></script><script src="shared.js?v=20261103m"></script>
+<script src="content.js?v=20261103n"></script><script src="shared.js?v=20261103n"></script>
 <script>
 txtApply(); // the page's own labels (content/strings.csv)
 const _SRC=document.documentElement.outerHTML; // kept so the Encyclopedia can run live scenes as embedded copies of the game
@@ -196,7 +196,7 @@ function syncCursorCanvas(){if(curCanvas.width!==W||curCanvas.height!==H){curCan
 let uiPress=false,cursorUiTarget=false; // a press that began on the interface / whether the cursor is over something clickable there
 let pressConsumed=false; // the press that just used up the armed item's last unit: idle until a NEW click starts
 let overUI=false,hoverInvKind=null,overFeed=false; // pointer is over ANY interface element (scene input is ignored) / inventory slot being hovered (its info shows in the feed)
-const wrap=document.getElementById('wrap'),statsEl=document.getElementById('stats'),touchInfoEl=document.getElementById('touch-info');
+const wrap=document.getElementById('wrap'),statsEl=document.getElementById('stats'),touchInfoEl=document.getElementById('touch-info'); if(!window.__SCENE)wrap.classList.add('ui-hidden'); // the panels start hidden (~ shows them)
 // HEAT: every additional unique selection made by a swipe / double-click / item use adds heat; past T.heatMax the cursor cools down (shut off) for T.heatCooldownMs
 // and then needs a NEW press before it works again. heat.disp is the smoothed amount shown on the cursor (full ring = T.heatMax).
 let heat={v:0,disp:0,until:0,dur:1,needNew:false,last:0}; // (let: a second player's own heat is swapped in while their input runs — withHeat)
@@ -12719,7 +12719,7 @@ function cardHTML(ev,mini){ // the one card format: name bar, art box, type line
   return `<div class="mtg${mini?' sm':''}" data-ev="${ev.id}" style="--rc:${TIER_COL[t]}"><div class="nm"><b>${gEsc(ev.name)}</b><span class="gem"></span></div><div class="art" data-scene="${ev.scene}">${mini?`<canvas class="rl-m" width="64" height="64" data-k="${ev.ico}"></canvas>`:''}</div><div class="ty"><span>${gEsc(ev.type.replace(/^Event — /,''))}</span><span>Tier ${TIER[t]}</span></div><div class="tx">${(mini?ev.facts().slice(0,1):ev.facts()).map(f=>`<p${ev.fx?' class="fx"':''}>${gEsc(f)}</p>`).join('')}${ev.flavor?`<p class="fl">${gEsc(ev.flavor)}</p>`:''}</div></div>`; // (small: its first line and its flavour; the rest when it is opened) (fx: the lines are changes to play, set apart from the flavour)
 }
 function mountScene(h,w,hh){if(!h||h.firstChild||document.querySelectorAll('.rl-live iframe,.mtg .art iframe').length>=5)return;const f=document.createElement('iframe'),nm=h.dataset.s||h.dataset.scene;f.style.cssText='border:0;max-width:100%;pointer-events:none;background:#000;border-radius:6px;'+(w?`width:${w}px;height:${hh}px`:'width:100%;height:100%');
-  if(nm.slice(0,4)==='hub:'){const[sn,dk]=nm.slice(4).split(':');f.src='Surface_Map_HUB.html?v=20261103m&scene='+sn+'&T='+encodeURIComponent(JSON.stringify(mapSceneT()))+'&D='+encodeURIComponent(JSON.stringify(dk&&DUCK_TYPES[dk]?{[dk]:DUCK_TYPES[dk]}:Object.fromEntries(Object.entries(DUCK_TYPES).slice(0,4))));}else f.srcdoc=liveSrc(nm);h.appendChild(f);} // a Surface Map demo is played by the map itself
+  if(nm.slice(0,4)==='hub:'){const[sn,dk]=nm.slice(4).split(':');f.src='Surface_Map_HUB.html?v=20261103n&scene='+sn+'&T='+encodeURIComponent(JSON.stringify(mapSceneT()))+'&D='+encodeURIComponent(JSON.stringify(dk&&DUCK_TYPES[dk]?{[dk]:DUCK_TYPES[dk]}:Object.fromEntries(Object.entries(DUCK_TYPES).slice(0,4))));}else f.srcdoc=liveSrc(nm);h.appendChild(f);} // a Surface Map demo is played by the map itself
 function mapSceneT(){const o={};for(const k in T)if(/^(map|bh|duck|wake|glass|metal|dimGlow|glowHalo|maxSpeed)/.test(k))o[k]=T[k];return o;} // what a map demo needs of the tuners
 function showCardHTML(html){ // a Guide card (an entry or a shop) opened over the Guide, where an event card shows
   guideCSS();_evOpen=true;_evReview=true;const ov=evOverlayEl();ov.innerHTML=`<div class="ev-box">${html}<button id="evOk">${txt('card.close')}</button></div>`;ov.style.display='flex';wrap.classList.add('ev-open');
@@ -13009,7 +13009,7 @@ function picRect(){const sq=Math.min(W,H)/Math.max(0.05,T.mapZoom||1),m=Math.max
 function picShot(size){ // a hex's picture straight from the nebula's own pixel map (its wide, mid and sharp passes, as play draws them), cropped to the middle square: no full frame is drawn or read back
   if(!_shotCv)_shotCv=document.createElement('canvas');size=Math.max(8,size|0);_shotCv.width=_shotCv.height=size;
   const g=_shotCv.getContext('2d'),sq=Math.min(W,H)/Math.max(0.05,T.mapZoom||1),k=size/sq,dw=GW*PIXEL_SIZE,dh=GH*PIXEL_SY,src=nebCanvas;
-  g.setTransform(1,0,0,1,0,0);g.fillStyle='#000';g.fillRect(0,0,size,size);g.setTransform(k,0,0,k,-(W-sq)/2*k,-(H-sq)/2*k);g.imageSmoothingEnabled=true;g.imageSmoothingQuality='high';
+  g.setTransform(1,0,0,1,0,0);g.fillStyle=invertMode?'#fff':'#000';g.fillRect(0,0,size,size);g.setTransform(k,0,0,k,-(W-sq)/2*k,-(H-sq)/2*k);g.imageSmoothingEnabled=true;g.imageSmoothingQuality='high';
   for(const[bl,a]of[[T.nebBlur,T.nebAlpha1],[T.nebBlur2,T.nebAlpha2],[0,T.nebAlpha3]]){if(!(a>0))continue;g.globalAlpha=a;g.filter=bl>0?`blur(${(bl*k).toFixed(2)}px)`:'none';g.drawImage(src,0,0,GW*NEB_SS,GH*NEB_SS,GRID_OX,GRID_OY,dw,dh);}
   g.filter='none';g.globalAlpha=1;return _shotCv.toDataURL('image/png');}
 async function hubPreviews(items,size){ // one hex per frame; stops the moment a surface is entered
@@ -13017,7 +13017,7 @@ async function hubPreviews(items,size){ // one hex per frame; stops the moment a
   const gen=_shotGen;
   while(_shotQ.length){const it=_shotQ.shift();
     if(hubLevel||gen!==_shotGen){hubPost({type:'preview',key:it.key,sig:it.sig,img:null});continue;}
-    const t0=performance.now();ensureDarkRemnantTheme();levelCoverage=it.cov;lvHex=it.q!=null?[it.q,it.r]:null;W=wrap.offsetWidth;H=wrap.offsetHeight;rebuild(it.seed,picRect()); // a hex shows its surface as it starts (dark), whatever the last surface ended in
+    const t0=performance.now();if(it.white){if(!invertMode)toggleInvertMode();}else ensureDarkRemnantTheme();levelCoverage=it.cov;lvHex=it.q!=null?[it.q,it.r]:null;W=wrap.offsetWidth;H=wrap.offsetHeight;rebuild(it.seed,picRect()); // a hex shows its surface as it starts (dark), whatever the last surface ended in
     hubPost({type:'preview',key:it.key,sig:it.sig,img:picShot(size),ms:performance.now()-t0});
     await new Promise(r=>{let d=0;const go=()=>{if(!d){d=1;setTimeout(r,0);}};requestAnimationFrame(go);setTimeout(go,40);}); // the map gets a frame between pictures (they share the page's thread)
   }
@@ -13046,7 +13046,7 @@ async function hubStartLevel(m){
   let rec=null;if(m.resume){try{rec=await IDB.get('session');}catch(e){}}
   hubLevel={key:m.key,seed:m.seed,cov:m.cov};if(m.clock!=null)DUCK_SUN=duckSun(m.clock);levelCoverage=m.cov;lvHex=m.q!=null?[m.q,m.r]:null; // (its ducks are lit by the map's time of day; its coverage is the hex's)
   if(rec&&rec.key===m.key&&rec.data){try{restoreSession(rec.data);flashSaveStatus(txt('surf.surface_continued_where_you',m.label));}catch(e){console.error(e);rec=null;}}
-  if(!rec||rec.key!==m.key){ensureDarkRemnantTheme();rebuild(m.seed);levelCoverage=m.cov;flashSaveStatus(txt('surf.surface',m.label));fireEvent('surface');}
+  if(!rec||rec.key!==m.key){if(m.white){if(!invertMode)toggleInvertMode();}else ensureDarkRemnantTheme();rebuild(m.seed);levelCoverage=m.cov;flashSaveStatus(txt('surf.surface',m.label));fireEvent('surface');}
   hubLevel.key=m.key;if(isPaused)togglePause();
   requestAnimationFrame(()=>requestAnimationFrame(()=>hubPost({type:'levelReady'}))); // drawn: the map's loading screen can go
 }
