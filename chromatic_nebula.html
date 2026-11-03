@@ -114,7 +114,7 @@ button:hover{background:rgba(255,255,255,0.15);}
   <div id="dock" class="bottom"><div id="inventoryPanel"></div><div id="touch-info"></div></div>
   <canvas id="cur"></canvas>
 </div>
-<script src="shared.js?v=20261102zj"></script>
+<script src="shared.js?v=20261102zk"></script>
 <script>
 const _SRC=document.documentElement.outerHTML; // kept so the Encyclopedia can run live scenes as embedded copies of the game
 // Safety: a negative / non-finite gradient radius would throw and kill the frame — clamp it, and log the first offender's stack so it can be traced.
@@ -473,6 +473,7 @@ const T={
   cursorStainMs:    900, // ms: how long the stain the cursor leaves in the scene takes to fade (it starts fading at once; 0 = none)
   cursorStainA:    0.22, // 0..1: the stain's strength where it is newest
   cursorStainW:    0.85, // × the cursor's width: how wide the stain is
+  cursorStainSmooth:0.35, // 0..1: how closely the stain follows the cursor each frame (lower = smoother, hiding a hand's jitters)
   cursorStainHide:  4,   // how strongly particles cover the stain (× their brightness): higher, it shows only on bare ground
   cursorIdleAlphaMult:0.5,// 0..1: overall alpha multiplier applied when not hovering a target
   cursorIdleBorderDark:0.4,// 0..1: how far the ring/edge color is mixed toward black when not hovering a target
@@ -1013,6 +1014,7 @@ const TUNE_DEFS=[
   {key:'cursorStainMs', label:'Stain ms',    min:0,max:5000,step:50, tip:'How long the even stain the cursor leaves in the scene takes to fade: under a surface\'s particles, on the Surface Map\'s ground (it starts fading at once; 0 = no stain)'},
   {key:'cursorStainA',  label:'Stain α',     min:0,max:1,step:0.01,  tip:'Strength of the cursor\'s stain where it is newest'},
   {key:'cursorStainW',  label:'Stain width', min:0.1,max:2,step:0.05, tip:'Width of the cursor\'s stain (× the cursor\'s width)'},
+  {key:'cursorStainSmooth',label:'Stain smoothing',min:0.05,max:1,step:0.05,tip:'How closely the stain follows the cursor each frame: lower is smoother (a hand\'s jitters do not show), 1 = exactly where it went'},
   {key:'cursorStainHide',label:'Stain under',min:0,max:12,step:0.5,  tip:'How strongly particles cover the stain (× their brightness): 0 = drawn over everything; higher = it shows only where the ground is bare'},
   {key:'cursorIdleAlphaMult',label:'Idle α ×',  min:0,max:1.0,step:0.05,tip:'Alpha multiplier when not hovering a target'},
   {key:'cursorIdleBorderDark',label:'Idle dark',min:0,max:1.0,step:0.05, tip:'How far the idle ring color is mixed toward black'},
@@ -13962,7 +13964,7 @@ function cardHTML(ev,mini){ // the one card format: name bar, art box, type line
   return `<div class="mtg${mini?' sm':''}" data-ev="${ev.id}" style="--rc:${r[0]}"><div class="nm"><b>${gEsc(ev.name)}</b><span class="gem"></span></div><div class="art" data-scene="${ev.scene}">${mini?`<canvas class="rl-m" width="64" height="64" data-k="${ev.ico}"></canvas>`:''}</div><div class="ty"><span>${gEsc(ev.type.replace(/^Event — /,''))}</span><span>${r[1]}</span></div><div class="tx">${ev.facts().map(f=>`<p>${gEsc(f)}</p>`).join('')}<p class="fl">${gEsc(ev.flavor)}</p></div></div>`;
 }
 function mountScene(h,w,hh){if(!h||h.firstChild||document.querySelectorAll('.rl-live iframe,.mtg .art iframe').length>=5)return;const f=document.createElement('iframe'),nm=h.dataset.s||h.dataset.scene;f.style.cssText='border:0;max-width:100%;pointer-events:none;background:#000;border-radius:6px;'+(w?`width:${w}px;height:${hh}px`:'width:100%;height:100%');
-  if(nm.slice(0,4)==='hub:')f.src='Surface_Map_HUB.html?v=20261102zj&scene='+nm.slice(4)+'&T='+encodeURIComponent(JSON.stringify(mapSceneT()));else f.srcdoc=liveSrc(nm);h.appendChild(f);} // a Surface Map demo is played by the map itself
+  if(nm.slice(0,4)==='hub:')f.src='Surface_Map_HUB.html?v=20261102zk&scene='+nm.slice(4)+'&T='+encodeURIComponent(JSON.stringify(mapSceneT()));else f.srcdoc=liveSrc(nm);h.appendChild(f);} // a Surface Map demo is played by the map itself
 function mapSceneT(){const o={};for(const k in T)if(/^(map|bh|duck|wake|glass|metal|dimGlow|glowHalo|maxSpeed)/.test(k))o[k]=T[k];return o;} // what a map demo needs of the tuners
 function showEventCard(id,review){
   const ev=EVENTS.find(e=>e.id===id);if(!ev)return;guideCSS();
@@ -14238,7 +14240,7 @@ function restoreSession(d){
 async function hubStartLevel(m){
   _shotGen++;hubWake();if(_menuOpen)closeGameMenu();
   let rec=null;if(m.resume){try{rec=await IDB.get('session');}catch(e){}}
-  hubLevel={key:m.key,seed:m.seed,cov:m.cov};if(m.clock!=null)DUCK_SUN=duckSun(m.clock); // its ducks are lit by the map's time of daylevelCoverage=m.cov;lvHex=m.q!=null?[m.q,m.r]:null;
+  hubLevel={key:m.key,seed:m.seed,cov:m.cov};if(m.clock!=null)DUCK_SUN=duckSun(m.clock);levelCoverage=m.cov;lvHex=m.q!=null?[m.q,m.r]:null; // (its ducks are lit by the map's time of day; its coverage is the hex's)
   if(rec&&rec.key===m.key&&rec.data){try{restoreSession(rec.data);flashSaveStatus('Surface '+m.label+' — continued where you left it');}catch(e){console.error(e);rec=null;}}
   if(!rec||rec.key!==m.key){ensureDarkRemnantTheme();rebuild(m.seed);levelCoverage=m.cov;flashSaveStatus('Surface '+m.label);fireEvent('surface');}
   hubLevel.key=m.key;if(isPaused)togglePause();
@@ -14352,7 +14354,7 @@ RULE_BLURB.surf='The map of surfaces. Every hex is a spill to clean up.';
 RULES.push(
 ["menu","start","Pause menu (Esc)","dim","Esc pauses and opens the menu. ~ (or H) hides the panels.",[["Sound","Turn sound on or off and set the volume."],["Readouts","Switch telemetry, risks, dynamics, class and effect radii."],["Guide","Opens this guide."],["Leave","Quit to the Surface Map or the main menu. An unfinished surface is saved exactly as it is."]]],
 ["hubmap","surf","Surface Map","particle","A map of hexes around a white source. Every hex is a surface covered in spilled particles.",[["Start","At Twilight the source bursts out three rings, every hex at 1.00. You stand beside it."],["Particle layer","An uncleared hex shows the particles still on it, one pattern running on across the hexes. The more value a hex holds, the more of it is covered."],["Value","The open hexes share what the source put out. Locked hexes (next to a bright clear) keep theirs."],["Saved","The map is saved as you go. New map starts the map again but keeps every item you have."]]],
-["hubtime","surf","Time of day","nova","Every move, and every bright clear, is one time of day.",[["The day","Twilight, Dawn, Morning, Noon, Afternoon, Dusk, Night, Midnight: eight turns. Midnight is the last."],["Next day","After Midnight the rings fall back into the source one by one, faster each time, it flashes and bursts out again: a new day at Twilight. Days count your attempts."],["Day log","Each day is logged: how it ended (Bright collapse, Dark collapse, or neither at Midnight) and how many bright and dark hexes you cleared."],["Free","A String move takes no time."]]],
+["hubtime","surf","Time of day","nova","Every move is one time of day (clearing a surface takes none).",[["The day","Twilight, Dawn, Morning, Noon, Afternoon, Dusk, Night, Midnight: eight turns. Midnight is the last."],["Next day","After Midnight the rings fall back into the source one by one, faster each time, it flashes and bursts out again: a new day at Twilight. Days count your attempts."],["Day log","Each day is logged: how it ended (Bright collapse, Dark collapse, or neither at Midnight) and how many bright and dark hexes you cleared."],["Free","A String move takes no time."]]],
 ["hubcell","surf","Entering a hex","particle","Click your own hex (or press Space) to enter its surface.",[["Same surface","A hex always makes the same surface."],["Leaving","Esc, then Quit, saves the surface at that exact moment. Enter the hex again to continue it."],["Continue","Continue on the main menu goes straight back to a surface you left from the main menu."]]],
 ["hubmove","surf","Moving","pnt","Click a neighbouring hex to move there. Each move takes one time of day.",[["Spread","A new ring of hexes is added and the value is shared out again."],["Abandon","Moving away from an unfinished surface throws it away."],["Pass through","You can move through cleared hexes in a straight line."]]],
 ["hubclear","surf","Clearing a hex","nova","Clean a surface and its hex is captured.",[["Bright","Cleared the normal way, the hex turns white, locks its neighbours and moves time on."],["Dark","Cleared by a Dark Remnant, the hex keeps its Dark Remnant. It locks nothing and takes no time, but the spill cannot spread past it."],["Return","Right-click the SURFACE CLEARED box to return to the map."]]],
