@@ -1,0 +1,64 @@
+group,id,name,cost
+Top level (1–100),slot_vol,Sound toggle,0
+Top level (1–100),slot_speedctl,Game speed control,200
+Top level (1–100),slot_guide,Guide (circled i),0
+Top level (1–100),hud_rebuild,Rebuild button,0
+Top level (1–100),mode_sound,Sound mode,0
+Top level (1–100),hud_modes,Modes menu,0
+Top level (1–100),stats_collapse,Stats collapse,0
+Top level (1–100),stats_line,Stats line pick,0
+Inventory items,slot_dim,DEPTH (Dim) slot,0
+Inventory items,slot_bright,BALANCE (Bright) slot,10
+Inventory items,slot_magnetic,HARMONY slot,30
+Inventory items,slot_pulsing,RHYTHM slot,40
+Inventory items,slot_neutron,DYNAMISM slot,50
+Inventory items,slot_dial,String slot,60
+Inventory items,slot_leash,Spindle slot,70
+Inventory items,slot_weave,Weave slot,80
+Inventory items,slot_prism,Prism slot,120
+Inventory items,slot_knot,Knot slot,130
+Inventory items,slot_gate,Gate slot,140
+Inventory items,slot_lens,Lens slot,150
+Inventory items,slot_key,Key slot,200
+Tools & panels,hud_tune,Tune menu,0
+Tools & panels,mode_pause,Pause mode,0
+Tools & panels,mode_invert,Invert mode,0
+Tools & panels,mode_trails,Trails mode,9999999
+Tools & panels,mode_particlemap,Particle map mode,9999999
+Tools & panels,mode_radii,Effect radii mode,100000
+Tools & panels,mode_telemetry,Telemetry mode,100000
+Tools & panels,mode_dynamics,Dynamics mode,100000
+Tools & panels,mode_class,Class mode,100000
+Tools & panels,mode_savemap,Save map,0
+Tools & panels,mode_loadmap,Load map,0
+Tools & panels,mode_shape,Cell shape mode,0
+Tools & panels,mode_coverage,Coverage mode,400
+Tools & panels,mode_settle,Settle mode,900
+Tools & panels,mode_clearstage,Clear stage,1500
+Tools & panels,stats_log,Performance log,2500
+Tools & panels,hud_image,Image button,3000
+Tools & panels,hud_clearimg,Clear image button,3000
+Tools & panels,mode_cache,Item cache mode,0
+Tools & panels,slot_cache-clear,Cache: clear slot,5000
+Tools & panels,slot_cache-fill,Cache: fill slot,0
+Tools & panels,slot_cache-disable,Cache: disable slot,8000
+Advanced,mode_create,Create item mode,0
+Advanced,slot_create,Create item slot,0
+"Feed & object info (feed and telemetry unlock separately, same cost)",feed_msg,Feed: any message,0
+"Feed & object info (feed and telemetry unlock separately, same cost)",obj_particle,Particle,0
+"Feed & object info (feed and telemetry unlock separately, same cost)",obj_pigment,Pigment,0
+"Feed & object info (feed and telemetry unlock separately, same cost)",obj_point,Point,5
+"Feed & object info (feed and telemetry unlock separately, same cost)",obj_dim,Dim remnant,0
+"Feed & object info (feed and telemetry unlock separately, same cost)",obj_bright,Bright remnant,10
+"Feed & object info (feed and telemetry unlock separately, same cost)",obj_neutron,Neutron remnant,25
+"Feed & object info (feed and telemetry unlock separately, same cost)",obj_magnetic,Magnetic remnant,25
+"Feed & object info (feed and telemetry unlock separately, same cost)",obj_pulsing,Pulsing remnant,25
+"Feed & object info (feed and telemetry unlock separately, same cost)",obj_dark,Dark remnant,50
+"Feed & object info (feed and telemetry unlock separately, same cost)",obj_relic,Relic (enriched),100
+"Feed & object info (feed and telemetry unlock separately, same cost)",obj_eclipse,ECLIPSE,15
+"Feed & object info (feed and telemetry unlock separately, same cost)",obj_crystal,CRYSTALIZE,15
+Surface Map & main menu,main_guide,Main menu: Guide,5
+Surface Map & main menu,hub_guide,Map: Guide button,0
+Surface Map & main menu,hub_score,Map: score bar,1
+Surface Map & main menu,hub_legend,Map: legend,2
+Surface Map & main menu,hub_restart,Map: New map button,3

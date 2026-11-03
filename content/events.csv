@@ -1,0 +1,66 @@
+id,name,type,rarity,scene,icon,facts,flavor
+surface,The Spill,Event — Surface,c,surface,particle,"Sleeping particles cover the surface in six colours.
+Shine them off, let them burn out, then collect what is left behind.",It was only a little paint. Then it started to glow.
+pigment,First Light,Event — Pigment,c,life_pig,point,"A woken particle is a pigment: while it shines, its colour acts on its ring.
+Its colour does a job to everything inside its ring.
+Life only runs down while it shines: (mass ÷ energy) × {T.lifeColor} ms.",A spark that remembers what colour it was.
+dim,Ember Remnant,Event — Dim Remnant,c,pointfail,dim,"A pigment that runs dry, or fails to collapse, leaves a Dim Remnant.
+Collect it for DEPTH. A failed collapse keeps {Math.round(T.remMassFrac*100)}% mass and {Math.round(T.remEnergyFrac*100)}% energy.",What is left when the light gives up.
+point,Collapse,Event — Point,u,pointform,bright,"A big, colour-balanced, energetic pigment collapses: mass > {T.collMass}, energy ≥ {T.collEnergy}.
+A Point always has a ring, and always loses life.",Too much light for one small thing.
+bright,Afterglow,Event — Bright Remnant,u,nova,brem,"When a Point runs out of life it bursts in a nova and leaves a Bright Remnant.
+The remnant keeps {Math.round(T.remMassFrac*100)}% of its mass and {Math.round(T.remEnergyFrac*100)}% of its energy.",The glow stays after the star is gone.
+neutron,Neutron Remnant,Event — Exotic Remnant,r,fuse_n,neutron,"Two Bright Remnants collided hard: a Neutron.
+Two Bright Remnants colliding hard make an exotic remnant. Middling colours, not enough speed and spin together: a Neutron.
+It breathes: things in its range are Enlarged while it is big and Shrunk while it is small.",It inhales the small and exhales the great.
+magnetic,Magnetic Remnant,Event — Exotic Remnant,r,fuse_m,magnetic,"Very lopsided or very balanced colours make a Magnetic Remnant.
+Each half turns what it touches to its own colour.","Two poles, one argument."
+pulsing,Pulsing Remnant,Event — Exotic Remnant,r,fuse_p,pulsing,"Fast, fast-spinning collisions make a Pulsing Remnant.
+Its beam shines what it reaches on its first side and collects loose remnants it touches; the second side switches nothing off.",A heartbeat with an opinion.
+dark,The Dark Remnant,Event — Ending,m,dark,dark,"It breaks every Lens and Gate, freezes everything, then draws it all in.
+A Point of mass ≥ {Math.round(T.massScaleMax*T.blackMult)} makes one.","Everything that shone, once."
+cleared,Surface Cleared,Event — Ending,u,cleared,nova,"Nothing is left to shine. The surface washes to white and every remnant is collected for you.
+Right-click the box to make a new surface.",Clean. For now.
+spindle,Unwinding,Event — Achievement,u,unwind,leash,"A point circled a still one {runT('orbitsPerDial')} times and earned a Spindle.
+Use it on a Point or Pigment to unwind it back into particles.","Round and round, until it came undone."
+string,In Pursuit,Event — Achievement,u,stringhome,dial,"One point followed another long enough to earn a String.
+It kept the same speed and spin for {runT('flockSecondsPerLeash')} seconds.
+Load it, then fire pigments and Points at the cursor.","Always one step behind, and perfectly happy."
+weave,Stillness,Event — Achievement,r,weave,weave,"Five points held perfectly still, close together, for {runT('weaveSeconds')} seconds.
+Click the Weave item to link lit points into Patterns.",The hardest thing to do here is nothing.
+pat_prism,Prism Pattern,Event — Pattern,u,prism,prism,"A closed 3-point loop, held steady: a Prism.
+What its edges touch takes the first point's colour.","Three points, every colour."
+pat_knot,Knot Pattern,Event — Pattern,u,knot,knot,"A 3-point loop with a spur reaching inside: a Knot.
+What its edges touch becomes remnants.",Some things are better left tied.
+pat_gate,Gate Pattern,Event — Pattern,u,gate,gate,"A closed 4-point loop: a Gate.
+It locks its contents in. A Key repeating its post pattern opens it.",It only opens for the right song.
+pat_key,Key Pattern,Event — Pattern,r,gate,key,"A 3-point loop with two spurs outside it: a Key.
+It opens a Gate, or with enough matching Points ends the surface with a Dark Remnant.",Shaped like the thing it opens.
+pat_lens,Lens Pattern,Event — Pattern,r,lens,lens,"A closed 5-point loop: a Lens.
+Fill a loop with glass. Crack it enough and it breaks into Bright Remnants.",Look closer. It looks back.
+dimrelic,Dim Relic,Event — Relic,r,relic,relic,"Two Dim Remnants at max size merged into one Dim relic (or an ECLIPSE Point burst).
+It collects as 100. Two Dim relics meeting become a Dark Remnant.","Two embers, one coal."
+brightrelic,Bright Relic,Event — Relic,r,cryspoint,relic,"A CRYSTALIZE Point burst and left a Bright relic.
+It collects as 100 and never merges: it reflects off other remnants.",Light that kept its edges.
+map,The Surface Map,Event — Surface Map,c,hub:map,particle,"Every hex is a surface spilled from the white source at its centre. Click your hex to enter it.
+Clear it and the hex is yours. The day runs from Twilight to Midnight.",So many spills. So little time.
+map_clear,Claimed,Event — Surface Map,u,hub:clear,nova,"A cleared hex is yours: white, or dark if a Dark Remnant cleared it.
+Captured hexes next to each other can merge.",One clean surface. The map remembers.
+map_merge,Merge,Event — Surface Map,r,hub:merge,dark,"Three touching captures merged: the map shrinks by a ring.
+Three Dark Remnants swirl into one great one and pull in three rings.","Many surfaces, one shape."
+map_bottle,Message in a Bottle,Event — Surface Map,u,hub:bottle,bottle,"A bottle floated onto the lake with a letter rolled up inside.
+Someone else was here. There are {LETTERS.length} letters to find; the ones you find are kept in the Guide (Letters).","Somebody, somewhere, hoped you would read this."
+map_decay,Decay,Event — Surface Map,u,hub:decay,dim,"Value ran too thin, so the oldest capture became a void.",Nothing stays clean forever.
+map_descend,Descent,Event — Surface Map,m,hub:descend,dark,You stepped into the centre. A deeper map begins.,"Under every surface, another."
+map_constellation,Constellation,Event — Surface Map,u,hub:constellation,weave,"A Weave joined bright hexes into a constellation.
+Each time of day it gives you one of its item. A newer one crossing it breaks it.","Light, drawn between lights."
+map_ring,Full Circle,Event — Surface Map,r,hub:ring,nova,"A whole ring of clears, all of one kind, ended the day: the rings beyond it fell into the source.
+The ring is used up, the value is shared over what is left inside, and a new day begins at Twilight.",Everything comes back around.
+map_brightstar,Bright Star,Event — Surface Map,m,hub:brightstar,bright,A ring of nothing but bright hexes closed around the source.,A sun made of cleaned surfaces.
+map_darkstar,Dark Star,Event — Surface Map,m,hub:darkstar,dark,A ring of nothing but Dark Remnants closed around the source.,It shines inward.
+map_end,Full Collapse,Event — Ending,r,hub:end,nova,"A full circle at ring 1 or 2, or every hex cleared: everything fell into the source. The run is won.
+Back at the main menu the days start over. Your items and discoveries are kept.","Every spill, accounted for."
+rift,The Rift,Event — Ending,m,rift,dark,"Mass of {Math.round(runT('riftMass')).toLocaleString()} or more gathered in one place and tore the surface.
+A Rift is always a Dark Remnant, never a duck.",Too much light in one place.
+duck,Rubber Duck,Event — Duck,r,duck,duck:classic,"A Dark Remnant came out as a rubber duck. The surface carries on.
+Click it to add it to your collection (Guide → Ducks).",Squeak.

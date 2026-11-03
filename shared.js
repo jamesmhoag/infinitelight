@@ -385,67 +385,12 @@ const SHOP_BLD={s:{w:58,h:30,d:24,win:[[4,0,24,22],[28,9,54,22]],bar:[[4,10,24,1
 SHOP_BLD.d=Object.assign({},SHOP_BLD.s,{wall:'#0b0b0d',roof:'#141418',line:'#7f7f7f'});SHOP_BLD.l=Object.assign({},SHOP_BLD.m,{ph:11}); // the Gift Shop's dark one; rank 3's tall scaffolding
 const SHOP_RANK_BLD=['s','m','l'];
 const HUB_SLOTS=[180,0]; // (the hex's flat side edges; main street takes its four slanted ones) // two more spots in the source hex (angles, as main street's): a pop-up earned on a dark clear opens there
-const SHOPS={
-  corner:{n:'CORNER STORE',tag:'The corners are conveniently cut.',about:'Items by the one: Spindles, Strings, Weaves and the shapes. While it is open, your items come into focus over the map.',street:1,open:0,close:27,col:'#fff1d0',a:60},
-  clock:{n:'Clock smith.',tag:'Turn the Clock, be unlocked.',about:'Turns the day\'s clock to Dusk, Noon, Dawn or Midnight. While it is open, the time of day comes into focus over the map.',street:1,open:9,close:18,col:'#fff1d0',a:120,flip:1},
-  xact:{n:'XACT change',tag:'Exchange for spare change.',about:'Changes Bright into 100k Dim or 100 of an exotic remnant.',street:1,open:6,close:15,col:'#fff1d0',a:-120},
-  gift:{n:'GIFT SHOP',tag:'Souvenirs to remember with.',about:'Going in ends the run: the purse, ducks, discoveries and the map are all lost. Souvenirs are bought from your last Bright, and they are kept whatever comes next.',street:1,open:0,close:27,col:'#ffffff',bk:'d',a:-60},
-  bright:{n:'BRiGHT IDEAS',tag:'Like a spoon that is also a fork.',about:'Upgrades that last: higher purse caps, light limits, game speeds, and items placed for you on the Center, the pouch, constellations and shapes.',cur:'bright',col:'#00c3ff',at:[100,1000,10000]},
-  dim:{n:'Dim’s: Carnival of Discovery',tag:'Natural phenomena.',about:'Sells cards, each once a day: a Card of Secrets turns up an event or Guide entry you have not found and shows you its card (gone once nothing is left); Fortune Telling gives a good or a dim fortune for the day; a Daily Wonder keeps one of three bonuses, each with a catch.',cur:'dim',col:'#ff78e2',at:[100,1000,10000]},
-  neutron:{n:'premium NEUTRINOS',tag:'Density, delivered.',about:'Density: purse caps, Knots and Lenses placed on Sectors and the Center, the Neutron pouch, and Pure Density.',cur:'neutron',col:'#8a3cff',at:[5,25,100]},
-  magnetic:{n:'MAGNETS & STUFF',tag:'Opposites attract.',about:'Attraction: how many can be active at once, sweep and blotch selection, Prisms on Sectors and the Center, the Dark Remnant\'s hue, and Pure Harmony.',cur:'magnetic',col:'#ff6a00',at:[5,25,100]},
-  pulsing:{n:'the PULSE',tag:'Feel the beat.',about:'Rhythm: Strings, Spindles, Gates and Keys placed on Sectors and the Center, the Pulsing pouch, and purse caps.',cur:'pulsing',col:'#aaff00',at:[5,25,100]},
-  duck:{n:'DUCK SHOP',tag:'Quack, quack, quack, quack.',about:'Trades ducks: Flip a Duck (1), Exotic Duck (5 of one kind), Pick a Duck (99). Also Luck Charms (+5% duck chance today and +1% on your next drop; each ×10 the last, back to 5,000 a day) and the Lucky Duck (for good: base chances ×2, each miss +4%). Every Dark Remnant that is not a duck raises the next one\'s chance until one comes.',cur:'duck',col:'#ffe500',at:[1,3,6]}};
+const SHOPS={};for(const r of csvRead('shops'))SHOPS[r.id]={n:r.name,tag:r.tag,about:r.about,street:cu(r.street),open:cu(r.open),close:cu(r.close),col:r.col,a:cu(r.angle),bk:cu(r.building),flip:cu(r.flip),cur:cu(r.currency),at:r.rank1===''?undefined:[cellV(r.rank1),cellV(r.rank2),cellV(r.rank3)]}; // content/shops.csv
 // SHOP_ITEMS: [id, shop, name, cost, cur (blank: the shop's own, else bright), r (the pop-up rank that first carries it), fx, req (an item owned first), dc (Dim to
 // hold to discover it: the dc_si_<id> tuner), note]. fx: give {kind:n} · cap {kind:max} (raises a purse cap, once) · clock h (turns the map's clock) ·
 // duck roll | exotic | pick | Size | Colour | Material (a duck of that kind) · disc id (reveals an interface element, once) · souv (a Gift Shop souvenir) ·
 // up (an upgrade, once: its effect is still to come)
-const SHOP_ITEMS=[
-  ['spindle','corner','Spindle',199,'',1,{give:{leash:1}},0,0],['string','corner','String',299,'',1,{give:{dial:1}},0,0],['weave','corner','Weave',599,'',1,{give:{weave:1}},0,10],
-  ['prism','corner','Prism',1999,'',1,{give:{prism:1}},0,40],['knot','corner','Knot',2999,'',1,{give:{knot:1}},0,60],['lens','corner','Lens',5999,'',1,{give:{lens:1}},0,80],
-  ['midnight','clock','Midnight',1999999,'',1,{clock:24},0,1000],['dawn','clock','Dawn',199999,'',1,{clock:6},0,400],['noon','clock','Noon',19999,'',1,{clock:12},0,100],['dusk','clock','Dusk',1999,'',1,{clock:18},0,0],
-  ['x_dim','xact','100k Dim',9999,'',1,{give:{dim:100000}},0,0],['x_mag','xact','100 Magnetic',9999,'',1,{give:{magnetic:100}},0,0],['x_pul','xact','100 Pulsing',9999,'',1,{give:{pulsing:100}},0,0],['x_neu','xact','100 Neutron',9999,'',1,{give:{neutron:100}},0,0],
-  ['postcard','gift','Postcard',99999,'',1,{souv:1}],['keychain','gift','Key Chain',199999,'',1,{souv:1}],['hat','gift','Hat',1999999,'',1,{souv:1}],['stuffy','gift','Stuffy',9999999,'',1,{souv:1}],['tshirt','gift','T-shirt',9999999,'',1,{souv:1}],
-  ['cl4','bright','Constellation light limit 3>4',3000,'',1,{up:1},0,0,'Constellations are formed by leashes'],['sh4','bright','Item shape light limit 3>4',5000,'',1,{up:1},0,0,'Item shapes: Prisms, Knots, Lens and Gates'],
-  ['c_gate','bright','Gates on the Center',1000,'pulsing',1,{up:1}],['cap_gate','bright','Max Gates 1>5',200,'neutron',1,{cap:{gate:5}}],
-  ['cap_mag1','bright','Max Magnetics 99>999',50,'magnetic',1,{cap:{magnetic:999}}],['cap_neu1','bright','Max Neutrons 99>999',50,'neutron',1,{cap:{neutron:999}}],['cap_pul1','bright','Max Pulsings 99>999',50,'pulsing',1,{cap:{pulsing:999}}],
-  ['p_dim','bright','Dim as an item from the pouch',100,'magnetic',1,{up:1}],['p_bright','bright','Bright as an item from the pouch',100,'magnetic',1,{up:1}],
-  ['cl5','bright','Constellation light limit 4>5',30000,'',2,{up:1},'cl4'],['sh5','bright','Item shape light limit 4>5',50000,'',2,{up:1},'sh4'],
-  ['spd05','bright','0.5 × game speed',50000,'',2,{up:1}],['spd2','bright','2.0 × game speed',50000,'',2,{up:1}],['c_key','bright','Keys on the Center',5000,'pulsing',2,{up:1}],['cap_key','bright','Max Keys 1>5',5000,'neutron',2,{cap:{key:5}}],
-  ['cl_lens','bright','Fill constellations with Lens',200000,'',2,{up:1}],['cl_gate','bright','Fill constellations with Gates',200000,'',2,{up:1}],
-  ['sh_lens','bright','Fill item shapes with Lens',200000,'',2,{up:1}],['sh_gate','bright','Fill item shapes with Gates',200000,'',2,{up:1}],['orbit_lens','bright','A Lens on a dialing orbit',200000,'',2,{up:1}],
-  ['spd0','bright','0.0 × game speed',500000,'',3,{up:1},'spd05'],['spd8','bright','8.0 × game speed',500000,'',3,{up:1},'spd2'],['rect2','bright','Item shape rectangles from 2 lights',500000,'',3,{up:1}],
-  ['w_lens_c','bright','Wrap Lens with constellations',500000,'',3,{up:1}],['w_gate_c','bright','Wrap Gates with constellations',500000,'',3,{up:1}],['w_gate_s','bright','Wrap Gates with item shapes',500000,'',3,{up:1}],
-  ['u_dim','bright','Use Faint Remnants',500000,'',3,{up:1}],['u_bright','bright','Use Bright Remnants',500000,'',3,{up:1}],['u_neu','bright','Use Neutron Remnants',500000,'',3,{up:1}],
-  ['u_mag','bright','Use Magnetic Remnants',500000,'',3,{up:1}],['u_pul','bright','Use Pulsing Remnants',500000,'',3,{up:1}],
-  ['d_bright','bright','Random Duck',5000000,'',3,{duck:'roll'},0,0,'Dupes possible, no variations'],['pure_bright','bright','Pure Brightness',9999999,'',3,{up:1}],
-  ['secret','dim','A Card of Secrets',50,'bright',1,{draw:'secret'},0,0,'Pick one of three face-down cards: what it hides (an event or a Guide entry you have not found) is discovered for good · once a day'],
-  ['fortune','dim','Fortune Telling',200,'bright',1,{draw:'fortune'},0,0,'Pick one of three face-down cards: a good or a bad fortune (50 / 50) for the rest of the day · once a day'],
-  ['wonder','dim','A Daily Wonder',2000,'bright',1,{draw:'daily'},0,0,'Draw three powerful bonuses for today, each with a catch, and keep one · once a day'],
-  ['cap_dial1','neutron','Max Strings 5>10',10,'',1,{cap:{dial:10}}],['cap_dim1','neutron','Max Faint 9,999>999,999',50,'',1,{cap:{dim:999999}}],['cap_bri1','neutron','Max Bright 9,999>999,999',50,'',1,{cap:{bright:999999}}],
-  ['cap_knot','neutron','Max Knots 1>5',100,'',1,{cap:{knot:5}}],['s_knot','neutron','Knots on Sectors',100,'pulsing',1,{up:1}],
-  ['s_lens','neutron','Lens on Sectors',200,'',2,{up:1}],['cap_lens','neutron','Max Lens 1>5',200,'',2,{cap:{lens:5}}],['cap_neu2','neutron','Max Neutrons 999>9,999',500,'',2,{cap:{neutron:9999}},'cap_neu1'],
-  ['c_knot','neutron','Knots on the Center',1000,'pulsing',2,{up:1}],['p_neu','neutron','Neutron as an item from the pouch',500,'magnetic',2,{up:1}],
-  ['cap_dim2','neutron','Max Faint 999,999>9,999,999',1000,'',3,{cap:{dim:9999999}},'cap_dim1'],['cap_bri2','neutron','Max Bright 999,999>9,999,999',1000,'',3,{cap:{bright:9999999}},'cap_bri1'],
-  ['c_lens','neutron','Lens on the Center',2000,'',3,{up:1}],['w_lens_s','neutron','Wrap Lens with item shapes',500000,'bright',3,{up:1}],
-  ['radii','neutron','Live effect radii layer',1000000,'bright',3,{disc:'mode_radii'}],['pure_neu','neutron','Pure Density',9999,'',3,{up:1}],
-  ['d_neu','neutron','Random Duck Variant',9999,'',3,{duck:'Size'},0,0,'A size variant (dupes possible)'],
-  ['act5','magnetic','Active maximum 1>5',10,'',1,{up:1}],['sweep','magnetic','Sweep selection',20,'',1,{up:1}],['blotch','magnetic','Blotch selection',50,'',1,{up:1}],['s_prism','magnetic','Prisms on Sectors',50,'',1,{up:1}],
-  ['act15','magnetic','Active maximum 5>15',100,'',2,{up:1},'act5'],['cap_prism','magnetic','Max Prisms 1>5',500,'',2,{cap:{prism:5}}],['p_mag','magnetic','Magnetic as an item from the pouch',500,'',2,{up:1}],
-  ['cap_mag2','magnetic','Max Magnetics 999>9,999',500,'',2,{cap:{magnetic:9999}},'cap_mag1'],['c_prism','magnetic','Prisms on the Center',500,'',2,{up:1}],
-  ['act20','magnetic','Active maximum 15>20',1000,'',3,{up:1},'act15'],['dk_hue','magnetic','Dark Remnant takes the predominant hue',2000,'',3,{up:1}],['dk_rainbow','magnetic','Rainbow Dark Remnant when the balance is bright',5000,'',3,{up:1}],
-  ['pure_mag','magnetic','Pure Harmony',9999,'',3,{up:1}],['d_mag','magnetic','Random Duck Variant',9999,'',3,{duck:'Colour'},0,0,'A colour variant (dupes possible)'],
-  ['s_dial','pulsing','Strings on Sectors',10,'',1,{up:1}],['s_leash','pulsing','Spindles on Sectors',50,'',1,{up:1}],['c_dial','pulsing','Strings on the Center',100,'',1,{up:1}],['p_pul','pulsing','Pulsing as an item from the pouch',500,'magnetic',1,{up:1}],
-  ['s_gate','pulsing','Gates on Sectors',200,'',2,{up:1}],['c_leash','pulsing','Spindles on the Center',300,'',2,{up:1}],['s_key','pulsing','Keys on Sectors',500,'',2,{up:1}],
-  ['cap_leash1','pulsing','Max Spindles 5>10',500,'',2,{cap:{leash:10}}],['cap_pul2','pulsing','Max Pulsings 999>9,999',500,'',2,{cap:{pulsing:9999}},'cap_pul1'],['cap_dial2','pulsing','Max Strings 10>50',100,'',2,{cap:{dial:50}},'cap_dial1'],
-  ['autofire','pulsing','String auto-fire',10000,'',3,{up:1}],['rapid','pulsing','String rapid fire rate',10000,'',3,{up:1}],['blast','pulsing','String double-click blast',10000,'',3,{up:1}],
-  ['cap_dial3','pulsing','Max Strings 50>99',2000,'',3,{cap:{dial:99}},'cap_dial2'],['cap_leash2','pulsing','Max Spindles 10>50',2000,'',3,{cap:{leash:50}},'cap_leash1'],
-  ['telem','pulsing','Live telemetry layer',1000000,'',3,{disc:'mode_telemetry'}],['pure_pul','pulsing','Pure Rhythm',9999,'',3,{up:1}],['d_pul','pulsing','Random Duck Variant',9999,'',3,{duck:'Material'},0,0,'A material variant (dupes possible)'],
-  ['flip','duck','Flip a Duck',1,'',1,{duck:'roll'},0,0,'One duck in, a random duck out'],['exotic','duck','Exotic Duck',5,'',2,{duck:'exotic'},0,0,'Five of one kind in, a new variant of that kind out'],
-  ['pickduck','duck','Pick a Duck',99,'',3,{duck:'pick'},0,0,'Ninety-nine ducks in, the duck of your choice out'],
-  ['charm','duck','Luck Charm',5000,'bright',1,{charm:1},0,0,'+5% duck chance for today and +1% on your next drop · each one costs ×10 the last; the price is back to 5,000 each day'],
-  ['lucky','duck','Lucky Duck',1000000,'bright',2,{perm:'lucky'},0,0,'For good: doubles the base duck, exotic and rare exotic chances, and each miss adds 4% instead of 1% (a Luck Charm stacks on it)']
-].map(([id,shop,n,cost,cur,r,fx,req,dc,note])=>({id,shop,n,cost,cur:cur||SHOPS[shop].cur||'bright',r,fx,req:req||null,dc:dc||0,note:note||''}));
+const SHOP_ITEMS=csvRead('shop_items').map(r=>[r.id,r.shop,r.name,cellV(r.cost),r.currency,cellV(r.rank),cvJ(r.effect)||{},r.requires,cellV(r.discover_dim),r.note]).map(([id,shop,n,cost,cur,r,fx,req,dc,note])=>({id,shop,n,cost,cur:cur||SHOPS[shop].cur||'bright',r,fx,req:req||null,dc:dc||0,note:note||''}));
 const shopItem=id=>SHOP_ITEMS.find(i=>i.id===id);
 const shopOnce=it=>!!(it.fx.cap||it.fx.up||it.fx.disc||it.fx.perm); // bought once and kept (as the discovery 'up:<id>'); the rest can be bought again
 const shopPrice=(it,run)=>it.fx.charm?it.cost*Math.pow(10,(run&&run.charm)||0):it.cost; // a Luck Charm: ×10 each one bought today
@@ -454,78 +399,26 @@ function shopCap(kind,has){let m=0;for(const it of SHOP_ITEMS)if(it.fx.cap&&it.f
 function shopIsOpen(id,clock,run){const S=SHOPS[id],hol=runBad(run,'holiday');return!S.street||(clock>=S.open&&clock<S.close-(hol?3:0));} // a holiday (a bad fortune): every main street shop closes a time of day early
 const SHOP_TIER=id=>id==='duck'?0:id==='dim'?3:id==='bright'?2:1; // which pop-up a bright clear opens first: the Duck Shop, then the best-ranked exotic one (a tie: at random), then BRiGHT IDEAS, then Dim's
 // ── The run's state (kept by the surface, in the save): today's fortune and daily bonus, Luck Charms bought today, the cards drawn and waiting, the Keys lost ──
-const KIND_NAME={prism:'Prism',gate:'Gate',knot:'Knot',key:'Key',lens:'Lens',leash:'Spindle',dial:'String',weave:'Weave',bright:'Bright',dim:'Dim',neutron:'Neutron',magnetic:'Magnetic',pulsing:'Pulsing'};
+const KIND_NAME={};for(const k of ['prism','gate','knot','key','lens','leash','dial','weave','bright','dim','neutron','magnetic','pulsing'])KIND_NAME[k]=txt('kind.'+k); // (content/strings.csv)
 const ACCUM_KINDS=['leash','dial','weave','prism','knot','gate','key','lens']; // what is earned by play (and a good fortune can triple)
 const runBad=(run,id)=>!!(run&&run.fortune&&!run.fortune.good&&run.fortune.id===id),runGood=run=>run&&run.fortune&&run.fortune.good?run.fortune:null,runBonus=(run,id)=>!!(run&&run.bonus&&run.bonus.id===id);
 // Good fortunes: one for each duck, which names it. x3: that item (or all) comes in threes when earned · luck: +20% duck (d), exotic (e) or rare exotic (r) chance ·
 // next: the next Dark Remnant is a duck / an exotic / a rare exotic (the rare one costs every Key, and Keys and Key constellations, for the rest of the run)
-const FORTUNE_GOOD={classic:{next:'duck'},c0:{x3:'dial'},c1:{x3:'leash'},c2:{x3:'weave'},c3:{x3:'prism'},c4:{x3:'knot'},c5:{x3:'gate'},rainbow:{next:'rare'},crystal:{x3:'lens'},eclipse:{x3:'key'},micro:{luck:'d'},mega:{luck:'r'},shadow:{next:'duck'},paper:{luck:'e'},tiny:{luck:'d'},small:{luck:'d'},little:{luck:'e'},big:{luck:'e'},
-  bigger:{luck:'r'},huge:{luck:'r'},bighead:{next:'exotic'},wood:{x3:'lens'},glass:{x3:'key'},metal:{x3:'all'},dim:{luck:'d'},bright:{luck:'e'},shining:{luck:'r'},gold:{x3:'all'}};
-const FORTUNE_BAD={slowmove:'Your step is dim and heavy: every move takes two times of day, and a String takes one.',exo1:'The exotic ones look dim to you: each exotic remnant collects as just 1.',
-  noduck:'Too dim to be found: no duck will come to you today.',rift:'The dark gathers closer: a Rift tears the surface with 10,000 less mass.',slow:'Your light is dim: Strings and Weaves each take a second longer to earn.',
-  holiday:'A dim holiday: no pop-up shop opens, and main street closes a time of day early.',laps:'Dimness drags: a Spindle needs one more orbit, a Weave one more point, and constellations pay every other time of day.'};
-function fortuneParts(f,duckName){ // [what it says, what it does]: the telling, and the change it makes to play
-  if(!f)return['',''];if(!f.good){const t=FORTUNE_BAD[f.id]||'',k=t.indexOf(': ');return k<0?['',t]:[t.slice(0,k)+'.',t[k+2].toUpperCase()+t.slice(k+3)];}
-  const g=FORTUNE_GOOD[f.id]||{},e=g.x3?(g.x3==='all'?'every item you earn comes in threes':KIND_NAME[g.x3].replace(/s$/,'se')+'s come in threes when you earn them'):g.luck?'+20% '+({d:'duck',e:'exotic duck',r:'rare exotic duck'}[g.luck])+' chance':
-    g.next==='rare'?'the next Dark Remnant is a rare exotic duck, but every Key is lost and Keys stay closed to you for the rest of the run':'the next Dark Remnant is '+(g.next==='exotic'?'an exotic duck':'a duck');
-  return['The '+(duckName||'duck')+' smiles on you.',e[0].toUpperCase()+e.slice(1)+(g.next?'.':' (today).')];}
+const FORTUNE_ROWS={},FORTUNE_GOOD={},FORTUNE_BAD={};for(const r of csvRead('fortunes')){FORTUNE_ROWS[r.kind+':'+r.id+(r.item?':'+r.item:'')]=r;if(r.kind==='good')FORTUNE_GOOD[r.id]=cvJ(r.effect)||{};if(r.kind==='dim')FORTUNE_BAD[r.id]=r.does;} // content/fortunes.csv: good (one per duck: its effect), dim, and the Daily Wonders
+
+function fortuneParts(f,duckName){ // [what it says, what it does]: the telling, and the change it makes to play (content/fortunes.csv)
+  if(!f)return['',''];const r=FORTUNE_ROWS[(f.good?'good:':'dim:')+f.id];return r?[tpl(r.telling,[duckName||txt('fortune.duck')]),tpl(r.does)]:['',''];}
 function fortuneText(f,duckName){const[a,b]=fortuneParts(f,duckName);return a&&b?a.replace(/\.$/,'')+': '+b[0].toLowerCase()+b.slice(1):a+b;}
 // DAILY: the Daily Wonders: n its name, t what it does (the change to play), f what the Carnival says of it; scene: its card's live demo
-const DAILY=[{id:'boom',n:'Boom or Bust',t:'Every collection today is ×5 or nothing (50 / 50)',f:'Step right up: five times the light, or none at all.',scene:'collect'},
-  {id:'inf',item:'leash',n:'Endless Spindles',t:'Spindles never run out today, but your Strings and Weaves are lost, and none come',f:'One thread that never ends, and nothing else to tie it to.',scene:'unwind'},
-  {id:'inf',item:'dial',n:'Endless Strings',t:'Strings never run out today, but your Spindles and Weaves are lost, and none come',f:'Go anywhere you like. Only go.',scene:'stringhome'},
-  {id:'inf',item:'weave',n:'Endless Weaves',t:'Weaves never run out today, but your Spindles and Strings are lost, and none come',f:'Every star joins up today, though nothing else does.',scene:'weave'},
-  {id:'glasses',n:'Broken Glasses',t:'Only Lens constellations can be woven today, but each pays a Prism, Knot, Gate and Key (and no Lens)',f:'The cracks let the colours through.',scene:'lens'}];
+const DAILY=Object.values(FORTUNE_ROWS).filter(r=>r.kind==='wonder').map(r=>({id:r.id,item:cu(r.item),n:r.name,t:r.does,f:r.telling,scene:r.scene}));
 function statusHTML(s){ // the Guide's Status page, and beside a shop's menu: the wallet against its caps, today's fortune and bonus, duck luck, the permanent upgrades
   if(!s)return'';const r=s.run||{},row=(a,b)=>`<tr><td>${a}</td><td>${b}</td></tr>`,f=n=>Math.floor(n||0).toLocaleString('en-US'),pc=v=>Math.round(v*1000)/10+'%';
   return`<table class="stt">${['bright','dim','neutron','magnetic','pulsing',...ACCUM_KINDS].map(k=>row(KIND_NAME[k],f(s.inv[k])+' / '+f(s.cap[k]))).join('')}</table>`+
-    `<div class="stg">Today</div><table class="stt">${row('Fortune',r.fortune?(r.fortune.good?'☀ ':'☾ ')+fortuneText(r.fortune,r.fortune.duck):'—')}${row('Daily wonder',r.bonus?(DAILY.find(d=>d.id===r.bonus.id&&(d.item||'')===(r.bonus.item||''))||{}).n:'—')}${row('Luck Charms',r.charm||0)}`+
-    `${row('Duck chance',pc(s.ch.d)+' · next +'+pc(s.ch.luck))}${row('Exotic / rare',pc(s.ch.e)+' / '+pc(s.ch.r))}${r.keysGone?row('Keys','lost for this run'):''}</table>`+
-    `<div class="stg">Permanent upgrades</div><div class="stu">${s.owned.length?s.owned.join(' · '):'none yet'}</div>`;}
+    `<div class="stg">${txt('status.today')}</div><table class="stt">${row(txt('status.fortune'),r.fortune?(r.fortune.good?'☀ ':'☾ ')+fortuneText(r.fortune,r.fortune.duck):'—')}${row(txt('status.wonder'),r.bonus?(DAILY.find(d=>d.id===r.bonus.id&&(d.item||'')===(r.bonus.item||''))||{}).n:'—')}${row(txt('status.charms'),r.charm||0)}`+
+    `${row(txt('status.duck'),txt('status.duckval',pc(s.ch.d),pc(s.ch.luck)))}${row(txt('status.exotic'),pc(s.ch.e)+' / '+pc(s.ch.r))}${r.keysGone?row(txt('status.keys'),txt('status.keyslost')):''}</table>`+
+    `<div class="stg">${txt('status.upgrades')}</div><div class="stu">${s.owned.length?s.owned.join(' · '):txt('status.none')}</div>`;}
 // ── Messages in a bottle (the Surface Map's lake): letters from someone else who was here. t: the letter, f: who signed it ──
-const LETTERS=[
- {t:'If you are reading this, you got further than I did. Every spill I wiped, another one spread. I think the spilling is the point. Get out if you ever see the way.',f:'— M.'},
- {t:'They told me the map was a gift. A whole world to clean. It took me forty days to notice nobody ever asked me to clean it.',f:'— someone who stopped counting'},
- {t:'Do not trust the source. It is too bright to look at, and that is how it likes it.',f:'— R.'},
- {t:'I collected every duck. Every single one. They are lovely. They did not help.',f:'— the one with the rainbow duck'},
- {t:'This place is a beautiful trap. It keeps your hands busy so your heart forgets what it came here to do. Whatever that was, it was of true value. Remember it.',f:'— A.'},
- {t:'There is a door. I have not found it. But I have felt it, the way you feel a draft in a closed room.',f:'— T., day 212'},
- {t:'Tip: a bright clear takes no time. Only a move does. Clear what you stand on before you walk.',f:'— a friend'},
- {t:'You are doing better than you think. Truly. Keep going.',f:'— J.'},
- {t:'I left the Gift Shop for last. I think that is what it wants. I think that is the only honest shop on the street.',f:'— L.'},
- {t:'Tip: Dim\'s Carnival will only read your cards once a day. Spend the rest on what lasts.',f:'— a regular'},
- {t:'Every morning the rings burst out again and I start over. Every morning I tell myself today I will look for the edge instead. Every morning I clean.',f:'— K.'},
- {t:'Some days it is enough to make one thing clean. That is not nothing. That is never nothing.',f:'— your neighbour across the water'},
- {t:'Did you ever notice the hexes never run out? Neither does the light. Neither did I, for a while.',f:'— E.'},
- {t:'Tip: a Spindle can wind an open hex all the way up to 1.00. It holds there until you clear it.',f:'— someone who learned the hard way'},
- {t:'If you find a way out, do not look back to check if I am behind you. I will be. I promise.',f:'— S.'},
- {t:'The shops sell everything except the one thing I wanted, which was a reason.',f:'— a customer'},
- {t:'I tried to write down what I came here to do. The ink kept turning into particles.',f:'— N.'},
- {t:'Tip: a Dark Remnant that is not a duck makes the next one likelier. Misses are not wasted.',f:'— a duck keeper'},
- {t:'The ducks know something. Watch the way they swim away from the source. Always away.',f:'— O.'},
- {t:'Please, if you get the chance, take it. Do not wait to be ready. Nobody here is ever ready.',f:'— D.'},
- {t:'I am not trapped. I am resting. There is a difference, and I am learning it.',f:'— V.'},
- {t:'Tip: a whole ring of one kind round the source ends the day early. Close a ring near the centre and the whole map can fall in.',f:'— a stargazer'},
- {t:'They want you to think the value is in the score. The value was in the walk you took to get here. It still is.',f:'— P.'},
- {t:'I think I was someone before this. A person with a kitchen and a window. I keep the window in my head. It helps.',f:'— H.'},
- {t:'Tip: hold over a remnant and sweep, and everything you cross is collected.',f:'— a tidy one'},
- {t:'If you are lonely, I am too. That makes two of us, and two is a start.',f:'— somewhere on this lake'},
- {t:'The Clock smith sells hours. I bought Midnight once, just to make the day end sooner. It did not feel like leaving.',f:'— C.'},
- {t:'Bright is not the same as good. Dim is not the same as bad. I wish someone had told me sooner.',f:'— B.'},
- {t:'Do not be afraid of the dark ones. They pull, but they also hold. Some things need holding.',f:'— a Dark Star'},
- {t:'I found peace here, once, for a whole afternoon. I hope you find yours. Then I hope you leave with it.',f:'— G.'},
- {t:'Tip: the Corner Store is open all day. If you are ever short of a String, that is where to go.',f:'— the night shift'},
- {t:'Every bottle I throw comes back. Maybe this one will not. Maybe this one is yours.',f:'— I.'},
- {t:'It is not an endless trap if you stop running. Stand still a moment. Hear it hum? That is the machine. It is not you.',f:'— Q.'},
- {t:'You are not the first and you will not be the last. But you could be the one who gets out. Somebody has to.',f:'— W.'},
- {t:'Tip: three touching captures merge and pull the map in by a ring. Three dark ones pull it in by three.',f:'— a cartographer'},
- {t:'Whatever happens, be kind to the ducks.',f:'— everyone, honestly'},
- {t:'I spent a fortune on the Lucky Duck. Worth it. Not for the luck. For the company.',f:'— F.'},
- {t:'There is something of true value you set down to come here. It is still where you left it. It is waiting.',f:'— U.'},
- {t:'Tip: a closed Gate keeps whatever is inside it out of the count. A Key that repeats its post pattern opens it.',f:'— a locksmith'},
- {t:'The light here is borrowed. Make some of your own.',f:'— Y.'},
- {t:'I think escape is not a door. I think it is a choice you make again every day. Today I chose. Tomorrow I will choose again.',f:'— Z.'},
- {t:'If no one has said it yet today: well done.',f:'— a stranger who means it'}];
+const LETTERS=csvRead('letters').map(r=>({t:r.text,f:r.from})); // content/letters.csv (keep the order: the letters found are saved by their place in it — add new ones at the end)
 function drawBottle(c,X,Y,s,hd,now,ph,col){ // a message in a bottle as an icon: the 3D bottle, turned a little
   const yaw=hd+Math.sin(now/900+(ph||0))*0.12,q=[0,Math.sin(yaw/2),0,Math.cos(yaw/2)],tl=[Math.sin(0.25),0,0,Math.cos(0.25)],m=(a,b)=>[a[3]*b[0]+a[0]*b[3]+a[1]*b[2]-a[2]*b[1],a[3]*b[1]-a[0]*b[2]+a[1]*b[3]+a[2]*b[0],a[3]*b[2]+a[0]*b[1]-a[1]*b[0]+a[2]*b[3],a[3]*b[3]-a[0]*b[0]-a[1]*b[1]-a[2]*b[2]],Q=m(tl,q);
   for(const part of ['note','cork','glass'])drawDuck3D(c,'bottle:'+(col||'green')+':'+part,Q,[[X,Y]],s,1,0,null);}

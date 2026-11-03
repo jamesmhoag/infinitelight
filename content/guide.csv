@@ -1,0 +1,261 @@
+id,tab,name,icon,text,details
+surface,start,Surface,particle,"The surface is the play area. It is covered in sleeping particles, like paint that was spilled. Your job is to clean up the spill.","Starts | Sleeping particles in six colours. A few are black (ECLIPSE) or white (CRYSTALIZE).
+Clean | It is clean when nothing is left to shine. Remnants still around are collected for you, then a SURFACE CLEARED box shows everything you collected.
+Dark ending | If a Dark Remnant ends it, the box also shows remnants it swallowed. It shows no mass or energy lost.
+Again | Right-click the box to make a new surface."
+goal,start,The goal,pnt,"Shine particles off the surface, let them turn into remnants, then collect the remnants.","1 | Dab a particle. It wakes up as a pigment.
+2 | Shining pigments push things around. Pigments that bump can join and grow.
+3 | A big, balanced, energetic pigment becomes a Point. A weak one dims.
+4 | Points run out of life and burst. Remnants stay behind.
+5 | Click remnants to collect them. They become items you can use."
+tips,start,Good to know,dim,Small facts that explain a lot.,"Life | A pigment only loses life while it is shining. A Point always loses life. Remnants never do. (So shining a pigment is how you finish it off.)
+Cap | Only Max shining things can shine at once. A new one makes the oldest stop.
+Pause | Wheel down pauses. Wheel down again goes to x1. Wheel up from a pause goes back to the speed you had. Wheel up while playing: x0.25, x0.5, x1, x2, x4, x8."
+cleared,start,Surface cleared,nova,"When nothing is left to shine, the surface washes to white and every remnant is collected for you.","Clean | No particles, pigments or Points left: only remnants. The scheme washes over to white.
+Box | A SURFACE CLEARED box lists everything collected (and, after a Dark Remnant, what it swallowed).
+Again | Right-click the box to make a new surface."
+info,start,Object info,pnt,The feed and the readouts only describe an object type once you have discovered it.,"Feed | Activate one, hover one for a second in total, or collect one: its type is discovered and the feed describes it from then on.
+Readouts | Telemetry, dynamics, class and effect radii unlock per type too: turn one on, hover or shine the thing and hold enough Dim.
+Costs | Every cost is on the Discoveries tuner tab."
+dab,touch,Dab (click),particle,A click is a dab.,"On a particle | Forms it into a pigment, and it shines.
+On a shining thing | Feeds it a little extra mass. It grows.
+On a remnant | Collects it. Two quick dabs on one remnant collect the nearest ones of that type too.
+Limit | Past Max shining, the oldest shining thing stops."
+wipe,touch,Wipe (swipe),particle,"Press, then drag. Everything you slide over shines.","Order | Each thing is picked once. Sliding back over it does not turn it off.
+Heat | The first thing is free. Each extra one adds heat.
+Over remnants | If you started on a remnant, the wipe collects remnants only."
+mop,touch,Mop (hold),pnt,Hold still while things are shining.,"Drain | Shining things drain faster and faster until they dim or burst. You hear a violin chord until the last one is cleaned up.
+Not shining | With nothing shining, holding feeds what is under the cursor: more mass and energy.
+On a remnant | Holding collects the remnants you drag over."
+dbl,touch,Double Dab (double click),particle,"Shines the nearest things on the whole screen, up to Max shining.","On a thing | Only things of that same type are picked.
+Preview | After a click, telemetry shows the ones a double dab would pick for a short time (Dbl-click ms).
+Clean slate | Everything shining stops first."
+heat,touch,Heat,pnt,Doing a lot heats the cursor.,"Adds heat | Wipes, double dabs, collecting several, and item use.
+Too hot | The cursor rests, then you need a brand new click."
+rclick,touch,Right click,dim,Does the first thing that applies.,"1 | Cancels a shape you are linking, or a tool in your hand.
+2 | Stops all shining.
+3 | With nothing shining, steps the readouts: telemetry, dynamics, class, effect radii, all, off."
+shift,touch,Colour changes,pig,"Colours change slowly, never in a jump.","Next door | A neighbour colour: it changes at once and the look eases over.
+Skipping | A colour two steps away spends the time as the colour between. An opposite colour spends it as white (no effect).
+Interrupted | If more changes arrive, it stays on the colour between and the timer restarts. It finishes only when changes stop.
+Black and white | They are next to every colour. Black to white goes through a random colour."
+particle,things,Particle,particle,A sleeping dot. It does nothing until woken.,"Forms | When shined, or when a shining ring, nova, beam, item or Dark Remnant reaches it.
+Becomes | A pigment of the same colour.
+Moves | Never, but when a settle step runs it can slide to a free neighbour spot."
+pig,things,Pigment,pig,"A formed particle. When it shines, its colour does a job to things inside its ring.","Born | Fades in from a soft glow.
+Shining | A ring pulses round it. Its colour effect works inside the ring.
+Life | Runs down only while shining.
+Joins | If two touch, the shining one wins, otherwise the heavier. The winner gets the mass. Pigments never join Dim or Bright remnants.
+Ends | Out of life, it closes in with a small flash and leaves a Dim Remnant with the same mass, energy and colour."
+THROW,things,THROW,pig,Pushes things away from it.,Also | Slows spin.
+FLING,things,FLING,pig,Throws things out in a widening spiral.,"Also | Sets things circling at a safe speed first.
+Leaving | Out of the ring, a thing's spin eases off to part of what it had, so it sails away still curving."
+ORBIT,things,ORBIT,pig,Makes things circle around it at the distance they were.,"String | Circling a still point enough times earns a String.
+Leaving | Out of the ring, a thing's spin eases off to part of what it had, so it drifts away."
+WHIRL,things,WHIRL,pig,Pulls things in a tightening spiral.,"Leaving | Out of the ring, a thing's spin eases off to part of what it had, so it drifts away."
+CATCH,things,CATCH,pig,Pulls things straight toward it.,Also | Slows spin.
+SNARE,things,SNARE,pig,Brakes things: speed and spin both fall.,
+ECLIPSE,things,ECLIPSE,eclipse,A black one. It turns what it touches black.,"Pigment | Does nothing until it shines. While shining it blackens whatever it touches as it moves (it has no ring).
+Point | Not shining: blackens what it touches. Shining: a ring that blackens everything inside.
+Bumps | Nothing bumps or consumes it except another ECLIPSE.
+Point form | When it bursts, its nova lays CRYSTALIZE particles with some colour mixed in. It leaves an enriched Dim Remnant (a relic)."
+CRYSTALIZE,things,CRYSTALIZE,crystal,"A white one. Solid, so it bounces.","Solid | Bounces off other points, keeping momentum. It is never merged or consumed.
+Pigment | While shining, whatever it bounces off turns white.
+Point | Not shining: whatever it bumps turns white. Shining: a ring that whitens everything inside.
+Hits hurt | Every bump costs it life, more for hard or spinning hits, until it dims into its remnant.
+Meets ECLIPSE | Touched by both at once, a thing becomes a random colour for a while and ignores both.
+Point form | Its nova lays ECLIPSE particles. It leaves an enriched Bright Remnant."
+pnt,bright,Point,pnt,A pigment that grew enough to collapse.,"Needs | Enough mass, all three primary colours in balance, and enough energy. Without the energy it dims into a Dim Remnant.
+Born | A flash, then a white core.
+Shining | It always has a ring. Shining makes the ring bigger.
+Life | Always runs down.
+Eats | Wins against pigments and remnants it touches. Between two Points the heavier wins.
+Active remnants | One that touches an exotic remnant fuses with it into a giant Point and a nova.
+Dark | Super heavy (about twice the Dark Remnant mass) makes a Dark Remnant."
+nova,bright,Nova,nova,The ring thrown out when a Point bursts.,"Does | Pushes things away, cracks Lenses it reaches (or breaks one it bursts inside), wakes particles, then lays new particles in the burst colours.
+Size | Grows with the mass. Light ones fill only the outer ring.
+Slow | It slows the game: 5% for the smallest nova up to 50% for the largest. Each one holds its slow until its timer passes. Slows add up, to at most 75% (a quarter speed).
+Leaves | A Bright Remnant."
+dim,rem,Dim Remnant,dim,A dark glowing dot.,"Born | From a pigment that ran out of life or failed to collapse. The inward flash shows it.
+Collect | Click it for DEPTH. You get 10 times its energy, rounded up, at least 1.
+Joins | Only meets Points, Dark Remnants and other Dim Remnants (those merge)."
+brem,rem,Bright Remnant,brem,A small white diamond.,"Born | From a Point that burst.
+Collect | Gives BALANCE, 10 times its energy rounded up.
+Bumps | Slow bumps bounce, spinning them. A fast one makes a nova and an exotic remnant.
+Which one | Colours very lopsided or very balanced: Magnetic. Fast and spinning: Pulsing. Otherwise Neutron."
+neutron,rem,Neutron Remnant,neutron,A square that breathes in and out.,"Collect | Gives DYNAMISM: 1, plus each status stacked on it.
+Does | In its range, things become Enlarged while it is big and Shrunk while it is small. They stay that way until they merge."
+magnetic,rem,Magnetic Remnant,magnetic,A diamond cut in two colours.,"Collect | Gives HARMONY: 1, plus each status stacked on it.
+Does | Each half turns things in its half to its colour. Two opposite colours blend to white and switch effects off.
+Black and white | A very balanced Bright makes one that crystalizes on one side and eclipses on the other."
+pulsing,rem,Pulsing Remnant,pulsing,A triangle that flips and sends a beam.,"Collect | Gives RHYTHM: 1, plus each status stacked on it.
+Beam | The beam grows and shrinks. While on its first side it shines everything it reaches and wakes particles. Its second side only carries its second colour: it never switches anything off. Past the max-active cap the oldest active goes dark first (the snake)."
+sharing,rem,Active remnants together,magnetic,Active remnants hand their effects to each other and to other remnants.,"Own kind | An exotic remnant never affects its own kind.
+Neutron onto others | A Magnetic or Pulsing takes the Neutron's size: one half big, the other small, and it follows the Neutron's breathing.
+Pulsing onto others | A Neutron or Magnetic starts to copy the Pulsing beat. It takes the Pulsing beam shape and timing, and it only works inside that beam.
+Magnetic onto others | A Neutron or Pulsing becomes coloured with its pair. It then applies that colour's effect, and a Pulsing uses one colour per side. Opposite colours make it white with no colour.
+Bright remnants | Neutron scales them. Magnetic tints them. Pulsing cannot shine them, because remnants cannot shine.
+Dim and Dark | Magnetic leaves them alone. They keep their colour.
+Never push | Coloured exotic remnants never push other exotic remnants.
+Crash | Two exotic remnants that hit hard make a Dark Remnant. A soft hit just bounces."
+dark,rem,Dark Remnant,dark,A huge dark circle. It cannot be collected.,"Comes from | A giant Point, two big ECLIPSE or CRYSTALIZE Points meeting, two exotic remnants crashing, or a Key.
+Does | Breaks every Lens and Gate, freezes everything, then draws all of it in until the surface is empty.
+Dock | The items and feed hide until it is over."
+relic,rem,Relic,relic,A remnant with a soft outline.,"Tough | Never eaten and never hurt by bumps.
+Worth | Collects as 100.
+Dim relic | Two Dim Remnants at max size merge into one; an ECLIPSE Point that bursts leaves one. Two Dim relics meeting fire a nova and become a Dark Remnant.
+Bright relic | A CRYSTALIZE Point that bursts leaves one. It never merges: it reflects off other remnants and relics."
+collect,rem,Collecting,dim,Remnants turn into items.,"Order | Relic active, relic plain, active, then plain.
+String shots | A flying String shot collects remnants it touches.
+Full | A full item will not collect.
+Heat | Collecting several in one press adds heat."
+DEPTH,items,DEPTH,dim,Costs Dim. Click to place a whirl circle.,"Does | Pulls everything in its reach round and in. Things inside ignore other effects. It wakes particles inside.
+Cost | Dim, every few moments while it stands.
+Click it | Click it again to destroy it. A new one removes what it overlaps."
+BALANCE,items,BALANCE,bright,Costs Bright. Click to place a square.,"Does | Freezes everything inside, even life timers. Nothing is affected, formed or woken inside. Things outside bounce off.
+Allowed | You can still collect what is inside.
+Break | When it ends, everything moves again exactly as before.
+Cost | Bright, every few moments."
+DYNAMISM,items,DYNAMISM,neutron,Costs 1 Neutron per touched thing.,"Does | Touched particles and pigments stop and are held. Already big: they shrink. Already small: they grow. Otherwise it is random.
+Big | It bursts like a small nova.
+Small | It pulls everything near inward."
+HARMONY,items,HARMONY,magnetic,Costs 1 Magnetic per touched thing.,Does | Each touched thing gets one new random colour (sometimes black). Everything touched in one go gets the same colour.
+RHYTHM,items,RHYTHM,pulsing,Costs 1 Pulsing per touched thing.,"Does | Touched things get the same random direction, speed and spin. Particles wake first."
+String,items,String,dial,Fires loaded pigments and Points at the cursor.,"Earn | One point follows another with the same speed and spin and a steady gap for a few seconds. A faint line and counter show the hold, and +1 shows when you win.
+Globe | Use a Lens on a chasing pair: a globe forms, its size set by their speed. The pair flies to its edge, wraps to the back side (shrunk, lens bending the other way) and returns. Each full lap earns 1 String.
+Load | Shining things load when you pick the String. A ring marks each one. Dab, wipe or double dab more, up to Max shining. With none loaded, a double dab on empty space loads the nearest.
+Fire | A lone dab on empty space fires them all, one after another, at the cursor. Hold fires one at a time and its target follows the cursor. A double dab fires all, then loads the nearest.
+Flying | Rounds fly at double speed, ignore effects, and collect remnants. A target marks the spot and bursts into sparks."
+Spindle,items,Spindle,leash,Unwinds Points and Pigments back into particles.,"Earn | One point circles a still one enough times. A faint counter shows the laps, and +1 shows when you win. A Lens on that pair keeps it going until the Lens is cracked.
+Use | Dab, wipe or double dab Points and Pigments (never particles or remnants). 1 Spindle per target, and the same heat rules as every item.
+Untouchable | While it unwinds nothing collides with it or affects it, and it affects nothing.
+Unwind | Each tick the target gives back the same share of its starting mass (Unwind %), so a huge Point unwinds as fast as a small Pigment, as new particles around it, coloured from its colour balance with the Nova blend. A still target spreads wider over time; a moving one leaves a narrow line. Mass and energy also add to particles already there.
+While unwinding | No effect of its own and it cannot be consumed, but other colour effects still move it. New particles are protected from absorption while they form.
+End | When the mass is gone it disappears. No remnant."
+Weave,items,Weave,weave,"Earned by five points holding perfectly still, close together. It builds Patterns and keeps them alive.","Earn | Five points (Weave points) inside the Weave radius, each at least the Min point gap apart, ALL with no motion and no spin, held for Weave seconds. If any one moves or spins the count restarts. A pentagram is drawn between them (A→C→E→B→D→A).
+Mode | Click the Weave item, then click lit points in order to link a shape. Each completed Pattern uses 1 Weave. 3 corners Prism, 4 Gate, 5 Lens; a 3 loop with a spur inside is a Knot; spurs out on both sides a Key.
+Patterns | A Prism or Knot Pattern costs 1 of its own item to place, then the Pattern cost of that item each Pattern interval (same interval for both). With none left it breaks. Lenses and Gates cost nothing, and a Pattern made fixed stops paying.
+Min gap | Points closer than Min point gap never count for Weave, String orbits or Spindle leashes."
+discover,start,Discoveries,dim,Interface elements start hidden. Hold enough Dim while hovering one and it appears.,"Hidden | An element you have not discovered is invisible. Hovering it shows a black shape with its Dim cost in dark grey. It cannot be clicked or scrolled.
+Revealing | Hover it while the Dim you hold is at least its cost. Nothing is spent. It dissolves into particles and stays discovered (saved with your inventory).
+Inactive | A discovered element whose requirement is not met, such as an item at 0, still shows as inactive.
+Always visible | The feed, telemetry and the H / Esc keys are never gated. The DEPTH (Dim) slot costs 0 so you can always see your Dim.
+Costs | Set every element's cost on the Discoveries tuner tab. Typing a number sets the last row you touched."
+cache,start,Item cache,dim,"A set of one-shot tools in the inventory, shown from the Modes menu.","Clear | Sets every item to 0 (one shot).
+Fill | Sets every item to its max (one shot). That includes Dim, so it discovers everything.
+Off | Toggles disable mode. While it is on, clicking an item switches it off or on. A disabled item is dimmed, cannot be armed or cycled to, but can still be collected. The list saves with your inventory and with map saves."
+Barrier,shapes,Barrier,barrier,A solid line. Objects bounce off it and keep their momentum.,"Hard | Never breaks.
+Soft | A plank edge. It breaks when something hits it at Barrier break spd or faster.
+Closed loop | A closed Barrier separates inside from outside: effect radii, novas and woken particles do not cross it.
+Made with | The Create tool."
+Port,shapes,Port / Window,barrier,"An edge that works like the screen edge, in a round or upright-rectangle area.","Inside | Anything inside that reaches the edge comes back in on the opposite side, keeping its speed and heading.
+Outside | Things outside bounce off it. Effect radii and novas do not cross it.
+Window | A Port with glass: same wrapping, and nothing under the glass can be clicked.
+Made with | The Create tool: hold and drag a rectangle (wheel while dragging: ellipse). No Inertializer."
+Plate,shapes,Plate,plate,Solid steel that rings like a bell.,"Bounce | Objects bounce off with their momentum.
+Colour | It is tinted by the colour of whatever touched it last and flashes for 700 ms. A click rings it too.
+Inside | Nothing can be inside it. Anything caught inside is pushed out."
+Crate,shapes,Crate,crate,A wooden Gate that breaks as a whole.,"Holds | Like a Gate it keeps contents in and others out.
+Breaks | One hit at Crate break spd or faster breaks the whole crate. The posts drift away burning and the planks burn inward over Crate burn ms.
+Leaves | A Dim Remnant at every corner. A Dark Remnant locked inside is released.
+Key | A Key also opens it."
+Case,shapes,Case,crate,A Crate with glass where the posts would be.,"Same | Same wood, same breaking.
+Glass | The glass shatters with the case."
+Cache,shapes,Cache,cache,"A locked Gate: a metal frame, a central keyhole and four tinted glass panes.","Open | Needs a Key and the pane pattern repeated.
+Panes | A tinted pane keeps applying its colour's effect while you play it."
+Prism,items,Prism,prism,Loop around a first point. Its job is copied.,"Does | Things the edges touch take the first point's colour, or crystallize, or turn black. Its other corners become copies too.
+Magnetic start | It changes between the two colours with a middle colour between."
+Knot,items,Knot,knot,A 3-point loop.,"Does | Whatever its edges touch becomes a remnant: Dim for pigments and particles, Bright for Points.
+Corners | When a Knot breaks, its corners are left behind."
+Gate,items,Gate,gate,A locked fence.,"Does | Keeps contents in and others out. A different edge type makes it one-way.
+Key | Posts light in an order. Click the same order once. A mistake loses the Key."
+Key,items,Key,key,"Opens a Gate, or ends the surface.","Gate | Repeat the post pattern.
+Open surface | Needs enough Points that match the key shape. Repeat their pattern and a Dark Remnant begins."
+Lens,items,Lens,lens,A fixed window.,"Make | Link a loop, or click inside a finished shape to fill it. A Prism lends its colour.
+On a Weave | Use a Lens on a point of a Weave group that is counting. A round Lens forms through the 3 furthest star points and all five are held inside, still counting Weaves until the Lens is cracked.
+Break | Double-click or click or hold it many times and it cracks, then breaks into Bright Remnants."
+together,start,Play together,dim,"Esc, then Invite a friend: a link is copied for you to send. Your friend opens it and plays on your surface with you.","Shining | You share the same shine cap (Max shining): whatever either of you lights counts toward it.
+Heat | Each of you has your own heat.
+Collecting | Whatever your friend collects goes to their own save; whatever you collect is yours. The score shows both.
+Their right-click | Puts out only what they lit.
+Connection | Your two browsers talk directly; a free public service only introduces them. Some strict networks block it."
+menu,start,Pause menu (Esc),dim,Esc pauses and opens the menu. ~ (or H) hides the panels.,"Sound | Turn sound on or off and set the volume.
+Readouts | Switch telemetry, risks, dynamics, class and effect radii.
+Guide | Opens this guide.
+Leave | Quit to the Surface Map or the main menu. An unfinished surface is saved exactly as it is."
+hubmap,surf,Surface Map,particle,A map of hexes around a white source. Every hex is a surface covered in spilled particles.,"Start | At Twilight the source bursts out three rings, every hex at 1.00. You stand beside it.
+Particle layer | An uncleared hex shows the particles still on it, one pattern running on across the hexes. The more value a hex holds, the more of it is covered.
+Value | The open hexes share what the source put out. Locked hexes (next to a bright clear) keep theirs.
+Saved | The map is saved as you go. New map starts the map again but keeps every item you have."
+hubtime,surf,Time of day,nova,Every move is one time of day (clearing a surface takes none).,"The day | Twilight, Dawn, Morning, Noon, Afternoon, Dusk, Night, Midnight: eight turns. Midnight is the last.
+Next day | After Midnight the rings fall back into the source one by one, faster each time, it flashes and bursts out again: a new day at Twilight. Days count your attempts.
+Day log | Each day is logged: how it ended (Bright collapse, Dark collapse, or neither at Midnight) and how many bright and dark hexes you cleared.
+Free | A String move takes no time."
+hubcell,surf,Entering a hex,particle,Click your own hex (or press Space) to enter its surface.,"Same surface | A hex always makes the same surface.
+Leaving | Esc, then Quit, saves the surface at that exact moment. Enter the hex again to continue it.
+Continue | Continue on the main menu goes straight back to a surface you left from the main menu."
+hubmove,surf,Moving,pnt,Click a neighbouring hex to move there. Each move takes one time of day.,"Spread | A new ring of hexes is added and the value is shared out again.
+Abandon | Moving away from an unfinished surface throws it away.
+Pass through | You can move through cleared hexes in a straight line."
+hubclear,surf,Clearing a hex,nova,Clean a surface and its hex is captured.,"Bright | Cleared the normal way, the hex turns white and locks its neighbours. Clearing takes no time: only a move does.
+Dark | Cleared by a Dark Remnant, the hex keeps its Dark Remnant. It locks nothing and takes no time, but the spill cannot spread past it.
+Return | Right-click the SURFACE CLEARED box to return to the map."
+hubmerge,surf,Merges,dark,Captured hexes that touch can merge.,"Triangle | 3 touching captured hexes: one ring less.
+Three Dark | 3 touching Dark Remnant hexes swirl together into one great Dark Remnant: three rings less.
+Hexagon | 7 captured hexes (a centre and its ring): three rings less."
+hubitems,surf,Items on the map,leash,Some items work on the map too (the dock at the bottom).,"Spindle | Unwinds a cleared hex back to an open surface; the value spreads over one more hex. A great Dark Remnant takes 3. On an open hex below 1.00 it winds it up to 1.00, held there until it is cleared.
+String | Move straight to any hex: 1 String per hex of distance, and no time passes (a dim fortune makes it take one).
+Weave | Joins bright hexes into a constellation (see Constellations)."
+hubconst,surf,Constellations,weave,Join bright hexes with a Weave: each time of day the constellation gives you one of its item.,"Shapes | 3 bright hexes: a Prism. 4: a Gate or a Knot. 5: a Key or a Lens.
+Crossing | A new constellation that crosses an older one breaks the older one. Any number can stand.
+Free moves | A String move takes no time, so it earns nothing."
+hubring,surf,Full circle,nova,A whole ring of clears all of one kind (all bright or all dark) around the source ends the day early. The hexes inside can be any kind.,"Collapse | The rings beyond it fall into the source one by one, faster each time, then a flash; the ring itself is used up and the value is shared over the open hexes inside. A report of the day follows, and a new day starts at Twilight with what you kept.
+Stars | A bright ring is a Bright Star; a dark ring, a Dark Star.
+The win | A full circle at ring 1 or 2, or every hex cleared, is a full collapse: everything falls in, the run is won and you return to the main menu. The days start over; your items and discoveries are kept."
+hubdecay,surf,Decay,dim,"When the value an open hex gets drops below 0.01, the oldest capture becomes a void.","Game over | No captures left to give up, no turns left, or no moves left."
+hubdescend,surf,Descend,dark,"Surround the centre with three triangle merges, then step into it.","Deeper | A new, deeper map begins. Your score and items come with you."
+hublight,surf,Time of day light,nova,"Ducks, their ripples, wakes and glows are lit by the time of day.","Day | Twilight cools, Dawn rises warm from one side, Noon is high and white, Dusk sets warm on the other, and Midnight is moonlight from overhead.
+Change | At each new hour the light moves round to it, as a hex's new picture eases in (Hex ease ms).
+Surface | A surface's ducks are lit for the hour you entered it."
+hublake,surf,The lake,duck:classic,Your ducks swim in the open water round the map.,"Brush | Brush one slowly with the cursor and it spins where it is.
+Hit | Cross it fast and it putters off the way you pushed it (Duck bump speed).
+Dunk | Click it: it sinks into the water, stays under a moment, then comes back up with a splash."
+hubbottle,surf,Message in a bottle,bottle,"Now and then a corked bottle floats onto the lake, or bobs up out of it.","Brush | It rocks and drifts like a duck: brush it and it turns, hit it and it skims away.
+Glass | Clear, green or brown glass, half under the water, reflected in it like a duck.
+Open | Click it: the cork comes out and the letter inside is unrolled to read. The empty bottle goes back on the water.
+Kept | Every letter you find is kept in the Guide (Letters), a book in the order you found them. Each bottle holds one you have not found, until you have them all.
+Who | Someone else was here before you. Some of them wanted out; some of them left a tip.
+A duck | Now and then a bottle holds a duck instead (Bottle duck chance): opening it adds the duck to your collection."
+hubview,surf,Looking round,particle,"The map follows you, but you can look around.","Drag | Drag to look around. The source always stays in view.
+Right-click | Back to your hex (or puts an item you are holding down).
+Modes | Telemetry shows each hex's value, coverage and ring; Stats shows the frame rate and the grid. ~ (or H) hides every panel."
+shopstreet,shops,Main street,sign:corner,"Shops that stand round the source, always, from the first day.","Hours | Each keeps its own hours and is lit only while it is open. A closed shop can not be entered (a holiday, a dim fortune, closes them a time of day early).
+Discovered | A shop is discovered the first time it opens: one open all day on the first morning, the others at the first hour they open.
+Its card | What each sells and does is on its own card below."
+shoppop,shops,Pop-ups,sign:bright,A cleared surface that collected enough of one thing opens a pop-up shop.,"Ranks | Rank 1, 2 or 3 by how much it collected (each shop's thresholds): the store's size, and how much of its list it carries.
+One of each | A shop that already stands at that rank or better does not open again. A better rank moves it to the new clear and the old one is torn down.
+Order | When a clear earns more than one: first the Duck Shop, then the best-ranked exotic shop (a tie at random), then BRiGHT IDEAS, and last Dim's.
+Where | On its own bright hex. A Dark Remnant clear's pop-up opens on the nearest open bright hex, or a free spot in the source hex.
+Again | Every time of day, each cleared surface that earned a pop-up and has none open tries again: a hex a shop moved out of, a dark clear that found no room, a day it was a holiday.
+Stays | A pop-up stays while its clear lasts."
+shopbuy,shops,Buying,sign:xact,Click an open shop to see what it sells.,"Tabs | A shop that takes more than one thing has a tab for each; your purse for the tab shows as a slot in the dock.
+Details | Point at an item to read about it in the feed.
+Kept | Upgrades are kept for good, and each item is discovered the first time you see it. Some things are once a day.
+Status | The panel beside a shop shows your purse, its caps, today's fortune and wonder, and the upgrades you own."
+duck,ducks,Rubber Duck,duck:classic,"Sometimes a Dark Remnant comes out as a rubber duck instead, and the surface carries on.","Chance | Every Dark Remnant has a chance (Duck chance) to be a duck. It cannot happen when only remnants and relics are left.
+Collect | Click a duck to collect it. Ducks are not items: they go into your collection.
+Cleared | Ducks still on a cleared surface are collected for you.
+Feed | Hover a duck to see its type and variation.
+Solid | Things bounce off a duck the way they bounce off a CRYSTALIZE point. It never breaks, and every hit makes it squeak or quack.
+Tumbles | It is a real 3D duck: any push it gets on the surface also tumbles it.
+Dark | Nothing consumes a duck, except a Dark Remnant before you collect it.
+Collection | Your ducks sit together at true size. Swipe across one to spin it; click it to turn it and zoom in."
+duckexo,ducks,Exotic ducks,duck:rainbow,A duck can be an exotic: the classic duck with ONE thing changed.,"Colour | Six effect colours (body, with the opposite colour on the beak), then Crystalize and Eclipse (as those points), then Rainbow.
+Size | Microscopic, Wee, Tiny, Small, Big, Huge, Massive, Mega, plus Big Head.
+Material | Wood, Silhouette (all black from any side, a Dark Remnant's heartbeat behind it), Paper (a flat drawing of the duck, cut out and turning), Glass, Metal, Dim, Bright, Shining, plus Gold.
+Mid (☆) | Crystalize and Eclipse are rarer than the other exotics (Mid exotic chance).
+Rare (★) | Rainbow, Big Head and Gold are the rarest (Rare exotic chance).
+One change | Exotics never mix: there is no tiny rainbow metal duck."
+rift,rem,Rift,dark,"When too much mass gathers in one place, the surface tears and a Dark Remnant forms there.","When | The mass of everything inside one area (about twice Rift area across) reaches Rift mass.
+Always | A Rift is always a Dark Remnant, never a duck.
+Ends | Like any Dark Remnant, it draws in the whole surface. Inside a Gate it is locked in."

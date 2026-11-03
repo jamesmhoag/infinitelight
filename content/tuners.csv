@@ -1,0 +1,585 @@
+key,default,label,min,max,step,section,tab,type,options,test,tip,note
+forceFloor,0.4,Force floor,0.05,2,0.05,Forces — base power,gameplay,,,,Base impulse power regardless of energy,
+forceCeil,0.4,Force ceil,0.05,2,0.05,Forces — base power,gameplay,,,,Additional impulse from energy,
+kPush,0.3,THROW,0,0.3,0.01,Forces — per-color K,gameplay,,,,THROW (#FF690E): outward radial,
+kFling,0.12,FLING,0,0.3,0.01,Forces — per-color K,gameplay,,,,FLING (#B0FF06): outward spiral,
+kOrbit,0.12,ORBIT,0,0.3,0.01,Forces — per-color K,gameplay,,,,ORBIT (#01FF6B): orbit tangent,
+kPull,0.12,WHIRL,0,0.3,0.01,Forces — per-color K,gameplay,,,,WHIRL (#08BAFF): inward whirlpool,
+kAttract,0.3,CATCH,0,0.3,0.01,Forces — per-color K,gameplay,,,,CATCH (#4E05FF): inward radial,
+kDamp,0.3,SNARE,0,1,0.05,Forces — per-color K,gameplay,,,,SNARE (#FE04C1): velocity damping,
+pulsingFacing,90,Pulsing facing,-180,180,5,Forces — per-color K,gameplay,,,,Degrees a Pulsing remnant is turned from its spin angle: its glyph and beam (the first-half thrust) point this way,degrees: how far a Pulsing remnant's glyph and beam are turned from its spin angle (its first-half thrust points forward)
+fxCatchMs,650,Catch ms,0,3000,50,Forces — sub-ratios,gameplay,,,,Orbit / Fling / Pull / DEPTH: how long the effect takes to ease in after catching something (its stray momentum is neutralised first),"ms: an Orbit / Fling / Pull / DEPTH first catches what enters it (its own momentum is neutralised toward the intended path), then eases the effect in over this time"
+fxCatchK,3,Catch brake,1,10,0.5,Forces — sub-ratios,gameplay,,,,How much harder than normal the effect brakes the momentum of something it is catching,how much harder than its normal rate the effect brakes stray momentum while it is catching
+fxHoldReach,1.3,Hold reach,1,2,0.05,Forces — sub-ratios,gameplay,,,,× effect radius: how far out something already caught is still held (stops things entering at speed from slipping out),"× the effect's radius: something it has caught is held this far out (only a fast mover, above fxEscapeSpd × Max speed, or a Fling's own spiral gets out)"
+fxEscapeSpd,0.85,Escape speed,0.3,1,0.05,Forces — sub-ratios,gameplay,,,,× Max speed: a caught object moving faster than this can still escape the hold,
+orbitSteer,1,Orbit steer,0,1,0.05,Forces — sub-ratios,gameplay,,,,Share of its heading error an Orbit / Fling / Pull turns out each frame (turn rate itself is capped by Max rot spd),how much of its heading error an Orbit / Fling / Pull turns out per frame (the turn itself is limited by Max rot spd and the K·Rot-force rate)
+spiralRate,0.13,Spiral rate,0,1,0.01,Forces — sub-ratios,gameplay,,,,"px/frame: Fling widens, Pull narrows an orbit by this much",px/frame: how fast Fling widens (and Pull narrows) an orbit's radius
+exitSpinKeep,0.3,Exit spin keep,0,1,0.05,Forces — sub-ratios,gameplay,,,,"Share of its spin a thing keeps after leaving an Orbit / Fling / Whirl ring: the rest bleeds off over Exit spin ms, so its path straightens and it moves away from the source","share of its spin a thing keeps once it leaves an Orbit / Fling / Whirl ring (the rest bleeds off, so it sails away)"
+exitSpinMs,1500,Exit spin ms,0,6000,100,Forces — sub-ratios,gameplay,,,,How long the spin of a thing leaving an Orbit / Fling / Whirl ring takes to bleed down to Exit spin keep,ms: how long that spin takes to bleed down to Exit spin keep
+repurposeGap,14,Repurpose gap,4,60,1,Interaction,gameplay,,,,Minimum spacing of the particles / points / remnants a Repurposed shape is made of (the copied object own size sets a floor),px: the closest a Repurposed fill may be spaced (it also never goes tighter than the copied object's own size) — between the particles / points / remnants a Repurposed shape is made of
+chargeRate,5,Charge rate,0,20,0.5,Interaction,gameplay,,,,Hold-to-charge: how fast a held point/particle gains mass and energy,hold-to-charge: multiplier on how fast a held point/particle gains mass and energy
+chargeRamp,1,Charge ramp,0,5,0.25,Interaction,gameplay,,,,Hold-to-charge: extra speed-up per second held,hold-to-charge: extra speed-up per second held (1 = doubles after 1s)
+chargeEnergyMult,4,Charge energy,0,20,0.5,Interaction,gameplay,,,,"Hold-to-charge: energy per tick, in units of a fresh particle's energy","hold-to-charge: energy gained per tick, in units of a fresh particle's energy"
+dblClickMs,300,Dbl-click ms,150,1000,10,Interaction,gameplay,,,,Window after a click in which telemetry previews the nearest same-type targets a double-click would select,ms after a click during which the nearest same-type double-click targets are previewed
+touchR,18,Touch rad,0,20,1,Interaction,gameplay,,,,Click source shine radius,
+cursorLightR,10,Light rad,0,120,5,Interaction,gameplay,,,,Radius of the soft cursor light overlay (0=off) — kept near element scale,px: radius of the soft cursor light overlay — kept close to element scale
+cursorLightStrength,1,Light strength,0,1,0.05,Interaction,gameplay,,,,Peak brightness of the cursor light overlay,0..1: peak brightness of the cursor light overlay
+effectRMin,25,Effect min,0,60,1,Interaction,gameplay,,,,Min force reach for sources,
+maxSpeed,2.5,Max speed,0,10,0.5,Interaction,gameplay,,,,Velocity cap px/frame,
+velDead,0.001,Dead zone,0,0.05,0.001,Interaction,gameplay,,,,Speed² snap-to-zero threshold,
+maxRotSpeed,1,Max rot spd,0,1,0.01,Rotation,gameplay,,,,Angular velocity cap (rad/frame) — mirrors Max speed,"rad/frame: hard cap on angular velocity, mirrors maxSpeed"
+rotDead,0.000125,Rot dead,0,0.001,0.000005,Rotation,gameplay,,,,Angular speed² snap-to-zero threshold — mirrors Dead zone,"rad²/frame²: snap-to-zero dead zone, mirrors velDead"
+rotForceMult,0.4,Rot force ×,0,3,0.1,Rotation,gameplay,,,,"How strongly Fling/Orbit/Pull spin objects up, and Push/Attract/Brake spin them down",scales how strongly a force's own impulse also spins its target
+rotCurveMult,0.1,Rot curve ×,0,3,0.1,Rotation,gameplay,,,,How strongly angular velocity curves the direction of travel,how strongly angular velocity curves the linear velocity vector each frame
+rampDur,0,Ramp ms,0,200,10,Rotation,gameplay,,,,Force ramp-up duration after click,
+cursorBaseR,8,Base rad,4,40,1,Cursor,theme,,,,Resting outer ring radius,px: resting outer ring radius
+cursorLineW,2,Line width,0,4,0.1,Cursor,theme,,,,Ring/edge line width,px: ring/edge line width
+cursorClickShrink,0.7,Click shrink,0,0.9,0.05,Cursor,theme,,,,Fraction the ring shrinks to at the instant of a click,0..1: fraction the ring shrinks to at the instant of a click
+cursorClickDurMs,100,Click ms,50,800,10,Cursor,theme,,,,Duration of the shrink -> regrow punch after a click,ms: duration of the shrink -> regrow punch after a click
+cursorStainMs,900,Stain ms,0,5000,50,Cursor,theme,,,,"How long the even stain the cursor leaves in the scene takes to fade: under a surface's particles, on the Surface Map's ground (it starts fading at once; 0 = no stain)",ms: how long the stain the cursor leaves in the scene takes to fade (it starts fading at once; 0 = none)
+cursorStainA,0.22,Stain α,0,1,0.01,Cursor,theme,,,,Strength of the cursor's stain where it is newest,0..1: the stain's strength where it is newest
+cursorStainW,0.85,Stain width,0.1,2,0.05,Cursor,theme,,,,Width of the cursor's stain (× the cursor's width),× the cursor's width: how wide the stain is
+cursorStainSmooth,0.35,Stain smoothing,0.05,1,0.05,Cursor,theme,,,,"How closely the stain follows the cursor each frame: lower is smoother (a hand's jitters do not show), 1 = exactly where it went","0..1: how closely the stain follows the cursor each frame (lower = smoother, hiding a hand's jitters)"
+cursorStainHide,4,Stain under,0,12,0.5,Cursor,theme,,,,How strongly particles cover the stain (× their brightness): 0 = drawn over everything; higher = it shows only where the ground is bare,"how strongly particles cover the stain (× their brightness): higher, it shows only on bare ground"
+cursorIdleAlphaMult,0.5,Idle α ×,0,1,0.05,Cursor,theme,,,,Alpha multiplier when not hovering a target,0..1: overall alpha multiplier applied when not hovering a target
+cursorIdleBorderDark,0.4,Idle dark,0,1,0.05,Cursor,theme,,,,How far the idle ring color is mixed toward black,0..1: how far the ring/edge color is mixed toward black when not hovering a target
+pauseStopMs,650,Stop ms,0,3000,50,Pause,gameplay,,,,Time to ramp from full speed down to a full stop when pausing,ms: ramp time from full speed down to a full stop
+pauseResumeMs,650,Resume ms,0,3000,50,Pause,gameplay,,,,Time to ramp from a full stop back up to full speed when resuming,ms: ramp time from a full stop back up to full speed
+evResumeMs,1800,After a card ms,0,6000,100,Pause,gameplay,,,,"Time to ramp back up to full speed after closing a discovery card (slower, to pick up where you were)",ms: the slower ramp back up after a discovery card closes
+pauseRingPassiveWidth,1,Passive ring w,0,6,0.25,Pause,gameplay,,,,Pause mode: line width of a PASSIVE effect ring (ambient range of a Point),
+pauseRingPassiveAlpha,0.45,Passive ring α,0,1,0.05,Pause,gameplay,,,,Pause mode: stroke alpha of a passive effect ring,
+pauseRingPassiveFill,0.05,Passive fill α,0,0.6,0.01,Pause,gameplay,,,,Pause mode: fill opacity inside a passive effect ring,
+pauseRingPassiveDash,4,Passive dash,0,12,1,Pause,gameplay,,,,Pause mode: dash length of a passive ring (0 = solid),
+pauseRingActiveWidth,1.75,Active ring w,0,6,0.25,Pause,gameplay,,,,Pause mode: line width of an ACTIVE (shining point) effect ring,
+pauseRingActiveAlpha,0.9,Active ring α,0,1,0.05,Pause,gameplay,,,,Pause mode: stroke alpha of an active effect ring,
+pauseRingActiveFill,0.14,Active fill α,0,0.6,0.01,Pause,gameplay,,,,Pause mode: fill opacity inside an active effect ring,
+pauseRingStrokeWhiten,0.3,Ring line white,0,1,0.05,Pause,gameplay,,,,"Pause mode: how far the effect ring LINE colour is whitened (0 = the point colour, 1 = white)",0..1: how far the ring fill colour is mixed toward white
+pauseRingFillWhiten,0.5,Ring fill white,0,1,0.05,Pause,gameplay,,,,"Pause mode: how far the ring fill colour is whitened (0 = the point colour, 1 = white)",0..1: how far the ring fill colour is mixed toward white
+achProgAlpha,0.7,Progress α,0,1,0.05,Achievements & Pattern — Visual,theme,,,,Opacity of the dim progress indicators (orbit count / leash timer) shown before a String or Spindle is earned (0 = hidden),(idle ms: an indicator hides when its String / Spindle hasn't gained anything for this long) // dim 'not yet earned' String / Spindle progress indicators
+achProgIdleMs,100,Hide when idle,50,2000,50,Achievements & Pattern — Visual,theme,,,,"A String / Spindle indicator hides once it has stopped accruing for this many ms (paused, stalled, or no longer following)",(idle ms: an indicator hides when its String / Spindle hasn't gained anything for this long) // dim 'not yet earned' String / Spindle progress indicators
+achProgMinRad,1,Count after,0,6,0.1,Achievements & Pattern — Visual,theme,,,,Radians of orbit swept before a String progress indicator appears,(idle ms: an indicator hides when its String / Spindle hasn't gained anything for this long) // dim 'not yet earned' String / Spindle progress indicators
+achProgSize,10,Progress size,7,20,1,Achievements & Pattern — Visual,theme,,,,Text size of the progress indicators,(idle ms: an indicator hides when its String / Spindle hasn't gained anything for this long) // dim 'not yet earned' String / Spindle progress indicators
+conFxOkMs,500,Done shape ms,500,12000,100,Achievements & Pattern — Visual,theme,,,,How long a completed Pattern stays drawn,
+bondSweepMs,16,Bond sweep ms,16,1000,10,Achievements & Pattern — Visual,theme,,,,How often a finished Prism / Knot checks for new objects inside it,ms: how often a finished Prism / Knot looks for new objects inside it
+bondSndMs,25,Bond note ms,0,2000,25,Achievements & Pattern — Visual,theme,,,,Minimum gap between the conversion notes of one Prism / Knot,ms: minimum gap between the conversion notes of one Prism / Knot
+barrierBreakSpeed,2.4,Barrier break spd,0.2,30,0.2,Achievements & Pattern — Visual,theme,,,,Impact speed at which a breakable Barrier edge breaks,impact speed at which a breakable Barrier edge breaks
+crateBreakSpeed,2.5,Crate break spd,0.05,10,0.05,Achievements & Pattern — Visual,theme,,,,"Impact speed at which a Crate breaks — the whole crate, fill and edges",impact speed at which a Crate breaks (a hit anywhere breaks the whole crate)
+crateBurnMs,1800,Crate burn ms,300,6000,100,Achievements & Pattern — Visual,theme,,,,How long a broken Crate burns away (edges burn inward into embers),"ms a broken Crate takes to burn away, edges first"
+bondFadeOutMs,300,Bond fade ms,0,5000,50,Achievements & Pattern — Visual,theme,,,,Fade-out time of a shape whose point was collected / whose type is full,ms: how long a Spindle / Prism / Knot takes to fade when a point is collected or its type is full
+bhDrawPad,125,DR draw pad,0,300,5,Achievements & Pattern — Visual,theme,,,,Extra drawing room around the Dark Remnant glow rings (raise if any glow still looks cut off),px: extra drawing room around the Dark Remnant's glow rings so their blur is never clipped
+glassEdgeA,0.55,Lens edge opacity,0,1.6,0.05,Achievements & Pattern — Visual,theme,,,,Opacity of the Lens edge,Lens edge opacity multiplier
+glassTintA,2.35,Lens tint strength,0,3,0.05,Achievements & Pattern — Visual,theme,,,,Strength of the Lens tint fill,Lens tint strength multiplier
+glassLightA,0.4,Lens light strength,0,3,0.05,Achievements & Pattern — Visual,theme,,,,Intensity of the cursor light and object lights on a Lens,Lens light intensity multiplier (cursor light + object lights)
+glassEdgeW,2.6,Lens edge px,0.2,8,0.1,Achievements & Pattern — Visual,theme,,,,Edge thickness of a Lens that has no other shape as its edge,px: edge thickness of a Lens that is its own edge
+glassEdgeWShared,2.5,Lens edge (on shape),0.2,8,0.1,Achievements & Pattern — Visual,theme,,,,Edge thickness of a Lens that sits on another shape's edge,px: edge thickness of a Lens sitting on another shape's edge (Spindle / Knot / Prism / Barrier)
+glassClickMs,125,Lens click ms,0,2000,25,Achievements & Pattern — Visual,theme,,,,How long a tinted pane's effect stays on after a click (also on while held),ms a tinted pane's effect stays on after a single click (it also stays on while held)
+glassReflCover,100,Reflection cover %,0,100,1,Achievements & Pattern — Visual,theme,,,,"Percentage of the pane the reflection covers, from the upper-left",% of the pane the reflection covers (from the upper-left)
+glassReflWhite,0,Reflection whiten,0,0.6,0.01,Achievements & Pattern — Visual,theme,,,,How much the reflection is whitened,how much the reflection is whitened
+glassMag,1.02,Lens magnify,1,1.12,0.002,Achievements & Pattern — Visual,theme,,,,How much larger the scene looks through glass (1 = none),slight magnification of the scene seen through glass (1 = none)
+glassReflect,1,Lens reflection,0,1,0.05,Achievements & Pattern — Visual,theme,,,,Strength of the blurred scene reflection on part of the pane,strength of the scene reflection on the upper-left part of a pane
+glassReflMs,0,Reflection refresh ms,0,1000,10,Achievements & Pattern — Visual,theme,,,,"How often the reflection is re-sampled from the scene (0 = every frame; lower = smoother, costs more)",ms between reflection refreshes (0 = every frame)
+glassBodyA,1.8,Lens body tint,0,3,0.05,Achievements & Pattern — Visual,theme,,,,Strength of the clear lens's own body tint — set to 0 for no tint at all over what is under the glass,"strength of the pane's own body tint (clear glass); 0 = off, removes any darkening / lightening under the glass"
+glassReflBlur,7,Reflection blur,0,16,0.5,Achievements & Pattern — Visual,theme,,,,Blur of the glass reflection,px: blur of that reflection
+dupWheelDeg,0.1,Dup wheel °/unit,0.005,2,0.005,Achievements & Pattern — Visual,theme,,,,Smooth rotation of a held duplicate / moved object per unit of wheel distance,degrees a held duplicate / moved object turns per unit of wheel movement (a typical notch is ~100 units)
+removeR,10,Remove radius,2,80,1,Achievements & Pattern — Visual,theme,,,,Radius of the Create tool's Remove brush,px: radius of the Remove brush
+volGlassTap,1,Lens tap vol,0,3,0.05,Achievements & Pattern — Visual,theme,,,playGlassTap(),Volume of the tap when clicking glass,glass tap sound
+holdEParticle,0.001,Hold E particle,0,1,0.0005,Achievements & Pattern — Visual,theme,,,,Create tool hold: energy added per ms to a particle,energy per ms while holding the Create tool on a particle
+holdEPoint,0.01,Hold E point,0,1,0.005,Achievements & Pattern — Visual,theme,,,,"Create tool hold: energy per ms, pigment",…on a pigment
+holdEBright,0.1,Hold E bright,0,2,0.05,Achievements & Pattern — Visual,theme,,,,"Create tool hold: energy per ms, Point",…on a Point
+remPlaceMass,25.5,Placed rem mass,0,50,0.5,Achievements & Pattern — Visual,theme,,,,Mass of an Active / Bright remnant placed with the Create tool,placed Active / Bright remnants
+remPlaceEnergy,5,Placed rem energy,0,50,0.5,Achievements & Pattern — Visual,theme,,,,Energy of an Active / Bright remnant placed with the Create tool,placed Active / Bright remnants
+dialRepeatMs,200,String repeat ms,30,2000,10,Achievements & Pattern — Visual,theme,,,,Holding the mouse with the String armed fires the next closest point this often,ms between shots while the String is held down (each shoots the next closest point)
+dialStaggerMs,60,String stagger ms,0,500,10,Achievements & Pattern — Visual,theme,,,,Delay between loaded rounds when a click fires them all,ms between loaded rounds when a click fires them all
+dialMs,700,String time ms,100,5000,50,Achievements & Pattern — Visual,theme,,,,How long a String launch lasts at 2× speed before returning to normal,"ms a String launch lasts (2× speed, ignoring every effect field), before easing back to normal"
+dialRampMs,200,String ramp ms,0,5000,50,Achievements & Pattern — Visual,theme,,,,How long launched points take to become fully affected by outside forces again,ms over which launched points then gradually become affected by outside forces again
+dialTrailLen,15,String trail,5,200,5,Achievements & Pattern — Visual,theme,,,,Length of the String momentum trail (path points),path points kept in a String trail
+dialIconMs,400,String icon ms,0,3000,50,Achievements & Pattern — Visual,theme,,,,How long the String target marker lingers,ms the String target marker lingers
+dialTurn,0.3,String turn,0.01,1,0.01,Achievements & Pattern — Visual,theme,,,,How sharply String-launched points steer toward the target,how sharply String-launched points bend toward the target (per step)
+dialDecay,0.02,String decay,0.002,0.2,0.002,Achievements & Pattern — Visual,theme,,,,How fast String-launched points return to max speed after passing through,how fast their speed relaxes back to max speed after passing through
+bondFadeMs,2500,Bond hold ms,200,15000,100,Achievements & Pattern — Visual,theme,,,,"How long a formed Spindle/Knot shape must hold, unbroken, before each scoring/dimming cycle. It keeps re-scoring on this cycle for as long as it stays unbroken.","how long a completed Spindle/Knot shape must hold, unbroken, before each scoring/dimming cycle"
+conFxFailMs,300,Missed shape ms,300,6000,100,Achievements & Pattern — Visual,theme,,,,How long a non-matching / unscored Pattern stays drawn,
+conFxFadeStart,0.6,Fade starts,0.1,0.95,0.05,Achievements & Pattern — Visual,theme,,,,Fraction of its lifetime after which a finished Pattern begins fading,
+conFxPulseMs,700,Pulse ms,0,3000,50,Achievements & Pattern — Visual,theme,,,,Length of the bright pulse on completion,
+conFxLineW,1.25,Edge width,0.5,8,0.25,Achievements & Pattern — Visual,theme,,,,Line width of a completed Pattern,
+conFxPulseLine,3,Pulse edge +,0,12,0.5,Achievements & Pattern — Visual,theme,,,,Extra edge width at the peak of the completion pulse,
+conFxAlpha,0.75,Edge α,0.1,1,0.05,Achievements & Pattern — Visual,theme,,,,Edge opacity of a completed Pattern,
+conFxGlow,10,Edge glow,0,40,1,Achievements & Pattern — Visual,theme,,,,Glow blur around completed edges,
+conFxNodeR,6,Node ring r,2,20,1,Achievements & Pattern — Visual,theme,,,,Ring radius around each Pattern point,
+conFxPulseRing,16,Node pulse +,0,60,2,Achievements & Pattern — Visual,theme,,,,How far the node rings swell during the completion pulse,
+conFxTextSize,13,Label size,8,28,1,Achievements & Pattern — Visual,theme,,,,"Size of the ""+1"" label",
+conNodeScale,60,Node ring % larger,0,300,5,Achievements & Pattern — Visual,theme,,,,Pattern node ring: this much larger than the object it rings (candidate and chosen states),
+conChainLineW,1.3,Chain width,0.5,6,0.1,Achievements & Pattern — Visual,theme,,,,Line width of the Pattern being built,
+conChainAlpha,0.9,Chain α,0.1,1,0.05,Achievements & Pattern — Visual,theme,,,,Opacity of the Pattern being built,
+conChainPreviewAlpha,0.9,Preview α,0,1,0.05,Achievements & Pattern — Visual,theme,,,,Opacity of the dashed leg from the last point to the cursor,
+conFocusGlowR,10,Candidate glow,10,80,2,Achievements & Pattern — Visual,theme,,,,Glow radius on points that can still be connected,
+conFocusPulse,0.005,Candidate pulse,0,0.02,0.001,Achievements & Pattern — Visual,theme,,,,Pulse speed of connectable points,
+earnDialMs,1400,String fx ms,300,8000,100,Achievements & Pattern — Visual,theme,,,,Duration of the String achievement effect,
+earnLeashMs,1400,Spindle fx ms,300,8000,100,Achievements & Pattern — Visual,theme,,,,Duration of the Spindle achievement effect,
+earnUseMs,700,Use fx ms,200,4000,50,Achievements & Pattern — Visual,theme,,,,Duration of the ring when an item is used / a point is spent,
+earnPathW,2,Path width,0.5,6,0.1,Achievements & Pattern — Visual,theme,,,,Line width of the String pass replay,
+earnTextRise,26,Text rise,0,80,2,Achievements & Pattern — Visual,theme,,,,"How far the ""+1"" text floats up",
+earnTextSize,13,Text size,8,28,1,Achievements & Pattern — Visual,theme,,,,"Size of the achievement ""+1"" text",
+collectGraceMs,260,Collect grace ms,0,1000,20,Achievements & Pattern — Visual,theme,,,,"A click still collects the target the cursor just slid off of, for this long after","ms: a click still collects the target the cursor just slid off of, for this long after (must cover the collect cursor's own fade-out, so the two never disagree)"
+metalReflA,0.55,Metal reflection,0,1,0.05,Achievements & Pattern — Visual,theme,,,,Scene reflection strength on Barrier edges and Gate posts,strength of the scene reflection on metal (Barrier edge / Gate posts)
+metalLightA,1,Metal glint,0,3,0.05,Achievements & Pattern — Visual,theme,,,,How strongly nearby lights glint on Barrier edges and Gate posts,how strongly nearby lights glint on metal
+lensMeshN,5,Fish-eye mesh N,3,40,1,Achievements & Pattern — Visual,theme,,,,"Fish-eye mesh is N×N cells (2N² triangles): more = smoother curve, slower","fish-eye mesh divisions: N×N cells = 2N² triangles (more = smoother curve, slower)"
+lensFish,0.26,Lens fish-eye,0,1,0.02,Achievements & Pattern — Visual,theme,,,,Extra magnification at the middle of a Lens,Lens fish-eye: extra magnification at the centre (0 = flat)
+lensCrackW,0.6,Lens crack width,0.3,4,0.1,Achievements & Pattern — Visual,theme,,,,Thickness of Lens cracks,crack thickness multiplier
+paneMag,1.04,Glass magnify,1,1.5,0.01,Achievements & Pattern — Visual,theme,,,,Glass: magnification at the edge,Glass (create tool) — its own look
+paneFish,0.24,Glass fish-eye,0,1,0.02,Achievements & Pattern — Visual,theme,,,,Glass: extra magnification at the middle,Glass (create tool) — its own look
+paneTintA,1,Glass tint,0,3,0.05,Achievements & Pattern — Visual,theme,,,,Glass: tint strength,Glass (create tool) — its own look
+paneBodyA,1.3,Glass body,0,3,0.05,Achievements & Pattern — Visual,theme,,,,Glass: clear body strength,Glass (create tool) — its own look
+paneEdgeA,1,Glass edge A,0,2,0.05,Achievements & Pattern — Visual,theme,,,,Glass: edge opacity,Glass (create tool) — its own look
+paneEdgeW,1.8,Glass edge W,0.3,6,0.1,Achievements & Pattern — Visual,theme,,,,Glass: edge thickness,Glass (create tool) — its own look
+crateEdgeW,21,Crate edge width,3,30,1,Achievements & Pattern — Visual,theme,,,,Thickness of the ring of planks around a Crate,px: thickness of the ring of planks around a Crate
+crateW,21,Crate post width,2,30,1,Achievements & Pattern — Visual,theme,,,,Crate post width,px: Crate post width
+crateGap,1,Crate post gap,0,30,1,Achievements & Pattern — Visual,theme,,,,Gap between Crate posts,px: gap between Crate posts
+gatePostW,15,Gate post width,3,30,1,Achievements & Pattern — Visual,theme,,,,Width of each Gate post,px width of each Gate post
+gatePostGap,15,Gate post gap,0,30,1,Achievements & Pattern — Visual,theme,,,,Particle gap between the posts of a Gate,px between the posts of a Gate
+conTargetAlpha,1,Con target alpha,0.1,1,0.05,Achievements & Pattern — Visual,theme,,,,Strength of the target markers shown while building a Pattern (Spindle / Knot / Prism / Lens / Gate),0..1: strength of the target markers shown while building any Pattern
+gateRewindMs,2000,Gate rewind ms,300,8000,100,Achievements & Pattern — Timing & Feel,gameplay,,,,Duration of the Gate's rewind transition,
+keyFxMs,3400,Key anim ms,1000,10000,100,Achievements & Pattern — Timing & Feel,gameplay,,,,Total length of the Key insert / twist / collapse animation,
+keyFireT,0.5,Key remnant at,0.2,0.9,0.02,Achievements & Pattern — Timing & Feel,gameplay,,,,When (fraction of the Key animation) the Dark Remnant appears — earlier means the key is still shrinking into it,
+feedAlertMs,2200,Alert ms,500,8000,100,Achievements & Pattern — Timing & Feel,gameplay,,,,How long an alert / warning message takes over the feed before it returns to hover / last-shined / hints,how long an alert message takes over the feed
+particleMapAlpha,0.55,Particle map α,0.1,1,0.05,Achievements & Pattern — Timing & Feel,gameplay,,,,Opacity of the particle-map layer when it is shown,"0..1: opacity of the particle-map layer (dimmed so points, paths and rings stay readable)"
+invalidTargetOpacity,0.35,Invalid target opacity,0,1,0.05,Achievements & Pattern — Timing & Feel,gameplay,,,,"Opacity of objects that are NOT a viable target for the armed tool/Pattern mode. 1 = no dimming. The object itself goes dim, but its own active ring/effect glow still shows at full strength — the background is never touched.",0..1: opacity of objects that are NOT a viable target for the armed tool/mode (1 = no dimming at all; the object's own effect ring can still show at full strength on top)
+predictMs,300,Predict ms,100,3000,50,Achievements & Pattern — Timing & Feel,gameplay,,,,How far ahead the combined velocity+rotation predictive path looks,ms: how far ahead the combined velocity+rotation predictive path looks
+predictSteps,40,Predict steps,4,80,2,Achievements & Pattern — Timing & Feel,gameplay,,,,Resolution of the predicted path (more = smoother curve),resolution of the predicted path — more steps = a smoother curve
+lensClicksPerCrack,6,Lens clicks/crack,0,30,1,Achievements & Pattern — Timing & Feel,gameplay,,,,Every N single clicks on a Lens cracks it (0 = off),every N single clicks on a Lens crack it (0 = off)
+lensHoldSecPerCrack,2,Lens hold s/crack,0,10,0.25,Achievements & Pattern — Timing & Feel,gameplay,,,,Every N seconds a Lens is held it cracks (0 = off),every N seconds a Lens is held it cracks (0 = off)
+lensCrackSegMs,30,Lens crack grow ms,10,400,10,Achievements & Pattern — Timing & Feel,gameplay,,,,Time each section of a crack takes to grow,ms each section of a crack takes to grow
+gateUnlockMs,200,Gate unlock ms,100,4000,50,Achievements & Pattern — Timing & Feel,gameplay,,,,How long the posts take to shrink away when a Key opens a Gate,ms the Gate posts take to shrink away when a Key opens it
+vRadBase,0.6,Rad base,0.5,3,0.1,Object Scale — particle/point/remnant radius bounds (gameplay: sets actual collision size),gameplay,,,,Starting radius before mass scaling,
+massEffPow,1.3,Mass eff pow,0.2,5,0.1,Object Scale — particle/point/remnant radius bounds (gameplay: sets actual collision size),gameplay,,,,Steepness of mass -> effect-radius scaling (uncapped by point visual size),steepness of mass->effect-radius scaling (effectMassR); higher = mass matters more
+colorMinR,3.5,Pigm min,0.1,20,0.1,Object Scale — particle/point/remnant radius bounds (gameplay: sets actual collision size),gameplay,,,,Pigment min radius,
+colorMaxR,9,Pigm max,1,60,0.5,Object Scale — particle/point/remnant radius bounds (gameplay: sets actual collision size),gameplay,,,,Pigment max radius,
+whiteMinR,0.2,Bright min,0.1,2,0.1,Object Scale — particle/point/remnant radius bounds (gameplay: sets actual collision size),gameplay,,,,Point min radius,
+whiteMaxR,9,Bright max,0.5,8,0.5,Object Scale — particle/point/remnant radius bounds (gameplay: sets actual collision size),gameplay,,,,Point max radius,
+brownR,3,Brown rad,0.1,2,0.1,Object Scale — particle/point/remnant radius bounds (gameplay: sets actual collision size),gameplay,,,,Legacy brown radius constant (unused by Dim Remnant sizing now — see Brown min/max below),
+brownMinR,1,Dim rem min,0.5,20,0.5,Object Scale — particle/point/remnant radius bounds (gameplay: sets actual collision size),gameplay,,,,"Dim Remnant min radius (round, scales with mass)",Dim Remnant min radius (at dimMassMin)
+brownMaxR,9,Dim rem max,1,60,1,Object Scale — particle/point/remnant radius bounds (gameplay: sets actual collision size),gameplay,,,,"Dim Remnant max radius (round, scales with mass)",Dim Remnant max radius (at dimMassMax) — Dim Remnants are round and scale with mass
+pigmentEffMult,1,Pigment mult,0,15,1,Effect Radius,gameplay,,,,Pigment: effect radius = visual radius × this,Pigment points: visual radius × this = effect/force radius
+brightEffMult,1,Bright mult,0,15,1,Effect Radius,gameplay,,,,Bright (collapsed) point: effect radius scaling × this (applied on top of Mass eff pow below),"Bright (collapsed) points: same idea, applied on top of effectMassR"
+dimEffMult,1,Dim mult,0,15,1,Effect Radius,gameplay,,,,Dim Remnant: effect radius = visual radius × this,Dim remnants: visual radius × this = effect/force radius
+eRadMult,1,Other remnants mult,0,15,1,Effect Radius,gameplay,,,,Shared fallback for remnant kinds that don't have their own multiplier yet (White/Neutron/Magnetic/Pulsing remnants),
+whiteEffMin,30,★ eff min,10,100,5,Effect Radius,gameplay,,,,White passive min range,
+whiteEffMax,90,★ eff max,30,300,10,Effect Radius,gameplay,,,,White passive max range,
+whiteClickM,2.5,★ click ×,1,5,0.5,Effect Radius,gameplay,,,,White clicked multiplier,
+triadBal,0.15,Triad bal,0,1,0.05,Collapse Triggers,gameplay,,,,RYB balance needed (1=perfect),
+magBWScore,0.9,B&W magnetic bal,0.3,1,0.05,Collapse Triggers,gameplay,,,,"Balance score (same one Bright collapse uses) at which a new Magnetic remnant is Black & White: CRYSTALIZE one side, ECLIPSE the other","balanceScore (the Bright-collapse triad score) at or above which a new Magnetic remnant is a BLACK & WHITE one: CRYSTALIZE on its first side, ECLIPSE on its second"
+magItemEclipseP,0,Mag item ECLIPSE %,0,1,0.05,Collapse Triggers,gameplay,,,,Chance a Magnetic item gesture turns what it touches ECLIPSE (black) instead of a colour,chance that a Magnetic item's gesture applies ECLIPSE (black) instead of a colour
+crystalGray,230,CRYSTALIZE grey,120,250,5,Collapse Triggers,gameplay,,,,Grey of a Bright CRYSTALIZE point's glow and halo (silver; its body is lighter still and its core a mid grey),"0..255: grey of a Bright CRYSTALIZE point's glow / halo (its body is lighter, its core a mid grey) — silver, against ECLIPSE's dark grey"
+eclipseGray,65,ECLIPSE grey,20,200,5,Collapse Triggers,gameplay,,,,"Grey of an ECLIPSE point's glow, halo and effect radius (its body is black)","0..255: grey of every ECLIPSE glow / halo / trail (its body is black) — dark, dimly visible, distinct from the Dim remnant"
+eclipseSweepEvery,1,ECLIPSE sweep fr,1,20,1,Collapse Triggers,gameplay,,,,Frames between an active ECLIPSE point converting the particles it touches,frames between an ECLIPSE source's sweeps of the particles it touches
+colorLingerMs,1000,Colour linger ms,0,4000,50,Collapse Triggers,gameplay,,,,How long a colour change lingers. Adjacent colour: the effect changes at once and the visible colour shifts over this time. One colour between: it spends this time as the colour between. Opposite colour: it spends it as white. Changes arriving faster than this keep the resolved effect and the visible colour settles toward the latest target,ms a colour change lingers: an adjacent colour shifts its visible colour over this time; a colour two steps away spends it as the colour between; an opposite colour spends it as white
+particleLingerMul,1,Particle linger ×,0.1,5,0.1,Collapse Triggers,gameplay,,,,Scalar on the colour-change linger time of dormant particles (1 = same as points),scalar on the colour-change linger time for dormant particles
+holdDrainK,0.4,Hold drain time ×,0.25,4,0.05,Collapse Triggers,gameplay,,,,"Holding the basic cursor with something shining drains each shining point at an ever-faster rate until it dims. 1 ≈ 2s for a 5s life, ≈10s for a 60s life; lower is faster","hold (basic cursor, with something activated): scales how long a held, activated point takes to run out (1 ≈ 2s for a 5s life, ≈10s for a 60s life; its burn rate keeps accelerating)"
+crystalHitMs,1000,CRYSTALIZE hit min ms,0,10000,100,Collapse Triggers,gameplay,,,,The least lifespan a CRYSTALIZE point loses in any collision,"CRYSTALIZE points: the least life (ms) a collision costs them — whatever they hit, however gently"
+crystalHitK,900,CRYSTALIZE hit ms/unit,0,5000,50,Collapse Triggers,gameplay,,,,Extra lifespan lost per unit of impact (relative speed plus the spin of both rims). At 0 every hit costs just the minimum,"…and the life (ms) lost per unit of impact (relative speed + the spin of the two rims); a hard, spinning hit costs far more, until the point dims into its remnant"
+fxContactPad,0,FX contact pad,0,20,1,Collapse Triggers,gameplay,,,,Extra reach (px) around an active pigment ECLIPSE / CRYSTALIZE point when it touches another point and changes its colour,px added to an active pigment ECLIPSE / CRYSTALIZE point's own radius when it touches other points
+triadMin,0.01,Triad min,0,0.2,0.01,Collapse Triggers,gameplay,,,,Min per-primary presence,
+collMass,202,Mass req,0,500,1,Collapse Triggers,gameplay,,,,Min mass for collapse,
+collEnergy,1,Energy req,0,10,0.1,Collapse Triggers,gameplay,,,,Min energy for white (below=brown),
+mergeAbsorb,1,Feed absorb %,0,1,0.01,Energy & Merge,gameplay,,,,Energy kept when feeding on inert dust/dormant material (NOT a live-object merge — those always conserve 100% of both objects' energy),
+massScaleMin,1,Min mass (shared fallback),1,50,1,Mass → Size Curve,gameplay,,,,"Mass at/below which every object sits at its own min radius — only actually used now by any type that leaves its own mass-domain override below at its default; also still the reference ""mass scale"" for other systems (e.g. the Dark Remnant's mass threshold)","mass at/below which every object sits at its min radius (fallback for any type below that doesn't set its own mass domain; also still used as the general ""mass scale"" reference elsewhere, e.g. the Dark Remnant threshold)"
+massScaleMax,4030,Max mass (shared fallback),10,5000,10,Mass → Size Curve,gameplay,,,,Mass at/above which every object sits at its own max radius — see Min mass note,mass at/above which every object sits at its max radius (see massScaleMin note)
+massCurvePow,1.7,Curve taper,1,4,0.1,Mass → Size Curve,gameplay,,,,"Shape between min and max mass: 1 = straight linear, higher = mostly linear early then tapers off approaching the max",>1 = mostly linear then taper near the cap; 1 = straight linear
+pigmentMassMin,13,Pigment min mass,1,200,1,Mass → Size Curve,gameplay,,,,Mass at/below which a Pigment sits at its own min radius (Pigm min/max below),
+pigmentMassMax,1300,Pigment max mass,10,5000,10,Mass → Size Curve,gameplay,,,,Mass at/above which a Pigment sits at its own max radius,
+brightMassMin,126,Bright min mass,1,200,1,Mass → Size Curve,gameplay,,,,Mass at/below which a Bright (collapsed) point sits at its own min radius (both visual size and effect range),
+brightMassMax,4160,Bright max mass,10,5000,10,Mass → Size Curve,gameplay,,,,Mass at/above which a Point sits at its own max radius,
+dimMassMin,30,Dim min mass,1,200,1,Mass → Size Curve,gameplay,,,,Mass at/below which a Dim Remnant sits at its own min radius,
+dimMassMax,5000,Dim max mass,10,5000,10,Mass → Size Curve,gameplay,,,,Mass at/above which a Dim Remnant sits at its own max radius,
+dimFormMs,450,Dim form ms,100,2000,50,Animation,theme,,,,How long the inward flash lasts when a point dims into a Dim Remnant,ms: the inward flash when a point dims into a Dim Remnant
+dispRLR,0.05,Rad lerp,0,0.15,0.005,Animation,theme,,,,Visual radius interpolation speed,
+dispALR,0.05,Alpha lerp,0,0.15,0.005,Animation,theme,,,,Visual alpha interpolation speed,
+glowCore,2,★ core ×,0,6,0.5,Glow,theme,,,,Collapsed glow core radius mult,
+glowWhite,1.5,★ white glow ×,1,4,0.1,Glow,theme,,,,How far a Point's white inner glow reaches (× radius). Lower it (toward 1) to let the colour glow show instead of white,reach (× radius) of a Point's tight white inner glow; the coloured halo (glowCore) only shows beyond it
+glowHalo,0.5,★ halo ×,0,10,0.5,Glow,theme,,,,Collapsed glow halo radius mult,
+activeRingWidth,0.5,Ring width,0,4,0.5,Glow,theme,,,,Active-point pulsing ring line width,px: sharp ring line width
+activeRingBlur,1,Ring blur,0,16,1,Glow,theme,,,,Blur radius for the pulsing ring glow pass,px: blur radius for the glow pass behind the sharp ring
+activeRingGlowMult,0.4,Ring glow ×,0,4,0.1,Glow,theme,,,,Alpha multiplier for the pulsing ring glow pass,alpha multiplier for the blurred glow pass vs the sharp ring
+activeRingGlowWidthMult,0.5,Ring glow width ×,0,5,0.5,Glow,theme,,,,Line-width multiplier for the pulsing ring glow pass,line-width multiplier for the blurred glow pass vs the sharp ring
+activeRingRadiusMult,1.25,Ring radius ×,0,6,0.25,Glow,theme,,,,Base ring radius multiplier over the point's own displayR,radius multiplier over the point's own displayR for the base ring size
+activeRingOpacity,0.3,Ring opacity ×,0,3,0.1,Glow,theme,,,,Overall opacity multiplier for the active-point ring (sharp + glow),overall opacity multiplier applied to both the sharp ring and its glow pass
+activeGlowR,2,★ eff glow R,0,8,0.5,Glow,theme,,,,Active Pigment-point glow radius multiplier,radius multiplier over the point's own displayR for the glow source
+activeGlowBlur,9,★ eff blur,0,20,1,Glow,theme,,,,Active Pigment-point glow blur radius,px: base blur radius for the glow halo passes
+birthGlowMult,1.8,Birth glow R,0,4,0.1,Glow,theme,,,,White-birth color-matched glow radius multiplier,radius multiplier (over the white flash radius) for the color-matched glow layer
+birthGlowAlpha,0.6,Birth glow α,0,1,0.05,Glow,theme,,,,White-birth color-matched glow peak alpha,peak alpha of the color-matched glow layer
+nebBlur,16,Blur wide,0,24,1,Nebula (macro-particle layer),theme,,,,Wide glow blur radius on upscaled nebula (px),wide blur (px) — glow halo around each macro-particle
+nebBlur2,12,Blur mid,0,12,1,Nebula (macro-particle layer),theme,,,,Mid-body blur for macro-particle detail (px),mid blur (px) — main body softness
+nebAlpha1,0.15,α wide,0,1,0.05,Nebula (macro-particle layer),theme,,,,Wide glow pass alpha,wide pass alpha
+nebAlpha2,0.4,α mid,0,1,0.05,Nebula (macro-particle layer),theme,,,,Mid body pass alpha,mid pass alpha
+nebAlpha3,0,α core,0,0.8,0.05,Nebula (macro-particle layer),theme,,,,Sharp core pass alpha (0=off),sharp core pass alpha
+particleMapBlur,0,Map blur,0,12,0.5,Nebula (macro-particle layer),theme,,,,"Extra blur (px) on the crisp particle-map layer itself — the flat view shown at rest/paused, separate from the glow blur passes above. 0 = perfectly sharp.","px: extra blur on the crisp particle-map layer itself (the flat/paused view, not the glow passes above) — 0 = perfectly sharp"
+nebAlphaMin,0.35,α pix min,0,0.6,0.05,Nebula (macro-particle layer),theme,,,,Minimum nebula particle alpha — floors low-energy particles at 30%,minimum alpha for any nebula particle
+nebAlphaMax,1,α pix max,0,1,0.05,Nebula (macro-particle layer),theme,,,,Maximum nebula particle alpha — caps high-energy particles,maximum alpha for any nebula particle
+captureFrames,20,Cap frames,5,60,1,Particle capture (merge animation),gameplay,,,,Base duration of capture pull animation,base frames for pull animation (accelerates over time)
+captureSpeed,1.5,Cap speed,0,8,0.5,Particle capture (merge animation),gameplay,,,,Pull speed at capture start (px/frame),pull speed (px/frame) at start
+captureAccel,6,Cap accel,0,12,0.5,Particle capture (merge animation),gameplay,,,,Pull speed multiplier at capture completion,pull speed multiplier at captureProgress=1
+transMaxAge,20,Trans frames,5,60,1,Macro-particle transition,gameplay,,,,Frames for nebData fade animation,frames: duration of nebData fade (matches birthFrames so the particle and the point cross-fade exactly)
+maxTransitions,50000,Trans cap,0,50000,5,Macro-particle transition,gameplay,,,,Fade-queue capacity; overflow instant-clears instead of orphaning the particle,fade-queue capacity; overflow falls back to instant clear (see addTransition) so a particle can never get stuck painted-but-orphaned
+birthFrames,30,Birth frames,5,60,1,Macro-particle transition,gameplay,,,,Frames for newly woken point to cross-fade from blurred to sharp,frames to cross-fade blurred→sharp after waking
+blobSize,150,Blob size,50,500,25,World,gameplay,,,,Color region scale (rebuild needed),
+opacMin,0.2,Energy min,0,0.2,0.01,World,gameplay,,,,Dormant energy floor,
+opacMax,0.9,Energy max,0,1,0.05,World,gameplay,,,,Dormant energy ceiling,
+particleBlackFrac,0.03,Black particles,0,0.5,0.01,World,gameplay,,,,Share of generated particles that are ECLIPSE (black) — rebuild needed,share of generated particles that start as ECLIPSE (black)
+particleWhiteFrac,0.03,White particles,0,0.5,0.01,World,gameplay,,,,Share of generated particles that are CRYSTALIZED (white) — rebuild needed,share of generated particles that start CRYSTALIZED (white)
+coverage,1,Coverage,0,1,0.05,World,gameplay,,,,Fraction of the grid populated at rebuild — only sets the STARTING void/color ratio (rebuild needed); settle can drift it away from this over time,"0..1: fraction of the grid populated at rebuild — 1=fully solid (old behavior), lower leaves permanent empty voids"
+coverageScale,100,Void size,0,600,20,World,gameplay,,,,"Blob scale of empty regions at rebuild (rebuild needed, blob mode only)","px: blob scale of the coverage/void field — bigger = larger, more contiguous empty regions"
+particleJitter,0.8,Particle jitter,0,1,0.05,World,gameplay,,,,"How far a macro-particle can land from its cell center — 0=perfect grid, 1=nearly anywhere in the cell (rebuild needed)","0..1: how far a macro-particle can land from its cell's exact center — 0 = perfect grid, 1 = nearly anywhere in the cell"
+particleGap,3,Particle gap,0,20,0.5,World,gameplay,,,,"Space between adjacent macro-particles — 0 = cells touch edge-to-edge with no gap. Sets the grid pitch, so row/column count changes too (rebuild needed)",px: space between adjacent macro-particles — 0 = cells touch edge-to-edge with no gap. Feeds the grid pitch (rebuild needed to change row/column count)
+triScale,0.56,Triangle size,0.3,1,0.02,World,gameplay,,,,Size of triangle cells (scaled uniformly inward) — ~0.6 gives about the same covered area as the circle / square cells,triangle cell size (uniformly inward): the rounded triangle is scaled so its area is close to the circle / square
+nebSrcScale,0.75,Source res,0.5,3,0.25,World,gameplay,,,,"Resolution of the nebula source buffer relative to the screen (rebuild to apply). Higher = cleaner, less blurry cell edges","nebula source resolution: sub-particles per screen particle of a cell (rebuild to apply) — higher = cleaner edges, costlier when many particles wake"
+nebEdgePx,0.3,Edge softness,0.3,6,0.1,World,gameplay,,,,Softness of each cell shape's edge in screen particles,"soft edge of every cell shape, in screen particles"
+particleScale,1,Particle scale,0.1,3,0.1,World,gameplay,,,,"Size of each macro-particle. Also sets the grid pitch together with the gap, so row/column count changes too (rebuild needed)","multiplier on the macro-particle's own diameter. Grid pitch grows with it too, so cells never overlap from scale alone — only jitter can push one into a neighbor's territory (rebuild needed)"
+particleStartMass,3,Start mass,1,10,1,World,gameplay,,,,Base starting mass (whole int) of every freshly created particle — bigger mass reads as a bigger point,base starting mass (rounded to the nearest whole int)
+particleStartEnergy,0.5,Start energy,0.05,1,0.05,World,gameplay,,,,Base starting energy (= opacity) of every generated particle — same scheme as Start mass,base starting energy/opacity of every generated particle
+particleEnergyJitter,0.4,Energy jitter,0,1,0.05,World,gameplay,,,,+/- spread around the base starting energy; 0 = always exactly the base,+/- spread around the base; 0 = always exactly the base
+particleMassSizeMax,2.5,Mass size cap,1,6,0.25,World,gameplay,,,,Cap on how much bigger than base a heavy macro-particle can be drawn (1 = never larger than base size),cap on the mass->size multiplier of a macro-particle (1 = base size); stops heavy particles ballooning past their neighbours
+particleMassSizeMin,0.3,Mass size floor,0.1,1,0.05,World,gameplay,,,,Floor on the mass->size multiplier of a macro-particle (1 = base size) — a very light particle never draws smaller than this fraction of base. Was a hardcoded 0.3.,floor on the mass->size multiplier of a macro-particle — was a hardcoded 0.3
+particleMassJitter,2,Mass jitter,0,5,1,World,gameplay,,,,+/- spread (whole ints) around the base starting mass; 0 = always exactly the base,+/- spread (whole ints) around the base; 0 = always exactly the base
+maxActive,150000,Max active,0,150000,1000,World,gameplay,,,,Active particle hard cap,
+heatMax,60,Heat max,2,200,1,World,gameplay,,,,"Cursor HEAT: extra unique selections (each additional object from a swipe, a double-click or an item use) the cursor can take before it overheats. A full ring = this value",HEAT: how many extra unique selections (swipe / double-click / item use) the cursor can make before it overheats
+heatDecay,19,Heat cools /s,0,60,0.5,World,gameplay,,,,Heat the cursor sheds each second,heat lost per second
+heatCooldownMs,1000,Cooldown ms,100,10000,100,World,gameplay,,,,How long an overheated cursor is shut down; then it needs a new press,ms the cursor is shut down once it overheats (it then needs a fresh press)
+implodeForce,1.4,Implosion force,0,6,0.1,World,gameplay,,,,DYNAMISM implosion: pull speed (x max speed) that drags everything in reach inward for the whole shrink duration,DYNAMISM implosion: pull speed (× max speed) dragging everything in reach toward the shrunk point for the whole shrink duration
+implodeNull,0.84,Implosion nullify,0,0.95,0.02,World,gameplay,,,,DYNAMISM implosion: how strongly existing motion is cancelled in favour of the inward pull,DYNAMISM implosion: how fast existing motion is nullified in favour of the pull (0..0.95 per 16ms)
+fxNovaMix,0.22,FX nova colour mix,0,1,0.02,World,gameplay,,,,Share of an ECLIPSE / CRYSTALIZE Point nova particles that keep a colour instead of the opposite grey,share of a CRYSTALIZE / ECLIPSE Point's nova particles that keep their own colour instead of the opposite grey
+implodeMs,300,Implosion ms,200,3000,50,World,gameplay,,,,DYNAMISM implosion: how long the reverse nova ring takes to collapse inward,DYNAMISM implosion: ms the reverse nova ring takes to close
+fxTieMs,500,FX tie ms,200,8000,100,World,gameplay,,,,An object touched by an active CRYSTALIZE and an active ECLIPSE at once becomes a random pigment colour and ignores both for this long,ms an object stays its random pigment colour after being touched by an active CRYSTALIZE and an active ECLIPSE together
+maxActivePoints,15,Max shining,1,60,1,World,gameplay,,,,Cap on simultaneously shining points — exceeding it stops the oldest one shining (snake-style),
+wakeBudgetPerFrame,400,Wake budget,20,5000,20,World,gameplay,,,,Max particles woken per frame. Any past it are queued and woken over the next frames (never missed),cap on NEW active promotions per frame; a surge past it is queued (never dropped) and woken over the next frames
+wakeBusyBudget,60,Wake budget busy,5,1000,5,World,gameplay,,,,Wake budget while the simulation is running behind (Sim busy ms),…and the cap while the simulation is running behind (Sim busy ms)
+simBusyMs,12,Sim busy ms,4,40,1,World,gameplay,,,,"Smoothed sim time above which settling stops, glides and fade-ins finish at once, and waking uses the busy budget","ms: when the smoothed sim time is above this, eye-candy steps aside (no settling, glides / fade-ins finish at once) and waking spreads thinner"
+settleFr,1,Settle int,1,300,1,World,gameplay,,,,Frames between settle steps,
+settleBt,50,Settle bat,1,100,1,World,gameplay,,,,"Candidate cells reconsidered per settle step. Small batch + interval 1 = a continuous every-frame trickle; big batch + long interval = the slow, chunky effect",candidate cells reconsidered per settle tick (1–100; small + every frame = a continuous trickle)
+settleBlendRate,0.1,Churn chance,0,1,0.05,World,gameplay,,,,Chance any sampled cell reconsiders its state this tick — direction always follows local majority (void counts as a state too),0..1: chance any given sampled cell reconsiders its state at all this tick (speed knob — direction always follows local majority)
+paintFadeFrames,14,Paint fade,0,60,1,World,gameplay,,,,"Frames a particle takes to ease into a new colour / strength / size, or to fade in when painted (0 = at once)","frames a particle takes to ease into a new colour / strength / size (or in, when painted); 0 = at once"
+settleFadeFrames,90,Settle fade,0,90,1,World,gameplay,,,,"Frames a settled cell takes to fade in when it appears, or fade out when it disappears",frames a settled cell takes to fade in (newly filled) or fade out (newly voided) instead of popping instantly
+settleBlendMix,0.2,Churn jump,0.1,1,0.05,World,gameplay,,,,How far a cell jumps toward its neighbors' majority color when it stays/becomes populated,0..1: how far a cell jumps toward its neighbors' majority color when it stays/becomes populated
+lifeColor,100,Pigm K,0,500,10,Lifespan,gameplay,,,,Pigment: m/e × this (ms),
+tintForceE,1,Tint force,0,1,0.05,Lifespan,gameplay,,,,"Strength of the colour effect (orbit, brake, attract…) a Magnetic-coloured Neutron / Pulsing remnant applies",energy a Magnetic-coloured Neutron/Pulsing applies its colour's force with
+lifeMaxS,60,Max life s,5,600,5,Lifespan,gameplay,,,,Any derived lifespan longer than this many seconds is clamped to it,s: ceiling on any derived lifespan
+glowMaxR,26,Glow max R,4,120,1,Lifespan,gameplay,,,,Glow thickness stops growing once an object is this radius (px) — huge objects no longer show a second circle,px: largest object radius a glow is allowed to scale with — bigger objects keep this glow thickness
+lifeStarK,2500,★ K,0,5000,100,Lifespan,gameplay,,,,White: m/e × this / (r × div) (ms),
+lifeStarDiv,3,★ r÷,0,10,1,Lifespan,gameplay,,,,White radius divisor (higher=shorter life),
+brownGlowRMult,7.5,Glow radius,0,15,0.5,Brown Glow,theme,,,,"Glow radius, as a multiplier over the brown's own display radius",
+brownGlowOffsetMult,0.75,Trail offset,0,8,0.25,Brown Glow,theme,,,,"How far the glow trails behind (opposite its direction of travel), as a multiplier over its display radius",
+brownGlowBase,1,Base bright,0,1,0.05,Brown Glow,theme,,,,"Baseline glow brightness, before mass scaling",
+brownGlowMassScale,0.5,Mass bright,0,0.5,0.01,Brown Glow,theme,,,,Extra glow brightness per decade of mass,
+brownGlowBlurWide,0,Blur wide,0,24,1,Brown Glow,theme,,,,Wide blur pass radius (px) — same treatment as the black remnant's glow,
+brownGlowBlurMid,0,Blur mid,0,12,1,Brown Glow,theme,,,,Mid blur pass radius (px),
+brownGlowAlphaWide,1,α wide,0,1,0.05,Brown Glow,theme,,,,Wide pass alpha,
+brownGlowAlphaMid,1,α mid,0,1,0.05,Brown Glow,theme,,,,Mid pass alpha,
+deathFlashMs,550,Flash ms,0,2000,50,Death Nova — Visual,theme,,,,Duration of white flash -> colorize -> fade on white death,duration (ms) of the white flash -> colorize -> settle transition
+novaRingWidth,44,Ring width,0,80,2,Death Nova — Visual,theme,,,,"Below 2x this the flash is a filled circle; beyond it, a travelling ring","px: below 2x this the nova flash is a filled circle; beyond it, a travelling ring of this width"
+novaMassBase,5,Nova mass ×,0,15,0.2,Death Nova — Visual,theme,,,,Nova radius = this × sqrt(mass) — direct mass scaling,"nova radius = novaMassBase * sqrt(mass) — direct mass scaling, independent of the passive effect-radius cap"
+novaHueBias,2.6,Hue bias,0,6,0.2,Death Nova — Visual,theme,,,,How strongly nova colors skew toward the star's own displayed hue,"how strongly nova colors skew toward the star's own displayed hue (0=raw composition, higher=more concentrated)"
+whiteFormMs,1500,Form ms,0,2000,50,Death Nova — Visual,theme,,,,White-point birth flash + grow-in duration,ms: white-point birth flash + grow-in from a point to full scale
+novaBlastForce,30,Blast force,0,30,0.5,Death Nova — Behavior,gameplay,,,,Push strength on active points caught in the blast radius,push strength applied to active points caught in the blast radius
+novaDebrisGrace,1500,Debris grace,0,3000,100,Death Nova — Behavior,gameplay,,,,ms blast debris ignores freshly spawned nova-ring particles,ms: blast-ejected debris ignores freshly spawned nova-ring particles
+novaFreshGrace,1500,Ring grace,0,5000,100,Death Nova — Behavior,gameplay,,,,ms freshly spawned nova-ring particles are immune to ambient absorption,ms: freshly spawned nova-ring particles are immune to ambient absorption
+remSize,3,Diamond ◇,1,10,0.5,Remnant — Scale (gameplay: sets actual collision size),gameplay,,,,"Remnant diamond half-size (px) — this IS its collision radius, not just how it looks",
+pulseRateMult,1,Pulse rate ×,0.1,5,0.1,Remnant — Visual,theme,,,,Speed multiplier on the Pulsing Remnant's glow-pulse AND triangle-flip animation (they always stay in sync with each other),speed multiplier on the Pulsing Remnant's glow-pulse + triangle-flip animation
+remGlowR,4,Glow rad,0,20,1,Remnant — Visual,theme,,,,Remnant glow radius,
+remGlowA,0.3,Glow α,0,0.6,0.05,Remnant — Visual,theme,,,,Remnant glow alpha,
+dimGlowRMult,3,Dim glow radius ×,0,10,0.25,Remnant — Visual,theme,,,,"Dim Remnant glow radius, as a multiplier over the remnant's own current (mass-scaled) radius","Dim Remnant glow radius, as a multiplier over the remnant's OWN current (mass-scaled) radius, so a big Dim Remnant's glow actually grows with it instead of staying a fixed size"
+dimGlowA,0.6,Dim glow α,0,1,0.05,Remnant — Visual,theme,,,,Dim Remnant glow strength,(glow radius is dimGlowRMult below)
+dimGlowRed,255,Dim glow R,0,255,5,Remnant — Visual,theme,,,,Dim Remnant glow colour — red,(glow radius is dimGlowRMult below)
+dimGlowGreen,110,Dim glow G,0,255,5,Remnant — Visual,theme,,,,Dim Remnant glow colour — green,(glow radius is dimGlowRMult below)
+dimGlowBlue,40,Dim glow B,0,255,5,Remnant — Visual,theme,,,,Dim Remnant glow colour — blue,(glow radius is dimGlowRMult below)
+glowStretchAlpha,0.4,Glow α,0,1,0.05,Remnant — Visual,theme,,,,Strength of the moving/spinning-object glow (0 = off),moving/spinning objects: a subtle stretched glow at the object itself (NOT a trail) — strength · base size (×radius) · elongation per unit speed · elongation cap · extra puff per unit spin · slowest speed that still stretches
+glowStretchSize,2.4,Glow size,0.5,6,0.1,Remnant — Visual,theme,,,,"Base size of the glow, as a multiple of the object's own radius",moving/spinning objects: a subtle stretched glow at the object itself (NOT a trail) — strength · base size (×radius) · elongation per unit speed · elongation cap · extra puff per unit spin · slowest speed that still stretches
+glowStretchPerSpeed,0.35,Stretch/speed,0,2,0.02,Remnant — Visual,theme,,,,"How much the glow elongates along the heading, per unit of speed",moving/spinning objects: a subtle stretched glow at the object itself (NOT a trail) — strength · base size (×radius) · elongation per unit speed · elongation cap · extra puff per unit spin · slowest speed that still stretches
+glowStretchMax,0.7,Stretch cap,0,6,0.1,Remnant — Visual,theme,,,,Longest the glow can stretch (as extra multiples of its base size),moving/spinning objects: a subtle stretched glow at the object itself (NOT a trail) — strength · base size (×radius) · elongation per unit speed · elongation cap · extra puff per unit spin · slowest speed that still stretches
+glowStretchRotK,5.5,Spin puff,0,20,0.5,Remnant — Visual,theme,,,,How much extra the glow puffs out (widens) per unit of spin,moving/spinning objects: a subtle stretched glow at the object itself (NOT a trail) — strength · base size (×radius) · elongation per unit speed · elongation cap · extra puff per unit spin · slowest speed that still stretches
+glowStretchMinSpeed,0,Glow min v,0,0.5,0.01,Remnant — Visual,theme,,,,Slowest speed that still gets a stretched glow (spin alone can still trigger it),moving/spinning objects: a subtle stretched glow at the object itself (NOT a trail) — strength · base size (×radius) · elongation per unit speed · elongation cap · extra puff per unit spin · slowest speed that still stretches
+remAlpha,1,Core α,0,1,0.1,Remnant — Visual,theme,,,,Remnant core alpha,
+remBounceNovaThresh,2.5,Nova thresh,0,4,0.1,Exotic Remnant,gameplay,,,,"Combined motion score (each object's speed/maxSpeed + rot/maxRotSpeed fraction, summed across both — 0=both still, 4=both maxed) a Bright/Exotic remnant collision needs to break into a nova instead of just bouncing",combined motion score (0..4) needed for a Bright/Exotic remnant collision to nova instead of bounce
+remBounceSpinK,0.1,Bounce spin,0,0.1,0.001,Exotic Remnant,gameplay,,,,"How much rotation a Bright/Exotic remnant picks up from a bounce collision, per unit of tangential impact speed",rotation gained per unit of tangential bounce-impact speed
+statusEnergy,2,Status energy,0,20,0.5,Exotic Remnant,gameplay,,,,"Energy a Dim / Bright / relic (or exotic remnant) gains for each status an exotic remnant gives it (Enlarged, Shrunk, colour, pulse). x10 when collected",energy a remnant gains per status from exotic remnants · share of a Point's / pigment's mass and energy a remnant keeps
+activeStatusMax,4,Exotic status max,0,8,1,Exotic Remnant,gameplay,,,,"How many distinct statuses (Enlarged, Shrunk, each colour pair, each Pulsing beat) an exotic remnant can stack from the other active types",energy a remnant gains per status from exotic remnants · share of a Point's / pigment's mass and energy a remnant keeps
+remMassFrac,0.2,Remnant mass %,0,1,0.01,Exotic Remnant,gameplay,,,,Share of its mass (and colour mix) a remnant keeps when made from a Point or a failed collapse,energy a remnant gains per status from exotic remnants · share of a Point's / pigment's mass and energy a remnant keeps
+remEnergyFrac,0.2,Remnant energy %,0,1,0.01,Exotic Remnant,gameplay,,,,Share of its energy a remnant keeps when made from a Point or a failed collapse,energy a remnant gains per status from exotic remnants · share of a Point's / pigment's mass and energy a remnant keeps
+contactSpinK,0.35,Contact spin,0,1,0.01,Exotic Remnant,gameplay,,,,"Surface friction when objects touch: spin is slowed toward 0, or sped up / reversed, depending on the angle, speed and spin of what touched",how much of the tangential slip at a contact is turned into spin / sliding per frame (0 = frictionless)
+whirlLens,1.6,Depth pinch,0,2,0.1,Exotic Remnant,gameplay,,,,Dim DEPTH: inverted-lens pinch — everything inside is drawn smaller and thinner toward the centre until it is one tiny glowing point (0 = off),Dim DEPTH: how strongly it pinches what is inside toward its centre (an inverted lens: things shrink and thin out until they are one tiny glowing point); 0 = off
+whirlExp,5.5,Depth curve,1,8,0.5,Exotic Remnant,gameplay,,,,Dim DEPTH: how exponentially the pinch builds toward the centre (the rim stays flat),"Dim DEPTH: steepness of the pinch curve — 1 is gentle, higher keeps the rim flat and piles the pinch into the centre"
+whirlTwist,1.5,Depth twist,0,6,0.25,Exotic Remnant,gameplay,,,,Dim DEPTH: how far the picture is wound round at the centre (stretches things along the spiral),Dim DEPTH: radians the picture is wound round at the centre (the stretch of the spiral)
+dimWhirlR,120,Depth radius,20,400,5,Exotic Remnant,gameplay,,,,Dim item: radius of the stationary DEPTH it places,Dim item: radius (px) of the stationary WHIRL it holds open
+dimWhirlCost,1,Depth cost,1,1000,1,Exotic Remnant,gameplay,,,,Dim spent each interval while a DEPTH stands,Dim spent per interval while the WHIRL is held
+dimWhirlIntervalMs,400,Depth interval ms,1,5000,1,Exotic Remnant,gameplay,,,,How often the Dim cost is paid while a DEPTH stands,
+neutronBurstMass,700,Burst mass,20,20000,20,Exotic Remnant,gameplay,,,,The mass the Neutron burst stands for: it sets the burst radius and blast just as it does for a real nova (no nebula particles are made),the mass the Neutron burst stands for — it sets the burst radius and blast exactly as it does for a nova
+neutronBurstEnergy,0.34,Burst energy,0.01,5,0.01,Exotic Remnant,gameplay,,,,The energy the Neutron burst stands for,
+brightStasisR,90,Balance half-side,20,400,5,Exotic Remnant,gameplay,,,,Bright item: radius of the stationary BALANCE it places,Bright item: radius (px) of the stasis area held under the cursor
+brightStasisCost,50,Balance cost,1,1000,1,Exotic Remnant,gameplay,,,,Bright spent each interval while a BALANCE stands,Bright spent per interval while stasis is held
+brightStasisIntervalMs,50,Balance interval ms,1,5000,1,Exotic Remnant,gameplay,,,,How often the Neutron cost is paid while stasis is held,
+lightMergeGrow,0.01,Merged light size,0,0.3,0.01,Exotic Remnant,gameplay,,,,How much a merged light grows with the number of lights it stands for (0 = the size of one),"how much a merged light grows with how many it stands for (× log2 of the count, max ×3)"
+lightMergeGain,0.1,Merged light gain,0,1.5,0.05,Exotic Remnant,gameplay,,,,How much of the EXTRA radiance from the other lights in a merged group is added (a merged light is never dimmer than its brightest member; 1 = full accumulation),how much of the combined radiance a merged light keeps (1 = full accumulation)
+seedSpread,0.3,Seed spread,0,1,0.05,Exotic Remnant,gameplay,,,,"How far generated particles (starting world and nova regrowth) stray from their primary colour: 0 = exactly the primary, 1 = the whole colour range","how far generated particles may stray from their primary colour (0 = exactly the primary, 1 = the full colour range)"
+nebBlurScale,0.25,Halo cache scale,0.25,1,0.05,Exotic Remnant,gameplay,,,,The blurred nebula halos are cached at this fraction of full size; lower is faster,the blurred nebula halos are cached at this fraction of full size (lower = faster)
+glowResScale,0.15,Glow layer scale,0.15,1,0.05,Exotic Remnant,gameplay,,,,"The big soft effect-radius glows are drawn at this fraction of full size; lower is faster (they are smooth, so little is lost)",the big soft effect-radius glows are drawn at this fraction of full size (lower = faster)
+nebRefreshMs,33,Halo refresh ms,0,200,1,Exotic Remnant,gameplay,,,,Most often the blurred nebula halos are re-filtered while particles are changing (0 = every frame),the blurred halos are re-filtered at most this often while the nebula is changing
+particleLinger,0.35,Particle linger,0,0.8,0.05,Exotic Remnant,gameplay,,,,"How long (as a fraction of the wake-in) a waking particle stays fully visible while its point grows in from nothing, before it eases away",fraction of a waking particle's fade during which it stays fully visible while its point grows in
+dialShotSpins,2,String shot spins,0,8,0.5,Exotic Remnant,gameplay,,,,"String cursor: how many rapid counter-rotations its radar makes when it shoots (held fire x1.5, double-click x2.5)","String cursor: how many rapid counter-rotations its radar makes when it shoots (held ×1.5, double-click ×2.5)"
+telemetryR,180,Telemetry reach,60,500,10,Exotic Remnant,gameplay,,,,Telemetry mode labels the active points within this distance of the cursor,px: telemetry mode labels the points within this reach of the cursor
+perfLogSimMs,30,Perf log sim ms,4,100,1,Exotic Remnant,gameplay,,,,"Sim frames slower than this are logged in detail (phase timings, counts, events) for the performance log",sim frames slower than this are logged in detail for the performance log
+keySeqPosts,5,Key targets,0,8,1,Exotic Remnant,gameplay,,,,"Key sequence: how many targets make the pattern — Gate posts, or points of the key on the background. 0 = the Key simply turns as it used to","Key sequence: how many targets (Gate posts, or points of the key on the background) make the pattern; 0 = the Key just turns, as it used to"
+keySeqRounds,1,Key rounds,1,5,1,Exotic Remnant,gameplay,,,,Key sequence: how many full patterns must be played back correctly to unlock,Key sequence: how many full patterns must be played back to unlock
+keySeqStepMs,875,Key note gap ms,200,2000,25,Exotic Remnant,gameplay,,,,Key sequence: time between the demonstrated notes,Key sequence: time between demonstrated notes
+keySeqBgR,120,Key area radius,40,300,5,Exotic Remnant,gameplay,,,,Key sequence on the background: the radius the coloured targets are laid out within (a full Dark Remnant centre),Key sequence: radius (px) the background targets are laid out within (a full Dark Remnant centre)
+volKeySeq,1,Key sequence vol,0,3,0.05,Exotic Remnant,gameplay,,,"playXylo(2,1)",Key sequence: the demonstrated / played notes and the failure timpani,Key sequence notes + the failure timpani
+fadeBusyMs,1.5,Fade budget busy,0.5,10,0.5,Exotic Remnant,gameplay,,,,Fade budget ms while the simulation is running behind (Sim busy ms),…the same budget while the simulation is running behind (Sim busy ms)
+fadeBudgetMs,4,Fade budget ms,0,20,0.5,Exotic Remnant,gameplay,,,,"Fading, gliding and fading-in particles share this much time each frame (0 = unlimited). Fades not reached this frame keep their last look and are updated first next frame","ms: fades, glides and fade-ins share this much time per frame (0 = unlimited); any not reached keep their last look and go first next frame"
+maxDimFields,1,Max DEPTHS,1,20,1,Exotic Remnant,gameplay,,,,How many Dim DEPTHS can stand at once; the oldest is removed only when this is exceeded. A new one removes whatever it overlaps,how many Dim DEPTHS can stand at once (the oldest is removed only when this is exceeded)
+maxBrightFields,1,Max BALANCES,1,20,1,Exotic Remnant,gameplay,,,,How many Bright BALANCES can stand at once; the oldest is removed only when this is exceeded. A new one removes whatever it overlaps,how many Bright BALANCES can stand at once
+neutronItemBurstK,30,Item burst x mass,1,200,1,Exotic Remnant,gameplay,,,,Neutron item: an enlarged object bursts like a nova of this times its mass (kept between 10 and the Burst mass),Neutron item: an enlarged object bursts like a nova of this × its mass (kept between 10 and the Burst mass)
+rotSlew,0.006,Spin change rate,0.0005,0.05,0.0005,Exotic Remnant,gameplay,,,,"How fast a spin may change when it is set outright (collisions, Pulsing, Inertializer, String): it glides there instead of jumping between extremes","rad/frame² : how fast a rotation speed may change when it is SET (collisions, Pulsing, Inertializer, String) — it never jumps between extremes"
+timpTone,1.9,Timpani tone,0,2,0.05,Exotic Remnant,gameplay,,,"playTimpani(2,300,0.9)",Tonal overtones riding on the deep timpani fundamental (0 = the old flat thud),timpani: how much tonal overtone colour rides on top of the deep fundamental (0 = the old flat thud)
+conCloseSnapR,36,Close-snap radius,0,120,2,Exotic Remnant,gameplay,,,,"Near the first or previous node of a shape being drawn, the live edge runs straight to that node instead of handing off through the screen edge","px: near a node that would close a shape, the live edge runs straight to it (no screen hand-off)"
+conMinAngleDeg,20,Min leg angle °,0,60,1,Exotic Remnant,gameplay,,,,"A Pattern leg may not be drawn tighter than this angle (nor wider than 360 minus it) at the node it extends from; stops pinched, needle-thin shapes",a Pattern leg may not pinch to less than this angle (or more than 360 minus it) at the node it extends from
+prismMagHoldMs,3000,Mag prism hold ms,200,15000,100,Exotic Remnant,gameplay,,,,Prism started on a Magnetic remnant: how long each of its two Magnetic colours is applied,Prism whose first node is Magnetic: how long each stable Magnetic colour is applied
+prismMagTransMs,1000,Mag prism change ms,50,8000,50,Exotic Remnant,gameplay,,,,Prism started on a Magnetic remnant: how long the change between its colours lasts (the intermediary colour is applied meanwhile),…and how long the change through the intermediary colour takes (that colour is applied while it lasts)
+enrichGap,4,Enriched edge gap,0,16,0.5,Exotic Remnant,gameplay,,,,Gap between an enriched remnant and its outline at full size (about 30% of it at the smallest size); the outline also fades from 30% to ~90% opacity with size,px: gap between an ENRICHED remnant's body and its outline at full size (shrinks to ~30% at the smallest size)
+dynamismR,30,DYNAMISM radius,5,150,1,Exotic Remnant,gameplay,,,,DYNAMISM item: every point / particle inside this radius of the cursor is targeted,"px: DYNAMISM item reach — everything inside it is targeted (a plain click, a swipe, the first step of a press)"
+itemReactMs,700,Re-hit delay ms,0,3000,50,Exotic Remnant,gameplay,,,,Magnetic / Pulsing / Neutron (DYNAMISM) swipes: how long before an object that was already hit may be hit again,Magnetic / Pulsing swipes: an object may be hit again after this long
+novaScaleMix,1,Nova size mix,0,1,0.05,Exotic Remnant,gameplay,,,,"Heavy novas: how much nebula particle sizes vary (same total mass), so neighbouring particles are always a mix of scales",heavy novas: how much the particle sizes vary (same total mass) so neighbours are always a mix of scales (0 = all alike)
+nebSweepMs,0.4,Stain sweep ms,0,3,0.1,Exotic Remnant,gameplay,,,,"Time a frame spent repainting patches of the surface from the particles really there, so a partly erased particle never stays as a stain (0 = off)",ms a frame spent repainting patches of the nebula from the particles really there (clears stains; 0 = off)
+nebBlend,0.05,Particle blend,0,1,0.05,Exotic Remnant,gameplay,,,,"Overlapping nebula particles blend (lighten on the dark theme, darken when inverted) instead of the top one winning; 0 = old behaviour","overlapping nebula particles: 0 = the old winner-takes-all, 1 = fully blended (lighten on dark, darken on inverted)"
+hueRangeDeg,20,Colour range °,2,28,1,Exotic Remnant,gameplay,,,,Each effect colour only owns this many degrees of hue either side of its base colour; hues in the gaps are a dead zone that blends and shifts leap across,each effect colour only owns +/- this many degrees of hue; the gaps between are dead zones colours leap across
+bhWakeJitter,28,Spike jitter,0,80,1,Exotic Remnant,gameplay,,,,"Random extra length (px) past a Dark Remnant spike's max height, so they do not all cut off at the same height","px: random extra length past the Dark Remnant's max spike height, so spikes never all cut at the same height"
+glowTrailSpeedK,1.2,Trail @ max speed,0,4,0.05,Exotic Remnant,gameplay,,,,Length of the moving glow's tail (× glow radius) at max speed; it shrinks linearly to none as speed falls,trail length (× glow radius) at MAX speed; scales linearly down to none at rest
+glowTrailSpinK,0.5,Tail swing @ max spin,0,4,0.05,Exotic Remnant,gameplay,,,,How far the glow's tail swings out from the centre at max spin,"tail length (× glow radius) at MAX spin; the tail is turned by the object's own rotation, locked to it"
+lightMergeMin,8,Merge lights >,8,400,4,Exotic Remnant,gameplay,,,,Above this many lights the same-colour lights in an area are merged into one (accumulated radiance) to keep big novas at full frame rate,more lights than this on screen: lights of the same colour in the same area are merged into one
+lightMergeCell,100,Merge area,20,160,4,Exotic Remnant,gameplay,,,,Size in px of the area same-colour lights are merged within,size (px) of the area lights are merged within
+magBalanceLow,0.22,Mag bal low,0,0.5,0.01,Exotic Remnant,gameplay,,,,Color balance ≤ this = heavily-weighted -> Magnetic,"color-balance score at/below this = ""heavily weighted"" -> Magnetic"
+magBalanceHigh,0.85,Mag bal high,0.5,1,0.01,Exotic Remnant,gameplay,,,,Color balance ≥ this = nearly-perfect -> Magnetic,"color-balance score at/above this = ""nearly perfect"" -> Magnetic"
+pulseSumThresh,1.5,Pulse sum ≥,0,2,0.05,Exotic Remnant,gameplay,,,,"A Pulsing Remnant forms when the SUM of the inputs' speed and spin (each as a fraction of its max) reaches this. 1.5 = e.g. 75% + 75%; 1 = 100% + 0, 50% + 50%, 12% + 88%…; 2 = both maxed",a Pulsing Remnant forms when (faster input's speed ÷ Max speed) + (faster input's spin ÷ Max rot spd) reaches this (0–2)
+neutronEffRMax,75,Neutron R max,0,200,5,Exotic Remnant,gameplay,,,,"Neutron effect radius while in its ""max"" state","px: Neutron effect radius in its ""max"" state"
+neutronEffRMin,100,Neutron R min,0,100,5,Exotic Remnant,gameplay,,,,"Neutron effect radius while in its ""min"" state","px: Neutron effect radius in its ""min"" state"
+neutronCycleMs,3000,Neutron cycle ms,100,5000,50,Exotic Remnant,gameplay,,,,"How long Neutron holds each state (max/min) before flipping — this drives its actual effect-range switching, not just how it looks",ms: how long Neutron holds each state before flipping
+neutronTransMs,260,Neutron ease ms,0,2000,20,Exotic Remnant,gameplay,,,,"How long the smoothstep-eased ramp between Neutron's min/max state takes, right after each flip","ms: how long the eased ramp between Neutron's min/max state takes — smoothstep (fade()), the same interpolation metric used for every other radius/color transition in the game, not an instant snap"
+neutronBoostMult,2.5,Neutron boost,1,3,0.1,Exotic Remnant,gameplay,,,,"Caught points' radius/effect-range scale-up in Neutron's ""max"" state","points caught while Neutron is in ""max"" state have their own radius/effect-range scaled up by this"
+neutronShrinkMult,0.5,Neutron shrink,0,1,0.05,Exotic Remnant,gameplay,,,,"Caught points' radius/effect-range scale-down in Neutron's ""min"" state","points caught while Neutron is in ""min"" state have their own radius/effect-range scaled down by this"
+neutronSizeMaxMult,4,Neutron size max,1,4,0.1,Exotic Remnant,gameplay,,,,"Neutron's own icon size multiplier in ""max"" state","Neutron's own icon size multiplier while in ""max"" state"
+neutronSizeMinMult,0.3,Neutron size min,0.1,1,0.05,Exotic Remnant,gameplay,,,,"Neutron's own icon size multiplier in ""min"" state","Neutron's own icon size multiplier while in ""min"" state"
+magneticEffR,125,Magnetic R,0,200,5,Exotic Remnant,gameplay,,,,Magnetic Remnant effect radius,px: Magnetic Remnant's effect radius
+pulsingEffR,200,Pulsing R,0,200,5,Exotic Remnant,gameplay,,,,Pulsing Remnant effect radius (length of each of its two opposing arcs),px: Pulsing Remnant's effect radius (the arc's length)
+pulsingArcWidth,0,Pulsing arc,0,3.2,0.1,Exotic Remnant,gameplay,,,,Angular width (radians) of the Pulsing Remnant's narrow arc,radians: total angular width of the Pulsing Remnant's narrow arc
+prismRemnantAddFrac,0.5,Prism add frac,0,2,0.05,Exotic Remnant,gameplay,,,,"Neutron/Pulsing only: how much of the target's own total mass the Prism's colour adds in, as a fraction (added to the existing composition, not a replacement — Magnetic and plain Bright targets always fully replace)",Neutron/Pulsing only: fraction of the target's own total mass that the Prism's colour adds into the existing composition
+invMaxBright,9999999,Max Bright,0,9999999,1,Inventory,gameplay,,,,Purse cap for collected Bright remnants,
+invMaxDim,9999999,Max Dim,0,9999999,1,Inventory,gameplay,,,,Purse cap for collected Dim remnants,
+invMaxDial,99,Max String,0,99,1,Inventory,gameplay,,,,Purse cap for collected Strings,
+invMaxLeash,10,Max Spindle,0,99,1,Inventory,gameplay,,,,Purse cap for collected Spindles,
+invMaxLens,5,Max Lens,0,99,1,Inventory,gameplay,,,,Purse cap for collected Lenses,
+invMaxPrism,5,Max Prism,0,99,1,Inventory,gameplay,,,,Purse cap for collected Prisms,
+invMaxGate,5,Max Gate,0,99,1,Inventory,gameplay,,,,Purse cap for collected Gates,
+invMaxNeutron,9999,Max Neutron,0,9999,1,Inventory,gameplay,,,,Purse cap for collected Neutron remnants,
+invMaxMagnetic,9999,Max Magnetic,0,9999,1,Inventory,gameplay,,,,Purse cap for collected Magnetic remnants,
+invMaxPulsing,9999,Max Pulsing,0,9999,1,Inventory,gameplay,,,,Purse cap for collected Pulsing remnants,
+knotFadeMs,600,Knot fade ms,100,4000,100,Inventory,gameplay,,,,How long a point removed by a Knot takes to fade out,ms: how long a Knot-removed point takes to fade out
+invMaxKnot,5,Max Knot,0,99,1,Inventory,gameplay,,,,Purse cap for collected Knots,
+invMaxKey,5,Max Key,0,99,1,Inventory,gameplay,,,,Purse cap for collected Keys,
+orbitsPerDial,3,Orbits/Spindle,1,100,1,Inventory,gameplay,,,,Full orbits of one white point around another needed to earn 1 Spindle,full orbits of one white point around another needed to earn 1 String
+orbitDistTolerance,0.1,Orbit range,0.05,4,0.05,Inventory,gameplay,,,,"How much the orbit radius may drift (fraction of the radius) and still count as orbiting — raise it to accept wider, looser orbits","fraction the orbit radius may drift by frame-to-frame and still count as ""orbiting"""
+flockSecondsPerLeash,3,String seconds,1,60,1,Inventory,gameplay,,,,"Seconds a trailing point must follow a leading one (same speed and spin, steady distance) to earn 1 String",continuous seconds a flock must hold together to earn 1 Spindle
+flockRadius,200,String range,20,800,10,Inventory,gameplay,,,,Farthest a leasher can be from the point it leashes to,px: radius of the circular range every flock member must sit inside (measured from the flock's centre)
+leashAheadAngle,1.05,String ahead ∠,0.2,1.57,0.05,Inventory,gameplay,,,,"How far off its heading the leashed point may sit and still count as ""ahead"" of the trailing point",leash candidate indicator delay / fade-in · how far off a point's heading its target may sit · how much the following distance may vary
+leashDistTol,0.1,String dist tol,0.02,1,0.02,Inventory,gameplay,,,,How much the following distance may vary (fraction) before the leash timer restarts,leash candidate indicator delay / fade-in · how far off a point's heading its target may sit · how much the following distance may vary
+leashShowDelayMs,1000,String show ms,0,5000,100,Inventory,gameplay,,,,How long a leash candidate must have been holding before its indicator starts to appear,leash candidate indicator delay / fade-in · how far off a point's heading its target may sit · how much the following distance may vary
+leashFadeInMs,100,String fade ms,0,5000,100,Inventory,gameplay,,,,How long the leash indicator takes to fade in once it starts to appear,leash candidate indicator delay / fade-in · how far off a point's heading its target may sit · how much the following distance may vary
+invMaxWeave,10,Max Weave,0,99,1,Inventory,gameplay,,,,Purse cap for collected Weaves,
+stringHomeR,60,String homing R,0,300,5,Inventory,gameplay,,,,String shots lock onto the nearest object within this distance of where they were aimed and keep following it (0 = off),Spindle unwind: mass per tick · ms per tick · widest spread · ms still to reach it
+unwindPct,5,Unwind % per tick,0.5,50,0.5,Inventory,gameplay,,,,Spindle: share of its starting mass a Point / Pigment gives back each tick — every size unwinds in the same time (100 ÷ % ticks × tick ms),Spindle unwind: mass per tick · ms per tick · widest spread · ms still to reach it
+unwindMs,200,Unwind tick ms,1,1000,1,Inventory,gameplay,,,,Spindle: ms per unwind tick,Spindle unwind: mass per tick · ms per tick · widest spread · ms still to reach it
+unwindMaxWidth,60,Unwind width,0,300,5,Inventory,gameplay,,,,Spindle: widest spread of the new particles around a target that stays still,Spindle unwind: mass per tick · ms per tick · widest spread · ms still to reach it
+unwindGrowMs,3000,Unwind widen ms,100,20000,100,Inventory,gameplay,,,,Spindle: how long a still target takes to reach full width (moving ones leave a narrow line),Spindle unwind: mass per tick · ms per tick · widest spread · ms still to reach it
+weaveRadius,120,Weave radius,30,500,5,Inventory,gameplay,,,,Points this close together can be woven,Spindle unwind: mass per tick · ms per tick · widest spread · ms still to reach it
+weaveMinPoints,5,Weave points,5,12,1,Inventory,gameplay,,,,Exactly this many points make a Weave (5 = a pentagram),Spindle unwind: mass per tick · ms per tick · widest spread · ms still to reach it
+weaveSeconds,3,Weave seconds,1,60,1,Inventory,gameplay,,,,Seconds the group must hold to earn 1 Weave,Spindle unwind: mass per tick · ms per tick · widest spread · ms still to reach it
+weaveStarMs,1500,Weave star ms,300,8000,100,Inventory,gameplay,,,,How long the star between the points stays drawn,Spindle unwind: mass per tick · ms per tick · widest spread · ms still to reach it
+minPointDist,14,Min point gap,0,80,1,Inventory,gameplay,,,,"Universal: points closer than this do not count for String orbits, Spindle leashes or Weave groups",Spindle unwind: mass per tick · ms per tick · widest spread · ms still to reach it
+patternCost,1,Pattern cost,0,50,1,Inventory,gameplay,,,,How many Prisms / Knots a held Pattern spends each interval (1 more was spent to place it); out of them and it breaks. Lenses and Gates are stable,Spindle unwind: mass per tick · ms per tick · widest spread · ms still to reach it
+patternMs,5000,Pattern interval ms,500,30000,100,Inventory,gameplay,,,,How often a Pattern pays its Weave cost,Spindle unwind: mass per tick · ms per tick · widest spread · ms still to reach it
+flockSpeedTol,0.05,String speed tol,0.05,1,0.05,Inventory,gameplay,,,,Allowed fractional speed difference between a leasher and the point it leashes to,fractional speed difference allowed between neighbouring flock members
+flockRotTol,0.05,String spin tol,0,1,0.05,Inventory,gameplay,,,,Allowed spin difference (fraction of Max rot spd) between a leasher and the point it leashes to,fraction of Max rot spd that neighbouring members' rotation may differ by
+blackBatch,20,DR batch,1,200,1,Dark Remnant — Behavior,gameplay,,,,Dark Remnant draw-in launches random batches of about this many of the nearest objects (1 = strictly one at a time),Dark Remnant draw-in: launch in random batches of about this many of the closest objects (1 = one at a time)
+blackLaunchPerMs,1,DR launch /ms,0.05,20,0.05,Dark Remnant — Behavior,gameplay,,,,"Objects launched into the Dark Remnant per millisecond, nearest first","Dark Remnant draw-in: objects launched at the void per ms, nearest first"
+blackFlySpeed,20,DR fly speed,1,60,1,Dark Remnant — Behavior,gameplay,,,,Speed of an object launched into the Dark Remnant,px per step a launched object travels toward the void
+blackSpeed,10,Expand spd,1,10,0.5,Dark Remnant — Behavior,gameplay,,,,Radius expansion px/frame,
+blackMaxActive,250,Max drawn-in,10,2000,10,Dark Remnant — Behavior,gameplay,,,,"Caps how many dormant particles the Dark Remnant pulls into play at once during the draw-in/consume phase. Once that many are active, another is only drawn in once one of the current ones has actually been consumed — a straight 1-out-1-in swap, not the whole remaining field flooding in at once.",cap on simultaneously-drawn-in points during the Dark Remnant's active/consume phase — refilled 1-for-1 as each is consumed
+blackMult,21,Mass ×,1,500,1,Dark Remnant — Behavior,gameplay,,,,Threshold = maxRadiusMass × this,
+blackGrowMs,1500,Grow ms,0,3000,100,Dark Remnant — Behavior,gameplay,,,,Point -> full scale duration before it starts affecting the scene,ms: single point -> derived full scale before it starts affecting the scene
+bhThemeFlashMs,380,Theme flash ms,0,2000,50,Dark Remnant — Behavior,gameplay,,,,Dark→light theme-shift flash once the darkness fully covers the screen and starts drawing everything in,ms: the dark→light theme-shift flash once the darkness finishes covering the screen and the draw-in wave begins
+bhBlurWide,1,Blur wide,0,24,1,Dark Remnant — Glow,theme,,,,Wide glow blur radius on the black remnant (px),wide blur (px) — matches nebBlur by default so it blends like the nebula
+bhBlurMid,2,Blur mid,0,12,1,Dark Remnant — Glow,theme,,,,Mid blur radius on the black remnant (px),mid blur (px) — matches nebBlur2 by default
+bhAlphaWide,0.45,α wide,0,1,0.05,Dark Remnant — Glow,theme,,,,Wide glow pass alpha on the black remnant,wide pass alpha — matches nebAlpha1 by default
+bhAlphaMid,0.8,α mid,0,1,0.05,Dark Remnant — Glow,theme,,,,Mid pass alpha on the black remnant,mid pass alpha — matches nebAlpha2 by default
+bhRingWidth,22,Ring width,0,30,1,Dark Remnant — Glow,theme,,,,Width of the edge glow ring around the void (px),px: width of the edge glow ring around the void (extends both inward and outward from the radius)
+bhImpactMs,250,Impact ms,50,1500,50,Dark Remnant — Glow,theme,,,,Lifetime of a per-point consumption impact flash,ms: lifetime of a per-point consumption impact flash
+bhImpactSize,1,Impact size,0,8,0.1,Dark Remnant — Glow,theme,,,,Radius multiplier (over sqrt(mass)) for a consumption impact flash,radius multiplier (over sqrt(mass)) for a consumption impact flash
+bhImpactMin,1.1,Impact min,0,10,0.1,Dark Remnant — Glow,theme,,,,"Floor size (px) for a consumption impact flash, independent of mass","px: floor size for a consumption impact flash, independent of the mass multiplier above — the two together give finer control over the impact radius than one knob alone"
+bhImpactBlur,3,Impact blur,0,12,1,Dark Remnant — Glow,theme,,,,"Extra soft blur on each impact flash, for a consistently soft round burst","px: extra soft blur applied to each impact flash itself, on top of the shared wake-canvas blur passes"
+bhRingBeatMs,1600,Beat ms,200,3000,50,Dark Remnant — Glow,theme,,,,Duration of one heartbeat cycle for the edge glow,ms: duration of one heartbeat cycle
+bhRingPulseAmt,0.1,Beat swell,0,1.5,0.05,Dark Remnant — Glow,theme,,,,How much the heartbeat swells the edge glow's width/brightness,0..1+: how much the heartbeat swells the edge glow's width/brightness
+bhRingSwayR,4,Sway radius,0,40,1,Dark Remnant — Glow,theme,,,,Amplitude (px) of the edge glow's drift around the void center,px: amplitude of the glow's drift around the center
+bhRingSwaySpeed,0.2,Sway speed,0,3,0.05,Dark Remnant — Glow,theme,,,,Angular speed of the glow's sway,angular speed of the sway (rad/s-ish)
+bhRing2Width,12,Ring width,0,30,1,Dark Remnant Ring 2,theme,,,,Width of the second glow ring around the void (px),
+bhRing2BlurWide,1,Blur wide,0,24,1,Dark Remnant Ring 2,theme,,,,Wide blur radius on the second ring (px),
+bhRing2BlurMid,1,Blur mid,0,12,1,Dark Remnant Ring 2,theme,,,,Mid blur radius on the second ring (px),
+bhRing2AlphaWide,0.2,α wide,0,1,0.05,Dark Remnant Ring 2,theme,,,,Wide pass alpha on the second ring,
+bhRing2AlphaMid,0.3,α mid,0,1,0.05,Dark Remnant Ring 2,theme,,,,Mid pass alpha on the second ring,
+bhRing2BeatMs,900,Beat ms,200,3000,50,Dark Remnant Ring 2,theme,,,,Duration of one heartbeat cycle for the second ring,
+bhRing2PulseAmt,0.35,Beat swell,0,1.5,0.05,Dark Remnant Ring 2,theme,,,,How much the heartbeat swells the second ring's width/brightness,
+bhRing2SwayR,4,Sway radius,0,40,1,Dark Remnant Ring 2,theme,,,,Amplitude (px) of the second ring's drift around the void center,
+bhRing2SwaySpeed,0.25,Sway speed,0,3,0.05,Dark Remnant Ring 2,theme,,,,Angular speed of the second ring's sway,
+wakeShow,0.01,Show spd,0,0.5,0.01,Wake,theme,,,,Min velocity threshold,
+wakeMaxA,0.35,Max α,0,1,0.05,Wake,theme,,,,Peak opacity (scaled by particle energy),
+wakeHold,10,Hold,1,30,1,Wake,theme,,,,Frames wake persists after last particle,
+wakeShrinkRate,2,Release ease,0,10,0.2,Wake,theme,,,,Per-frame shrink of effective range back to passive after releasing a click,per-frame shrink of a white's effective range back toward passive after releasing a click
+wakeLenMin,0.3,Len min,0,2,0.05,Wake,theme,,,,Length at min speed,
+wakeWidMin,0.3,Wid min,0,4,0.05,Wake,theme,,,,Width at min speed,
+wakeCrvMin,2,Crv min,0,8,0.1,Wake,theme,,,,Curve at min speed,
+wakeOffMin,-1,Off min,-4,4,0.1,Wake,theme,,,,Offset at min speed,
+wakeLenMax,0.8,Len max,0,3,0.05,Wake,theme,,,,Length at max speed,
+wakeWidMax,1,Wid max,0,6,0.05,Wake,theme,,,,Width at max speed,
+wakeCrvMax,5,Crv max,0,10,0.1,Wake,theme,,,,Curve at max speed,
+wakeOffMax,-2,Off max,-6,4,0.1,Wake,theme,,,,Offset at max speed,
+sizeVarPct,0.05,Size variation,0,0.2,0.01,"Enhancements — scale, fields, straightening",gameplay,,,,Each pigment / Point gets a size within +/- this fraction of its mass-derived size (two-decimal steps),
+remEnScaleMin,0.8,Rem scale @0 E,0.2,2,0.05,"Enhancements — scale, fields, straightening",gameplay,,,,Remnant base size multiplier at zero energy (Dim remnants excluded; Dark Remnant included),
+remEnScaleMax,1.6,Rem scale @max E,0.2,4,0.05,"Enhancements — scale, fields, straightening",gameplay,,,,Remnant base size multiplier at the energy below,
+remEnScaleE,5,Rem scale energy,0.1,20,0.1,"Enhancements — scale, fields, straightening",gameplay,,,,Energy at which a remnant reaches its max size multiplier,
+bhWakeMinVar,0.3,DR min spike var,0,0.9,0.05,"Enhancements — scale, fields, straightening",gameplay,,,,Dark Remnant spikes shorter than the max height vary by +/- this fraction,
+kStraighten,6,THROW/CATCH straighten,0,20,0.5,"Enhancements — scale, fields, straightening",gameplay,,,,How fast THROW / CATCH cancel sideways drift and spin so targets travel straight in or out,
+dimWhirlRMin,30,Depth min radius,5,400,5,"Enhancements — scale, fields, straightening",gameplay,,,,DEPTH radius from the lightest Dim remnant (the heaviest gives Depth radius),
+brightStasisRMin,30,Balance min half-side,5,400,5,"Enhancements — scale, fields, straightening",gameplay,,,,BALANCE size from the lightest Bright remnant (the heaviest gives Balance half-side),
+fieldGrowMs,600,Field grow ms,0,3000,50,"Enhancements — scale, fields, straightening",gameplay,,,,How long the consumed remnant takes to grow into its DEPTH / BALANCE,
+globeRPerSpeed,60,Globe px per speed,10,150,5,"Enhancements — scale, fields, straightening",gameplay,,,,String globe radius = the pair speed x this,
+globeRMin,40,Globe min radius,20,200,5,"Enhancements — scale, fields, straightening",gameplay,,,,Smallest String globe,
+globeRMax,220,Globe max radius,60,400,5,"Enhancements — scale, fields, straightening",gameplay,,,,Largest String globe,
+glissVol,0.75,Synth gliss vol,0,3,0.05,Glissando (Gate restore),sounds,,,"playSynthGliss(true,1)",Volume of the synth glissando played with the chimes (0 = off),synth glissando + how metallic the bar chimes are
+glissWave,sawtooth,Synth waveform,,,,Glissando (Gate restore),sounds,select,sawtooth|square|triangle|sine|scale up|scale down,"playSynthGliss(true,1)",Oscillator timbre of the synth glissando; scale up / scale down play a pure single-direction sine scale,synth glissando + how metallic the bar chimes are
+glissNotes,13,Synth notes,2,40,1,Glissando (Gate restore),sounds,,,"playSynthGliss(true,1)",Notes in the synth glissando,synth glissando + how metallic the bar chimes are
+glissGapMs,59,Synth gap ms,5,200,1,Glissando (Gate restore),sounds,,,"playSynthGliss(true,1)",Time between synth glissando notes,synth glissando + how metallic the bar chimes are
+glissLingerMs,560,Synth linger ms,0,2000,10,Glissando (Gate restore),sounds,,,"playSynthGliss(true,1)",How long each synth note keeps ringing after the next begins,synth glissando + how metallic the bar chimes are
+glissChimeHits,23,Chime hits,4,80,1,Glissando (Gate restore),sounds,,,playGateRestoreChimes(),Bar-chime strikes in the glissando,synth glissando + how metallic the bar chimes are
+glissSpanMs,825,Chime span ms,200,2500,25,Glissando (Gate restore),sounds,,,playGateRestoreChimes(),How long the chime run takes,synth glissando + how metallic the bar chimes are
+glissClang,0.25,Chime clang,0,1,0.05,Glissando (Gate restore),sounds,,,playGateRestoreChimes(),"0 = harmonised, smoothly vibrating metals; 1 = the old metal-on-metal clang (overtone spread + strike tick)",synth glissando + how metallic the bar chimes are
+volDimPlace,0.09,Place vol,0,0.3,0.005,Remnant Place / Pickup — Dim (Tuba),sounds,,,"playDimRemnantSound(TEST_P,true,1)",Volume when a Dim Remnant is dropped/placed,
+volDimPickup,0.125,Pickup vol,0,0.3,0.005,Remnant Place / Pickup — Dim (Tuba),sounds,,,"playDimRemnantSound(TEST_P,false,1)",Volume when a Dim Remnant is collected,
+dynDimPlace,0.08,Place dynamism,0,1,0.02,Remnant Place / Pickup — Dim (Tuba),sounds,,,"playDimRemnantSound(TEST_P,true,1)",Wobble/LFO depth on the place sound,
+dynDimPickup,1,Pickup dynamism,0,1,0.02,Remnant Place / Pickup — Dim (Tuba),sounds,,,"playDimRemnantSound(TEST_P,false,1)",Wobble/LFO depth on the pickup sound,
+sndDimWave,sawtooth,Waveform,,,,Remnant Place / Pickup — Dim (Tuba),sounds,select,sawtooth|square|triangle|sine,"playDimRemnantSound(TEST_P,true,1)",Oscillator timbre for the Dim Remnant tuba tone,
+volBrightPlace,0.165,Place vol (high),0,0.3,0.005,Remnant Place / Pickup — Bright (Chime),sounds,,,"playBrightRemnantSound(TEST_P,true,1)",Volume of the high chime note when a Bright remnant is placed,
+volBrightPickup,0.16,Pickup vol (low),0,0.3,0.005,Remnant Place / Pickup — Bright (Chime),sounds,,,"playBrightRemnantSound(TEST_P,false,1)",Volume of the low chime note when a Bright remnant is picked up,
+volNeutronPlace,0.05,Place vol,0,0.3,0.005,Remnant Place / Pickup — Neutron (Triangle),sounds,,,"playNeutronRemnantSound(TEST_P,true,1)",Volume when a Neutron Remnant is placed (swells soft→loud),
+volNeutronPickup,0.13,Pickup vol,0,0.3,0.005,Remnant Place / Pickup — Neutron (Triangle),sounds,,,"playNeutronRemnantSound(TEST_P,false,1)",Volume when a Neutron Remnant is picked up (falls loud→soft),
+dynNeutronPlace,0.28,Place dynamism,0,1,0.02,Remnant Place / Pickup — Neutron (Triangle),sounds,,,"playNeutronRemnantSound(TEST_P,true,1)",Wobble/LFO depth on the place sound,
+dynNeutronPickup,0.44,Pickup dynamism,0,1,0.02,Remnant Place / Pickup — Neutron (Triangle),sounds,,,"playNeutronRemnantSound(TEST_P,false,1)",Wobble/LFO depth on the pickup sound,
+volMagPlace,0.08,Place vol (high range),0,0.3,0.005,Remnant Place / Pickup — Magnetic (Two Notes),sounds,,,"playMagneticRemnantSound(TEST_P,true,1)",Volume of the two-colour chord when placed,
+volMagPickup,0.195,Pickup vol (low range),0,0.3,0.005,Remnant Place / Pickup — Magnetic (Two Notes),sounds,,,"playMagneticRemnantSound(TEST_P,false,1)",Volume of the two-colour chord when picked up,
+dynMagPlace,0.08,Place dynamism,0,1,0.02,Remnant Place / Pickup — Magnetic (Two Notes),sounds,,,"playMagneticRemnantSound(TEST_P,true,1)",Wobble/LFO depth on the place sound,
+dynMagPickup,1,Pickup dynamism,0,1,0.02,Remnant Place / Pickup — Magnetic (Two Notes),sounds,,,"playMagneticRemnantSound(TEST_P,false,1)",Wobble/LFO depth on the pickup sound,
+sndMagWave,triangle,Waveform,,,,Remnant Place / Pickup — Magnetic (Two Notes),sounds,select,triangle|sine|sawtooth|square,"playMagneticRemnantSound(TEST_P,true,1)",Oscillator timbre for the Magnetic Remnant's two notes,
+volPulsePlace,0.145,"Place vol (high, echo)",0,0.3,0.005,Remnant Place / Pickup — Pulsing (Echo),sounds,,,"playPulsingRemnantSound(TEST_P,true,1)",Volume of the first tap when placed,
+volPulsePickup,0.3,"Pickup vol (low, echo)",0,0.3,0.005,Remnant Place / Pickup — Pulsing (Echo),sounds,,,"playPulsingRemnantSound(TEST_P,false,1)",Volume of the first tap when picked up,
+volCollisionBounce,0.125,Bounce vol,0,0.3,0.005,Remnant Collisions,sounds,,,"{if(!canPlay())return;reserveVoice();const now=audioCtx.currentTime;const vol=T.volCollisionBounce;const freq=noteFreq(1,0.85);const dur=0.35+durJitter();
+      const o=audioCtx.createOscillator();o.type='triangle';o.frequency.value=freq;const g=audioCtx.createGain();g.gain.value=0;o.connect(g);g.connect(masterGain);
+      g.gain.setValueAtTime(0,now);g.gain.linearRampToValueAtTime(vol,now+0.01);g.gain.exponentialRampToValueAtTime(0.0001,now+dur);o.start(now);o.stop(now+dur+0.05);releaseVoiceOn(o,g);}",Base volume of a Bright/Exotic remnant bounce collision — actual volume is scaled DOWN further for a slower/gentler hit,
+volActivate,1,Shine,0,3,0.05,Point Activation / Deactivation (Violin),sounds,,,"playViolin(1,40,true)",A point's own chord when clicked/activated,playViolin(up=true)   — a point is activated (clicked on)
+volDeactivate,1,Stop shining,0,3,0.05,Point Activation / Deactivation (Violin),sounds,,,"playViolin(1,40,false)",A point's own chord when released/deactivated,playViolin(up=false)  — a point is deactivated (released)
+volFluteMerge,0.3,Merge vol,0,3,0.05,Pigment Point Merging (Flute),sounds,,,"playFlute(1,40)","A Pigment merges with / consumes another point, remnant or particle",playFlute             — a Pigment merges with / consumes another
+volPointDeathTimpani,3,Death vol,0,3,0.05,Ordinary Point Death (Timpani),sounds,,,"playTimpani(1,40,0.65)",A non-Point quietly fades out at the end of its lifespan (not a Dark Remnant hit),playTimpani — an ordinary (non-Bright) point fades out at end of life
+volHornBirth,1,Birth (proud),0,3,0.05,Bright Point Lifecycle (French Horn),sounds,,,"playFrenchHorn(1,40,'proud')",A Point forms (collapses from a Pigment),playFrenchHorn('proud')      — a Point forms (collapses)
+volHornDeath,1,Death (somber),0,3,0.05,Bright Point Lifecycle (French Horn),sounds,,,"playFrenchHorn(1,40,'somber')",A Point dies into its nova at end of life,playFrenchHorn('somber')     — a Point dies into its nova
+volHornConsume,1,Consume (loud),0,3,0.05,Bright Point Lifecycle (French Horn),sounds,,,"playFrenchHorn(1,40,'consumeLoud')",A Point consumes another Point in a collision,playFrenchHorn('consumeLoud')— a Point consumes another Point
+volTubaFormation,0.5,Formation vol,0,3,0.05,Dim Remnant Formation / Merge (Tuba),sounds,,,"playTubaBlast(40,1,1)",A Dim Remnant forms,playTubaBlast — a Dim remnant forms
+volTubaMerge,0.6,Merge vol,0,3,0.05,Dim Remnant Formation / Merge (Tuba),sounds,,,"playTubaBlast(60,2,1)",Two Dim Remnants merge into one,playTubaBlast — two Dim remnants merge
+volCymbal,0,Crash vol,0,3,0.05,Bright Remnant Nova Collision (Cymbal),sounds,,,"playCymbalCrash(50,1)",A collision between Bright/Exotic remnants violent enough to trigger a nova,playCymbalCrash — a nova-triggering collision between Bright/Exotic remnants
+volDialUse,1,Use vol,0,3,0.05,Item Usage — String (Clarinet),sounds,,,"playClarinet(1,40,1)",The String is used on a point,playClarinet — the String is used on a point
+volPrismUse,1,Use vol,0,3,0.05,Item Usage — Prism (Clarinet),sounds,,,"playClarinet(2,40,1)",The Prism is used on a point/remnant (any of its three recolor modes),playClarinet — the Prism is used on a point
+volKnotUse,1,Use vol,0,3,0.05,Item Usage — Knot (Clarinet),sounds,,,"playClarinet(3,40,1)",The Knot is used on a Point (consumes everything in its radius),playClarinet — the Knot is used on a Point (radius consume)
+volGatePost,1.95,Gate post vol,0,3,0.05,Item Usage — Key (Timpani),sounds,,,"playTimpani(2,300,0.9)",Clicking a Gate post,playTimpani — a Gate post is clicked
+volKeyUse,3,Use vol,0,3,0.05,Item Usage — Key (Timpani),sounds,,,"playTimpani(4,300,0.9)","The Key is used, turning the lock",playTimpani — the Key is used (turns the lock)
+volItemSelect,3,Select vol,0,3,0.05,Item Select (Timpani),sounds,,,playItemSelectSound(),An inventory item is selected/armed — dock icon click or mid-mouse-button cycling,playTimpani — an inventory item is selected/armed (icon click or mid-mouse cycle)
+conChimeStaggerMs,90,Chime gap ms,0,400,10,Pattern Building (Triangle),sounds,,,,Delay between the triangle chimes of a completed Pattern's points (0 = all at once),
+volChainStep,1.4,Chain-step vol,0,3,0.05,Pattern Building (Triangle),sounds,,,"playTriangleNote(1,0,false,0,T.volChainStep*0.04)",Each point clicked onto a Spindle/Knot chain-in-progress (before it's submitted),playTriangleNote — each point clicked onto a Spindle/Knot chain-in-progress
+volChainBreak,1,Chain break vol,0,3,0.05,Pattern Building (Triangle),sounds,,,"playClarinet(1,40,T.volChainBreak)",A clarinet note when a Prism / Knot / Spindle connection breaks,playClarinet — a Prism / Knot / Spindle connection breaks
+volKnotResolve,0.1,Knot resolve vol,0,3,0.05,Pattern Building (Triangle),sounds,,,"playTriangleNote(1,0,false,0,T.volKnotResolve)",A Knot loop resolves — everything inside it becomes Dim Remnants,playTriangleNote — a Knot loop resolves (everything inside dimmed)
+volConstellationScore,0.1,Pattern scored vol,0,3,0.05,Pattern Building (Triangle),sounds,,,"{playTriangleNote(1,0,false,0,T.volConstellationScore);playTriangleNote(1,1,true,0.09,T.volConstellationScore);}",A Spindle-mode Pattern is completed and scores a Gate/Prism/Knot/Key,playTriangleNote — a Spindle-mode Pattern is scored (Gate/Prism/Knot/Key earned)
+volAchieveDial,0.6,Spindle achieved,0,3,0.05,Achievements (Triangle scale),sounds,,,"playAchievementScale(1,T.volAchieveDial)",A Spindle is earned by completing enough orbits,playAchievementScale — a String is earned (orbit held long enough)
+volAchieveLeash,0.55,String achieved,0,3,0.05,Achievements (Triangle scale),sounds,,,"playAchievementScale(3,T.volAchieveLeash)",A String is earned by chasing (or a globe lap),playAchievementScale — a Spindle is earned (flock held long enough)
+volGateChimes,0.7,Restore chimes,0,3,0.05,Gate Restore (Bar Chimes),sounds,,,playGateRestoreChimes(),The ascending glissando + resolving chord when a Gate restores something,playGateRestoreChimes
+volNovaChime,0.55,Nova chime cluster,0,3,0.05,Nova Formation (Bar Chimes),sounds,,,"playNovaChime([{w:1,hue:1/6}],40,60)",The dense ascending bar-chime cluster on a Bright/Exotic remnant nova,playNovaChime — the ascending cluster on a Bright/Exotic nova
+volConsume,3,Consume (Timpani),0,3,0.05,Dark Remnant,sounds,,,"playTimpani(1,40,1.5*T.volConsume)",Each individual point being consumed once the Dark Remnant is drawing everything in,playTimpani — each individual point being consumed by the Dark Remnant
+volFinale,1.65,Finale (whole orchestra),0,3,0.05,Dark Remnant,sounds,,,"playOrchestraFinale(50,50)",The whole opening stab + long sustained chord when the Dark Remnant first appears,"playOrchestraFinale as a whole (stab + long chord), when the Dark Remnant first appears"
+dilMin,0.05,Dilation min nova,0,0.5,0.01,Time dilation & Risks,gameplay,,,,Game-speed reduction of the smallest nova (0.05 = x0.95),
+dilMax,0.5,Dilation max nova,0,0.9,0.01,Time dilation & Risks,gameplay,,,,Game-speed reduction of a max-scale nova; scales linearly between min and max,
+dilFloor,0.25,Dilation floor,0.05,1,0.05,Time dilation & Risks,gameplay,,,,Stacked novas never slow the game below this speed (0.25 = at most 75% slow),
+dilFadeMs,250,Dilation release ms,0,1500,50,Time dilation & Risks,gameplay,,,,"Once a nova's timer (Nova fresh grace) has passed, its slow eases out over this long (game time)",
+riskWarnMass,68000,Risk WARNING mass,1,5000,10,Time dilation & Risks,gameplay,,,,Points above this mass show a blinking WARNING (default: half the Dark Remnant formation mass),
+riskDangerMass,136000,Risk DANGER mass,1,400000,100,Time dilation & Risks,gameplay,,,,Points above this mass show DANGER,
+cacheKeyR,16,Cache keyhole pane R,6,40,1,Time dilation & Risks,gameplay,,,,Radius of the central keyhole glass pane of a Cache,
+masterVol,0.7,Master volume,0,1,0.05,Master volume,sounds,,,,Overall volume (also in the Esc menu),
+duckChance,0.25,Duck chance,0,1,0.01,Ducks,gameplay,,,,Chance a Dark Remnant comes out as a duck instead (the surface then carries on),
+duckExoticChance,0.2,Exotic chance,0,1,0.01,Ducks,gameplay,,,,"Chance a duck is an exotic (one colour, size or material change)",
+duckSunA,1,Duck time-of-day light,0,1,0.05,Ducks,gameplay,,,,"How much the time of day lights the ducks: the moon overhead at midnight, the sun rising cool to warm, white at noon, setting warm, back to moonlight (0 = always noon)",
+duckLuckStep,0.01,Duck luck per miss,0,0.2,0.005,Ducks,gameplay,,,,"Added to Duck chance for every Dark Remnant that was not a duck, and to Exotic chance for every duck that was classic; back to the base on a hit (game data: carried from surface to surface and day to day)",
+duckRareChance,0.03,Rare exotic chance,0,1,0.005,Ducks,gameplay,,,,"Chance a duck is a rare exotic: Rainbow, Big Head or Gold",
+duckMidChance,0.06,Mid exotic chance,0,1,0.005,Ducks,gameplay,,,,"Chance a duck is a mid-tier exotic, between the colours and the Rainbow: Crystalize or Eclipse",
+duckSize,46,Duck size,16,140,1,Ducks,gameplay,,,,Height (px) of a classic duck on the surface,
+duckSpin,0.5,Duck turn speed,0,3,0.05,Ducks,gameplay,,,,How fast a resting duck turns about its upright axis (radians per second); a tumble eases back to this,
+duckDrift,6,Duck drift,0,60,1,Ducks,gameplay,,,,Speed (px per second) a new duck drifts off with,
+duckMass,40,Duck mass,1,400,1,Ducks,gameplay,,,,Mass of a classic duck in collisions (sizes scale it by size³),
+duckTumble,0.6,Duck tumble,0,3,0.05,Ducks,gameplay,,,,"How much 3D tumble a duck picks up from any change in its 2D motion (a push, an effect, a bounce)",
+duckSpinDamp,0.4,Duck tumble damping,0,3,0.05,Ducks,gameplay,,,,How fast (per second) a tumble eases back to the resting turn,
+duckMaxSpin,0.25,Duck max spin,0.02,1,0.01,Ducks,gameplay,,,,Cap on a duck's 3D spin (radians per frame),
+duckGloss,0.9,Duck gloss,0,2,0.05,Ducks,gameplay,,,,Shine of the plastic,
+duckBump,1,Duck line depth,0,4,0.1,Ducks,gameplay,,,,"How deep the drawn lines and mouth look pressed in, and how proud the eyes stand (shading on the SVG-baked duck)",
+duckTrans,0.35,Duck translucency,0,1,0.05,Ducks,gameplay,,,,How much light passes through the plastic at thin edges,
+duckGlow,2.5,Shining duck glow,0,6,0.1,Ducks,gameplay,,,,Size of the light a Bright or Shining duck gives off (× its size),
+volDuck,1,Duck voice vol,0,3,0.05,Ducks,gameplay,,,"duckVoice({type:'classic'},1)",Quacks and squeaks when a duck is hit,
+riftMass,250000,Rift mass,0,1000000,5000,Rift,gameplay,,,,"Mass inside one Rift area that tears the surface into a Dark Remnant (always a Dark Remnant, never a duck). 0 = off",
+riftR,150,Rift area px,40,400,10,Rift,gameplay,,,,Cell size: the mass of every 2×2 block of cells (an area twice this across) is checked,
+riftEveryMs,250,Rift check ms,50,2000,50,Rift,gameplay,,,,How often the surface is checked for a Rift,
+mapHexSize,34,Hex size,20,90,1,Surface Map — the map and camera,map,,,,Radius (px) of a Surface Map hex,
+mapTilt,32,Map tilt°,0,60,1,Surface Map — the map and camera,map,,,,How far the Surface Map leans away (0 = straight down),
+mapPersp,1400,Map perspective px,400,4000,50,Surface Map — the map and camera,map,,,,Viewing distance for the tilt: smaller = stronger perspective,
+mapZoomMin,0.55,Map zoom out,0.3,1,0.05,Surface Map — the map and camera,map,,,,Furthest the map zooms out (wheel or −),
+mapZoomMax,1.8,Map zoom in,1,3,0.05,Surface Map — the map and camera,map,,,,Closest the map zooms in (wheel or +),
+mapSourceGlow,1,Source glow,0,3,0.05,Surface Map — the map and camera,map,,,,Brightness of the white source at the centre of the map,
+mapBurstRings,3,Midnight burst rings,1,6,1,Surface Map — the day,map,,,,How many rings the source bursts out to at each midnight and on a new map (each hex at 1.00),
+mapCollapseMs,1400,Day end collapse ms,200,5000,100,Surface Map — the day,map,,,,Sets how fast the rings fall into the source at the end of a day (the outer ring takes about half this; each ring after it is faster),
+mapSunMs,4500,Light shift ms,0,10000,100,Surface Map — the day,map,,,,"How long the light (on the ducks, the bottles, their ripples and wakes) takes to move round to a new time of day",
+mapZoom,1,Hex zoom,0.25,8,0.05,Surface Map — hex pictures,map,,,,How much of its surface a hex shows: 1 = the middle square of the screen; higher zooms in,
+mapClearBlur,0.6,Clear edge blur,0,1.5,0.05,Surface Map — hex pictures,map,,,,How far a bright cleared hex blurs into its neighbours (× hex size),
+mapClearBleed,0.85,Clear edge glow α,0,1,0.05,Surface Map — hex pictures,map,,,,Strength of the white that bleeds from a bright cleared hex into its neighbours,
+mapAlpha,1,Hex layer α,0,1,0.05,Surface Map — hex pictures,map,,,,Opacity of the surface shown on an uncleared hex,
+mapCovMin,0.25,Hex min coverage,0,1,0.05,Surface Map — hex pictures,map,,,,Coverage of a surface whose hex value is 0,
+mapCovFull,1,Hex full coverage value,0.1,6,0.1,Surface Map — hex pictures,map,,,,Hex value at which a surface is fully covered with particles,
+mapPrevFadeMs,450,Hex ease ms,0,3000,50,Surface Map — hex pictures,map,,,,How long a hex's new picture takes to ease in over its old one,
+mapDucks,5,Lake ducks,0,12,1,Surface Map — lake and bottles,map,,,,How many of your collected ducks swim in the open space around the map,
+mapDuckBumpV,0.35,Duck bump speed,0.02,3,0.01,Surface Map — lake and bottles,map,,,,"How fast the cursor must cross a lake duck (world px per ms) to send it puttering off; slower, it just spins where it is",
+mapDuckDunkMs,1300,Duck dunk ms,300,4000,50,Surface Map — lake and bottles,map,,,,How long a clicked lake duck stays dunked before it pops back up,
+mapDuckRefl,0.4,Duck reflection,0,1,0.05,Surface Map — lake and bottles,map,,,,How strongly each lake duck is mirrored in the surface beneath it on the Surface Map (0 = no reflection),
+mapBottleMs,90000,Bottle every ms,5000,600000,5000,Surface Map — lake and bottles,map,,,,About how long between messages in a bottle floating onto the lake (one at a time),
+mapBottleDuck,0.25,Bottle duck chance,0,1,0.05,Surface Map — lake and bottles,map,,,,Chance a message in a bottle holds a duck instead of a letter (opening it adds the duck to your collection),
+mapStreetSize,0.75,Shop size,0.15,1.5,0.01,Surface Map — shops,map,,,,"Width of a main street shop (× hex size); every shop, pop-ups too, is drawn at this scale",
+mapStreetRing,0.8,Main street ring,0,2,0.05,Surface Map — shops,map,,,,"How far from the centre of the source the main street shops stand (× hex size): two behind it, two in front",
+mapShopGlow,1,Shop neon glow,0,3,0.05,Surface Map — shops,map,,,,How strongly an open shop's sign and windows glow,
+mapShopUpScale,1.7,Big store scale,1,2.5,0.05,Surface Map — shops,map,,,,How much larger the rank 2 and 3 pop-ups' two-storey stores are drawn than a main street shop (1.7: their doors are about the same size),
+mapShopPitch,22,Shop view angle,0,60,1,Surface Map — shops,map,,,,Degrees: how far from straight ahead the 3D shops are seen from above (their roofs and sign scaffolding show more),
+mapDockLingerMs,2500,Dock linger ms,0,10000,100,Surface Map — dock,map,,,,"With the dock reduced (its ▾ or ~): how long an item stays up after it is used, its count changes or the dock is toggled",
+mapPlanePx,2500000,Map plane pixels,500000,8000000,100000,Surface Map — performance,map,,,,"Most pixels the Surface Map's ground is drawn with (it is sent to the GPU every frame: fewer is faster, more is sharper)",
+mapIdleFps,8,Map fps when away,1,60,1,Surface Map — performance,map,,,,Frames a second the Surface Map draws while its window is not the one in use,
+conNodeR,5,,,,,(no slider),,,,,,
+settleInterp,0,,,,,(no slider),,,,,,"0 = Swap settle (particles glide to new cells) · 1 = Interpolate settle (cells morph into each other, nothing moves)"
+coverageMode,blob,,,,,(no slider),,,,,,'blob'|'vignette'|'framed'|'ellipse'|'rectangle' — shape of the void when coverage<1
+paintFadeMax,300,,,,,(no slider),,,,,,at most this many particles ease into a change at once; past it (a mass recolour) changes are painted at once
+neutronBurstCost,100,,,,,(no slider),,,,,,Neutrons spent per nova burst
+magToolR,34,,,,,(no slider),,,,,,Magnetic item: reach (px) around the cursor
+pulseToolR,60,,,,,(no slider),,,,,,Pulsing item: reach (px) around the cursor
+dimWhirlCoreR,14,,,,,(no slider),,,,,,px: a particle-point swirled this close to the centre of a Dim WHIRL is consumed
+orbitMaxDist,220,,,,,(no slider),,,,,,px: a String orbit only counts when the orbiting pair are this close (stops screen-wide 'orbits')
+bhExpandBlur,22,,,,,(no slider),,,,,,px: blur radius on the expanding-darkness fill while the Dark Remnant is still growing to fill the screen
+soundOn,0,,,,,(no slider),,,,,,
