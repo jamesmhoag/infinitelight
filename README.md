@@ -26,7 +26,8 @@ Served as a static site (GitHub Pages: Settings → Pages → Deploy from branch
 
 ## Keys
 - **Esc** — pause menu (sound + volume, readouts, Guide, quit). On the map: sound, Guide, hex-layer tuners, quit.
-- **~** (or H) — hide / show the panels on a surface
+- **~** (or H) — hide / show the panels, on a surface and on the Surface Map
+- **Surface Map**: Modes (Telemetry: each hex's value, coverage and ring on the ground; Stats: fps, frame times and the hex grid; the Performance log) and Tune (every tuner, as on a surface). Lake ducks: brush one slowly and it spins, hit it fast and it putters off, click it and it is dunked
 - **Space** / click your hex — enter its surface
 
 ## Shops (Surface Map)

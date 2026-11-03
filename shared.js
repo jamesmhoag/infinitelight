@@ -250,20 +250,30 @@ function cursorBase(cx,x,y,cR,dimA,tintK,edgeCol,lw){
   cx.filter='none';cx.globalAlpha=1;cx.globalCompositeOperation='source-over';}
 // ── The cursor's stain: where it has just been, laid INTO the scene (under a surface's particles; flat on the map's ground, under its shops), so a
 // cursor gone faint on a busy surface is easy to find. Even toned: the path is drawn as one mask in which overlaps never add up, fading with age from the start.
-const _curTrail=[];let _stainCv=null; // {x, y, t, gap (off the scene: the stain breaks)} — in the scene's own coordinates
+const _curTrail=[];let _stainCv=null; // {x, y, t, gap (off the scene: the stain breaks)} — in the scene's own coordinates; the stain's two work canvases
 function cursorTrailRecord(x,y,now,on){const ms=T.cursorStainMs!=null?T.cursorStainMs:900,l=_curTrail[_curTrail.length-1];
   if(ms<=0){_curTrail.length=0;return;}if(!on){if(l&&!l.gap)_curTrail.push({x,y,t:now,gap:1});}else if(!l||l.gap||Math.hypot(x-l.x,y-l.y)>1)_curTrail.push({x,y,t:now});else l.t=now;
   while(_curTrail.length&&now-_curTrail[0].t>ms)_curTrail.shift();}
-function cursorStain(cx,now,w,dark,toXY,k){ // cx: the scene being drawn; w: the stain's width there; dark: a light background (stain it dark); toXY: trail → cx coords; k: cx px per unit (sharpness)
+function cursorStain(cx,now,w,dark,toXY){ // drawn over a finished scene, but only where it is dark: the stain's strength is scaled by (1 − the scene's brightness)², so
+  // particles cover it (their brightness × T.cursorStainHide), and it comes through only where they let the ground show. cx: the scene; w: the stain's width in cx's own units; dark: a light
+  // background (stain it dark: scaled by the scene's brightness² instead); toXY: trail point → cx's units (its transform is applied, so it works in device pixels)
   const ms=T.cursorStainMs!=null?T.cursorStainMs:900,A=T.cursorStainA!=null?T.cursorStainA:0.22;if(_curTrail.length<2||ms<=0||A<=0)return;
-  const P=_curTrail.map(p=>{const[x,y]=toXY?toXY(p.x,p.y):[p.x,p.y];return{x,y,gap:p.gap,f:Math.max(0,1-(now-p.t)/ms)};});
-  let x0=1e9,y0=1e9,x1=-1e9,y1=-1e9;for(const p of P){x0=Math.min(x0,p.x);y0=Math.min(y0,p.y);x1=Math.max(x1,p.x);y1=Math.max(y1,p.y);}x0-=w;y0-=w;x1+=w;y1+=w;
-  k=k||1;const cw=Math.ceil((x1-x0)*k),ch=Math.ceil((y1-y0)*k);if(cw<1||ch<1||cw*ch>2.5e7)return;
-  if(!_stainCv)_stainCv=document.createElement('canvas');if(_stainCv.width<cw||_stainCv.height<ch){_stainCv.width=Math.max(cw,_stainCv.width);_stainCv.height=Math.max(ch,_stainCv.height);}
-  const s=_stainCv.getContext('2d'),bg=dark?255:0;s.setTransform(1,0,0,1,0,0);s.globalCompositeOperation='source-over';s.fillStyle=`rgb(${bg},${bg},${bg})`;s.fillRect(0,0,cw,ch);
-  s.setTransform(k,0,0,k,-x0*k,-y0*k);s.globalCompositeOperation=dark?'darken':'lighten';s.lineCap='round';s.lineJoin='round';s.lineWidth=w; // the mask: each piece at its age's strength, the strongest wins where they cross
-  for(let i=1;i<P.length;i++){const a=P[i-1],b=P[i];if(a.gap||b.gap)continue;const v=Math.round(255*A*(a.f+b.f)/2),c=dark?255-v:v;s.strokeStyle=`rgb(${c},${c},${c})`;s.beginPath();s.moveTo(a.x,a.y);s.lineTo(b.x,b.y);s.stroke();}
-  cx.save();cx.globalCompositeOperation=dark?'multiply':'screen';cx.drawImage(_stainCv,0,0,cw,ch,x0,y0,cw/k,ch/k);cx.restore();} // black (white) is no change: only the stain shows
+  const m=cx.getTransform(),cv=cx.canvas,wd=w*Math.hypot(m.a,m.b),P=_curTrail.map(p=>{const[x,y]=toXY?toXY(p.x,p.y):[p.x,p.y];return{x:m.a*x+m.c*y+m.e,y:m.b*x+m.d*y+m.f,gap:p.gap,f:Math.max(0,1-(now-p.t)/ms)};});
+  let x0=1e9,y0=1e9,x1=-1e9,y1=-1e9;for(const p of P){x0=Math.min(x0,p.x);y0=Math.min(y0,p.y);x1=Math.max(x1,p.x);y1=Math.max(y1,p.y);}
+  x0=Math.max(0,Math.floor(x0-wd));y0=Math.max(0,Math.floor(y0-wd));x1=Math.min(cv.width,Math.ceil(x1+wd));y1=Math.min(cv.height,Math.ceil(y1+wd));const cw=x1-x0,ch=y1-y0;if(cw<1||ch<1)return;
+  if(!_stainCv){_stainCv=[document.createElement('canvas'),document.createElement('canvas')];}
+  for(const c of _stainCv)if(c.width<cw||c.height<ch){c.width=Math.max(cw,c.width);c.height=Math.max(ch,c.height);}
+  const s=_stainCv[0].getContext('2d'),t=_stainCv[1].getContext('2d');
+  s.setTransform(1,0,0,1,0,0);s.globalCompositeOperation='source-over';s.fillStyle='#000';s.fillRect(0,0,cw,ch); // the mask, as an amount (0 = none): overlaps never add up ('lighten')
+  s.setTransform(1,0,0,1,-x0,-y0);s.globalCompositeOperation='lighten';s.lineCap='round';s.lineJoin='round';s.lineWidth=wd;
+  for(let i=1;i<P.length;i++){const a=P[i-1],b=P[i];if(a.gap||b.gap)continue;const v=Math.round(255*A*(a.f+b.f)/2);s.strokeStyle=`rgb(${v},${v},${v})`;s.beginPath();s.moveTo(a.x,a.y);s.lineTo(b.x,b.y);s.stroke();}
+  const hide=T.cursorStainHide!=null?T.cursorStainHide:4;t.setTransform(1,0,0,1,0,0);t.globalCompositeOperation='copy';t.filter=`grayscale(1) brightness(${hide})`;t.drawImage(cv,x0,y0,cw,ch,0,0,cw,ch);t.filter='none'; // how much is over the ground there (its brightness × Stain hide: even a dim particle covers it)
+  if(!dark){t.globalCompositeOperation='difference';t.fillStyle='#fff';t.fillRect(0,0,cw,ch);} // → how dark it is
+  s.setTransform(1,0,0,1,0,0);s.globalCompositeOperation='multiply';s.drawImage(_stainCv[1],0,0,cw,ch,0,0,cw,ch);s.drawImage(_stainCv[1],0,0,cw,ch,0,0,cw,ch); // (squared)
+  cx.save();cx.setTransform(1,0,0,1,0,0);
+  if(dark){s.globalCompositeOperation='difference';s.fillStyle='#fff';s.fillRect(0,0,cw,ch);cx.globalCompositeOperation='multiply';} // a light scene: the amount darkens it
+  else cx.globalCompositeOperation='screen';
+  cx.drawImage(_stainCv[0],0,0,cw,ch,x0,y0,cw,ch);cx.restore();}
 function cursorRing(cx,x,y,cR,dimA,edgeCol,lw){cx.beginPath();cx.arc(x,y,cR,0,6.2832);cx.strokeStyle=`rgba(${edgeCol},${(0.80*dimA).toFixed(3)})`;cx.lineWidth=lw;cx.stroke();}
 function cursorDot(cx,x,y,dimA,edgeCol){
   cx.globalCompositeOperation='screen';cx.filter='blur(3px)';cx.globalAlpha=0.7*dimA;cx.beginPath();cx.arc(x,y,1.4,0,6.2832);cx.fillStyle=`rgba(${edgeCol},0.9)`;cx.fill();
