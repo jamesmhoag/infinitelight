@@ -262,8 +262,9 @@ function cursorBase(cx,x,y,cR,dimA,tintK,edgeCol,lw){
 // ── The cursor's stain: where it has just been, laid INTO the scene (under a surface's particles; flat on the map's ground, under its shops), so a
 // cursor gone faint on a busy surface is easy to find. Even toned: the path is drawn as one mask in which overlaps never add up, fading with age from the start.
 const _curTrail=[];let _stainCv=null; // {x, y, t, gap (off the scene: the stain breaks)} — in the scene's own coordinates; the stain's two work canvases
-function cursorTrailRecord(x,y,now,on){const ms=T.cursorStainMs!=null?T.cursorStainMs:900,l=_curTrail[_curTrail.length-1];
-  if(ms<=0){_curTrail.length=0;return;}if(!on){if(l&&!l.gap)_curTrail.push({x,y,t:now,gap:1});}else if(!l||l.gap||Math.hypot(x-l.x,y-l.y)>1)_curTrail.push({x,y,t:now});else l.t=now;
+let _curSm=null; // the trail follows the cursor eased (T.cursorStainSmooth), so a hand's jitters do not show
+function cursorTrailRecord(x,y,now,on){const ms=T.cursorStainMs!=null?T.cursorStainMs:900,l=_curTrail[_curTrail.length-1],k=T.cursorStainSmooth!=null?T.cursorStainSmooth:0.35;
+  if(ms<=0){_curTrail.length=0;return;}if(!on||!_curSm||(l&&l.gap))_curSm={x,y};else{_curSm.x+=(x-_curSm.x)*k;_curSm.y+=(y-_curSm.y)*k;}x=_curSm.x;y=_curSm.y;if(!on){if(l&&!l.gap)_curTrail.push({x,y,t:now,gap:1});}else if(!l||l.gap||Math.hypot(x-l.x,y-l.y)>1)_curTrail.push({x,y,t:now});else l.t=now;
   while(_curTrail.length&&now-_curTrail[0].t>ms)_curTrail.shift();}
 function cursorStain(cx,now,w,dark,toXY){ // drawn over a finished scene, but only where it is dark: the stain's strength is scaled by (1 − the scene's brightness)², so
   // particles cover it (their brightness × T.cursorStainHide), and it comes through only where they let the ground show. cx: the scene; w: the stain's width in cx's own units; dark: a light
@@ -277,7 +278,8 @@ function cursorStain(cx,now,w,dark,toXY){ // drawn over a finished scene, but on
   const s=_stainCv[0].getContext('2d'),t=_stainCv[1].getContext('2d');
   s.setTransform(1,0,0,1,0,0);s.globalCompositeOperation='source-over';s.fillStyle='#000';s.fillRect(0,0,cw,ch); // the mask, as an amount (0 = none): overlaps never add up ('lighten')
   s.setTransform(1,0,0,1,-x0,-y0);s.globalCompositeOperation='lighten';s.lineCap='round';s.lineJoin='round';s.lineWidth=wd;
-  for(let i=1;i<P.length;i++){const a=P[i-1],b=P[i];if(a.gap||b.gap)continue;const v=Math.round(255*A*(a.f+b.f)/2);s.strokeStyle=`rgb(${v},${v},${v})`;s.beginPath();s.moveTo(a.x,a.y);s.lineTo(b.x,b.y);s.stroke();}
+  const mid=(a,b)=>[(a.x+b.x)/2,(a.y+b.y)/2]; // curves through the points' midpoints (no corners)
+  for(let i=1;i<P.length;i++){const a=P[i-1],b=P[i];if(a.gap||b.gap)continue;const v=Math.round(255*A*(a.f+b.f)/2),p0=i>1&&!P[i-2].gap?mid(P[i-2],a):[a.x,a.y],p1=mid(a,b);s.strokeStyle=`rgb(${v},${v},${v})`;s.beginPath();s.moveTo(p0[0],p0[1]);s.quadraticCurveTo(a.x,a.y,p1[0],p1[1]);if(i===P.length-1||P[i+1].gap)s.lineTo(b.x,b.y);s.stroke();}
   const hide=T.cursorStainHide!=null?T.cursorStainHide:4;t.setTransform(1,0,0,1,0,0);t.globalCompositeOperation='copy';t.filter=`grayscale(1) brightness(${hide})`;t.drawImage(cv,x0,y0,cw,ch,0,0,cw,ch);t.filter='none'; // how much is over the ground there (its brightness × Stain hide: even a dim particle covers it)
   if(!dark){t.globalCompositeOperation='difference';t.fillStyle='#fff';t.fillRect(0,0,cw,ch);} // → how dark it is
   s.setTransform(1,0,0,1,0,0);s.globalCompositeOperation='multiply';s.drawImage(_stainCv[1],0,0,cw,ch,0,0,cw,ch);s.drawImage(_stainCv[1],0,0,cw,ch,0,0,cw,ch); // (squared)
@@ -290,19 +292,20 @@ function cursorDot(cx,x,y,dimA,edgeCol){
   cx.globalCompositeOperation='screen';cx.filter='blur(3px)';cx.globalAlpha=0.7*dimA;cx.beginPath();cx.arc(x,y,1.4,0,6.2832);cx.fillStyle=`rgba(${edgeCol},0.9)`;cx.fill();
   cx.filter='none';cx.globalAlpha=1;cx.globalCompositeOperation='source-over';cx.beginPath();cx.arc(x,y,0.75,0,6.2832);cx.fillStyle=`rgba(${edgeCol},${(0.65*dimA).toFixed(3)})`;cx.fill();}
 // ═════════════════════════ SHOPS (sold on the Surface Map; the surface, which keeps the purse, settles every purchase) ═════════════════════════
-// SHOPS: main street ones (street) stand round the source at angle a° (0 = right, −90 = behind it), always there, lit only while open: hours are [open, close) on the map's clock (3 Twilight … 24 Midnight;
+// SHOPS: main street ones (street) stand round the source at angle a° (0 = right, 90 = in front, −90 = behind it; flip: its door on the other side), always there, lit only while open: hours are [open, close) on the map's clock (3 Twilight … 24 Midnight;
 // 0–27 = 24 hours). Pop-ups open on a bright clear whose surface collected at least T.mapShop<Cur>1/2/3 of their collectable (cur, also what they
 // mostly charge in) — rank 1..3, the size of the store (SHOP_RANK_BLD); at: those thresholds' defaults. col: the colour its glass is lit with.
 // SHOP_BLD: each building and where its glass sits behind its empty windows (shops/*.svg, in SVG units).
 const SHOP_BLD={s:{b:'bld_s',g:'glass_s.png',gx:1.75,gy:10.75},d:{b:'bld_s_dark',g:'glass_s.png',gx:1.75,gy:10.75},m:{b:'bld_m',g:'glass_m.png',gx:3.25,gy:7.75},l:{b:'bld_l',g:'glass_m.png',gx:3.25,gy:18},t:{b:'bld_t',g:'glass_t.png',gx:1.25,gy:4}}; // (the glass: the room inside, drawn at 4×, its walls and floor as lines)
 const SHOP_RANK_BLD=['s','m','l'];
+const HUB_SLOTS=[168,12]; // two more spots in the source hex (angles, as main street's): a pop-up earned on a dark clear opens there
 const SHOPS={
-  corner:{n:'CORNER STORE',tag:'The corners are conveniently cut.',street:1,open:0,close:27,col:'#fff1d0',a:25},
-  clock:{n:'Clock smith.',tag:'Turn the Clock, be unlocked.',street:1,open:9,close:18,col:'#fff1d0',a:155},
+  corner:{n:'CORNER STORE',tag:'The corners are conveniently cut.',street:1,open:0,close:27,col:'#fff1d0',a:60},
+  clock:{n:'Clock smith.',tag:'Turn the Clock, be unlocked.',street:1,open:9,close:18,col:'#fff1d0',a:120,flip:1},
   xact:{n:'XACT change',tag:'Exchange for spare change.',street:1,open:6,close:15,col:'#fff1d0',a:-122},
   gift:{n:'GIFT SHOP',tag:'Souvenirs to remember with.',street:1,open:0,close:27,col:'#ffffff',bk:'d',a:-58},
   bright:{n:'BRiGHT IDEAS',tag:'Like a spoon that is also a fork.',cur:'bright',col:'#00c3ff',at:[100,1000,10000]},
-  dim:{n:'Dim’s: Carnival of Secrets',tag:'Pick a card, any card.',cur:'dim',col:'#ff78e2',at:[100,1000,10000]},
+  dim:{n:'Dim’s: Carnival of Discovery',tag:'Natural phenomena.',cur:'dim',col:'#ff78e2',at:[100,1000,10000]},
   neutron:{n:'premium NEUTRINOS',tag:'Density, delivered.',cur:'neutron',col:'#8a3cff',at:[5,25,100]},
   magnetic:{n:'MAGNETS & STUFF',tag:'Opposites attract.',cur:'magnetic',col:'#ff6a00',at:[5,25,100]},
   pulsing:{n:'the PULSE',tag:'Feel the beat.',cur:'pulsing',col:'#aaff00',at:[5,25,100]},

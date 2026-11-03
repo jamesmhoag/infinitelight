@@ -134,7 +134,7 @@ body.focus-clock #turn-label,body.focus-items #hdock{z-index:59;filter:drop-shad
 <div id="veil"></div>
 <canvas id="hcur"></canvas>
 <iframe id="neb" title="Surface"></iframe>
-<script src="shared.js?v=20261102zj"></script>
+<script src="shared.js?v=20261102zk"></script>
 <script>
 // ╔══════════════════════════════════════════════════════════════════════════════╗
 // ║  MAP ENGINE                                                                 ║
@@ -145,12 +145,12 @@ let MW,MH,SW,SH,MK=1,viewZoom=1,_E=0; // MW×MH: the map plane's canvas (bigger 
 let HEX=34; // T.mapHexSize (tuned in the Esc menu / the surface's Tune menu)
 const DIRS=[[1,0],[1,-1],[0,-1],[-1,0],[-1,1],[0,1]];
 let camX=0,camY=0,camTX=0,camTY=0;
-let cells={},turn=0,score=0,pQ=0,pR=0,totalCells=0; // turn: how many rings the spill has spread to (merges pull it back)
+let hubPop=[null,null],cells={},turn=0,score=0,pQ=0,pR=0,totalCells=0; // turn: how many rings the spill has spread to (merges pull it back)
 let clock=3,day=1,pool=6,fresh=true,burstFx=null,dayLog=[],dayCnt={b:0,d:0},pendingEnd=null; // dayLog: how each day ended {day,end,ring,b,d,win}; dayCnt: this day's bright / dark clears; pendingEnd: a day end still falling in
 // // clock: the hour (3 = Twilight … 24 = Midnight, the day's last turn); day: your attempts; pool: what the source put out at its last burst; fresh: no ring added yet since it
 let constel=[],armed=null,weaveSel=[],weaveAsk=null,clearFx={},mergeFx=[],feedMsg={t:'',d:'',at:-1e9}; // constellations {keys,type}; the armed map item; a Weave being drawn; animations; the final count
 const TIMES={3:'Twilight',6:'Dawn',9:'Morning',12:'Noon',15:'Afternoon',18:'Dusk',21:'Night',24:'Midnight'},STEP_H=3; // the day: eight turns of three hours
-const CACHE_V='20261102zj'; // the build: bump with shared.js's
+const CACHE_V='20261102zk'; // the build: bump with shared.js's
 const SCENE=new URLSearchParams(location.search).get('scene'); // a Guide / event demo: the map plays a scripted moment (no surface behind it)
 let phase='move',turnTimer=0,mergeTimer=0;
 let gameOverReason='';
@@ -233,10 +233,10 @@ function newMap(){ // a new map, a descent and every midnight: the source at the
 function descendDepth(){if(!voidOpen)return;depth++;newMap();showTurn();focusCam(false);updateHint();showMergeFlash(`Descended to D${depth}`);hubEvent('map_descend');saveMap();}
 function focusCam(a){const[wx,wy]=a2w(pQ,pR);camTX=wx;camTY=wy;if(!a){camX=camTX;camY=camTY;}}
 function initGame(){ // a new map: score and depth start over; items, resources and discoveries live in the surface's save and are kept
-  neb({cmd:'day',day:1,newRun:true});score=0;depth=0;clock=3;_sunH=3;_sun={from:3,to:3,t0:0};day=1;dayLog=[];dayCnt={b:0,d:0};pendingEnd=null;newMap();
+  neb({cmd:'day',day:1,newRun:true});hubPop=[null,null];score=0;depth=0;clock=3;_sunH=3;_sun={from:3,to:3,t0:0};day=1;dayLog=[];dayCnt={b:0,d:0};pendingEnd=null;newMap();
   showTurn();mapResize();focusCam(false);updateHint();saveMap();
 }
-function advanceTurn(){ // time moves on (a move, or a bright clear) by one time of day; the spill spreads a ring, except the first turn after a burst
+function advanceTurn(){ // time moves on (a move) by one time of day; the spill spreads a ring, except the first turn after a burst
   awardConstellations();clock+=STEP_H;
   if(clock>24){clock=24;endDay('midnight',0);return;} // after Midnight: the day ends (the new day starts once it has all fallen in)
   if(fresh)fresh=false;else{turn++;addRing(turn);}redistribute();decayCycle();showTurn();}
@@ -261,8 +261,8 @@ function doCapture(){ // enter the surface of the hex you stand on
 }
 function completeCaptureForCell(cellKey,kind,tally){
   const c=cells[cellKey];if(!c||c.cap)return;
-  c.cap=true;c.capVal=c.v;c.kind=kind;c.shop=kind==='dark'?null:popupFor(tally);if(c.shop){const fr=c.shop.from;delete c.shop.from;if(fr&&cells[fr])delete cells[fr].shop; // moved up a rank: the old one is torn down
-    feed((fr?'A pop-up moved up: ':'A pop-up opened: ')+SHOPS[c.shop.id].n,'Rank '+c.shop.rank+' · click it to shop');}delete c.shot;delete c._im;if(kind==='dark')dayCnt.d++;else dayCnt.b++;
+  c.cap=true;c.capVal=c.v;c.kind=kind;c.shop=null;{const p=popupFor(tally,kind==='dark');if(p){const fr=p.from,o={id:p.id,rank:p.rank};shopTearDown(fr);if(kind==='dark')hubPop[p.slot]=o;else c.shop=o; // a dark clear's opens in the source hex
+    feed((fr?'A pop-up moved up: ':'A pop-up opened: ')+SHOPS[p.id].n,'Rank '+p.rank+(kind==='dark'?' · in the source':'')+' · click it to shop');}}delete c.shot;delete c._im;if(kind==='dark')dayCnt.d++;else dayCnt.b++;
   score=Math.round((score+c.v)*100)/100;
   captureOrder.push({keys:[cellKey],mergeId:null});
   phase='captured';
@@ -271,7 +271,7 @@ function completeCaptureForCell(cellKey,kind,tally){
   detectMerges();
   clearFx[cellKey]={t0:null}; // its picture resolves into the clear when the map is next on screen
   if(ringCheck()){updateHint();hubEvent('map_clear');saveMap();return;}
-  if(kind!=='dark'&&phase!=='gameover'){advanceTurn();if(phase==='collapse')return;phase='captured';} // a bright clear moves time on and spreads the spill; a dark one does neither
+  // (a clear takes no time: only a move, without a String, moves the day on)
   updateHint();hubEvent('map_clear');saveMap();
 }
 function doMove(tq,tr){
@@ -713,14 +713,14 @@ function pondStep(now){
 function saveMap(){
   if(SCENE)return; // a demo never touches your map
   const out={};for(const k in cells){const c=Object.assign({},cells[k]);delete c._im;out[k]=c;}
-  const rec=()=>JSON.stringify({v:3,cells:out,turn,clock,day,pool,fresh,constel,dayLog,dayCnt,pendingEnd,score,pQ,pR,totalCells,phase,depth,gameOverReason,captureOrder,mergeGroups,mergeIdCounter,voidOpen,session:nebulaCellKey});
+  const rec=()=>JSON.stringify({v:3,cells:out,turn,clock,day,pool,fresh,constel,dayLog,dayCnt,pendingEnd,score,pQ,pR,totalCells,phase,depth,gameOverReason,captureOrder,mergeGroups,mergeIdCounter,voidOpen,hubPop,session:nebulaCellKey});
   try{localStorage.setItem(MAP_KEY,rec());}catch(e){for(const k in out)delete out[k].shot;try{localStorage.setItem(MAP_KEY,rec());}catch(x){}} // full: an unfinished hex's picture is the first thing to go
 }
 function loadMap(){
   let d=null;try{d=JSON.parse(localStorage.getItem(MAP_KEY)||'null');}catch(e){}
   if(!d||!d.cells)return false;
   if(d.v!==3)return false; // a map from before the times of day starts over
-  ({cells,turn,clock,day,pool,fresh,constel,dayLog,dayCnt,pendingEnd,score,pQ,pR,totalCells,phase,depth,gameOverReason,captureOrder,mergeGroups,mergeIdCounter,voidOpen}=d);nebulaCellKey=d.session||null;_sunH=clock;_sun={from:clock,to:clock,t0:0};dayLog=dayLog||[];dayCnt=dayCnt||{b:0,d:0};
+  ({cells,turn,clock,day,pool,fresh,constel,dayLog,dayCnt,pendingEnd,score,pQ,pR,totalCells,phase,depth,gameOverReason,captureOrder,mergeGroups,mergeIdCounter,voidOpen}=d);nebulaCellKey=d.session||null;hubPop=d.hubPop||[null,null];_sunH=clock;_sun={from:clock,to:clock,t0:0};dayLog=dayLog||[];dayCnt=dayCnt||{b:0,d:0};
   if(pendingEnd)finishDay();else if(phase==='collapse')phase='move';else if(phase==='ended')showDayReport(); // a day left falling in finishes at once; a won run shows its report
   mapResize();focusCam(false);updateHint();return true;
 }
@@ -842,15 +842,18 @@ let shopUI=null,giftWallet=0; // shopUI: the open menu {id, rank, page, exit (th
 const SOUV_KEY='il_souvenirs_v1',shopPic={},shopCv={},shopEls={},fmtN=n=>Math.floor(n).toLocaleString('en-US');
 const shopHours=id=>{const S=SHOPS[id];return S.open<=0&&S.close>=27?'24 hours':TIMES[S.open]+' – '+TIMES[S.close];};
 function shopImg(n){if(!shopPic[n]){const im=new Image();im.onload=()=>{for(const k in shopCv)delete shopCv[k];};im.src='shops/'+n+(n.includes('.')?'':'.svg');shopPic[n]=im;}return shopPic[n];}
-function popupFor(tally){ // the pop-up a bright clear opens. Each shop crossing a threshold is a candidate unless one of it already stands at that rank or better (one of each:
+function popupFor(tally,dark){ // the pop-up a bright clear opens. Each shop crossing a threshold is a candidate unless one of it already stands at that rank or better (one of each:
   // a better rank moves it here, and the old one is torn down). First the Duck Shop, then the best-ranked exotic shop (a tie: at random), then BRiGHT IDEAS, last Dim's
-  if(runBad(run,'holiday'))return null;const c=[];
+  // dark: a Dark Remnant clear — its pop-up goes to a free spot in the source hex (HUB_SLOTS), and only as a new shop: one that already stands can not move up there
+  const slot=dark?hubPop.findIndex(x=>!x):-1;if(runBad(run,'holiday')||(dark&&slot<0))return null;const c=[];
   for(const id in SHOPS){const S=SHOPS[id];if(S.street)continue;const n=(tally||{})[S.cur]||0;let r=0;for(let i=1;i<=3;i++){const t=T[shopTK(S.cur)+i];if(t>0&&n>=t)r=i;}if(!r)continue;
-    const from=Object.keys(cells).find(k=>cells[k].shop&&cells[k].shop.id===id&&isBright(k));if(from&&cells[from].shop.rank>=r)continue;c.push({id,rank:r,from,tier:SHOP_TIER(id),z:Math.random()});}
-  c.sort((a,b)=>a.tier-b.tier||b.rank-a.rank||a.z-b.z);return c[0]?{id:c[0].id,rank:c[0].rank,from:c[0].from}:null;}
+    const hs=hubPop.findIndex(x=>x&&x.id===id),from=hs>=0?'hub'+hs:Object.keys(cells).find(k=>cells[k].shop&&cells[k].shop.id===id&&isBright(k)),had=from?(hs>=0?hubPop[hs]:cells[from].shop).rank:0;
+    if(from&&(dark||had>=r))continue;c.push({id,rank:r,from,tier:SHOP_TIER(id),z:Math.random()});}
+  c.sort((a,b)=>a.tier-b.tier||b.rank-a.rank||a.z-b.z);return c[0]?{id:c[0].id,rank:c[0].rank,from:c[0].from,slot}:null;}
+function shopTearDown(fr){if(!fr)return;if(fr.slice(0,3)==='hub')hubPop[+fr[3]]=null;else if(cells[fr])delete cells[fr].shop;} // a shop moved up a rank: the old one goes
 function shopSprite(id,bk,lit){ // glass (tinted with the shop's colour, dark when closed) behind the building's empty windows, then the sign above, glowing when lit;
   // the vectors are drawn at Q× their SVG size, so a shop stays crisp however near the camera or the menu shows it
-  const gw=T.mapShopGlow!=null?T.mapShopGlow:1,key=id+bk+(lit?1:0)+gw;if(shopCv[key])return shopCv[key];
+  const gw=T.mapShopGlow!=null?T.mapShopGlow:1,fl=bk===(SHOPS[id].bk||'s')&&SHOPS[id].flip,key=id+bk+(lit?1:0)+gw;if(shopCv[key])return shopCv[key];
   const S=SHOPS[id],B=SHOP_BLD[bk],bi=shopImg(B.b),gi=shopImg(B.g),si=shopImg('sign_'+id);if(![bi,gi,si].every(i=>i.complete&&i.naturalWidth))return null;
   const Q=4,gq=B.g.endsWith('.png')?1:Q,bw=bi.naturalWidth*Q,bh=bi.naturalHeight*Q,gW=gi.naturalWidth*gq,gH=gi.naturalHeight*gq,sk=Math.min(bw*0.9/si.naturalWidth,bw*0.72/si.naturalHeight),sw=si.naturalWidth*sk,sh=si.naturalHeight*sk,ov=bh*0.12,pad=44;
   const cv=document.createElement('canvas');cv.width=Math.ceil(Math.max(bw,sw)+pad*2);cv.height=Math.ceil(sh+bh-ov+pad*2);const c=cv.getContext('2d'),bx=(cv.width-bw)/2,by=cv.height-pad-bh,gx=bx+B.gx*Q,gy=by+B.gy*Q;
@@ -858,15 +861,18 @@ function shopSprite(id,bk,lit){ // glass (tinted with the shop's colour, dark wh
   g.drawImage(gi,0,0,gW,gH);g.globalCompositeOperation='multiply';g.fillStyle=lit?S.col:'#3a3a42';g.fillRect(0,0,gW,gH);
   if(lit){const lr=g.createRadialGradient(gW*0.5,gH*0.28,0,gW*0.5,gH*0.28,gW*0.55);lr.addColorStop(0,`rgba(255,248,230,${Math.min(1,0.6*gw)})`);lr.addColorStop(1,'rgba(255,248,230,0)');g.globalCompositeOperation='screen';g.fillStyle=lr;g.fillRect(0,0,gW,gH);} // a lamp inside an open shop
   g.globalCompositeOperation='destination-in';g.drawImage(gi,0,0,gW,gH);
+  c.save();if(fl){c.translate(2*bx+bw,0);c.scale(-1,1);} // flip: the building (and its room) mirrored, the sign not
   if(lit&&gw>0){c.save();c.shadowColor=S.col;c.shadowBlur=18*gw;c.drawImage(gl,gx,gy);c.restore();}else c.drawImage(gl,gx,gy);
   c.drawImage(bi,bx,by,bw,bh);
   if(lit&&gw>0){c.save();c.globalCompositeOperation='screen';c.filter='blur(5px)';c.globalAlpha=Math.min(1,0.55*gw);c.drawImage(gl,gx,gy);c.restore();} // light spills out of the windows
+  c.restore();
   c.save();if(lit&&gw>0){c.shadowColor=S.col;c.shadowBlur=26*gw;c.drawImage(si,(cv.width-sw)/2,by+ov-sh,sw,sh);c.shadowBlur=8*gw;}else if(!lit)c.filter='brightness(0.32) saturate(0.4)';
   c.drawImage(si,(cv.width-sw)/2,by+ov-sh,sw,sh);c.restore();
   cv._ax=cv.width/2;cv._ay=cv.height-pad;cv._bw=bw;return shopCv[key]=cv;}
 function shopList(){ // every shop on the map now: main street hugging the source (two behind it, two in front), pop-ups on their bright clears
   const out=[],w=HEX*(T.mapStreetSize||0.75),R=HEX*(T.mapStreetRing!=null?T.mapStreetRing:0.8);
   for(const id in SHOPS){const S=SHOPS[id],a=(S.a||0)*Math.PI/180;if(S.street)out.push({key:id,id,bk:S.bk||'s',wx:R*Math.cos(a),wy:R*Math.sin(a),lit:shopIsOpen(id,clock,run),w});}
+  hubPop.forEach((h,i)=>{if(!h)return;const a=HUB_SLOTS[i]*Math.PI/180;out.push({key:'hub'+i,id:h.id,rank:h.rank,bk:SHOP_RANK_BLD[h.rank-1],wx:R*1.15*Math.cos(a),wy:R*1.15*Math.sin(a),lit:true,w});}); // (a little further out than main street) // pop-ups from dark clears, in the source hex
   for(const k in cells){const c=cells[k];if(c.shop&&isBright(k)){const[wx,wy]=a2w(c.q,c.r);out.push({key:k,id:c.shop.id,rank:c.shop.rank,bk:SHOP_RANK_BLD[c.shop.rank-1],wx,wy,lit:true});}}
   return out;}
 function shopTick(){if(SCENE)return;
