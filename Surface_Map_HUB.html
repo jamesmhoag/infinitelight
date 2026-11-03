@@ -35,6 +35,10 @@ body.scene .hbtn,body.scene:not(.scene-shops) #shops,body.scene #hdock,body.scen
 #turn-label{position:absolute;top:40px;left:50%;transform:translateX(-50%);font-family:'Orbitron',sans-serif;font-size:16px;white-space:nowrap;color:rgba(255,255,255,0.7);pointer-events:none;transition:color 0.4s,text-shadow 0.4s;letter-spacing:2px;z-index:10}
 #rest-btn{position:absolute;top:66px;left:50%;transform:translateX(-50%);display:none;font:13px 'Orbitron',sans-serif;letter-spacing:2px;padding:5px 18px;background:rgba(150,160,255,0.12);border:1px solid rgba(190,200,255,0.55);color:#fff;border-radius:5px;cursor:pointer;z-index:20}
 #rest-btn:hover{background:rgba(150,160,255,0.28)}#rest-btn.on{display:block} /* at Midnight: end the day when you are ready (under the time of day; ~ keeps it) */
+#bfx{position:fixed;inset:0;pointer-events:none;z-index:70}#bfx i{position:absolute;font:600 12px 'Share Tech Mono',monospace;font-style:normal;white-space:nowrap;transform:translate(-50%,0);animation:bfxUp 1.6s ease-out forwards;text-shadow:0 0 4px #000,0 0 8px #000}
+#bfx i.up{color:#9fffa8}#bfx i.dn{color:#ff9a8a}@keyframes bfxUp{0%{opacity:0;transform:translate(-50%,8px)}15%{opacity:1}100%{opacity:0;transform:translate(-50%,-36px)}} /* a purchase: what it gave (+) and spent (−), rising off each slot */
+#hinv .slot.gain{box-shadow:0 0 0 1px rgba(150,255,170,.9),0 0 14px rgba(140,255,160,.6);transition:box-shadow .2s}#hinv .slot.spend{box-shadow:0 0 0 1px rgba(255,150,130,.9),0 0 14px rgba(255,130,110,.55);transition:box-shadow .2s}
+#turn-label.bought{color:#ffd76a!important;text-shadow:0 0 18px rgba(255,210,110,.95)!important;letter-spacing:4px}
 #turn-label.show{color:#fff;text-shadow:0 0 14px rgba(255,255,255,0.85)}
 #bottom-bar{position:absolute;bottom:16px;left:50%;transform:translateX(-50%);font-size:12px;color:rgba(255,255,255,0.45);white-space:nowrap;z-index:10}
 #capture-hint{display:none;position:absolute;bottom:40px;left:50%;transform:translateX(-50%);font-size:11px;color:rgba(0,210,210,0.55);pointer-events:none;white-space:nowrap;opacity:0;transition:opacity 0.2s;z-index:10}
@@ -53,12 +57,13 @@ body.scene .hbtn,body.scene:not(.scene-shops) #shops,body.scene #hdock,body.scen
 /* Esc menu */
 #menu,#day-report{position:fixed;inset:0;z-index:60;display:none;align-items:center;justify-content:center;background:rgba(0,0,0,.6)}
 #menu.show,#day-report.show{display:flex}
-#menu .gm,#day-report .gm{min-width:300px;max-height:90vh;overflow:auto;background:rgba(8,10,16,.95);border:1px solid rgba(255,255,255,.18);border-radius:12px;padding:16px 18px;color:#e8ecf6;font:13px/1.4 system-ui,sans-serif;display:flex;flex-direction:column;gap:7px}
-#menu h2,#day-report h2{margin:0 0 4px;font:600 15px 'Orbitron',sans-serif;letter-spacing:2px;text-align:center}
-#menu .gl,#day-report .gl{opacity:.55;font-size:11px;margin-top:5px;text-transform:uppercase;letter-spacing:1px}
-#menu button,#day-report button{font:13px system-ui;padding:7px 10px;text-align:left;cursor:pointer}
-#menu .row{display:flex;gap:6px;align-items:center}#menu .row>span{flex:0 0 150px;font-size:12px;opacity:.8}#menu .row b{flex:0 0 40px;font-weight:400;font-size:11px;text-align:right}
-#menu input[type=range]{flex:1}
+#menu .gm,#day-report .gm{width:300px;max-height:90vh;overflow:auto;background:#000;border:1px solid #fff;padding:16px 22px 14px;color:#fff;font:12px/1.5 system-ui,'Inter',sans-serif;letter-spacing:.6px;display:flex;flex-direction:column;gap:1px} /* as a shop's list */
+#menu h2,#day-report h2{margin:0 0 14px;font:700 19px/1.25 system-ui,'Inter',sans-serif;letter-spacing:1.6px;text-align:center}
+#menu .gl,#day-report .gl{opacity:.5;font-size:10px;margin:10px 0 2px;text-transform:uppercase;letter-spacing:1.4px}
+#menu button,#day-report button{font:12px/1.5 system-ui,'Inter',sans-serif;letter-spacing:.6px;padding:0 2px;text-align:left;cursor:pointer;background:none;border:0;color:#fff;border-radius:0}
+#menu button:hover,#day-report button:hover{background:rgba(255,255,255,.12)}#day-report .gm>button:last-child{text-align:center;margin-top:12px}
+#menu .row{display:flex;gap:8px;align-items:center}#menu .row>button{flex:0 0 auto}#menu .row>span{flex:0 0 150px;font-size:12px;opacity:.8}#menu .row b{flex:0 0 40px;font-weight:400;font-size:11px;text-align:right}
+#menu input[type=range]{flex:1;accent-color:#fff}
 .dlog{width:100%;border-collapse:collapse;font-size:12px}.dlog td,.dlog th{padding:2px 6px;text-align:left;font-weight:400}.dlog th{opacity:.55}.dlog tr.w td{color:#ffd76a}
 #day-report .dsum{font-size:13px;text-align:center;opacity:.85}
 /* Modes / Tune / stats, as on a surface; ~ (or H) hides every panel */
@@ -68,7 +73,7 @@ body.scene .hbtn,body.scene:not(.scene-shops) #shops,body.scene #hdock,body.scen
 #mModes button,#tuneP button{font:11px 'Share Tech Mono',monospace;padding:4px 9px;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.14);color:#ccc;border-radius:3px}
 #mModes button.on,#tuneP button.on{background:rgba(255,220,120,0.22);border-color:rgba(255,220,120,0.7);color:#fff}
 #tuneP{left:16px;width:330px;max-height:calc(100vh - 140px);flex-direction:column;overflow:hidden}
-#tuneP .tabs{display:flex;gap:3px;padding:6px}#tuneP .tabs button{flex:1}#tuneP input[type=search]{margin:0 6px 6px;font:11px monospace;background:#111;color:#eee;border:1px solid #333;padding:3px 5px}
+#tuneP .tabs{display:flex;flex-wrap:wrap;gap:3px;padding:6px}#tuneP .tabs button{flex:1 1 auto;white-space:nowrap}#tuneP input[type=search]{margin:0 6px 6px;font:11px monospace;background:#111;color:#eee;border:1px solid #333;padding:3px 5px}
 #tuneP .rows{overflow:auto;padding:0 8px 8px}#tuneP .sec{opacity:.55;margin:8px 0 3px;text-transform:uppercase;letter-spacing:1px;font-size:10px}
 #tuneP .row{display:flex;gap:6px;align-items:center;margin:2px 0}#tuneP .row>span{flex:0 0 130px;font-size:11px;opacity:.85;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}#tuneP .row b{flex:0 0 52px;font-weight:400;text-align:right}#tuneP input[type=range],#tuneP select{flex:1;min-width:0}
 #hstats{position:absolute;top:96px;right:16px;z-index:10;display:none;font:10px/1.55 'Share Tech Mono',monospace;color:rgba(255,255,255,0.6);text-align:right;white-space:pre;background:rgba(0,0,0,0.45);padding:6px 9px;border-radius:5px}#hstats.show{display:block}
@@ -99,7 +104,9 @@ body.focus-clock #turn-label,body.focus-items #hdock{z-index:59;filter:drop-shad
 #shop .stag{text-align:center;margin-bottom:22px;font-size:12px}
 #shop .srow{display:flex;justify-content:space-between;gap:10px;cursor:pointer;padding:0 2px}#shop .srow:hover{background:rgba(255,255,255,.12)}
 #shop .srow b{font-weight:400;text-align:right;white-space:nowrap}#shop .srow i{font-style:normal;opacity:.5;font-size:10px;margin-left:4px}
-#shop .srow.poor{opacity:.38}#shop .srow.own{opacity:.5;cursor:default}#shop .srow.c{justify-content:center;text-align:center;margin:10px 0}
+#shop .srow.poor{opacity:.38}#shop .srow.own{opacity:.5;cursor:default}#shop .srow.just{animation:rowJust 1.4s ease-out}#shop .srow.just.no{animation:rowNo 1.4s ease-out}@keyframes rowJust{0%{background:rgba(140,255,160,.4)}100%{background:transparent}}@keyframes rowNo{0%{background:rgba(255,130,110,.4)}100%{background:transparent}}
+#shop .stt tr.chg td{animation:stChg 2s ease-out}@keyframes stChg{0%{background:rgba(255,215,106,.45);color:#fff}100%{background:transparent}}
+#shop .srow.c{justify-content:center;text-align:center;margin:10px 0}
 #shop .srows{min-height:108px;margin-bottom:6px}#shop .stabs{display:flex;justify-content:center;gap:4px;margin:-12px 0 12px;flex-wrap:wrap}#shop .stabs span{display:flex;align-items:center;justify-content:center;width:26px;height:24px;border:1px solid rgba(255,255,255,.35);cursor:pointer;opacity:.55}#shop .stabs span svg{width:16px;height:16px;color:#fff}#shop .stabs span.on{opacity:1;border-color:#fff;background:rgba(255,255,255,.12)}
 body.shop-open #hdock{z-index:59}#hinv .slot.wal{border-color:rgba(255,255,255,.6);background:rgba(255,255,255,.12)}
 </style>
@@ -110,46 +117,46 @@ body.shop-open #hdock{z-index:59}#hinv .slot.wal{border-color:rgba(255,255,255,.
   <div id="shops"></div>
   <div id="letter"><div class="lp"><div class="lt"></div><div class="lf"></div><div class="ln"></div></div></div>
   <div id="hdock"><div id="hinv"></div><div id="hfeed"><div class="fn"></div><div class="fd"></div></div></div>
-  <div id="turn-label"></div><button id="rest-btn" onclick="rest()">Rest</button>
+  <div id="turn-label"></div><button id="rest-btn" onclick="rest()" data-tx="map.ui.rest"></button>
   <div id="merge-flash"></div>
-  <button class="hbtn" id="guide-btn" data-disc="hub_guide" onclick="openGuide()">Guide</button>
-  <button class="hbtn" id="menu-btn" onclick="toggleMenu()">Menu (Esc)</button>
-  <button class="hbtn" id="modes-btn" data-disc="hud_modes" onclick="togglePanel('mModes')">Modes ▾</button>
-  <button class="hbtn" id="tune-btn" data-disc="hud_tune" onclick="togglePanel('tuneP')">Tune ▾</button>
-  <div id="mModes"><button id="mdTel" data-disc="mode_telemetry" onclick="setMapMode('tel')">Telemetry: hex values</button><button id="mdStats" onclick="setMapMode('stats')">Stats: frames &amp; hexes</button><button onclick="downloadHubLog()">Performance log</button></div>
-  <div id="tuneP"><div class="tabs"></div><input type="search" placeholder="Filter settings…"><div class="rows"></div></div>
+  <button class="hbtn" id="guide-btn" data-disc="hub_guide" onclick="openGuide()" data-tx="map.ui.guide"></button>
+  <button class="hbtn" id="menu-btn" onclick="toggleMenu()" data-tx="map.ui.menu_esc"></button>
+  <button class="hbtn" id="modes-btn" data-disc="hud_modes" onclick="togglePanel('mModes')" data-tx="map.ui.modes"></button>
+  <button class="hbtn" id="tune-btn" data-disc="hud_tune" onclick="togglePanel('tuneP')" data-tx="map.ui.tune"></button>
+  <div id="mModes"><button id="mdTel" data-disc="mode_telemetry" onclick="setMapMode('tel')" data-tx="map.ui.telemetry_hex_values"></button><button id="mdStats" onclick="setMapMode('stats')" data-tx="map.ui.stats_frames_hexes"></button><button onclick="downloadHubLog()" data-tx="map.ui.performance_log"></button></div>
+  <div id="tuneP"><div class="tabs"></div><input type="search" data-tp="map.ui.filter_settings"><div class="rows"></div></div>
   <div id="hstats"></div>
-  <button class="hbtn" id="restart-btn" data-disc="hub_restart" onclick="if(confirm('Start a new map? Your items and discoveries are kept.'))initGame()">new map</button>
+  <button class="hbtn" id="restart-btn" data-disc="hub_restart" onclick="if(confirm(txt('map.confirm.newmap')))initGame()" data-tx="map.ui.new_map"></button>
   <div id="bottom-bar" data-disc="hub_score"><span id="score-display"></span></div>
   <div id="capture-hint"></div>
   <div id="legend" data-disc="hub_legend">
-    <span class="ld" style="background:rgba(0,210,210,0.7)"></span>you<br>
-    <span class="ld" style="background:rgba(255,255,255,0.9)"></span>cleared (bright)<br>
-    <span class="ld" style="background:#000;border-color:rgba(190,160,250,0.8)"></span>cleared (dark remnant)<br>
-    <span class="ld" style="background:rgba(210,175,50,0.2);border-color:rgba(210,175,50,0.5)"></span>locked<br>
-    <span class="ld" style="background:rgba(180,140,255,0.25);border-color:rgba(180,140,255,0.6)"></span>merged<br>
-    <span class="ld" style="background:rgba(255,255,255,0.06);border-color:rgba(255,255,255,0.1)"></span>void
+    <span class="ld" style="background:rgba(0,210,210,0.7)"></span><span data-tx="map.ui.you"></span><br>
+    <span class="ld" style="background:rgba(255,255,255,0.9)"></span><span data-tx="map.ui.cleared_bright"></span><br>
+    <span class="ld" style="background:#000;border-color:rgba(190,160,250,0.8)"></span><span data-tx="map.ui.cleared_dark_remnant"></span><br>
+    <span class="ld" style="background:rgba(210,175,50,0.2);border-color:rgba(210,175,50,0.5)"></span><span data-tx="map.ui.locked"></span><br>
+    <span class="ld" style="background:rgba(180,140,255,0.25);border-color:rgba(180,140,255,0.6)"></span><span data-tx="map.ui.merged"></span><br>
+    <span class="ld" style="background:rgba(255,255,255,0.06);border-color:rgba(255,255,255,0.1)"></span><span data-tx="map.ui.void"></span>
   </div>
 </div>
-<div id="menu"><div class="gm"><h2>PAUSED</h2>
-  <button onclick="toggleMenu()">Resume (Esc)</button>
-  <div class="gl">Sound</div><div class="row"><button id="mSnd" onclick="setSound(!soundOn())"></button><input id="mVol" type="range" min="0" max="1" step="0.05" oninput="setSound(true,this.value)"></div>
-  <div class="gl">Help</div><button id="mGuide" data-disc="hub_guide" onclick="toggleMenu();openGuide()">Guide</button>
-  <div class="gl">Surface Map — hex surface layer</div><div id="mTune"></div>
-  <div class="gl">Performance</div><button onclick="downloadHubLog()">Performance log</button>
-  <div class="gl">Days</div><div id="mDays"></div>
-  <div class="gl">Leave</div><button onclick="quitMain()">Quit to main menu</button>
+<div id="menu"><div class="gm"><h2 data-tx="map.ui.paused"></h2>
+  <button onclick="toggleMenu()" data-tx="map.ui.resume_esc"></button>
+  <div class="gl" data-tx="map.ui.sound"></div><div class="row"><button id="mSnd" onclick="setSound(!soundOn())"></button><input id="mVol" type="range" min="0" max="1" step="0.05" oninput="setSound(true,this.value)"></div>
+  <div class="gl" data-tx="map.ui.help"></div><button id="mGuide" data-disc="hub_guide" onclick="toggleMenu();openGuide()" data-tx="map.ui.guide"></button>
+  <div class="gl" data-tx="map.ui.performance"></div><button onclick="downloadHubLog()" data-tx="map.ui.performance_log"></button>
+  <div class="gl" data-tx="map.ui.days"></div><div id="mDays"></div>
+  <div class="gl" data-tx="map.ui.leave"></div><button onclick="quitMain()" data-tx="map.ui.quit_to_main_menu"></button>
 </div></div>
-<div id="day-report"><div class="gm"><h2></h2><div class="dsum"></div><div class="gl">Days</div><div class="dlogbox"></div><button></button></div></div>
+<div id="day-report"><div class="gm"><h2></h2><div class="dsum"></div><div class="gl" data-tx="map.ui.days"></div><div class="dlogbox"></div><button></button></div></div>
 <div id="shop"><div class="sbox"><div class="scol"><canvas class="sart"></canvas><div class="scard"></div></div><div class="sstat"></div></div></div>
 <div id="veil"></div>
-<canvas id="hcur"></canvas>
-<iframe id="neb" title="Surface"></iframe>
-<script src="shared.js?v=20261103i"></script>
+<div id="bfx"></div><canvas id="hcur"></canvas>
+<iframe id="neb" data-tt="map.ui.surface"></iframe>
+<script src="content.js?v=20261103k"></script><script src="shared.js?v=20261103k"></script>
 <script>
 // ╔══════════════════════════════════════════════════════════════════════════════╗
 // ║  MAP ENGINE                                                                 ║
 // ╚══════════════════════════════════════════════════════════════════════════════╝
+txtApply(); // the page's own labels (content/strings.csv)
 const mc=document.createElement('canvas'),mctx=mc.getContext('2d'),sc=document.getElementById('scene'); // mc: the plane, drawn in 2D every frame; sc: the 3D scene it is laid into
 let W=1,H=1,invertMode=false,DUCK_TYPES={}; // what the shared renderers (shared.js) read: the scene size, the colour scheme, the duck types (sent by the surface)
 let MW,MH,SW,SH,MK=1,viewZoom=1,_E=0; // MW×MH: the map plane's canvas (bigger than the screen SW×SH, so zooming out and tilting never show its edge); MK: its backing scale
@@ -160,8 +167,8 @@ let hubPop=[null,null],cells={},turn=0,score=0,pQ=0,pR=0,totalCells=0; // turn: 
 let clock=3,day=1,pool=6,fresh=true,burstFx=null,dayLog=[],dayCnt={b:0,d:0},pendingEnd=null; // dayLog: how each day ended {day,end,ring,b,d,win}; dayCnt: this day's bright / dark clears; pendingEnd: a day end still falling in
 // // clock: the hour (3 = Twilight … 24 = Midnight, the day's last turn); day: your attempts; pool: what the source put out at its last burst; fresh: no ring added yet since it
 let constel=[],armed=null,weaveSel=[],weaveAsk=null,clearFx={},mergeFx=[],feedMsg={t:'',d:'',at:-1e9}; // constellations {keys,type}; the armed map item; a Weave being drawn; animations; the final count
-const TIMES={3:'Twilight',6:'Dawn',9:'Morning',12:'Noon',15:'Afternoon',18:'Dusk',21:'Night',24:'Midnight'},STEP_H=3; // the day: eight turns of three hours
-const CACHE_V='20261103i'; // the build: bump with shared.js's
+const TIMES={3:txt('map.twilight'),6:txt('map.dawn'),9:txt('map.morning'),12:txt('map.noon'),15:txt('map.afternoon'),18:txt('map.dusk'),21:txt('map.night'),24:txt('map.midnight')},STEP_H=3; // the day: eight turns of three hours
+const CACHE_V='20261103k'; // the build: bump with shared.js's
 const SCENE=new URLSearchParams(location.search).get('scene'); // a Guide / event demo: the map plays a scripted moment (no surface behind it)
 let phase='move',turnTimer=0,mergeTimer=0;
 let gameOverReason='';
@@ -214,7 +221,7 @@ function decayCycle(){
   while(mx-->0){
     let fv=null;for(const k in cells){const c=cells[k];if(!c.cap&&!c.isVoid&&!c.locked&&!c.full){fv=c.v;break;}}
     if(fv===null||fv>=MIN_VAL)break;
-    if(captureOrder.length===0){phase='gameover';gameOverReason='all captures dissipated';return;}
+    if(captureOrder.length===0){phase='gameover';gameOverReason=txt('map.go.dissipated');return;}
     const oldest=captureOrder.shift();
     for(const k of oldest.keys){const c=cells[k];if(!c)continue;c.cap=false;c.capVal=0;c.isVoid=true;c.mergeId=null;c.v=0;delete c.kind;}
     if(oldest.mergeId!=null)mergeGroups=mergeGroups.filter(g=>g.id!==oldest.mergeId);
@@ -225,11 +232,11 @@ function decayCycle(){
 }
 function detectMerges(){
   let totalRed=0;
-  for(const k in cells){const c=cells[k];if(!c.cap||c.isVoid)continue;const ns=neighbors(c.q,c.r);const nKeys=ns.map(([q,r])=>K(q,r));if(!nKeys.every(nk=>{const nc=cells[nk];return nc&&nc.cap&&!nc.isVoid;}))continue;const allKeys=[k,...nKeys];if(allKeys.some(ak=>{const ac=cells[ak];return ac&&ac.mergeId!=null;}))continue;const gid=mergeIdCounter++;mergeGroups.push({id:gid,type:'hex',cells:[...allKeys]});for(const ak of allKeys)if(cells[ak])cells[ak].mergeId=gid;consolidateCaptures(allKeys,gid);totalRed+=3;showMergeFlash('⬡ Hex Merge · Rings −3');}
+  for(const k in cells){const c=cells[k];if(!c.cap||c.isVoid)continue;const ns=neighbors(c.q,c.r);const nKeys=ns.map(([q,r])=>K(q,r));if(!nKeys.every(nk=>{const nc=cells[nk];return nc&&nc.cap&&!nc.isVoid;}))continue;const allKeys=[k,...nKeys];if(allKeys.some(ak=>{const ac=cells[ak];return ac&&ac.mergeId!=null;}))continue;const gid=mergeIdCounter++;mergeGroups.push({id:gid,type:'hex',cells:[...allKeys]});for(const ak of allKeys)if(cells[ak])cells[ak].mergeId=gid;consolidateCaptures(allKeys,gid);totalRed+=3;showMergeFlash(txt('map.hex_merge_rings_3'));}
   const capKeys=Object.keys(cells).filter(k=>{const c=cells[k];return c.cap&&!c.isVoid;});
   for(let i=0;i<capKeys.length;i++){const[q1,r1]=parseK(capKeys[i]);const n1=neighbors(q1,r1).map(([q,r])=>K(q,r)).filter(nk=>capKeys.includes(nk));for(let j=0;j<n1.length;j++){const[q2,r2]=parseK(n1[j]);for(let jj=j+1;jj<n1.length;jj++){const[q3,r3]=parseK(n1[jj]);if(dist(q2,r2,q3,r3)!==1)continue;const triKeys=[capKeys[i],n1[j],n1[jj]].sort();if(triKeys.some(tk=>{const tc=cells[tk];return tc&&tc.mergeId!=null;}))continue;const gid=mergeIdCounter++,d3=triKeys.every(tk=>cells[tk]&&cells[tk].kind==='dark');mergeGroups.push({id:gid,type:d3?'dark3':'tri',cells:[...triKeys]});for(const tk of triKeys)if(cells[tk])cells[tk].mergeId=gid;consolidateCaptures(triKeys,gid);
-    if(d3){totalRed+=3;mergeFx.push({gid,t0:performance.now()});showMergeFlash('● Three Dark Remnants become one · Rings −3');}else{totalRed+=1;showMergeFlash('△ Merge · Rings −1');}}}} // three Dark Remnants swirl into one great one: three times the pull
-  if(totalRed>0){hubEvent('map_merge');turn-=totalRed;checkConstellations();if(turn<=0){phase='gameover';gameOverReason='turn reduced to zero';return;}retractToTurn();redistribute();checkVoidAccess();}
+    if(d3){totalRed+=3;mergeFx.push({gid,t0:performance.now()});showMergeFlash(txt('map.three_dark_remnants_become'));}else{totalRed+=1;showMergeFlash(txt('map.merge_rings_1'));}}}} // three Dark Remnants swirl into one great one: three times the pull
+  if(totalRed>0){hubEvent('map_merge');turn-=totalRed;checkConstellations();if(turn<=0){phase='gameover';gameOverReason=txt('map.go.zero');return;}retractToTurn();redistribute();checkVoidAccess();}
 }
 function consolidateCaptures(mk,mid){const ks=new Set(mk);const tr=[];const ac=new Set();for(let i=0;i<captureOrder.length;i++){const e=captureOrder[i];if(e.keys.some(k=>ks.has(k))){tr.push(i);for(const k of e.keys)ac.add(k);}}for(const k of mk)ac.add(k);for(let i=tr.length-1;i>=0;i--)captureOrder.splice(tr[i],1);captureOrder.push({keys:[...ac],mergeId:mid});}
 function showMergeFlash(t){feed(t);const el=document.getElementById('merge-flash');el.textContent=t;el.classList.add('show');clearTimeout(mergeTimer);mergeTimer=setTimeout(()=>el.classList.remove('show'),1500);}
@@ -241,7 +248,7 @@ function newMap(){ // a new map, a descent and every midnight: the source at the
   const r1=ring(1),si=Math.floor(Math.random()*r1.length);pQ=r1[si][0];pR=r1[si][1];
   cells[K(pQ,pR)].isP=true;burstFx={t0:performance.now(),kind:'burst'};
 }
-function descendDepth(){if(!voidOpen)return;depth++;newMap();showTurn();focusCam(false);updateHint();showMergeFlash(`Descended to D${depth}`);hubEvent('map_descend');saveMap();}
+function descendDepth(){if(!voidOpen)return;depth++;newMap();showTurn();focusCam(false);updateHint();showMergeFlash(txt('map.descended_to_d',depth));hubEvent('map_descend');saveMap();}
 function focusCam(a){const[wx,wy]=a2w(pQ,pR);camTX=wx;camTY=wy;if(!a){camX=camTX;camY=camTY;}}
 function initGame(){ // a new map: score and depth start over; items, resources and discoveries live in the surface's save and are kept
   neb({cmd:'day',day:1,newRun:true});hubPop=[null,null];score=0;depth=0;clock=3;_sunH=3;_sun={from:3,to:3,t0:0};day=1;dayLog=[];dayCnt={b:0,d:0};pendingEnd=null;newMap();
@@ -253,8 +260,8 @@ function advanceTurn(){ // time moves on (a move) by one time of day; the spill 
   if(fresh)fresh=false;else{turn++;addRing(turn);}redistribute();decayCycle();showTurn();}
 const canRest=()=>tired()&&currentView==='map'&&!menuOpen&&!shopUI&&phase!=='collapse'&&phase!=='ended'&&phase!=='gameover'; // Midnight, on the map: the day can be ended (Rest is the only way: no moves at Midnight)
 function rest(){if(!canRest())return;advanceTurn();updateHint();saveMap();} // Rest: the day ends at Midnight without a move, after any last thing (a shop, an item) you wanted to do
-const clockStr=()=>TIMES[clock]||TIMES[Math.max(3,Math.floor(clock/3)*3)]||'Twilight';
-function showTurn(){const el=document.getElementById('turn-label');el.textContent=clockStr()+' · Day '+day;el.classList.add('show');clearTimeout(turnTimer);turnTimer=setTimeout(()=>el.classList.remove('show'),1200);} // (always shown; it glows when the time changes)
+const clockStr=()=>TIMES[clock]||TIMES[Math.max(3,Math.floor(clock/3)*3)]||TIMES[3];
+function showTurn(){const el=document.getElementById('turn-label');el.textContent=txt('map.day',clockStr(),day);el.classList.add('show');clearTimeout(turnTimer);turnTimer=setTimeout(()=>el.classList.remove('show'),1200);} // (always shown; it glows when the time changes)
 
 function getMoves(){
   const out=[];
@@ -269,7 +276,7 @@ function doCapture(){ // enter the surface of the hex you stand on
   if(phase==='gameover'||phase==='collapse'||!nebReady)return;
   const c=cells[K(pQ,pR)];
   if(!c||c.cap||c.isVoid)return;
-  if(c.v<=0){showMergeFlash('no value — cannot capture');return;}
+  if(c.v<=0){showMergeFlash(txt('map.no_value_cannot_capture'));return;}
   enterNebula(K(pQ,pR));
 }
 function completeCaptureForCell(cellKey,kind,tally){
@@ -288,94 +295,94 @@ function completeCaptureForCell(cellKey,kind,tally){
 }
 const tired=()=>clock===24&&!SCENE; // Midnight: no more moves (Rest ends the day)
 function doMove(tq,tr){
-  if(phase==='gameover'||phase==='collapse')return;if(tired()){feed('Too tired to move','Rest (under Midnight) to end the day');return;}
+  if(phase==='gameover'||phase==='collapse')return;if(tired()){feed(txt('map.too_tired_to_move'),txt('map.rest_under_midnight_to'));return;}
   const tc=cells[K(tq,tr)];
   if(tc&&tc.isVoid&&voidOpen&&tq===0&&tr===0){const ok=cells[K(pQ,pR)];if(ok)ok.isP=false;descendDepth();return;}
   const ok=cells[K(pQ,pR)];if(ok)ok.isP=false;
   pQ=tq;pR=tr;tc.isP=true;focusCam(true);
   advanceTurn();if(runBad(run,'slowmove')&&phase!=='collapse'&&phase!=='gameover')advanceTurn();if(phase==='collapse'){updateHint();saveMap();return;}if(phase!=='gameover')phase='move';
-  if(phase==='move'&&!tired()&&!getMoves().length){phase='gameover';gameOverReason='no viable moves';}
+  if(phase==='move'&&!tired()&&!getMoves().length){phase='gameover';gameOverReason=txt('map.go.nomoves');}
   updateHint();saveMap();
 }
 let hintLine=['',''];
 function updateHint(){ // the feed's resting line: what you can do now
   const c=cells[K(pQ,pR)];let a='',b='';
-  if(phase==='ended'){a='The run is won · '+dayLog.length+' day'+(dayLog.length===1?'':'s');b='Back to the main menu to start the days again';}
-  else if(phase==='gameover'){a='Game over: '+gameOverReason;b='A new map keeps your items';}
-  else if(phase==='captured'){a=tired()?'Cleared! Too tired to move':'Cleared!';b=tired()?'Rest (under Midnight) to end the day':'Move on';}
-  else if(phase==='collapse'){a=pendingEnd?(pendingEnd.how==='midnight'?'Midnight':'Full circle'):'Day '+(day-1)+' cleared';b=pendingEnd?'The rings fall into the source…':'Close the report to start the day';}
-  else if(armed==='weave'){a='Weave · click bright hexes, then the first again to close (3 to 5)';b=weaveSel.length?weaveSel.length+' chosen':'right-click, Esc or the slot again to stop';}
-  else if(armed==='dial'){a='String · click any open hex to go straight there';b='1 String per hex of distance · no time passes';}
-  else if(armed==='leash'){a='Spindle · click a cleared hex to unwind it, or an open one to wind it up to 1.00';b='A great Dark Remnant takes 3';}
-  else if(c&&!c.cap&&!c.isVoid&&phase==='move'){a=c.v<=0?'No value here: nothing to clear':`Space / click to ${nebulaCellKey===K(pQ,pR)?'continue this surface':'enter this surface'} (${c.v.toFixed(2)})`;b=clockStr()+' · day '+day+' · or move';if(tired()){a='Too tired to move';b='Rest (under Midnight) to end the day'+(c.v>0?' · or '+(nebulaCellKey===K(pQ,pR)?'continue':'enter')+' this surface ('+c.v.toFixed(2)+')':'');}}
+  if(phase==='ended'){a=txt('map.the_run_is_won',dayLog.length,(dayLog.length===1?'':txt('map.s')));b=txt('map.back_to_the_main');}
+  else if(phase==='gameover'){a=txt('map.game_over',gameOverReason);b=txt('map.a_new_map_keeps');}
+  else if(phase==='captured'){a=(tired()?txt('map.cleared_too_tired_to'):txt('map.cleared'));b=(tired()?txt('map.rest_under_midnight_to'):txt('map.move_on'));}
+  else if(phase==='collapse'){a=(pendingEnd?(pendingEnd.how==='midnight'?txt('map.midnight'):txt('map.full_circle')):txt('map.day_cleared',day-1));b=(pendingEnd?txt('map.the_rings_fall_into'):txt('map.close_the_report_to'));}
+  else if(armed==='weave'){a=txt('map.weave_click_bright_hexes');b=(weaveSel.length?txt('map.chosen',weaveSel.length):txt('map.right_click_esc_or'));}
+  else if(armed==='dial'){a=txt('map.string_click_any_open');b=txt('map.1_string_per_hex');}
+  else if(armed==='leash'){a=txt('map.spindle_click_a_cleared');b=txt('map.a_great_dark_remnant');}
+  else if(c&&!c.cap&&!c.isVoid&&phase==='move'){a=(c.v<=0?txt('map.no_value_here_nothing'):txt('map.space_click_to',(nebulaCellKey===K(pQ,pR)?txt('map.continue_this_surface'):txt('map.enter_this_surface')),c.v.toFixed(2)));b=txt('map.day_or_move',clockStr(),day);if(tired()){a=txt('map.too_tired_to_move');b=txt('map.rest_under_midnight_to_2',(c.v>0?txt('map.or_this_surface',(nebulaCellKey===K(pQ,pR)?txt('map.continue'):txt('map.enter')),c.v.toFixed(2)):''));}}
   hintLine=[a,b];}
 function feed(t,d){feedMsg={t,d:d||'',at:performance.now()};} // a map message in the dock's feed (stays a few seconds)
 function hexInfo(c){ // what hovering a hex tells you
   if(!c)return null;const k=K(c.q,c.r),g=c.mergeId!=null?mergeGroups.find(x=>x.id===c.mergeId):null,cn=constel.filter(x=>x.keys.includes(k));
-  if(c.isVoid&&c.q===0&&c.r===0)return['The source',voidOpen?'Open: step in to descend':'The spill pours from here · bursts at Twilight'];
-  if(c.isVoid)return['Void','Nothing left here'];
-  if(c.cap&&c.kind==='dark')return[g&&g.type==='dark3'?'Great Dark Remnant':'Dark Remnant clear',(g&&g.type==='dark3'?'Three swirled into one · a Spindle ×3 unwinds it':'Locks nothing · the spill cannot spread past it')+' · value '+c.capVal.toFixed(2)];
-  if(c.cap)return['Bright clear'+(cn.length?' · '+cn.map(x=>x.type).join(', ')+' star':''),'Locks its neighbours · value '+c.capVal.toFixed(2)+(g?' · merged':'')];
-  return[(c.isP?'You · ':'')+'Surface '+c.v.toFixed(2),(c.full?'Wound up by a Spindle: held at 1.00 · ':c.locked?'Locked by a bright clear · ':'')+'covered '+Math.round(cellCov(c)*100)+'%'+(k===nebulaCellKey?' · saved where you left it':'')];}
-const ITEM_NOTE={leash:'Unwinds a cleared hex back to a surface (a great Dark Remnant takes 3), or winds an open one below 1.00 up to 1.00',dial:'Goes straight to any open hex: 1 per hex of distance, and no time passes',
-  weave:'Joins 3 to 5 bright clears into a constellation: 3 pays a Prism each time of day, 4 a Gate or Knot, 5 a Key or Lens',prism:'Used on a surface: a loop round the first point you pick recolours everything inside to match it',
-  knot:'Used on a surface: a 3-point loop turns everything inside it into Dim Remnants',gate:'Used on a surface: a loop of lit points becomes a barrier that locks what is inside it in',
-  key:'Used on a surface: opens a Gate to release what it holds',lens:'Used on a surface: links a loop of lit points or remnants (they are used up), or fills a completed Pattern with glass'};
+  if(c.isVoid&&c.q===0&&c.r===0)return[txt('map.the_source'),(voidOpen?txt('map.open_step_in_to'):txt('map.the_spill_pours_from'))];
+  if(c.isVoid)return[txt('map.void'),txt('map.nothing_left_here')];
+  if(c.cap&&c.kind==='dark')return[(g&&g.type==='dark3'?txt('map.great_dark_remnant'):txt('map.dark_remnant_clear')),txt('map.value',(g&&g.type==='dark3'?txt('map.three_swirled_into_one'):txt('map.locks_nothing_the_spill')),c.capVal.toFixed(2))];
+  if(c.cap)return[txt('map.bright_clear',(cn.length?txt('map.star',cn.map(x=>x.type).join(', ')):'')),txt('map.locks_its_neighbours_value',c.capVal.toFixed(2),(g?txt('map.merged'):''))];
+  return[txt('map.surface',(c.isP?txt('map.you'):''),c.v.toFixed(2)),txt('map.covered',(c.full?txt('map.wound_up_by_a'):(c.locked?txt('map.locked_by_a_bright'):'')),Math.round(cellCov(c)*100),(k===nebulaCellKey?txt('map.saved_where_you_left'):''))];}
+const ITEM_NOTE={leash:txt('map.unwinds_a_cleared_hex'),dial:txt('map.goes_straight_to_any'),
+  weave:txt('map.joins_3_to_5'),prism:txt('map.used_on_a_surface'),
+  knot:txt('map.used_on_a_surface_2'),gate:txt('map.used_on_a_surface_3'),
+  key:txt('map.used_on_a_surface_4'),lens:txt('map.used_on_a_surface_5')};
 function itemInfo(k,c){ // an item in the dock: what it does; in hand over a hex, what it would do there (and what it costs)
-  const n=inv[k]||0,nm=KIND_NAME[k]||k;if(!ITEM_NOTE[k])return[curName(k),'You have '+fmtN(shopWallet(k))];
-  if(!c)return[nm+' × '+n+(armed===k?' · in hand':DOCK_ITEMS.includes(k)?' · click to take it in hand':' · earned on the map'),ITEM_NOTE[k]];
-  const ck=K(c.q,c.r),g=c.mergeId!=null?mergeGroups.find(x=>x.id===c.mergeId):null,have=(m,u)=>m+(n<u?' · you have '+n:'');
-  if(k==='leash')return[nm+' here',c.cap?have('Unwind this clear: '+(g&&g.type==='dark3'?3:1)+' Spindle'+(g&&g.type==='dark3'?'s':''),g&&g.type==='dark3'?3:1):!c.isVoid&&c.v<1&&!c.full?have('Wind it up from '+c.v.toFixed(2)+' to 1.00: 1 Spindle',1):'Nothing to do here'];
-  if(k==='dial'){if(c.cap||c.isVoid||ck===K(pQ,pR))return[nm+' here','Only an open hex you are not on'];const d=dist(pQ,pR,c.q,c.r);return[nm+' here',have('Go straight here: '+d+' String'+(d>1?'s':'')+' · no time passes',d)];}
-  if(k==='weave')return[nm+' here',isBright(ck)?(weaveSel.includes(ck)?(weaveSel[0]===ck&&weaveSel.length>=3?'Click to close the loop':'Chosen ('+weaveSel.length+')'):'Add this bright clear ('+weaveSel.length+' chosen)'):'Only bright clears can be woven'];
+  const n=inv[k]||0,nm=KIND_NAME[k]||k;if(!ITEM_NOTE[k])return[curName(k),txt('map.you_have',fmtN(shopWallet(k)))];
+  if(!c)return[nm+' × '+n+((armed===k?txt('map.in_hand'):(DOCK_ITEMS.includes(k)?txt('map.click_to_take_it'):txt('map.earned_on_the_map')))),ITEM_NOTE[k]];
+  const ck=K(c.q,c.r),g=c.mergeId!=null?mergeGroups.find(x=>x.id===c.mergeId):null,have=(m,u)=>m+(n<u?txt('map.item.youhave',n):'');
+  if(k==='leash')return[txt('map.here',nm),(c.cap?have(txt('map.unwind_this_clear_spindle',g&&g.type==='dark3'?3:1,(g&&g.type==='dark3'?txt('map.s'):'')),g&&g.type==='dark3'?3:1):(!c.isVoid&&c.v<1&&!c.full?have(txt('map.wind_it_up_from',c.v.toFixed(2)),1):txt('map.nothing_to_do_here')))];
+  if(k==='dial'){if(c.cap||c.isVoid||ck===K(pQ,pR))return[txt('map.here',nm),txt('map.only_an_open_hex')];const d=dist(pQ,pR,c.q,c.r);return[txt('map.here',nm),have(txt('map.go_straight_here_string',d,(d>1?txt('map.s'):'')),d)];}
+  if(k==='weave')return[txt('map.here',nm),(isBright(ck)?(weaveSel.includes(ck)?(weaveSel[0]===ck&&weaveSel.length>=3?txt('map.click_to_close_the'):txt('map.chosen_2',weaveSel.length)):txt('map.add_this_bright_clear',weaveSel.length)):txt('map.only_bright_clears_can'))];
   return[nm,ITEM_NOTE[k]];}
 // ── Items on the map: Spindle unwinds a clear; String moves without time; Weave joins bright hexes into constellations ──
 const isBright=k=>{const c=cells[k];return!!(c&&c.cap&&c.kind!=='dark');};
 function armItem(kind){if(phase==='ended'||phase==='collapse')return;armed=armed===kind?null:kind;dockUp[kind]=performance.now();weaveSel=[];weaveAsk=null;updateHint();syncDock();}
 function spend(kind,n){inv[kind]=Math.max(0,(inv[kind]||0)-n);neb({cmd:'spend',kind,n});syncDock();}
 function spindleFill(k){ // Spindle on an open hex below 1.00: wound up to 1.00, and held there (like a locked hex) until it is cleared
-  const c=cells[k];if(!c||c.cap||c.isVoid||c.v>=1)return;if((inv.leash||0)<1){feed('Spindle','You have none');return;}
-  spend('leash',1);c.v=1;c.full=true;redistribute();feed('Spindle','Surface wound up to 1.00 · it holds until cleared');updateHint();saveMap();}
+  const c=cells[k];if(!c||c.cap||c.isVoid||c.v>=1)return;if((inv.leash||0)<1){feed(txt('map.spindle'),txt('map.you_have_none'));return;}
+  spend('leash',1);c.v=1;c.full=true;redistribute();feed(txt('map.spindle'),txt('map.surface_wound_up_to'));updateHint();saveMap();}
 function unclear(k){ // Spindle: a cleared hex back to an open surface (the value spreads over one more hex)
   const c=cells[k];if(!c||!c.cap)return;const g=c.mergeId!=null?mergeGroups.find(x=>x.id===c.mergeId):null,big=g&&g.type==='dark3',cost=big?3:1;
-  if((inv.leash||0)<cost){feed('Spindle','This takes '+cost+' (you have '+(inv.leash||0)+')');return;}
+  if((inv.leash||0)<cost){feed(txt('map.spindle'),txt('map.this_takes_you_have',cost,inv.leash||0));return;}
   const ks=big?g.cells:[k];spend('leash',cost);
   if(g){mergeGroups=mergeGroups.filter(x=>x!==g);for(const gk of g.cells)if(cells[gk])cells[gk].mergeId=null;}
   for(const kk of ks){const q=cells[kk];if(!q)continue;score=Math.round((score-q.capVal)*100)/100;q.cap=false;q.capVal=0;q.v=0;delete q.full;clearFx[kk]={t0:performance.now(),un:true,dk:q.kind==='dark'};delete q.kind;}
   captureOrder=captureOrder.map(e=>({keys:e.keys.filter(x=>!ks.includes(x)),mergeId:e.mergeId})).filter(e=>e.keys.length);
   checkConstellations();recomputeLocked();redistribute();checkVoidAccess();
-  feed('Unwound',big?'The great Dark Remnant is a surface again':'The hex is a surface again · the value spreads over it');updateHint();saveMap();}
+  feed(txt('map.unwound'),(big?txt('map.the_great_dark_remnant'):txt('map.the_hex_is_a')));updateHint();saveMap();}
 function stringMove(q,r){ // String: straight to any open hex, 1 per hex of distance, no time
   const c=cells[K(q,r)];if(!c||c.cap||c.isVoid||(q===pQ&&r===pR))return;const n=dist(pQ,pR,q,r);
-  if((inv.dial||0)<n){feed('String','That is '+n+' away (you have '+(inv.dial||0)+')');return;}
+  if((inv.dial||0)<n){feed(txt('map.string'),txt('map.that_is_away_you',n,inv.dial||0));return;}
   spend('dial',n);const ok=cells[K(pQ,pR)];if(ok)ok.isP=false;dropSession();pQ=q;pR=r;c.isP=true;focusCam(true);phase='move';const dim=runBad(run,'slowmove');if(dim)advanceTurn(); // a dim fortune: a String takes a time of day
-  if(phase==='collapse'){updateHint();saveMap();return;}feed('String',n+' hex'+(n>1?'es':'')+(dim?' · a time of day passed':' · no time passed'));updateHint();saveMap();}
+  if(phase==='collapse'){updateHint();saveMap();return;}feed(txt('map.string'),txt('map.hex',n,(n>1?txt('map.es'):''),(dim?txt('map.a_time_of_day'):txt('map.no_time_passed'))));updateHint();saveMap();}
 const WEAVE_KINDS={3:['prism'],4:['gate','knot'],5:['key','lens']}; // (KIND_NAME: shared.js)
 const weaveKinds=n=>runBonus(run,'glasses')?['lens']:WEAVE_KINDS[n].filter(k=>!(k==='key'&&run.keysGone)); // Broken Glasses: only Lens; Keys lost: no Key
 function weaveClick(k){
-  if(!isBright(k)){feed('Weave','Only bright hexes can be joined');return;}
+  if(!isBright(k)){feed(txt('map.weave'),txt('map.only_bright_hexes_can'));return;}
   if(weaveSel.length>=3&&k===weaveSel[0]){const kinds=weaveKinds(weaveSel.length);if(kinds.length===1)makeConstellation(kinds[0]);else{weaveAsk=kinds;syncDock();}return;}
-  if(weaveSel.includes(k))return;if(weaveSel.length>=5){feed('Weave','At most 5: click the first to close it');return;}
+  if(weaveSel.includes(k))return;if(weaveSel.length>=5){feed(txt('map.weave'),txt('map.at_most_5_click'));return;}
   weaveSel.push(k);updateHint();}
 function segX(a,b,c,d){const o=(p,q,r)=>Math.sign((q[0]-p[0])*(r[1]-p[1])-(q[1]-p[1])*(r[0]-p[0]));return o(a,b,c)*o(a,b,d)<0&&o(c,d,a)*o(c,d,b)<0;} // proper crossing (touching ends do not count)
 const constEdges=c=>c.keys.map((k,i)=>[k,c.keys[(i+1)%c.keys.length]]);
 function makeConstellation(type){
-  if((inv.weave||0)<1){feed('Weave','You have no Weave');weaveSel=[];weaveAsk=null;return;}
+  if((inv.weave||0)<1){feed(txt('map.weave'),txt('map.you_have_no_weave'));weaveSel=[];weaveAsk=null;return;}
   const nc={keys:weaveSel.slice(),type},P=k=>a2w(...parseK(k)),broken=[];
   for(const o of constel)if(constEdges(nc).some(([a,b])=>constEdges(o).some(([c,d])=>![c,d].includes(a)&&![c,d].includes(b)&&segX(P(a),P(b),P(c),P(d)))))broken.push(o); // a newer one crossing an older one breaks it
   constel=constel.filter(o=>!broken.includes(o));constel.push(nc);spend('weave',1);weaveSel=[];weaveAsk=null;armed=null;
-  feed(KIND_NAME[type]+' constellation','Gives a '+KIND_NAME[type]+' every time of day'+(broken.length?' · broke '+broken.length+' older':''));hubEvent('map_constellation');updateHint();syncDock();saveMap();}
+  feed(txt('map.constellation',KIND_NAME[type]),txt('map.gives_a_every_time',KIND_NAME[type],(broken.length?txt('map.broke_older',broken.length):'')));hubEvent('map_constellation');updateHint();syncDock();saveMap();}
 function checkConstellations(){constel=constel.filter(c=>c.keys.every(isBright));}
 function awardConstellations(){checkConstellations();const got={},laps=runBad(run,'laps'),gl=runBonus(run,'glasses');for(const c of constel){c.n=(c.n||0)+1;if(laps&&c.n%2)continue; // a dim fortune: every other time of day
     for(const k of gl&&c.type==='lens'?['prism','knot','gate'].concat(run.keysGone?[]:['key']):[c.type]){neb({cmd:'award',kind:k,n:1});got[k]=(got[k]||0)+1;}} // Broken Glasses: a Lens one pays the others
-  const t=Object.keys(got);if(t.length)feed('Constellations',t.map(k=>'+'+got[k]+' '+KIND_NAME[k]).join(' · '));}
+  const t=Object.keys(got);if(t.length)feed(txt('map.constellations'),t.map(k=>'+'+got[k]+' '+KIND_NAME[k]).join(' · '));}
 // ── Full circle: a ring of clears all of one kind (all bright or all dark) pulls the map back to it; what is inside can be either ──
 function ringCheck(){checkVoidAccess();
   for(let n=1;n<=turn;n++){const ks=ring(n).map(([q,r])=>K(q,r));if(!ks.every(k=>cells[k]&&cells[k].cap)||!(ks.every(isBright)||ks.every(k=>cells[k].kind==='dark')))continue;
     if(n===1&&voidOpen)continue; // the descent comes first: a first ring that opens the centre is the way down, not the end
     endDay(ks.every(isBright)?'bright':'dark',n);return true;}
   for(const k in cells)if(!cells[k].isVoid&&!cells[k].cap)return false;endDay('full',0);return true;} // every hex cleared: the run is won
-const END_NAME={midnight:'Neither · midnight',bright:'Bright collapse',dark:'Dark collapse',full:'Every hex cleared'};
+const END_NAME={midnight:txt('map.neither_midnight'),bright:txt('map.bright_collapse'),dark:txt('map.dark_collapse'),full:txt('map.every_hex_cleared')};
 function endDay(how,n){ // the day ends as a sequence: the rings fall into the source one after another, the outer first and each faster than the last, then a
   // flash, then the value is shared out again and a new day starts at Twilight. how: 'midnight' (it all falls in, a new burst), 'bright' / 'dark' (a full circle
   // at ring n: the rings past it fall in, what is inside is kept), 'full' (every hex cleared). A full circle at ring 1 or 2, or nothing left uncleared inside it, wins the run.
@@ -387,7 +394,7 @@ function endDay(how,n){ // the day ends as a sequence: the rings fall into the s
   const stop=(how==='midnight'||win)?0:n,base=T.mapCollapseMs||1400;let t=0;
   for(let i=outer,j=0;i>stop;i--,j++){const dur=Math.max(110,base*0.55*Math.pow(0.7,j)),ri=i;at(t,()=>fallRing(ri,dur));t+=dur;} // accelerating: each ring falls in faster
   at(t,()=>{burstFx={t0:performance.now(),kind:'flash',dur:700};});at(t+420,finishDay);
-  feed(how==='midnight'?'Midnight':win?'Full collapse':'Full circle',how==='midnight'?'The spill falls back into the source':win?'Everything falls into the source':'The rings past ring '+n+' fall into the source');
+  feed((how==='midnight'?txt('map.midnight'):(win?txt('map.full_collapse'):txt('map.full_circle'))),(how==='midnight'?txt('map.the_spill_falls_back'):(win?txt('map.everything_falls_into_the'):txt('map.the_rings_past_ring',n))));
   showTurn();updateHint();saveMap();}
 function fallRing(i,dur){ // one ring falls into the source
   for(const k of Object.keys(cells)){const c=cells[k];if(!c.isVoid&&cellRing(c.q,c.r)===i){delete cells[k];totalCells--;}}
@@ -395,9 +402,9 @@ function fallRing(i,dur){ // one ring falls into the source
 function finishDay(){ // after the flash: the day goes into the log, the value is shared out again and a new day begins at Twilight (a win ends the run instead)
   const e=pendingEnd;if(!e)return;pendingEnd=null;
   dayLog.push({day,end:e.how,ring:e.n,b:dayCnt.b,d:dayCnt.d,win:e.win});dayCnt={b:0,d:0};
-  if(e.win){phase='ended';for(const k of Object.keys(cells))if(!cells[k].isVoid){delete cells[k];totalCells--;}updateHint();saveMap();if(SCENE)showMergeFlash('Full collapse · the run is won');else showDayReport();return;}
+  if(e.win){phase='ended';for(const k of Object.keys(cells))if(!cells[k].isVoid){delete cells[k];totalCells--;}updateHint();saveMap();if(SCENE)showMergeFlash(txt('map.full_collapse_the_run'));else showDayReport();return;}
   clock=3;day++;neb({cmd:'day',day});
-  if(e.how==='midnight'){newMap();feed('Day '+(day-1)+' ended at midnight',dayLog[dayLog.length-1].b+' bright · '+dayLog[dayLog.length-1].d+' dark · a new burst');}
+  if(e.how==='midnight'){newMap();feed(txt('map.day_ended_at_midnight',day-1),txt('map.bright_dark_a_new',dayLog[dayLog.length-1].b,dayLog[dayLog.length-1].d));}
   else{const n=e.n,ks=ring(n).map(([q,r])=>K(q,r));
     for(const k of Object.keys(cells)){const c=cells[k];if(!c.isVoid&&cellRing(c.q,c.r)>n){delete cells[k];totalCells--;}}
     for(const k of ks){const c=cells[k];if(!c)continue;c.cap=false;c.capVal=0;c.v=0;delete c.kind;c.mergeId=null;}
@@ -408,15 +415,15 @@ function finishDay(){ // after the flash: the day goes into the log, the value i
     phase=SCENE?'move':'collapse';if(!SCENE)showDayReport();} // (the report holds the new day until it is closed)
   focusCam(true);showTurn();updateHint();saveMap();}
 function dayLogHTML(){
-  if(!dayLog.length)return '<div class="dsum">No day has ended yet</div>';let tb=0,td=0;
+  if(!dayLog.length)return '<div class="dsum">'+txt('map.days.none')+'</div>';let tb=0,td=0;
   const rows=dayLog.map(e=>{tb+=e.b;td+=e.d;return `<tr${e.win?' class="w"':''}><td>Day ${e.day}</td><td>${END_NAME[e.end]||e.end}${e.ring?' · ring '+e.ring:''}${e.win?' · won':''}</td><td>${e.b}</td><td>${e.d}</td></tr>`;}).join('');
-  return `<table class="dlog"><tr><th>Day</th><th>Ended</th><th>Bright</th><th>Dark</th></tr>${rows}<tr><th>All</th><th></th><th>${tb}</th><th>${td}</th></tr></table>`;}
+  return `<table class="dlog"><tr><th>${txt('map.days.day')}</th><th>${txt('map.days.ended')}</th><th>${txt('map.days.bright')}</th><th>${txt('map.days.dark')}</th></tr>${rows}<tr><th>${txt('map.days.all')}</th><th></th><th>${tb}</th><th>${td}</th></tr></table>`;}
 function showDayReport(){ // a day's report (or the run's, when won): how it ended, and the log of every day so far
   const won=phase==='ended',e=dayLog[dayLog.length-1]||{day,end:'full',ring:0,b:0,d:0},el=document.getElementById('day-report'),b=el.querySelector('button');
-  el.querySelector('h2').textContent=won?'THE RUN IS WON':'DAY '+e.day+' CLEARED';
-  el.querySelector('.dsum').textContent=(END_NAME[e.end]||e.end)+(e.ring?' at ring '+e.ring:'')+' · '+e.b+' bright · '+e.d+' dark this day'+(won?' · your items and discoveries are kept':'');
+  el.querySelector('h2').textContent=(won?txt('map.the_run_is_won_2'):txt('map.day_cleared_2',e.day));
+  el.querySelector('.dsum').textContent=txt('map.bright_dark_this_day',END_NAME[e.end]||e.end,(e.ring?txt('map.at_ring',e.ring):''),e.b,e.d,(won?txt('map.your_items_and_discoveries'):''));
   el.querySelector('.dlogbox').innerHTML=dayLogHTML();
-  b.textContent=won?'Back to the main menu':'Day '+day+' · Twilight';b.onclick=won?newRun:closeDayReport;el.classList.add('show');}
+  b.textContent=(won?txt('map.back_to_the_main_2'):txt('map.day_twilight',day));b.onclick=won?newRun:closeDayReport;el.classList.add('show');}
 function closeDayReport(){document.getElementById('day-report').classList.remove('show');if(phase==='collapse'&&!pendingEnd)phase='move';updateHint();saveMap();}
 function newRun(){initGame();quitMain();} // a won run: the days start over (items and discoveries are the surface's own save, untouched)
 // ── The 3D scene: the plane lies flat (x right, y down, z up out of it); the camera looks at it from T.mapTilt off straight down, at
@@ -633,7 +640,7 @@ function mapRender(){
   hubPh('overlays');requestPreviews(mapNeed);hubPh('previews');pondStep(now);hubPh('ducks');sceneRender(now);hubPh('3d');
   // HUD
   let st=`${clockStr()} · day ${day} · rings ${turn} · score ${score.toFixed(2)} · captures ${captureOrder.length}`;
-  if(phase==='gameover')st+=' · game over: '+gameOverReason;
+  if(phase==='gameover')st+=txt('map.stat.gameover',gameOverReason);
   document.getElementById('score-display').textContent=st;
   {const el=document.getElementById('turn-label'),tl=clockStr()+' · Day '+day;if(el.textContent!==tl)el.textContent=tl;document.getElementById('rest-btn').classList.toggle('on',canRest());}
   ptOver=mX>=0?document.elementFromPoint(mX,mY):null;statsTick(now);shopTick();discTick();feedTick(now);cursorTick(now);hubPh('hud');hubPerfFrame(now); // ptOver: one hit test a frame, before the shops move (a hit test after a style change forces a layout)
@@ -720,11 +727,11 @@ function openBottle(d){ // clicked: the cork comes out and the letter is unrolle
   d.empty=true;d.kick=2;d.dash=performance.now()+800;ripples.push({x:d.x,y:d.y,t:performance.now(),dk:onWhite(d.x,d.y),big:1}); // the empty bottle goes back on the water
   if(d.duck&&DUCK_TYPES[d.duck]){const v=DUCK_TYPES[d.duck],el=document.getElementById('letter'),nw=!(duckLog[d.duck]>0);neb({cmd:'giveDuck',type:d.duck});duckLog[d.duck]=(duckLog[d.duck]||0)+1; // a duck in a bottle: it joins your collection
     if(nw)pondPut(d.duck,d.x+Math.cos(d.hd+1.6)*HEX*0.8,d.y+Math.sin(d.hd+1.6)*HEX*0.8,performance.now()); // a new one goes straight onto the lake
-    letter={duck:d.duck};el.querySelector('.lt').textContent=nw?'A duck you have never had was in the bottle! It is on the lake now.':'A duck was in the bottle.';el.querySelector('.lf').textContent=duckStar(v)+v.name;el.querySelector('.ln').textContent='Added to your collection · now '+duckLog[d.duck]+' of this kind';
+    letter={duck:d.duck};el.querySelector('.lt').textContent=(nw?txt('map.a_duck_you_have'):txt('map.a_duck_was_in'));el.querySelector('.lf').textContent=duckStar(v)+v.name;el.querySelector('.ln').textContent=txt('map.added_to_your_collection',duckLog[d.duck]);
     el.classList.remove('show');void el.offsetWidth;el.classList.add('show');hubEvent('map_bottle');return;}
   let rd=[];try{rd=JSON.parse(localStorage.getItem(LETTER_KEY)||'[]')||[];}catch(e){}
   const left=LETTERS.map((_,i)=>i).filter(i=>!rd.includes(i)),i=left.length?left[(Math.random()*left.length)|0]:(Math.random()*LETTERS.length)|0;if(!rd.includes(i))rd.push(i);try{localStorage.setItem(LETTER_KEY,JSON.stringify(rd));}catch(e){} // collected for good (the Guide's Letters); once every one is found, they come again
-  letter=LETTERS[i];const el=document.getElementById('letter');el.querySelector('.lt').textContent=letter.t;el.querySelector('.lf').textContent=letter.f;el.querySelector('.ln').textContent=(rd.length)+' of '+LETTERS.length+' letters collected · kept in the Guide (Letters)';
+  letter=LETTERS[i];const el=document.getElementById('letter');el.querySelector('.lt').textContent=letter.t;el.querySelector('.lf').textContent=letter.f;el.querySelector('.ln').textContent=txt('map.of_letters_collected_kept',rd.length,LETTERS.length);
   el.classList.remove('show');void el.offsetWidth;el.classList.add('show');hubEvent('map_bottle');}
 function closeLetter(){letter=null;document.getElementById('letter').classList.remove('show');evPump();}
 const LETTER_KEY='il_letters_v1';
@@ -808,6 +815,7 @@ function takeState(m){
   // a tuner just set here wins over a message the surface sent before it got it
   if(m.T){const now=performance.now();for(const k in _tuneLocal)if(now-_tuneLocal[k]<1500)m.T[k]=T[k];else delete _tuneLocal[k];T=m.T;if(SW)camUpdate();}if(m.ducks)duckLog=m.ducks;if(m.duckTypes)DUCK_TYPES=m.duckTypes;if(m.icons)icons=m.icons;if(m.inv){inv=m.inv;syncDock();}if(m.disc)disc=new Set(m.disc);if(m.defs&&m.defs.length)tuneDefs=m.defs;if(m.run)run=m.run;if(m.status)runStatus=m.status;
   if(T.mapHexSize&&T.mapHexSize!==HEX){HEX=T.mapHexSize;focusCam(false);}
+  if(buySnap&&(m.inv||m.ducks)&&performance.now()-buySnap.at<5000)buyShow(); // a purchase's answer: show what it spent and gave
   if(m.T)syncRenderSig();applyDisc();syncMenu();if(shopUI)renderShop();
 }
 window.addEventListener('message',e=>{
@@ -844,8 +852,8 @@ const soundOn=()=>!!T.soundOn;
 function setSound(on,vol){T.soundOn=on?1:0;if(vol!=null)T.masterVol=+vol;neb({cmd:'sound',on,vol:vol!=null?+vol:null});syncMenu();}
 function syncMenu(){syncModes();
   document.getElementById('mDays').innerHTML=dayLogHTML();
-  document.getElementById('mSnd').textContent='Sound: '+(soundOn()?'ON':'OFF');document.getElementById('mVol').value=T.masterVol!=null?T.masterVol:0.7;
-  for(const el of document.querySelectorAll('#mTune [data-k],#tuneP [data-k]')){if(T[el.dataset.k]==null)continue;el.value=T[el.dataset.k];if(el.nextElementSibling)el.nextElementSibling.textContent=+(+T[el.dataset.k]).toFixed(2);}
+  document.getElementById('mSnd').textContent=txt('map.sound',(soundOn()?txt('map.on'):txt('map.off')));document.getElementById('mVol').value=T.masterVol!=null?T.masterVol:0.7;
+  for(const el of document.querySelectorAll('#tuneP [data-k]')){if(T[el.dataset.k]==null)continue;el.value=T[el.dataset.k];if(el.nextElementSibling)el.nextElementSibling.textContent=+(+T[el.dataset.k]).toFixed(2);}
 }
 const _tuneLocal={};
 function tuneSet(k,v){T[k]=v;_tuneLocal[k]=performance.now();neb({cmd:'tune',T:{[k]:v}});if(k==='mapHexSize'){HEX=T.mapHexSize;focusCam(false);}if(/^map(Tilt|Persp|Zoom(Min|Max))$/.test(k))mapResize();syncRenderSig();syncMenu();} // a tuner changed here: the surface keeps and saves it
@@ -854,10 +862,10 @@ function tuneRows(box,defs){ // the surface's own tuner definitions (one source)
     r.innerHTML=d.type==='select'?`<span>${d.label}</span><select data-k="${d.key}">${(d.options||[]).map(o=>`<option>${o}</option>`).join('')}</select>`:`<span>${d.label}</span><input type="range" min="${d.min}" max="${d.max}" step="${d.step}" data-k="${d.key}"><b></b>`;
     const el=r.querySelector('[data-k]');el.addEventListener(d.type==='select'?'change':'input',e=>tuneSet(d.key,d.type==='select'?e.target.value:+e.target.value));box.appendChild(r);}
   syncMenu();}
-function buildTune(){tuneRows(document.getElementById('mTune'),tuneDefs.filter(d=>d.key&&d.key.slice(0,3)==='map'));buildTuneP();} // the Esc menu: the map's own layer; the Tune panel: everything
-let tuneTabM='gameplay',tuneQ='';
-function buildTuneP(){const p=document.getElementById('tuneP'),tabs=[...new Set(tuneDefs.map(d=>d.tab).filter(Boolean))];if(!tabs.includes(tuneTabM))tuneTabM=tabs[0]||'gameplay';
-  const tb=p.querySelector('.tabs');tb.innerHTML=tabs.map(t=>`<button data-t="${t}" class="${t===tuneTabM?'on':''}">${t[0].toUpperCase()+t.slice(1)}</button>`).join('');for(const b of tb.querySelectorAll('button'))b.onclick=()=>{tuneTabM=b.dataset.t;buildTuneP();};
+function buildTune(){buildTuneP();} // the Tune panel: every tuner, the map's own on its Surface Map tab
+let tuneTabM='map',tuneQ=''; // (on the map, its own tab first)
+function buildTuneP(){const p=document.getElementById('tuneP'),tabs=[...new Set(tuneDefs.map(d=>d.tab).filter(Boolean))].sort((a,b)=>{const P=['theme','gameplay','sounds','map','discoveries'];return(P.indexOf(a)+99)%99-(P.indexOf(b)+99)%99;});if(!tabs.includes(tuneTabM))tuneTabM=tabs[0]||'gameplay';
+  const tb=p.querySelector('.tabs');tb.innerHTML=tabs.map(t=>`<button data-t="${t}" class="${t===tuneTabM?'on':''}">${txt('tune.tab.'+t)}</button>`).join('');for(const b of tb.querySelectorAll('button'))b.onclick=()=>{tuneTabM=b.dataset.t;buildTuneP();};
   const q=tuneQ.trim().toLowerCase(),out=[];let sec=null;
   for(const d of tuneDefs){if(d.tab!==tuneTabM)continue;if(d.sec){sec=d;continue;}if(q&&!((d.label||'')+' '+d.key+' '+(d.tip||'')).toLowerCase().includes(q))continue;if(sec){out.push(sec);sec=null;}out.push(d);}
   tuneRows(p.querySelector('.rows'),out);}
@@ -894,7 +902,7 @@ function discTick(){
   const id=el.dataset.disc,cost=discCost(id),r=el.getBoundingClientRect(),met=(inv.dim||0)>=cost;
   Object.assign(v.style,{display:'flex',left:r.left+'px',top:r.top+'px',width:r.width+'px',height:r.height+'px'});
   if(met){if(!dcMet||dcMet.id!==id)dcMet={id,t:performance.now()};v.textContent='✓ '+cost;v.style.color='#9fd';if(performance.now()-dcMet.t>450){dcMet=null;v.style.display='none';disc.add(id);applyDisc();neb({cmd:'discover',id});}}
-  else{dcMet=null;v.textContent=cost+' Dim';v.style.color='#666';}
+  else{dcMet=null;v.textContent=txt('map.dim',cost);v.style.color='#666';}
 }
 
 // ╔══════════════════════════════════════════════════════════════════════════════╗
@@ -916,7 +924,7 @@ function popPlace(k){ // opens (or moves up) the pop-up hex k's surface earned: 
   const c=cells[k];if(!c||!c.cap||!c.tally)return false;const dark=!isBright(k);if(!dark&&c.shop)return false;const p=popupFor(c.tally);if(!p)return false;let at=k;
   if(dark){const free=Object.keys(cells).filter(j=>isBright(j)&&!cells[j].shop).map(j=>[j,dist(cells[j].q,cells[j].r,c.q,c.r)]),hs=hubPop.findIndex(x=>!x);if(hs>=0)free.push(['hub'+hs,dist(0,0,c.q,c.r)]);if(!free.length)return false;at=free.sort((a,b)=>a[1]-b[1])[0][0];}
   if(p.from===at)return false;shopTearDown(p.from);const o={id:p.id,rank:p.rank};if(at.slice(0,3)==='hub')hubPop[+at[3]]=o;else cells[at].shop=o;
-  feed((p.from?'A pop-up moved up: ':'A pop-up opened: ')+SHOPS[p.id].n,'Rank '+p.rank+(at.slice(0,3)==='hub'?' · in the source':'')+' · click it to shop');return true;}
+  feed(((p.from?txt('map.a_pop_up_moved'):txt('map.a_pop_up_opened')))+SHOPS[p.id].n,txt('map.rank_click_it_to',p.rank,(at.slice(0,3)==='hub'?txt('map.in_the_source'):'')));return true;}
 function shopTearDown(fr){if(!fr)return;if(fr.slice(0,3)==='hub')hubPop[+fr[3]]=null;else if(cells[fr])delete cells[fr].shop;} // a shop moved up a rank: the old one goes (its hex may open another the next turn)
 function freedShops(){for(const k in cells)popPlace(k);} // each turn every cleared surface that earned a pop-up and has none open tries again (a hex a shop moved out of, a Dark Remnant clear that found no room, a holiday)
 function shopSprite(id,bk,lit,yaw){ // the shop's 3D building (shared.js shopModel) drawn from a little above and turned by yaw (degrees), lit by the time of day: then the glow of its sign and
@@ -949,21 +957,21 @@ function shopTick(){if(SCENE&&!document.body.classList.contains('scene-shops'))r
     const tf=`translate(${(X-cv._ax*sc_).toFixed(1)}px,${(Y-cv._ay*sc_).toFixed(1)}px) scale(${sc_.toFixed(4)})`;if(el._tf!==tf){el._tf=tf;el.style.transform=tf;el.style.zIndex=Math.round(Y);}} // (only when it moved)
   for(const k in shopEls)if(!seen.has(k)){shopEls[k].remove();delete shopEls[k];}}
 function shopInfo(key){const el=shopEls[key],s=el&&el._s;if(!s)return['',''];const S=SHOPS[s.id];
-  return S.street?[S.n,(s.lit?'Open':'Closed')+' · '+shopHours(s.id)+(s.lit?' · click to shop':'')]:[S.n+' · pop-up','Rank '+s.rank+' · open while its bright clear lasts · click to shop'];}
+  return S.street?[S.n,txt(s.lit?'map.shop.open':'map.shop.closed',shopHours(s.id))]:[txt('map.shop.popup',S.n),txt('map.shop.popupinfo',s.rank)];}
 function openShop(key){const el=shopEls[key],s=el&&el._s;if(!s||phase==='collapse')return;
-  if(!s.lit){feed(SHOPS[s.id].n+' is closed','Open '+shopHours(s.id)+(runBad(run,'holiday')?' (a holiday: it closes a time of day early)':''));return;}
+  if(!s.lit){feed(txt('map.is_closed',SHOPS[s.id].n),txt('map.open',shopHours(s.id),(runBad(run,'holiday')?txt('map.a_holiday_it_closes'):'')));return;}
   shopUI={id:s.id,rank:s.rank||3,exit:s.id==='gift'};renderShop();hubEvent('shop_'+s.id);}
 function closeShop(){if(shopUI&&shopUI.gift){quitMain();return;} // leaving the Gift Shop: the run is over
   shopUI=null;renderShop();evPump();}
 function shopRows(){const u=shopUI,has=k=>disc.has(k);
-  if(u.exit)return[{c:1,n:'Yes',sub:'(enter the GIFT SHOP)',go:giftEnter},{c:1,n:'No',sub:'(not yet)',go:closeShop}];
+  if(u.exit)return[{c:1,n:txt('map.gift.yes'),sub:txt('map.gift.yessub'),go:giftEnter},{c:1,n:txt('map.gift.no'),sub:txt('map.gift.nosub'),go:closeShop}];
   if(u.pick)return Object.keys(DUCK_TYPES).map(t=>({n:duckStar(DUCK_TYPES[t])+DUCK_TYPES[t].name,p:'× '+(duckLog[t]||0),go:()=>shopBuy(shopItem('pickduck'),t)}));
   const ducks=Object.values(duckLog).reduce((a,b)=>a+(b|0),0),souv=souvenirs();
   return SHOP_ITEMS.filter(i=>i.shop===u.id&&i.r<=u.rank&&(!i.req||has('up:'+i.req))&&!(i.fx.draw==='secret'&&run.secrets===0)).map(i=>{const own=shopOnce(i)&&has('up:'+i.id),held=i.fx.souv?giftWallet:i.cur==='duck'?ducks:(inv[i.cur]||0);
     const pr=shopPrice(i,run),done=!!(i.fx.draw&&(run.dimDone||{})[i.fx.draw]);
-    return{it:i,cur:shopCur(i),n:i.n,p:own?'✓ yours':done?'tomorrow':fmtN(pr),own:own||done,poor:!own&&held<pr,disc:'si_'+i.id,note:(i.note?i.note+' · ':'')+(i.fx.up?'its effect is still to come':i.fx.souv?'kept: you have '+(souv[i.id]||0):'')||'',
+    return{it:i,cur:shopCur(i),n:i.n,p:own?txt('map.shop.yours'):done?txt('map.shop.tomorrow'):fmtN(pr),own:own||done,poor:!own&&held<pr,disc:'si_'+i.id,note:(i.note?i.note+' · ':'')+(i.fx.up?txt('map.shop.upsoon'):i.fx.souv?txt('map.shop.souvkept',souv[i.id]||0):'')||'',
       go:()=>i.fx.duck==='pick'?(shopUI.pick=true,renderShop()):shopBuy(i)};});}
-const curName=c=>c==='gift'?'Your last Bright (souvenirs)':c==='duck'?'Ducks':KIND_NAME[c]||c,curIcon=c=>icons[c==='gift'?'bright':c]||(c==='duck'?DUCK_ICO:curName(c)[0]); // a currency's name (for the feed) and symbol
+const curName=c=>c==='gift'?txt('map.cur.gift'):c==='duck'?txt('map.cur.duck'):KIND_NAME[c]||c,curIcon=c=>icons[c==='gift'?'bright':c]||(c==='duck'?DUCK_ICO:curName(c)[0]); // a currency's name (for the feed) and symbol
 const shopCur=i=>i.fx.souv?'gift':i.cur; // what an item is paid with (souvenirs: your last Bright)
 function shopWallet(c){return c==='gift'?giftWallet:c==='duck'?Object.values(duckLog).reduce((a,b)=>a+(b|0),0):(inv[c]||0);}
 let shopHover=null; // the item under the cursor: its details go to the feed, so the menu keeps one length
@@ -975,20 +983,28 @@ function renderShop(){const el=document.getElementById('shop');el.classList.togg
   if(sp){const w=Math.min(150,sp.width*0.45),h=w*sp.height/sp.width;art.width=sp.width;art.height=sp.height;art.style.width=w+'px';art.style.height=h+'px';art.getContext('2d').drawImage(sp,0,0);}
   shopHover=null;syncDock(); // the wallet slot for the tab shown, in the dock
   document.body.classList.toggle('focus-clock',u.id==='clock');document.body.classList.toggle('focus-items',u.id==='corner'); // what the shop works on, over the dimmed map
-  const st=el.querySelector('.sstat');st.style.display=u.exit?'none':'';st.innerHTML='<div class="sth">Status</div>'+statusHTML(runStatus);
-  card.innerHTML=`<h2>${u.exit?'EXIT?':u.pick?'Pick a Duck':S.n}</h2><div class="stag">${u.exit?'You will lose everything.<br>Are you ready to escape?':u.pick?'Ninety-nine ducks for the one you choose.':S.tag}</div>`+
+  const st=el.querySelector('.sstat');st.style.display=u.exit?'none':'';st.innerHTML='<div class="sth">'+txt('map.shop.status')+'</div>'+statusHTML(runStatus);{const now={};for(const tr of st.querySelectorAll('tr')){const td=tr.children;if(td.length<2)continue;const k=td[0].textContent,v=td[1].textContent;now[k]=v;if(_stPrev&&_stPrev[k]!=null&&_stPrev[k]!==v)tr.classList.add('chg');}_stPrev=now;} // a value that just changed (a purchase, a card) lights up
+  card.innerHTML=`<h2>${(u.exit?txt('map.exit'):(u.pick?txt('map.pick_a_duck'):S.n))}</h2><div class="stag">${(u.exit?txt('map.gift.ask'):(u.pick?txt('map.ninety_nine_ducks_for'):S.tag))}</div>`+
     (curs.length&&!u.pick&&!u.exit?'<div class="stabs">'+curs.map(c=>`<span class="${c===u.tab?'on':''}" data-t="${c}">${curIcon(c)}</span>`).join('')+'</div>':'')+'<div class="srows">'+ // a tab for each thing it takes, by its symbol (one alone stays as the open tab)
     rows.map((r,i)=>r.c?`<div class="srow c" data-i="${i}"><span>${r.n}<br>${r.sub}</span></div>`:
-      `<div class="srow${r.poor?' poor':''}${r.own?' own':''}" data-i="${i}"${r.disc?` data-disc="${r.disc}"`:''}><span>${r.n}</span><b>${r.p}</b></div>`).join('')+'</div>';
+      `<div class="srow${r.poor?' poor':''}${r.own?' own':''}${r.it&&shopFlash&&shopFlash.id===r.it.id&&performance.now()-shopFlash.at<1500?' just'+(shopFlash.ok?'':' no'):''}" data-i="${i}"${r.disc?` data-disc="${r.disc}"`:''}><span>${r.n}</span><b>${r.p}</b></div>`).join('')+'</div>';
   const pr=rows;
   card.querySelectorAll('.srow').forEach(r=>{const row=pr[+r.dataset.i];r.onclick=()=>{if(!row.own)row.go();};r.onmouseenter=()=>{shopHover=row.it?[row.n,row.note||'']:null;};r.onmouseleave=()=>{shopHover=null;};});
-  card.querySelectorAll('.stabs span').forEach(t=>{t.onclick=()=>{u.tab=t.dataset.t;renderShop();};t.onmouseenter=()=>{const c=t.dataset.t;shopHover=[curName(c),'You have '+fmtN(shopWallet(c))+' · '+rows.length+' thing'+(rows.length===1?'':'s')+' for it'];};t.onmouseleave=()=>{shopHover=null;};});
+  card.querySelectorAll('.stabs span').forEach(t=>{t.onclick=()=>{u.tab=t.dataset.t;renderShop();};t.onmouseenter=()=>{const c=t.dataset.t;shopHover=[curName(c),txt(rows.length===1?'map.shop.tab1':'map.shop.tab',fmtN(shopWallet(c)),rows.length)];};t.onmouseleave=()=>{shopHover=null;};});
   applyDisc();}
 function shopBuy(it,arg){
-  if(it.fx.souv){if(giftWallet<it.cost){feed(it.n,'You need '+fmtN(it.cost)+' bright');return;}giftWallet-=it.cost;const sv=souvenirs();sv[it.id]=(sv[it.id]||0)+1;try{localStorage.setItem(SOUV_KEY,JSON.stringify(sv));}catch(e){}feed('Souvenir: '+it.n,'Kept, whatever comes next');renderShop();return;}
-  neb({cmd:'buy',id:it.id,arg});}
-function shopBought(m){const it=shopItem(m.id);if(!it)return;feed(m.ok?'Bought: '+m.msg:it.n,m.ok?SHOPS[it.shop].n:m.msg);
-  if(m.ok&&it.fx.clock){clock=it.fx.clock;showTurn();updateHint();saveMap();} // the Clock smith turns the day's clock
+  if(it.fx.souv){if(giftWallet<it.cost){feed(it.n,txt('map.you_need_bright',fmtN(it.cost)));return;}giftWallet-=it.cost;const sv=souvenirs();sv[it.id]=(sv[it.id]||0)+1;try{localStorage.setItem(SOUV_KEY,JSON.stringify(sv));}catch(e){}feed(txt('map.souvenir',it.n),txt('map.kept_whatever_comes_next'));renderShop();return;}
+  buySnap={had:buyTake(),it,at:performance.now()};neb({cmd:'buy',id:it.id,arg});}
+let buySnap=null,shopFlash=null,_stPrev=null; // a purchase on its way (what you had, so what it spent and gave shows once the surface answers); the row last bought; the Status values last shown
+const BUY_KINDS=['bright','dim','neutron','magnetic','pulsing','duck','leash','dial','weave','prism','knot','gate','key','lens'],dockFx={};
+function buyTake(){const o={};for(const k of BUY_KINDS)o[k]=shopWallet(k);return o;}
+function buyShow(){ // what a purchase did, everywhere it shows: the feed sums it up; each purse or item it changed counts it off, flashes and stays up; the Status rows it changed light up (renderShop)
+  const b=buySnap;buySnap=null;const now=performance.now(),had=b.had,got=buyTake(),gone=[],came=[],lay=document.getElementById('bfx');
+  for(const k of BUY_KINDS){const d=got[k]-had[k];if(!d)continue;(d<0?gone:came).push((d<0?'−':'+')+fmtN(Math.abs(d))+' '+curName(k));dockFx[k]={at:now,up:d>0};dockUp[k]=now;
+    const el=document.querySelector('#hinv .slot[data-k="'+k+'"]');if(el&&lay){const r=el.getBoundingClientRect(),i=document.createElement('i');i.className=d>0?'up':'dn';i.textContent=(d<0?'−':'+')+fmtN(Math.abs(d));i.style.left=(r.left+r.width/2)+'px';i.style.top=(r.top-6)+'px';lay.appendChild(i);setTimeout(()=>i.remove(),1600);}}
+  if(gone.length||came.length)feed(txt('map.buy.title',b.it.n),[...gone,...came].join(' · '));syncDock();}
+function shopBought(m){const it=shopItem(m.id);if(!it)return;shopFlash={id:m.id,at:performance.now(),ok:!!m.ok};if(!m.ok)buySnap=null;feed((m.ok?txt('map.bought',m.msg):it.n),m.ok?SHOPS[it.shop].n:m.msg);
+  if(m.ok&&it.fx.clock){clock=it.fx.clock;showTurn();const tl=document.getElementById('turn-label');tl.classList.add('bought');setTimeout(()=>tl.classList.remove('bought'),1800);updateHint();saveMap();} // the Clock smith turns the day's clock
   if(m.ok&&m.draw){document.getElementById('shop').classList.remove('show');currentView='overlay';showNeb(true);} // a Carnival card: the surface shows the draw (and the card picked) over the map; the shop comes back when it closes
   if(m.ok&&shopUI&&shopUI.pick)shopUI.pick=false;if(shopUI)renderShop();}
 function shopPicked(m){feed(m.title||'',m.text||'');} // a Carnival card turned over (shown by the surface)
@@ -1007,16 +1023,16 @@ function syncDock(){const box=document.getElementById('hinv');if(!box)return;
   box.innerHTML=DOCK_ITEMS.map(k=>`<div class="slot${armed===k?' armed':''}${(inv[k]||0)<=0?' empty':''}" data-k="${k}" title="${KIND_NAME[k]}">${icons[k]||KIND_NAME[k][0]}<b>${inv[k]||0}</b></div>`).join('')+
     '<div class="sep"></div>'+['prism','knot','gate','key','lens'].filter(k=>(inv[k]||0)>0).map(k=>`<div class="slot empty" data-k="${k}" title="${KIND_NAME[k]} (earned)">${icons[k]||KIND_NAME[k][0]}<b>${inv[k]}</b></div>`).join('')+
     (shopUI?'<div class="sep"></div>'+(shopUI.gift?['gift']:['bright','dim','neutron','magnetic','pulsing','duck']).map(c=>`<div class="slot${c===shopUI.tab?' wal':''}" data-k="${c}" title="${curName(c)}">${curIcon(c)}<b>${fmtN(shopWallet(c))}</b></div>`).join(''):''); // in a shop: every purse, the open tab's lit
-  box.insertAdjacentHTML('beforeend',`<div class="slot dmin" data-k="dmin" title="${dockMin?'Show the feed':'Hide the feed (the items come up when you point at them)'}">${dockMin?'▴':'▾'}</div>`);
+  box.insertAdjacentHTML('beforeend',`<div class="slot dmin" data-k="dmin" title="${txt(dockMin?'map.dock.show':'map.dock.hide')}">${dockMin?'▴':'▾'}</div>`);
   for(const k of [...DOCK_ITEMS,'prism','knot','gate','key','lens'])if((inv[k]||0)!==dockSeen[k]){if(dockSeen[k]!=null)dockUp[k]=performance.now();dockSeen[k]=inv[k]||0;} // a count that changed shows for a while
   dockLinger(performance.now());
   for(const el of box.querySelectorAll('.slot'))if(DOCK_ITEMS.includes(el.dataset.k))el.onclick=()=>armItem(el.dataset.k);
   box.querySelector('.dmin').onclick=()=>{dockMin=!dockMin;try{localStorage.setItem('il_dockmin',dockMin?'1':'');}catch(e){}document.body.classList.toggle('dock-min',dockMin);dockUp.dmin=performance.now();for(const k of DOCK_ITEMS)dockUp[k]=performance.now();syncDock();};
-  const fd=document.getElementById('hfeed');if(weaveAsk){fd.innerHTML='<div class="fn">Make: '+weaveAsk.map(k=>`<button data-k="${k}">${KIND_NAME[k]}</button>`).join('')+'</div><div class="fd">'+weaveSel.length+' bright hexes · 1 Weave</div>';for(const b of fd.querySelectorAll('button'))b.onclick=()=>makeConstellation(b.dataset.k);}
+  const fd=document.getElementById('hfeed');if(weaveAsk){fd.innerHTML='<div class="fn">'+txt('map.weave.make')+' '+weaveAsk.map(k=>`<button data-k="${k}">${KIND_NAME[k]}</button>`).join('')+'</div><div class="fd">'+txt('map.weave.cost',weaveSel.length)+'</div>';for(const b of fd.querySelectorAll('button'))b.onclick=()=>makeConstellation(b.dataset.k);}
   else if(fd.querySelector('button'))fd.innerHTML='<div class="fn"></div><div class="fd"></div>';}
 let dockMin=false;try{dockMin=!!localStorage.getItem('il_dockmin');}catch(e){}document.body.classList.toggle('dock-min',dockMin);
 const dockUp={},dockSeen={}; // when each slot was last used or changed: in the reduced dock it stays up a while after (Dock linger ms)
-function dockLinger(now){const ms=T.mapDockLingerMs!=null?T.mapDockLingerMs:2500;for(const el of document.querySelectorAll('#hinv .slot')){const k=el.dataset.k;el.classList.toggle('up',armed===k||now-(dockUp[k]||-1e9)<ms);}}
+function dockLinger(now){const ms=T.mapDockLingerMs!=null?T.mapDockLingerMs:2500;for(const el of document.querySelectorAll('#hinv .slot')){const k=el.dataset.k;el.classList.toggle('up',armed===k||now-(dockUp[k]||-1e9)<ms);const f=dockFx[k],on=f&&now-f.at<1400;el.classList.toggle('gain',!!(on&&f.up));el.classList.toggle('spend',!!(on&&!f.up));}}
 function duckUnder(X,Y){let best=null,bd=1e9;for(const d of pond){if(!d._s)continue;const[px,py]=w2s(d.x,d.y),[sx,sy,k]=proj(px,py),r=d._s*k*0.9,dd=Math.hypot(X-sx,Y-sy);if(dd<r&&dd<bd){bd=dd;best=d;}}return best;}
 function feedTick(now){ // the feed: a recent message, else what the cursor is over (a duck, a hex), else what you can do now
   dockLinger(now);if(weaveAsk)return;const fd=document.getElementById('hfeed');if(!fd)return;const fn=fd.querySelector('.fn'),fdd=fd.querySelector('.fd');if(!fn)return;
@@ -1025,10 +1041,10 @@ function feedTick(now){ // the feed: a recent message, else what the cursor is o
   const slot=over&&over.closest&&over.closest('#hinv .slot');
   if(now-feedMsg.at<3500){a=feedMsg.t;b=feedMsg.d;}
   else if(slot){[a,b]=itemInfo(slot.dataset.k);}
-  else if(shopUI){[a,b]=shopHover||[SHOPS[shopUI.id].n,shopUI.exit?'':'Point at an item to read about it'];}
+  else if(shopUI){[a,b]=shopHover||[SHOPS[shopUI.id].n,shopUI.exit?'':txt('map.shop.point')];}
   else if(over&&over.closest&&over.closest('.shop')){[a,b]=shopInfo(over.closest('.shop').dataset.key);}
-  else if(du&&du.bottle){a=du.empty?'An empty bottle':'A message in a bottle';b=du.empty?'Its letter is in the Guide (Letters)':'Click it to open it and read the letter inside';}
-  else if(du){const v=DUCK_TYPES[du.type]||{};a=duckStar(v)+(v.name||'Duck')+' × '+(duckLog[du.type]||0);b=(v.axis||'')+(v.detail?': '+v.detail:'')+' · swimming on the lake';}
+  else if(du&&du.bottle){a=txt(du.empty?'map.bottle.empty':'map.bottle.full');b=txt(du.empty?'map.bottle.emptyinfo':'map.bottle.fullinfo');}
+  else if(du){const v=DUCK_TYPES[du.type]||{};a=txt('map.duck.name',duckStar(v)+(v.name||''),duckLog[du.type]||0);b=txt('map.duck.info',(v.axis||'')+(v.detail?': '+v.detail:''));}
   else if(hc&&armed){[a,b]=itemInfo(armed,hc);a=hexInfo(hc)[0]+' · '+a;}else if(hc){[a,b]=hexInfo(hc);}else{[a,b]=armed?itemInfo(armed):hintLine;}
   if(fn.textContent!==a)fn.textContent=a||'';if(fdd.textContent!==(b||''))fdd.textContent=b||'';}
 const hcur=document.getElementById('hcur'),hcx=hcur.getContext('2d');
@@ -1072,9 +1088,9 @@ const SCENES={
   merge(){sceneReset(5);const ks=['1,0','0,1','1,1'];ks.forEach((k,i)=>at(500+i*600,()=>{if(i<2)sceneCap(k,'dark');else{completeCaptureForCell(k,'dark');clearFx[k].t0=performance.now();camTX=camTY=0;}}));return 7000;},
   decay(){sceneReset();['2,-1','-1,2','-2,0'].forEach((k,i)=>at(300+i*400,()=>{sceneCap(k,'bright');captureOrder.push({keys:[k],mergeId:null});}));
     at(2600,()=>{recomputeLocked();let n=0;for(const k in cells){const c=cells[k];if(!c.cap&&!c.isVoid&&!c.locked)n++;}let ex=0;for(const k in cells){const c=cells[k];if(c.cap)ex+=c.capVal;else if(c.locked)ex+=c.v;}pool=ex+n*0.009;fresh=true;advanceTurn();camTX=camTY=0;});return 7000;}, // the value runs too thin (below 0.01): the oldest capture becomes a void // the value runs too thin: the oldest capture becomes a void
-  descend(){sceneReset();ring(1).forEach(([q,r],i)=>at(300+i*350,()=>sceneCap(K(q,r),'bright')));at(2700,()=>{voidOpen=true;});at(3600,()=>{const o=cells[K(pQ,pR)];if(o)o.isP=false;depth++;newMap();camTX=camTY=0;showMergeFlash('Descended to D'+depth);});return 6500;},
+  descend(){sceneReset();ring(1).forEach(([q,r],i)=>at(300+i*350,()=>sceneCap(K(q,r),'bright')));at(2700,()=>{voidOpen=true;});at(3600,()=>{const o=cells[K(pQ,pR)];if(o)o.isP=false;depth++;newMap();camTX=camTY=0;showMergeFlash(txt('map.descended_to_d',depth));});return 6500;},
   constellation(){sceneReset();const ks=['2,-1','1,1','-1,2','-2,1','-1,-1'];ks.forEach((k,i)=>at(300+i*250,()=>sceneCap(k,'bright')));armed='weave';weaveSel=[];
-    ks.forEach((k,i)=>at(1800+i*450,()=>weaveSel.push(k)));at(1800+5*450+300,()=>{constel=[{keys:ks.slice(),type:'lens'}];weaveSel=[];armed=null;showMergeFlash('✦ Constellation · Lens');});at(5200,()=>{advanceTurn();showMergeFlash('+1 Lens');});return 7500;},
+    ks.forEach((k,i)=>at(1800+i*450,()=>weaveSel.push(k)));at(1800+5*450+300,()=>{constel=[{keys:ks.slice(),type:'lens'}];weaveSel=[];armed=null;showMergeFlash(txt('map.constellation_lens'));});at(5200,()=>{advanceTurn();showMergeFlash(txt('map.1_lens'));});return 7500;},
   ring(){return sceneRing(()=>'bright');},
   brightstar(){return sceneRing(()=>'bright');},
   darkstar(){return sceneRing(()=>'dark');},
