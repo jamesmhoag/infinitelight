@@ -23,14 +23,12 @@ body{background:#050608;overflow:hidden;font-family:'Share Tech Mono',monospace;
 #hfeed .fn{line-height:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}#hfeed .fd{font-size:9px;line-height:11px;opacity:0.62;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 #hfeed button{font:11px monospace;margin:0 4px;padding:1px 8px;background:rgba(255,220,120,0.2);border:1px solid rgba(255,220,120,0.7);color:#fff;border-radius:3px}
 #bottom-bar{bottom:76px}#legend{bottom:76px}
-body.scene .hbtn,body.scene #shops,body.scene #hdock,body.scene #legend,body.scene #bottom-bar,body.scene #cell-count,body.scene #depth-display,body.scene #capture-hint,body.scene #hcur{display:none!important} /* the map as a 3D scene: the plane (drawn in 2D, then laid in the scene as its ground) and the ducks on it */
+body.scene .hbtn,body.scene #shops,body.scene #hdock,body.scene #legend,body.scene #bottom-bar,body.scene body.scene #capture-hint,body.scene #hcur{display:none!important} /* the map as a 3D scene: the plane (drawn in 2D, then laid in the scene as its ground) and the ducks on it */
 /* the surface (chromatic_nebula.html): hidden with visibility, not display, so it keeps its size for the hex previews */
 #neb{position:fixed;inset:0;width:100%;height:100%;border:0;z-index:50;visibility:hidden;pointer-events:none;background:#000}
 #neb.show{visibility:visible;pointer-events:auto}
 #turn-label{position:absolute;top:40px;left:50%;transform:translateX(-50%);font-family:'Orbitron',sans-serif;font-size:16px;white-space:nowrap;color:rgba(255,255,255,0.7);pointer-events:none;transition:color 0.4s,text-shadow 0.4s;letter-spacing:2px;z-index:10}
 #turn-label.show{color:#fff;text-shadow:0 0 14px rgba(255,255,255,0.85)}
-#cell-count{position:absolute;top:16px;right:16px;font-family:'Orbitron',sans-serif;font-size:28px;color:rgba(255,255,255,0.4);text-align:right;z-index:10}
-#cell-count small{font-size:10px;display:block;color:rgba(255,255,255,0.2);margin-top:2px;font-family:'Share Tech Mono',monospace}
 #bottom-bar{position:absolute;bottom:16px;left:50%;transform:translateX(-50%);font-size:12px;color:rgba(255,255,255,0.45);white-space:nowrap;z-index:10}
 #capture-hint{display:none;position:absolute;bottom:40px;left:50%;transform:translateX(-50%);font-size:11px;color:rgba(0,210,210,0.55);pointer-events:none;white-space:nowrap;opacity:0;transition:opacity 0.2s;z-index:10}
 #capture-hint.show{opacity:1}
@@ -42,7 +40,6 @@ body.scene .hbtn,body.scene #shops,body.scene #hdock,body.scene #legend,body.sce
 .ld{display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:4px;vertical-align:middle;border:1px solid transparent}
 #merge-flash{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);font-family:'Orbitron',sans-serif;font-size:18px;color:rgba(0,230,230,0.8);pointer-events:none;opacity:0;transition:opacity 0.3s;letter-spacing:1px;z-index:10}
 #merge-flash.show{opacity:1}
-#depth-display{position:absolute;top:16px;left:50%;transform:translateX(-50%);font-family:'Orbitron',sans-serif;font-size:14px;color:rgba(255,255,255,0.3);letter-spacing:2px;z-index:10}
 /* discoveries: an element stays hidden until hovered while holding its Dim cost (nothing is spent) */
 .disc-lock{opacity:0!important}
 #veil{position:fixed;z-index:70;pointer-events:none;display:none;align-items:center;justify-content:center;background:#000;border:1px solid #333;color:#666;font:10px monospace;border-radius:4px}
@@ -68,7 +65,7 @@ body.scene .hbtn,body.scene #shops,body.scene #hdock,body.scene #legend,body.sce
 #tuneP .rows{overflow:auto;padding:0 8px 8px}#tuneP .sec{opacity:.55;margin:8px 0 3px;text-transform:uppercase;letter-spacing:1px;font-size:10px}
 #tuneP .row{display:flex;gap:6px;align-items:center;margin:2px 0}#tuneP .row>span{flex:0 0 130px;font-size:11px;opacity:.85;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}#tuneP .row b{flex:0 0 52px;font-weight:400;text-align:right}#tuneP input[type=range],#tuneP select{flex:1;min-width:0}
 #hstats{position:absolute;top:96px;right:16px;z-index:10;display:none;font:10px/1.55 'Share Tech Mono',monospace;color:rgba(255,255,255,0.6);text-align:right;white-space:pre;background:rgba(0,0,0,0.45);padding:6px 9px;border-radius:5px}#hstats.show{display:block}
-body.ui-hidden .hbtn,body.ui-hidden #hdock,body.ui-hidden #legend,body.ui-hidden #bottom-bar,body.ui-hidden #cell-count,body.ui-hidden #depth-display,body.ui-hidden #turn-label,body.ui-hidden #hstats,body.ui-hidden #mModes,body.ui-hidden #tuneP{display:none!important}
+body.ui-hidden .hbtn,body.ui-hidden #hdock,body.ui-hidden #legend,body.ui-hidden #bottom-bar,body.ui-hidden #turn-label,body.ui-hidden #hstats,body.ui-hidden #mModes,body.ui-hidden #tuneP{display:none!important}
 /* shops: upright on the plane (placed through the camera each frame); open ones glow like neon */
 #shops{position:absolute;inset:0;pointer-events:none;z-index:6;overflow:hidden}
 .shop{position:absolute;left:0;top:0;transform-origin:0 0;pointer-events:auto;will-change:transform}.shop canvas{display:block;will-change:opacity} /* each its own layer: moving or flickering one repaints nothing */
@@ -99,8 +96,6 @@ body.thru .shop{pointer-events:none} /* an armed map item, or the open source, r
   <div id="hdock"><div id="hinv"></div><div id="hfeed"><div class="fn"></div><div class="fd"></div></div></div>
   <div id="turn-label"></div>
   <div id="merge-flash"></div>
-  <div id="depth-display" data-disc="hub_depth"></div>
-  <div id="cell-count" data-disc="hub_cells"></div>
   <button class="hbtn" id="guide-btn" data-disc="hub_guide" onclick="openGuide()">Guide</button>
   <button class="hbtn" id="menu-btn" onclick="toggleMenu()">Menu (Esc)</button>
   <button class="hbtn" id="modes-btn" data-disc="hud_modes" onclick="togglePanel('mModes')">Modes ▾</button>
@@ -134,7 +129,7 @@ body.thru .shop{pointer-events:none} /* an armed map item, or the open source, r
 <div id="veil"></div>
 <canvas id="hcur"></canvas>
 <iframe id="neb" title="Surface"></iframe>
-<script src="shared.js?v=20261102zh"></script>
+<script src="shared.js?v=20261102zi"></script>
 <script>
 // ╔══════════════════════════════════════════════════════════════════════════════╗
 // ║  MAP ENGINE                                                                 ║
@@ -150,7 +145,7 @@ let clock=3,day=1,pool=6,fresh=true,burstFx=null,dayLog=[],dayCnt={b:0,d:0},pend
 // // clock: the hour (3 = Twilight … 24 = Midnight, the day's last turn); day: your attempts; pool: what the source put out at its last burst; fresh: no ring added yet since it
 let constel=[],armed=null,weaveSel=[],weaveAsk=null,clearFx={},mergeFx=[],feedMsg={t:'',d:'',at:-1e9}; // constellations {keys,type}; the armed map item; a Weave being drawn; animations; the final count
 const TIMES={3:'Twilight',6:'Dawn',9:'Morning',12:'Noon',15:'Afternoon',18:'Dusk',21:'Night',24:'Midnight'},STEP_H=3; // the day: eight turns of three hours
-const CACHE_V='20261102zh'; // the build: bump with shared.js's
+const CACHE_V='20261102zi'; // the build: bump with shared.js's
 const SCENE=new URLSearchParams(location.search).get('scene'); // a Guide / event demo: the map plays a scripted moment (no surface behind it)
 let phase='move',turnTimer=0,mergeTimer=0;
 let gameOverReason='';
@@ -233,7 +228,7 @@ function newMap(){ // a new map, a descent and every midnight: the source at the
 function descendDepth(){if(!voidOpen)return;depth++;newMap();showTurn();focusCam(false);updateHint();showMergeFlash(`Descended to D${depth}`);hubEvent('map_descend');saveMap();}
 function focusCam(a){const[wx,wy]=a2w(pQ,pR);camTX=wx;camTY=wy;if(!a){camX=camTX;camY=camTY;}}
 function initGame(){ // a new map: score and depth start over; items, resources and discoveries live in the surface's save and are kept
-  score=0;depth=0;clock=3;_sunH=3;day=1;dayLog=[];dayCnt={b:0,d:0};pendingEnd=null;newMap();
+  score=0;depth=0;clock=3;_sunH=3;_sun={from:3,to:3,t0:0};day=1;dayLog=[];dayCnt={b:0,d:0};pendingEnd=null;newMap();
   showTurn();mapResize();focusCam(false);updateHint();saveMap();
 }
 function advanceTurn(){ // time moves on (a move, or a bright clear) by one time of day; the spill spreads a ring, except the first turn after a burst
@@ -412,7 +407,7 @@ function mapResize(){hubLog('resize / zoom');SW=innerWidth;SH=innerHeight;const 
   mc.width=Math.round(MW*MK);mc.height=Math.round(MH*MK);const dp=window.devicePixelRatio||1;sc.width=Math.round(SW*dp);sc.height=Math.round(SH*dp);camUpdate();}
 function zoomView(f){const z=Math.max(T.mapZoomMin||0.55,Math.min(T.mapZoomMax||1.8,viewZoom*f));if(z===viewZoom)return;viewZoom=z;const E=1.3/Math.min(1,z);if(Math.abs(E-_E)>0.12||z>1)mapResize();else camUpdate();}
 // ── drawing the scene: the plane (mc, uploaded as a texture) as the ground, then the ducks on it, in true 3D with the same camera
-let G3=null,_sunH=3,_sunT=0; // _sunH: the hour the ducks are lit for (eased to the clock)
+let G3=null,_sunH=3,_sun={from:3,to:3,t0:0}; // _sunH: the hour the ducks are lit for, moving to the clock (_sun)
 function sceneInit(){
   const gl=sc.getContext('webgl',{alpha:false,antialias:true,premultipliedAlpha:true});if(!gl)return null;
   const sh=(t,src)=>{const o=gl.createShader(t);gl.shaderSource(o,src);gl.compileShader(o);return o;},pr=gl.createProgram();
@@ -429,7 +424,8 @@ function sceneRender(now){
   gl.bindBuffer(gl.ARRAY_BUFFER,G3.buf);gl.enableVertexAttribArray(G3.aP);gl.vertexAttribPointer(G3.aP,2,gl.FLOAT,false,0,0);for(let i=0;i<3;i++)gl.disableVertexAttribArray(i+1); // the ground (its texture: y runs down, as the plane's)
   gl.uniformMatrix4fv(G3.uPV,false,cam.pv);gl.uniform2f(G3.uS,MW,MH);gl.drawArrays(gl.TRIANGLE_STRIP,0,4);
   if(!G3.duck)return;let envd=false;
-  {let tg=clock;if(tg<_sunH-12)tg+=24;_sunH+=(tg-_sunH)*Math.min(1,0.025*(now-(_sunT||now))/16.7);_sunT=now;if(_sunH>=24&&clock<12)_sunH-=24; // the time of day's light eases round to the new hour
+  {if(clock!==_sun.to%24&&!(clock===24&&_sun.to%24===0)){let to=clock;const fr=_sunH;if(to<fr&&fr-to>12)to+=24;else if(to>fr&&to-fr>12)to-=24;_sun={from:fr,to,t0:now};} // a new hour: the light moves to it (backwards for the Clock smith)
+    const u=Math.min(1,(now-_sun.t0)/(T.mapPrevFadeMs||450));_sunH=_sun.from+(_sun.to-_sun.from)*u*u*(3-2*u); // over the time a hex's new picture eases in
     const s=duckSun(_sunH),R=cam.viewRot,l=[s.d[0],-s.d[1],s.d[2]];DUCK_SUN={d:[0,1,2].map(i=>R[i]*l[0]+R[3+i]*l[1]+R[6+i]*l[2]),c:s.c};} // (the plane's y runs down the screen)
   const ra=T.mapDuckRefl!=null?T.mapDuckRefl:0.4; // ducks are mirrored in the surface beneath them
   if(ra>0){gl.clear(gl.DEPTH_BUFFER_BIT);for(const d of pond){if(!d._s)continue;const[px,py]=w2s(d.x,d.y),[X,Y,k]=proj(px,py),f=[Math.cos(d.hd),Math.sin(d.hd),0],size=d._s,bob=size*(0.36+0.03*Math.sin(now/700+d.ph));
@@ -460,7 +456,7 @@ const shotSize=()=>Math.round(2*HEX*(window.devicePixelRatio||1));
 function cellSeed(c){return Math.abs(Math.sin(depth*999+7.13)*43758.5453)%100;} // one field per depth: each hex is a window onto it at its place (q,r), so a hex's edge pattern carries into its neighbours
 function cellCov(c){const lo=T.mapCovMin!=null?T.mapCovMin:0.25,full=T.mapCovFull||1;return Math.round((lo+(1-lo)*Math.min(1,c.v/full))*4)/4;} // in quarter steps: a move nudges every hex's value, and only a visible change is worth re-shooting its picture
 function syncRenderSig(){ // any tuner that changes how a surface looks (not sound, discoveries or the map's own layout) re-shoots the hexes
-  let h=0;const str=JSON.stringify(Object.keys(T).filter(k=>!/^(dc_|soundOn|masterVol|mapAlpha|mapCov|mapClear|mapHexSize|mapShop|mapStreet|duck)/.test(k)).sort().map(k=>T[k]))+'|'+shotSize();
+  let h=0;const str=JSON.stringify(Object.keys(T).filter(k=>!/^(dc_|soundOn|masterVol|mapAlpha|mapCov|mapClear|mapHexSize|mapShop|mapStreet|mapPrev|duck)/.test(k)).sort().map(k=>T[k]))+'|'+shotSize();
   for(let i=0;i<str.length;i++)h=(h*31+str.charCodeAt(i))|0;renderSig=''+h;
 }
 function cellSig(c){return c.q+','+c.r+'|'+cellSeed(c).toFixed(6)+'|'+cellCov(c)+'|'+renderSig;}
@@ -593,9 +589,6 @@ function mapRender(){
   if(hoverMove&&phase!=='gameover'){const pts=[{q:pQ,r:pR},...hoverMove.path,{q:hoverMove.q,r:hoverMove.r}];mctx.beginPath();for(let i=0;i<pts.length;i++){const[sx,sy]=w2s(...a2w(pts[i].q,pts[i].r));if(!i)mctx.moveTo(sx,sy);else mctx.lineTo(sx,sy);}mctx.strokeStyle='rgba(0,210,210,0.6)';mctx.lineWidth=1.5;mctx.setLineDash([5,4]);mctx.stroke();mctx.setLineDash([]);const[dx,dy]=w2s(...a2w(hoverMove.q,hoverMove.r));mctx.beginPath();mctx.arc(dx,dy,3.5,0,Math.PI*2);mctx.fillStyle='rgba(0,220,220,0.7)';mctx.fill();}
   hubPh('overlays');requestPreviews(mapNeed);hubPh('previews');pondStep(now);hubPh('ducks');sceneRender(now);hubPh('3d');
   // HUD
-  let dc=0;for(const k in cells)if(!cells[k].isVoid)dc++;
-  document.getElementById('cell-count').innerHTML=dc+'<small>cells</small>';
-  document.getElementById('depth-display').textContent=`D${depth}`;
   let st=`${clockStr()} · day ${day} · rings ${turn} · score ${score.toFixed(2)} · captures ${captureOrder.length}`;
   if(phase==='gameover')st+=' · game over: '+gameOverReason;
   document.getElementById('score-display').textContent=st;
@@ -627,7 +620,7 @@ sc.addEventListener('mouseleave',()=>{hQ=null;hR=null;});
 document.addEventListener('click',e=>{ // a lake duck clicked (even under a read-out like the legend): dunked, it comes back up — and the click goes no further
   if(currentView!=='map'||menuOpen||shopUI||!(e.target===sc||(e.target.closest&&!e.target.closest('button,.slot,.shop,input,select,#hdock,#tuneP,#mModes,#shop,#menu,#day-report'))))return;
   const du=duckUnder(e.clientX,e.clientY);if(!du||du.dunk)return;e.stopPropagation();
-  du.dunk=performance.now();ripples.push({x:du.x,y:du.y,t:du.dunk,ink:onWhite(du.x,du.y)?'20,24,32':'255,255,255',big:1});neb({cmd:'quack',type:du.type,v:1});},true);
+  du.dunk=performance.now();ripples.push({x:du.x,y:du.y,t:du.dunk,dk:onWhite(du.x,du.y),big:1});neb({cmd:'quack',type:du.type,v:1});},true);
 document.addEventListener('keydown',e=>{
   if(e.code==='Escape'){e.preventDefault();if(shopUI){closeShop();return;}if(currentView==='map'&&armed){armed=null;weaveSel=[];weaveAsk=null;updateHint();syncDock();return;}if(currentView==='map')toggleMenu();return;}
   if(menuOpen||shopUI)return;
@@ -663,7 +656,7 @@ function spawnLakeDuck(now){
   const free=roster.filter((t,i)=>(used[t]||0)<roster.slice(0,i+1).filter(x=>x===t).length);if(!free.length||!water.pts.length)return;
   const type=free[(Math.random()*free.length)|0];
   for(let tries=0;tries<12;tries++){const P=water.pts[(Math.random()*water.pts.length)|0],hd=Math.random()*6.2832,dx=Math.cos(hd),dy=Math.sin(hd);
-    if(Math.random()<0.3){pond.push({type,x:P[0],y:P[1],hd,sp:0,cur:0,next:now+1500,born:now,splash:true,seen:true,lastRip:0,ph:Math.random()*6.28});ripples.push({x:P[0],y:P[1],t:now,ink:onWhite(P[0],P[1])?'20,24,32':'255,255,255',big:1});return;} // splashes up from under the surface
+    if(Math.random()<0.3){pond.push({type,x:P[0],y:P[1],hd,sp:0,cur:0,next:now+1500,born:now,splash:true,seen:true,lastRip:0,ph:Math.random()*6.28});ripples.push({x:P[0],y:P[1],t:now,dk:onWhite(P[0],P[1]),big:1});return;} // splashes up from under the surface
     let x=P[0],y=P[1],ok=true;for(let k=0;k<80;k++){x-=dx*HEX*0.5;y-=dy*HEX*0.5;if(!isWater(x,y)){ok=false;break;}const[X,Y]=w2sc(x,y);if(offView(X,Y,HEX*1.2))break;} // back along its way until it is off screen
     if(!ok)continue;pond.push({type,x,y,hd,sp:0.45,cur:(Math.random()-0.5)*0.004,next:now+2000+Math.random()*2500,born:now,splash:false,seen:false,lastRip:0,ph:Math.random()*6.28});return;}}
 function pondStep(now){
@@ -675,11 +668,11 @@ function pondStep(now){
   pond=pond.filter(d=>{
     if(cw&&d._s&&!d.dunk&&now-(d.hitAt||0)>400&&Math.hypot(cw[0]-d.x,cw[1]-d.y)<d._s*0.8){d.hitAt=now;const vf=T.mapDuckBumpV!=null?T.mapDuckBumpV:0.35;
       if(cv<vf)d.spin={t0:now,dur:1500,rate:(Math.random()<0.5?-1:1)*(0.12+0.25*cv/vf)}; // a slow touch: it spins where it is
-      else{d.hd=ca;d.kick=Math.min(5,1+2.5*cv/vf);d.dash=now+900+Math.min(1500,600*cv/vf);ripples.push({x:d.x,y:d.y,t:now,ink:onWhite(d.x,d.y)?'20,24,32':'255,255,255'});} // a hit: it putters off the way it was pushed
+      else{d.hd=ca;d.kick=Math.min(5,1+2.5*cv/vf);d.dash=now+900+Math.min(1500,600*cv/vf);ripples.push({x:d.x,y:d.y,t:now,dk:onWhite(d.x,d.y)});} // a hit: it putters off the way it was pushed
       neb({cmd:'quack',type:d.type,v:Math.min(1,cv/vf/3)});}
     const sp_=d.spin&&now-d.spin.t0<d.spin.dur?d.spin:null;if(sp_)d.hd+=sp_.rate*dt*(1-(now-sp_.t0)/sp_.dur);else d.spin=null;
     const dk=d.dunk?(now-d.dunk)/(T.mapDuckDunkMs||1300):1;let dkS=1; // a dunk: the way a duck splashes up, backwards — it sinks into the water, stays under a moment, then comes back up out of it
-    if(dk>=1)d.dunk=0;else if(dk<0.3){const u=dk/0.3;dkS=1-u*u;}else if(dk<0.55)dkS=0;else{if(!d._up){d._up=1;ripples.push({x:d.x,y:d.y,t:now,ink:onWhite(d.x,d.y)?'20,24,32':'255,255,255',big:1});}const u=(dk-0.55)/0.45;dkS=1+2.7*Math.pow(u-1,3)+1.7*Math.pow(u-1,2);} // (up with a little bob past full size)
+    if(dk>=1)d.dunk=0;else if(dk<0.3){const u=dk/0.3;dkS=1-u*u;}else if(dk<0.55)dkS=0;else{if(!d._up){d._up=1;ripples.push({x:d.x,y:d.y,t:now,dk:onWhite(d.x,d.y),big:1});}const u=(dk-0.55)/0.45;dkS=1+2.7*Math.pow(u-1,3)+1.7*Math.pow(u-1,2);} // (up with a little bob past full size)
     if(!d.dunk)d._up=0;
     if(d.kick){d.kick*=Math.pow(0.97,dt);if(d.kick<0.05)d.kick=0;}
     if(now>d.next){d.next=now+1800+Math.random()*3000;d.cur=Math.random()<0.1?(Math.random()<0.5?-1:1)*0.03:(Math.random()-0.5)*0.006;d.dash=Math.random()<0.18?now+1200+Math.random()*1200:0;} // now and then a dash // mostly a gentle curve on its way across; now and then a doughnut
@@ -690,13 +683,13 @@ function pondStep(now){
     d.x+=Math.cos(d.hd)*d.sp*dt;d.y+=Math.sin(d.hd)*d.sp*dt;
     const[X,Y,k]=w2sc(d.x,d.y),off=offView(X,Y,HEX*1.5*k);if(!off)d.seen=true;
     if((d.seen&&off)||now-d.born>60000)return false; // gone off screen: another comes in elsewhere
-    if(d.sp>0.1&&now-d.lastRip>320){d.lastRip=now;ripples.push({x:d.x,y:d.y,t:now,ink:onWhite(d.x,d.y)?'20,24,32':'255,255,255'});} // white rings on dark water, dark on white
+    if(d.sp>0.1&&now-d.lastRip>320){d.lastRip=now;ripples.push({x:d.x,y:d.y,t:now,dk:onWhite(d.x,d.y)});} // white rings on dark water, dark on white
     const t=DUCK_TYPES[d.type]||{},pop=(d.splash?Math.min(1,(now-d.born)/700):1)*dkS;d._s=HEX*0.62*(t.scale||1)/(t.head?1.25:1)*pop;return true;}); // world units per model unit (its type's size; a splash grows it up out of the water)
   ripples=ripples.filter(r=>now-r.t<1800);
-  for(const r of ripples){const a=(now-r.t)/1800,[X,Y]=w2s(r.x,r.y),R=4+a*HEX*(r.big?1.6:0.9);c.strokeStyle=`rgba(${r.ink},${(0.5*(1-a)*(1-a)).toFixed(3)})`;c.lineWidth=r.big?2:1.4;c.beginPath();c.arc(X,Y,R,0,6.2832);c.stroke();} // rings on the water (the camera foreshortens them)
+  for(const r of ripples){const a=(now-r.t)/1800,[X,Y]=w2s(r.x,r.y),R=4+a*HEX*(r.big?1.6:0.9);c.strokeStyle=`rgba(${r.dk?'20,24,32':sunInk().join(',')},${(0.5*(1-a)*(1-a)).toFixed(3)})`;c.lineWidth=r.big?2:1.4;c.beginPath();c.arc(X,Y,R,0,6.2832);c.stroke();} // rings on the water (the camera foreshortens them)
   for(const d of pond)if(d._s){const[X,Y]=w2s(d.x,d.y);duckGlow(c,d.type,X,Y,d._s,now,d.ph); // a Bright / Shining / Dim duck lights the water round it
     const r=Math.max(0,Math.min(1,(d.sp-0.6)/0.9)); // paddling hard: the same bow wake a pigment pushes into particles, on the water ahead of it
-    if(r>0.02){const ink=onWhite(d.x,d.y)?[20,24,32]:[255,255,255];drawWakeShape(c,X,Y,Math.cos(d.hd),Math.sin(d.hd),d._s*1.4,r,Math.min(0.45,(T.wakeMaxA!=null?T.wakeMaxA:0.35)*1.2*Math.min(1,r*1.6)),ink,ink);}}
+    if(r>0.02){const ink=onWhite(d.x,d.y)?[20,24,32]:sunInk();drawWakeShape(c,X,Y,Math.cos(d.hd),Math.sin(d.hd),d._s*1.4,r,Math.min(0.45,(T.wakeMaxA!=null?T.wakeMaxA:0.35)*1.2*Math.min(1,r*1.6)),ink,ink);}}
 }
 
 // ╔══════════════════════════════════════════════════════════════════════════════╗
@@ -713,7 +706,7 @@ function loadMap(){
   let d=null;try{d=JSON.parse(localStorage.getItem(MAP_KEY)||'null');}catch(e){}
   if(!d||!d.cells)return false;
   if(d.v!==3)return false; // a map from before the times of day starts over
-  ({cells,turn,clock,day,pool,fresh,constel,dayLog,dayCnt,pendingEnd,score,pQ,pR,totalCells,phase,depth,gameOverReason,captureOrder,mergeGroups,mergeIdCounter,voidOpen}=d);nebulaCellKey=d.session||null;_sunH=clock;dayLog=dayLog||[];dayCnt=dayCnt||{b:0,d:0};
+  ({cells,turn,clock,day,pool,fresh,constel,dayLog,dayCnt,pendingEnd,score,pQ,pR,totalCells,phase,depth,gameOverReason,captureOrder,mergeGroups,mergeIdCounter,voidOpen}=d);nebulaCellKey=d.session||null;_sunH=clock;_sun={from:clock,to:clock,t0:0};dayLog=dayLog||[];dayCnt=dayCnt||{b:0,d:0};
   if(pendingEnd)finishDay();else if(phase==='collapse')phase='move';else if(phase==='ended')showDayReport(); // a day left falling in finishes at once; a won run shows its report
   mapResize();focusCam(false);updateHint();return true;
 }
