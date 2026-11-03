@@ -445,7 +445,7 @@ function sceneRender(now){
   gl.uniformMatrix4fv(G3.uPV,false,cam.pv);gl.uniform2f(G3.uS,MW,MH);gl.drawArrays(gl.TRIANGLE_STRIP,0,4);
   if(!G3.duck)return;let envd=false;
   {if(clock!==_sun.to%24&&!(clock===24&&_sun.to%24===0)){let to=clock;const fr=_sunH;if(to<fr&&fr-to>12)to+=24;else if(to>fr&&to-fr>12)to-=24;_sun={from:fr,to,t0:now};} // a new hour: the light moves to it (backwards for the Clock smith)
-    const u=Math.min(1,(now-_sun.t0)/(T.mapPrevFadeMs||450));_sunH=_sun.from+(_sun.to-_sun.from)*u*u*(3-2*u); // over the time a hex's new picture eases in
+    const u=Math.min(1,(now-_sun.t0)/(T.mapSunMs||4500));_sunH=_sun.from+(_sun.to-_sun.from)*u*u*(3-2*u); // a slow shift of the light, over Light shift ms
     const s=duckSun(_sunH),R=cam.viewRot,l=[s.d[0],-s.d[1],s.d[2]];DUCK_SUN={d:[0,1,2].map(i=>R[i]*l[0]+R[3+i]*l[1]+R[6+i]*l[2]),c:s.c};} // (the plane's y runs down the screen)
   const ra=T.mapDuckRefl!=null?T.mapDuckRefl:0.4; // ducks are mirrored in the surface beneath them
   if(ra>0){gl.clear(gl.DEPTH_BUFFER_BIT);for(const d of pond)if(d._s&&d.bottle)drawBottleScene(G3.duck,d,bottleOpts(d,now,-1,ra));for(const d of pond){if(!d._s||d.bottle)continue;const[px,py]=w2s(d.x,d.y),[X,Y,k]=proj(px,py),f=duckFace(d,now),size=d._s,bob=size*(0.36+0.03*Math.sin(now/700+d.ph));
@@ -685,11 +685,17 @@ function spawnLakeDuck(now,bottle,splash){ // a duck of yours swims (or splashes
   const free=bottle?['bottle']:roster.filter((t,i)=>(used[t]||0)<roster.slice(0,i+1).filter(x=>x===t).length);if(!free.length||!water.pts.length)return;
   const type=free[(Math.random()*free.length)|0];
   for(let tries=0;tries<12;tries++){const P=water.pts[(Math.random()*water.pts.length)|0],hd=Math.random()*6.2832,dx=Math.cos(hd),dy=Math.sin(hd);
-    if(splash||Math.random()<0.3){pond.push({type,x:P[0],y:P[1],hd,sp:0,cur:0,next:now+1500,born:now,splash:true,seen:true,lastRip:0,ph:Math.random()*6.28,bottle,col:bottle?['clear','green','brown'][(Math.random()*3)|0]:null});ripples.push({x:P[0],y:P[1],t:now,dk:onWhite(P[0],P[1]),big:1});return;} // splashes up from under the surface
+    if(splash||Math.random()<0.3){pond.push({type,x:P[0],y:P[1],hd,sp:0,cur:0,next:now+1500,born:now,splash:true,seen:true,lastRip:0,ph:Math.random()*6.28,bottle,col:bottle?['clear','green','brown'][(Math.random()*3)|0]:null,duck:bottle?bottleDuck():null});ripples.push({x:P[0],y:P[1],t:now,dk:onWhite(P[0],P[1]),big:1});return;} // splashes up from under the surface
     let x=P[0],y=P[1],ok=true;for(let k=0;k<80;k++){x-=dx*HEX*0.5;y-=dy*HEX*0.5;if(!isWater(x,y)){ok=false;break;}const[X,Y]=w2sc(x,y);if(offView(X,Y,HEX*1.2))break;} // back along its way until it is off screen
-    if(!ok)continue;pond.push({type,x,y,hd,sp:0.45,cur:(Math.random()-0.5)*0.004,next:now+2000+Math.random()*2500,born:now,splash:false,seen:false,lastRip:0,ph:Math.random()*6.28,bottle,col:bottle?['clear','green','brown'][(Math.random()*3)|0]:null});return;}}
+    if(!ok)continue;pond.push({type,x,y,hd,sp:0.45,cur:(Math.random()-0.5)*0.004,next:now+2000+Math.random()*2500,born:now,splash:false,seen:false,lastRip:0,ph:Math.random()*6.28,bottle,col:bottle?['clear','green','brown'][(Math.random()*3)|0]:null,duck:bottle?bottleDuck():null});return;}}
+function bottleDuck(){ // some bottles hold a duck instead of a letter (Bottle duck chance): any kind, the rare ones rarer
+  if(!(Math.random()<(T.mapBottleDuck!=null?T.mapBottleDuck:0.25)))return null;const ids=Object.keys(DUCK_TYPES);if(!ids.length)return null;
+  const tier=Math.random(),pool=ids.filter(k=>{const v=DUCK_TYPES[k];return tier<0.05?v.rare:tier<0.15?v.mid:!v.rare&&!v.mid;});return(pool.length?pool:ids)[(Math.random()*(pool.length||ids.length))|0];}
 function openBottle(d){ // clicked: the cork comes out and the letter is unrolled to read (one you have not read yet, while there are any)
   d.empty=true;d.kick=2;d.dash=performance.now()+800;ripples.push({x:d.x,y:d.y,t:performance.now(),dk:onWhite(d.x,d.y),big:1}); // the empty bottle goes back on the water
+  if(d.duck&&DUCK_TYPES[d.duck]){const v=DUCK_TYPES[d.duck],el=document.getElementById('letter');neb({cmd:'giveDuck',type:d.duck});duckLog[d.duck]=(duckLog[d.duck]||0)+1; // a duck in a bottle: it joins your collection
+    letter={duck:d.duck};el.querySelector('.lt').textContent='A duck was folded up in the bottle!';el.querySelector('.lf').textContent=duckStar(v)+v.name;el.querySelector('.ln').textContent='Added to your collection · now '+duckLog[d.duck]+' of this kind';
+    el.classList.remove('show');void el.offsetWidth;el.classList.add('show');hubEvent('map_bottle');return;}
   let rd=[];try{rd=JSON.parse(localStorage.getItem(LETTER_KEY)||'[]')||[];}catch(e){}
   const left=LETTERS.map((_,i)=>i).filter(i=>!rd.includes(i)),i=left.length?left[(Math.random()*left.length)|0]:(Math.random()*LETTERS.length)|0;if(!rd.includes(i))rd.push(i);try{localStorage.setItem(LETTER_KEY,JSON.stringify(rd));}catch(e){} // collected for good (the Guide's Letters); once every one is found, they come again
   letter=LETTERS[i];const el=document.getElementById('letter');el.querySelector('.lt').textContent=letter.t;el.querySelector('.lf').textContent=letter.f;el.querySelector('.ln').textContent=(rd.length)+' of '+LETTERS.length+' letters collected · kept in the Guide (Letters)';
