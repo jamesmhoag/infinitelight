@@ -114,7 +114,7 @@ button:hover{background:rgba(255,255,255,0.15);}
   <div id="dock" class="bottom"><div id="inventoryPanel"></div><div id="touch-info"></div></div>
   <canvas id="cur"></canvas>
 </div>
-<script src="shared.js?v=20261103h"></script>
+<script src="shared.js?v=20261103i"></script>
 <script>
 const _SRC=document.documentElement.outerHTML; // kept so the Encyclopedia can run live scenes as embedded copies of the game
 // Safety: a negative / non-finite gradient radius would throw and kill the frame — clamp it, and log the first offender's stack so it can be traced.
@@ -1600,9 +1600,10 @@ TUNE_DEFS.push({sec:'Master volume',tab:'sounds'},{key:'masterVol',label:'Master
  {key:'mapStreetSize',label:'Shop size',min:0.15,max:1.5,step:0.01,tip:'Width of a main street shop (× hex size); every shop, pop-ups too, is drawn at this scale'},
  {key:'mapStreetRing',label:'Main street ring',min:0,max:2,step:0.05,tip:'How far from the centre of the source the main street shops stand (× hex size): two behind it, two in front'},
  {key:'mapShopGlow',label:'Shop neon glow',min:0,max:3,step:0.05,tip:'How strongly an open shop\'s sign and windows glow'},
+ {key:'mapShopUpScale',label:'Big store scale',min:1,max:2.5,step:0.05,tip:'How much larger the rank 2 and 3 pop-ups\' two-storey stores are drawn than a main street shop (1.7: their doors are about the same size)'},
  {key:'mapShopPitch',label:'Shop view angle',min:0,max:60,step:1,tip:'Degrees: how far from straight ahead the 3D shops are seen from above (their roofs and sign scaffolding show more)'},
  {key:'mapDockLingerMs',label:'Dock linger ms',min:0,max:10000,step:100,tip:'With the dock reduced (its ▾ or ~): how long an item stays up after it is used, its count changes or the dock is toggled'});
-Object.assign(T,{mapStreetSize:0.75,mapStreetRing:0.8,mapShopGlow:1,mapShopPitch:22,mapDockLingerMs:2500});
+Object.assign(T,{mapStreetSize:0.75,mapStreetRing:0.8,mapShopGlow:1,mapShopPitch:22,mapDockLingerMs:2500,mapShopUpScale:1.7});
 for(const id in SHOPS){const S=SHOPS[id];if(S.street)continue;for(let i=1;i<=3;i++){const k=shopTK(S.cur)+i;T[k]=S.at[i-1];TUNE_DEFS.push({key:k,label:S.n.slice(0,18)+' rank '+i+' at',min:0,max:9999999,step:1,tip:'A bright clear whose surface collected at least this much '+S.cur+' opens a rank '+i+' '+S.n+' on its hex (0 = never)'});}}
 let tuneTab='gameplay',tuneFilter='',tuneSel=null,tuneBuf='';
 document.addEventListener('keydown',e=>{ // type digits / '.' to set the last-touched tuner row; clamps to its min/max and snaps to its step
@@ -13974,7 +13975,7 @@ function cardHTML(ev,mini){ // the one card format: name bar, art box, type line
   return `<div class="mtg${mini?' sm':''}" data-ev="${ev.id}" style="--rc:${TIER_COL[t]}"><div class="nm"><b>${gEsc(ev.name)}</b><span class="gem"></span></div><div class="art" data-scene="${ev.scene}">${mini?`<canvas class="rl-m" width="64" height="64" data-k="${ev.ico}"></canvas>`:''}</div><div class="ty"><span>${gEsc(ev.type.replace(/^Event — /,''))}</span><span>Tier ${TIER[t]}</span></div><div class="tx">${(mini?ev.facts().slice(0,1):ev.facts()).map(f=>`<p${ev.fx?' class="fx"':''}>${gEsc(f)}</p>`).join('')}${ev.flavor?`<p class="fl">${gEsc(ev.flavor)}</p>`:''}</div></div>`; // (small: its first line and its flavour; the rest when it is opened) (fx: the lines are changes to play, set apart from the flavour)
 }
 function mountScene(h,w,hh){if(!h||h.firstChild||document.querySelectorAll('.rl-live iframe,.mtg .art iframe').length>=5)return;const f=document.createElement('iframe'),nm=h.dataset.s||h.dataset.scene;f.style.cssText='border:0;max-width:100%;pointer-events:none;background:#000;border-radius:6px;'+(w?`width:${w}px;height:${hh}px`:'width:100%;height:100%');
-  if(nm.slice(0,4)==='hub:'){const[sn,dk]=nm.slice(4).split(':');f.src='Surface_Map_HUB.html?v=20261103h&scene='+sn+'&T='+encodeURIComponent(JSON.stringify(mapSceneT()))+'&D='+encodeURIComponent(JSON.stringify(dk&&DUCK_TYPES[dk]?{[dk]:DUCK_TYPES[dk]}:Object.fromEntries(Object.entries(DUCK_TYPES).slice(0,4))));}else f.srcdoc=liveSrc(nm);h.appendChild(f);} // a Surface Map demo is played by the map itself
+  if(nm.slice(0,4)==='hub:'){const[sn,dk]=nm.slice(4).split(':');f.src='Surface_Map_HUB.html?v=20261103i&scene='+sn+'&T='+encodeURIComponent(JSON.stringify(mapSceneT()))+'&D='+encodeURIComponent(JSON.stringify(dk&&DUCK_TYPES[dk]?{[dk]:DUCK_TYPES[dk]}:Object.fromEntries(Object.entries(DUCK_TYPES).slice(0,4))));}else f.srcdoc=liveSrc(nm);h.appendChild(f);} // a Surface Map demo is played by the map itself
 function mapSceneT(){const o={};for(const k in T)if(/^(map|bh|duck|wake|glass|metal|dimGlow|glowHalo|maxSpeed)/.test(k))o[k]=T[k];return o;} // what a map demo needs of the tuners
 function showCardHTML(html){ // a Guide card (an entry or a shop) opened over the Guide, where an event card shows
   guideCSS();_evOpen=true;_evReview=true;const ov=evOverlayEl();ov.innerHTML=`<div class="ev-box">${html}<button id="evOk">Close</button></div>`;ov.style.display='flex';wrap.classList.add('ev-open');
