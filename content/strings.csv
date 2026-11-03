@@ -700,6 +700,22 @@ surf.create.duck_pond,Duck on the pond — {duck} · click to send it to swim on
 surf.create.duckmade,🦆 {duck} floats here,placed with Create,duck = $0 — the duck
 surf.create.duckpond,🦆 {duck} is off to the pond · it swims on the lake when you are back on the map,sent with Create,duck = $0 — the duck
 surf.create.nopond,The pond is on the Surface Map: open this surface from the map to send a duck there,"Create → pond, outside the map",
+coll.title,Status & collections,Status & collections (your buoy),
+coll.tab.status,Status,Status & collections,
+coll.tab.coll,Ducks,Status & collections,
+coll.tab.notes,Letters,Status & collections,
+coll.tab.souv,Souvenirs,Status & collections,
+coll.pond.note,"Every type you have, floating on your pond at true size. Swipe across a duck to spin it; click one to turn it and zoom in.",Status & collections,
+coll.space.note,"Every type you have, adrift in space at true size. Swipe across a duck to spin it; click one to turn it and zoom in.",Status & collections,
+coll.to_space,Float them in space,Status & collections,
+coll.to_pond,Float them on the pond,Status & collections,
+coll.souv.note,"The Gift Shop's souvenirs. They are kept through every new start, and the latest of each kind hangs on your buoy.",Status & collections,
+coll.souv.none,None yet. Souvenirs are bought at the Gift Shop.,Status & collections,
+map.name.title,Name your buoy,Surface Map (a new game),
+map.name.note,"Your buoy floats wherever you are on the map, with your name on its sign.",Surface Map (a new game),
+map.name.placeholder,Your name,Surface Map (a new game),
+map.name.go,Set sail,Surface Map (a new game),
+map.name.set,Your buoy is afloat.,Surface Map (a new game),
 value.life_ms,T.lifeColor,values (shared: any text can use {life_ms}),a pigment's life factor (Life colour tuner)
 value.dim_mass_pct,Math.round(T.remMassFrac*100),values (shared: any text can use {dim_mass_pct}),% of its mass a failed collapse keeps
 value.dim_energy_pct,Math.round(T.remEnergyFrac*100),values (shared: any text can use {dim_energy_pct}),% of its energy a failed collapse keeps

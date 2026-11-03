@@ -91,6 +91,10 @@ body.thru .shop{pointer-events:none} /* an armed map item, or the open source, r
 @keyframes neon2{0%,100%{opacity:.9}50%{opacity:1}}
 @keyframes neon3{0%,9%,15%,100%{opacity:1}10%{opacity:.74}11%{opacity:.98}12%{opacity:.76}60%{opacity:.94}}
 /* a shop's menu: its sign and store over a black card (name left, price right); a tab per currency, by its symbol; the list as long as it needs */
+#nameAsk{position:fixed;inset:0;z-index:62;display:none;align-items:center;justify-content:center;background:rgba(0,0,0,.6)}#nameAsk.show{display:flex} /* your name, for your buoy's sign: asked on a new game */
+#nameAsk .scard{width:320px;background:#000;border:1px solid #fff;padding:16px 22px 16px;color:#fff;font:12px/1.5 system-ui,'Inter',sans-serif;letter-spacing:.6px;text-align:center}#nameAsk h2{font:700 19px/1.25 system-ui,'Inter',sans-serif;letter-spacing:1.6px;margin:0 0 6px}
+#nameAsk input{width:100%;box-sizing:border-box;margin:14px 0 4px;padding:6px 8px;background:#000;color:#fff;border:1px solid rgba(255,255,255,.5);font:15px system-ui,sans-serif;text-align:center;outline:none}#nameAsk input:focus{border-color:#fff}#nameAsk .nlen{opacity:.5;font-size:10px;text-align:right}
+#nameAsk button{margin-top:10px;background:none;color:#fff;border:0;font:inherit;letter-spacing:inherit;cursor:pointer;padding:2px 10px}#nameAsk button:hover{background:rgba(255,255,255,.12)}#nameAsk button:disabled{opacity:.35;cursor:default;background:none}
 #letter{position:fixed;inset:0;z-index:61;display:none;align-items:center;justify-content:center;background:rgba(0,0,0,.55);cursor:pointer}#letter.show{display:flex}
 #letter .lp{width:min(420px,86vw);padding:30px 34px 22px;background:linear-gradient(#f4ead0,#e6d6ae);color:#3a2c18;font:italic 17px/1.6 Georgia,serif;border-radius:3px;box-shadow:0 10px 40px rgba(0,0,0,.6),inset 0 0 40px rgba(140,100,40,.25);transform-origin:50% 50%;animation:unroll .7s ease-out}
 #letter .lf{text-align:right;margin-top:16px;font-size:15px}#letter .ln{margin-top:14px;font:11px system-ui;opacity:.5;text-align:center;font-style:normal}
@@ -150,6 +154,7 @@ body.shop-open #hdock{z-index:59}#hinv .slot.wal::before{border-color:rgba(255,2
   <div class="gl" data-tx="map.ui.leave"></div><button onclick="quitMain()" data-tx="map.ui.quit_to_main_menu"></button>
 </div></div>
 <div id="day-report"><div class="gm"><h2></h2><div class="dsum"></div><div class="gl" data-tx="map.ui.days"></div><div class="dlogbox"></div><button></button></div></div>
+<div id="nameAsk"><div class="scard"><h2 data-tx="map.name.title"></h2><div data-tx="map.name.note"></div><input maxlength="20" autocomplete="off" spellcheck="false" data-tp="map.name.placeholder"><div class="nlen"></div><button data-tx="map.name.go"></button></div></div>
 <div id="shop"><div class="sbox"><div class="scol"><canvas class="sart"></canvas><div class="scard"></div></div><div class="sstat"></div></div></div>
 <div id="veil"></div>
 <div id="bfx"></div><canvas id="hcur"></canvas>
@@ -321,7 +326,7 @@ function doMove(tq,tr){
   const tc=cells[K(tq,tr)];
   if(tc&&tc.isVoid&&voidOpen&&tq===0&&tr===0){const ok=cells[K(pQ,pR)];if(ok)ok.isP=false;descendDepth();return;}
   const ok=cells[K(pQ,pR)];if(ok)ok.isP=false;
-  pQ=tq;pR=tr;tc.isP=true;focusCam(true);
+  pQ=tq;pR=tr;tc.isP=true;buoyGo('sail');focusCam(true);
   advanceTurn();if(runBad(run,'slowmove')&&phase!=='collapse'&&phase!=='gameover')advanceTurn();if(phase==='collapse'){updateHint();saveMap();return;}if(phase!=='gameover')phase='move';
   if(phase==='move'&&!tired()&&!getMoves().length){phase='gameover';gameOverReason=txt('map.go.nomoves');}
   updateHint();saveMap();
@@ -377,7 +382,7 @@ function unclear(k){ // Spindle: a cleared hex back to an open surface (the valu
 function stringMove(q,r){ // String: straight to any open hex, 1 per hex of distance, no time
   const c=cells[K(q,r)];if(!c||c.cap||c.isVoid||(q===pQ&&r===pR))return;const n=dist(pQ,pR,q,r);
   if((inv.dial||0)<n){feed(txt('map.string'),txt('map.that_is_away_you',n,inv.dial||0));return;}
-  spend('dial',n);const ok=cells[K(pQ,pR)];if(ok)ok.isP=false;dropSession();pQ=q;pR=r;c.isP=true;focusCam(true);phase='move';const dim=runBad(run,'slowmove');if(dim)advanceTurn(); // a dim fortune: a String takes a time of day
+  spend('dial',n);const ok=cells[K(pQ,pR)];if(ok)ok.isP=false;dropSession();pQ=q;pR=r;c.isP=true;buoyGo('fire');focusCam(true);phase='move';const dim=runBad(run,'slowmove');if(dim)advanceTurn(); // a dim fortune: a String takes a time of day
   if(phase==='collapse'){updateHint();saveMap();return;}feed(txt('map.string'),txt('map.hex',n,(n>1?txt('map.es'):''),(dim?txt('map.a_time_of_day'):txt('map.no_time_passed'))));updateHint();saveMap();}
 const WEAVE_KINDS={3:['prism'],4:['gate','knot'],5:['key','lens']}; // (KIND_NAME: shared.js)
 const weaveKinds=n=>runBonus(run,'glasses')?['lens']:WEAVE_KINDS[n].filter(k=>!(k==='key'&&run.keysGone)); // Broken Glasses: only Lens; Keys lost: no Key
@@ -502,12 +507,13 @@ function sceneRender(now){
   const ra=T.mapDuckRefl!=null?T.mapDuckRefl:0.4; // ducks are mirrored in the surface beneath them
   if(ra>0){gl.clear(gl.DEPTH_BUFFER_BIT);for(const d of pond)if(d._s&&d.bottle)drawBottleScene(G3.duck,d,bottleOpts(d,now,-1,ra));for(const d of pond){if(!d._s||d.bottle)continue;const[px,py]=w2s(d.x,d.y),[X,Y,k]=proj(px,py),f=duckFace(d,now),size=d._s,bob=duckBob(d,now);
     drawDuckScene(G3.duck,d.type,{rot:new Float32Array([f[0],f[1],0, 0,0,-1, -f[1],f[0],0]),size,pos:[px-MW/2,py-MH/2,-bob],view:cam.view,proj:cam.proj,viewRot:cam.viewRot,env:{x:X,y:Y,lights:[]},px:size*k,alpha:ra*(d.fade!=null?d.fade:1),mirror:true,clip:-1});}
-    gl.clear(gl.DEPTH_BUFFER_BIT);}
+    if(!SCENE)buoyDraw(now,true);gl.clear(gl.DEPTH_BUFFER_BIT);} // (your buoy, mirrored too)
   for(const d of pond)if(d._s&&d.bottle){if(!envd){duckEnvUpdate(mc,now,G3.duck);envd=true;}drawBottleScene(G3.duck,d,bottleOpts(d,now,1,1));} // glass: it reflects the scene round it
   for(const d of pond){if(!d._s||d.bottle)continue;const v=DUCK_TYPES[d.type]||{},refl=v.mat==='metal'||v.mat==='gold'||v.mat==='glass',[px,py]=w2s(d.x,d.y),[X,Y,k]=proj(px,py);
     if(refl&&!envd){duckEnvUpdate(mc,now,G3.duck);envd=true;}
     const f=duckFace(d,now),size=d._s; // upright on the plane: its forward along its heading, its up out of the plane (mirrored across, as the view flips y)
-    drawDuckScene(G3.duck,d.type,{rot:new Float32Array([f[0],f[1],0, 0,0,1, -f[1],f[0],0]),size,pos:[px-MW/2,py-MH/2,duckBob(d,now)],view:cam.view,proj:cam.proj,viewRot:cam.viewRot,env:{x:X,y:Y,lights:[]},px:size*k,clip:1});}}
+    drawDuckScene(G3.duck,d.type,{rot:new Float32Array([f[0],f[1],0, 0,0,1, -f[1],f[0],0]),size,pos:[px-MW/2,py-MH/2,duckBob(d,now)],view:cam.view,proj:cam.proj,viewRot:cam.viewRot,env:{x:X,y:Y,lights:[]},px:size*k,clip:1});}
+  if(!SCENE)buoyDraw(now,false);} // your buoy, half under the surface
 function duckBob(d,now){return d._s*(0.36+0.03*Math.sin(now/700+d.ph)-(d._sink||0)*1.3);} // how high a lake duck floats: dunked or splashing up, under the waterline
 let _glow=null;
 function glowSprite(bl,ba){ // one bright clear's glow (a wide and a mid blur pass and its soft white core), drawn once per hex size and setting
@@ -664,7 +670,7 @@ function mapRender(){
   mctx.restore();
   // Direction line
   if(hoverMove&&phase!=='gameover'){const pts=[{q:pQ,r:pR},...hoverMove.path,{q:hoverMove.q,r:hoverMove.r}];mctx.beginPath();for(let i=0;i<pts.length;i++){const[sx,sy]=w2s(...a2w(pts[i].q,pts[i].r));if(!i)mctx.moveTo(sx,sy);else mctx.lineTo(sx,sy);}mctx.strokeStyle='rgba(0,210,210,0.6)';mctx.lineWidth=1.5;mctx.setLineDash([5,4]);mctx.stroke();mctx.setLineDash([]);const[dx,dy]=w2s(...a2w(hoverMove.q,hoverMove.r));mctx.beginPath();mctx.arc(dx,dy,3.5,0,Math.PI*2);mctx.fillStyle='rgba(0,220,220,0.7)';mctx.fill();}
-  hubPh('overlays');requestPreviews(mapNeed);hubPh('previews');pondStep(now);hubPh('ducks');sceneRender(now);hubPh('3d');
+  hubPh('overlays');requestPreviews(mapNeed);hubPh('previews');pondStep(now);if(!SCENE){buoyStep(now,1);buoyPlane(now);}hubPh('ducks');sceneRender(now);hubPh('3d');
   // HUD
   let st=`${clockStr()} · day ${day} · rings ${turn} · score ${score.toFixed(2)} · captures ${captureOrder.length}`;
   if(phase==='gameover')st+=txt('map.stat.gameover',gameOverReason);
@@ -706,10 +712,12 @@ sc.addEventListener('click',e=>{
 });
 sc.addEventListener('mouseleave',()=>{hQ=null;hR=null;});
 document.addEventListener('click',e=>{ // a lake duck clicked (even under a read-out like the legend): dunked, it comes back up — and the click goes no further
-  if(drag&&drag.moved)return;if(currentView!=='map'||menuOpen||shopUI||!(e.target===sc||(e.target.closest&&!e.target.closest('button,.slot,.shop,input,select,#hdock,#tuneP,#mModes,#shop,#menu,#day-report,#letter'))))return;
+  if(drag&&drag.moved)return;if(currentView!=='map'||menuOpen||shopUI||!(e.target===sc||(e.target.closest&&!e.target.closest('button,.slot,.shop,input,select,#hdock,#tuneP,#mModes,#shop,#menu,#day-report,#letter,#nameAsk'))))return;
+  if(!SCENE&&buoyHit(e.clientX,e.clientY)){e.stopPropagation();openCollections('status');return;} // your buoy: Status and your collections
   const du=duckUnder(e.clientX,e.clientY);if(!du||du.dunk)return;e.stopPropagation();if(du.bottle&&!du.empty){openBottle(du);return;}
   du.dunk=performance.now();ripples.push({x:du.x,y:du.y,t:du.dunk,dk:onWhite(du.x,du.y),big:1});neb({cmd:'quack',type:du.type,v:1});},true);
 document.addEventListener('keydown',e=>{
+  if(document.getElementById('nameAsk').classList.contains('show'))return; // naming your buoy: Enter sets it
   if(e.code==='Escape'){e.preventDefault();if(letter){closeLetter();return;}if(shopUI){closeShop();return;}if(currentView==='map'&&armed){armed=null;weaveSel=[];weaveAsk=null;updateHint();syncDock();return;}if(currentView==='map')toggleMenu();return;}
   if(menuOpen||shopUI)return;
   if(e.target&&/^(INPUT|SELECT|TEXTAREA)$/.test(e.target.tagName))return; // typing in the Tune panel's filter
@@ -724,7 +732,7 @@ window.addEventListener('resize',mapResize);
 // ║  grid. The surface's own duck renderer draws them (one sheet per frame,      ║
 // ║  sent back as an ImageBitmap); the map moves them and draws their ripples.   ║
 // ╚══════════════════════════════════════════════════════════════════════════════╝
-let pond=[],ripples=[],pondT=0,pondNext=0,water={at:0,pts:[],frac:0},_cwPrev=null; // _cwPrev: the cursor on the water last frame (how fast it bumps a duck)
+let pond=[],ripples=[],pondT=0,pondNext=0,water={at:0,pts:[],frac:0},_cwPrev=null,_cvLast=0; // _cwPrev: the cursor on the water last frame (how fast it bumps a duck)
 function isWater(wx,wy){ // world point well clear of every hex
   const q=(Math.sqrt(3)/3*wx-1/3*wy)/HEX,r=(2/3*wy)/HEX;for(let dq=-2;dq<=2;dq++)for(let dr=-2;dr<=2;dr++){const c=cells[K(Math.round(q)+dq,Math.round(r)+dr)];if(!c)continue;const[cx,cy]=a2w(c.q,c.r);if(Math.hypot(wx-cx,wy-cy)<HEX*1.7)return false;}return true;}
 function onWhite(wx,wy){ // the water is lit white here: a bright clear's glow, or the source's
@@ -767,6 +775,43 @@ function openBottle(d){ // clicked: the cork comes out and the letter is unrolle
   el.classList.remove('show');void el.offsetWidth;el.classList.add('show');hubEvent('map_bottle');}
 function closeLetter(){letter=null;document.getElementById('letter').classList.remove('show');evPump();}
 const LETTER_KEY='il_letters_v1';
+// ── The player's buoy: on the hex you stand on, floating half under its surface; it bobs and turns slowly, ripples the water, and its spot light sweeps
+// round the hexes next to it, clockwise (or onto the hex you point at, where you could move or use an item). A move sails it over (a wake behind it);
+// a String fires it there like a Point. Its sign carries your name; your souvenirs hang on it. Clicking it opens Status and your collections.
+const NAME_KEY='il_name_v1';let playerName='';try{playerName=localStorage.getItem(NAME_KEY)||'';}catch(e){}
+const BUOY_SIZE=0.42,buoys=[]; // every buoy on the map: yours first (friends' join it, each its own {name, x, y, …})
+const buoy={x:0,y:0,yaw:0,spin:0,mv:null,trail:null,ripAt:0,spot:{a:0,d:1},touch:0,hd:0};buoys.push(buoy);
+function askName(){const el=document.getElementById('nameAsk'),i=el.querySelector('input'),b=el.querySelector('button'),n=el.querySelector('.nlen'); // a new game (or no name yet): your name for your buoy's sign, up to 20 characters
+  const up=()=>{b.disabled=!i.value.trim();n.textContent=i.value.length+' / 20';};i.value=playerName;up();i.oninput=up;
+  const go=()=>{const v=i.value.trim().slice(0,20);if(!v)return;playerName=v;try{localStorage.setItem(NAME_KEY,v);}catch(e){}el.classList.remove('show');feed(v,txt('map.name.set'));};
+  b.onclick=go;i.onkeydown=e=>{if(e.key==='Enter'){e.preventDefault();go();}e.stopPropagation();};el.classList.add('show');setTimeout(()=>i.focus(),50);}
+function buoyGo(mode){buoy.go=mode;} // the next move of yours is a sail ('sail') or a String's shot ('fire')
+function buoyStep(now,dt){const[tx,ty]=a2w(pQ,pR);if(!playerName&&currentView==='map'&&!shopUI&&!menuOpen&&!document.getElementById('nameAsk').classList.contains('show'))askName(); // no name yet (a new game): asked once the map is in view
+
+  if(buoy.mv&&now>=buoy.mv.t0+buoy.mv.dur){buoy.x=buoy.mv.x1;buoy.y=buoy.mv.y1;buoy.mv=null;}
+  if(!buoy.mv&&(Math.abs(tx-buoy.x)>0.5||Math.abs(ty-buoy.y)>0.5)){const d=Math.hypot(tx-buoy.x,ty-buoy.y);
+    if(buoy.go&&d<HEX*30){const f=buoy.go==='fire';buoy.mv={x0:buoy.x,y0:buoy.y,x1:tx,y1:ty,t0:now,dur:f?Math.max(220,d*1.2):Math.max(700,d*14),fire:f};if(f)buoy.trail={x0:buoy.x,y0:buoy.y,t0:now};}else{buoy.x=tx;buoy.y=ty;}buoy.go=null;} // (a new map: it is simply there)
+  if(buoy.mv){const m=buoy.mv,u=Math.min(1,(now-m.t0)/m.dur),e=m.fire?u:u*u*(3-2*u);buoy.x=m.x0+(m.x1-m.x0)*e;buoy.y=m.y0+(m.y1-m.y0)*e;buoy.hd=Math.atan2(m.y1-m.y0,m.x1-m.x0);}
+  buoy.spin+=(0-buoy.spin)*0.02*dt;buoy.yaw+=(0.0045+buoy.spin)*dt;
+  const[X,Y]=buoyScreen(0.9),r=HEX*0.45*(proj(...w2s(buoy.x,buoy.y))[2]||1),near=mX>=0&&Math.hypot(mX-X,mY-Y)<r;if(!near)buoy.touch=0;else if(!buoy.touch){buoy.touch=1;buoy.spin+=Math.min(0.06,0.004+0.02*Math.min(3,_cvLast||0));}} // a touch turns it a little faster (once per touch, by how fast the cursor went)
+function buoyScreen(z){if(!cam)return[-1e4,-1e4];const p=m4.tx(cam.pv,[buoy.x-camX,buoy.y-camY,(z!=null?z:0.9)*HEX*BUOY_SIZE,1]);return[(p[0]/p[3]+1)/2*SW,(1-p[1]/p[3])/2*SH];} // where on screen (z: how high up it, in its own units)
+function buoyHit(X,Y){const[x,y]=buoyScreen(0.9),k=proj(...w2s(buoy.x,buoy.y))[2]||1;return Math.hypot(X-x,Y-y)<HEX*0.42*k;}
+function buoyPlane(now){ // on the plane, under it: its spot light, its ripples, the wake of a sail and the streak of a shot
+  const c=mctx,[bx,by]=w2s(buoy.x,buoy.y),S=buoy.spot;
+  let ta=now/(T.mapSpotMs||16000)*6.2832,td=HEX*1.732;const hk=hQ!==null?K(hQ,hR):null,hc=hk&&cells[hk]; // (clockwise on screen: the plane's y runs down)
+  const aim=!!(hc&&hk!==K(pQ,pR)&&(armed?(armed==='leash'?(hc.cap||(!hc.isVoid&&hc.v<1)):armed==='dial'?(!hc.cap&&!hc.isVoid):isBright(hk)):getMoves().some(m=>K(m.q,m.r)===hk)));
+  if(aim){const[hx,hy]=a2w(hQ,hR);ta=Math.atan2(hy-buoy.y,hx-buoy.x);td=Math.hypot(hx-buoy.x,hy-buoy.y);} // pointing at a hex it could go to (or use an item on): the light swings onto it
+  const da=Math.atan2(Math.sin(ta-S.a),Math.cos(ta-S.a));S.a+=da*(aim?0.12:0.05);S.d+=(td-S.d)*0.08;if(!aim&&Math.abs(da)<0.02)S.a=ta;
+  const px=bx+Math.cos(S.a)*S.d,py=by+Math.sin(S.a)*S.d,R=HEX*0.62;c.save();c.globalCompositeOperation='screen';
+  const nx=-Math.sin(S.a),ny=Math.cos(S.a);c.beginPath();c.moveTo(bx,by);c.lineTo(px+nx*R*0.8,py+ny*R*0.8);c.lineTo(px-nx*R*0.8,py-ny*R*0.8);c.closePath();const bg=c.createLinearGradient(bx,by,px,py);bg.addColorStop(0,'rgba(255,244,210,0.22)');bg.addColorStop(1,'rgba(255,244,210,0.05)');c.fillStyle=bg;c.fill(); // the beam
+  const g=c.createRadialGradient(px,py,0,px,py,R);g.addColorStop(0,'rgba(255,246,215,0.42)');g.addColorStop(0.6,'rgba(255,246,215,0.16)');g.addColorStop(1,'rgba(255,246,215,0)');c.fillStyle=g;c.beginPath();c.arc(px,py,R,0,6.2832);c.fill();c.restore(); // the pool of light
+  if(now>buoy.ripAt){buoy.ripAt=now+2200+Math.random()*900;ripples.push({x:buoy.x,y:buoy.y,t:now,dk:onWhite(buoy.x,buoy.y)});} // it ripples the surface it floats in
+  if(buoy.mv&&!buoy.mv.fire){const ink=onWhite(buoy.x,buoy.y)?[20,24,32]:sunInk();drawWakeShape(c,bx,by,Math.cos(buoy.hd),Math.sin(buoy.hd),HEX*0.4,0.7,0.4,ink,ink);if(now-(buoy.lastRip||0)>180){buoy.lastRip=now;ripples.push({x:buoy.x,y:buoy.y,t:now,dk:onWhite(buoy.x,buoy.y)});}}
+  if(buoy.trail){const t=(now-buoy.trail.t0)/700;if(t>=1)buoy.trail=null;else{const[ax,ay]=w2s(buoy.trail.x0,buoy.trail.y0);c.save();c.globalCompositeOperation='screen';c.lineCap='round';c.strokeStyle=`rgba(255,250,235,${(0.8*(1-t)).toFixed(3)})`;c.lineWidth=HEX*0.12*(1-t)+1;c.filter=`blur(${(HEX*0.04).toFixed(1)}px)`;c.beginPath();c.moveTo(ax,ay);c.lineTo(bx,by);c.stroke();c.restore();}}} // a String's shot: a streak, like a Point fired
+function buoySouv(){const sv=souvenirs();return SHOP_ITEMS.filter(i=>i.fx.souv&&(sv[i.id]||0)>0).map(i=>i.id);} // the souvenirs kept, one of each kind
+function buoyDraw(now,mirror){const t=buoyModel(playerName,buoySouv());drawDuckScene(G3.duck,t,buoyOpts(now,mirror));drawDuckScene(G3.duck,t+'|sign',buoyOpts(now,mirror,[1,0]));} // the buoy, then its sign (facing you)
+function buoyOpts(now,mirror,face){const[px,py]=w2s(buoy.x,buoy.y),[X,Y,k]=proj(px,py),f=face||[Math.cos(buoy.yaw),Math.sin(buoy.yaw)],size=HEX*BUOY_SIZE,bob=size*0.05*Math.sin(now/900),z=mirror?-1:1; // upright (its y up out of the plane), turning about it
+  return{rot:new Float32Array([f[0],f[1],0, 0,0,z, -f[1],f[0],0]),size,pos:[px-MW/2,py-MH/2,mirror?-bob:bob],view:cam.view,proj:cam.proj,viewRot:cam.viewRot,env:{x:X,y:Y,lights:[]},px:size*k,clip:z,mirror,alpha:mirror?(T.mapDuckRefl!=null?T.mapDuckRefl:0.4):1};}
 function pondStep(now){
   const c=mctx,dt=Math.min(50,now-(pondT||now))/16.67;pondT=now;if(currentView!=='map')return; // ripples and glows go on the plane; the ducks are drawn in the scene (sceneRender)
   scanWater(now);if(pondAsk.length&&water.pts.length){const P=water.pts[(Math.random()*water.pts.length)|0];pondPut(pondAsk.shift(),P[0],P[1],now);} // (it bobs up out of the water)
@@ -774,7 +819,7 @@ function pondStep(now){
   const nd=pond.filter(d=>!d.bottle).length;if(nd<want&&now>pondNext){spawnLakeDuck(now);pondNext=now+900+Math.random()*1500;}
   if(!SCENE&&now>bottleNext&&water.frac>0.05&&!pond.some(d=>d.bottle)){spawnLakeDuck(now,true);bottleNext=now+(T.mapBottleMs||90000)*(0.6+0.8*Math.random());} // one bottle at a time
   const cw=mX>=0&&!menuOpen&&!shopUI&&overScene()?s2wp(mX,mY):null;let cv=0,ca=0; // the cursor on the water, and how fast it moves (world px per ms)
-  if(cw&&_cwPrev&&now>_cwPrev.t){const dx=cw[0]-_cwPrev.x,dy=cw[1]-_cwPrev.y;cv=Math.hypot(dx,dy)/(now-_cwPrev.t);ca=Math.atan2(dy,dx);}_cwPrev=cw?{x:cw[0],y:cw[1],t:now}:null;
+  if(cw&&_cwPrev&&now>_cwPrev.t){const dx=cw[0]-_cwPrev.x,dy=cw[1]-_cwPrev.y;cv=Math.hypot(dx,dy)/(now-_cwPrev.t);ca=Math.atan2(dy,dx);}_cwPrev=cw?{x:cw[0],y:cw[1],t:now}:null;_cvLast=cv/(T.mapDuckBumpV||0.35);
   pond=pond.filter(d=>{
     const cd=cw&&d._s?Math.hypot(cw[0]-d.x,cw[1]-d.y):1e9;if(cd>(d._s||0)*1.05)d.touch=0; // a touch counts once, until the cursor has come fully off it
     if(!d.touch&&!d.dunk&&cd<d._s*0.8){d.touch=1;const vf=T.mapDuckBumpV!=null?T.mapDuckBumpV:0.35,f=cv/vf,rx=d.x-cw[0],ry=d.y-cw[1],sg=Math.sign(Math.cos(ca)*ry-Math.sin(ca)*rx)||(Math.random()<0.5?-1:1); // f: the cursor's speed (1 = a hit); sg: which way it was brushed past
@@ -844,6 +889,7 @@ function hubEvent(id){if(SCENE)return;if(disc.has('ev:'+id)||evQ.includes(id)||e
 function evPump(){if(currentView==='overlay'&&evQ.length&&nebReady){neb({cmd:'event',ids:evQ.splice(0)});return;} // joins the hand already showing
   if(currentView!=='map'||menuOpen||shopUI||letter||!nebReady||!evQ.length)return;const ids=evQ.splice(0).filter(i=>!disc.has('ev:'+i));if(!ids.length)return;currentView='overlay';showNeb(true);neb({cmd:'event',ids});} // together, as one hand
 function openGuide(){if(!nebReady||currentView!=='map')return;currentView='overlay';showNeb(true);neb({cmd:'guide'});}
+function openCollections(tab){if(!nebReady||currentView!=='map'||shopUI)return;currentView='overlay';showNeb(true);neb({cmd:'collections',tab});} // your buoy: Status and your collections, shown by the surface
 function takeState(m){
   // a tuner just set here wins over a message the surface sent before it got it
   if(m.T){const now=performance.now();for(const k in _tuneLocal)if(now-_tuneLocal[k]<1500)m.T[k]=T[k];else delete _tuneLocal[k];T=m.T;if(SW)camUpdate();}if(m.ducks)duckLog=m.ducks;if(m.duckTypes)DUCK_TYPES=m.duckTypes;if(m.icons)icons=m.icons;if(m.inv){inv=m.inv;syncDock();}if(m.disc)disc=new Set(m.disc);if(m.defs&&m.defs.length)tuneDefs=m.defs;if(m.run)run=m.run;if(m.status)runStatus=m.status;
@@ -945,7 +991,7 @@ function discTick(){
 // ║  clears (shared.js SHOPS / SHOP_ITEMS; the surface pays for each purchase)  ║
 // ╚══════════════════════════════════════════════════════════════════════════════╝
 let shopUI=null,giftWallet=0; // shopUI: the open menu {id, rank, tab, exit (the Gift Shop's Exit? card), pick (choosing a duck), gift (inside the Gift Shop)}
-const SOUV_KEY='il_souvenirs_v1',shopPic={},shopCv={},shopEls={},fmtN=n=>Math.floor(n).toLocaleString('en-US');
+const shopPic={},shopCv={},shopEls={},fmtN=n=>Math.floor(n).toLocaleString('en-US');
 const shopHours=id=>{const S=SHOPS[id];return S.open<=0&&S.close>=27?'24 hours':TIMES[S.open]+' – '+TIMES[S.close];};
 function shopImg(n){if(!shopPic[n]){const im=new Image();im.onload=()=>{for(const k in shopCv)delete shopCv[k];};im.src='shops/'+n+(n.includes('.')?'':'.svg');shopPic[n]=im;}return shopPic[n];}
 function popupFor(tally){ // the pop-up a cleared surface earns. Each shop crossing a threshold is a candidate unless one of it already stands at that rank or better (one of each:
@@ -1060,9 +1106,8 @@ function shopBought(m){const it=shopItem(m.id);if(!it)return;shopFlash={id:m.id,
   if(m.ok&&m.draw){document.getElementById('shop').classList.remove('show');currentView='overlay';showNeb(true);} // a Carnival card: the surface shows the draw (and the card picked) over the map; the shop comes back when it closes
   if(m.ok&&shopUI&&shopUI.pick)shopUI.pick=false;if(shopUI)renderShop();}
 function shopPicked(m){feed(m.title||'',m.text||'');} // a Carnival card turned over (shown by the surface)
-function souvenirs(){try{return JSON.parse(localStorage.getItem(SOUV_KEY)||'{}')||{};}catch(e){return{};}}
 function giftEnter(){ // Yes: everything is lost (the purse, ducks, discoveries and the map); souvenirs are bought from your last Bright and kept
-  giftWallet=inv.bright||0;evAsked.clear();neb({cmd:'wipe'});try{localStorage.removeItem(MAP_KEY);}catch(e){}initGame();shopUI={id:'gift',rank:3,gift:true};renderShop();}
+  giftWallet=inv.bright||0;evAsked.clear();neb({cmd:'wipe'});playerName='';try{localStorage.removeItem(NAME_KEY);}catch(e){} /* a new game: your name is asked again */try{localStorage.removeItem(MAP_KEY);}catch(e){}initGame();shopUI={id:'gift',rank:3,gift:true};renderShop();}
 document.getElementById('shop').addEventListener('click',e=>{if(e.target.id==='shop')closeShop();});
 document.getElementById('letter').addEventListener('click',closeLetter);document.getElementById('letter').addEventListener('contextmenu',e=>{e.preventDefault();closeLetter();});
 document.getElementById('shop').addEventListener('contextmenu',e=>{e.preventDefault();closeShop();});
@@ -1075,6 +1120,7 @@ function syncDock(){const box=document.getElementById('hinv');if(!box)return;
   box.innerHTML=DOCK_ITEMS.map(k=>`<div class="slot${armed===k?' armed':''}${(inv[k]||0)<=0?' empty':''}" data-k="${k}" title="${KIND_NAME[k]}">${icons[k]||KIND_NAME[k][0]}<b>${inv[k]||0}</b></div>`).join('')+
     '<div class="sep"></div>'+['prism','knot','gate','key','lens'].filter(k=>(inv[k]||0)>0).map(k=>`<div class="slot empty" data-k="${k}" title="${KIND_NAME[k]} (earned)">${icons[k]||KIND_NAME[k][0]}<b>${inv[k]}</b></div>`).join('')+
     (shopUI?'<div class="sep"></div>'+(shopUI.gift?['gift']:['bright','dim','neutron','magnetic','pulsing','duck']).map(c=>`<div class="slot${c===shopUI.tab?' wal':''}" data-k="${c}" title="${curName(c)}">${curIcon(c)}<b>${fmtN(shopWallet(c))}</b></div>`).join(''):''); // in a shop: every purse, the open tab's lit
+  box.insertAdjacentHTML('beforeend',`<div class="slot buoy" data-k="buoy" title="${txt('coll.title')}">${BUOY_ICO}</div>`);box.querySelector('.buoy').onclick=()=>openCollections(); // your buoy: Status and your collections
   box.insertAdjacentHTML('beforeend',`<div class="slot dmin" data-k="dmin" title="${txt(dockMin?'map.dock.show':'map.dock.hide')}"><span>${dockMin?'▴':'▾'}</span></div>`);
   for(const k of [...DOCK_ITEMS,'prism','knot','gate','key','lens'])if((inv[k]||0)!==dockSeen[k]){if(dockSeen[k]!=null)dockUp[k]=performance.now();dockSeen[k]=inv[k]||0;} // a count that changed shows for a while
   dockLinger(performance.now());
