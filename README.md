@@ -17,6 +17,9 @@ Served as a static site (GitHub Pages: Settings → Pages → Deploy from branch
 
 **New nebula versions must keep the name `chromatic_nebula.html`** — the map and title screen load it by that name. When you replace it, bump the `&v=` number on its `<iframe>` in `Surface_Map_HUB.html` and `TitleSplash.html` so browsers fetch the new copy instead of a cached one.
 
+## The Guide
+Every entry is a card in one format (name, a live demo, page and Tier I–V, then its details and live math, each behind its own discovery). Pages: **Discoveries** (how to play, how to clean up, and the events witnessed), **Taxonomy** (every kind of thing and what it becomes, drawn with the game's own glyphs; its cards below), Items, Shapes, Surface Map, **Shops** (each shop's card, only its sign's shape until you have been in; what it sells behind each item's discovery), Ducks, Glossary, Status. Going into a shop for the first time is an event.
+
 ## Saves (browser storage, per site)
 - `chromaticNebulaInventory_v1` — items, resources, discoveries and the duck collection (kept by a new map)
 - `nebula-config` — tuners, sound setting, hex-layer tuners
