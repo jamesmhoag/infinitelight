@@ -65,7 +65,7 @@ body.scene .hbtn,body.scene:not(.scene-shops) #shops,body.scene #hdock,body.scen
 #tuneP .rows{overflow:auto;padding:0 8px 8px}#tuneP .sec{opacity:.55;margin:8px 0 3px;text-transform:uppercase;letter-spacing:1px;font-size:10px}
 #tuneP .row{display:flex;gap:6px;align-items:center;margin:2px 0}#tuneP .row>span{flex:0 0 130px;font-size:11px;opacity:.85;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}#tuneP .row b{flex:0 0 52px;font-weight:400;text-align:right}#tuneP input[type=range],#tuneP select{flex:1;min-width:0}
 #hstats{position:absolute;top:96px;right:16px;z-index:10;display:none;font:10px/1.55 'Share Tech Mono',monospace;color:rgba(255,255,255,0.6);text-align:right;white-space:pre;background:rgba(0,0,0,0.45);padding:6px 9px;border-radius:5px}#hstats.show{display:block}
-body.ui-hidden .hbtn,body.ui-hidden #hdock,body.ui-hidden #legend,body.ui-hidden #bottom-bar,body.ui-hidden #turn-label,body.ui-hidden #hstats,body.ui-hidden #mModes,body.ui-hidden #tuneP{display:none!important}
+body.ui-hidden .hbtn,body.ui-hidden #hfeed,body.ui-hidden #legend,body.ui-hidden #bottom-bar,body.ui-hidden #hstats,body.ui-hidden #mModes,body.ui-hidden #tuneP{display:none!important} /* ~: everything but the time of day and the inventory */
 /* shops: upright on the plane (placed through the camera each frame); open ones glow like neon */
 #shops{position:absolute;inset:0;pointer-events:none;z-index:6;overflow:hidden}
 .shop{position:absolute;left:0;top:0;transform-origin:0 0;pointer-events:auto;will-change:transform}.shop canvas{display:block;will-change:opacity} /* each its own layer: moving or flickering one repaints nothing */
@@ -75,13 +75,14 @@ body.thru .shop{pointer-events:none} /* an armed map item, or the open source, r
 @keyframes neon1{0%,19%,22%,69%,76%,100%{opacity:1}20%{opacity:.86}71%{opacity:.66}72%{opacity:.98}74%{opacity:.84}}
 @keyframes neon2{0%,100%{opacity:.9}50%{opacity:1}}
 @keyframes neon3{0%,9%,15%,100%{opacity:1}10%{opacity:.74}11%{opacity:.98}12%{opacity:.76}60%{opacity:.94}}
-/* a shop's menu: its sign and store over a black card (name left, price right); grey squares turn the page */
+/* a shop's menu: its sign and store over a black card (name left, price right); a tab per currency, by its symbol; the list as long as it needs */
 #letter{position:fixed;inset:0;z-index:61;display:none;align-items:center;justify-content:center;background:rgba(0,0,0,.55);cursor:pointer}#letter.show{display:flex}
 #letter .lp{width:min(420px,86vw);padding:30px 34px 22px;background:linear-gradient(#f4ead0,#e6d6ae);color:#3a2c18;font:italic 17px/1.6 Georgia,serif;border-radius:3px;box-shadow:0 10px 40px rgba(0,0,0,.6),inset 0 0 40px rgba(140,100,40,.25);transform-origin:50% 50%;animation:unroll .7s ease-out}
 #letter .lf{text-align:right;margin-top:16px;font-size:15px}#letter .ln{margin-top:14px;font:11px system-ui;opacity:.5;text-align:center;font-style:normal}
 @keyframes unroll{0%{transform:scaleY(.06) scaleX(.4);opacity:.2}45%{transform:scaleY(.06) scaleX(1);opacity:1}100%{transform:none}}
-#shop{position:fixed;inset:0;z-index:58;display:none;align-items:center;justify-content:center;background:rgba(0,0,0,.55)}#shop.show{display:flex}
-#shop .sbox{display:flex;gap:18px;align-items:flex-end}#shop .scol{display:flex;flex-direction:column;align-items:center}
+#shop{position:fixed;inset:0;z-index:58;display:none;align-items:center;justify-content:center;background:rgba(0,0,0,.55);overflow:auto;padding:3vh 0 110px;box-sizing:border-box}#shop.show{display:flex}
+#shop .sbox{display:flex;align-items:flex-start;margin:auto}#shop .scol{display:flex;flex-direction:column;align-items:center} /* the shop centred (as far up as a long list needs), the Status beside the right edge */
+#shop .sstat{position:fixed;right:16px;top:50%;transform:translateY(-50%)}
 #shop .sstat{width:290px;max-height:70vh;overflow:auto;background:rgba(0,0,0,.9);border:1px solid rgba(255,255,255,.35);padding:12px 14px;color:#ddd;font:11px/1.45 system-ui,sans-serif}#shop .sth{font:700 13px system-ui;letter-spacing:1.4px;margin-bottom:6px}
 #shop .stt{border-collapse:collapse;width:100%}#shop .stt td{padding:1px 6px 1px 0;vertical-align:top}#shop .stt td:first-child{opacity:.6;white-space:nowrap}#shop .stg{font-weight:600;margin:8px 0 2px}#shop .stu{opacity:.85}
 #shop .scards{display:flex;gap:10px;justify-content:center;margin:6px 0 10px}#shop .scardx{width:76px;min-height:108px;border:1px solid #fff;border-radius:6px;padding:6px;font-size:10px;line-height:1.35;cursor:pointer;display:flex;flex-direction:column;gap:4px;justify-content:center;text-align:center}
@@ -91,11 +92,10 @@ body.focus-clock #turn-label,body.focus-items #hdock{z-index:59;filter:drop-shad
 #shop .scard{position:relative;width:300px;background:#000;border:1px solid #fff;padding:16px 22px 14px;color:#fff;font:12px/1.5 system-ui,'Inter',sans-serif;letter-spacing:.6px}
 #shop h2{font:700 19px/1.25 system-ui,'Inter',sans-serif;letter-spacing:1.6px;text-align:center;margin:0 0 6px}
 #shop .stag{text-align:center;margin-bottom:22px;font-size:12px}
-#shop .sarr{position:absolute;top:64px;width:22px;height:22px;background:#d9d9d9;cursor:pointer}#shop .sarr.l{left:-1px}#shop .sarr.r{right:-1px}#shop .sarr.off{opacity:.18;cursor:default}
 #shop .srow{display:flex;justify-content:space-between;gap:10px;cursor:pointer;padding:0 2px}#shop .srow:hover{background:rgba(255,255,255,.12)}
 #shop .srow b{font-weight:400;text-align:right;white-space:nowrap}#shop .srow i{font-style:normal;opacity:.5;font-size:10px;margin-left:4px}
 #shop .srow.poor{opacity:.38}#shop .srow.own{opacity:.5;cursor:default}#shop .srow.c{justify-content:center;text-align:center;margin:10px 0}
-#shop .srows{height:108px;margin-bottom:6px}#shop .stabs{display:flex;justify-content:center;gap:4px;margin:-12px 0 12px;flex-wrap:wrap}#shop .stabs span{border:1px solid rgba(255,255,255,.35);padding:1px 7px;font-size:10px;cursor:pointer;opacity:.55}#shop .stabs span.on{opacity:1;border-color:#fff;background:rgba(255,255,255,.12)}
+#shop .srows{min-height:108px;margin-bottom:6px}#shop .stabs{display:flex;justify-content:center;gap:4px;margin:-12px 0 12px;flex-wrap:wrap}#shop .stabs span{display:flex;align-items:center;justify-content:center;width:26px;height:24px;border:1px solid rgba(255,255,255,.35);cursor:pointer;opacity:.55}#shop .stabs span svg{width:16px;height:16px;color:#fff}#shop .stabs span.on{opacity:1;border-color:#fff;background:rgba(255,255,255,.12)}
 body.shop-open #hdock{z-index:59}#hinv .slot.wal{border-color:rgba(255,255,255,.6);background:rgba(255,255,255,.12)}
 </style>
 </head>
@@ -432,9 +432,10 @@ function sceneInit(){
   const buf=gl.createBuffer();gl.bindBuffer(gl.ARRAY_BUFFER,buf);gl.bufferData(gl.ARRAY_BUFFER,new Float32Array([0,0,1,0,0,1,1,1]),gl.STATIC_DRAW);
   const tex=gl.createTexture();gl.bindTexture(gl.TEXTURE_2D,tex);for(const [p,v] of [[gl.TEXTURE_MIN_FILTER,gl.LINEAR],[gl.TEXTURE_MAG_FILTER,gl.LINEAR],[gl.TEXTURE_WRAP_S,gl.CLAMP_TO_EDGE],[gl.TEXTURE_WRAP_T,gl.CLAMP_TO_EDGE]])gl.texParameteri(gl.TEXTURE_2D,p,v);
   return{gl,pr,buf,tex,aP:gl.getAttribLocation(pr,'aP'),uPV:gl.getUniformLocation(pr,'uPV'),uS:gl.getUniformLocation(pr,'uS'),uT:gl.getUniformLocation(pr,'uT'),duck:duckCtx(gl)};}
-function bottleOpts(d,now,side,alpha){ // a bottle lying on the water, half under it (side 1: what shows above; −1: its reflection), rocking about its length
-  const[px,py]=w2s(d.x,d.y),[X,Y,k]=proj(px,py),f=duckFace(d,now),r=0.18*Math.sin(now/900+d.ph),c=Math.cos(r),s_=Math.sin(r),sd=[-f[1],f[0],0],z=side,up=[sd[0]*s_,sd[1]*s_,c*z],sx=[sd[0]*c,sd[1]*c,-s_*z],size=d._s*0.85;
-  return{rot:new Float32Array([f[0],f[1],0,...up,...sx]),size,pos:[px-MW/2,py-MH/2,side*size*0.04*Math.sin(now/650+d.ph)],view:cam.view,proj:cam.proj,viewRot:cam.viewRot,env:{x:X,y:Y,lights:[]},px:size*k,alpha,mirror:side<0,clip:side};}
+function bottleOpts(d,now,side,alpha){ // a bottle floating upright, leaning a little and rocking, about half under the water (side 1: what shows above it; −1: its reflection)
+  const[px,py]=w2s(d.x,d.y),[X,Y,k]=proj(px,py),f=duckFace(d,now),t=0.3+0.1*Math.sin(now/900+d.ph),ct=Math.cos(t),st=Math.sin(t),z=side,size=d._s*0.8,
+    ax=[f[0]*st,f[1]*st,ct*z],bx=[-f[0]*ct,-f[1]*ct,st*z],sd=[-f[1],f[0],0],h=size*(0.03*Math.sin(now/650+d.ph)-(d._sink||0)*1.6); // (its length up, leaning along its heading)
+  return{rot:new Float32Array([...ax,...bx,...sd]),size,pos:[px-MW/2,py-MH/2,side*h],view:cam.view,proj:cam.proj,viewRot:cam.viewRot,env:{x:X,y:Y,lights:[]},px:size*k,alpha,mirror:side<0,clip:side};}
 function duckFace(d,now){const a=d.hd+((DUCK_TYPES[d.type]||{}).mat==='paper'?now/900+d.ph:0);return[Math.cos(a),Math.sin(a),0];} // which way a lake duck faces (a Paper one keeps turning, to show its thinness)
 function sceneRender(now){
   if(!G3)G3=sceneInit();if(!G3||!cam)return;const gl=G3.gl;
@@ -448,14 +449,15 @@ function sceneRender(now){
     const u=Math.min(1,(now-_sun.t0)/(T.mapSunMs||4500));_sunH=_sun.from+(_sun.to-_sun.from)*u*u*(3-2*u); // a slow shift of the light, over Light shift ms
     const s=duckSun(_sunH),R=cam.viewRot,l=[s.d[0],-s.d[1],s.d[2]];DUCK_SUN={d:[0,1,2].map(i=>R[i]*l[0]+R[3+i]*l[1]+R[6+i]*l[2]),c:s.c};} // (the plane's y runs down the screen)
   const ra=T.mapDuckRefl!=null?T.mapDuckRefl:0.4; // ducks are mirrored in the surface beneath them
-  if(ra>0){gl.clear(gl.DEPTH_BUFFER_BIT);for(const d of pond)if(d._s&&d.bottle)drawBottleScene(G3.duck,d,bottleOpts(d,now,-1,ra));for(const d of pond){if(!d._s||d.bottle)continue;const[px,py]=w2s(d.x,d.y),[X,Y,k]=proj(px,py),f=duckFace(d,now),size=d._s,bob=size*(0.36+0.03*Math.sin(now/700+d.ph));
-    drawDuckScene(G3.duck,d.type,{rot:new Float32Array([f[0],f[1],0, 0,0,-1, -f[1],f[0],0]),size,pos:[px-MW/2,py-MH/2,-bob],view:cam.view,proj:cam.proj,viewRot:cam.viewRot,env:{x:X,y:Y,lights:[]},px:size*k,alpha:ra*(d.fade!=null?d.fade:1),mirror:true});}
+  if(ra>0){gl.clear(gl.DEPTH_BUFFER_BIT);for(const d of pond)if(d._s&&d.bottle)drawBottleScene(G3.duck,d,bottleOpts(d,now,-1,ra));for(const d of pond){if(!d._s||d.bottle)continue;const[px,py]=w2s(d.x,d.y),[X,Y,k]=proj(px,py),f=duckFace(d,now),size=d._s,bob=duckBob(d,now);
+    drawDuckScene(G3.duck,d.type,{rot:new Float32Array([f[0],f[1],0, 0,0,-1, -f[1],f[0],0]),size,pos:[px-MW/2,py-MH/2,-bob],view:cam.view,proj:cam.proj,viewRot:cam.viewRot,env:{x:X,y:Y,lights:[]},px:size*k,alpha:ra*(d.fade!=null?d.fade:1),mirror:true,clip:-1});}
     gl.clear(gl.DEPTH_BUFFER_BIT);}
   for(const d of pond)if(d._s&&d.bottle){if(!envd){duckEnvUpdate(mc,now,G3.duck);envd=true;}drawBottleScene(G3.duck,d,bottleOpts(d,now,1,1));} // glass: it reflects the scene round it
   for(const d of pond){if(!d._s||d.bottle)continue;const v=DUCK_TYPES[d.type]||{},refl=v.mat==='metal'||v.mat==='gold'||v.mat==='glass',[px,py]=w2s(d.x,d.y),[X,Y,k]=proj(px,py);
     if(refl&&!envd){duckEnvUpdate(mc,now,G3.duck);envd=true;}
     const f=duckFace(d,now),size=d._s; // upright on the plane: its forward along its heading, its up out of the plane (mirrored across, as the view flips y)
-    drawDuckScene(G3.duck,d.type,{rot:new Float32Array([f[0],f[1],0, 0,0,1, -f[1],f[0],0]),size,pos:[px-MW/2,py-MH/2,size*(0.36+0.03*Math.sin(now/700+d.ph))],view:cam.view,proj:cam.proj,viewRot:cam.viewRot,env:{x:X,y:Y,lights:[]},px:size*k});}}
+    drawDuckScene(G3.duck,d.type,{rot:new Float32Array([f[0],f[1],0, 0,0,1, -f[1],f[0],0]),size,pos:[px-MW/2,py-MH/2,duckBob(d,now)],view:cam.view,proj:cam.proj,viewRot:cam.viewRot,env:{x:X,y:Y,lights:[]},px:size*k,clip:1});}}
+function duckBob(d,now){return d._s*(0.36+0.03*Math.sin(now/700+d.ph)-(d._sink||0)*1.3);} // how high a lake duck floats: dunked or splashing up, under the waterline
 let _glow=null;
 function glowSprite(bl,ba){ // one bright clear's glow (a wide and a mid blur pass and its soft white core), drawn once per hex size and setting
   const key=HEX+'|'+bl+'|'+ba+'|'+MK;if(_glow&&_glow.key===key)return _glow.cv;const R=HEX*(1.7+bl*3.6),S=Math.ceil(2*R*MK),cv=document.createElement('canvas');cv.width=cv.height=S;
@@ -647,7 +649,7 @@ sc.addEventListener('click',e=>{
 sc.addEventListener('mouseleave',()=>{hQ=null;hR=null;});
 document.addEventListener('click',e=>{ // a lake duck clicked (even under a read-out like the legend): dunked, it comes back up — and the click goes no further
   if(drag&&drag.moved)return;if(currentView!=='map'||menuOpen||shopUI||!(e.target===sc||(e.target.closest&&!e.target.closest('button,.slot,.shop,input,select,#hdock,#tuneP,#mModes,#shop,#menu,#day-report,#letter'))))return;
-  const du=duckUnder(e.clientX,e.clientY);if(!du||du.dunk)return;e.stopPropagation();if(du.bottle){if(!du.empty)openBottle(du);return;}
+  const du=duckUnder(e.clientX,e.clientY);if(!du||du.dunk)return;e.stopPropagation();if(du.bottle&&!du.empty){openBottle(du);return;}
   du.dunk=performance.now();ripples.push({x:du.x,y:du.y,t:du.dunk,dk:onWhite(du.x,du.y),big:1});neb({cmd:'quack',type:du.type,v:1});},true);
 document.addEventListener('keydown',e=>{
   if(e.code==='Escape'){e.preventDefault();if(letter){closeLetter();return;}if(shopUI){closeShop();return;}if(currentView==='map'&&armed){armed=null;weaveSel=[];weaveAsk=null;updateHint();syncDock();return;}if(currentView==='map')toggleMenu();return;}
@@ -685,16 +687,20 @@ function spawnLakeDuck(now,bottle,splash){ // a duck of yours swims (or splashes
   const free=bottle?['bottle']:roster.filter((t,i)=>(used[t]||0)<roster.slice(0,i+1).filter(x=>x===t).length);if(!free.length||!water.pts.length)return;
   const type=free[(Math.random()*free.length)|0];
   for(let tries=0;tries<12;tries++){const P=water.pts[(Math.random()*water.pts.length)|0],hd=Math.random()*6.2832,dx=Math.cos(hd),dy=Math.sin(hd);
-    if(splash||Math.random()<0.3){pond.push({type,x:P[0],y:P[1],hd,sp:0,cur:0,next:now+1500,born:now,splash:true,seen:true,lastRip:0,ph:Math.random()*6.28,bottle,col:bottle?['clear','green','brown'][(Math.random()*3)|0]:null,duck:bottle?bottleDuck():null});ripples.push({x:P[0],y:P[1],t:now,dk:onWhite(P[0],P[1]),big:1});return;} // splashes up from under the surface
+    if(splash||Math.random()<0.3){pond.push(Object.assign({type,x:P[0],y:P[1],hd,sp:0,cur:0,next:now+1500,born:now,splash:true,seen:true,lastRip:0,ph:Math.random()*6.28,bottle},bottle?bottleFill():{}));ripples.push({x:P[0],y:P[1],t:now,dk:onWhite(P[0],P[1]),big:1});return;} // splashes up from under the surface
     let x=P[0],y=P[1],ok=true;for(let k=0;k<80;k++){x-=dx*HEX*0.5;y-=dy*HEX*0.5;if(!isWater(x,y)){ok=false;break;}const[X,Y]=w2sc(x,y);if(offView(X,Y,HEX*1.2))break;} // back along its way until it is off screen
-    if(!ok)continue;pond.push({type,x,y,hd,sp:0.45,cur:(Math.random()-0.5)*0.004,next:now+2000+Math.random()*2500,born:now,splash:false,seen:false,lastRip:0,ph:Math.random()*6.28,bottle,col:bottle?['clear','green','brown'][(Math.random()*3)|0]:null,duck:bottle?bottleDuck():null});return;}}
-function bottleDuck(){ // some bottles hold a duck instead of a letter (Bottle duck chance): any kind, the rare ones rarer
-  if(!(Math.random()<(T.mapBottleDuck!=null?T.mapBottleDuck:0.25)))return null;const ids=Object.keys(DUCK_TYPES);if(!ids.length)return null;
-  const tier=Math.random(),pool=ids.filter(k=>{const v=DUCK_TYPES[k];return tier<0.05?v.rare:tier<0.15?v.mid:!v.rare&&!v.mid;});return(pool.length?pool:ids)[(Math.random()*(pool.length||ids.length))|0];}
+    if(!ok)continue;pond.push(Object.assign({type,x,y,hd,sp:0.45,cur:(Math.random()-0.5)*0.004,next:now+2000+Math.random()*2500,born:now,splash:false,seen:false,lastRip:0,ph:Math.random()*6.28,bottle},bottle?bottleFill():{}));return;}}
+function bottleFill(){ // what a bottle holds, decided as it floats in: a letter (clear, green or brown glass), or a duck (Bottle duck chance) —
+  // an exotic duck's bottle is gold, a classic's opaque white, and a duck you do not have yet makes it shine: gold = something fancy, shining = something new
+  const ids=Object.keys(DUCK_TYPES);if(!ids.length||!(Math.random()<(T.mapBottleDuck!=null?T.mapBottleDuck:0.25)))return{col:['clear','green','brown'][(Math.random()*3)|0],duck:null};
+  const tier=Math.random(),pool=tier>=0.5?['classic']:ids.filter(k=>{const v=DUCK_TYPES[k];return k!=='classic'&&(tier<0.05?v.rare:tier<0.15?v.mid:!v.rare&&!v.mid);}),duck=(pool.length?pool:ids)[(Math.random()*(pool.length||ids.length))|0];
+  return{duck,col:duck==='classic'?'white':'gold',isNew:!(duckLog[duck]>0)};}
+function pondPut(type,x,y,now){pond.push({type,x,y,hd:Math.random()*6.2832,sp:0,cur:0,next:now+1500,born:now,splash:true,seen:true,lastRip:0,ph:Math.random()*6.28});ripples.push({x,y,t:now,dk:onWhite(x,y),big:1});} // a duck bobbing up out of the water there
 function openBottle(d){ // clicked: the cork comes out and the letter is unrolled to read (one you have not read yet, while there are any)
   d.empty=true;d.kick=2;d.dash=performance.now()+800;ripples.push({x:d.x,y:d.y,t:performance.now(),dk:onWhite(d.x,d.y),big:1}); // the empty bottle goes back on the water
-  if(d.duck&&DUCK_TYPES[d.duck]){const v=DUCK_TYPES[d.duck],el=document.getElementById('letter');neb({cmd:'giveDuck',type:d.duck});duckLog[d.duck]=(duckLog[d.duck]||0)+1; // a duck in a bottle: it joins your collection
-    letter={duck:d.duck};el.querySelector('.lt').textContent='A duck was folded up in the bottle!';el.querySelector('.lf').textContent=duckStar(v)+v.name;el.querySelector('.ln').textContent='Added to your collection · now '+duckLog[d.duck]+' of this kind';
+  if(d.duck&&DUCK_TYPES[d.duck]){const v=DUCK_TYPES[d.duck],el=document.getElementById('letter'),nw=!(duckLog[d.duck]>0);neb({cmd:'giveDuck',type:d.duck});duckLog[d.duck]=(duckLog[d.duck]||0)+1; // a duck in a bottle: it joins your collection
+    if(nw)pondPut(d.duck,d.x+Math.cos(d.hd+1.6)*HEX*0.8,d.y+Math.sin(d.hd+1.6)*HEX*0.8,performance.now()); // a new one goes straight onto the lake
+    letter={duck:d.duck};el.querySelector('.lt').textContent=nw?'A duck you have never had was in the bottle! It is on the lake now.':'A duck was in the bottle.';el.querySelector('.lf').textContent=duckStar(v)+v.name;el.querySelector('.ln').textContent='Added to your collection · now '+duckLog[d.duck]+' of this kind';
     el.classList.remove('show');void el.offsetWidth;el.classList.add('show');hubEvent('map_bottle');return;}
   let rd=[];try{rd=JSON.parse(localStorage.getItem(LETTER_KEY)||'[]')||[];}catch(e){}
   const left=LETTERS.map((_,i)=>i).filter(i=>!rd.includes(i)),i=left.length?left[(Math.random()*left.length)|0]:(Math.random()*LETTERS.length)|0;if(!rd.includes(i))rd.push(i);try{localStorage.setItem(LETTER_KEY,JSON.stringify(rd));}catch(e){} // collected for good (the Guide's Letters); once every one is found, they come again
@@ -710,28 +716,30 @@ function pondStep(now){
   const cw=mX>=0&&!menuOpen&&!shopUI&&overScene()?s2wp(mX,mY):null;let cv=0,ca=0; // the cursor on the water, and how fast it moves (world px per ms)
   if(cw&&_cwPrev&&now>_cwPrev.t){const dx=cw[0]-_cwPrev.x,dy=cw[1]-_cwPrev.y;cv=Math.hypot(dx,dy)/(now-_cwPrev.t);ca=Math.atan2(dy,dx);}_cwPrev=cw?{x:cw[0],y:cw[1],t:now}:null;
   pond=pond.filter(d=>{
-    if(cw&&d._s&&!d.dunk&&now-(d.hitAt||0)>400&&Math.hypot(cw[0]-d.x,cw[1]-d.y)<d._s*0.8){d.hitAt=now;const vf=T.mapDuckBumpV!=null?T.mapDuckBumpV:0.35;
+    const cd=cw&&d._s?Math.hypot(cw[0]-d.x,cw[1]-d.y):1e9;if(cd>(d._s||0)*1.05)d.touch=0; // a touch counts once, until the cursor has come fully off it
+    if(!d.touch&&!d.dunk&&cd<d._s*0.8){d.touch=1;const vf=T.mapDuckBumpV!=null?T.mapDuckBumpV:0.35;
       if(cv<vf)d.spin={t0:now,dur:1500,rate:(Math.random()<0.5?-1:1)*(0.12+0.25*cv/vf)}; // a slow touch: it spins where it is
       else{d.hd=ca;d.kick=Math.min(5,1+2.5*cv/vf);d.dash=now+900+Math.min(1500,600*cv/vf);ripples.push({x:d.x,y:d.y,t:now,dk:onWhite(d.x,d.y)});} // a hit: it putters off the way it was pushed
       if(!d.bottle)neb({cmd:'quack',type:d.type,v:Math.min(1,cv/vf/3)});}
     const sp_=d.spin&&now-d.spin.t0<d.spin.dur?d.spin:null;if(sp_)d.hd+=sp_.rate*dt*(1-(now-sp_.t0)/sp_.dur);else d.spin=null;
-    const dk=d.dunk?(now-d.dunk)/(T.mapDuckDunkMs||1300):1;let dkS=1; // a dunk: the way a duck splashes up, backwards — it sinks into the water, stays under a moment, then comes back up out of it
-    if(dk>=1)d.dunk=0;else if(dk<0.3){const u=dk/0.3;dkS=1-u*u;}else if(dk<0.55)dkS=0;else{if(!d._up){d._up=1;ripples.push({x:d.x,y:d.y,t:now,dk:onWhite(d.x,d.y),big:1});}const u=(dk-0.55)/0.45;dkS=1+2.7*Math.pow(u-1,3)+1.7*Math.pow(u-1,2);} // (up with a little bob past full size)
+    const dk=d.dunk?(now-d.dunk)/(T.mapDuckDunkMs||1300):1;let sink=0; // a dunk: it goes down into the water (what is under it is hidden by the waterline), stays under a moment, then bobs back up
+    if(dk>=1)d.dunk=0;else if(dk<0.3){const u=dk/0.3;sink=u*u;}else if(dk<0.55)sink=1;else{if(!d._up){d._up=1;ripples.push({x:d.x,y:d.y,t:now,dk:onWhite(d.x,d.y),big:1});}const u=(dk-0.55)/0.45;sink=-(2.7*Math.pow(u-1,3)+1.7*Math.pow(u-1,2));} // (up with a little bob past its floating height)
+    if(d.splash&&now-d.born<700)sink=Math.max(sink,1-(now-d.born)/700);d._sink=sink; // a splash: it comes up out of the water
     if(!d.dunk)d._up=0;
     if(d.kick){d.kick*=Math.pow(0.97,dt);if(d.kick<0.05)d.kick=0;}
     if(now>d.next){d.next=now+1800+Math.random()*3000;d.cur=Math.random()<0.1?(Math.random()<0.5?-1:1)*0.03:(Math.random()-0.5)*0.006;d.dash=Math.random()<0.18?now+1200+Math.random()*1200:0;} // now and then a dash // mostly a gentle curve on its way across; now and then a doughnut
     const paddle=d.bottle?0.12+(d.kick||0)*0.6:(d.dash>now?1.5:0.38+0.28*Math.max(0,Math.sin(now/260+d.ph)))+(d.kick||0),go=(d.splash&&now-d.born<900)||sp_||d.dunk?0:paddle;d.sp+=(go-d.sp)*(d.kick?0.2:0.05)*dt; // spinning or under water: it stops
     if(!isWater(d.x,d.y)){const l=Math.hypot(d.x,d.y)||1;d.x+=d.x/l*1.6*dt;d.y+=d.y/l*1.6*dt;const out=Math.atan2(d.y,d.x);d.hd+=Math.atan2(Math.sin(out-d.hd),Math.cos(out-d.hd))*0.08*dt;} // the growing spill pushes it out
-    else{const ax=d.x+Math.cos(d.hd)*HEX*1.4,ay=d.y+Math.sin(d.hd)*HEX*1.4;if(!isWater(ax,ay)){const out=Math.atan2(d.y,d.x),tan=out+(Math.sin(d.hd-out)>0?1.2:-1.2);d.hd+=Math.atan2(Math.sin(tan-d.hd),Math.cos(tan-d.hd))*0.06*dt;} // the shore ahead: it veers along it
+    else{const ax=d.x+Math.cos(d.hd)*HEX*1.4,ay=d.y+Math.sin(d.hd)*HEX*1.4;if(!isWater(ax,ay)){const out=Math.atan2(d.y,d.x);if(!(now<d.veerT))d.veer=Math.sin(d.hd-out)>0?1:-1;d.veerT=now+1200;const tan=out+d.veer*1.2;d.hd+=Math.atan2(Math.sin(tan-d.hd),Math.cos(tan-d.hd))*0.06*dt;} // the shore ahead: it veers along it
       else d.hd+=d.cur*dt;}
     d.x+=Math.cos(d.hd)*d.sp*dt;d.y+=Math.sin(d.hd)*d.sp*dt;
     const[X,Y,k]=w2sc(d.x,d.y),off=offView(X,Y,HEX*1.5*k);if(!off)d.seen=true;
     if((d.seen&&off)||now-d.born>(d.bottle?120000:60000))return false; // gone off screen: another comes in elsewhere
     if(d.sp>0.1&&now-d.lastRip>320){d.lastRip=now;ripples.push({x:d.x,y:d.y,t:now,dk:onWhite(d.x,d.y)});} // white rings on dark water, dark on white
-    const t=d.bottle?{scale:1.4}:DUCK_TYPES[d.type]||{},pop=(d.splash?Math.min(1,(now-d.born)/700):1)*dkS;d._s=HEX*0.62*(t.scale||1)/(t.head?1.25:1)*pop;return true;}); // world units per model unit (its type's size; a splash grows it up out of the water)
+    const t=d.bottle?{scale:1.4}:DUCK_TYPES[d.type]||{};d._s=HEX*0.62*(t.scale||1)/(t.head?1.25:1);return true;}); // world units per model unit (its type's size)
   ripples=ripples.filter(r=>now-r.t<1800);
   for(const r of ripples){const a=(now-r.t)/1800,[X,Y]=w2s(r.x,r.y),R=4+a*HEX*(r.big?1.6:0.9);c.strokeStyle=`rgba(${r.dk?'20,24,32':sunInk().join(',')},${(0.5*(1-a)*(1-a)).toFixed(3)})`;c.lineWidth=r.big?2:1.4;c.beginPath();c.arc(X,Y,R,0,6.2832);c.stroke();} // rings on the water (the camera foreshortens them)
-  for(const d of pond)if(d._s){const[X,Y]=w2s(d.x,d.y);if(d.bottle)continue;duckGlow(c,d.type,X,Y,d._s,now,d.ph); // a Bright / Shining / Dim duck lights the water round it
+  for(const d of pond)if(d._s){const[X,Y]=w2s(d.x,d.y);if(d.bottle){if(d.isNew&&!d.empty)duckGlow(c,'shining',X,Y,d._s*1.2,now,d.ph);continue;}duckGlow(c,d.type,X,Y,d._s,now,d.ph); // a Bright / Shining / Dim duck lights the water round it
     const r=Math.max(0,Math.min(1,(d.sp-0.6)/0.9)); // paddling hard: the same bow wake a pigment pushes into particles, on the water ahead of it
     if(r>0.02){const ink=onWhite(d.x,d.y)?[20,24,32]:sunInk();drawWakeShape(c,X,Y,Math.cos(d.hd),Math.sin(d.hd),d._s*1.4,r,Math.min(0.45,(T.wakeMaxA!=null?T.wakeMaxA:0.35)*1.2*Math.min(1,r*1.6)),ink,ink);}}
 }
@@ -871,7 +879,7 @@ function discTick(){
 // ║  SHOPS — main street round the source (lit while open), pop-ups on bright   ║
 // ║  clears (shared.js SHOPS / SHOP_ITEMS; the surface pays for each purchase)  ║
 // ╚══════════════════════════════════════════════════════════════════════════════╝
-let shopUI=null,giftWallet=0; // shopUI: the open menu {id, rank, page, exit (the Gift Shop's Exit? card), pick (choosing a duck), gift (inside the Gift Shop)}
+let shopUI=null,giftWallet=0; // shopUI: the open menu {id, rank, tab, exit (the Gift Shop's Exit? card), pick (choosing a duck), gift (inside the Gift Shop)}
 const SOUV_KEY='il_souvenirs_v1',shopPic={},shopCv={},shopEls={},fmtN=n=>Math.floor(n).toLocaleString('en-US');
 const shopHours=id=>{const S=SHOPS[id];return S.open<=0&&S.close>=27?'24 hours':TIMES[S.open]+' – '+TIMES[S.close];};
 function shopImg(n){if(!shopPic[n]){const im=new Image();im.onload=()=>{for(const k in shopCv)delete shopCv[k];};im.src='shops/'+n+(n.includes('.')?'':'.svg');shopPic[n]=im;}return shopPic[n];}
@@ -927,7 +935,7 @@ function shopInfo(key){const el=shopEls[key],s=el&&el._s;if(!s)return['',''];con
   return S.street?[S.n,(s.lit?'Open':'Closed')+' · '+shopHours(s.id)+(s.lit?' · click to shop':'')]:[S.n+' · pop-up','Rank '+s.rank+' · open while its bright clear lasts · click to shop'];}
 function openShop(key){const el=shopEls[key],s=el&&el._s;if(!s||phase==='collapse')return;
   if(!s.lit){feed(SHOPS[s.id].n+' is closed','Open '+shopHours(s.id)+(runBad(run,'holiday')?' (a holiday: it closes a time of day early)':''));return;}
-  shopUI={id:s.id,rank:s.rank||3,page:0,exit:s.id==='gift'};renderShop();hubEvent('shop_'+s.id);}
+  shopUI={id:s.id,rank:s.rank||3,exit:s.id==='gift'};renderShop();hubEvent('shop_'+s.id);}
 function closeShop(){if(shopUI&&shopUI.gift){quitMain();return;} // leaving the Gift Shop: the run is over
   if(shopUI&&shopUI.draw&&!shopUI.draw.res)return; // a drawn card is still to be picked
   shopUI=null;renderShop();evPump();}
@@ -938,14 +946,15 @@ function shopRows(){const u=shopUI,has=k=>disc.has(k);
   return SHOP_ITEMS.filter(i=>i.shop===u.id&&i.r<=u.rank&&(!i.req||has('up:'+i.req))&&!(i.fx.draw==='secret'&&run.secrets===0)).map(i=>{const own=shopOnce(i)&&has('up:'+i.id),held=i.fx.souv?giftWallet:i.cur==='duck'?ducks:(inv[i.cur]||0);
     const pr=shopPrice(i,run),done=!!(i.fx.draw&&(run.dimDone||{})[i.fx.draw]);
     return{it:i,cur:shopCur(i),n:i.n,p:own?'✓ yours':done?'tomorrow':fmtN(pr),own:own||done,poor:!own&&held<pr,disc:'si_'+i.id,note:(i.note?i.note+' · ':'')+(i.fx.up?'its effect is still to come':i.fx.souv?'kept: you have '+(souv[i.id]||0):'')||'',
-      go:()=>i.fx.duck==='pick'?(shopUI.pick=true,shopUI.page=0,renderShop()):shopBuy(i)};});}
+      go:()=>i.fx.duck==='pick'?(shopUI.pick=true,renderShop()):shopBuy(i)};});}
+const curName=c=>c==='gift'?'Your last Bright (souvenirs)':c==='duck'?'Ducks':KIND_NAME[c]||c,curIcon=c=>icons[c==='gift'?'bright':c]||(c==='duck'?DUCK_ICO:curName(c)[0]); // a currency's name (for the feed) and symbol
 const shopCur=i=>i.fx.souv?'gift':i.cur; // what an item is paid with (souvenirs: your last Bright)
 function shopWallet(c){return c==='gift'?giftWallet:c==='duck'?Object.values(duckLog).reduce((a,b)=>a+(b|0),0):(inv[c]||0);}
 let shopHover=null; // the item under the cursor: its details go to the feed, so the menu keeps one length
 function renderShop(){const el=document.getElementById('shop');el.classList.toggle('show',!!shopUI&&currentView!=='overlay'); // (hidden while a card the shop gave is showing)
   document.body.classList.toggle('shop-open',!!shopUI);if(!shopUI){syncDock();document.body.classList.remove('focus-clock','focus-items');return;}
   const u=shopUI,S=SHOPS[u.id],all=shopRows(),curs=[...new Set(all.filter(r=>r.cur).map(r=>r.cur))];if(!curs.includes(u.tab))u.tab=curs.includes(S.cur)?S.cur:curs[0];
-  const rows=u.pick||u.exit?all:all.filter(r=>r.cur===u.tab),per=6,pages=Math.max(1,Math.ceil(rows.length/per));u.page=Math.min(u.page,pages-1);
+  const rows=u.pick||u.exit?all:all.filter(r=>r.cur===u.tab); // the whole list: a long one makes the shop taller
   const art=el.querySelector('.sart'),sp=shopSprite(u.id,S.street?(S.bk||'s'):SHOP_RANK_BLD[u.rank-1],true),card=el.querySelector('.scard');
   if(sp){const w=Math.min(150,sp.width*0.45),h=w*sp.height/sp.width;art.width=sp.width;art.height=sp.height;art.style.width=w+'px';art.style.height=h+'px';art.getContext('2d').drawImage(sp,0,0);}
   shopHover=null;syncDock(); // the wallet slot for the tab shown, in the dock
@@ -954,14 +963,12 @@ function renderShop(){const el=document.getElementById('shop');el.classList.togg
   if(u.draw){const d=u.draw;card.innerHTML=`<h2>${S.n}</h2><div class="stag">${d.res?d.res.title:d.kind==='daily'?'Keep one of three, for today.':'Pick a card.'}</div><div class="scards">`+d.cards.map((c,i)=>`<div class="scardx${c.back&&!(d.res&&d.res.i===i)?' back':''}${d.res&&d.res.i===i?' on':''}${d.res&&d.res.i!==i?' off':''}" data-i="${i}">${d.res&&d.res.i===i?d.res.text:c.back?'?':'<b>'+c.n+'</b>'+c.t}</div>`).join('')+'</div>'+(d.res?'<div class="srow c" data-ok="1"><span>OK</span></div>':'');
     card.querySelectorAll('.scardx').forEach(x=>x.onclick=()=>{if(!d.res&&!d.wait){d.wait=1;d.at=+x.dataset.i;neb({cmd:'pick',i:+x.dataset.i});}});const ok=card.querySelector('[data-ok]');if(ok)ok.onclick=()=>{shopUI.draw=null;renderShop();};return;}
   card.innerHTML=`<h2>${u.exit?'EXIT?':u.pick?'Pick a Duck':S.n}</h2><div class="stag">${u.exit?'You will lose everything.<br>Are you ready to escape?':u.pick?'Ninety-nine ducks for the one you choose.':S.tag}</div>`+
-    (curs.length>1&&!u.pick&&!u.exit?'<div class="stabs">'+curs.map(c=>`<span class="${c===u.tab?'on':''}" data-t="${c}">${c==='gift'?'souvenirs':KIND_NAME[c]||c}</span>`).join('')+'</div>':'')+'<div class="srows">'+
-    (pages>1?`<div class="sarr l${u.page?'':' off'}"></div><div class="sarr r${u.page<pages-1?'':' off'}"></div>`:'')+
-    rows.slice(u.page*per,u.page*per+per).map((r,i)=>r.c?`<div class="srow c" data-i="${i}"><span>${r.n}<br>${r.sub}</span></div>`:
+    (curs.length&&!u.pick&&!u.exit?'<div class="stabs">'+curs.map(c=>`<span class="${c===u.tab?'on':''}" data-t="${c}">${curIcon(c)}</span>`).join('')+'</div>':'')+'<div class="srows">'+ // a tab for each thing it takes, by its symbol (one alone stays as the open tab)
+    rows.map((r,i)=>r.c?`<div class="srow c" data-i="${i}"><span>${r.n}<br>${r.sub}</span></div>`:
       `<div class="srow${r.poor?' poor':''}${r.own?' own':''}" data-i="${i}"${r.disc?` data-disc="${r.disc}"`:''}><span>${r.n}</span><b>${r.p}</b></div>`).join('')+'</div>';
-  const pr=rows.slice(u.page*per,u.page*per+per);
+  const pr=rows;
   card.querySelectorAll('.srow').forEach(r=>{const row=pr[+r.dataset.i];r.onclick=()=>{if(!row.own)row.go();};r.onmouseenter=()=>{shopHover=row.it?[row.n,row.note||'']:null;};r.onmouseleave=()=>{shopHover=null;};});
-  card.querySelectorAll('.stabs span').forEach(t=>t.onclick=()=>{u.tab=t.dataset.t;u.page=0;renderShop();});
-  const a=card.querySelectorAll('.sarr');if(a.length){a[0].onclick=()=>{if(u.page>0){u.page--;renderShop();}};a[1].onclick=()=>{if(u.page<pages-1){u.page++;renderShop();}};}
+  card.querySelectorAll('.stabs span').forEach(t=>{t.onclick=()=>{u.tab=t.dataset.t;renderShop();};t.onmouseenter=()=>{const c=t.dataset.t;shopHover=[curName(c),'You have '+fmtN(shopWallet(c))+' · '+rows.length+' thing'+(rows.length===1?'':'s')+' for it'];};t.onmouseleave=()=>{shopHover=null;};});
   applyDisc();}
 function shopBuy(it,arg){
   if(it.fx.souv){if(giftWallet<it.cost){feed(it.n,'You need '+fmtN(it.cost)+' bright');return;}giftWallet-=it.cost;const sv=souvenirs();sv[it.id]=(sv[it.id]||0)+1;try{localStorage.setItem(SOUV_KEY,JSON.stringify(sv));}catch(e){}feed('Souvenir: '+it.n,'Kept, whatever comes next');renderShop();return;}
@@ -974,7 +981,7 @@ function shopPicked(m){if(!shopUI||!shopUI.draw)return;if(m.show){shopUI.draw=nu
 shopUI.draw.res=Object.assign({i:shopUI.draw.at},m);feed(m.title||'',m.text||'');renderShop();} // the card turned over
 function souvenirs(){try{return JSON.parse(localStorage.getItem(SOUV_KEY)||'{}')||{};}catch(e){return{};}}
 function giftEnter(){ // Yes: everything is lost (the purse, ducks, discoveries and the map); souvenirs are bought from your last Bright and kept
-  giftWallet=inv.bright||0;evAsked.clear();neb({cmd:'wipe'});try{localStorage.removeItem(MAP_KEY);}catch(e){}initGame();shopUI={id:'gift',rank:3,page:0,gift:true};renderShop();}
+  giftWallet=inv.bright||0;evAsked.clear();neb({cmd:'wipe'});try{localStorage.removeItem(MAP_KEY);}catch(e){}initGame();shopUI={id:'gift',rank:3,gift:true};renderShop();}
 document.getElementById('shop').addEventListener('click',e=>{if(e.target.id==='shop')closeShop();});
 document.getElementById('letter').addEventListener('click',closeLetter);document.getElementById('letter').addEventListener('contextmenu',e=>{e.preventDefault();closeLetter();});
 document.getElementById('shop').addEventListener('contextmenu',e=>{e.preventDefault();closeShop();});
@@ -986,7 +993,7 @@ let icons={};const DUCK_ICO='<svg viewBox="0 0 22 22"><path fill="currentColor" 
 function syncDock(){const box=document.getElementById('hinv');if(!box)return;
   box.innerHTML=DOCK_ITEMS.map(k=>`<div class="slot${armed===k?' armed':''}${(inv[k]||0)<=0?' empty':''}" data-k="${k}" title="${KIND_NAME[k]}">${icons[k]||KIND_NAME[k][0]}<b>${inv[k]||0}</b></div>`).join('')+
     '<div class="sep"></div>'+['prism','knot','gate','key','lens'].filter(k=>(inv[k]||0)>0).map(k=>`<div class="slot empty" data-k="${k}" title="${KIND_NAME[k]} (earned)">${icons[k]||KIND_NAME[k][0]}<b>${inv[k]}</b></div>`).join('')+
-    (shopUI&&shopUI.tab?(()=>{const c=shopUI.tab,n=c==='gift'?'Your last Bright':KIND_NAME[c]||c;return `<div class="sep"></div><div class="slot wal" data-k="${c}" title="${n}">${icons[c==='gift'?'bright':c]||DUCK_ICO}<b>${fmtN(shopWallet(c))}</b></div>`;})():''); // the purse the shop's tab spends
+    (shopUI?'<div class="sep"></div>'+(shopUI.gift?['gift']:['bright','dim','neutron','magnetic','pulsing','duck']).map(c=>`<div class="slot${c===shopUI.tab?' wal':''}" data-k="${c}" title="${curName(c)}">${curIcon(c)}<b>${fmtN(shopWallet(c))}</b></div>`).join(''):''); // in a shop: every purse, the open tab's lit
   for(const el of box.querySelectorAll('.slot'))if(DOCK_ITEMS.includes(el.dataset.k))el.onclick=()=>armItem(el.dataset.k);
   const fd=document.getElementById('hfeed');if(weaveAsk){fd.innerHTML='<div class="fn">Make: '+weaveAsk.map(k=>`<button data-k="${k}">${KIND_NAME[k]}</button>`).join('')+'</div><div class="fd">'+weaveSel.length+' bright hexes · 1 Weave</div>';for(const b of fd.querySelectorAll('button'))b.onclick=()=>makeConstellation(b.dataset.k);}
   else if(fd.querySelector('button'))fd.innerHTML='<div class="fn"></div><div class="fd"></div>';}
