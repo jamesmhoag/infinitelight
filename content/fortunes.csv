@@ -25,7 +25,7 @@ good,glass,,,"{""x3"":""key""}",The {0} smiles on you.,Keys come in threes when 
 good,metal,,,"{""x3"":""all""}",The {0} smiles on you.,Every item you earn comes in threes (today).,
 good,dim,,,"{""luck"":""d""}",The {0} smiles on you.,+20% duck chance (today).,
 good,bright,,,"{""luck"":""e""}",The {0} smiles on you.,+20% exotic duck chance (today).,
-good,shining,,,"{""luck"":""r""}",The {0} smiles on you.,+20% rare exotic duck chance (today).,
+good,shining,,Friendly Neighborhood,"{""knock"":1}",The {0} smiles on you.,Knock on a closed shop's glass and it opens up for you (today).,
 good,gold,,,"{""x3"":""all""}",The {0} smiles on you.,Every item you earn comes in threes (today).,
 dim,slowmove,,,,Your step is dim and heavy.,"Every move takes two times of day, and a String takes one.",
 dim,exo1,,,,The exotic ones look dim to you.,Each exotic remnant collects as just 1.,
