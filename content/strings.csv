@@ -695,6 +695,11 @@ map.tap.yell,Stop tapping the glass!,tapping a closed shop's window 5 times quic
 map.tap.yell2,"{shop} is closed, and the neighbours are trying to sleep.",under the yell,shop = $0 — the shop's name
 map.tap.knock,Friendly Neighborhood: {shop} opens up for you,a closed shop opened by the fortune,shop = $0 — the shop's name
 map.tap.knock2,Open while you are inside · today's good fortune,under it,
+surf.create.duck_space,Duck in space — {duck} · click to set it floating here · wheel: another duck,Create → Duck in space,duck = $0 — the duck chosen
+surf.create.duck_pond,Duck on the pond — {duck} · click to send it to swim on the Surface Map's lake · wheel: another duck,Create → Duck on the pond,duck = $0 — the duck chosen
+surf.create.duckmade,🦆 {duck} floats here,placed with Create,duck = $0 — the duck
+surf.create.duckpond,🦆 {duck} is off to the pond · it swims on the lake when you are back on the map,sent with Create,duck = $0 — the duck
+surf.create.nopond,The pond is on the Surface Map: open this surface from the map to send a duck there,"Create → pond, outside the map",
 value.life_ms,T.lifeColor,values (shared: any text can use {life_ms}),a pigment's life factor (Life colour tuner)
 value.dim_mass_pct,Math.round(T.remMassFrac*100),values (shared: any text can use {dim_mass_pct}),% of its mass a failed collapse keeps
 value.dim_energy_pct,Math.round(T.remEnergyFrac*100),values (shared: any text can use {dim_energy_pct}),% of its energy a failed collapse keeps
