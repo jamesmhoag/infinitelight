@@ -114,7 +114,7 @@ button:hover{background:rgba(255,255,255,0.15);}
   <div id="dock" class="bottom"><div id="inventoryPanel"></div><div id="touch-info"></div></div>
   <canvas id="cur"></canvas>
 </div>
-<script src="shared.js?v=20261102zm"></script>
+<script src="shared.js?v=20261102zn"></script>
 <script>
 const _SRC=document.documentElement.outerHTML; // kept so the Encyclopedia can run live scenes as embedded copies of the game
 // Safety: a negative / non-finite gradient radius would throw and kill the frame — clamp it, and log the first offender's stack so it can be traced.
@@ -485,6 +485,7 @@ const T={
   // only while fully at rest.
   pauseStopMs:   650, // ms: ramp time from full speed down to a full stop
   pauseResumeMs: 650, // ms: ramp time from a full stop back up to full speed
+  evResumeMs: 1800, // ms: the slower ramp back up after a discovery card closes
   // Pause-mode effect rings: PASSIVE (an ambient effect: a Point's standing range, a remnant's area) vs ACTIVE (a point that has been activated)
   pauseRingPassiveWidth:1,   pauseRingPassiveAlpha:0.45, pauseRingPassiveFill:0.05, pauseRingPassiveDash:4,
   pauseRingActiveWidth:1.75, pauseRingActiveAlpha:0.9,   pauseRingActiveFill:0.14,
@@ -1022,6 +1023,7 @@ const TUNE_DEFS=[
   {sec:'Pause',tab:'gameplay'},
   {key:'pauseStopMs',   label:'Stop ms',   min:0,max:3000,step:50,  tip:'Time to ramp from full speed down to a full stop when pausing'},
   {key:'pauseResumeMs', label:'Resume ms', min:0,max:3000,step:50,  tip:'Time to ramp from a full stop back up to full speed when resuming'},
+  {key:'evResumeMs', label:'After a card ms', min:0,max:6000,step:100,  tip:'Time to ramp back up to full speed after closing a discovery card (slower, to pick up where you were)'},
   {key:'pauseRingPassiveWidth',label:'Passive ring w', min:0,max:6,step:0.25, tip:'Pause mode: line width of a PASSIVE effect ring (ambient range of a Point)'},
   {key:'pauseRingPassiveAlpha',label:'Passive ring α', min:0,max:1,step:0.05, tip:'Pause mode: stroke alpha of a passive effect ring'},
   {key:'pauseRingPassiveFill', label:'Passive fill α', min:0,max:0.6,step:0.01,tip:'Pause mode: fill opacity inside a passive effect ring'},
@@ -1597,11 +1599,10 @@ TUNE_DEFS.push({sec:'Master volume',tab:'sounds'},{key:'masterVol',label:'Master
  {key:'mapPrevFadeMs',label:'Hex ease ms',min:0,max:3000,step:50,tip:'How long a hex\'s new picture takes to ease in over its old one, and the ducks\' light to move to a new time of day'},
  {key:'mapCovFull',label:'Hex full coverage value',min:0.1,max:6,step:0.1,tip:'Hex value at which a surface is fully covered with particles'},
  {sec:'Surface Map — shops',tab:'gameplay'},
- {key:'mapShopSize',label:'Pop-up shop size',min:0.3,max:4,step:0.05,tip:'Width of a pop-up shop building on the Surface Map (× hex size)'},
- {key:'mapStreetSize',label:'Main street shop size',min:0.15,max:1.5,step:0.01,tip:'Width of each main street shop (× hex size)'},
+ {key:'mapStreetSize',label:'Shop size',min:0.15,max:1.5,step:0.01,tip:'Width of a main street shop (× hex size); every shop, pop-ups too, is drawn at this scale'},
  {key:'mapStreetRing',label:'Main street ring',min:0,max:2,step:0.05,tip:'How far from the centre of the source the main street shops stand (× hex size): two behind it, two in front'},
  {key:'mapShopGlow',label:'Shop neon glow',min:0,max:3,step:0.05,tip:'How strongly an open shop\'s sign and windows glow'});
-Object.assign(T,{mapShopSize:1,mapStreetSize:0.75,mapStreetRing:0.8,mapShopGlow:1});
+Object.assign(T,{mapStreetSize:0.75,mapStreetRing:0.8,mapShopGlow:1});
 for(const id in SHOPS){const S=SHOPS[id];if(S.street)continue;for(let i=1;i<=3;i++){const k=shopTK(S.cur)+i;T[k]=S.at[i-1];TUNE_DEFS.push({key:k,label:S.n.slice(0,18)+' rank '+i+' at',min:0,max:9999999,step:1,tip:'A bright clear whose surface collected at least this much '+S.cur+' opens a rank '+i+' '+S.n+' on its hex (0 = never)'});}}
 let tuneTab='gameplay',tuneFilter='',tuneSel=null,tuneBuf='';
 document.addEventListener('keydown',e=>{ // type digits / '.' to set the last-touched tuner row; clamps to its min/max and snaps to its step
@@ -3256,7 +3257,7 @@ if(!window.__SCENE)IDB.get('inventory').then(raw=>{if(!raw)return;const b=JSON.p
   const older=!loc||(b.at||0)>(loc.at||0);if(older){for(const k of INV_KINDS)if(typeof b[k]==='number')inventory[k]=b[k];if(b.luck)duckLuck=Object.assign({d:0,e:0},b.luck);if(b.run)runState=Object.assign(runFresh(),b.run);} // the backup is newer (or the only copy): its counts too
   if(invMerge(b)||older){applyDisc();updateInventoryUI();saveInventory();}}).catch(()=>{});
 function fmtCount(n){n=Math.floor(n||0);if(n<=9999)return''+n;if(n<100000)return(Math.floor(n/100)/10).toFixed(1)+'k';if(n<1000000)return Math.floor(n/1000)+'k';return(Math.floor(n/10000)/100).toFixed(2)+'m';} // 99.9k · 999k · 9.99m
-function runFresh(){return{day:0,fortune:null,bonus:null,charm:0,draw:null,next:null,keysGone:0,daily:-1};} // a new run's state (shared.js: runBad, runGood, runBonus read it)
+function runFresh(){return{day:0,fortune:null,bonus:null,charm:0,draw:null,next:null,keysGone:0,dimDone:{}};} // (dimDone: what Dim's Carnival has done today — each of its cards is once a day) // a new run's state (shared.js: runBad, runGood, runBonus read it)
 function runT(k){ // a tuner as today's fortune, daily wonder, Luck Charms and the Lucky Duck make it (the tuner itself is never changed, so the config is never saved with them)
   const v=T[k],r=runState,lucky=discSeen.has('up:lucky'),g=runGood(r)?FORTUNE_GOOD[r.fortune.id]||{}:{};
   if(k==='duckChance')return runBad(r,'noduck')?0:v*(lucky?2:1)+0.05*(r.charm||0)+(g.luck==='d'?0.2:0);
@@ -6526,6 +6527,7 @@ function checkLevelClear(now){
   clearInfo={type:'points',timeMs:now-levelStartTime,clicks:totalActivations,
     whiteCount,whiteMass,whiteEnergy,brownCount,brownMass,brownEnergy,activeCounts};
   collectRemnantsToInventory(whiteCount,brownCount,activeCounts);
+  for(let i=active.length-1;i>=0;i--){const p=active[i];if(_zoneList.length&&zoneAtPoint(p.x,p.y))continue;p._collected=true;spawnCollectSparks(p);active.splice(i,1);} // everything left is collected at once, nothing lingers
   collectAllDucks();hubLevelCleared();
 }
 // Shared per-frame budget for promoting dormant mega-particles into full active
@@ -13956,9 +13958,9 @@ const EVENTS=[
  {id:'pat_gate',name:'Gate Pattern',type:'Event — Pattern',rar:'u',scene:'gate',ico:'gate',facts:()=>['A closed 4-point loop: a Gate.','It locks its contents in. A Key repeating its post pattern opens it.'],flavor:'It only opens for the right song.'},
  {id:'pat_key',name:'Key Pattern',type:'Event — Pattern',rar:'r',scene:'gate',ico:'key',facts:()=>['A 3-point loop with two spurs outside it: a Key.','It opens a Gate, or with enough matching Points ends the surface with a Dark Remnant.'],flavor:'Shaped like the thing it opens.'},
  {id:'pat_lens',name:'Lens Pattern',type:'Event — Pattern',rar:'r',scene:'lens',ico:'lens',facts:()=>['A closed 5-point loop: a Lens.','Fill a loop with glass. Crack it enough and it breaks into Bright Remnants.'],flavor:'Look closer. It looks back.'}];
-let _evQ=[],_evOpen=false,_evWasPaused=false,_evReview=false;
+let _evQ=[],_evOpen=false,_evWasPaused=false,_evReview=false,_evHand=[],_evAct=0; // discoveries made together come as a hand: one card shown, the rest to pick
 function fireEvent(id){if(window.__SCENE||discSeen.has('ev:'+id)||_evQ.indexOf(id)>=0||!EVENTS.some(e=>e.id===id))return;_evQ.push(id);}
-function eventPump(){if(_evOpen||_rulesOpen||_menuOpen||!_evQ.length)return;showEventCard(_evQ.shift(),false);}
+function eventPump(){if(!_evQ.length||_rulesOpen||_menuOpen||(_evOpen&&!_evHand.length))return;const n=_evHand.length;_evHand.push(..._evQ.splice(0));showEventCard(_evHand[n?_evAct:0],false);} // new ones join an open hand
 const gEsc=s=>String(s).replace(/[&<>]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[c]));
 function gHi(t){const e=gEsc(t),f=gEsc(_rulesFilter.trim());if(!f)return e;return e.split(new RegExp('('+f.replace(/[.*+?^${}()|[\]\\]/g,'\\$&')+')','gi')).map((x,i)=>i%2?'<mark>'+x+'</mark>':x).join('');}
 // Tiers (instead of rarity): how deep in the game a card sits. Muted tones: a card only explains, it has no use of its own
@@ -13969,7 +13971,7 @@ function cardHTML(ev,mini){ // the one card format: name bar, art box, type line
   return `<div class="mtg${mini?' sm':''}" data-ev="${ev.id}" style="--rc:${TIER_COL[t]}"><div class="nm"><b>${gEsc(ev.name)}</b><span class="gem"></span></div><div class="art" data-scene="${ev.scene}">${mini?`<canvas class="rl-m" width="64" height="64" data-k="${ev.ico}"></canvas>`:''}</div><div class="ty"><span>${gEsc(ev.type.replace(/^Event — /,''))}</span><span>Tier ${TIER[t]}</span></div><div class="tx">${ev.facts().map(f=>`<p>${gEsc(f)}</p>`).join('')}<p class="fl">${gEsc(ev.flavor)}</p></div></div>`;
 }
 function mountScene(h,w,hh){if(!h||h.firstChild||document.querySelectorAll('.rl-live iframe,.mtg .art iframe').length>=5)return;const f=document.createElement('iframe'),nm=h.dataset.s||h.dataset.scene;f.style.cssText='border:0;max-width:100%;pointer-events:none;background:#000;border-radius:6px;'+(w?`width:${w}px;height:${hh}px`:'width:100%;height:100%');
-  if(nm.slice(0,4)==='hub:')f.src='Surface_Map_HUB.html?v=20261102zm&scene='+nm.slice(4)+'&T='+encodeURIComponent(JSON.stringify(mapSceneT()));else f.srcdoc=liveSrc(nm);h.appendChild(f);} // a Surface Map demo is played by the map itself
+  if(nm.slice(0,4)==='hub:')f.src='Surface_Map_HUB.html?v=20261102zn&scene='+nm.slice(4)+'&T='+encodeURIComponent(JSON.stringify(mapSceneT()));else f.srcdoc=liveSrc(nm);h.appendChild(f);} // a Surface Map demo is played by the map itself
 function mapSceneT(){const o={};for(const k in T)if(/^(map|bh|duck|wake|glass|metal|dimGlow|glowHalo|maxSpeed)/.test(k))o[k]=T[k];return o;} // what a map demo needs of the tuners
 function showCardHTML(html){ // a Guide card (an entry or a shop) opened over the Guide, where an event card shows
   guideCSS();_evOpen=true;_evReview=true;const ov=evOverlayEl();ov.innerHTML=`<div class="ev-box">${html}<button id="evOk">Close</button></div>`;ov.style.display='flex';wrap.classList.add('ev-open');
@@ -13979,12 +13981,13 @@ function evOverlayEl(){let ov=document.getElementById('evOverlay');
   return ov;}
 function showEventCard(id,review){
   const ev=EVENTS.find(e=>e.id===id);if(!ev)return;guideCSS();
+  if(!review){if(!_evOpen){_evWasPaused=isPaused;if(!isPaused)togglePause();}let nw=0;for(const h of _evHand)if(!discSeen.has('ev:'+h)){discSeen.add('ev:'+h);nw=1;}if(nw)saveInventory();_evAct=Math.max(0,_evHand.indexOf(id));}else _evHand=[];
   _evOpen=true;_evReview=review;releaseMouseDown(performance.now());uiPress=false;
-  if(!review){discSeen.add('ev:'+id);saveInventory();_evWasPaused=isPaused;if(!isPaused)togglePause();}
-  const ov=evOverlayEl();
+  const ov=evOverlayEl();ov.querySelectorAll('iframe').forEach(f=>f.remove());
   const un=RULES.filter(e=>{const v=RULE_EV[e[0]];return Array.isArray(v)?v.includes(id):v===id;}).map(e=>e[2]);
-  ov.innerHTML=`<div class="ev-box">${cardHTML(ev)}<div class="ev-un">${un.length?'Unlocks in the Guide: '+gEsc(un.join(' · ')):''}</div><button id="evOk">${review?'Close':'Continue'}</button></div>`;
+  ov.innerHTML=`<div class="ev-box">${cardHTML(ev)}<div class="ev-un">${un.length?'Unlocks in the Guide: '+gEsc(un.join(' · ')):''}</div>${_evHand.length>1?`<div class="ev-hand">${_evHand.map((h,i)=>i===_evAct?'':cardHTML(EVENTS.find(e=>e.id===h),true)).join('')}</div>`:''}<button id="evOk">${review?'Close':'Continue'}</button></div>`;
   ov.style.display='flex';wrap.classList.add('ev-open');
+  ov.querySelectorAll('.ev-hand .mtg').forEach(c=>{c.onclick=()=>showEventCard(c.dataset.ev,false);});ov.querySelectorAll('canvas.rl-m').forEach(cv=>rulesDraw(cv,cv.dataset.k));
   const art=ov.querySelector('.art');art.dataset.s=ev.scene;mountScene(art);
   document.getElementById('evOk').onclick=()=>closeEventCard();
 }
@@ -13998,8 +14001,8 @@ function shopCardHTML(k,mini){const S=SHOPS[k],seen=evSeen('shop_'+k),t=S.street
   return `<div class="mtg${mini?' sm':' full'}" data-shop="${k}" style="--rc:${TIER_COL[t]}"><div class="nm"><b>${gEsc(S.n)}</b><span class="gem"></span></div><div class="art">${art}</div><div class="ty"><span>Shop · ${S.street?'main street':'pop-up'}</span><span>Tier ${TIER[t]}</span></div><div class="tx"><p>${gEsc(S.tag)}</p>${mini?'':`<p>${gEsc(how)}</p><p><b>Sells</b> (each found by discovery):</p>${items}`}</div></div>`;}
 function closeEventCard(){
   const ov=document.getElementById('evOverlay');if(ov){ov.querySelectorAll('iframe').forEach(f=>f.remove());ov.style.display='none';}
-  wrap.classList.remove('ev-open');_evOpen=false;
-  if(!_evReview&&!_evWasPaused&&isPaused&&!_rulesOpen)togglePause();
+  wrap.classList.remove('ev-open');_evOpen=false;_evHand=[];
+  if(!_evReview&&!_evWasPaused&&isPaused&&!_rulesOpen){togglePause();pauseRampDur=Math.max(pauseRampDur,T.evResumeMs);} // a slow start back, to pick up where you were
   hubOverlayCheck();
 }
 EVENTS.push({id:'dimrelic',name:'Dim Relic',type:'Event — Relic',rar:'r',scene:'relic',ico:'relic',facts:()=>['Two Dim Remnants at max size merged into one Dim relic (or an ECLIPSE Point burst).','It collects as 100. Two Dim relics meeting become a Dark Remnant.'],flavor:'Two embers, one coal.'},
@@ -14134,7 +14137,7 @@ function guideCSS(){
 .mtg.sm{width:210px;font-size:11px}.mtg.sm .art{height:80px}.mtg.sm .tx{min-height:0;font-size:11px}.mtg.back{height:230px;display:flex;align-items:center;justify-content:center;font-size:44px;opacity:.5;background:#222}
 .ev-grid{display:flex;flex-wrap:wrap;gap:12px}
 #evOverlay{position:absolute;inset:0;z-index:70;display:none;align-items:center;justify-content:center;background:rgba(0,0,0,.72)}
-.ev-box{display:flex;flex-direction:column;align-items:center;gap:8px;max-height:96%;overflow:auto}.ev-box .mtg{width:min(340px,86vw)}.ev-un{color:#cfd6e4;font:12px system-ui;max-width:340px;text-align:center}
+.ev-box{display:flex;flex-direction:column;align-items:center;gap:8px;max-height:96%;overflow:auto}.ev-box .mtg{width:min(340px,86vw)}.ev-un{color:#cfd6e4;font:12px system-ui;max-width:340px;text-align:center}.ev-hand{display:flex;gap:6px;justify-content:center;flex-wrap:wrap;max-width:92vw}.ev-hand .mtg.sm{width:96px;opacity:.8;transition:transform .15s,opacity .15s}.ev-hand .mtg.sm:hover{opacity:1;transform:translateY(-4px)}.ev-hand .mtg.sm .tx,.ev-hand .mtg.sm .ty{display:none}.ev-hand .mtg.sm .art{height:54px}.ev-hand .mtg.sm .nm{font-size:10px}
 #evOk{background:#2d6cdf;color:#fff;border:0;border-radius:8px;padding:8px 22px;font-size:15px}
 .rl-cards{display:flex;flex-wrap:wrap;gap:12px;align-items:flex-start}.rl-sec{margin:16px 0 8px;font-size:15px}.mtg.sm{cursor:pointer}.mtg.sm .tx p{margin:2px 0}
 .ev-box .mtg.full{width:min(440px,92vw)}.mtg.full .art{height:190px}.mtg .art-live{width:100%;height:100%}.mtg.full .tx{max-height:none}.mtg .tx .rl-live{display:block;min-width:0;width:100%;height:170px;min-height:0;margin:6px 0}
@@ -14216,9 +14219,9 @@ function closeRules(){
 var HUB=!window.__SCENE&&window.parent!==window&&/[?&]hub=1/.test(location.search);
 var hubAsleep=false,hubLevel=null,hubOverlay=false,hubShotSize=68,_menuOpen=false,_menuWasPaused=false;
 function hubPost(m){if(HUB)window.parent.postMessage(Object.assign({il:1},m),'*');}
-function hubIcons(){const o={};for(const k of ['leash','dial','weave','prism','knot','gate','key','lens','dim'])if(ICON_SVG[k])o[k]=ICON_SVG[k];return o;} // the map's dock shows the surface's own item icons
+function hubIcons(){const o={};for(const k of ['leash','dial','weave','prism','knot','gate','key','lens','dim','bright','neutron','magnetic','pulsing'])if(ICON_SVG[k])o[k]=ICON_SVG[k];return o;} // the map's dock shows the surface's own item icons
 function hubDefs(){let tab=null;return TUNE_DEFS.map(d=>{if(d.sec){tab=d.tab;return{sec:d.sec,tab};}return{key:d.key,label:d.label,min:d.min,max:d.max,step:d.step,tip:d.tip,type:d.type,options:d.options,tab};});} // every tuner, for the map's Tune panel (plain data: a sound's test button stays here)
-function hubState(type,defs){hubPost({type:type||'state',T:Object.assign({},T),inv:Object.assign({},inventory),disc:[...discSeen],ducks:duckLog,duckTypes:DUCK_TYPES,icons:hubIcons(),defs:defs?hubDefs():null,run:runState,status:statusData()});}
+function hubState(type,defs){hubPost({type:type||'state',T:Object.assign({},T),inv:Object.assign({},inventory),disc:[...discSeen],ducks:duckLog,duckTypes:DUCK_TYPES,icons:hubIcons(),defs:defs?hubDefs():null,run:Object.assign({},runState,{secrets:secretCards().length}),status:statusData()});} // (secrets: whether a Card of Secrets has anything left to tell)
 function statusData(){const cap={};for(const k of ['bright','dim','neutron','magnetic','pulsing',...ACCUM_KINDS])cap[k]=invMaxFor(k); // the Status page (shared.js statusHTML)
   return{inv:Object.assign({},inventory),cap,run:runState,ch:{d:runT('duckChance'),e:runT('duckExoticChance'),r:runT('duckRareChance'),luck:duckLuck.d*runT('duckLuckStep')},owned:SHOP_ITEMS.filter(i=>shopOnce(i)&&discSeen.has('up:'+i.id)).map(i=>i.n)};}
 function hubWake(){hubAsleep=false;if(!rafId)rafId=requestAnimationFrame(loop);}
@@ -14289,7 +14292,7 @@ window.addEventListener('message',e=>{
   else if(m.cmd==='preview')hubPreviews(m.items,m.size);
   else if(m.cmd==='drop')IDB.del('session').catch(()=>{});
   else if(m.cmd==='guide'){hubOverlay_(true);if(m.tab)_rulesTab=m.tab;openRules();}
-  else if(m.cmd==='event'){if(discSeen.has('ev:'+m.id)){hubState('overlayDone');return;}hubOverlay_(true);fireEvent(m.id);}
+  else if(m.cmd==='event'){const ids=(m.ids||[m.id]).filter(i=>!discSeen.has('ev:'+i));if(!ids.length){hubState('overlayDone');return;}hubOverlay_(true);ids.forEach(fireEvent);}
   else if(m.cmd==='sound')setSound(m.on,m.vol);
   else if(m.cmd==='tune'){applyLoadedConfig(m.T,true);debounceSave();}
   else if(m.cmd==='discover'){discSeen.add(m.id);saveInventory();hubState();}
@@ -14297,7 +14300,7 @@ window.addEventListener('message',e=>{
   else if(m.cmd==='award'){addInventory(m.kind,m.n||1);hubState();} // a map constellation paid out
   else if(m.cmd==='buy'){hubPost(Object.assign({type:'bought',id:m.id},shopBuy(m.id,m.arg)));hubState();}
   else if(m.cmd==='pick'){hubPost(Object.assign({type:'picked'},shopPick(m.i)));hubState();} // a drawn card turned over
-  else if(m.cmd==='day'){if(m.newRun)runState=runFresh();else if(m.day!==runState.day)Object.assign(runState,{fortune:null,bonus:null,charm:0,draw:null});runState.day=m.day;saveInventory();updateInventoryUI();hubState();} // a new day: today's fortune, bonus and Luck Charms are over // a shop on the map: this pays and hands it over
+  else if(m.cmd==='day'){if(m.newRun)runState=runFresh();else if(m.day!==runState.day)Object.assign(runState,{fortune:null,bonus:null,charm:0,draw:null,dimDone:{}});runState.day=m.day;saveInventory();updateInventoryUI();hubState();} // a new day: today's fortune, bonus and Luck Charms are over // a shop on the map: this pays and hands it over
   else if(m.cmd==='wipe'){for(const k of INV_KINDS)inventory[k]=0;duckLog={};duckLuck={d:0,e:0};runState=runFresh();discSeen=new Set();invDisabled=new Set();keyShapes=[];_discReset='all';IDB.del('session').catch(()=>{});saveInventory();updateInventoryUI();applyDisc();hubState();} // the Gift Shop: everything goes
   else if(m.cmd==='state')hubState('state',true);
   else if(m.cmd==='quack'){if(DUCK_TYPES[m.type])duckVoice({type:m.type},m.v||1);} // a lake duck on the map was bumped or dunked
@@ -14308,7 +14311,7 @@ function shopBuy(id,arg){
   const it=shopItem(id),has=k=>discSeen.has(k);if(!it||it.fx.souv)return{ok:0,msg:'Not for sale here'};const fx=it.fx,own=Object.keys(duckLog).filter(k=>duckLog[k]>0);
   if(shopOnce(it)&&has('up:'+id))return{ok:0,msg:'Already yours'};if(it.req&&!has('up:'+it.req))return{ok:0,msg:'Needs '+shopItem(it.req).n+' first'};
   if(fx.give)for(const k in fx.give)if(inventory[k]>=invMaxFor(k))return{ok:0,msg:'Your purse is full ('+fmtCount(invMaxFor(k))+' '+k+')'};
-  if(fx.draw==='daily'&&runState.daily===runState.day)return{ok:0,msg:'A Daily Wonder is once a day: come back tomorrow'};const cost=shopPrice(it,runState),sec=fx.draw==='secret'?secretCards():null;if(sec&&!sec.length)return{ok:0,msg:'No secrets left to tell'};
+  if(fx.draw&&(runState.dimDone||{})[fx.draw])return{ok:0,msg:it.n+' is once a day: come back tomorrow'};const cost=shopPrice(it,runState),sec=fx.draw==='secret'?secretCards():null;if(sec&&!sec.length)return{ok:0,msg:'No secrets left to tell'};
   let pool=own,axis=null;
   if(fx.duck==='pick'&&!DUCK_TYPES[arg])return{ok:0,msg:'Pick a duck'};
   if(fx.duck==='exotic'){const by={};for(const k of own)by[DUCK_TYPES[k].axis]=(by[DUCK_TYPES[k].axis]||0)+duckLog[k];axis=Object.keys(by).sort((a,b)=>by[b]-by[a])[0];if(!axis||by[axis]<it.cost)return{ok:0,msg:'You need '+it.cost+' ducks of one kind'};pool=own.filter(k=>DUCK_TYPES[k].axis===axis);}
@@ -14318,17 +14321,17 @@ function shopBuy(id,arg){
   if(fx.give)for(const k in fx.give)addInventory(k,fx.give[k],true);
   if(fx.charm){runState.charm=(runState.charm||0)+1;duckLuck.d+=0.01/Math.max(0.001,runT('duckLuckStep'));got='Luck Charm: +5% duck chance today';} // and +1% on the next drop
   let draw=null;if(fx.draw){const D=fx.draw==='secret'?sec:fx.draw==='fortune'?[0,1,2].map(()=>{if(Math.random()<0.5){const t=DUCK_IDS[(Math.random()*DUCK_IDS.length)|0];return{good:1,id:t,duck:DUCK_TYPES[t].name};}const b=Object.keys(FORTUNE_BAD);return{good:0,id:b[(Math.random()*b.length)|0]};}):DAILY.slice().sort(()=>Math.random()-0.5).slice(0,3);
-    runState.draw={kind:fx.draw,cards:D};draw={kind:fx.draw,cards:D.map(c=>fx.draw==='daily'?{n:c.n,t:c.t}:{back:1})};got=it.n+': pick a card';} // face down, but for the wonders
+    runState.draw={kind:fx.draw,cards:D};runState.dimDone=Object.assign({},runState.dimDone,{[fx.draw]:1});draw={kind:fx.draw,cards:D.map(c=>fx.draw==='daily'?{n:c.n,t:c.t}:{back:1})};got=it.n+': pick a card';} // face down, but for the wonders
   if(fx.duck){const ax=fx.duck==='exotic'?(axis==='Classic'?null:axis):fx.duck,pk=a=>a[Math.floor(Math.random()*a.length)];
     const t=fx.duck==='pick'?arg:fx.duck==='roll'?rollDuckType():pk(DUCK_IDS.filter(k=>k!=='classic'&&(ax?DUCK_TYPES[k].axis===ax:!DUCK_TYPES[k].rare)));
     duckLog[t]=(duckLog[t]||0)+1;got='\u{1F986} '+DUCK_TYPES[t].name;}
   if(fx.disc)discSeen.add(fx.disc);if(shopOnce(it))discSeen.add('up:'+id);
   saveInventory();updateInventoryUI();applyDisc();return{ok:1,msg:got,draw};}
-function secretCards(){const c=[...EVENTS.map(e=>({id:'ev:'+e.id,n:e.name})),...RULES.filter(e=>(T['dc_g_'+e[0]]||0)>0).map(e=>({id:'g_'+e[0],n:e[2]}))].filter(c=>!discSeen.has(c.id));return c.sort(()=>Math.random()-0.5).slice(0,3);} // what a Card of Secrets can turn up: events and Guide entries not yet discovered
+function secretCards(){const c=[...EVENTS.filter(e=>!evSeen(e.id)).map(e=>({id:'ev:'+e.id,ev:e.id,n:e.name})),...RULES.filter(e=>!discHas('g_'+e[0])&&evOk(RULE_EV[e[0]])).map(e=>({id:'g_'+e[0],rule:e[0],n:e[2]}))];return c.sort(()=>Math.random()-0.5).slice(0,3);} // what a Card of Secrets can turn up: events not yet witnessed, and Guide entries not yet found that the Guide would show
 function shopPick(i){const d=runState.draw,c=d&&d.cards[i];if(!c)return{ok:0,text:'Nothing to pick'};runState.draw=null;let title,text; // a card turned over: what it gives
-  if(d.kind==='secret'){discSeen.add(c.id);title='A secret';text=c.n+' is discovered for good.';}
+  if(d.kind==='secret'){discSeen.add(c.id);title='A secret';text=c.n+' is discovered for good.';saveInventory();applyDisc();hubOverlay_(true);if(c.ev)showEventCard(c.ev,true);else showCardHTML(ruleCardHTML(RULES.find(x=>x[0]===c.rule),false));return{ok:1,title,text,good:true,show:1};} // the card itself, shown over the map
   else if(d.kind==='fortune'){runState.fortune=c;const g=c.good?FORTUNE_GOOD[c.id]||{}:{};if(g.next)runState.next=g.next;if(g.next==='rare'){runState.keysGone=1;inventory.key=0;}title=c.good?'A good fortune':'A dim fortune';text=fortuneText(c,c.duck);}
-  else{runState.bonus={id:c.id,item:c.item||null};runState.daily=runState.day;if(c.id==='inf')for(const k of ['leash','dial','weave'])inventory[k]=k===c.item?invMaxFor(k):0;title=c.n;text=c.t+'.';}
+  else{runState.bonus={id:c.id,item:c.item||null};if(c.id==='inf')for(const k of ['leash','dial','weave'])inventory[k]=k===c.item?invMaxFor(k):0;title=c.n;text=c.t+'.';}
   saveInventory();updateInventoryUI();applyDisc();return{ok:1,title,text,good:d.kind!=='fortune'||!!c.good};}
 document.addEventListener('visibilitychange',()=>{if(document.hidden&&HUB&&hubLevel&&!hubAsleep)saveSession();}); // closing the tab mid-surface keeps it
 // ── Pause menu (Esc) ──
