@@ -15,13 +15,13 @@ body{background:#050608;overflow:hidden;font-family:'Share Tech Mono',monospace;
 #hcur{position:fixed;inset:0;width:100%;height:100%;pointer-events:none;z-index:45}
 /* the dock: the surface's item slots and feed, as on a surface */
 #hdock{position:absolute;left:50%;bottom:0;transform:translateX(-50%);display:flex;flex-direction:column;z-index:20;max-width:96vw;border-radius:8px 8px 0 0;overflow:hidden}
-#hinv{display:flex;gap:3px;justify-content:center;background:rgba(0,0,0,0.75);padding:3px 5px;border-bottom:1px solid rgba(255,255,255,0.12)}
-#hinv .slot{position:relative;display:flex;flex-direction:column;align-items:center;justify-content:center;width:34px;height:34px;border-radius:5px;border:1px solid transparent;background:none;font:9px/1.2 monospace;color:rgba(255,255,255,0.85);user-select:none;text-shadow:0 0 3px #000,0 0 6px #000;transition:transform .28s ease,opacity .28s} /* no backing: the icon and its count */
+#hinv{display:flex;gap:3px;justify-content:center;padding:3px 5px} /* no common backing: each item stands on its own */
+#hinv .slot{position:relative;display:flex;flex-direction:column;align-items:center;justify-content:center;width:34px;height:34px;border-radius:5px;border:1px solid transparent;background:none;font:9px/1.2 monospace;color:rgba(255,255,255,0.85);user-select:none;text-shadow:0 0 3px #000,0 0 6px #000;overflow:hidden}#hinv .slot>*{transition:transform .28s ease,opacity .28s} /* no backing: the icon and its count */
 #hinv .slot svg{filter:drop-shadow(0 0 2px #000) drop-shadow(0 0 4px #000)}#hinv .slot:hover{background:rgba(255,255,255,0.1)}
 #hinv .dmin{width:18px;font-size:11px;opacity:.55;cursor:pointer}#hinv .dmin:hover{opacity:1}
 body.dock-min #hfeed{display:none} /* the dock's own hide: the feed goes, and the items keep out of the way (as with ~) */
-body.dock-min #hinv,body.ui-hidden #hinv{background:none;border-bottom-color:transparent}
-body.dock-min:not(.shop-open) #hinv:not(:hover) .slot:not(.up),body.ui-hidden:not(.shop-open) #hinv:not(:hover) .slot:not(.up){transform:translateY(115%);opacity:0} /* until you point at their place: then they come up from below */#hinv .slot.armed{background:rgba(255,220,120,0.28);border-color:rgba(255,220,120,0.8)}#hinv .slot.empty{opacity:0.4}
+body.dock-min:not(.shop-open) #hinv .slot:not(.up):not(:hover)>*,body.ui-hidden:not(.shop-open) #hinv .slot:not(.up):not(:hover)>*{transform:translateY(130%);opacity:0} /* each item down out of the way until you point at its own place: then it comes up from below */
+body.ui-hidden #hinv .dmin{display:none}#hinv .slot.armed{background:rgba(255,220,120,0.28);border-color:rgba(255,220,120,0.8)}#hinv .slot.empty{opacity:0.4}
 #hinv .slot svg{width:18px;height:18px;color:#fff}#hinv .slot b{font-weight:400;margin-top:1px}#hinv .sep{width:6px}
 #hfeed{font:12px monospace;text-align:center;min-width:420px;height:30px;color:#fff;background:rgba(0,0,0,0.6);padding:3px 14px;display:flex;flex-direction:column;justify-content:center}
 #hfeed .fn{line-height:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}#hfeed .fd{font-size:9px;line-height:11px;opacity:0.62;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
@@ -33,6 +33,8 @@ body.scene .hbtn,body.scene:not(.scene-shops) #shops,body.scene #hdock,body.scen
 #neb{position:fixed;inset:0;width:100%;height:100%;border:0;z-index:50;visibility:hidden;pointer-events:none;background:#000}
 #neb.show{visibility:visible;pointer-events:auto}
 #turn-label{position:absolute;top:40px;left:50%;transform:translateX(-50%);font-family:'Orbitron',sans-serif;font-size:16px;white-space:nowrap;color:rgba(255,255,255,0.7);pointer-events:none;transition:color 0.4s,text-shadow 0.4s;letter-spacing:2px;z-index:10}
+#rest-btn{position:absolute;top:66px;left:50%;transform:translateX(-50%);display:none;font:13px 'Orbitron',sans-serif;letter-spacing:2px;padding:5px 18px;background:rgba(150,160,255,0.12);border:1px solid rgba(190,200,255,0.55);color:#fff;border-radius:5px;cursor:pointer;z-index:20}
+#rest-btn:hover{background:rgba(150,160,255,0.28)}#rest-btn.on{display:block} /* at Midnight: end the day when you are ready (under the time of day; ~ keeps it) */
 #turn-label.show{color:#fff;text-shadow:0 0 14px rgba(255,255,255,0.85)}
 #bottom-bar{position:absolute;bottom:16px;left:50%;transform:translateX(-50%);font-size:12px;color:rgba(255,255,255,0.45);white-space:nowrap;z-index:10}
 #capture-hint{display:none;position:absolute;bottom:40px;left:50%;transform:translateX(-50%);font-size:11px;color:rgba(0,210,210,0.55);pointer-events:none;white-space:nowrap;opacity:0;transition:opacity 0.2s;z-index:10}
@@ -70,7 +72,7 @@ body.scene .hbtn,body.scene:not(.scene-shops) #shops,body.scene #hdock,body.scen
 #tuneP .rows{overflow:auto;padding:0 8px 8px}#tuneP .sec{opacity:.55;margin:8px 0 3px;text-transform:uppercase;letter-spacing:1px;font-size:10px}
 #tuneP .row{display:flex;gap:6px;align-items:center;margin:2px 0}#tuneP .row>span{flex:0 0 130px;font-size:11px;opacity:.85;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}#tuneP .row b{flex:0 0 52px;font-weight:400;text-align:right}#tuneP input[type=range],#tuneP select{flex:1;min-width:0}
 #hstats{position:absolute;top:96px;right:16px;z-index:10;display:none;font:10px/1.55 'Share Tech Mono',monospace;color:rgba(255,255,255,0.6);text-align:right;white-space:pre;background:rgba(0,0,0,0.45);padding:6px 9px;border-radius:5px}#hstats.show{display:block}
-body.ui-hidden .hbtn,body.ui-hidden #hfeed,body.ui-hidden #legend,body.ui-hidden #bottom-bar,body.ui-hidden #hstats,body.ui-hidden #mModes,body.ui-hidden #tuneP{display:none!important} /* ~: everything but the time of day and the inventory */
+body.ui-hidden .hbtn,body.ui-hidden #legend,body.ui-hidden #bottom-bar,body.ui-hidden #hstats,body.ui-hidden #mModes,body.ui-hidden #tuneP{display:none!important} /* ~: everything but the time of day, the inventory (reduced) and its feed */
 /* shops: upright on the plane (placed through the camera each frame); open ones glow like neon */
 #shops{position:absolute;inset:0;pointer-events:none;z-index:6;overflow:hidden}
 .shop{position:absolute;left:0;top:0;transform-origin:0 0;pointer-events:auto;will-change:transform}.shop canvas{display:block;will-change:opacity} /* each its own layer: moving or flickering one repaints nothing */
@@ -108,7 +110,7 @@ body.shop-open #hdock{z-index:59}#hinv .slot.wal{border-color:rgba(255,255,255,.
   <div id="shops"></div>
   <div id="letter"><div class="lp"><div class="lt"></div><div class="lf"></div><div class="ln"></div></div></div>
   <div id="hdock"><div id="hinv"></div><div id="hfeed"><div class="fn"></div><div class="fd"></div></div></div>
-  <div id="turn-label"></div>
+  <div id="turn-label"></div><button id="rest-btn" onclick="rest()">Rest</button>
   <div id="merge-flash"></div>
   <button class="hbtn" id="guide-btn" data-disc="hub_guide" onclick="openGuide()">Guide</button>
   <button class="hbtn" id="menu-btn" onclick="toggleMenu()">Menu (Esc)</button>
@@ -143,7 +145,7 @@ body.shop-open #hdock{z-index:59}#hinv .slot.wal{border-color:rgba(255,255,255,.
 <div id="veil"></div>
 <canvas id="hcur"></canvas>
 <iframe id="neb" title="Surface"></iframe>
-<script src="shared.js?v=20261103g"></script>
+<script src="shared.js?v=20261103h"></script>
 <script>
 // ╔══════════════════════════════════════════════════════════════════════════════╗
 // ║  MAP ENGINE                                                                 ║
@@ -159,7 +161,7 @@ let clock=3,day=1,pool=6,fresh=true,burstFx=null,dayLog=[],dayCnt={b:0,d:0},pend
 // // clock: the hour (3 = Twilight … 24 = Midnight, the day's last turn); day: your attempts; pool: what the source put out at its last burst; fresh: no ring added yet since it
 let constel=[],armed=null,weaveSel=[],weaveAsk=null,clearFx={},mergeFx=[],feedMsg={t:'',d:'',at:-1e9}; // constellations {keys,type}; the armed map item; a Weave being drawn; animations; the final count
 const TIMES={3:'Twilight',6:'Dawn',9:'Morning',12:'Noon',15:'Afternoon',18:'Dusk',21:'Night',24:'Midnight'},STEP_H=3; // the day: eight turns of three hours
-const CACHE_V='20261103g'; // the build: bump with shared.js's
+const CACHE_V='20261103h'; // the build: bump with shared.js's
 const SCENE=new URLSearchParams(location.search).get('scene'); // a Guide / event demo: the map plays a scripted moment (no surface behind it)
 let phase='move',turnTimer=0,mergeTimer=0;
 let gameOverReason='';
@@ -249,6 +251,8 @@ function advanceTurn(){ // time moves on (a move) by one time of day; the spill 
   awardConstellations();freedShops();clock+=STEP_H;
   if(clock>24){clock=24;endDay('midnight',0);return;} // after Midnight: the day ends (the new day starts once it has all fallen in)
   if(fresh)fresh=false;else{turn++;addRing(turn);}redistribute();decayCycle();showTurn();}
+const canRest=()=>!SCENE&&clock===24&&currentView==='map'&&!menuOpen&&!shopUI&&phase!=='collapse'&&phase!=='ended'&&phase!=='gameover'; // Midnight, on the map: the day can be ended (moving still ends it too)
+function rest(){if(!canRest())return;advanceTurn();updateHint();saveMap();} // Rest: the day ends at Midnight without a move, after any last thing (a shop, an item) you wanted to do
 const clockStr=()=>TIMES[clock]||TIMES[Math.max(3,Math.floor(clock/3)*3)]||'Twilight';
 function showTurn(){const el=document.getElementById('turn-label');el.textContent=clockStr()+' · Day '+day;el.classList.add('show');clearTimeout(turnTimer);turnTimer=setTimeout(()=>el.classList.remove('show'),1200);} // (always shown; it glows when the time changes)
 
@@ -302,7 +306,7 @@ function updateHint(){ // the feed's resting line: what you can do now
   else if(armed==='weave'){a='Weave · click bright hexes, then the first again to close (3 to 5)';b=weaveSel.length?weaveSel.length+' chosen':'right-click, Esc or the slot again to stop';}
   else if(armed==='dial'){a='String · click any open hex to go straight there';b='1 String per hex of distance · no time passes';}
   else if(armed==='leash'){a='Spindle · click a cleared hex to unwind it, or an open one to wind it up to 1.00';b='A great Dark Remnant takes 3';}
-  else if(c&&!c.cap&&!c.isVoid&&phase==='move'){a=c.v<=0?'No value here: nothing to clear':`Space / click to ${nebulaCellKey===K(pQ,pR)?'continue this surface':'enter this surface'} (${c.v.toFixed(2)})`;b=clockStr()+' · day '+day+' · or move';}
+  else if(c&&!c.cap&&!c.isVoid&&phase==='move'){a=c.v<=0?'No value here: nothing to clear':`Space / click to ${nebulaCellKey===K(pQ,pR)?'continue this surface':'enter this surface'} (${c.v.toFixed(2)})`;b=clockStr()+' · day '+day+(clock===24?' · or Rest (under Midnight) to end the day':' · or move');}
   hintLine=[a,b];}
 function feed(t,d){feedMsg={t,d:d||'',at:performance.now()};} // a map message in the dock's feed (stays a few seconds)
 function hexInfo(c){ // what hovering a hex tells you
@@ -630,7 +634,7 @@ function mapRender(){
   let st=`${clockStr()} · day ${day} · rings ${turn} · score ${score.toFixed(2)} · captures ${captureOrder.length}`;
   if(phase==='gameover')st+=' · game over: '+gameOverReason;
   document.getElementById('score-display').textContent=st;
-  {const el=document.getElementById('turn-label'),tl=clockStr()+' · Day '+day;if(el.textContent!==tl)el.textContent=tl;}
+  {const el=document.getElementById('turn-label'),tl=clockStr()+' · Day '+day;if(el.textContent!==tl)el.textContent=tl;document.getElementById('rest-btn').classList.toggle('on',canRest());}
   ptOver=mX>=0?document.elementFromPoint(mX,mY):null;statsTick(now);shopTick();discTick();feedTick(now);cursorTick(now);hubPh('hud');hubPerfFrame(now); // ptOver: one hit test a frame, before the shops move (a hit test after a style change forces a layout)
   if(!SCENE&&!document.hasFocus()&&currentView==='map'){mapRafId=setTimeout(()=>{mapRafId=requestAnimationFrame(mapRender);},1000/(T.mapIdleFps||8));hubPerf.last=0;} // the window is not in use (another window in front): a few frames a second, so a map left open costs little
   else mapRafId=requestAnimationFrame(mapRender);
@@ -918,8 +922,8 @@ function shopSprite(id,bk,lit,yaw){ // the shop's 3D building (shared.js shopMod
   // windows when open; at Q px per unit (as its drawings were at 4×), so a shop stays crisp however near the camera or the menu shows it. Redrawn when the light changes.
   const gw=T.mapShopGlow!=null?T.mapShopGlow:1,fl=bk===(SHOPS[id].bk||'s')&&SHOPS[id].flip,yw=Math.round(yaw||0),sun=DUCK_SUN.c.map(v=>Math.round(v*16)).concat(DUCK_SUN.d.map(v=>Math.round(v*8))).join(','),pt=T.mapShopPitch!=null?T.mapShopPitch:22,
     base=id+bk+(lit?1:0)+gw+'|'+yw+'|'+pt+'|',key=base+sun;if(shopCv[key])return shopCv[key];
-  const B=SHOP_BLD[bk],gi=shopImg(B.g),si=shopImg('sign_'+id);if(![gi,si].every(i=>i.complete&&i.naturalWidth)||!_duckTex)return null;
-  const type=shopModel(id,bk,lit,fl,gi,si),M=duckModel(type),Q=4,q=quatTurn(quatTurn([0,0,0,1],0,yw*Math.PI/180,0),pt*Math.PI/180,0,0),N=Math.ceil(2*M.g.R*Q)+8,pad=Math.ceil(30*gw)+8;
+  const si=shopImg('sign_'+id);if(!si.complete||!si.naturalWidth||!_duckTex)return null;
+  const type=shopModel(id,bk,lit,fl,si),M=duckModel(type),Q=4,q=quatTurn(quatTurn([0,0,0,1],0,yw*Math.PI/180,0),pt*Math.PI/180,0,0),N=Math.ceil(2*M.g.R*Q)+8,pad=Math.ceil(30*gw)+8;
   const cv=document.createElement('canvas');cv.width=cv.height=N+pad*2;const c=cv.getContext('2d');drawDuck3D(c,type,q,[[cv.width/2,cv.height/2]],Q,1,2048);
   if(lit&&gw>0){const g=document.createElement('canvas');g.width=g.height=cv.width;M.eo=1;drawDuck3D(g.getContext('2d'),type,q,[[cv.width/2,cv.height/2]],Q,1,2048);M.eo=0; // the neon: what glows, blurred out over it
     c.save();c.globalCompositeOperation='lighter';for(const[b,a]of[[22,0.8],[7,0.55]]){c.filter='blur('+(b*gw).toFixed(1)+'px)';c.globalAlpha=Math.min(1,a*gw);c.drawImage(g,0,0);}c.restore();}
