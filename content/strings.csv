@@ -664,7 +664,7 @@ card.fortune.typedim,Fortune — Dim,"cards, Guide, Status",
 card.wonder.type,Daily Wonder,"cards, Guide, Status",
 card.draw.secret,"A Card of Secrets: pick one, and it is yours to know","cards, Guide, Status",
 card.draw.fortune,Fortune Telling: pick a card for today,"cards, Guide, Status",
-card.draw.daily,"A Daily Wonder: keep one of three, for today","cards, Guide, Status",
+card.draw.daily,"A Daily Wonder: keep one of three, for a full day","cards, Guide, Status",
 card.close,Close,"cards, Guide, Status",
 card.unlocks,Unlocks in the Guide: {entries},"cards, Guide, Status",entries = $0 — the Guide entries it unlocks
 status.today,Today,"cards, Guide, Status",
@@ -777,6 +777,14 @@ build.test_time_tip,Test as if the surface were entered at this time of day: a p
 build.test_prefab,Testing at {time}: “{name}” appeared.,Build mode,"name = $0 — the prefab
 time = $1 — the time of day"
 build.test_none,Testing at {time}: no prefab this time.,Build mode,time = $0 — the time of day
+card.fortune.dimnext,"A dim fortune, for tomorrow","cards, Guide, Status",
+status.tomorrow,Tomorrow,"cards, Guide, Status",
+status.wonder_thru, · through {time}{when},"cards, Guide, Status","time = $0 — the last time of day it lasts
+when = $1 — “ tomorrow”, or nothing (today)"
+status.tomorrow_l, tomorrow,"cards, Guide, Status",
+map.dangerift,Dangerift,Surface Map,
+map.dangerift_ate,The Rift ate {n} clear{s} beside it.,Surface Map,"n = $0 — how many
+s = $1 — “s” for more than one"
 value.life_ms,T.lifeColor,values (shared: any text can use {life_ms}),a pigment's life factor (Life colour tuner)
 value.dim_mass_pct,Math.round(T.remMassFrac*100),values (shared: any text can use {dim_mass_pct}),% of its mass a failed collapse keeps
 value.dim_energy_pct,Math.round(T.remEnergyFrac*100),values (shared: any text can use {dim_energy_pct}),% of its energy a failed collapse keeps

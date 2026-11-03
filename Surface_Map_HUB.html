@@ -288,7 +288,8 @@ function advanceTurn(){ // time moves on (a move) by one time of day; the spill 
 const canRest=()=>tired()&&currentView==='map'&&!menuOpen&&!shopUI&&phase!=='collapse'&&phase!=='ended'&&phase!=='gameover'; // Midnight, on the map: the day can be ended (Rest is the only way: no moves at Midnight)
 function rest(){if(!canRest())return;advanceTurn();updateHint();saveMap();} // Rest: the day ends at Midnight without a move, after any last thing (a shop, an item) you wanted to do
 const clockStr=()=>TIMES[clock]||TIMES[Math.max(3,Math.floor(clock/3)*3)]||TIMES[3];
-function showTurn(){const el=document.getElementById('turn-label');el.textContent=txt('map.day',clockStr(),day);el.classList.add('show');clearTimeout(turnTimer);turnTimer=setTimeout(()=>el.classList.remove('show'),1200);} // (always shown; it glows when the time changes)
+function showTurn(){neb({cmd:'clock',clock,day}); // (the surface's run: a Daily Wonder ends at its time)
+  const el=document.getElementById('turn-label');el.textContent=txt('map.day',clockStr(),day);el.classList.add('show');clearTimeout(turnTimer);turnTimer=setTimeout(()=>el.classList.remove('show'),1200);} // (always shown; it glows when the time changes)
 
 function getMoves(){
   const out=[];
@@ -309,7 +310,13 @@ function doCapture(){ // enter the surface of the hex you stand on
 function riftCell(k,ang){ // a Rift tore the surface: the hex is gone (a scar), and the hexes beside it are drained of their particles (lost: nothing is shared out to them, or into it). Gone at Midnight (a new map)
   const c=cells[k];if(!c||c.cap||c.isVoid)return;let lost=c.v;Object.assign(c,{isVoid:true,v:0,rift:{a:ang||0,t0:performance.now()}});
   for(const[q,r]of neighbors(c.q,c.r)){const n=cells[K(q,r)];if(n&&!n.isVoid&&!n.cap){lost+=n.v;n.v=0;n.drain=true;}}
-  pool=Math.max(0,pool-lost);nebulaCellKey=null;phase='captured';recomputeLocked();redistribute();feed(txt('map.rift'),txt('map.rift_tore'));updateHint();saveMap();}
+  pool=Math.max(0,pool-lost);nebulaCellKey=null;phase='captured';recomputeLocked();redistribute();feed(txt('map.rift'),txt('map.rift_tore'));dangerift();updateHint();saveMap();}
+function dangerift(){ // the dim fortune Dangerift (checked after every clear, of any kind): a bright clear beside a Rift is removed, a dark one becomes Rift too, and so on
+  if(!runBad(run,'dangerift'))return;let n=0,more=true;const now=performance.now();
+  while(more){more=false;for(const k in cells){const c=cells[k];if(!c.rift)continue;for(const[q,r]of neighbors(c.q,c.r)){const nk=K(q,r),d=cells[nk];if(!d||!d.cap||d.isVoid)continue;
+    const dark=d.kind==='dark';if(!dark)score=Math.round((score-d.capVal)*100)/100;Object.assign(d,{cap:false,capVal:0,v:0,isVoid:true,shop:null,mergeId:null});delete d.kind;if(dark){d.rift={a:c.rift.a,t0:now};more=true;}
+    captureOrder=captureOrder.filter(o=>!o.keys.includes(nk));mergeGroups=mergeGroups.filter(g=>{if(!g.cells.includes(nk))return true;for(const ck of g.cells)if(cells[ck])cells[ck].mergeId=null;return false;});n++;}}} // (a merge it was in comes apart)
+  if(!n)return;checkConstellations();recomputeLocked();redistribute();feed(txt('map.dangerift'),txt('map.dangerift_ate',n,n>1?'s':''));}
 function riftsDraw(now){ // every Rift's scar, in the Dark Remnant's pulsing glow: alone, a jagged line across its hex at the angle it tore; beside another, the two
   // line up into one edge between them; three that all touch merge into one triangle
   for(const k in cells){const c=cells[k];if(!c.drain||c.cap||c.isVoid)continue;const[x,y]=w2s(...a2w(c.q,c.r));hexPath(x,y,HEX*0.92);mctx.fillStyle='rgba(3,3,6,0.8)';mctx.fill();} // drained beside a Rift: emptied of its particles
@@ -328,7 +335,7 @@ function completeCaptureForCell(cellKey,kind,tally){
   phase='captured';
   recomputeLocked();
   nebulaCellKey=null;
-  detectMerges();
+  detectMerges();dangerift(); // (the dim fortune Dangerift: this clear may be beside a Rift)
   clearFx[cellKey]={t0:null}; // its picture resolves into the clear when the map is next on screen
   if(ringCheck()){updateHint();hubEvent('map_clear');saveMap();return;}
   // (a clear takes no time: only a move, without a String, moves the day on)
