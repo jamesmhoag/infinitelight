@@ -23,7 +23,7 @@ body{background:#050608;overflow:hidden;font-family:'Share Tech Mono',monospace;
 #hfeed .fn{line-height:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}#hfeed .fd{font-size:9px;line-height:11px;opacity:0.62;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 #hfeed button{font:11px monospace;margin:0 4px;padding:1px 8px;background:rgba(255,220,120,0.2);border:1px solid rgba(255,220,120,0.7);color:#fff;border-radius:3px}
 #bottom-bar{bottom:76px}#legend{bottom:76px}
-body.scene .hbtn,body.scene #shops,body.scene #hdock,body.scene #legend,body.scene #bottom-bar,body.scene body.scene #capture-hint,body.scene #hcur{display:none!important} /* the map as a 3D scene: the plane (drawn in 2D, then laid in the scene as its ground) and the ducks on it */
+body.scene .hbtn,body.scene:not(.scene-shops) #shops,body.scene #hdock,body.scene #legend,body.scene #bottom-bar,body.scene body.scene #capture-hint,body.scene #hcur{display:none!important} /* the map as a 3D scene: the plane (drawn in 2D, then laid in the scene as its ground) and the ducks on it */
 /* the surface (chromatic_nebula.html): hidden with visibility, not display, so it keeps its size for the hex previews */
 #neb{position:fixed;inset:0;width:100%;height:100%;border:0;z-index:50;visibility:hidden;pointer-events:none;background:#000}
 #neb.show{visibility:visible;pointer-events:auto}
@@ -134,7 +134,7 @@ body.focus-clock #turn-label,body.focus-items #hdock{z-index:59;filter:drop-shad
 <div id="veil"></div>
 <canvas id="hcur"></canvas>
 <iframe id="neb" title="Surface"></iframe>
-<script src="shared.js?v=20261102zl"></script>
+<script src="shared.js?v=20261102zm"></script>
 <script>
 // ╔══════════════════════════════════════════════════════════════════════════════╗
 // ║  MAP ENGINE                                                                 ║
@@ -150,7 +150,7 @@ let clock=3,day=1,pool=6,fresh=true,burstFx=null,dayLog=[],dayCnt={b:0,d:0},pend
 // // clock: the hour (3 = Twilight … 24 = Midnight, the day's last turn); day: your attempts; pool: what the source put out at its last burst; fresh: no ring added yet since it
 let constel=[],armed=null,weaveSel=[],weaveAsk=null,clearFx={},mergeFx=[],feedMsg={t:'',d:'',at:-1e9}; // constellations {keys,type}; the armed map item; a Weave being drawn; animations; the final count
 const TIMES={3:'Twilight',6:'Dawn',9:'Morning',12:'Noon',15:'Afternoon',18:'Dusk',21:'Night',24:'Midnight'},STEP_H=3; // the day: eight turns of three hours
-const CACHE_V='20261102zl'; // the build: bump with shared.js's
+const CACHE_V='20261102zm'; // the build: bump with shared.js's
 const SCENE=new URLSearchParams(location.search).get('scene'); // a Guide / event demo: the map plays a scripted moment (no surface behind it)
 let phase='move',turnTimer=0,mergeTimer=0;
 let gameOverReason='';
@@ -740,7 +740,7 @@ function enterNebula(cellKey){
 function exitNebula(){currentView='map';const t=performance.now();for(const k in clearFx)if(clearFx[k].t0==null)clearFx[k].t0=t+250;showNeb(false);mapResize();pondSpawn();startMapLoop();updateHint();evPump();}
 let evQ=[];
 function hubEvent(id){if(SCENE)return;if(disc.has('ev:'+id)||evQ.includes(id))return;evQ.push(id);evPump();}
-function evPump(){if(currentView!=='map'||menuOpen||!nebReady||!evQ.length)return;const id=evQ.shift();if(disc.has('ev:'+id)){evPump();return;}currentView='overlay';showNeb(true);neb({cmd:'event',id});}
+function evPump(){if(currentView!=='map'||menuOpen||shopUI||!nebReady||!evQ.length)return;const id=evQ.shift();if(disc.has('ev:'+id)){evPump();return;}currentView='overlay';showNeb(true);neb({cmd:'event',id});}
 function openGuide(){if(!nebReady||currentView!=='map')return;currentView='overlay';showNeb(true);neb({cmd:'guide'});}
 function takeState(m){
   // a tuner just set here wins over a message the surface sent before it got it
@@ -877,7 +877,7 @@ function shopList(){ // every shop on the map now: main street hugging the sourc
   hubPop.forEach((h,i)=>{if(!h)return;const a=HUB_SLOTS[i]*Math.PI/180;out.push({key:'hub'+i,id:h.id,rank:h.rank,bk:SHOP_RANK_BLD[h.rank-1],wx:R*1.15*Math.cos(a),wy:R*1.15*Math.sin(a),lit:true,w});}); // (a little further out than main street) // pop-ups from dark clears, in the source hex
   for(const k in cells){const c=cells[k];if(c.shop&&isBright(k)){const[wx,wy]=a2w(c.q,c.r);out.push({key:k,id:c.shop.id,rank:c.shop.rank,bk:SHOP_RANK_BLD[c.shop.rank-1],wx,wy,lit:true});}}
   return out;}
-function shopTick(){if(SCENE)return;
+function shopTick(){if(SCENE&&SCENE!=='shops')return;
   document.body.classList.toggle('thru',!!armed||voidOpen);const box=document.getElementById('shops'),seen=new Set();
   for(const s of shopList()){const cv=shopSprite(s.id,s.bk,s.lit);if(!cv)continue;seen.add(s.key);let el=shopEls[s.key];
     if(!el){el=shopEls[s.key]=document.createElement('div');el.className='shop';el.dataset.key=s.key;el.onclick=()=>openShop(s.key);box.appendChild(el);
@@ -890,10 +890,10 @@ function shopInfo(key){const el=shopEls[key],s=el&&el._s;if(!s)return['',''];con
   return S.street?[S.n,(s.lit?'Open':'Closed')+' · '+shopHours(s.id)+(s.lit?' · click to shop':'')]:[S.n+' · pop-up','Rank '+s.rank+' · open while its bright clear lasts · click to shop'];}
 function openShop(key){const el=shopEls[key],s=el&&el._s;if(!s||phase==='collapse')return;
   if(!s.lit){feed(SHOPS[s.id].n+' is closed','Open '+shopHours(s.id)+(runBad(run,'holiday')?' (a holiday: it closes a time of day early)':''));return;}
-  shopUI={id:s.id,rank:s.rank||3,page:0,exit:s.id==='gift'};renderShop();}
+  shopUI={id:s.id,rank:s.rank||3,page:0,exit:s.id==='gift'};renderShop();hubEvent('shop_'+s.id);}
 function closeShop(){if(shopUI&&shopUI.gift){quitMain();return;} // leaving the Gift Shop: the run is over
   if(shopUI&&shopUI.draw&&!shopUI.draw.res)return; // a drawn card is still to be picked
-  shopUI=null;renderShop();}
+  shopUI=null;renderShop();evPump();}
 function shopRows(){const u=shopUI,has=k=>disc.has(k);
   if(u.exit)return[{c:1,n:'Yes',sub:'(enter the GIFT SHOP)',go:giftEnter},{c:1,n:'No',sub:'(not yet)',go:closeShop}];
   if(u.pick)return Object.keys(DUCK_TYPES).map(t=>({n:(DUCK_TYPES[t].rare?'★ ':'')+DUCK_TYPES[t].name,p:'× '+(duckLog[t]||0),go:()=>shopBuy(shopItem('pickduck'),t)}));
@@ -975,7 +975,7 @@ function sceneField(){if(_sf)return _sf;const S=512,cv=document.createElement('c
   return _sf=cv;}
 const sceneCap=(k,kind)=>{const c=cells[k];if(!c||c.cap)return;c.cap=true;c.capVal=c.v;c.kind=kind;clearFx[k]={t0:performance.now()};}; // a clear, shown as it resolves
 const at=(ms,fn)=>sceneTimers.push(setTimeout(fn,ms));let sceneTimers=[];
-function sceneReset(rings){sceneTimers.forEach(clearTimeout);sceneTimers=[];const br=T.mapBurstRings;T.mapBurstRings=rings||br||3;score=0;depth=0;clock=3;day=1;pendingEnd=null;newMap();T.mapBurstRings=br;clearFx={};mergeFx=[];
+function sceneReset(rings){sceneTimers.forEach(clearTimeout);sceneTimers=[];hubPop=[null,null];const br=T.mapBurstRings;T.mapBurstRings=rings||br||3;score=0;depth=0;clock=3;day=1;pendingEnd=null;newMap();T.mapBurstRings=br;clearFx={};mergeFx=[];
   const o=cells[K(pQ,pR)];if(o)o.isP=false;pQ=1;pR=-1;cells[K(1,-1)].isP=true;camX=camTX=0;camY=camTY=0;}
 const SCENES={
   map(){sceneReset();for(let i=0;i<9;i++)at(900+i*1300,()=>{const m=getMoves().filter(m=>!(m.q===0&&m.r===0));if(m.length){const t=m[(Math.random()*m.length)|0];doMove(t.q,t.r);camTX=camTY=0;}});return 13500;},
@@ -988,11 +988,13 @@ const SCENES={
   ring(){return sceneRing(()=>'bright');},
   brightstar(){return sceneRing(()=>'bright');},
   darkstar(){return sceneRing(()=>'dark');},
+  shops(){sceneReset(4);clock=6;viewZoom=1.7;const k=ring(1).map(([q,r])=>K(q,r)).filter(k=>!cells[k].isP),t=[[700,()=>clock=9],[1400,()=>{sceneCap(k[0],'bright');cells[k[0]].shop={id:'bright',rank:1};}],[2600,()=>{clock=12;sceneCap(k[2],'bright');cells[k[2]].shop={id:'duck',rank:2};}],
+    [3800,()=>{hubPop[0]={id:'magnetic',rank:2};}],[5000,()=>{clock=18;sceneCap(k[4],'bright');cells[k[4]].shop={id:'bright',rank:3};delete cells[k[0]].shop;}],[6400,()=>clock=21]];for(const[ms,f]of t)at(ms,f);return 8400;},
   end(){sceneReset();const r1=ring(1).map(([q,r])=>K(q,r));r1.forEach((k,i)=>at(400+i*300,()=>i<r1.length-1?sceneCap(k,'bright'):completeCaptureForCell(k,'bright')));return 7000;}};
 function sceneRing(kind){sceneReset(4);const r3=ring(3).map(([q,r])=>K(q,r));r3.forEach((k,i)=>at(300+i*140,()=>{if(i<r3.length-1)sceneCap(k,kind(i));else{completeCaptureForCell(k,kind(i));if(clearFx[k])clearFx[k].t0=performance.now();}}));return 300+r3.length*140+4200;}
 function sceneLoop(){const f=SCENES[SCENE]||SCENES.map;const ms=f();setTimeout(sceneLoop,ms);}
 // ═══ START ═══
-if(SCENE){document.body.classList.add('scene');try{T=JSON.parse(new URLSearchParams(location.search).get('T')||'{}');}catch(e){T={};}HEX=T.mapHexSize||HEX;viewZoom=1.3;mapResize();camUpdate&&SW&&camUpdate();sceneLoop();startMapLoop();}
+if(SCENE){document.body.classList.add('scene');if(SCENE==='shops')document.body.classList.add('scene-shops');try{T=JSON.parse(new URLSearchParams(location.search).get('T')||'{}');}catch(e){T={};}HEX=T.mapHexSize||HEX;viewZoom=1.3;mapResize();camUpdate&&SW&&camUpdate();sceneLoop();startMapLoop();}
 else{nebEl.src='chromatic_nebula.html?hub=1&v='+CACHE_V;if(!loadMap())initGame();startMapLoop();neb({cmd:'state'});}
 </script>
 </body>
