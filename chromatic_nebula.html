@@ -1569,7 +1569,7 @@ TUNE_DEFS.push({sec:'Time dilation & Risks',tab:'gameplay'},
  {key:'riskWarnMass',label:'Risk WARNING mass',min:1,max:5000,step:10,tip:'Points above this mass show a blinking WARNING (default: half the Dark Remnant formation mass)'},
  {key:'riskDangerMass',label:'Risk DANGER mass',min:1,max:400000,step:100,tip:'Points above this mass show DANGER'},
  {key:'cacheKeyR',label:'Cache keyhole pane R',min:6,max:40,step:1,tip:'Radius of the central keyhole glass pane of a Cache'});
-Object.assign(T,{masterVol:0.7,soundOn:0,mapHexSize:34,mapBurstRings:3,mapCollapseMs:1400,mapSourceGlow:1,mapTilt:32,mapPersp:1400,mapZoomMin:0.55,mapZoomMax:1.8,mapDucks:5,mapBottleMs:90000,mapPlanePx:2500000,mapIdleFps:8,mapDuckRefl:0.4,mapDuckBumpV:0.35,mapDuckDunkMs:1300,mapZoom:1,mapAlpha:1,mapClearBlur:0.6,mapClearBleed:0.85,mapCovMin:0.25,mapCovFull:1,mapPrevFadeMs:450});
+Object.assign(T,{masterVol:0.7,soundOn:0,mapHexSize:34,mapBurstRings:3,mapCollapseMs:1400,mapSourceGlow:1,mapTilt:32,mapPersp:1400,mapZoomMin:0.55,mapZoomMax:1.8,mapDucks:5,mapBottleMs:90000,mapSunMs:4500,mapBottleDuck:0.25,mapPlanePx:2500000,mapIdleFps:8,mapDuckRefl:0.4,mapDuckBumpV:0.35,mapDuckDunkMs:1300,mapZoom:1,mapAlpha:1,mapClearBlur:0.6,mapClearBleed:0.85,mapCovMin:0.25,mapCovFull:1,mapPrevFadeMs:450});
 TUNE_DEFS.push({sec:'Master volume',tab:'sounds'},{key:'masterVol',label:'Master volume',min:0,max:1,step:0.05,tip:'Overall volume (also in the Esc menu)'},
  {sec:'Surface Map — hex surface layer (drawn by the surface renderer: pixel map, blur passes and α all apply)',tab:'gameplay'},
  {key:'mapHexSize',label:'Hex size',min:20,max:90,step:1,tip:'Radius (px) of a Surface Map hex'},
@@ -1592,7 +1592,9 @@ TUNE_DEFS.push({sec:'Master volume',tab:'sounds'},{key:'masterVol',label:'Master
  {key:'mapClearBleed',label:'Clear edge glow α',min:0,max:1,step:0.05,tip:'Strength of the white that bleeds from a bright cleared hex into its neighbours'},
  {key:'mapAlpha',label:'Hex layer α',min:0,max:1,step:0.05,tip:'Opacity of the surface shown on an uncleared hex'},
  {key:'mapCovMin',label:'Hex min coverage',min:0,max:1,step:0.05,tip:'Coverage of a surface whose hex value is 0'},
- {key:'mapPrevFadeMs',label:'Hex ease ms',min:0,max:3000,step:50,tip:'How long a hex\'s new picture takes to ease in over its old one, and the ducks\' light to move to a new time of day'},
+ {key:'mapSunMs',label:'Light shift ms',min:0,max:10000,step:100,tip:'How long the light (on the ducks, the bottles, their ripples and wakes) takes to move round to a new time of day'},
+ {key:'mapBottleDuck',label:'Bottle duck chance',min:0,max:1,step:0.05,tip:'Chance a message in a bottle holds a duck instead of a letter (opening it adds the duck to your collection)'},
+ {key:'mapPrevFadeMs',label:'Hex ease ms',min:0,max:3000,step:50,tip:'How long a hex\'s new picture takes to ease in over its old one'},
  {key:'mapCovFull',label:'Hex full coverage value',min:0.1,max:6,step:0.1,tip:'Hex value at which a surface is fully covered with particles'},
  {sec:'Surface Map — shops',tab:'gameplay'},
  {key:'mapStreetSize',label:'Shop size',min:0.15,max:1.5,step:0.01,tip:'Width of a main street shop (× hex size); every shop, pop-ups too, is drawn at this scale'},
@@ -7427,9 +7429,9 @@ function updateRect(){if(W)fitCanvas();wrapRect=canvas.getBoundingClientRect();}
 window.addEventListener('resize',updateRect);window.addEventListener('scroll',updateRect,true);
 
 // ── Rebuild — initialise GW×GH macro-particle dormant grid ──────────────────────
-function rebuild(seed){
+function rebuild(seed,pic){ // pic: only a map hex's picture is wanted ({x0,y0,x1,y1}: the part of the surface it shows): just those cells, and no start snapshot
   perfWorstEver=null;perfSpikes.length=0; // a fresh start for the worst-frame record
-  W=wrap.offsetWidth;H=wrap.offsetHeight;canvas.width=W;canvas.height=H;updateRect();
+  W=wrap.offsetWidth;H=wrap.offsetHeight;if(!pic||canvas.width!==W||canvas.height!==H){canvas.width=W;canvas.height=H;}updateRect();
   // Grid pitch = the actual space one macro-particle needs: its own diameter
   // (base size × scale) plus the gap around it. Row/column count is derived
   // from that pitch and the available screen space — NOT a fixed constant —
@@ -7466,6 +7468,7 @@ function rebuild(seed){
   const cells=[];
   for(let gy=0;gy<GH;gy++)for(let gx=0;gx<GW;gx++){
     const jp=jitterPos(gx,gy);const wx=jp.x,wy=jp.y;
+    if(pic&&(wx<pic.x0||wx>pic.x1||wy<pic.y0||wy>pic.y1)){dormant[gy*GW+gx]=null;continue;} // (outside the picture)
     if(!isCellCovered(wx,wy,buildSeed)){dormant[gy*GW+gx]=null;continue;}
     if(imgSampleData){
       const ix=Math.min(imgSampleW-1,Math.max(0,wx|0)),iy=Math.min(imgSampleH-1,Math.max(0,wy|0));
@@ -7524,7 +7527,7 @@ function rebuild(seed){
   rebuildNebula();
   if(invertMode)invertNebBuffer(); // rebuildNebula always bakes the default (non-inverted) scheme — if Invert/white mode was on going in, it should still be on visually after a rebuild, not silently revert
   resetAudioState();lastGateSnapshot=null;whiteChain.length=0;armedInvItem=null;clearFieldsSilently();gateFx=null;keyFx=null;conMode=false;pendingActs.clear();activeBonds.length=0;pendingDial.clear();fixedShapes.length=0;shapeBuild=null;_glassList=[];_gateList=[];_zoneList=[];_plateList=[];shardFx.length=0;_shapeSet=new Set();_grpPrev=new Map();inertSel=[];inertBox=null;
-  surfaceStartSnapshot=serializeMap(); // "the start" a Gate reverts to when no Gate has been created yet this surface
+  surfaceStartSnapshot=pic?null:serializeMap(); // "the start" a Gate reverts to when no Gate has been created yet this surface (a picture needs none: it is the costliest part)
   resetGateStates();
 }
 function toggleTrails(){trails=!trails;document.getElementById('tb').textContent='Trails:'+(trails?' ON':' OFF');}
@@ -14252,13 +14255,20 @@ function hexShot(size){ // the surface exactly as play renders it (pixel map, bl
   g.imageSmoothingEnabled=true;g.imageSmoothingQuality='high';g.drawImage(canvas,(W-sq)/2,(H-sq)/2,sq,sq,0,0,size,size);
   return _shotCv.toDataURL('image/png');
 }
+function picRect(){const sq=Math.min(W,H)/Math.max(0.05,T.mapZoom||1),m=Math.max(T.nebBlur||0,T.nebBlur2||0)*2+PIXEL_SIZE*2;return{x0:(W-sq)/2-m,y0:(H-sq)/2-m,x1:(W+sq)/2+m,y1:(H+sq)/2+m};} // the middle square a hex shows, and enough round it for the blur
+function picShot(size){ // a hex's picture straight from the nebula's own pixel map (its wide, mid and sharp passes, as play draws them), cropped to the middle square: no full frame is drawn or read back
+  if(!_shotCv)_shotCv=document.createElement('canvas');size=Math.max(8,size|0);_shotCv.width=_shotCv.height=size;
+  const g=_shotCv.getContext('2d'),sq=Math.min(W,H)/Math.max(0.05,T.mapZoom||1),k=size/sq,dw=GW*PIXEL_SIZE,dh=GH*PIXEL_SY,src=nebCanvas;
+  g.setTransform(1,0,0,1,0,0);g.fillStyle='#000';g.fillRect(0,0,size,size);g.setTransform(k,0,0,k,-(W-sq)/2*k,-(H-sq)/2*k);g.imageSmoothingEnabled=true;g.imageSmoothingQuality='high';
+  for(const[bl,a]of[[T.nebBlur,T.nebAlpha1],[T.nebBlur2,T.nebAlpha2],[0,T.nebAlpha3]]){if(!(a>0))continue;g.globalAlpha=a;g.filter=bl>0?`blur(${(bl*k).toFixed(2)}px)`:'none';g.drawImage(src,0,0,GW*NEB_SS,GH*NEB_SS,GRID_OX,GRID_OY,dw,dh);}
+  g.filter='none';g.globalAlpha=1;return _shotCv.toDataURL('image/png');}
 async function hubPreviews(items,size){ // one hex per frame; stops the moment a surface is entered
   for(const it of items){const i=_shotQ.findIndex(x=>x.key===it.key);if(i>=0)_shotQ[i]=it;else _shotQ.push(it);}if(_shotRun)return;_shotRun=true;
   const gen=_shotGen;
   while(_shotQ.length){const it=_shotQ.shift();
     if(hubLevel||gen!==_shotGen){hubPost({type:'preview',key:it.key,sig:it.sig,img:null});continue;}
-    const t0=performance.now();ensureDarkRemnantTheme();levelCoverage=it.cov;lvHex=it.q!=null?[it.q,it.r]:null;rebuild(it.seed); // a hex shows its surface as it starts (dark), whatever the last surface ended in
-    hubPost({type:'preview',key:it.key,sig:it.sig,img:hexShot(size),ms:performance.now()-t0});
+    const t0=performance.now();ensureDarkRemnantTheme();levelCoverage=it.cov;lvHex=it.q!=null?[it.q,it.r]:null;W=wrap.offsetWidth;H=wrap.offsetHeight;rebuild(it.seed,picRect()); // a hex shows its surface as it starts (dark), whatever the last surface ended in
+    hubPost({type:'preview',key:it.key,sig:it.sig,img:picShot(size),ms:performance.now()-t0});
     await new Promise(r=>{let d=0;const go=()=>{if(!d){d=1;setTimeout(r,0);}};requestAnimationFrame(go);setTimeout(go,40);}); // the map gets a frame between pictures (they share the page's thread)
   }
   _shotRun=false;if(!hubLevel&&gen===_shotGen)hubIdle();
@@ -14307,6 +14317,7 @@ window.addEventListener('message',e=>{
   else if(m.cmd==='guide'){hubOverlay_(true);if(m.tab)_rulesTab=m.tab;openRules();}
   else if(m.cmd==='event'){const ids=(m.ids||[m.id]).filter(i=>!discSeen.has('ev:'+i));if(!ids.length){hubState('overlayDone');return;}hubOverlay_(true);ids.forEach(fireEvent);}
   else if(m.cmd==='sound')setSound(m.on,m.vol);
+  else if(m.cmd==='giveDuck'){if(DUCK_TYPES[m.type]){duckLog[m.type]=(duckLog[m.type]||0)+1;saveInventory();hubState();}} // a duck from a bottle on the lake
   else if(m.cmd==='ui')wrap.classList.toggle('ui-hidden',!!m.hidden); // ~ on the map: one hide / show for both
   else if(m.cmd==='tune'){applyLoadedConfig(m.T,true);debounceSave();}
   else if(m.cmd==='discover'){discSeen.add(m.id);saveInventory();hubState();}
@@ -14456,7 +14467,7 @@ RULES.push(
 ["hubdescend","surf","Descend","dark","Surround the centre with three triangle merges, then step into it.",[["Deeper","A new, deeper map begins. Your score and items come with you."]]],
 ["hublight","surf","Time of day light","nova","Ducks, their ripples, wakes and glows are lit by the time of day.",[["Day","Twilight cools, Dawn rises warm from one side, Noon is high and white, Dusk sets warm on the other, and Midnight is moonlight from overhead."],["Change","At each new hour the light moves round to it, as a hex's new picture eases in (Hex ease ms)."],["Surface","A surface's ducks are lit for the hour you entered it."]]],
 ["hublake","surf","The lake","duck:classic","Your ducks swim in the open water round the map.",[["Brush","Brush one slowly with the cursor and it spins where it is."],["Hit","Cross it fast and it putters off the way you pushed it (Duck bump speed)."],["Dunk","Click it: it sinks into the water, stays under a moment, then comes back up with a splash."]]],
-["hubbottle","surf","Message in a bottle","bottle","Now and then a corked bottle floats onto the lake, or bobs up out of it.",[["Brush","It rocks and drifts like a duck: brush it and it turns, hit it and it skims away."],["Glass","Clear, green or brown glass, half under the water, reflected in it like a duck."],["Open","Click it: the cork comes out and the letter inside is unrolled to read. The empty bottle goes back on the water."],["Kept","Every letter you find is kept in the Guide (Letters), a book in the order you found them. Each bottle holds one you have not found, until you have them all."],["Who","Someone else was here before you. Some of them wanted out; some of them left a tip."]]],
+["hubbottle","surf","Message in a bottle","bottle","Now and then a corked bottle floats onto the lake, or bobs up out of it.",[["Brush","It rocks and drifts like a duck: brush it and it turns, hit it and it skims away."],["Glass","Clear, green or brown glass, half under the water, reflected in it like a duck."],["Open","Click it: the cork comes out and the letter inside is unrolled to read. The empty bottle goes back on the water."],["Kept","Every letter you find is kept in the Guide (Letters), a book in the order you found them. Each bottle holds one you have not found, until you have them all."],["Who","Someone else was here before you. Some of them wanted out; some of them left a tip."],["A duck","Now and then a bottle holds a duck instead (Bottle duck chance): opening it adds the duck to your collection."]]],
 ["hubview","surf","Looking round","particle","The map follows you, but you can look around.",[["Drag","Drag to look around. The source always stays in view."],["Right-click","Back to your hex (or puts an item you are holding down)."],["Modes","Telemetry shows each hex's value, coverage and ring; Stats shows the frame rate and the grid. ~ (or H) hides every panel."]]],
 ["shopstreet","shops","Main street","sign:corner","Shops that stand round the source, always, from the first day.",[["Hours","Each keeps its own hours and is lit only while it is open. A closed shop can not be entered (a holiday, a dim fortune, closes them a time of day early)."],["Discovered","A shop is discovered the first time it opens: one open all day on the first morning, the others at the first hour they open."],["Its card","What each sells and does is on its own card below."]]],
 ["shoppop","shops","Pop-ups","sign:bright","A cleared surface that collected enough of one thing opens a pop-up shop.",[["Ranks","Rank 1, 2 or 3 by how much it collected (each shop's thresholds): the store's size, and how much of its list it carries."],["One of each","A shop that already stands at that rank or better does not open again. A better rank moves it to the new clear and the old one is torn down."],["Order","When a clear earns more than one: first the Duck Shop, then the best-ranked exotic shop (a tie at random), then BRiGHT IDEAS, and last Dim's."],["Where","On its own bright hex. A Dark Remnant clear's pop-up opens on the nearest open bright hex, or a free spot in the source hex."],["Again","Every time of day, each cleared surface that earned a pop-up and has none open tries again: a hex a shop moved out of, a dark clear that found no room, a day it was a holiday."],["Stays","A pop-up stays while its clear lasts."]]],
