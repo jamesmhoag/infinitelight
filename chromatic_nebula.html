@@ -114,7 +114,7 @@ button:hover{background:rgba(255,255,255,0.15);}
   <div id="dock" class="bottom"><div id="inventoryPanel"></div><div id="touch-info"></div></div>
   <canvas id="cur"></canvas>
 </div>
-<script src="shared.js?v=20261103a"></script>
+<script src="shared.js?v=20261103b"></script>
 <script>
 const _SRC=document.documentElement.outerHTML; // kept so the Encyclopedia can run live scenes as embedded copies of the game
 // Safety: a negative / non-finite gradient radius would throw and kill the frame — clamp it, and log the first offender's stack so it can be traced.
@@ -3255,7 +3255,7 @@ function runFresh(){return{day:0,fortune:null,bonus:null,charm:0,draw:null,next:
 function runT(k){ // a tuner as today's fortune, daily wonder, Luck Charms and the Lucky Duck make it (the tuner itself is never changed, so the config is never saved with them)
   const v=T[k],r=runState,lucky=discSeen.has('up:lucky'),g=runGood(r)?FORTUNE_GOOD[r.fortune.id]||{}:{};
   if(k==='duckChance')return runBad(r,'noduck')?0:v*(lucky?2:1)+0.05*(r.charm||0)+(g.luck==='d'?0.2:0);
-  if(k==='duckExoticChance')return v*(lucky?2:1)+(g.luck==='e'?0.2:0);if(k==='duckRareChance')return v*(lucky?2:1)+(g.luck==='r'?0.2:0);if(k==='duckLuckStep')return lucky?0.04:v;
+  if(k==='duckExoticChance')return v*(lucky?2:1)+(g.luck==='e'?0.2:0);if(k==='duckRareChance')return v*(lucky?2:1)+(g.luck==='r'?0.2:0);if(k==='duckMidChance')return v*(lucky?2:1)+(g.luck==='r'?0.1:0);if(k==='duckLuckStep')return lucky?0.04:v;
   if(k==='orbitsPerDial'||k==='weaveMinPoints')return v+(runBad(r,'laps')?1:0);if(k==='flockSecondsPerLeash'||k==='weaveSeconds')return v+(runBad(r,'slow')?1:0);
   if(k==='riftMass')return v>0&&runBad(r,'rift')?Math.max(1000,v-10000):v;return v;}
 function invMaxFor(kind){if(kind==='key'&&runState.keysGone)return 0;return Math.max(T['invMax'+kind[0].toUpperCase()+kind.slice(1)],shopCap(kind,k=>discSeen.has(k)));} // the tuner, or a bigger cap bought in a shop
@@ -13967,7 +13967,7 @@ function cardHTML(ev,mini){ // the one card format: name bar, art box, type line
   return `<div class="mtg${mini?' sm':''}" data-ev="${ev.id}" style="--rc:${TIER_COL[t]}"><div class="nm"><b>${gEsc(ev.name)}</b><span class="gem"></span></div><div class="art" data-scene="${ev.scene}">${mini?`<canvas class="rl-m" width="64" height="64" data-k="${ev.ico}"></canvas>`:''}</div><div class="ty"><span>${gEsc(ev.type.replace(/^Event — /,''))}</span><span>Tier ${TIER[t]}</span></div><div class="tx">${ev.facts().map(f=>`<p>${gEsc(f)}</p>`).join('')}<p class="fl">${gEsc(ev.flavor)}</p></div></div>`;
 }
 function mountScene(h,w,hh){if(!h||h.firstChild||document.querySelectorAll('.rl-live iframe,.mtg .art iframe').length>=5)return;const f=document.createElement('iframe'),nm=h.dataset.s||h.dataset.scene;f.style.cssText='border:0;max-width:100%;pointer-events:none;background:#000;border-radius:6px;'+(w?`width:${w}px;height:${hh}px`:'width:100%;height:100%');
-  if(nm.slice(0,4)==='hub:')f.src='Surface_Map_HUB.html?v=20261103a&scene='+nm.slice(4)+'&T='+encodeURIComponent(JSON.stringify(mapSceneT()))+'&D='+encodeURIComponent(JSON.stringify(Object.fromEntries(Object.entries(DUCK_TYPES).slice(0,4))));else f.srcdoc=liveSrc(nm);h.appendChild(f);} // a Surface Map demo is played by the map itself
+  if(nm.slice(0,4)==='hub:')f.src='Surface_Map_HUB.html?v=20261103b&scene='+nm.slice(4)+'&T='+encodeURIComponent(JSON.stringify(mapSceneT()))+'&D='+encodeURIComponent(JSON.stringify(Object.fromEntries(Object.entries(DUCK_TYPES).slice(0,4))));else f.srcdoc=liveSrc(nm);h.appendChild(f);} // a Surface Map demo is played by the map itself
 function mapSceneT(){const o={};for(const k in T)if(/^(map|bh|duck|wake|glass|metal|dimGlow|glowHalo|maxSpeed)/.test(k))o[k]=T[k];return o;} // what a map demo needs of the tuners
 function showCardHTML(html){ // a Guide card (an entry or a shop) opened over the Guide, where an event card shows
   guideCSS();_evOpen=true;_evReview=true;const ov=evOverlayEl();ov.innerHTML=`<div class="ev-box">${html}<button id="evOk">Close</button></div>`;ov.style.display='flex';wrap.classList.add('ev-open');
@@ -14475,19 +14475,22 @@ EVENTS.push(
 // ── Types: the classic duck plus exotics that change ONE thing (colour, size or material). Rare ones roll on their own, rarer chance.
 const DUCK_TYPES={classic:{name:'Rubber Duck',axis:'Classic',tex:'classic'}};
 for(let ci=0;ci<6;ci++){const a=ucol(ci/6,1,0.5),b=ucol(((ci+3)%6)/6,1,0.5);DUCK_TYPES['c'+ci]={name:EFFECT_NAMES[ci][0]+EFFECT_NAMES[ci].slice(1).toLowerCase()+' Duck',axis:'Colour',detail:EFFECT_NAMES[ci]+' body · '+EFFECT_NAMES[(ci+3)%6]+' beak',tex:'c'+ci,col:[a.r,a.g,a.b],col2:[b.r,b.g,b.b]};}
+DUCK_TYPES.crystal={name:'Crystalize Duck',axis:'Colour',detail:'grey crystal that sparkles, as a CRYSTALIZE point',tex:'crystal',mat:'crystal',col:[205,212,222],col2:[245,248,255],mid:1};
+DUCK_TYPES.eclipse={name:'Eclipse Duck',axis:'Colour',detail:'black, its rim lit grey, as an ECLIPSE point',tex:'eclipse',mat:'eclipse',col:[160,160,165],col2:[160,160,165],mid:1}; // (mid: between the colours and the Rainbow)
 DUCK_TYPES.rainbow={name:'Rainbow Duck',axis:'Colour',detail:'every colour at once',tex:'rainbow',rare:1};
-[['tiny','Tiny',0.45],['small','Small',0.62],['little','Little',0.8],['big','Big',1.3],['bigger','Bigger',1.65],['huge','Huge',2.05]].forEach(([id,n,s])=>DUCK_TYPES[id]={name:n+' Duck',axis:'Size',detail:'×'+s+' size',tex:'classic',scale:s});
+[['micro','Microscopic',0.28],['tiny','Wee',0.45],['small','Tiny',0.62],['little','Small',0.8],['big','Big',1.3],['bigger','Huge',1.65],['huge','Massive',2.05],['mega','Mega',2.7]].forEach(([id,n,s])=>DUCK_TYPES[id]={name:n+' Duck',axis:'Size',detail:'×'+s+' size',tex:'classic',scale:s}); // (ids kept from the old names, so collections carry over)
 DUCK_TYPES.bighead={name:'Big Head Duck',axis:'Size',detail:'huge head, small body',tex:'classic',head:1.6,bodyS:0.68,rare:1};
-[['wood','Wooden',[176,118,64],[128,78,38]],['glass','Glass',DUCK_YEL,DUCK_ORA],['metal','Metal',[196,200,210],[150,154,166]],['dim','Dim',[150,70,30],[110,48,20]],['bright','Bright',[255,250,232],[255,226,196]],['shining','Shining',DUCK_YEL,DUCK_ORA],['gold','Gold',[255,196,52],[226,146,34]]]
-  .forEach(([id,n,c1,c2])=>DUCK_TYPES[id]={name:n+' Duck',axis:'Material',detail:id==='wood'?'wood':id==='dim'?'black, lit by a Dim Remnant glow':n.toLowerCase(),tex:id,mat:id,col:c1,col2:c2,rare:id==='gold'?1:0});
+[['wood','Wooden',[176,118,64],[128,78,38]],['shadow','Silhouette',[0,0,0],[0,0,0]],['paper','Paper',DUCK_YEL,DUCK_ORA],['glass','Glass',DUCK_YEL,DUCK_ORA],['metal','Metal',[196,200,210],[150,154,166]],['dim','Dim',[150,70,30],[110,48,20]],['bright','Bright',[255,250,232],[255,226,196]],['shining','Shining',DUCK_YEL,DUCK_ORA],['gold','Gold',[255,196,52],[226,146,34]]]
+  .forEach(([id,n,c1,c2])=>DUCK_TYPES[id]={name:n+' Duck',axis:'Material',detail:id==='wood'?'wood':id==='dim'?'black, lit by a Dim Remnant glow':id==='shadow'?'all black from any side, a Dark Remnant\'s heartbeat glowing behind it':id==='paper'?'a flat drawing of the duck, cut out, turning':n.toLowerCase(),tex:id,mat:id,col:c1,col2:c2,rare:id==='gold'?1:0});
 const DUCK_IDS=Object.keys(DUCK_TYPES);
-Object.assign(T,{duckSunA:1,duckChance:0.25,duckExoticChance:0.2,duckLuckStep:0.01,duckRareChance:0.03,duckSize:46,duckSpin:0.5,duckDrift:6,duckGloss:0.9,duckBump:1,duckTrans:0.35,duckGlow:2.5,duckMass:40,duckTumble:0.6,duckSpinDamp:0.4,duckMaxSpin:0.25,volDuck:1});
+Object.assign(T,{duckSunA:1,duckChance:0.25,duckExoticChance:0.2,duckLuckStep:0.01,duckRareChance:0.03,duckMidChance:0.06,duckSize:46,duckSpin:0.5,duckDrift:6,duckGloss:0.9,duckBump:1,duckTrans:0.35,duckGlow:2.5,duckMass:40,duckTumble:0.6,duckSpinDamp:0.4,duckMaxSpin:0.25,volDuck:1});
 TUNE_DEFS.push({sec:'Ducks',tab:'gameplay'},
  {key:'duckChance',label:'Duck chance',min:0,max:1,step:0.01,tip:'Chance a Dark Remnant comes out as a duck instead (the surface then carries on)'},
  {key:'duckExoticChance',label:'Exotic chance',min:0,max:1,step:0.01,tip:'Chance a duck is an exotic (one colour, size or material change)'},
  {key:'duckSunA',label:'Duck time-of-day light',min:0,max:1,step:0.05,tip:'How much the time of day lights the ducks: the moon overhead at midnight, the sun rising cool to warm, white at noon, setting warm, back to moonlight (0 = always noon)'},
  {key:'duckLuckStep',label:'Duck luck per miss',min:0,max:0.2,step:0.005,tip:'Added to Duck chance for every Dark Remnant that was not a duck, and to Exotic chance for every duck that was classic; back to the base on a hit (game data: carried from surface to surface and day to day)'},
  {key:'duckRareChance',label:'Rare exotic chance',min:0,max:1,step:0.005,tip:'Chance a duck is a rare exotic: Rainbow, Big Head or Gold'},
+ {key:'duckMidChance',label:'Mid exotic chance',min:0,max:1,step:0.005,tip:'Chance a duck is a mid-tier exotic, between the colours and the Rainbow: Crystalize or Eclipse'},
  {key:'duckSize',label:'Duck size',min:16,max:140,step:1,tip:'Height (px) of a classic duck on the surface'},
  {key:'duckSpin',label:'Duck turn speed',min:0,max:3,step:0.05,tip:'How fast a resting duck turns about its upright axis (radians per second); a tumble eases back to this'},
  {key:'duckDrift',label:'Duck drift',min:0,max:60,step:1,tip:'Speed (px per second) a new duck drifts off with'},
@@ -14501,8 +14504,8 @@ TUNE_DEFS.push({sec:'Ducks',tab:'gameplay'},
  {key:'duckGlow',label:'Shining duck glow',min:0,max:6,step:0.1,tip:'Size of the light a Bright or Shining duck gives off (× its size)'},
  {key:'volDuck',label:'Duck voice vol',min:0,max:3,step:0.05,tip:'Quacks and squeaks when a duck is hit',test:()=>duckVoice({type:'classic'},1)});
 function rollDuckType(){const pick=a=>a[Math.floor(Math.random()*a.length)],nx=runState.next;if(nx){runState.next=null;saveInventory();} // a fortune's promised duck
-  const r=nx==='rare'?0:nx==='exotic'?runT('duckRareChance'):Math.random();
-  if(r<runT('duckRareChance')+runT('duckExoticChance')+duckLuck.e*runT('duckLuckStep')){duckLuck.e=0;return r<runT('duckRareChance')?pick(DUCK_IDS.filter(k=>DUCK_TYPES[k].rare)):pick(DUCK_IDS.filter(k=>k!=='classic'&&!DUCK_TYPES[k].rare));} // an exotic rebases the luck
+  const rr=runT('duckRareChance'),mc=runT('duckMidChance'),r=nx==='rare'?0:nx==='exotic'?rr+mc:Math.random();
+  if(r<rr+mc+runT('duckExoticChance')+duckLuck.e*runT('duckLuckStep')){duckLuck.e=0;return r<rr?pick(DUCK_IDS.filter(k=>DUCK_TYPES[k].rare)):r<rr+mc?pick(DUCK_IDS.filter(k=>DUCK_TYPES[k].mid)):pick(DUCK_IDS.filter(k=>k!=='classic'&&!DUCK_TYPES[k].rare&&!DUCK_TYPES[k].mid));} // an exotic rebases the luck (rare, then mid, then the rest)
   duckLuck.e++;return 'classic';}
 // ── The model pipeline: SHAPE from the strip, TEXTURE from the type ──
 // One pipeline makes every type (the classic and all its exotics, and any added later). SHAPE: the side view's silhouette is
@@ -14592,7 +14595,7 @@ function duckVoice(d,imp){ // a rubber squeak (plastic ducks, mostly) or a quack
 function duckAt(mx,my){if(!ducks.length||mx<0)return null;let best=null,bd=1e9;
   for(const d of ducks){const dx=_wrapD(mx-d.x,W),dy=_wrapD(my-d.y,H),q=dx*dx+dy*dy,H0=d._hull;
     const hit=H0?!!duckHullHit(H0,dx,dy,4):q<Math.pow(duckSizeOf(d)*0.5,2);if(hit&&q<bd){bd=q;best=d;}}return best;}
-function duckInfo(d){const v=DUCK_TYPES[d.type];return[(v.rare?'★ ':'')+v.name,v.axis+(v.detail?': '+v.detail:'')+' · '+(v.rare?'rare exotic':d.type==='classic'?'classic':'exotic')+' · collected '+(duckLog[d.type]||0)+' · click to collect'];}
+function duckInfo(d){const v=DUCK_TYPES[d.type];return[duckStar(v)+v.name,v.axis+(v.detail?': '+v.detail:'')+' · '+(v.rare?'rare exotic':d.type==='classic'?'classic':'exotic')+' · collected '+(duckLog[d.type]||0)+' · click to collect'];}
 function collectDuck(d,silent){const i=ducks.indexOf(d);if(i<0)return;ducks.splice(i,1);duckLog[d.type]=(duckLog[d.type]||0)+1;surfaceTally.duck=(surfaceTally.duck||0)+1;saveInventory();
   if(!silent){const v=DUCK_TYPES[d.type];earnFx.push({kind:'plus',x:d.x,y:d.y-duckSizeOf(d)*0.6,text:'🦆 '+v.name,born:performance.now(),dur:1400});flashSaveStatus('🦆 Collected: '+v.name+' ('+duckLog[d.type]+')');}}
 function collectAllDucks(){for(const d of ducks.slice())collectDuck(d,true);}
@@ -14629,12 +14632,12 @@ function duckPondDraw(now){
   const P=duckPond;if(!P||!P.cv.isConnected){duckPond=null;return;}const c=P.c,k=P.dpr;c.clearRect(0,0,P.cv.width,P.cv.height);let envd=false;
   for(const d of P.list){d.q=quatTurn(d.q,d.wx,d.wy,0);d.wx*=0.985;d.wy*=0.985;const v=DUCK_TYPES[d.k],refl=v.mat==='metal'||v.mat==='gold'||v.mat==='glass',x=d.x*k,y=(d.y+Math.sin(now/900+d.ph)*d.h*0.03)*k;
     if(refl&&!envd){duckEnvUpdate(canvas,now);envd=true;}duckGlow(c,d.k,x,y,d.h*k,now,d.ph);drawDuck3D(c,d.k,d.q,[[x,y]],d.h*k,1,0,refl?{x:W/2,y:H/2,lights:[]}:null);}
-  const h=P.hov;if(h){const v=DUCK_TYPES[h.k];c.font=(12*k)+'px system-ui,sans-serif';c.textAlign='center';c.fillStyle='rgba(240,240,240,0.9)';c.fillText((v.rare?'★ ':'')+v.name+' × '+duckLog[h.k],h.x*k,Math.max(14*k,(h.y-h.h*0.7)*k));}}
+  const h=P.hov;if(h){const v=DUCK_TYPES[h.k];c.font=(12*k)+'px system-ui,sans-serif';c.textAlign='center';c.fillStyle='rgba(240,240,240,0.9)';c.fillText(duckStar(v)+v.name+' × '+duckLog[h.k],h.x*k,Math.max(14*k,(h.y-h.h*0.7)*k));}}
 function drawDuckIcon(c,S,type){const k=DUCK_TYPES[type]?type:'classic';drawDuck3D(c,k,DUCK_ICON_Q,[[S/2,S/2]],S*0.8/(DUCK_TYPES[k].head?1.25:1),1);}
 function openDuckViewer(type){
   if(document.getElementById('duckView')||!DUCK_TYPES[type])return;const v=DUCK_TYPES[type],dpr=Math.min(2,window.devicePixelRatio||1),SZ=Math.max(200,Math.min(560,innerWidth-40,innerHeight-110)),N=Math.round(SZ*dpr);
   const ov=document.createElement('div');ov.id='duckView';ov.style.cssText='position:fixed;inset:0;z-index:100000;background:rgba(0,0,0,0.8);display:flex;flex-direction:column;align-items:center;justify-content:center;font:13px system-ui,sans-serif;color:#eee;touch-action:none';
-  ov.innerHTML='<div style="margin-bottom:6px;text-align:center"><b>'+(v.rare?'★ ':'')+gEsc(v.name)+'</b> × '+(duckLog[type]||0)+'<br><span style="opacity:.7">'+(v.scale?'×'+v.scale+' the size of the classic duck (the faint outline) · ':'')+'drag to turn · wheel or pinch to zoom · double-click to reset · Esc to close</span></div><canvas width="'+N+'" height="'+N+'" style="position:relative;left:auto;top:auto;display:block;width:'+SZ+'px;height:'+SZ+'px;cursor:grab;border-radius:10px;background:radial-gradient(#2a2a33,#0d0d12)"></canvas>';
+  ov.innerHTML='<div style="margin-bottom:6px;text-align:center"><b>'+duckStar(v)+gEsc(v.name)+'</b> × '+(duckLog[type]||0)+'<br><span style="opacity:.7">'+(v.scale?'×'+v.scale+' the size of the classic duck (the faint outline) · ':'')+'drag to turn · wheel or pinch to zoom · double-click to reset · Esc to close</span></div><canvas width="'+N+'" height="'+N+'" style="position:relative;left:auto;top:auto;display:block;width:'+SZ+'px;height:'+SZ+'px;cursor:grab;border-radius:10px;background:radial-gradient(#2a2a33,#0d0d12)"></canvas>';
   document.body.appendChild(ov);const cv=ov.querySelector('canvas'),c=cv.getContext('2d'),ptr=new Map();let q=DUCK_ICON_Q.slice(),zoom=1,auto=true,run=true,pd=0;
   const close=()=>{run=false;ov.remove();document.removeEventListener('keydown',key,true);};
   const key=e=>{if(e.key==='Escape'){close();e.stopPropagation();e.preventDefault();}};document.addEventListener('keydown',key,true);
@@ -14655,7 +14658,7 @@ SCENES.duck={dur:6500,setup(S){S.ps=[];S.ring(6,30,60,(x,y,i)=>S.ps.push(S.pig(x
 RULE_TAB_COST.ducks=0;RULE_BLURB.ducks='Rubber ducks you have collected. Each type you find joins the collection.';
 RULES.push(
 ["duck","ducks","Rubber Duck","duck:classic","Sometimes a Dark Remnant comes out as a rubber duck instead, and the surface carries on.",[["Chance","Every Dark Remnant has a chance (Duck chance) to be a duck. It cannot happen when only remnants and relics are left."],["Collect","Click a duck to collect it. Ducks are not items: they go into your collection."],["Cleared","Ducks still on a cleared surface are collected for you."],["Feed","Hover a duck to see its type and variation."],["Solid","Things bounce off a duck the way they bounce off a CRYSTALIZE point. It never breaks, and every hit makes it squeak or quack."],["Tumbles","It is a real 3D duck: any push it gets on the surface also tumbles it."],["Dark","Nothing consumes a duck, except a Dark Remnant before you collect it."],["Collection","Your ducks sit together at true size. Swipe across one to spin it; click it to turn it and zoom in."]]],
-["duckexo","ducks","Exotic ducks","duck:rainbow","A duck can be an exotic: the classic duck with ONE thing changed.",[["Colour","Six effect colours (body, with the opposite colour on the beak), plus Rainbow."],["Size","Tiny, Small, Little, Big, Bigger, Huge, plus Big Head."],["Material","Wood, Glass, Metal, Dim, Bright, Shining, plus Gold."],["Rare","Rainbow, Big Head and Gold are rarer than the other exotics."],["One change","Exotics never mix: there is no tiny rainbow metal duck."]]]);
+["duckexo","ducks","Exotic ducks","duck:rainbow","A duck can be an exotic: the classic duck with ONE thing changed.",[["Colour","Six effect colours (body, with the opposite colour on the beak), then Crystalize and Eclipse (as those points), then Rainbow."],["Size","Microscopic, Wee, Tiny, Small, Big, Huge, Massive, Mega, plus Big Head."],["Material","Wood, Silhouette (all black from any side, a Dark Remnant's heartbeat behind it), Paper (a flat drawing of the duck, cut out and turning), Glass, Metal, Dim, Bright, Shining, plus Gold."],["Mid (☆)","Crystalize and Eclipse are rarer than the other exotics (Mid exotic chance)."],["Rare (★)","Rainbow, Big Head and Gold are the rarest (Rare exotic chance)."],["One change","Exotics never mix: there is no tiny rainbow metal duck."]]]);
 Object.assign(RULE_EV,{duck:'duck',duckexo:'duck'});Object.assign(RULE_SCENES,{duck:['duck']});
 // ═════════════════════════ RIFT ═════════════════════════
 // The mechanics trend toward ever more mass in fewer places. A Rift (a Tear): when the mass of everything on the surface inside one
