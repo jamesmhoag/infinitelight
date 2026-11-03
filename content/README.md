@@ -5,9 +5,11 @@ The game's lists, prices, tuned values and text live in these CSV files. Edit th
 ## How the files work
 
 - **Commas, quotes and line breaks.** Keep the header row. A cell with a comma, a quote or a line break is wrapped in `"…"`, and a quote inside it is doubled (`""`). Spreadsheets do this for you.
-- **`{…}` in text.** Braces are filled in as the text shows:
-  - `{0}`, `{1}`… are values the code passes in, such as a count or a name. Keep them, but you can move them around the sentence.
-  - Anything else in braces is worked out from the game's state. For example, `{Math.round(T.duckChance*100)}` shows the current duck chance as a percentage.
+- **`{…}` in text.** Braces are values filled in as the text shows:
+  - **`{name}` in `strings.csv`:** the row's last column, `values`, lists each name it uses, one per line: `name = $0 — what it is`. `$0`, `$1`… are the values the code passes in, in order. You can rename a name (in both the text and the `values` line), move it around the sentence, change its description, or replace `$0` with another expression, for example `T.duckChance*100`.
+  - **Shared values:** the `value.<name>` rows at the end of `strings.csv` are values any text can use, in any file (events and Guide entries too). Each one's `text` is the expression and its `values` cell says what it is. Edit the expression to change what every `{name}` using it shows.
+  - **`{0}`, `{1}`…** are values the code passes in, in order. They're still used in `fortunes.csv`, where `{0}` is the duck.
+  - **Anything else in braces** is worked out from the game's state, for example `{Math.round(T.duckChance*100)}`.
 - **Empty cells.** An empty cell means "none" or "not set".
 - **Ids.** Ids (`id`, `key`) are how the code finds a row, so don't rename them. New rows of a kind the code already handles work straight away, for example a new shop item using an existing effect.
 
@@ -24,7 +26,7 @@ The game's lists, prices, tuned values and text live in these CSV files. Edit th
 | `guide.csv` | The Guide's entries. | `id`, `tab`, `name`, `icon`, `text`, `details` (one per line: `label | text`) |
 | `ducks.csv` | Every duck. | `id`, `name`, `axis`, `detail`, `tex`, `mat`, `col` / `col2` (body and beak as `r g b`), `scale`, `head`, `body`, `rare`, `mid` |
 | `letters.csv` | The messages in the bottles. Add new ones at the end: the letters you've found are saved by their position. | `n`, `text`, `from` |
-| `strings.csv` | Every other piece of text: buttons, feed messages, hints, menus, card labels, Status. | `key`, `text`, `where` (which part of the game) |
+| `strings.csv` | Every other piece of text: buttons, feed messages, hints, menus, card labels, Status. Then, at the end, the shared values (`value.<name>`). | `key`, `text`, `where` (which part of the game), `values` (what each `{name}` in the text is) |
 
 ## Shop item effects (`effect`)
 

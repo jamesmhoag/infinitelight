@@ -176,9 +176,9 @@ body{
   </div>
   <div id="veil"></div>
   <!-- The game, loaded hidden: it holds the Guide, the sound setting, the items and the discoveries -->
-  <iframe id="neb" src="chromatic_nebula.html?hub=1&v=20261103k" title="Guide"></iframe>
+  <iframe id="neb" src="chromatic_nebula.html?hub=1&v=20261103m" title="Guide"></iframe>
 
-<script src="content.js?v=20261103k"></script>
+<script src="content.js?v=20261103m"></script>
 <script>txtApply();
 // Audio context
 const AudioContext = window.AudioContext || window.webkitAudioContext;
@@ -216,11 +216,11 @@ const MAP_KEY = 'il_map_v1';
 let saved = null; try{ saved = JSON.parse(localStorage.getItem(MAP_KEY)||'null'); }catch(e){}
 const contBtn = document.getElementById('continueBtn'), startBtn = document.getElementById('startBtn');
 if(saved && saved.cells){ contBtn.hidden = false; startBtn.textContent = txt('title.newmap'); }
-contBtn.onclick = () => { location.href = 'Surface_Map_HUB.html' + (saved.session ? '?resume=1' : ''); };
+contBtn.onclick = () => { loading('leave',true); setTimeout(()=>{ location.href = 'Surface_Map_HUB.html' + (saved.session ? '?resume=1' : ''); },300); }; // (the map's own loading screen picks up from this one)
 startBtn.onclick = () => {
   if(saved && saved.cells && !confirm('Start a new map? Your items and discoveries are kept.')) return;
   try{ localStorage.removeItem(MAP_KEY); }catch(e){}
-  const go = () => { location.href = 'Surface_Map_HUB.html'; };
+  const go = () => { loading('leave',true); setTimeout(()=>{ location.href = 'Surface_Map_HUB.html'; },300); };
   try{ const r = indexedDB.open('infiniteLight',1); r.onupgradeneeded = () => r.result.createObjectStore('kv');
     r.onsuccess = () => { const tx = r.result.transaction('kv','readwrite'); tx.objectStore('kv').delete('session'); tx.oncomplete = go; tx.onerror = go; };
     r.onerror = go; }catch(e){ go(); }
