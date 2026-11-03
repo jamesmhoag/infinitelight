@@ -34,6 +34,7 @@ dim,rift,,,,The dark gathers closer.,"A Rift tears the surface with 10,000 less 
 dim,slow,,,,Your light is dim.,Strings and Weaves each take a second longer to earn.,
 dim,holiday,,,,A dim holiday.,"No pop-up shop opens, and main street closes a time of day early.",
 dim,laps,,,,Dimness drags.,"A Spindle needs one more orbit, a Weave one more point, and constellations pay every other time of day.",
+dim,dangerift,,Dangerift,,The tear is hungry.,"A Rift eats what touches it: a bright clear beside a Rift is removed, and a dark one becomes Rift too (and so on). Checked after every clear.",
 wonder,boom,,Boom or Bust,,"Step right up: five times the light, or none at all.",Every collection today is ×5 or nothing (50 / 50),collect
 wonder,inf,leash,Endless Spindles,,"One thread that never ends, and nothing else to tie it to.","Spindles never run out today, but your Strings and Weaves are lost, and none come",unwind
 wonder,inf,dial,Endless Strings,,Go anywhere you like. Only go.,"Strings never run out today, but your Spindles and Weaves are lost, and none come",stringhome

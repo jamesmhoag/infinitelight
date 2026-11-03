@@ -52,8 +52,8 @@ u_pul,bright,Use Pulsing Remnants,500000,,3,"{""up"":1}",,,
 d_bright,bright,Random Duck,5000000,,3,"{""duck"":""roll""}",,,"Dupes possible, no variations"
 pure_bright,bright,Pure Brightness,9999999,,3,"{""up"":1}",,,
 secret,dim,A Card of Secrets,50,bright,1,"{""draw"":""secret""}",,,Pick one of three face-down cards: what it hides (an event or a Guide entry you have not found) is discovered for good · once a day
-fortune,dim,Fortune Telling,200,bright,1,"{""draw"":""fortune""}",,,Pick one of three face-down cards: a good or a bad fortune (50 / 50) for the rest of the day · once a day
-wonder,dim,A Daily Wonder,2000,bright,1,"{""draw"":""daily""}",,,"Draw three powerful bonuses for today, each with a catch, and keep one · once a day"
+fortune,dim,Fortune Telling,200,bright,1,"{""draw"":""fortune""}",,,"Pick one of three face-down cards: a good fortune for the rest of today, or a dim one for tomorrow (50 / 50) · once a day"
+wonder,dim,A Daily Wonder,2000,bright,1,"{""draw"":""daily""}",,,"Draw three powerful bonuses, each with a catch, and keep one for a full day (until this time of day tomorrow) · once a day"
 cap_dial1,neutron,Max Strings 5>10,10,,1,"{""cap"":{""dial"":10}}",,,
 cap_dim1,neutron,"Max Faint 9,999>999,999",50,,1,"{""cap"":{""dim"":999999}}",,,
 cap_bri1,neutron,"Max Bright 9,999>999,999",50,,1,"{""cap"":{""bright"":999999}}",,,
