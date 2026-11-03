@@ -134,7 +134,7 @@ body.thru .shop{pointer-events:none} /* an armed map item, or the open source, r
 <div id="veil"></div>
 <canvas id="hcur"></canvas>
 <iframe id="neb" title="Surface"></iframe>
-<script src="shared.js?v=20261102zf"></script>
+<script src="shared.js?v=20261102zg"></script>
 <script>
 // ╔══════════════════════════════════════════════════════════════════════════════╗
 // ║  MAP ENGINE                                                                 ║
@@ -150,7 +150,7 @@ let clock=3,day=1,pool=6,fresh=true,burstFx=null,dayLog=[],dayCnt={b:0,d:0},pend
 // // clock: the hour (3 = Twilight … 24 = Midnight, the day's last turn); day: your attempts; pool: what the source put out at its last burst; fresh: no ring added yet since it
 let constel=[],armed=null,weaveSel=[],weaveAsk=null,clearFx={},mergeFx=[],feedMsg={t:'',d:'',at:-1e9}; // constellations {keys,type}; the armed map item; a Weave being drawn; animations; the final count
 const TIMES={3:'Twilight',6:'Dawn',9:'Morning',12:'Noon',15:'Afternoon',18:'Dusk',21:'Night',24:'Midnight'},STEP_H=3; // the day: eight turns of three hours
-const CACHE_V='20261102zf'; // the build: bump with shared.js's
+const CACHE_V='20261102zg'; // the build: bump with shared.js's
 const SCENE=new URLSearchParams(location.search).get('scene'); // a Guide / event demo: the map plays a scripted moment (no surface behind it)
 let phase='move',turnTimer=0,mergeTimer=0;
 let gameOverReason='';
@@ -233,7 +233,7 @@ function newMap(){ // a new map, a descent and every midnight: the source at the
 function descendDepth(){if(!voidOpen)return;depth++;newMap();showTurn();focusCam(false);updateHint();showMergeFlash(`Descended to D${depth}`);hubEvent('map_descend');saveMap();}
 function focusCam(a){const[wx,wy]=a2w(pQ,pR);camTX=wx;camTY=wy;if(!a){camX=camTX;camY=camTY;}}
 function initGame(){ // a new map: score and depth start over; items, resources and discoveries live in the surface's save and are kept
-  score=0;depth=0;clock=3;day=1;dayLog=[];dayCnt={b:0,d:0};pendingEnd=null;newMap();
+  score=0;depth=0;clock=3;_sunH=3;day=1;dayLog=[];dayCnt={b:0,d:0};pendingEnd=null;newMap();
   showTurn();mapResize();focusCam(false);updateHint();saveMap();
 }
 function advanceTurn(){ // time moves on (a move, or a bright clear) by one time of day; the spill spreads a ring, except the first turn after a burst
@@ -412,7 +412,7 @@ function mapResize(){hubLog('resize / zoom');SW=innerWidth;SH=innerHeight;const 
   mc.width=Math.round(MW*MK);mc.height=Math.round(MH*MK);const dp=window.devicePixelRatio||1;sc.width=Math.round(SW*dp);sc.height=Math.round(SH*dp);camUpdate();}
 function zoomView(f){const z=Math.max(T.mapZoomMin||0.55,Math.min(T.mapZoomMax||1.8,viewZoom*f));if(z===viewZoom)return;viewZoom=z;const E=1.3/Math.min(1,z);if(Math.abs(E-_E)>0.12||z>1)mapResize();else camUpdate();}
 // ── drawing the scene: the plane (mc, uploaded as a texture) as the ground, then the ducks on it, in true 3D with the same camera
-let G3=null;
+let G3=null,_sunH=3,_sunT=0; // _sunH: the hour the ducks are lit for (eased to the clock)
 function sceneInit(){
   const gl=sc.getContext('webgl',{alpha:false,antialias:true,premultipliedAlpha:true});if(!gl)return null;
   const sh=(t,src)=>{const o=gl.createShader(t);gl.shaderSource(o,src);gl.compileShader(o);return o;},pr=gl.createProgram();
@@ -429,6 +429,8 @@ function sceneRender(now){
   gl.bindBuffer(gl.ARRAY_BUFFER,G3.buf);gl.enableVertexAttribArray(G3.aP);gl.vertexAttribPointer(G3.aP,2,gl.FLOAT,false,0,0);for(let i=0;i<3;i++)gl.disableVertexAttribArray(i+1); // the ground (its texture: y runs down, as the plane's)
   gl.uniformMatrix4fv(G3.uPV,false,cam.pv);gl.uniform2f(G3.uS,MW,MH);gl.drawArrays(gl.TRIANGLE_STRIP,0,4);
   if(!G3.duck)return;let envd=false;
+  {let tg=clock;if(tg<_sunH-12)tg+=24;_sunH+=(tg-_sunH)*Math.min(1,0.025*(now-(_sunT||now))/16.7);_sunT=now;if(_sunH>=24&&clock<12)_sunH-=24; // the time of day's light eases round to the new hour
+    const s=duckSun(_sunH),R=cam.viewRot,l=[s.d[0],-s.d[1],s.d[2]];DUCK_SUN={d:[0,1,2].map(i=>R[i]*l[0]+R[3+i]*l[1]+R[6+i]*l[2]),c:s.c};} // (the plane's y runs down the screen)
   const ra=T.mapDuckRefl!=null?T.mapDuckRefl:0.4; // ducks are mirrored in the surface beneath them
   if(ra>0){gl.clear(gl.DEPTH_BUFFER_BIT);for(const d of pond){if(!d._s)continue;const[px,py]=w2s(d.x,d.y),[X,Y,k]=proj(px,py),f=[Math.cos(d.hd),Math.sin(d.hd),0],size=d._s,bob=size*(0.36+0.03*Math.sin(now/700+d.ph));if(d._dz<0)continue; // (no mirror image while it is under)
     drawDuckScene(G3.duck,d.type,{rot:new Float32Array([f[0],f[1],0, 0,0,-1, -f[1],f[0],0]),size,pos:[px-MW/2,py-MH/2,-bob],view:cam.view,proj:cam.proj,viewRot:cam.viewRot,env:{x:X,y:Y,lights:[]},px:size*k,alpha:ra*(d.fade!=null?d.fade:1),mirror:true});}
@@ -707,7 +709,7 @@ function loadMap(){
   let d=null;try{d=JSON.parse(localStorage.getItem(MAP_KEY)||'null');}catch(e){}
   if(!d||!d.cells)return false;
   if(d.v!==3)return false; // a map from before the times of day starts over
-  ({cells,turn,clock,day,pool,fresh,constel,dayLog,dayCnt,pendingEnd,score,pQ,pR,totalCells,phase,depth,gameOverReason,captureOrder,mergeGroups,mergeIdCounter,voidOpen}=d);nebulaCellKey=d.session||null;dayLog=dayLog||[];dayCnt=dayCnt||{b:0,d:0};
+  ({cells,turn,clock,day,pool,fresh,constel,dayLog,dayCnt,pendingEnd,score,pQ,pR,totalCells,phase,depth,gameOverReason,captureOrder,mergeGroups,mergeIdCounter,voidOpen}=d);nebulaCellKey=d.session||null;_sunH=clock;dayLog=dayLog||[];dayCnt=dayCnt||{b:0,d:0};
   if(pendingEnd)finishDay();else if(phase==='collapse')phase='move';else if(phase==='ended')showDayReport(); // a day left falling in finishes at once; a won run shows its report
   mapResize();focusCam(false);updateHint();return true;
 }
@@ -722,7 +724,7 @@ function enterNebula(cellKey){
   const c=cells[cellKey];
   currentView='level';showNeb(true);
   const resume=nebulaCellKey===cellKey;nebulaCellKey=cellKey;saveMap();
-  neb({cmd:'level',key:cellKey,seed:cellSeed(c),cov:cellCov(c),q:c.q,r:c.r,label:`(${c.q},${c.r}) · value ${c.v.toFixed(2)}`,resume});
+  neb({cmd:'level',key:cellKey,seed:cellSeed(c),cov:cellCov(c),q:c.q,r:c.r,label:`(${c.q},${c.r}) · value ${c.v.toFixed(2)}`,resume,clock}); // clock: the hour its ducks are lit for
 }
 function exitNebula(){currentView='map';const t=performance.now();for(const k in clearFx)if(clearFx[k].t0==null)clearFx[k].t0=t+250;showNeb(false);mapResize();pondSpawn();startMapLoop();updateHint();evPump();}
 let evQ=[];
