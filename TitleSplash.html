@@ -168,6 +168,7 @@ body{
     <button id="continueBtn" hidden data-tx="title.continue"></button>
     <button id="startBtn" data-tx="title.start"></button>
     <button id="guideBtn" data-disc="main_guide" data-tx="title.guide"></button>
+    <button id="buildBtn" hidden data-tx="title.build"></button>
   </div>
   <!-- Sound -->
   <div class="audio-controls">
@@ -176,9 +177,9 @@ body{
   </div>
   <div id="veil"></div>
   <!-- The game, loaded hidden: it holds the Guide, the sound setting, the items and the discoveries -->
-  <iframe id="neb" src="chromatic_nebula.html?hub=1&v=20261103r" title="Guide"></iframe>
+  <iframe id="neb" src="chromatic_nebula.html?hub=1&v=20261103w" title="Guide"></iframe>
 
-<script src="content.js?v=20261103r"></script>
+<script src="content.js?v=20261103w"></script>
 <script>txtApply();
 // Audio context
 const AudioContext = window.AudioContext || window.webkitAudioContext;
@@ -225,6 +226,9 @@ startBtn.onclick = () => {
     r.onsuccess = () => { const tx = r.result.transaction('kv','readwrite'); tx.objectStore('kv').delete('session'); tx.oncomplete = go; tx.onerror = go; };
     r.onerror = go; }catch(e){ go(); }
 };
+// ~ shows Build mode: a surface for making and testing scenes and prefabs (nothing in it is saved to your game)
+document.addEventListener('keydown', e => { if(e.code==='Backquote' && !nebEl.classList.contains('show')){ const b=document.getElementById('buildBtn'); b.hidden=!b.hidden; } });
+document.getElementById('buildBtn').onclick = () => { loading('leave',true); setTimeout(()=>{ location.href = 'chromatic_nebula.html?build=1'; },300); };
 // The Guide: shown by the game in its own overlay; it must be discovered first
 document.getElementById('guideBtn').onclick = () => { if(!nebReady) return; nebEl.classList.add('show'); nebEl.focus(); neb({cmd:'guide'}); };
 window.addEventListener('message', e => {

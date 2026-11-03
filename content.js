@@ -6,9 +6,11 @@ function csvParse(t){const rows=[];let row=[],f='',q=false;t=t.replace(/^﻿/,''
   for(let i=0;i<t.length;i++){const c=t[i];if(q){if(c==='"'){if(t[i+1]==='"'){f+='"';i++;}else q=false;}else f+=c;}else if(c==='"')q=true;else if(c===','){row.push(f);f='';}
     else if(c==='\n'||c==='\r'){if(c==='\r'&&t[i+1]==='\n')i++;row.push(f);f='';if(row.length>1||row[0]!=='')rows.push(row);row=[];}else f+=c;}
   if(f!==''||row.length){row.push(f);rows.push(row);}const h=(rows.shift()||[]).map(k=>k.trim());return rows.map(r=>{const o={};h.forEach((k,i)=>o[k]=r[i]==null?'':r[i]);return o;});}
-function csvRead(name){ // synchronous, so the code that builds on it has it at once (revalidated each load: an edit shows on the next reload)
-  const x=new XMLHttpRequest();x.open('GET','content/'+name+'.csv',false);try{x.setRequestHeader('Cache-Control','no-cache');}catch(e){}x.send();
-  if(x.status&&x.status!==200)throw new Error('content/'+name+'.csv could not be read ('+x.status+')');return csvParse(x.responseText);}
+function contentText(f,opt){ // a content file's text: synchronous, so the code that builds on it has it at once (revalidated each load: an edit shows on the next reload); opt: it may be missing ('')
+  const x=new XMLHttpRequest();x.open('GET','content/'+f,false);try{x.setRequestHeader('Cache-Control','no-cache');}catch(e){}try{x.send();}catch(e){if(opt)return'';throw e;}
+  if(x.status&&x.status!==200){if(opt)return'';throw new Error('content/'+f+' could not be read ('+x.status+')');}return x.responseText;}
+function csvRead(name){return csvParse(contentText(name+'.csv'));}
+function jsonRead(name){try{return JSON.parse(contentText(name+'.json',true)||'{}')||{};}catch(e){console.error('content/'+name+'.json',e);return{};}} // (levels and prefabs made in Build mode)
 const cellV=s=>{s=String(s==null?'':s).trim();return s===''?'':s==='true'?true:s==='false'?false:/^-?(\d+\.?\d*|\.\d+)(e[-+]?\d+)?$/i.test(s)?+s:s;}; // a cell as a number / true / false / text
 const cu=s=>s===''||s==null?undefined:cellV(s); // an empty cell: no value
 const cvJ=s=>{s=String(s||'').trim();if(!s)return null;try{return JSON.parse(s);}catch(e){console.error('content: not JSON',s);return null;}}; // a cell holding a small JSON value (an effect)

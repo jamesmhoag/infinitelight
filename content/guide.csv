@@ -256,6 +256,7 @@ Material | Wood, Silhouette (all black from any side, a Dark Remnant's heartbeat
 Mid (☆) | Crystalize and Eclipse are rarer than the other exotics (Mid exotic chance).
 Rare (★) | Rainbow, Big Head and Gold are the rarest (Rare exotic chance).
 One change | Exotics never mix: there is no tiny rainbow metal duck."
-rift,rem,Rift,dark,"When too much mass gathers in one place, the surface tears and a Dark Remnant forms there.","When | The mass of everything inside one area (about twice Rift area across) reaches Rift mass.
-Always | A Rift is always a Dark Remnant, never a duck.
-Ends | Like any Dark Remnant, it draws in the whole surface. Inside a Gate it is locked in."
+rift,rem,Rift,dark,"When too much mass gathers in one place, the surface cracks across like glass and tears open along the crack.","When | The mass of everything inside one area (about twice Rift area across) reaches Rift mass.
+Opens | A crack runs across the screen at a random angle through that mass, then opens into a jagged black stripe (Rift width). Whatever it opens over is lost.
+Ends | A wave runs out from it on both sides and draws everything straight across to it, as a Dark Remnant does. Remnants can still be collected at the last second; the rest are destroyed.
+On the map | The hex is gone, a scar, and the hexes beside it are drained of their particles. You cannot move over a Rift, and a String cannot shoot through one. Scars side by side join into one edge, three into a triangle. They are gone at Midnight."

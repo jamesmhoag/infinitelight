@@ -90,9 +90,7 @@ button:hover{background:rgba(255,255,255,0.15);}
     <button id="tb" onclick="toggleTrails()" data-tx="surf.ui.trails_off"></button>
     <button id="mb" onclick="toggleMute()" data-tx="surf.ui.sound_off"></button>
     <button id="pvb" onclick="toggleParticleView()" data-tx="surf.ui.particle_map_off"></button>
-    <button id="cib" onclick="toggleCreateItem()" data-tx="surf.ui.create_item_off"></button>
     <button id="stb" onclick="toggleSettleMode()" data-tx="surf.ui.settle_swap"></button>
-    <button id="icb" onclick="toggleItemCache()" data-tx="surf.ui.item_cache_hidden"></button>
     <button id="nsb" onclick="toggleNebShape()" data-tx="surf.ui.cell_shape"></button>
     <button id="cmb" onclick="toggleCoverageMode()" data-tx="surf.ui.coverage_blob"></button>
     <button id="ivb" onclick="toggleInvertMode()" data-tx="surf.ui.invert_off"></button>
@@ -114,7 +112,7 @@ button:hover{background:rgba(255,255,255,0.15);}
   <div id="dock" class="bottom"><div id="inventoryPanel"></div><div id="touch-info"></div></div>
   <canvas id="cur"></canvas>
 </div>
-<script src="content.js?v=20261103r"></script><script src="shared.js?v=20261103r"></script>
+<script src="content.js?v=20261103w"></script><script src="shared.js?v=20261103w"></script>
 <script>
 txtApply(); // the page's own labels (content/strings.csv)
 const _SRC=document.documentElement.outerHTML; // kept so the Encyclopedia can run live scenes as embedded copies of the game
@@ -2062,7 +2060,7 @@ function invMerge(saved){if(!saved)return false;let ch=false;const rk=_discReset
   if(!rk&&saved.ducks&&typeof saved.ducks==='object')for(const k in saved.ducks){const n=saved.ducks[k]|0;if(n>(duckLog[k]||0)){duckLog[k]=n;ch=true;}} // (a Gift Shop wipe: nothing is merged back)
   return ch;}
 function saveInventory(){
-  if(window.__SCENE)return;
+  if(window.__SCENE||BUILD)return; // (Build mode: nothing it does is kept)
   syncKeyShapes();
   try{const raw=localStorage.getItem(INV_STORAGE_KEY);if(raw)invMerge(JSON.parse(raw));}catch(e){}
   const js=JSON.stringify(invPayload());_discReset=false;
@@ -4325,15 +4323,8 @@ function gateDefaultCursor(){return gateStates.length;} // arming defaults to th
 
 // The Create item: infinite, only present while the "Create item" mode is on. While it is armed the create tool is live
 // (middle-click steps the type, wheel the colour/kind); putting it away (click again / right-click) returns the normal cursor.
-let createItemMode=false;
+let createItemMode=false; // (on in Build mode only)
 function createActive(){return !!(armedInvItem&&armedInvItem.kind==='create');}
-function toggleCreateItem(){
-  createItemMode=!createItemMode;
-  if(!createItemMode&&createActive())armedInvItem=null;
-  const b=document.getElementById('cib');if(b)b.textContent=txt('surf.create_item',(createItemMode?txt('surf.on_2'):txt('surf.off_2')));
-  updateInventoryUI();
-}
-window.toggleCreateItem=toggleCreateItem;
 function armInventoryItem(kind){
   if(kind==='cache-disable'){invDisableMode=!invDisableMode;updateInventoryUI();flashSaveStatus((invDisableMode?txt('surf.disable_mode_click_an'):txt('surf.disable_mode_off')));return;}
   if(invDisableMode&&INV_KINDS.includes(kind)){if(invDisabled.has(kind))invDisabled.delete(kind);else{invDisabled.add(kind);if(armedInvItem&&armedInvItem.kind===kind)armedInvItem=null;if(conMode&&conKind===kind)setConMode(false);}saveInventory();updateInventoryUI();return;}
@@ -4422,7 +4413,8 @@ function wheelOnSpeedCtl(e){
 // ── Discoveries: an element is hidden until you hover it while holding at least its Dim cost (nothing is spent). Locked ones show only their cost on hover. ──
 const DISC_MAP=[['#hud button[onclick^="rebuild"]','hud_rebuild'],['#modesbtn','hud_modes'],['#tunebtn','hud_tune'],['#hud button[onclick*="importImage"]','hud_image'],['#hud button[onclick^="clearSourceImage"]','hud_clearimg'],['#pb','mode_pause'],['#tb','mode_trails'],['#mb','mode_sound'],['#pvb','mode_particlemap'],['#cib','mode_create'],['#stb','mode_settle'],['#icb','mode_cache'],['#nsb','mode_shape'],['#cmb','mode_coverage'],['#ivb','mode_invert'],['#rdb','mode_radii'],['#tlb','mode_telemetry'],['#dyb','mode_dynamics'],['#clb','mode_class'],['#modesPanel button[onclick^="clearStage"]','mode_clearstage'],['#modesPanel button[onclick^="saveMap"]','mode_savemap'],['#modesPanel button[onclick*="importMapFile"]','mode_loadmap'],['#stColl','stats_collapse'],['#stLine','stats_line'],['#stLog','stats_log']];
 let discHoverId=null,_discN=0;
-function discCostOf(id){const p=id.slice(0,3);return (p==='of_'||p==='ot_')?(T['dc_obj_'+id.slice(3)]||0):(T['dc_'+id]||0);}
+function discCostOf(id){if(BUILD)return 0; // (Build mode: everything is there)
+  const p=id.slice(0,3);return (p==='of_'||p==='ot_')?(T['dc_obj_'+id.slice(3)]||0):(T['dc_'+id]||0);}
 function discHas(id){return !!window.__SCENE||discCostOf(id)<=0||discSeen.has(id);}
 function discTry(id){if(discHas(id))return true;if(inventory.dim>=discCostOf(id)){discSeen.add(id);saveInventory();return true;}return false;}
 function objKey(p){ // which object TYPE this is (feed and telemetry are unlocked per type)
@@ -4438,7 +4430,7 @@ function feedLock(p){const id='of_'+objKey(p);if(discHas(id))return false;if(pre
 function applyDisc(){
   for(const m of DISC_MAP){const el=document.querySelector(m[0]);if(el)el.dataset.disc=m[1];}
   document.querySelectorAll('#inventoryPanel .slot').forEach(el=>{el.dataset.disc='slot_'+el.dataset.kind;});
-  document.querySelectorAll('[data-disc]').forEach(el=>{const id=el.dataset.disc,cost=T['dc_'+id]||0,lock=cost>0&&!discSeen.has(id);el.classList.toggle('disc-lock',lock);if(lock)el.dataset.cost=fmtCount(cost);});
+  document.querySelectorAll('[data-disc]').forEach(el=>{const id=el.dataset.disc,cost=BUILD?0:T['dc_'+id]||0,lock=cost>0&&!discSeen.has(id);el.classList.toggle('disc-lock',lock);if(lock)el.dataset.cost=fmtCount(cost);});
 }
 function discReveal(id){
   discSeen.add(id);saveInventory();
@@ -4467,6 +4459,7 @@ window.resetDiscoveries=resetDiscoveries;
 for(const ev of ['mousedown','mouseup','click','dblclick','contextmenu','wheel'])document.addEventListener(ev,e=>{const el=e.target.closest&&e.target.closest('.disc-lock');if(el){e.stopPropagation();e.preventDefault();}},true); // an undiscovered element cannot be used
 function updateInventoryUI(){
   if(runBonus(runState,'inf'))inventory[runState.bonus.item]=invMaxFor(runState.bonus.item); // an Endless … day: never runs out
+  if(BUILD)for(const k of INV_KINDS)inventory[k]=Math.max(1,invMaxFor(k)); // Build mode: every item, endless
   const el=document.getElementById('inventoryPanel');
   if(!el)return;
   const show=true; // the inventory is reachable whether paused or not
@@ -4489,13 +4482,12 @@ function updateInventoryUI(){
     html+=`<div class="slot${armed?' armed':''}${count<=0?' empty':''}${invDisabled.has(kind)?' dis':''}${(invFlash.kind===kind&&performance.now()-invFlash.at<900)?' flash':''}" data-kind="${kind}"
       data-arm="1">
       <div class="ic">${kind==='dial'?DIAL_SVG:(ICON_SVG[kind]||INV_ICON[kind])}</div>
-      <div class="cnt">${fmtCount(count)}</div>
+      <div class="cnt">${BUILD?'∞':fmtCount(count)}</div>
     </div>`;
   }
   if(itemCacheMode){
-    html+=`<div class="slot cache" data-kind="cache-clear" data-arm="1"><div class="ic">✖</div><div class="cnt">clear</div></div>
-    <div class="slot cache" data-kind="cache-fill" data-arm="1"><div class="ic">⤒</div><div class="cnt">fill</div></div>
-    <div class="slot cache${invDisableMode?' armed':''}" data-kind="cache-disable" data-arm="1"><div class="ic">⦸</div><div class="cnt">off</div></div>`;
+    html+=(BUILD?'':`<div class="slot cache" data-kind="cache-clear" data-arm="1"><div class="ic">✖</div><div class="cnt">clear</div></div>
+    <div class="slot cache" data-kind="cache-fill" data-arm="1"><div class="ic">⤒</div><div class="cnt">fill</div></div>`)+`<div class="slot cache${invDisableMode?' armed':''}" data-kind="cache-disable" data-arm="1"><div class="ic">⦸</div><div class="cnt">off</div></div>`;
   }
   if(createItemMode){
     html+=`<div class="slot create${createActive()?' armed':''}" data-kind="create" data-arm="1">
@@ -5302,6 +5294,7 @@ function breakAllCreations(now){ // a surface clear (bright OR dark) breaks ever
   try{destroyField(now);}catch(e){} try{bhBreakFixtures(now);}catch(e){}
 }
 function checkLevelClear(now){
+  if(BUILD&&!buildTest)return; // Build mode: a surface is never cleared (but when it is tested)
   if(levelCleared||(window.__SCENE&&window.__SCENE!=='cleared'))return; // a demo scene only ever clears when it IS the clearing demo
   if(active.length>0)simulationStarted=true;
   if(blackHole){
@@ -5310,7 +5303,7 @@ function checkLevelClear(now){
     levelCleared=true;breakAllCreations(now);
     clearInfo={type:'black',timeMs:now-levelStartTime,clicks:totalActivations,
       collapsedMass:blackHole.collapsedMass||0,collapsedEnergy:blackHole.collapsedEnergy||0,
-      collectedMass:blackHole.scoreMass||0,collectedEnergy:blackHole.scoreEnergy||0};
+      collectedMass:blackHole.scoreMass||0,collectedEnergy:blackHole.scoreEnergy||0,rift:blackHole.rift?blackHole.rift.a:null};
     collectAllDucks();hubLevelCleared();
     return;
   }
@@ -5368,20 +5361,22 @@ function avoidDockFor(x,y,r){
   else if(!top&&hitsBottom&&!hitsTop)window.setDockSide('top');
 }
 function triggerBlackRemnant(x,y,now,mass,energy,fromGate,rift){ // rift: a Rift (too much mass in one place) is always a Dark Remnant, never a duck
+  if(BUILD&&!buildTest){buildDarks.push({x,y,mass:mass||0,energy:energy||0});flashSaveStatus(txt('build.dark_placed'));return;} // Build mode: a Dark Remnant stays where it formed (or was put), until the surface is tested
   if(blackHole)return; // only one remnant event at a time
-  if(!fromGate){const lg=gateAtPoint(x,y);if(lg){lockDarkInGate(lg,x,y,now,mass,energy);return;}} // formed inside a Gate: it stays locked in there
+  if(!fromGate&&!rift){const lg=gateAtPoint(x,y);if(lg){lockDarkInGate(lg,x,y,now,mass,energy);return;}} // formed inside a Gate: it stays locked in there
   const canDuck=!fromGate&&!rift&&!window.__SCENE&&(dormantCount>0||active.some(q=>!q.isRemnant&&!q.dying&&!q.captured&&Math.hypot(q.x-x,q.y-y)>60)),asDuck=canDuck&&(!!runState.next||Math.random()<runT('duckChance')+duckLuck.d*runT('duckLuckStep')); // a duck instead — only while the surface still has something to play
   if(canDuck){duckLuck.d=asDuck?0:duckLuck.d+1;saveInventory();} // a miss makes the next one likelier; a duck rebases it
-  if(fromGate!=='nogrow'&&!(performance.now()-_lastNovaAt<400&&Math.hypot(_lastNovaX-x,_lastNovaY-y)<250)){ // every Dark Remnant begins with a nova (mergers and deaths already fired theirs)
+  if(fromGate!=='nogrow'&&!rift&&!(performance.now()-_lastNovaAt<400&&Math.hypot(_lastNovaX-x,_lastNovaY-y)<250)){ // every Dark Remnant begins with a nova (mergers and deaths already fired theirs)
     const nm=Math.min(mass||0,T.massScaleMax*T.blackMult),synthN={x,y,vx:0,vy:0,rot:0,rotation:0,pvx:0,pvy:0,mass:Math.max(1,nm),energy:Math.max(0.001,Math.min(energy||0.5,5)),masses:randomColorMasses(),sigR:255,sigG:255,sigB:255,peakEffectR:0};
     const deb=triggerNova(synthN,now,undefined,true);if(deb)for(const d of deb)active.push(d);
   }
   if(asDuck){spawnDuck(x,y,now);return;} // the nova still fires; the surface carries on
   const targetR=Math.min(T.whiteEffMax,Math.max(T.whiteEffMin,40))*remEnScaleOf(energy);
-  fireEvent('dark');
+  if(!rift)fireEvent('dark');
   blackHole={x,y,targetR,consumeR:0,waveR:0,growStart:now,phase:'grow',activateR:0,scoreMass:0,scoreEnergy:0,collapsedMass:mass||0,collapsedEnergy:energy||0,complete:false,wakes:[],impacts:[]};
   if(fromGate==='nogrow')blackHole.growStart=now-T.blackGrowMs-1; // released from a Gate: already full size, no re-appearing
-  blackHole._spawnPurge=true; // applied at the start of the next Dark Remnant update (this can be called mid collision pass, where `active` must not shrink)
+  if(rift){const a=Math.random()*Math.PI,w0=T.riftWMin||40,w=w0+Math.random()*Math.max(0,(T.riftWMax||80)-w0);Object.assign(blackHole,{rift:{a,nx:-Math.sin(a),ny:Math.cos(a),seed:Math.random()*100},targetR:w/2,phase:'crack',crackStart:now});} // a Rift: a line across the screen at a random angle (through where the mass was), its black stripe 40–80 px wide
+  else blackHole._spawnPurge=true; // applied at the start of the next Dark Remnant update (this can be called mid collision pass, where `active` must not shrink)
   releaseMouseDown(now);pressedIDs.clear();pendingActs.clear();lastActivatedId=-1;
   armedInvItem=null;setConMode(false); // the Dark Remnant takes over completely — no armed tool or Pattern mode survives its appearance
   speedMult=1; // a Dark Remnant always plays out at normal speed
@@ -5419,15 +5414,15 @@ function bhContactSweep(now){
   if(bh._spawnPurge){ // whatever was already under it when it appeared is deleted silently — no wake, impact or sound
     bh._spawnPurge=false; // debris in flight would settle into nebula particles after the accounting — drop it
     for(let i=active.length-1;i>=0;i--){const q=active[i];const rr=(q.isRemnant||q.failedCollapse)?pointVisibleRadius(q):Math.max(0.5,q.displayR||0.5);
-      if(Math.hypot(_wrapD(q.x-bh.x,W),_wrapD(q.y-bh.y,H))<bh.targetR+rr){tallyLost(q);bh.scoreMass+=q.mass;bh.scoreEnergy+=q.energy;pressedIDs.delete(q.id);pendingActs.delete(q.id);active.splice(i,1);}}
+      if(Math.hypot(...bhVec(bh,q.x,q.y))<bh.targetR+rr){tallyLost(q);bh.scoreMass+=q.mass;bh.scoreEnergy+=q.energy;pressedIDs.delete(q.id);pendingActs.delete(q.id);active.splice(i,1);}}
   }
   if(!(bh.consumeR>0)||bh.phase==='active')return;
   for(let i=active.length-1;i>=0;i--){
     const p=active[i];
-    const dx=_wrapD(p.x-bh.x,W),dy=_wrapD(p.y-bh.y,H);
+    const[dx,dy]=bhVec(bh,p.x,p.y);
     let md=Math.hypot(dx,dy);
     if(p._bhPX!==undefined){ // closest approach of this frame's straight path (from last sweep's position to now)
-      const px=_wrapD(p._bhPX-bh.x,W),py=_wrapD(p._bhPY-bh.y,H);
+      const[px,py]=bhVec(bh,p._bhPX,p._bhPY);
       const sx=dx-px,sy=dy-py,L=sx*sx+sy*sy;
       if(L>0&&L<(W*0.25)*(W*0.25)){let t=-(px*sx+py*sy)/L;t=Math.max(0,Math.min(1,t));md=Math.min(md,Math.hypot(px+t*sx,py+t*sy));}
     }
@@ -5437,7 +5432,7 @@ function bhContactSweep(now){
     const d=Math.max(1,Math.hypot(dx,dy)),nx=dx/d,ny=dy/d;
     tallyLost(p);bh.scoreMass+=p.mass;bh.scoreEnergy+=p.energy;
     if(bh.phase!=='active'){pressedIDs.delete(p.id);pendingActs.delete(p.id);active.splice(i,1);continue;} // appearing / spreading: anything in the footprint just vanishes — no wake, impact or sound
-    const edgeX=bh.x+nx*bh.consumeR,edgeY=bh.y+ny*bh.consumeR;
+    const edgeX=(bh.rift?p.x-dx:bh.x)+nx*bh.consumeR,edgeY=(bh.rift?p.y-dy:bh.y)+ny*bh.consumeR; // (on a Rift: the stripe's edge beside it)
     bhAddWake(bh,edgeX,edgeY,nx,ny,Math.hypot(p.vx,p.vy),p.mass,p.r,p.g,p.b);
     bh.impacts.push({x:edgeX,y:edgeY,r:p.r,g:p.g,b:p.b,size:bhImpactSizeFor(p.mass)*(0.85+Math.random()*0.3),born:now});
     if(bh.impacts.length>120)bh.impacts.shift();
@@ -5450,13 +5445,13 @@ function bhContactSweep(now){
 // rate (blackLaunchPerMs). Only launched objects are ever touched per frame — the rest of the field costs nothing.
 function bhEnqueue(bh,p){
   p._bhQ=true;p.birthProgress=1;p.vx=0;p.vy=0;p.pvx=0;p.pvy=0;p.rot=0;
-  p._bhD=Math.hypot(_wrapD(p.x-bh.x,W),_wrapD(p.y-bh.y,H));
+  p._bhD=Math.hypot(...bhVec(bh,p.x,p.y));
   const q=bh.queue;let lo=bh.qi,hi=q.length;
   while(lo<hi){const m=(lo+hi)>>1;if(q[m]._bhD<=p._bhD)lo=m+1;else hi=m;}
   q.splice(lo,0,p);
 }
 function bhDrawIn(bh,now,dt){
-  if(!bh.queue){bh.queue=[];bh.qi=0;bh.flying=[];bh._acc=0;for(let i=0;i<active.length;i++){const p=active[i];p._bhQ=true;p.birthProgress=1;p.vx=0;p.vy=0;p.pvx=0;p.pvy=0;p.rot=0;p._bhD=Math.hypot(_wrapD(p.x-bh.x,W),_wrapD(p.y-bh.y,H));bh.queue.push(p);}
+  if(!bh.queue){bh.queue=[];bh.qi=0;bh.flying=[];bh._acc=0;for(let i=0;i<active.length;i++){const p=active[i];p._bhQ=true;p.birthProgress=1;p.vx=0;p.vy=0;p.pvx=0;p.pvy=0;p.rot=0;p._bhD=Math.hypot(...bhVec(bh,p.x,p.y));bh.queue.push(p);}
     bh.queue.sort((a,b)=>a._bhD-b._bhD);}
   bh._acc+=Math.max(0,dt)*T.blackLaunchPerMs;
   if(bh._batch===undefined)bh._batch=1;
@@ -5464,7 +5459,7 @@ function bhDrawIn(bh,now,dt){
     bh._acc-=bh._batch;
     for(let n=0;n<bh._batch&&bh.qi<bh.queue.length;n++){ // a batch = the next few nearest objects, launched together (reads as a ring)
       const p=bh.queue[bh.qi++];if(p._bhGone)continue;
-      const dx=_wrapD(bh.x-p.x,W),dy=_wrapD(bh.y-p.y,H),d=Math.hypot(dx,dy)||1;
+      const v=bhVec(bh,p.x,p.y),dx=-v[0],dy=-v[1],d=Math.hypot(dx,dy)||1; // (at a Rift: straight across to its line)
       p.vx=dx/d*T.blackFlySpeed;p.vy=dy/d*T.blackFlySpeed;p._bhFly=true;bh.flying.push(p);
     }
     const B=Math.max(1,T.blackBatch|0);bh._batch=B<=1?1:Math.max(1,Math.round(B*(0.75+0.5*Math.random()))); // ~B, randomised
@@ -5476,11 +5471,11 @@ function bhDrawIn(bh,now,dt){
     const p=bh.flying[k];
     p.x+=p.vx*ts;p.y+=p.vy*ts;
     if(p.x<0)p.x+=W;else if(p.x>=W)p.x-=W;if(p.y<0)p.y+=H;else if(p.y>=H)p.y-=H;
-    const dx=_wrapD(p.x-bh.x,W),dy=_wrapD(p.y-bh.y,H),d=Math.hypot(dx,dy);
+    const[dx,dy]=bhVec(bh,p.x,p.y),d=Math.hypot(dx,dy);
     const r=(p.isRemnant||p.failedCollapse)?pointVisibleRadius(p):Math.max(0.5,p.displayR||0.5);
     if(d<bh.consumeR+r){
       tallyLost(p);bh.scoreMass+=p.mass;bh.scoreEnergy+=p.energy;
-      const dd=d||1,nx=dx/dd,ny=dy/dd,edgeX=bh.x+nx*bh.consumeR,edgeY=bh.y+ny*bh.consumeR;
+      const dd=d||1,nx=dx/dd,ny=dy/dd,edgeX=(bh.rift?p.x-dx:bh.x)+nx*bh.consumeR,edgeY=(bh.rift?p.y-dy:bh.y)+ny*bh.consumeR;
       bhAddWake(bh,edgeX,edgeY,nx,ny,T.blackFlySpeed,p.mass,p.r,p.g,p.b);
       bh.impacts.push({x:edgeX,y:edgeY,r:p.r,g:p.g,b:p.b,size:bhImpactSizeFor(p.mass)*(0.85+Math.random()*0.3),born:now});
       if(bh.impacts.length>120)bh.impacts.shift();
@@ -5496,21 +5491,22 @@ function bhWaveSync(bh,now){
   const R=bh.activateR;
   for(let i=0;i<active.length;i++){const p=active[i];
     if(p._bhKilled){p.vx=0;p.vy=0;p.pvx=0;p.pvy=0;p.rot=0;continue;}
-    if(Math.hypot(_wrapD(p.x-bh.x,W),_wrapD(p.y-bh.y,H))<=R){p.vx=0;p.vy=0;p.pvx=0;p.pvy=0;p.rot=0;p._bhKilled=true;}
+    if(Math.hypot(...bhVec(bh,p.x,p.y))<=R){p.vx=0;p.vy=0;p.pvx=0;p.pvy=0;p.rot=0;p._bhKilled=true;}
   }
   _dormantFadeOnRemove=true;
   for(let idx=0;idx<dormant.length;idx++){const dp=dormant[idx];if(!dp)continue;
-    if(Math.hypot(_wrapD(dp.x-bh.x,W),_wrapD(dp.y-bh.y,H))>R)continue;
+    if(Math.hypot(...bhVec(bh,dp.x,dp.y))>R)continue;
     removeDormant(idx,now);initWoken(dp,0);dp.vx=0;dp.vy=0;dp.rot=0;dp._bhKilled=true;active.push(dp);
   }
   _dormantFadeOnRemove=false;
-  if(R>=Math.sqrt(W*W+H*H)-1)bh.particlesWoken=true;
+  if(R>=bhReach(bh)-1)bh.particlesWoken=true;
 }
 function processBlackRemnant(now,dt){
   if(!blackHole||blackHole.complete)return;
   const bh=blackHole;
   if(!bh._brk){bh._brk=true;bhBreakFixtures(now);} // the Dark Remnant breaks every Lens (bright remnants at their corners) and every Gate — all of it is then drawn in
   bhContactSweep(now); // first thing, in every phase (grow / expand / active)
+  if(bh.phase==='crack'){if(now-bh.crackStart>=(T.riftCrackMs||1100)){bh.phase='grow';bh.growStart=now;}return;} // a Rift: the crack runs across the screen first, then it opens (grow)
   // Grow-in: single point -> derived full scale, running alongside the white's
   // own nova (see triggerNova/triggerBlackRemnant call sites). While growing,
   // the remnant is purely visual — it doesn't yet pull, consume, or affect
@@ -5531,7 +5527,7 @@ function processBlackRemnant(now,dt){
     }
     return;
   }
-  const maxR=Math.sqrt(W*W+H*H);
+  const maxR=bhReach(bh);
   if(bh.phase==='expand'){
     // Keep freezing anything that appears mid-expansion (freshly-woken
     // stragglers) so NOTHING moves anywhere on screen while the darkness is
@@ -5563,7 +5559,7 @@ function processBlackRemnant(now,dt){
   // but capped: only enough to bring the active count up to blackMaxActive, so it's a steady 1-out-1-in swap with
   // whatever just got consumed above, rather than the whole remaining dormant field flooding in in a single frame.
   let drawInBudget=Math.max(0,T.blackMaxActive-active.length);
-  if(drawInBudget>0)forEachDormant(bh.x|0,bh.y|0,bh.activateR,(dp,idx)=>{
+  if(drawInBudget>0)forEachDormant(bh.x|0,bh.y|0,bh.rift?Math.sqrt(W*W+H*H):bh.activateR,(dp,idx)=>{
     if(drawInBudget<=0)return;
     drawInBudget--;
     _dormantFadeOnRemove=true;removeDormant(idx,now);_dormantFadeOnRemove=false;
@@ -5581,7 +5577,7 @@ function processBlackRemnant(now,dt){
     let orphan=false;for(let i=0;i<active.length;i++){if(!active[i]._bhQ){bhEnqueue(bh,active[i]);orphan=true;}}
     if(!orphan){
       let anyDormantLeft=false;
-      if(active.length===0)forEachDormant(bh.x|0,bh.y|0,bh.activateR,()=>{anyDormantLeft=true;});
+      if(active.length===0)forEachDormant(bh.x|0,bh.y|0,bh.rift?Math.sqrt(W*W+H*H):bh.activateR,()=>{anyDormantLeft=true;});
       if(active.length===0&&bh.wakes.length===0&&!anyDormantLeft&&!ducks.length){bh.complete=true;ensureDarkRemnantTheme();purgeAfterBlack();}
     }
   }
@@ -5613,6 +5609,7 @@ function drawBlackRemnantBG(ctx,now){
   if(!blackHole)return;
   const bh=blackHole;
   if(bh.phase!=='expand'||bh.activateR<=0.5)return;
+  if(bh.rift){drawRiftWave(ctx,bh,now);return;}
   { const cv=ctx.canvas; if(!bh._pre||bh._pre.width!==cv.width||bh._pre.height!==cv.height){bh._pre=document.createElement('canvas');bh._pre.width=cv.width;bh._pre.height=cv.height;}
     const px=bh._pre.getContext('2d');px.setTransform(1,0,0,1,0,0);px.clearRect(0,0,cv.width,cv.height);px.drawImage(cv,0,0); } // what the front is about to wash over
   ctx.save();
@@ -5650,7 +5647,7 @@ function drawBlackRemnant(ctx,now){
   if(!blackHole)return;
   const bh=blackHole;
   const R=Math.max(0.5,bh.consumeR);
-  if(R>0.5)wrapCopies(bh.x,bh.y,R*1.5+T.bhRingWidth,(ox,oy)=>{ // crossing a screen edge, a second copy shows on the opposite side
+  if(bh.rift)drawRift(ctx,bh,now);else if(R>0.5)wrapCopies(bh.x,bh.y,R*1.5+T.bhRingWidth,(ox,oy)=>{ // crossing a screen edge, a second copy shows on the opposite side
     ctx.save();ctx.translate(ox,oy);
     // Two independent glow ring layers, each with their own width/blur/
     // heartbeat/sway vars — the second one's heartbeat starts at the
@@ -6362,9 +6359,6 @@ function updateParticleBtn(){const b=document.getElementById('pvb');if(b)b.textC
 // one-shot actions, not a mode that holds the counts: collection and use carry on normally afterwards. The Modes button only
 // decides whether the two action slots are shown.
 let itemCacheMode=false;
-function updateCacheBtn(){const b=document.getElementById('icb');if(b)b.textContent=txt('surf.item_cache',(itemCacheMode?txt('surf.shown'):txt('surf.hidden')));}
-function toggleItemCache(){itemCacheMode=!itemCacheMode;updateCacheBtn();updateInventoryUI();}
-window.toggleItemCache=toggleItemCache;
 function cacheAction(fill){
   for(const k of INV_KINDS)inventory[k]=fill?invMaxFor(k):0;
   syncKeyShapes();saveInventory();updateInventoryUI();
@@ -6512,7 +6506,8 @@ async function saveMap(){
   let json;
   try{json=JSON.stringify(serializeMap());}
   catch(err){flashSaveStatus(txt('surf.save_failed',err.message));return;}
-  const filename='nebula-map-'+new Date().toISOString().replace(/[:.]/g,'-')+'.json';
+  saveFile('nebula-map-'+new Date().toISOString().replace(/[:.]/g,'-')+'.json',json);}
+async function saveFile(filename,json){ // a file for the viewer to keep (the surface's map, Build mode's Export)
   // Prefer the viewer-confirmed save when this page is running inside a
   // Claude artifact; fall back to a plain browser download (e.g. when the
   // file has been saved/opened directly outside claude.ai).
@@ -7786,6 +7781,8 @@ const CREATE_TYPES=[
   {cat:'inertia',variants:[null]}, // Inertializer
   {cat:'duck_space',variants:[]}, // a duck, floating here in space (its variants: every duck, filled in once they are known)
   {cat:'duck_pond',variants:[]}, // a duck sent to swim on the Surface Map's pond
+  {cat:'prefab',variants:['select','phaser','place']}, // Build mode: select parts and save them as a prefab (with the times it can appear and how it phases in / out), or place one
+  {cat:'surface',variants:['dark','bright']}, // Build mode: the surface itself, dark or bright (white)
   {cat:'standard',variants:[null]},
 ];
 const STANDARD_TYPE_IDX=CREATE_TYPES.length-1;
@@ -8020,6 +8017,8 @@ function createLabel(){
   if(t.cat==='shape_glass')return txt('surf.lens_click_inside_a',(t.variants[v]===null?txt('surf.clear'):txt('surf.tinted_objects_under_it',fxName(t.variants[v]))));
   if(t.cat==='inertia')return txt('surf.inertializer_click_drag_box');
   if(t.cat==='standard')return txt('surf.standard_cursor');
+  if(t.cat==='prefab')return txt('pre.tool.'+t.variants[v],preSel.length,prePick||'—');
+  if(t.cat==='surface')return txt('build.surface_tool',t.variants[v]==='bright'?txt('build.bright'):txt('build.dark'));
   if(t.cat==='particle')return txt('surf.grid_particle',(t.variants[v]==='white'||t.variants[v]==='black'?txt('surf.touching_a_particle_blends',fxName(t.variants[v])):txt('surf.touching_a_particle_blends',EFFECT_NAMES[t.variants[v]])));
   if(t.cat==='remove')return txt('surf.remove_click_or_swipe');
   if(t.cat==='point')return txt('surf.pigment',fxName(t.variants[v]));
@@ -8052,6 +8051,8 @@ function createLabel(){
 function currentCreateColor(){
   const t=currentType(),v=currentVariant();
   if(t.cat==='remove')return invRGB(255,110,110);
+  if(t.cat==='surface')return v==='bright'?{r:255,g:255,b:255}:{r:20,g:20,b:24};
+  if(t.cat==='prefab')return{r:255,g:214,b:60};
   if(t.cat==='duck_space'||t.cat==='duck_pond'){const c=(DUCK_TYPES[v]||{}).col||DUCK_YEL;return{r:c[0],g:c[1],b:c[2]};} // (the duck's own colour)
   if((t.cat==='particle'||t.cat==='point'||t.cat==='star'||t.cat==='shape_glass'||t.cat==='shape_pane'||t.cat==='shape_prism')&&v==='white')return invRGB(255,255,255);
   if((t.cat==='particle'||t.cat==='point'||t.cat==='star'||t.cat==='shape_glass'||t.cat==='shape_pane'||t.cat==='shape_prism')&&v==='black'){const g=T.eclipseGray|0;return invRGB(g,g,g);}
@@ -8288,7 +8289,7 @@ function handleDialHold(now){ // queued rounds, a pending lone-dab fire, loading
   lastDialShot=now;_dialHoldCall=true;performInventoryDrop(mouse.x,mouse.y,now);_dialHoldCall=false;
 }
 function handleHoldCharge(now){
-  if(createActive()&&(isShapeCat(currentType().cat)||currentType().cat==='remove'||currentType().cat==='inertia')){holdCharging=false;return;}
+  if(createActive()&&(isShapeCat(currentType().cat)||currentType().cat==='remove'||currentType().cat==='inertia'||currentType().cat==='prefab')){holdCharging=false;return;}
   if(!mouseDown||dragMode||uiPress||overUI||pressConsumed||conMode||(isPaused&&!createActive())||(downOnRemnant&&!createActive())||(armedInvItem&&!createActive())||(!createActive()&&pressedIDs.size>0)){ // (with something activated, a basic hold drains instead — see holdDrainMul)
     if(holdCharging){holdCharging=false;holdChargeObj=null;}
     return;
@@ -8336,7 +8337,7 @@ wrap.addEventListener('mousemove',e=>{
     return;
   }
   if(armedInvItem&&(ITEM_TOOLS.has(armedInvItem.kind)||armedInvItem.kind==='dial')&&!createActive())return; // these tools run from the held press (handleItemHold / handleDialHold), not from swipe-activation
-  if(createActive()&&currentType().cat==='inertia'){inertBox={x0:downX,y0:downY};return;} // drag = box select
+  if(boxTool()){inertBox={x0:downX,y0:downY};return;} // drag = box select (the Inertializer, and a prefab's parts)
   if(createActive()&&isShapeCat(currentType().cat)){ // hold + swipe: drag out a rectangle (wheel toggles an ellipse)
     if(!shapeRect)shapeRect={x0:downX,y0:downY,ellipse:false};
     return;
@@ -8745,6 +8746,7 @@ function blendParticleStroke(ex,variant,addMass){ // colour resolves by colour M
   }
 }
 function removeAt(mx,my){
+  if(BUILD){const i=buildDarks.findIndex(d=>Math.hypot(d.x-mx,d.y-my)<buildDarkR(d)+T.removeR);if(i>=0){buildDarks.splice(i,1);return;}} // a placed Dark Remnant
   const R=T.removeR,hit=[];
   // fixed shapes: an edge within reach removes the whole shape (and its glass); a click inside bare glass removes just the glass
   { let changed=false;
@@ -8973,6 +8975,7 @@ function snapshotForDup(o,isDormant){
   return{isDormant:false,collapsed:!!o.collapsed,failedCollapse:!!o.failedCollapse,isRemnant:!!o.isRemnant,remKind:o.remKind,
     mass:o.mass,energy:o.energy,masses:o.masses?o.masses.slice():null,ci:o.ci,rotation:o.rotation||0,rot:o.rot||0,
     sigR:o.sigR,sigG:o.sigG,sigB:o.sigB,radMult:o.radMult,scaleState:o.scaleState,whiteFx:!!o.whiteFx,collapsedRadius:o.collapsedRadius,
+    vx:o.vx||0,vy:o.vy||0, // (its motion: a copy placed at an edge drifts in with it)
     neutronState:o.neutronState,magAxis:o.magAxis,magPrimaryCI:o.magPrimaryCI,magOppositeCI:o.magOppositeCI,magBW:o.magBW,enriched:o.enriched,magTintCI:o.magTintCI,magTintCI2:o.magTintCI2,magWhite:o.magWhite,_pulOff:o._pulOff,
     x:o.x,y:o.y};
 }
@@ -9061,13 +9064,14 @@ function createAt(mx,my){
   if(mx<0||my<0||mx>=W||my>=H)return null;
   if(t.cat!=='remove'&&t.cat!=='shape_glass'&&t.cat!=='shape_pane'&&t.cat!=='shape_leash'&&t.cat!=='shape_knot'&&t.cat!=='shape_prism'&&!(t.cat==='duplicate'&&dupShape)&&underGlass(mx,my))return null; // no placing on / through a Lens (the tool stays as it is)
   if(t.cat==='remove'){removeAt(mx,my);return null;}
+  if(t.cat==='surface'){const w=variant==='bright';if(!!invertMode!==w)toggleInvertMode();flashSaveStatus(txt(w?'build.surface_bright':'build.surface_dark'));return null;}
   if(t.cat==='particle')return createParticleAt(mx,my,variant);
   if(t.cat==='point')return createPointAt(mx,my,variant,false);
   if(t.cat==='star')return createPointAt(mx,my,variant,true);
   if(t.cat==='remnant')return createRemnantAt(mx,my,variant);
   if(t.cat==='duck_space'){spawnDuck(mx,my,performance.now(),variant,true);flashSaveStatus(txt('surf.create.duckmade',DUCK_TYPES[variant].name));return null;}
   if(t.cat==='duck_pond'){if(HUB){hubPost({type:'pondDuck',duck:variant});flashSaveStatus(txt('surf.create.duckpond',DUCK_TYPES[variant].name));}else flashSaveStatus(txt('surf.create.nopond'));return null;}
-  if(t.cat==='duplicate'){if(dupShape)return placeDupShape(mx,my);return dupTemplate?stampDuplicateAt(mx,my):null;} // picking has no "place" action — see the mouse handlers
+  if(t.cat==='duplicate'){if(dupShape)return placeDupShape(mx,my);if(dupTemplate&&BUILD&&!buildTest&&nearEdge(mx,my)){if(edgePlace(dupTemplate.map(s=>({s,dx:s.dx,dy:s.dy,vx:s.vx||0,vy:s.vy||0})),null,mx,my)&&dupSources.length){dupSources=[];resetDupState();}return null;}return dupTemplate?stampDuplicateAt(mx,my):null;} // picking has no "place" action — see the mouse handlers
   return null;
 }
 wrap.addEventListener('mousedown',e=>{
@@ -9104,7 +9108,7 @@ wrap.addEventListener('mouseup',e=>{
   if(overUI||pressConsumed){releaseMouseDown(performance.now());dragMode=false;paintActive=false;return;} // released over the interface: never resolves onto what's underneath
   if(_holdDrainUsed){_holdDrainUsed=false;releaseMouseDown(performance.now());dragMode=false;paintActive=false;return;} // end of a draining hold: nothing else happens on release
   if(mouseDown&&dragMode&&shapeRect){finishShapeRect(e.clientX-wrapRect.left,e.clientY-wrapRect.top);releaseMouseDown(performance.now());dragMode=false;paintActive=false;return;}
-  if(mouseDown&&dragMode&&createActive()&&currentType().cat==='inertia'){inertFinishBox(e.clientX-wrapRect.left,e.clientY-wrapRect.top);releaseMouseDown(performance.now());dragMode=false;paintActive=false;return;}
+  if(mouseDown&&dragMode&&boxTool()){(currentType().cat==='prefab'?preFinishBox:inertFinishBox)(e.clientX-wrapRect.left,e.clientY-wrapRect.top);releaseMouseDown(performance.now());dragMode=false;paintActive=false;return;}
   if(mouseDown&&dragMode&&createActive()&&currentType().cat==='duplicate'&&!dupTemplate){
     // End of a picking swipe: whatever was swept up gets finalized into the held template right here.
     finalizeDupPicking();releaseMouseDown(performance.now());dragMode=false;paintActive=false;return;
@@ -9133,6 +9137,8 @@ wrap.addEventListener('mouseup',e=>{
           }
         } else if(t.cat==='inertia'){
           inertClick(mx,my);
+        } else if(t.cat==='prefab'){
+          preClick(mx,my);
         } else if(isShapeCat(t.cat)){
           createShapeClick(mx,my);
         } else if(t.cat!=='particle'){
@@ -9212,6 +9218,7 @@ wrap.addEventListener('contextmenu',e=>{
       // right-click; picking -> the tool is put away entirely on the next one.
       if(dupTemplate||dupPicking.length||dupShape||repRef){resetDupState();cursorRClickAt=performance.now();return;}
     }
+    if(armedInvItem.kind==='create'&&currentType().cat==='prefab'&&(preSel.length||inertBox)){preSel=[];preTgt=-1;inertBox=null;buildBar();cursorRClickAt=performance.now();return;}
     if(armedInvItem.kind==='create'&&currentType().cat==='inertia'&&(inertSel.length||inertBox||inertRot)){inertSel=[];inertBox=null;inertRot=0;cursorRClickAt=performance.now();return;}
     armedInvItem=null;updateInventoryUI();return;
   }
@@ -9386,6 +9393,7 @@ function step(now,timeScale){
   pulsingClock+=dt;
   audioCallsThisFrame=0;
   if(timeScale>0)riftCheck(now);
+  prefabTick(now,dt);
   if(blackHole&&!blackHole.complete&&timeScale>0)processBlackRemnant(now,dt);
   duckStep(now,timeScale);
   if(blackHole&&blackHole.complete){checkLevelClear(now);return;}
@@ -10096,7 +10104,7 @@ function renderWorld(now,suppressGlow,asPlay){
     // In the normal scheme the background is already black so this is invisible/harmless; in Invert mode it's the
     // thing that actually carries the background from white to black as the Dark Remnant finishes consuming the surface.
     const bgR=Math.min(Math.sqrt(W*W+H*H),blackHole.activateR);
-    if(bgR>0){ctx.save();ctx.beginPath();ctx.arc(blackHole.x,blackHole.y,bgR,0,6.2832);ctx.fillStyle='#000';ctx.fill();ctx.restore();}
+    if(bgR>0){ctx.save();ctx.beginPath();if(blackHole.rift){ctx.translate(blackHole.x,blackHole.y);ctx.rotate(blackHole.rift.a);const L=Math.hypot(W,H);ctx.rect(-L,-bgR,2*L,2*bgR);}else ctx.arc(blackHole.x,blackHole.y,bgR,0,6.2832);ctx.fillStyle='#000';ctx.fill();ctx.restore();} // (a Rift's: a band along it)
   }
 
   if(!pointsCanvas){pointsCanvas=document.createElement('canvas');pointsCtx=pointsCanvas.getContext('2d');}
@@ -10532,7 +10540,7 @@ function renderWorld(now,suppressGlow,asPlay){
   // The cursor/hover/info overlay is drawn separately by the caller (see
   // draw() below) so a snapshot taken for the pause freeze never has a
   // "ghost" cursor baked into it at the old mouse position.
-  drawBlackRemnant(ctx,now);
+  drawBlackRemnant(ctx,now);prefabDraw(ctx,now);if(BUILD&&!buildTest)for(const d of buildDarks)drawDarkRemnantAt(ctx,d.x,d.y,buildDarkR(d),now,1); // (Build mode: the Dark Remnants placed, waiting)
   drawClearOverlay(ctx,now);
 }
 
@@ -12715,7 +12723,7 @@ const CONV={
 // ── Events: the first time something happens, a card pauses the game and unlocks its Guide entries ──
 const EVENTS=csvRead('events').map(r=>{const f=r.facts.split('\n');return{id:r.id,name:r.name,type:r.type,rar:r.rarity,scene:r.scene,ico:r.icon,facts:()=>f.map(x=>tpl(x)),flavor:r.flavor};}); // content/events.csv (facts: one line each; {…} worked out as it shows)
 let _evQ=[],_evOpen=false,_evWasPaused=false,_evReview=false,_evHand=[],_evAct=0,_evDraw=false; // _evDraw: a Carnival draw is showing (it closes only by picking) // discoveries made together come as a hand: one card shown, the rest to pick
-function fireEvent(id){if(window.__SCENE||discSeen.has('ev:'+id)||_evQ.indexOf(id)>=0||!EVENTS.some(e=>e.id===id))return;_evQ.push(id);}
+function fireEvent(id){if(window.__SCENE||BUILD||discSeen.has('ev:'+id)||_evQ.indexOf(id)>=0||!EVENTS.some(e=>e.id===id))return;_evQ.push(id);}
 function eventPump(){if(!_evQ.length||_rulesOpen||_menuOpen||(_evOpen&&!_evHand.length))return;const n=_evHand.length;_evHand.push(..._evQ.splice(0));showEventCard(_evHand[n?_evAct:0],false);} // new ones join an open hand
 const gEsc=s=>String(s).replace(/[&<>]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[c]));
 function gHi(t){const e=gEsc(t),f=gEsc(_rulesFilter.trim());if(!f)return e;return e.split(new RegExp('('+f.replace(/[.*+?^${}()|[\]\\]/g,'\\$&')+')','gi')).map((x,i)=>i%2?'<mark>'+x+'</mark>':x).join('');}
@@ -12727,7 +12735,7 @@ function cardHTML(ev,mini){ // the one card format: name bar, art box, type line
   return `<div class="mtg${mini?' sm':''}" data-ev="${ev.id}" style="--rc:${TIER_COL[t]}"><div class="nm"><b>${gEsc(ev.name)}</b><span class="gem"></span></div><div class="art" data-scene="${ev.scene}">${mini?`<canvas class="rl-m" width="64" height="64" data-k="${ev.ico}"></canvas>`:''}</div><div class="ty"><span>${gEsc(ev.type.replace(/^Event — /,''))}</span><span>Tier ${TIER[t]}</span></div><div class="tx">${(mini?ev.facts().slice(0,1):ev.facts()).map(f=>`<p${ev.fx?' class="fx"':''}>${gEsc(f)}</p>`).join('')}${ev.flavor?`<p class="fl">${gEsc(ev.flavor)}</p>`:''}</div></div>`; // (small: its first line and its flavour; the rest when it is opened) (fx: the lines are changes to play, set apart from the flavour)
 }
 function mountScene(h,w,hh){if(!h||h.firstChild||document.querySelectorAll('.rl-live iframe,.mtg .art iframe').length>=5)return;const f=document.createElement('iframe'),nm=h.dataset.s||h.dataset.scene;f.style.cssText='border:0;max-width:100%;pointer-events:none;background:#000;border-radius:6px;'+(w?`width:${w}px;height:${hh}px`:'width:100%;height:100%');
-  if(nm.slice(0,4)==='hub:'){const[sn,dk]=nm.slice(4).split(':');f.src='Surface_Map_HUB.html?v=20261103r&scene='+sn+'&T='+encodeURIComponent(JSON.stringify(mapSceneT()))+'&D='+encodeURIComponent(JSON.stringify(dk&&DUCK_TYPES[dk]?{[dk]:DUCK_TYPES[dk]}:Object.fromEntries(Object.entries(DUCK_TYPES).slice(0,4))));}else f.srcdoc=liveSrc(nm);h.appendChild(f);} // a Surface Map demo is played by the map itself
+  if(nm.slice(0,4)==='hub:'){const[sn,dk]=nm.slice(4).split(':');f.src='Surface_Map_HUB.html?v=20261103w&scene='+sn+'&T='+encodeURIComponent(JSON.stringify(mapSceneT()))+'&D='+encodeURIComponent(JSON.stringify(dk&&DUCK_TYPES[dk]?{[dk]:DUCK_TYPES[dk]}:Object.fromEntries(Object.entries(DUCK_TYPES).slice(0,4))));}else f.srcdoc=liveSrc(nm);h.appendChild(f);} // a Surface Map demo is played by the map itself
 function mapSceneT(){const o={};for(const k in T)if(/^(map|bh|duck|wake|glass|metal|dimGlow|glowHalo|maxSpeed)/.test(k))o[k]=T[k];return o;} // what a map demo needs of the tuners
 function showCardHTML(html){ // a Guide card (an entry or a shop) opened over the Guide, where an event card shows
   guideCSS();_evOpen=true;_evReview=true;const ov=evOverlayEl();ov.innerHTML=`<div class="ev-box">${html}<button id="evOk">${txt('card.close')}</button></div>`;ov.style.display='flex';wrap.classList.add('ev-open');
@@ -12994,10 +13002,151 @@ function closeRules(){
   if(!_rulesWasPaused&&isPaused)togglePause();
   hubOverlayCheck();
 }
+// ═════════════════════════ PREFABS AND THE PHASER (Build mode) ═════════════════════════
+// Create → Prefab: Select (click parts, or drag a box, as the Inertializer) and save them as a prefab: a name, the times of day it can appear
+// (From – To, on the map's clock) and how it phases: the whole prefab, or (Phaser: click one of its parts) a single part, each with its phase-in,
+// phase-out and stay ms (stay 0: it stays). Place: click to phase one in. Phasing in, a part grows from a point, all black, then a white flash
+// runs out from it and reveals it, real (and moving, if it was): until then it passes over everything. Phasing out is the same, backwards.
+// Placed at an edge (Place, Move or Duplicate), it is pushed fully off the screen (Prefab buffer px more) and waits there, shown half see-through
+// with a yellow border, until its motion carries it on; if its motion never would, it is not placed, and the feed says why.
+let preSel=[],preTgt=-1,preDraft={name:'',from:3,to:24,ph:{in:900,out:900,stay:0}},prePick='',phasing=[],edgeQ=[],_preBarK='';
+const PRE_EDGE=24,PH_GROW=0.7;
+const boxTool=()=>createActive()&&(currentType().cat==='inertia'||currentType().cat==='prefab'&&currentVariant()==='select');
+const preTool=()=>createActive()&&currentType().cat==='prefab';
+const nearEdge=(x,y)=>x<PRE_EDGE||y<PRE_EDGE||x>W-PRE_EDGE||y>H-PRE_EDGE;
+function preShapeAt(mx,my){for(let i=fixedShapes.length-1;i>=0;i--){const sh=fixedShapes[i];if(!sh.pts||sh.pts.length<2)continue;for(const sg of shapeSegs(sh))if(segDist(mx,my,sg[0],sg[1]).d<=8)return sh;if(sh.glass&&inGlassShape(sh,mx,my))return sh;}return null;}
+const preHas=o=>preSel.findIndex(e=>e.obj===o);
+function preClick(mx,my){const v=currentVariant();if(v==='place'){prePlace(mx,my);return;}
+  const h=hitTestAnyObjectForDup(mx,my),o=h&&!h.isDormant?h.obj:preShapeAt(mx,my),i=o?preHas(o):-1;
+  if(v==='phaser'){preTgt=i;buildBar();flashSaveStatus(i>=0?txt('pre.phaser_part',i+1):txt('pre.phaser_whole'));return;} // the Phaser: one part (click it) or the whole prefab (click anywhere else)
+  if(!o){flashSaveStatus(txt('pre.select_hint'));return;}
+  if(i>=0){preSel.splice(i,1);preTgt=-1;}else preSel.push({obj:o,shape:!!o.pts,ph:null});buildBar();}
+function preFinishBox(x1,y1){const b=inertBox;inertBox=null;if(!b)return;const xa=Math.min(b.x0,x1),xb=Math.max(b.x0,x1),ya=Math.min(b.y0,y1),yb=Math.max(b.y0,y1);
+  for(const p of active)if(p.x>=xa&&p.x<=xb&&p.y>=ya&&p.y<=yb&&!p.dying&&!p.captured&&preHas(p)<0)preSel.push({obj:p,ph:null});
+  for(const sh of fixedShapes){if(!sh.pts||preHas(sh)>=0)continue;const c=shapeCentroid(sh);if(c[0]>=xa&&c[0]<=xb&&c[1]>=ya&&c[1]<=yb)preSel.push({obj:sh,shape:true,ph:null});}
+  flashSaveStatus(txt('pre.selected',preSel.length));buildBar();}
+function preCapture(){ // the selection as a prefab's parts: each its offset from their centre, its motion and its own phasing (if the Phaser set one)
+  const live=preSel.filter(e=>e.shape?fixedShapes.indexOf(e.obj)>=0:active.indexOf(e.obj)>=0);if(!live.length)return null;
+  const P=live.map(e=>e.shape?{x:shapeCentroid(e.obj)[0],y:shapeCentroid(e.obj)[1]}:e.obj),a=P[0];let cx=0,cy=0;for(const q of P){cx+=_wrapD(q.x-a.x,W);cy+=_wrapD(q.y-a.y,H);}cx=a.x+cx/P.length;cy=a.y+cy/P.length;
+  return live.map((e,i)=>{const o=e.obj,dx=_wrapD(P[i].x-cx,W),dy=_wrapD(P[i].y-cy,H),ph=e.ph?Object.assign({},e.ph):null;
+    if(e.shape){const sh=plainCopy(o),rel=q=>({x:q.x-P[i].x,y:q.y-P[i].y});sh.rel=o.pts.map(rel);if(o.holes)sh.holesRel=o.holes.map(h=>h.map(rel));delete sh.pts;delete sh.holes;return{shape:JSON.parse(JSON.stringify(sh)),dx,dy,vx:o.mvx||0,vy:o.mvy||0,ph};}
+    return{s:snapshotForDup(o,false),dx,dy,vx:o.vx||0,vy:o.vy||0,ph};});}
+const prePartR=c=>c.shape?Math.max(4,...c.shape.rel.map(q=>Math.hypot(q.x,q.y))):c.s.collapsed?(c.s.collapsedRadius||8):c.s.isRemnant?8:5; // how far a part reaches from its centre
+function prePartPlace(c,x,y){ // one part, real, at (x, y) (wrapped onto the surface), moving as it was
+  x=((x%W)+W)%W;y=((y%H)+H)%H;
+  if(c.shape){const sh=Object.assign({},c.shape,{id:++shapeSeq,pts:c.shape.rel.map(r=>({x:x+r.x,y:y+r.y})),holes:c.shape.holesRel?c.shape.holesRel.map(h=>h.map(r=>({x:x+r.x,y:y+r.y}))):undefined,broken:{},acc:0,lastSweep:0});delete sh.rel;delete sh.holesRel;fixedShapes.push(sh);rebuildGlassList();return{shape:sh};}
+  const o=stampSnapshotAt(c.s,x,y);if(!o)return null;o.vx=c.vx||0;o.vy=c.vy||0;return{obj:o};}
+function phaseIn(parts,cx,cy,ph){const now=performance.now();phasing.push({t0:now,items:parts.map(c=>({c,ph:Object.assign({in:900,out:900,stay:0},ph,c.ph||{}),x:cx+c.dx,y:cy+c.dy,st:'in',t0:now,live:null}))});}
+function prePlace(mx,my){const P=buildLib.prefabs[prePick];if(!P){flashSaveStatus(txt('pre.pick_first'));return;}
+  if(nearEdge(mx,my)){edgePlace(P.parts,P,mx,my);return;}phaseIn(P.parts,mx,my,P.ph);}
+function partsBox(parts){let x0=1e9,y0=1e9,x1=-1e9,y1=-1e9;for(const c of parts){const r=prePartR(c);x0=Math.min(x0,c.dx-r);x1=Math.max(x1,c.dx+r);y0=Math.min(y0,c.dy-r);y1=Math.max(y1,c.dy+r);}return{x0,y0,x1,y1};}
+function edgeEnterT(b,cx,cy,vx,vy){ // frames until a box (b, about (cx, cy)) moving at (vx, vy) first overlaps the screen; null: never
+  let lo=0,hi=Infinity;for(const[a0,a1,v,L]of[[cx+b.x0,cx+b.x1,vx,W],[cy+b.y0,cy+b.y1,vy,H]]){if(Math.abs(v)<1e-6){if(a1<0||a0>L)return null;continue;}let t0=(0-a1)/v,t1=(L-a0)/v;if(t0>t1)[t0,t1]=[t1,t0];lo=Math.max(lo,t0);hi=Math.min(hi,t1);}
+  return lo<=hi&&hi>0?lo:null;}
+function edgePlace(parts,P,mx,my,quiet){ // placed at an edge: pushed fully off the nearest edge (and Prefab buffer px more), to wait until its motion carries it on
+  const b=partsBox(parts),buf=T.prefabEdgeBuf!=null?T.prefabEdgeBuf:20,m=Math.min(mx,W-mx,my,H-my);let cx=mx,cy=my;
+  if(m===mx)cx=-b.x1-buf;else if(m===W-mx)cx=W-b.x0+buf;else if(m===my)cy=-b.y1-buf;else cy=H-b.y0+buf;
+  let vx=0,vy=0;for(const c of parts){vx+=c.vx||0;vy+=c.vy||0;}vx/=parts.length;vy/=parts.length;
+  if(edgeEnterT(b,cx,cy,vx,vy)==null){if(!quiet)flashSaveStatus(txt(Math.hypot(vx,vy)<1e-6?'pre.never_on_still':'pre.never_on_away'));return false;}
+  edgeQ.push({parts:JSON.parse(JSON.stringify(parts)),name:P?P.name:'',cx,cy,vx,vy,in:parts.map(()=>false)});if(!quiet)flashSaveStatus(txt('pre.waits_off'));return true;}
+// A surface started at a time of day (a map hex, or Build mode's Test at a time): by Prefab chance, one prefab whose times include that hour
+// appears. A still one phases in somewhere on the surface (anywhere: it wraps); one that moves may instead drift in from off an edge.
+const prefabLib=()=>Object.assign({},buildContent().prefabs,BUILD?buildLib.prefabs:{}); // (the content files' prefabs; in Build mode, the ones made here too)
+const prefabAt=(P,h)=>P.from<=P.to?h>=P.from&&h<=P.to:h>=P.from||h<=P.to; // its times include hour h (from – to, across Midnight too)
+function prefabSpawn(h){if(h==null||!(Math.random()<(T.prefabChance!=null?T.prefabChance:0.35)))return null;
+  const L=Object.values(prefabLib()).filter(P=>P.parts&&P.parts.length&&prefabAt(P,h));if(!L.length)return null;const P=L[(Math.random()*L.length)|0];
+  const mv=P.parts.some(c=>Math.hypot(c.vx||0,c.vy||0)>1e-6);
+  if(mv&&Math.random()<0.5)for(let i=0;i<12;i++){const s=(Math.random()*4)|0,u=Math.random(),mx=s===0?2:s===1?W-2:u*W,my=s===2?2:s===3?H-2:u*H;if(edgePlace(P.parts,P,mx,my,true)){logEv('prefab '+P.name+' drifts in');return P;}} // drifting in, from wherever along an edge it would come on
+  phaseIn(P.parts,Math.random()*W,Math.random()*H,P.ph);logEv('prefab '+P.name+' phases in');return P;}
+function preRemove(L){if(!L)return;if(L.obj){const i=active.indexOf(L.obj);if(i>=0){pressedIDs.delete(L.obj.id);active.splice(i,1);}}else if(L.shape){const i=fixedShapes.indexOf(L.shape);if(i>=0){fixedShapes.splice(i,1);rebuildGlassList();}}}
+function prefabTick(now,dt){
+  if(BUILD){const k=preTool()?currentVariant()+'|'+preSel.length:'';if(k!==_preBarK){_preBarK=k;buildBar();}} // (the bar's prefab row follows the tool)
+  const ts=dt/16.67;
+  for(const R of phasing){for(const it of R.items){const u=(now-it.t0)/Math.max(1,it.st==='out'?it.ph.out:it.ph.in);
+      if(it.st==='in'){if(!it.live){it.x+=(it.c.vx||0)*ts;it.y+=(it.c.vy||0)*ts;if(u>=PH_GROW){it.live=prePartPlace(it.c,it.x,it.y)||{};}} // fully grown: real (moving at once, if it was)
+        if(u>=1){it.st='on';it.t0=now;}}
+      else if(it.st==='on'){if(it.ph.stay>0&&now-it.t0>=it.ph.stay){const o=it.live&&(it.live.obj||it.live.shape);if(o){const c=it.live.shape?shapeCentroid(o):[o.x,o.y];it.x=c[0];it.y=c[1];}preRemove(it.live);it.live=null;it.st='out';it.t0=now;}} // its stay is over: it phases out
+      else if(it.st==='out'){it.x+=(it.c.vx||0)*ts;it.y+=(it.c.vy||0)*ts;if(u>=1)it.st='gone';}}
+    R.items=R.items.filter(it=>it.st!=='gone'&&!(it.st==='on'&&!(it.ph.stay>0)));}
+  phasing=phasing.filter(R=>R.items.length);
+  if(BUILD&&!buildTest)return; // (while building, the ones at the edges wait)
+  for(const E of edgeQ){E.cx+=E.vx*ts;E.cy+=E.vy*ts;E.parts.forEach((c,i)=>{if(E.in[i])return;const x=E.cx+c.dx,y=E.cy+c.dy;if(x>=0&&x<W&&y>=0&&y<H){prePartPlace(c,x,y);E.in[i]=true;}});} // each part comes on as it crosses the edge
+  edgeQ=edgeQ.filter(E=>E.in.some(v=>!v)&&edgeEnterT(partsBox(E.parts),E.cx,E.cy,E.vx,E.vy)!=null);}
+function prePartPath(c,x,y,k){const P=new Path2D();if(c.shape){c.shape.rel.forEach((q,i)=>P[i?'lineTo':'moveTo'](x+q.x*k,y+q.y*k));if(c.shape.closed)P.closePath();}else P.arc(x,y,Math.max(0.3,prePartR(c)*k),0,6.2832);return P;}
+function prefabDraw(c,now){
+  for(const R of phasing)for(const it of R.items){if(it.st==='on')continue;const u=Math.min(1,(now-it.t0)/Math.max(1,it.st==='out'?it.ph.out:it.ph.in)),f=it.st==='out'?1-u:u,r=prePartR(it.c); // (out: the same, backwards)
+    const o=it.live&&it.live.obj,x=o?o.x:it.x,y=o?o.y:it.y;c.save();
+    if(f<PH_GROW){const k=fade(f/PH_GROW),P=prePartPath(it.c,x,y,k);c.fillStyle='#000';c.strokeStyle='#000';c.lineWidth=3;if(it.c.shape&&!it.c.shape.closed)c.stroke(P);else c.fill(P);} // grows from a point, all black
+    else{const g=(f-PH_GROW)/(1-PH_GROW),P=prePartPath(it.c,x,y,1);c.globalAlpha=1-g;c.fillStyle='#000';c.strokeStyle='#000';c.lineWidth=3;if(it.c.shape&&!it.c.shape.closed)c.stroke(P);else c.fill(P); // then a white flash runs out from it and reveals it
+      const R2=r*(0.6+2.4*g),wg=c.createRadialGradient(x,y,R2*0.55,x,y,R2);wg.addColorStop(0,'rgba(255,255,255,0)');wg.addColorStop(0.7,`rgba(255,255,255,${(0.95*(1-g)).toFixed(3)})`);wg.addColorStop(1,'rgba(255,255,255,0)');c.globalAlpha=1;c.globalCompositeOperation='screen';c.fillStyle=wg;c.beginPath();c.arc(x,y,R2,0,6.2832);c.fill();}
+    c.restore();}
+  if(BUILD&&!buildTest)for(const E of edgeQ){const b=partsBox(E.parts),cx=Math.max(-b.x0+4,Math.min(W-b.x1-4,E.cx)),cy=Math.max(-b.y0+4,Math.min(H-b.y1-4,E.cy));c.save();c.globalAlpha=0.5; // waiting off the edge: shown where it will come on, half see-through, a yellow border
+    for(const p of E.parts){const P=prePartPath(p,cx+p.dx,cy+p.dy,1),col=p.s&&p.s.ci>=0&&p.s.ci<6?ucol(p.s.ci/6,1,0.5):{r:235,g:235,b:235};c.fillStyle=`rgb(${col.r},${col.g},${col.b})`;c.strokeStyle=c.fillStyle;c.lineWidth=2;if(p.shape)c.stroke(P);else c.fill(P);}
+    c.globalAlpha=1;c.strokeStyle='#ffd23c';c.lineWidth=1.5;c.setLineDash([6,4]);c.strokeRect(cx+b.x0-4,cy+b.y0-4,b.x1-b.x0+8,b.y1-b.y0+8);c.setLineDash([]);
+    const sp=Math.hypot(E.vx,E.vy)||1,ax=cx+E.vx/sp*(Math.max(b.x1,b.y1)+16),ay=cy+E.vy/sp*(Math.max(b.x1,b.y1)+16);c.beginPath();c.moveTo(cx,cy);c.lineTo(ax,ay);c.stroke();c.restore();}
+  if(!preTool())return;c.save(); // Prefab: the parts selected (the Phaser's target in orange), and the box being dragged
+  preSel.forEach((e,i)=>{const o=e.obj;c.strokeStyle=i===preTgt?'rgba(255,150,40,0.95)':'rgba(255,214,60,0.9)';c.lineWidth=i===preTgt?2.2:1.3;c.setLineDash([4,3]);
+    if(e.shape){if(fixedShapes.indexOf(o)<0)return;const P=new Path2D();o.pts.forEach((q,j)=>P[j?'lineTo':'moveTo'](q.x,q.y));if(o.closed)P.closePath();c.stroke(P);}else{if(active.indexOf(o)<0)return;c.beginPath();c.arc(o.x,o.y,Math.max(6,placedRadius(o)+4),0,6.2832);c.stroke();}});
+  c.setLineDash([]);if(inertBox&&mouseDown&&dragMode){const x=Math.min(inertBox.x0,mouse.x),y=Math.min(inertBox.y0,mouse.y);c.fillStyle='rgba(255,214,60,0.08)';c.fillRect(x,y,Math.abs(mouse.x-inertBox.x0),Math.abs(mouse.y-inertBox.y0));c.strokeStyle='rgba(255,214,60,0.9)';c.setLineDash([5,4]);c.strokeRect(x,y,Math.abs(mouse.x-inertBox.x0),Math.abs(mouse.y-inertBox.y0));}
+  c.restore();}
+function preBarHTML(esc){if(!preTool())return'';const v=currentVariant(),tm=sel=>Object.keys(TIMES).map(h=>`<option value="${h}"${+h===sel?' selected':''}>${TIMES[h]}</option>`).join('');
+  if(v==='place'){const ns=Object.keys(buildLib.prefabs).sort();return`<div class="bdRow"><b>${txt('pre.title')}</b>${txt('pre.place')} <select id="bpPick"><option value="">—</option>${ns.map(n=>`<option value="${esc(n)}"${n===prePick?' selected':''}>${esc(n)} (${TIMES[buildLib.prefabs[n].from]}–${TIMES[buildLib.prefabs[n].to]})</option>`).join('')}</select> <span>${txt('pre.place_hint')}</span><button id="bpDel">${txt('pre.delete')}</button></div>`;}
+  const t=preTgt>=0&&preSel[preTgt],ph=t?Object.assign({},preDraft.ph,t.ph||{}):preDraft.ph;
+  return`<div class="bdRow"><b>${txt('pre.title')}</b>${txt('pre.parts',preSel.length)} <input id="bpName" maxlength="40" placeholder="${esc(txt('pre.name'))}" value="${esc(preDraft.name)}"> ${txt('pre.from')} <select id="bpFrom">${tm(preDraft.from)}</select> ${txt('pre.to')} <select id="bpTo">${tm(preDraft.to)}</select>
+ · ${txt(t?'pre.phase_part':'pre.phase_whole',preTgt+1)} ${txt('pre.in')} <input id="bpIn" type="number" min="0" step="100" value="${ph.in}"> ${txt('pre.out')} <input id="bpOut" type="number" min="0" step="100" value="${ph.out}"> ${txt('pre.stay')} <input id="bpStay" type="number" min="0" step="500" value="${ph.stay}"> ms${t&&t.ph?` <button id="bpClr">${txt('pre.clear_part')}</button>`:''} <button id="bpSave">${txt('pre.save')}</button></div>`;}
+function preBarWire($){if(!preTool())return;
+  if($('bpPick')){$('bpPick').onchange=e=>{prePick=e.target.value;};$('bpDel').onclick=async()=>{if(!buildLib.prefabs[prePick])return;if(!confirm(txt('build.delete_ask',prePick)))return;delete buildLib.prefabs[prePick];prePick='';await buildKeep();buildBar();};return;}
+  const t=preTgt>=0&&preSel[preTgt],num=id=>Math.max(0,+$(id).value||0);
+  $('bpName').oninput=()=>{preDraft.name=$('bpName').value;};$('bpFrom').onchange=()=>{preDraft.from=+$('bpFrom').value;};$('bpTo').onchange=()=>{preDraft.to=+$('bpTo').value;};
+  for(const[id,k]of[['bpIn','in'],['bpOut','out'],['bpStay','stay']])$(id).onchange=()=>{if(t){t.ph=Object.assign({},t.ph||preDraft.ph);t.ph[k]=num(id);}else preDraft.ph[k]=num(id);}; // the Phaser's target: a part (its own), or the whole prefab
+  if($('bpClr'))$('bpClr').onclick=()=>{t.ph=null;buildBar();};
+  $('bpSave').onclick=async()=>{const n=preDraft.name.trim();if(!n){flashSaveStatus(txt('build.need_name'));return;}const parts=preCapture();if(!parts){flashSaveStatus(txt('pre.select_hint'));return;}
+    buildLib.prefabs[n]={name:n,from:preDraft.from,to:preDraft.to,ph:Object.assign({},preDraft.ph),parts,at:Date.now()};if(await buildKeep())flashSaveStatus(txt('pre.saved',n,parts.length));prePick=n;buildBar();};}
 // ═════════════════════════ SURFACE MAP LINK, PAUSE MENU & SESSIONS ═════════════════════════
 // Run inside Surface_Map_HUB.html (or the title screen) as chromatic_nebula.html?hub=1. The map sends a hex's level here,
 // and this page reports back when it is cleared (bright → the hex turns white, Dark Remnant → the hex holds a dark remnant).
 // Leaving an unfinished surface saves every feature of it (IndexedDB, it is too big for localStorage) so it can be continued.
+// ═════════════════════════ BUILD MODE ═════════════════════════
+// The title screen's ~ → Build mode (chromatic_nebula.html?build=1): a surface for making and testing scenes and prefabs. It is never cleared,
+// so Dark Remnants can be placed (they wait, drawn where they are, until Test); every item is there and endless, the item cache shows (only its
+// on / off), and Create can turn the surface itself dark or bright. Nothing it does is saved to your game. A level is named and saved here in the
+// browser (IndexedDB 'build'); Export downloads every one as content/levels.json, which the game reads as it loads (jsonRead). Its ducks are
+// part of the level: collectable when it is played.
+var BUILD=!window.__SCENE&&/[?&]build=1/.test(location.search);
+let buildTest=null,buildDarks=[],buildLib={levels:{},prefabs:{}},buildName='',buildTime=0;
+const buildDarkR=d=>Math.min(T.whiteEffMax,Math.max(T.whiteEffMin,40))*remEnScaleOf(d.energy||T.collEnergy); // a placed Dark Remnant's size, as it would form
+let _contentLib=null;const buildContent=()=>_contentLib||(_contentLib=(c=>({levels:c.levels||{},prefabs:c.prefabs||{}}))(jsonRead('levels'))); // the levels and prefabs in the content files (read once)
+async function buildLoadLib(){let b=null;try{b=await IDB.get('build');}catch(e){}const c=buildContent();buildLib={levels:Object.assign({},c.levels,b&&b.levels),prefabs:Object.assign({},c.prefabs,b&&b.prefabs)};}
+async function buildKeep(){try{await IDB.put('build',buildLib);}catch(e){flashSaveStatus(txt('surf.save_failed',e.message));return false;}return true;} // (kept in this browser while building)
+function buildLevelData(){const d=JSON.parse(JSON.stringify(serializeMap(true)));delete d.T;d.dormant=buildPack(d.dormant);return{kind:invertMode?'bright':'dark',data:d,darks:buildDarks.map(d=>Object.assign({},d)),edge:JSON.parse(JSON.stringify(edgeQ)),at:Date.now()};} // the surface as it is now: everything on it, its Dark Remnants waiting
+function buildPack(list){if(!list.length)return{tpl:{},rows:[]};const r=v=>typeof v==='number'&&!Number.isInteger(v)?+v.toPrecision(6):v,cl=o=>{const c={};for(const k in o)if(k[0]!=='_')c[k]=Array.isArray(o[k])?o[k].map(r):r(o[k]);return c;},tpl=cl(list[0]),ks=Object.keys(tpl); // the nebula's particles, small: one in full, the rest only what differs from it
+  return{tpl,rows:list.map(o=>{const c=cl(o),d={};for(const k in c)if(JSON.stringify(c[k])!==JSON.stringify(tpl[k]))d[k]=c[k];for(const k of ks)if(!(k in c))d[k]=null;return d;})};}
+const buildUnpack=p=>Array.isArray(p)?p:(p.rows||[]).map(d=>{const o=Object.assign({},p.tpl,d);for(const k in d)if(d[k]===null)delete o[k];return o;});
+function buildApply(L){restoreSession(Object.assign({},L.data,{dormant:buildUnpack(L.data.dormant)}));buildDarks=(L.darks||[]).map(d=>Object.assign({},d));edgeQ=JSON.parse(JSON.stringify(L.edge||[]));phasing=[];if((L.kind==='bright')!==!!invertMode)toggleInvertMode();updateInventoryUI();} // a level back on the surface, exactly as it was saved
+function buildStart(){createItemMode=true;itemCacheMode=true;document.body.classList.add('build');buildLoadLib().then(buildBar);updateInventoryUI();flashSaveStatus(txt('build.welcome'));}
+function buildBar(){let el=document.getElementById('buildBar');if(!el){el=document.createElement('div');el.id='buildBar';document.body.appendChild(el);
+    const st=document.createElement('style');st.textContent=`#buildBar{position:fixed;top:8px;left:50%;transform:translateX(-50%);z-index:9000;display:flex;align-items:center;gap:6px;flex-wrap:wrap;justify-content:center;max-width:96vw;background:rgba(0,0,0,.9);border:1px solid #fff;padding:6px 10px;color:#fff;font:12px/1.4 system-ui,'Inter',sans-serif;letter-spacing:.6px}
+#buildBar b{font-weight:700;letter-spacing:1.6px;margin-right:4px}#buildBar input,#buildBar select{background:#000;color:#fff;border:1px solid rgba(255,255,255,.5);font:inherit;padding:2px 6px}#buildBar input{width:150px}
+#buildBar button{background:none;color:#fff;border:1px solid rgba(255,255,255,.35);font:inherit;letter-spacing:inherit;cursor:pointer;padding:2px 8px}#buildBar button:hover{background:rgba(255,255,255,.14)}#buildBar button.on{background:#fff;color:#000}#buildBar .bdRow{flex-basis:100%;display:flex;align-items:center;gap:6px;flex-wrap:wrap;justify-content:center;border-top:1px solid rgba(255,255,255,.25);padding-top:5px;margin-top:2px}#buildBar .bdRow input[type=number]{width:64px}#buildBar .bdRow span{opacity:.7}`;document.head.appendChild(st);
+    for(const ev of['mousedown','mouseup','click','wheel','contextmenu'])el.addEventListener(ev,e=>e.stopPropagation());el.addEventListener('keydown',e=>e.stopPropagation());}
+  const names=Object.keys(buildLib.levels).sort(),esc=v=>String(v).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+  el.innerHTML=`<b>${txt('build.title')}</b><input id="bdName" maxlength="40" placeholder="${esc(txt('build.name'))}" value="${esc(buildName)}"><button id="bdSave">${txt('build.save')}</button>
+<select id="bdLoad"><option value="">${txt('build.load')}</option>${names.map(n=>`<option value="${esc(n)}">${esc(n)}${buildLib.levels[n].kind==='bright'?' ○':' ●'}</option>`).join('')}</select>
+<button id="bdNew">${txt('build.new')}</button><button id="bdBlank">${txt('build.blank')}</button><button id="bdTest"${buildTest?' class="on"':''}>${txt(buildTest?'build.back':'build.test')}</button><select id="bdTime" title="${esc(txt('build.test_time_tip'))}"><option value="0">${txt('build.test_no_time')}</option>${Object.keys(TIMES).map(h=>`<option value="${h}"${+h===buildTime?' selected':''}>${TIMES[h]}</option>`).join('')}</select>
+<button id="bdDel">${txt('build.delete')}</button><button id="bdExport">${txt('build.export')}</button><button id="bdQuit">${txt('build.quit')}</button>${preBarHTML(esc)}`;
+  const $=id=>document.getElementById(id),nm=()=>$('bdName').value.trim();$('bdName').oninput=()=>{buildName=$('bdName').value;};
+  $('bdSave').onclick=async()=>{const n=nm();if(!n){flashSaveStatus(txt('build.need_name'));return;}if(buildTest){flashSaveStatus(txt('build.not_while_testing'));return;}buildLib.levels[n]=Object.assign({name:n},buildLevelData());if(await buildKeep())flashSaveStatus(txt('build.saved',n));buildName=n;buildBar();};
+  $('bdLoad').onchange=e=>{const n=e.target.value;if(!n||!buildLib.levels[n])return;if(buildTest)buildBack();buildApply(buildLib.levels[n]);buildName=n;flashSaveStatus(txt('build.loaded',n));buildBar();};
+  $('bdNew').onclick=()=>{if(buildTest)buildBack();rebuild();buildDarks=[];edgeQ=[];phasing=[];buildName='';buildBar();};
+  $('bdBlank').onclick=()=>{if(buildTest)buildBack();clearStage();buildDarks=[];edgeQ=[];phasing=[];buildBar();};
+  $('bdTime').onchange=e=>{buildTime=+e.target.value;};
+  $('bdTest').onclick=()=>{if(buildTest)buildBack();else buildPlay();buildBar();};
+  $('bdDel').onclick=async()=>{const n=nm();if(!buildLib.levels[n]){flashSaveStatus(txt('build.no_such',n));return;}if(!confirm(txt('build.delete_ask',n)))return;delete buildLib.levels[n];if(await buildKeep())flashSaveStatus(txt('build.deleted',n));buildBar();};
+  $('bdExport').onclick=()=>{saveFile('levels.json',JSON.stringify(buildLib));flashSaveStatus(txt('build.exported',Object.keys(buildLib.levels).length,Object.keys(buildLib.prefabs).length));};
+  $('bdQuit').onclick=()=>{loading('leave',true);setTimeout(()=>{location.href='TitleSplash.html';},300);};preBarWire($);}
+function buildPlay(){buildTest=buildLevelData();const P=buildTime?prefabSpawn(buildTime):null;const d=buildDarks[0];if(d){const t=buildDarks.slice();buildDarks=[];triggerBlackRemnant(d.x,d.y,performance.now(),d.mass||T.massScaleMax*T.blackMult,d.energy||T.collEnergy,true);buildDarks=t;} // (true: placed, so never a duck) // Test: the surface played as it would be (a Dark Remnant placed starts; a Rift can form; it can be cleared)
+  if(isPaused)togglePause();flashSaveStatus(buildTime?(P?txt('build.test_prefab',P.name,TIMES[buildTime]):txt('build.test_none',TIMES[buildTime])):txt('build.testing'));} // (at a time of day: which prefab, if any, appeared)
+function buildBack(){const L=buildTest;buildTest=null;if(L)buildApply(L);levelCleared=false;clearInfo=null;flashSaveStatus(txt('build.back_to_build'));} // back to the surface as it was before the test
 var HUB=!window.__SCENE&&window.parent!==window&&/[?&]hub=1/.test(location.search);
 var hubAsleep=false,hubLevel=null,hubOverlay=false,hubShotSize=68,_menuOpen=false,_menuWasPaused=false;
 function hubPost(m){if(HUB)window.parent.postMessage(Object.assign({il:1},m),'*');}
@@ -13062,7 +13211,7 @@ async function hubStartLevel(m){
   let rec=null;if(m.resume){try{rec=await IDB.get('session');}catch(e){}}
   hubLevel={key:m.key,seed:m.seed,cov:m.cov};if(m.clock!=null)DUCK_SUN=duckSun(m.clock);levelCoverage=m.cov;lvHex=m.q!=null?[m.q,m.r]:null; // (its ducks are lit by the map's time of day; its coverage is the hex's)
   if(rec&&rec.key===m.key&&rec.data){try{restoreSession(rec.data);flashSaveStatus(txt('surf.surface_continued_where_you',m.label));}catch(e){console.error(e);rec=null;}}
-  if(!rec||rec.key!==m.key){if(m.white){if(!invertMode)toggleInvertMode();}else ensureDarkRemnantTheme();rebuild(m.seed);levelCoverage=m.cov;flashSaveStatus(txt('surf.surface',m.label));fireEvent('surface');}
+  if(!rec||rec.key!==m.key){if(m.white){if(!invertMode)toggleInvertMode();}else ensureDarkRemnantTheme();rebuild(m.seed);levelCoverage=m.cov;flashSaveStatus(txt('surf.surface',m.label));fireEvent('surface');prefabSpawn(m.clock);} // (a new surface: maybe a prefab for this time of day)
   hubLevel.key=m.key;if(isPaused)togglePause();
   requestAnimationFrame(()=>requestAnimationFrame(()=>hubPost({type:'levelReady'}))); // drawn: the map's loading screen can go
 }
@@ -13074,7 +13223,7 @@ async function quitTo(dest){ // the pause menu's Quit buttons
   const key=hubLevel&&hubLevel.key;hubIdle();
   hubPost({type:'quit',to:dest,key,cleared:!rec,img:rec?rec.img:null,T:Object.assign({},T),inv:Object.assign({},inventory),disc:[...discSeen]});
 }
-function hubLevelCleared(){if(!HUB||!hubLevel)return;IDB.del('session').catch(()=>{});hubPost({type:'cleared',key:hubLevel.key,kind:clearInfo&&clearInfo.type==='black'?'dark':'bright',tally:surfaceTally});} // the tally: what this surface collected (a pop-up shop may open on it)
+function hubLevelCleared(){if(!HUB||!hubLevel)return;IDB.del('session').catch(()=>{});hubPost({type:'cleared',key:hubLevel.key,kind:clearInfo&&clearInfo.type==='black'?(clearInfo.rift!=null?'rift':'dark'):'bright',ang:clearInfo&&clearInfo.rift,tally:surfaceTally});} // the tally: what this surface collected (a pop-up shop may open on it)
 window.addEventListener('message',e=>{
   const m=e.data;if(!HUB||e.source!==window.parent||!m||!m.cmd)return;
   if(m.size)hubShotSize=m.size;
@@ -13319,9 +13468,9 @@ function duckStep(now,ts){
     for(let k=i+1;k<ducks.length;k++){const e=ducks[k];if(!e._hull||e._bhK)continue;const dx=_wrapD(e.x-d.x,W),dy=_wrapD(e.y-d.y,H),dd=Math.hypot(dx,dy)||1e-4,R=Hd.m+e._hull.m;if(dd>=R)continue;
       const nx=dx/dd,ny=dy/dd,imp=duckImpulse(d,e,{nx,ny,pen:R-dd,px:nx*Hd.m,py:ny*Hd.m},duckMass(e),true);if(imp>0.05){duckVoice(d,imp/T.maxSpeed);duckVoice(e,imp/T.maxSpeed);}}}}
 function duckDark(d,bh,now,ts){ // a Dark Remnant stops it as its wave passes, draws it in with everything else, and swallows it (true = gone)
-  const dx=_wrapD(bh.x-d.x,W),dy=_wrapD(bh.y-d.y,H),dist=Math.hypot(dx,dy)||1,r=(d._hull?d._hull.m:duckSizeOf(d)*0.4);
+  const v=bhVec(bh,d.x,d.y),dx=-v[0],dy=-v[1],dist=Math.hypot(dx,dy)||1,r=(d._hull?d._hull.m:duckSizeOf(d)*0.4);
   if(dist<(bh.consumeR||0)+r){duckVoice(d,1);bhConsumeSound({ci:0,mass:duckMass(d)});
-    if(bh.phase==='active'){const nx=-dx/dist,ny=-dy/dist;bh.impacts.push({x:bh.x+nx*bh.consumeR,y:bh.y+ny*bh.consumeR,r:255,g:222,b:40,size:bhImpactSizeFor(duckMass(d)),born:now});}
+    if(bh.phase==='active'){const nx=-dx/dist,ny=-dy/dist;bh.impacts.push({x:(bh.rift?d.x+dx:bh.x)+nx*bh.consumeR,y:(bh.rift?d.y+dy:bh.y)+ny*bh.consumeR,r:255,g:222,b:40,size:bhImpactSizeFor(duckMass(d)),born:now});}
     flashSaveStatus(txt('surf.the_dark_remnant_swallowed',DUCK_TYPES[d.type].name));return true;}
   if(!d._bhK&&(bh.phase==='active'||(bh.activateR||0)>=dist)){d._bhK=true;d.vx=d.vy=d.rot=d.wx=d.wy=0;}
   if(d._bhK&&bh.phase==='active'&&bh.queue&&(bh.qi>=bh.queue.length||(bh.qi>0&&bh.queue[bh.qi-1]._bhD>=dist))){const s=Math.min(dist,T.blackFlySpeed*ts);d.x=((d.x+dx/dist*s)%W+W)%W;d.y=((d.y+dy/dist*s)%H+H)%H;}
@@ -13412,12 +13561,29 @@ Object.assign(RULE_EV,{duck:'duck',duckexo:'duck'});Object.assign(RULE_SCENES,{d
 // ═════════════════════════ RIFT ═════════════════════════
 // The mechanics trend toward ever more mass in fewer places. A Rift (a Tear): when the mass of everything on the surface inside one
 // area — any 2×2 block of Rift-area cells — reaches Rift mass, the surface tears there and a Dark Remnant forms at that mass's centre.
-// A Rift is ALWAYS a Dark Remnant (no duck roll). Inside a Gate it is locked in like any Dark Remnant formed there.
+// A Rift is not a Dark Remnant: it is a line. A glass crack runs across the screen at a random angle through that mass, glowing with the Dark
+// Remnant's pulse, and opens into a jagged pure black stripe (Rift width). Whatever it opens over is lost. Then a wave runs out from it on both
+// sides, parallel to it, and everything is drawn straight across to it and consumed (bursts of spikes where it hits), by the Dark Remnant's own
+// collapse settings (blackHole with .rift: every distance is to its line). Remnants can still be collected at the last second. On the Surface Map
+// the hex is gone: a scar (see riftCell there).
+function bhVec(bh,x,y){if(!bh.rift)return[_wrapD(x-bh.x,W),_wrapD(y-bh.y,H)];const r=bh.rift,s=(x-bh.x)*r.nx+(y-bh.y)*r.ny;return[r.nx*s,r.ny*s];} // from the hole (a Dark Remnant's centre, or the nearest point of a Rift's line) out to (x,y)
+function bhReach(bh){if(!bh.rift)return Math.sqrt(W*W+H*H);let m=0;for(const[x,y]of[[0,0],[W,0],[0,H],[W,H]])m=Math.max(m,Math.abs((x-bh.x)*bh.rift.nx+(y-bh.y)*bh.rift.ny));return m;} // how far its wave runs to cover the screen
+function drawRift(c,bh,now){const r=bh.rift,L=Math.hypot(W,H),tx=r.ny,ty=-r.nx;
+  if(bh.phase==='crack'){const u=Math.min(1,(now-bh.crackStart)/Math.max(1,T.riftCrackMs||1100)),l=L*(1-Math.pow(1-u,3)),P=new Path2D(); // the crack runs out both ways from where the mass was, like glass: a jagged line, short splinters off it
+    for(const sd of[-1,1]){let px=bh.x,py=bh.y;P.moveTo(px,py);for(let d=14,i=0;d<=l;d+=14,i++){const j=(riftJag(i,r.seed+sd)-0.5)*6;px=bh.x+tx*d*sd+r.nx*j;py=bh.y+ty*d*sd+r.ny*j;P.lineTo(px,py);
+      if(riftJag(i+50,r.seed+sd)<0.22){const ba=(riftJag(i+80,r.seed)-0.5)*1.6,bl=8+22*riftJag(i+90,r.seed),bx=tx*sd*Math.cos(ba)-ty*sd*Math.sin(ba),by=tx*sd*Math.sin(ba)+ty*sd*Math.cos(ba);P.lineTo(px+bx*bl,py+by*bl);P.moveTo(px,py);}}}
+    drawRiftGlow(c,P,now,0.5,0,true);c.save();c.strokeStyle='rgba(255,255,255,0.9)';c.lineWidth=1.2;c.stroke(P);c.restore();return;}
+  drawRiftGlow(c,riftStripe(new Path2D(),bh.x-tx*L,bh.y-ty*L,bh.x+tx*L,bh.y+ty*L,Math.max(0.5,bh.consumeR),r.seed,14),now,1);} // open: the stripe (its edges in the pulsing glow)
+function drawRiftWave(c,bh,now){const a=bh.activateR,L=Math.hypot(W,H),bw=Math.max(30,Math.min(150,a*0.2)); // the wave out from a Rift, both sides at once: the dark behind it, a white flare and the Dark Remnant's glow along its fronts
+  c.save();c.translate(bh.x,bh.y);c.rotate(bh.rift.a);const g=c.createLinearGradient(0,-a,0,a);g.addColorStop(0,'rgba(0,0,0,0)');g.addColorStop(0.12,'rgba(0,0,0,0.95)');g.addColorStop(0.88,'rgba(0,0,0,0.95)');g.addColorStop(1,'rgba(0,0,0,0)');
+  c.filter=`blur(${T.bhExpandBlur}px)`;c.fillStyle=g;c.fillRect(-L,-a,2*L,2*a);c.filter='none';c.globalCompositeOperation='screen';
+  for(const sd of[-1,1]){const y=sd*a,f=c.createLinearGradient(0,y-bw*sd,0,y+bw*0.35*sd);f.addColorStop(0,'rgba(255,255,255,0)');f.addColorStop(0.72,'rgba(255,255,255,0.5)');f.addColorStop(1,'rgba(255,255,255,0)');c.fillStyle=f;c.fillRect(-L,Math.min(y-bw*sd,y+bw*0.35*sd),2*L,bw*1.35);}
+  c.globalCompositeOperation='source-over';const P=new Path2D();P.moveTo(-L,-a);P.lineTo(L,-a);P.moveTo(-L,a);P.lineTo(L,a);drawRiftGlow(c,P,now,1,0,true);c.restore();}
 
 
 let _riftAt=0;
 function riftCheck(now){
-  if(blackHole||levelCleared||!(runT('riftMass')>0)||now-_riftAt<T.riftEveryMs)return;_riftAt=now;
+  if(blackHole||levelCleared||BUILD&&!buildTest||!(runT('riftMass')>0)||now-_riftAt<T.riftEveryMs)return;_riftAt=now;
   const C=Math.max(20,T.riftR),gw=Math.max(2,Math.ceil(W/C)),gh=Math.max(2,Math.ceil(H/C)),N=gw*gh,m=new Float64Array(N),mx=new Float64Array(N),my=new Float64Array(N),me=new Float64Array(N);
   for(let i=0;i<active.length;i++){const q=active[i];if(q.dying||q.captured||q._bhGone||!(q.mass>0))continue;
     const k=Math.min(gh-1,Math.max(0,(q.y/C)|0))*gw+Math.min(gw-1,Math.max(0,(q.x/C)|0));m[k]+=q.mass;mx[k]+=q.x*q.mass;my[k]+=q.y*q.mass;me[k]+=q.energy||0;}
@@ -13445,8 +13611,8 @@ if(!window.__SCENE)registerGuideDisc();
   await loadConfig();
   if(T.wakeBudgetPerFrame>5000)T.wakeBudgetPerFrame=400;if(!(T.fadeBudgetMs>0))T.fadeBudgetMs=4; // (0 meant unlimited: one burst of fades could take seconds) // (old saves: 150000 meant unlimited; waking now queues instead of dropping, so a real budget is safe)
   buildTunePanel();updateRect();
-  if(HUB)hubIdle();else{rebuild();fireEvent('surface');}
-  updateInventoryUI();applyDisc();updateSettleBtn();updateCacheBtn();if(T.soundOn)setSound(true,null,true);
+  if(HUB)hubIdle();else{rebuild();fireEvent('surface');}if(BUILD)buildStart();
+  updateInventoryUI();applyDisc();updateSettleBtn();if(T.soundOn)setSound(true,null,true);
   if(HUB)hubState('ready',true);else rafId=requestAnimationFrame(loop);
 })();
 </script>
