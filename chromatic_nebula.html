@@ -114,7 +114,7 @@ button:hover{background:rgba(255,255,255,0.15);}
   <div id="dock" class="bottom"><div id="inventoryPanel"></div><div id="touch-info"></div></div>
   <canvas id="cur"></canvas>
 </div>
-<script src="shared.js?v=20261103b"></script>
+<script src="shared.js?v=20261103c"></script>
 <script>
 const _SRC=document.documentElement.outerHTML; // kept so the Encyclopedia can run live scenes as embedded copies of the game
 // Safety: a negative / non-finite gradient radius would throw and kill the frame — clamp it, and log the first offender's stack so it can be traced.
@@ -275,7 +275,7 @@ setTimeout(()=>{const g=id=>document.getElementById(id);
 let spaceHeld=false;
 document.addEventListener('keydown',e=>{
   const _typing=/INPUT|TEXTAREA|SELECT/.test((e.target&&e.target.tagName)||'');
-  if((e.key==='h'||e.key==='H'||e.key==='~'||e.key==='`')&&!e.ctrlKey&&!e.metaKey&&!e.altKey&&!_typing){wrap.classList.toggle('ui-hidden');} // H or ~: hides / shows the buttons, panels and statistics — the item inventory and the feed always stay
+  if((e.key==='h'||e.key==='H'||e.key==='~'||e.key==='`')&&!e.ctrlKey&&!e.metaKey&&!e.altKey&&!_typing){wrap.classList.toggle('ui-hidden');hubPost({type:'ui',hidden:wrap.classList.contains('ui-hidden')});} // (the map's time of day and panels, over the surface, hide with it) // H or ~: hides / shows the buttons, panels and statistics — the item inventory and the feed always stay
   if(e.key==='Escape'&&!_typing){e.preventDefault();toggleGameMenu();return;} // Esc: the pause menu (sound, readouts, guide, quit)
   if(_menuOpen)return; // the pause menu takes no game keys
     if(e.code==='Space'||e.key===' '){
@@ -1569,7 +1569,7 @@ TUNE_DEFS.push({sec:'Time dilation & Risks',tab:'gameplay'},
  {key:'riskWarnMass',label:'Risk WARNING mass',min:1,max:5000,step:10,tip:'Points above this mass show a blinking WARNING (default: half the Dark Remnant formation mass)'},
  {key:'riskDangerMass',label:'Risk DANGER mass',min:1,max:400000,step:100,tip:'Points above this mass show DANGER'},
  {key:'cacheKeyR',label:'Cache keyhole pane R',min:6,max:40,step:1,tip:'Radius of the central keyhole glass pane of a Cache'});
-Object.assign(T,{masterVol:0.7,soundOn:0,mapHexSize:34,mapBurstRings:3,mapCollapseMs:1400,mapSourceGlow:1,mapTilt:32,mapPersp:1400,mapZoomMin:0.55,mapZoomMax:1.8,mapDucks:5,mapBottleMs:90000,mapDuckRefl:0.4,mapDuckBumpV:0.35,mapDuckDunkMs:1300,mapZoom:1,mapAlpha:1,mapClearBlur:0.6,mapClearBleed:0.85,mapCovMin:0.25,mapCovFull:1,mapPrevFadeMs:450});
+Object.assign(T,{masterVol:0.7,soundOn:0,mapHexSize:34,mapBurstRings:3,mapCollapseMs:1400,mapSourceGlow:1,mapTilt:32,mapPersp:1400,mapZoomMin:0.55,mapZoomMax:1.8,mapDucks:5,mapBottleMs:90000,mapPlanePx:2500000,mapIdleFps:8,mapDuckRefl:0.4,mapDuckBumpV:0.35,mapDuckDunkMs:1300,mapZoom:1,mapAlpha:1,mapClearBlur:0.6,mapClearBleed:0.85,mapCovMin:0.25,mapCovFull:1,mapPrevFadeMs:450});
 TUNE_DEFS.push({sec:'Master volume',tab:'sounds'},{key:'masterVol',label:'Master volume',min:0,max:1,step:0.05,tip:'Overall volume (also in the Esc menu)'},
  {sec:'Surface Map — hex surface layer (drawn by the surface renderer: pixel map, blur passes and α all apply)',tab:'gameplay'},
  {key:'mapHexSize',label:'Hex size',min:20,max:90,step:1,tip:'Radius (px) of a Surface Map hex'},
@@ -1580,6 +1580,8 @@ TUNE_DEFS.push({sec:'Master volume',tab:'sounds'},{key:'masterVol',label:'Master
  {key:'mapPersp',label:'Map perspective px',min:400,max:4000,step:50,tip:'Viewing distance for the tilt: smaller = stronger perspective'},
  {key:'mapZoomMin',label:'Map zoom out',min:0.3,max:1,step:0.05,tip:'Furthest the map zooms out (wheel or −)'},
  {key:'mapZoomMax',label:'Map zoom in',min:1,max:3,step:0.05,tip:'Closest the map zooms in (wheel or +)'},
+ {key:'mapPlanePx',label:'Map plane pixels',min:5e5,max:8e6,step:1e5,tip:'Most pixels the Surface Map\'s ground is drawn with (it is sent to the GPU every frame: fewer is faster, more is sharper)'},
+ {key:'mapIdleFps',label:'Map fps when away',min:1,max:60,step:1,tip:'Frames a second the Surface Map draws while its window is not the one in use'},
  {key:'mapDucks',label:'Lake ducks',min:0,max:12,step:1,tip:'How many of your collected ducks swim in the open space around the map'},
  {key:'mapBottleMs',label:'Bottle every ms',min:5000,max:600000,step:5000,tip:'About how long between messages in a bottle floating onto the lake (one at a time)'},
  {key:'mapDuckBumpV',label:'Duck bump speed',min:0.02,max:3,step:0.01,tip:'How fast the cursor must cross a lake duck (world px per ms) to send it puttering off; slower, it just spins where it is'},
@@ -13967,7 +13969,7 @@ function cardHTML(ev,mini){ // the one card format: name bar, art box, type line
   return `<div class="mtg${mini?' sm':''}" data-ev="${ev.id}" style="--rc:${TIER_COL[t]}"><div class="nm"><b>${gEsc(ev.name)}</b><span class="gem"></span></div><div class="art" data-scene="${ev.scene}">${mini?`<canvas class="rl-m" width="64" height="64" data-k="${ev.ico}"></canvas>`:''}</div><div class="ty"><span>${gEsc(ev.type.replace(/^Event — /,''))}</span><span>Tier ${TIER[t]}</span></div><div class="tx">${ev.facts().map(f=>`<p>${gEsc(f)}</p>`).join('')}<p class="fl">${gEsc(ev.flavor)}</p></div></div>`;
 }
 function mountScene(h,w,hh){if(!h||h.firstChild||document.querySelectorAll('.rl-live iframe,.mtg .art iframe').length>=5)return;const f=document.createElement('iframe'),nm=h.dataset.s||h.dataset.scene;f.style.cssText='border:0;max-width:100%;pointer-events:none;background:#000;border-radius:6px;'+(w?`width:${w}px;height:${hh}px`:'width:100%;height:100%');
-  if(nm.slice(0,4)==='hub:')f.src='Surface_Map_HUB.html?v=20261103b&scene='+nm.slice(4)+'&T='+encodeURIComponent(JSON.stringify(mapSceneT()))+'&D='+encodeURIComponent(JSON.stringify(Object.fromEntries(Object.entries(DUCK_TYPES).slice(0,4))));else f.srcdoc=liveSrc(nm);h.appendChild(f);} // a Surface Map demo is played by the map itself
+  if(nm.slice(0,4)==='hub:')f.src='Surface_Map_HUB.html?v=20261103c&scene='+nm.slice(4)+'&T='+encodeURIComponent(JSON.stringify(mapSceneT()))+'&D='+encodeURIComponent(JSON.stringify(Object.fromEntries(Object.entries(DUCK_TYPES).slice(0,4))));else f.srcdoc=liveSrc(nm);h.appendChild(f);} // a Surface Map demo is played by the map itself
 function mapSceneT(){const o={};for(const k in T)if(/^(map|bh|duck|wake|glass|metal|dimGlow|glowHalo|maxSpeed)/.test(k))o[k]=T[k];return o;} // what a map demo needs of the tuners
 function showCardHTML(html){ // a Guide card (an entry or a shop) opened over the Guide, where an event card shows
   guideCSS();_evOpen=true;_evReview=true;const ov=evOverlayEl();ov.innerHTML=`<div class="ev-box">${html}<button id="evOk">Close</button></div>`;ov.style.display='flex';wrap.classList.add('ev-open');
@@ -14297,6 +14299,7 @@ window.addEventListener('message',e=>{
   else if(m.cmd==='guide'){hubOverlay_(true);if(m.tab)_rulesTab=m.tab;openRules();}
   else if(m.cmd==='event'){const ids=(m.ids||[m.id]).filter(i=>!discSeen.has('ev:'+i));if(!ids.length){hubState('overlayDone');return;}hubOverlay_(true);ids.forEach(fireEvent);}
   else if(m.cmd==='sound')setSound(m.on,m.vol);
+  else if(m.cmd==='ui')wrap.classList.toggle('ui-hidden',!!m.hidden); // ~ on the map: one hide / show for both
   else if(m.cmd==='tune'){applyLoadedConfig(m.T,true);debounceSave();}
   else if(m.cmd==='discover'){discSeen.add(m.id);saveInventory();hubState();}
   else if(m.cmd==='spend'){inventory[m.kind]=Math.max(0,(inventory[m.kind]||0)-(m.n||1));saveInventory();updateInventoryUI();hubState();} // the map used an item (Spindle, String, Weave)
