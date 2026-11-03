@@ -90,9 +90,7 @@ button:hover{background:rgba(255,255,255,0.15);}
     <button id="tb" onclick="toggleTrails()" data-tx="surf.ui.trails_off"></button>
     <button id="mb" onclick="toggleMute()" data-tx="surf.ui.sound_off"></button>
     <button id="pvb" onclick="toggleParticleView()" data-tx="surf.ui.particle_map_off"></button>
-    <button id="cib" onclick="toggleCreateItem()" data-tx="surf.ui.create_item_off"></button>
     <button id="stb" onclick="toggleSettleMode()" data-tx="surf.ui.settle_swap"></button>
-    <button id="icb" onclick="toggleItemCache()" data-tx="surf.ui.item_cache_hidden"></button>
     <button id="nsb" onclick="toggleNebShape()" data-tx="surf.ui.cell_shape"></button>
     <button id="cmb" onclick="toggleCoverageMode()" data-tx="surf.ui.coverage_blob"></button>
     <button id="ivb" onclick="toggleInvertMode()" data-tx="surf.ui.invert_off"></button>
@@ -114,7 +112,7 @@ button:hover{background:rgba(255,255,255,0.15);}
   <div id="dock" class="bottom"><div id="inventoryPanel"></div><div id="touch-info"></div></div>
   <canvas id="cur"></canvas>
 </div>
-<script src="content.js?v=20261103t"></script><script src="shared.js?v=20261103t"></script>
+<script src="content.js?v=20261103u"></script><script src="shared.js?v=20261103u"></script>
 <script>
 txtApply(); // the page's own labels (content/strings.csv)
 const _SRC=document.documentElement.outerHTML; // kept so the Encyclopedia can run live scenes as embedded copies of the game
@@ -2062,7 +2060,7 @@ function invMerge(saved){if(!saved)return false;let ch=false;const rk=_discReset
   if(!rk&&saved.ducks&&typeof saved.ducks==='object')for(const k in saved.ducks){const n=saved.ducks[k]|0;if(n>(duckLog[k]||0)){duckLog[k]=n;ch=true;}} // (a Gift Shop wipe: nothing is merged back)
   return ch;}
 function saveInventory(){
-  if(window.__SCENE)return;
+  if(window.__SCENE||BUILD)return; // (Build mode: nothing it does is kept)
   syncKeyShapes();
   try{const raw=localStorage.getItem(INV_STORAGE_KEY);if(raw)invMerge(JSON.parse(raw));}catch(e){}
   const js=JSON.stringify(invPayload());_discReset=false;
@@ -4325,15 +4323,8 @@ function gateDefaultCursor(){return gateStates.length;} // arming defaults to th
 
 // The Create item: infinite, only present while the "Create item" mode is on. While it is armed the create tool is live
 // (middle-click steps the type, wheel the colour/kind); putting it away (click again / right-click) returns the normal cursor.
-let createItemMode=false;
+let createItemMode=false; // (on in Build mode only)
 function createActive(){return !!(armedInvItem&&armedInvItem.kind==='create');}
-function toggleCreateItem(){
-  createItemMode=!createItemMode;
-  if(!createItemMode&&createActive())armedInvItem=null;
-  const b=document.getElementById('cib');if(b)b.textContent=txt('surf.create_item',(createItemMode?txt('surf.on_2'):txt('surf.off_2')));
-  updateInventoryUI();
-}
-window.toggleCreateItem=toggleCreateItem;
 function armInventoryItem(kind){
   if(kind==='cache-disable'){invDisableMode=!invDisableMode;updateInventoryUI();flashSaveStatus((invDisableMode?txt('surf.disable_mode_click_an'):txt('surf.disable_mode_off')));return;}
   if(invDisableMode&&INV_KINDS.includes(kind)){if(invDisabled.has(kind))invDisabled.delete(kind);else{invDisabled.add(kind);if(armedInvItem&&armedInvItem.kind===kind)armedInvItem=null;if(conMode&&conKind===kind)setConMode(false);}saveInventory();updateInventoryUI();return;}
@@ -4422,7 +4413,8 @@ function wheelOnSpeedCtl(e){
 // ── Discoveries: an element is hidden until you hover it while holding at least its Dim cost (nothing is spent). Locked ones show only their cost on hover. ──
 const DISC_MAP=[['#hud button[onclick^="rebuild"]','hud_rebuild'],['#modesbtn','hud_modes'],['#tunebtn','hud_tune'],['#hud button[onclick*="importImage"]','hud_image'],['#hud button[onclick^="clearSourceImage"]','hud_clearimg'],['#pb','mode_pause'],['#tb','mode_trails'],['#mb','mode_sound'],['#pvb','mode_particlemap'],['#cib','mode_create'],['#stb','mode_settle'],['#icb','mode_cache'],['#nsb','mode_shape'],['#cmb','mode_coverage'],['#ivb','mode_invert'],['#rdb','mode_radii'],['#tlb','mode_telemetry'],['#dyb','mode_dynamics'],['#clb','mode_class'],['#modesPanel button[onclick^="clearStage"]','mode_clearstage'],['#modesPanel button[onclick^="saveMap"]','mode_savemap'],['#modesPanel button[onclick*="importMapFile"]','mode_loadmap'],['#stColl','stats_collapse'],['#stLine','stats_line'],['#stLog','stats_log']];
 let discHoverId=null,_discN=0;
-function discCostOf(id){const p=id.slice(0,3);return (p==='of_'||p==='ot_')?(T['dc_obj_'+id.slice(3)]||0):(T['dc_'+id]||0);}
+function discCostOf(id){if(BUILD)return 0; // (Build mode: everything is there)
+  const p=id.slice(0,3);return (p==='of_'||p==='ot_')?(T['dc_obj_'+id.slice(3)]||0):(T['dc_'+id]||0);}
 function discHas(id){return !!window.__SCENE||discCostOf(id)<=0||discSeen.has(id);}
 function discTry(id){if(discHas(id))return true;if(inventory.dim>=discCostOf(id)){discSeen.add(id);saveInventory();return true;}return false;}
 function objKey(p){ // which object TYPE this is (feed and telemetry are unlocked per type)
@@ -4438,7 +4430,7 @@ function feedLock(p){const id='of_'+objKey(p);if(discHas(id))return false;if(pre
 function applyDisc(){
   for(const m of DISC_MAP){const el=document.querySelector(m[0]);if(el)el.dataset.disc=m[1];}
   document.querySelectorAll('#inventoryPanel .slot').forEach(el=>{el.dataset.disc='slot_'+el.dataset.kind;});
-  document.querySelectorAll('[data-disc]').forEach(el=>{const id=el.dataset.disc,cost=T['dc_'+id]||0,lock=cost>0&&!discSeen.has(id);el.classList.toggle('disc-lock',lock);if(lock)el.dataset.cost=fmtCount(cost);});
+  document.querySelectorAll('[data-disc]').forEach(el=>{const id=el.dataset.disc,cost=BUILD?0:T['dc_'+id]||0,lock=cost>0&&!discSeen.has(id);el.classList.toggle('disc-lock',lock);if(lock)el.dataset.cost=fmtCount(cost);});
 }
 function discReveal(id){
   discSeen.add(id);saveInventory();
@@ -4467,6 +4459,7 @@ window.resetDiscoveries=resetDiscoveries;
 for(const ev of ['mousedown','mouseup','click','dblclick','contextmenu','wheel'])document.addEventListener(ev,e=>{const el=e.target.closest&&e.target.closest('.disc-lock');if(el){e.stopPropagation();e.preventDefault();}},true); // an undiscovered element cannot be used
 function updateInventoryUI(){
   if(runBonus(runState,'inf'))inventory[runState.bonus.item]=invMaxFor(runState.bonus.item); // an Endless … day: never runs out
+  if(BUILD)for(const k of INV_KINDS)inventory[k]=Math.max(1,invMaxFor(k)); // Build mode: every item, endless
   const el=document.getElementById('inventoryPanel');
   if(!el)return;
   const show=true; // the inventory is reachable whether paused or not
@@ -4489,13 +4482,12 @@ function updateInventoryUI(){
     html+=`<div class="slot${armed?' armed':''}${count<=0?' empty':''}${invDisabled.has(kind)?' dis':''}${(invFlash.kind===kind&&performance.now()-invFlash.at<900)?' flash':''}" data-kind="${kind}"
       data-arm="1">
       <div class="ic">${kind==='dial'?DIAL_SVG:(ICON_SVG[kind]||INV_ICON[kind])}</div>
-      <div class="cnt">${fmtCount(count)}</div>
+      <div class="cnt">${BUILD?'∞':fmtCount(count)}</div>
     </div>`;
   }
   if(itemCacheMode){
-    html+=`<div class="slot cache" data-kind="cache-clear" data-arm="1"><div class="ic">✖</div><div class="cnt">clear</div></div>
-    <div class="slot cache" data-kind="cache-fill" data-arm="1"><div class="ic">⤒</div><div class="cnt">fill</div></div>
-    <div class="slot cache${invDisableMode?' armed':''}" data-kind="cache-disable" data-arm="1"><div class="ic">⦸</div><div class="cnt">off</div></div>`;
+    html+=(BUILD?'':`<div class="slot cache" data-kind="cache-clear" data-arm="1"><div class="ic">✖</div><div class="cnt">clear</div></div>
+    <div class="slot cache" data-kind="cache-fill" data-arm="1"><div class="ic">⤒</div><div class="cnt">fill</div></div>`)+`<div class="slot cache${invDisableMode?' armed':''}" data-kind="cache-disable" data-arm="1"><div class="ic">⦸</div><div class="cnt">off</div></div>`;
   }
   if(createItemMode){
     html+=`<div class="slot create${createActive()?' armed':''}" data-kind="create" data-arm="1">
@@ -5302,6 +5294,7 @@ function breakAllCreations(now){ // a surface clear (bright OR dark) breaks ever
   try{destroyField(now);}catch(e){} try{bhBreakFixtures(now);}catch(e){}
 }
 function checkLevelClear(now){
+  if(BUILD&&!buildTest)return; // Build mode: a surface is never cleared (but when it is tested)
   if(levelCleared||(window.__SCENE&&window.__SCENE!=='cleared'))return; // a demo scene only ever clears when it IS the clearing demo
   if(active.length>0)simulationStarted=true;
   if(blackHole){
@@ -5368,6 +5361,7 @@ function avoidDockFor(x,y,r){
   else if(!top&&hitsBottom&&!hitsTop)window.setDockSide('top');
 }
 function triggerBlackRemnant(x,y,now,mass,energy,fromGate,rift){ // rift: a Rift (too much mass in one place) is always a Dark Remnant, never a duck
+  if(BUILD&&!buildTest){buildDarks.push({x,y,mass:mass||0,energy:energy||0});flashSaveStatus(txt('build.dark_placed'));return;} // Build mode: a Dark Remnant stays where it formed (or was put), until the surface is tested
   if(blackHole)return; // only one remnant event at a time
   if(!fromGate&&!rift){const lg=gateAtPoint(x,y);if(lg){lockDarkInGate(lg,x,y,now,mass,energy);return;}} // formed inside a Gate: it stays locked in there
   const canDuck=!fromGate&&!rift&&!window.__SCENE&&(dormantCount>0||active.some(q=>!q.isRemnant&&!q.dying&&!q.captured&&Math.hypot(q.x-x,q.y-y)>60)),asDuck=canDuck&&(!!runState.next||Math.random()<runT('duckChance')+duckLuck.d*runT('duckLuckStep')); // a duck instead — only while the surface still has something to play
@@ -6365,9 +6359,6 @@ function updateParticleBtn(){const b=document.getElementById('pvb');if(b)b.textC
 // one-shot actions, not a mode that holds the counts: collection and use carry on normally afterwards. The Modes button only
 // decides whether the two action slots are shown.
 let itemCacheMode=false;
-function updateCacheBtn(){const b=document.getElementById('icb');if(b)b.textContent=txt('surf.item_cache',(itemCacheMode?txt('surf.shown'):txt('surf.hidden')));}
-function toggleItemCache(){itemCacheMode=!itemCacheMode;updateCacheBtn();updateInventoryUI();}
-window.toggleItemCache=toggleItemCache;
 function cacheAction(fill){
   for(const k of INV_KINDS)inventory[k]=fill?invMaxFor(k):0;
   syncKeyShapes();saveInventory();updateInventoryUI();
@@ -6515,7 +6506,8 @@ async function saveMap(){
   let json;
   try{json=JSON.stringify(serializeMap());}
   catch(err){flashSaveStatus(txt('surf.save_failed',err.message));return;}
-  const filename='nebula-map-'+new Date().toISOString().replace(/[:.]/g,'-')+'.json';
+  saveFile('nebula-map-'+new Date().toISOString().replace(/[:.]/g,'-')+'.json',json);}
+async function saveFile(filename,json){ // a file for the viewer to keep (the surface's map, Build mode's Export)
   // Prefer the viewer-confirmed save when this page is running inside a
   // Claude artifact; fall back to a plain browser download (e.g. when the
   // file has been saved/opened directly outside claude.ai).
@@ -7789,6 +7781,7 @@ const CREATE_TYPES=[
   {cat:'inertia',variants:[null]}, // Inertializer
   {cat:'duck_space',variants:[]}, // a duck, floating here in space (its variants: every duck, filled in once they are known)
   {cat:'duck_pond',variants:[]}, // a duck sent to swim on the Surface Map's pond
+  {cat:'surface',variants:['dark','bright']}, // Build mode: the surface itself, dark or bright (white)
   {cat:'standard',variants:[null]},
 ];
 const STANDARD_TYPE_IDX=CREATE_TYPES.length-1;
@@ -8023,6 +8016,7 @@ function createLabel(){
   if(t.cat==='shape_glass')return txt('surf.lens_click_inside_a',(t.variants[v]===null?txt('surf.clear'):txt('surf.tinted_objects_under_it',fxName(t.variants[v]))));
   if(t.cat==='inertia')return txt('surf.inertializer_click_drag_box');
   if(t.cat==='standard')return txt('surf.standard_cursor');
+  if(t.cat==='surface')return txt('build.surface_tool',t.variants[v]==='bright'?txt('build.bright'):txt('build.dark'));
   if(t.cat==='particle')return txt('surf.grid_particle',(t.variants[v]==='white'||t.variants[v]==='black'?txt('surf.touching_a_particle_blends',fxName(t.variants[v])):txt('surf.touching_a_particle_blends',EFFECT_NAMES[t.variants[v]])));
   if(t.cat==='remove')return txt('surf.remove_click_or_swipe');
   if(t.cat==='point')return txt('surf.pigment',fxName(t.variants[v]));
@@ -8055,6 +8049,7 @@ function createLabel(){
 function currentCreateColor(){
   const t=currentType(),v=currentVariant();
   if(t.cat==='remove')return invRGB(255,110,110);
+  if(t.cat==='surface')return v==='bright'?{r:255,g:255,b:255}:{r:20,g:20,b:24};
   if(t.cat==='duck_space'||t.cat==='duck_pond'){const c=(DUCK_TYPES[v]||{}).col||DUCK_YEL;return{r:c[0],g:c[1],b:c[2]};} // (the duck's own colour)
   if((t.cat==='particle'||t.cat==='point'||t.cat==='star'||t.cat==='shape_glass'||t.cat==='shape_pane'||t.cat==='shape_prism')&&v==='white')return invRGB(255,255,255);
   if((t.cat==='particle'||t.cat==='point'||t.cat==='star'||t.cat==='shape_glass'||t.cat==='shape_pane'||t.cat==='shape_prism')&&v==='black'){const g=T.eclipseGray|0;return invRGB(g,g,g);}
@@ -8748,6 +8743,7 @@ function blendParticleStroke(ex,variant,addMass){ // colour resolves by colour M
   }
 }
 function removeAt(mx,my){
+  if(BUILD){const i=buildDarks.findIndex(d=>Math.hypot(d.x-mx,d.y-my)<buildDarkR(d)+T.removeR);if(i>=0){buildDarks.splice(i,1);return;}} // a placed Dark Remnant
   const R=T.removeR,hit=[];
   // fixed shapes: an edge within reach removes the whole shape (and its glass); a click inside bare glass removes just the glass
   { let changed=false;
@@ -9064,6 +9060,7 @@ function createAt(mx,my){
   if(mx<0||my<0||mx>=W||my>=H)return null;
   if(t.cat!=='remove'&&t.cat!=='shape_glass'&&t.cat!=='shape_pane'&&t.cat!=='shape_leash'&&t.cat!=='shape_knot'&&t.cat!=='shape_prism'&&!(t.cat==='duplicate'&&dupShape)&&underGlass(mx,my))return null; // no placing on / through a Lens (the tool stays as it is)
   if(t.cat==='remove'){removeAt(mx,my);return null;}
+  if(t.cat==='surface'){const w=variant==='bright';if(!!invertMode!==w)toggleInvertMode();flashSaveStatus(txt(w?'build.surface_bright':'build.surface_dark'));return null;}
   if(t.cat==='particle')return createParticleAt(mx,my,variant);
   if(t.cat==='point')return createPointAt(mx,my,variant,false);
   if(t.cat==='star')return createPointAt(mx,my,variant,true);
@@ -10535,7 +10532,7 @@ function renderWorld(now,suppressGlow,asPlay){
   // The cursor/hover/info overlay is drawn separately by the caller (see
   // draw() below) so a snapshot taken for the pause freeze never has a
   // "ghost" cursor baked into it at the old mouse position.
-  drawBlackRemnant(ctx,now);
+  drawBlackRemnant(ctx,now);if(BUILD&&!buildTest)for(const d of buildDarks)drawDarkRemnantAt(ctx,d.x,d.y,buildDarkR(d),now,1); // (Build mode: the Dark Remnants placed, waiting)
   drawClearOverlay(ctx,now);
 }
 
@@ -12718,7 +12715,7 @@ const CONV={
 // ── Events: the first time something happens, a card pauses the game and unlocks its Guide entries ──
 const EVENTS=csvRead('events').map(r=>{const f=r.facts.split('\n');return{id:r.id,name:r.name,type:r.type,rar:r.rarity,scene:r.scene,ico:r.icon,facts:()=>f.map(x=>tpl(x)),flavor:r.flavor};}); // content/events.csv (facts: one line each; {…} worked out as it shows)
 let _evQ=[],_evOpen=false,_evWasPaused=false,_evReview=false,_evHand=[],_evAct=0,_evDraw=false; // _evDraw: a Carnival draw is showing (it closes only by picking) // discoveries made together come as a hand: one card shown, the rest to pick
-function fireEvent(id){if(window.__SCENE||discSeen.has('ev:'+id)||_evQ.indexOf(id)>=0||!EVENTS.some(e=>e.id===id))return;_evQ.push(id);}
+function fireEvent(id){if(window.__SCENE||BUILD||discSeen.has('ev:'+id)||_evQ.indexOf(id)>=0||!EVENTS.some(e=>e.id===id))return;_evQ.push(id);}
 function eventPump(){if(!_evQ.length||_rulesOpen||_menuOpen||(_evOpen&&!_evHand.length))return;const n=_evHand.length;_evHand.push(..._evQ.splice(0));showEventCard(_evHand[n?_evAct:0],false);} // new ones join an open hand
 const gEsc=s=>String(s).replace(/[&<>]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[c]));
 function gHi(t){const e=gEsc(t),f=gEsc(_rulesFilter.trim());if(!f)return e;return e.split(new RegExp('('+f.replace(/[.*+?^${}()|[\]\\]/g,'\\$&')+')','gi')).map((x,i)=>i%2?'<mark>'+x+'</mark>':x).join('');}
@@ -12730,7 +12727,7 @@ function cardHTML(ev,mini){ // the one card format: name bar, art box, type line
   return `<div class="mtg${mini?' sm':''}" data-ev="${ev.id}" style="--rc:${TIER_COL[t]}"><div class="nm"><b>${gEsc(ev.name)}</b><span class="gem"></span></div><div class="art" data-scene="${ev.scene}">${mini?`<canvas class="rl-m" width="64" height="64" data-k="${ev.ico}"></canvas>`:''}</div><div class="ty"><span>${gEsc(ev.type.replace(/^Event — /,''))}</span><span>Tier ${TIER[t]}</span></div><div class="tx">${(mini?ev.facts().slice(0,1):ev.facts()).map(f=>`<p${ev.fx?' class="fx"':''}>${gEsc(f)}</p>`).join('')}${ev.flavor?`<p class="fl">${gEsc(ev.flavor)}</p>`:''}</div></div>`; // (small: its first line and its flavour; the rest when it is opened) (fx: the lines are changes to play, set apart from the flavour)
 }
 function mountScene(h,w,hh){if(!h||h.firstChild||document.querySelectorAll('.rl-live iframe,.mtg .art iframe').length>=5)return;const f=document.createElement('iframe'),nm=h.dataset.s||h.dataset.scene;f.style.cssText='border:0;max-width:100%;pointer-events:none;background:#000;border-radius:6px;'+(w?`width:${w}px;height:${hh}px`:'width:100%;height:100%');
-  if(nm.slice(0,4)==='hub:'){const[sn,dk]=nm.slice(4).split(':');f.src='Surface_Map_HUB.html?v=20261103t&scene='+sn+'&T='+encodeURIComponent(JSON.stringify(mapSceneT()))+'&D='+encodeURIComponent(JSON.stringify(dk&&DUCK_TYPES[dk]?{[dk]:DUCK_TYPES[dk]}:Object.fromEntries(Object.entries(DUCK_TYPES).slice(0,4))));}else f.srcdoc=liveSrc(nm);h.appendChild(f);} // a Surface Map demo is played by the map itself
+  if(nm.slice(0,4)==='hub:'){const[sn,dk]=nm.slice(4).split(':');f.src='Surface_Map_HUB.html?v=20261103u&scene='+sn+'&T='+encodeURIComponent(JSON.stringify(mapSceneT()))+'&D='+encodeURIComponent(JSON.stringify(dk&&DUCK_TYPES[dk]?{[dk]:DUCK_TYPES[dk]}:Object.fromEntries(Object.entries(DUCK_TYPES).slice(0,4))));}else f.srcdoc=liveSrc(nm);h.appendChild(f);} // a Surface Map demo is played by the map itself
 function mapSceneT(){const o={};for(const k in T)if(/^(map|bh|duck|wake|glass|metal|dimGlow|glowHalo|maxSpeed)/.test(k))o[k]=T[k];return o;} // what a map demo needs of the tuners
 function showCardHTML(html){ // a Guide card (an entry or a shop) opened over the Guide, where an event card shows
   guideCSS();_evOpen=true;_evReview=true;const ov=evOverlayEl();ov.innerHTML=`<div class="ev-box">${html}<button id="evOk">${txt('card.close')}</button></div>`;ov.style.display='flex';wrap.classList.add('ev-open');
@@ -13001,6 +12998,46 @@ function closeRules(){
 // Run inside Surface_Map_HUB.html (or the title screen) as chromatic_nebula.html?hub=1. The map sends a hex's level here,
 // and this page reports back when it is cleared (bright → the hex turns white, Dark Remnant → the hex holds a dark remnant).
 // Leaving an unfinished surface saves every feature of it (IndexedDB, it is too big for localStorage) so it can be continued.
+// ═════════════════════════ BUILD MODE ═════════════════════════
+// The title screen's ~ → Build mode (chromatic_nebula.html?build=1): a surface for making and testing scenes and prefabs. It is never cleared,
+// so Dark Remnants can be placed (they wait, drawn where they are, until Test); every item is there and endless, the item cache shows (only its
+// on / off), and Create can turn the surface itself dark or bright. Nothing it does is saved to your game. A level is named and saved here in the
+// browser (IndexedDB 'build'); Export downloads every one as content/levels.json, which the game reads as it loads (jsonRead). Its ducks are
+// part of the level: collectable when it is played.
+var BUILD=!window.__SCENE&&/[?&]build=1/.test(location.search);
+let buildTest=null,buildDarks=[],buildLib={levels:{},prefabs:{}},buildName='';
+const buildDarkR=d=>Math.min(T.whiteEffMax,Math.max(T.whiteEffMin,40))*remEnScaleOf(d.energy||T.collEnergy); // a placed Dark Remnant's size, as it would form
+const buildContent=()=>{const c=jsonRead('levels');return{levels:c.levels||{},prefabs:c.prefabs||{}};}; // the levels and prefabs in the content files
+async function buildLoadLib(){let b=null;try{b=await IDB.get('build');}catch(e){}const c=buildContent();buildLib={levels:Object.assign({},c.levels,b&&b.levels),prefabs:Object.assign({},c.prefabs,b&&b.prefabs)};}
+async function buildKeep(){try{await IDB.put('build',buildLib);}catch(e){flashSaveStatus(txt('surf.save_failed',e.message));return false;}return true;} // (kept in this browser while building)
+function buildLevelData(){const d=JSON.parse(JSON.stringify(serializeMap(true)));delete d.T;d.dormant=buildPack(d.dormant);return{kind:invertMode?'bright':'dark',data:d,darks:buildDarks.map(d=>Object.assign({},d)),at:Date.now()};} // the surface as it is now: everything on it, its Dark Remnants waiting
+function buildPack(list){if(!list.length)return{tpl:{},rows:[]};const r=v=>typeof v==='number'&&!Number.isInteger(v)?+v.toPrecision(6):v,cl=o=>{const c={};for(const k in o)if(k[0]!=='_')c[k]=Array.isArray(o[k])?o[k].map(r):r(o[k]);return c;},tpl=cl(list[0]),ks=Object.keys(tpl); // the nebula's particles, small: one in full, the rest only what differs from it
+  return{tpl,rows:list.map(o=>{const c=cl(o),d={};for(const k in c)if(JSON.stringify(c[k])!==JSON.stringify(tpl[k]))d[k]=c[k];for(const k of ks)if(!(k in c))d[k]=null;return d;})};}
+const buildUnpack=p=>Array.isArray(p)?p:(p.rows||[]).map(d=>{const o=Object.assign({},p.tpl,d);for(const k in d)if(d[k]===null)delete o[k];return o;});
+function buildApply(L){restoreSession(Object.assign({},L.data,{dormant:buildUnpack(L.data.dormant)}));buildDarks=(L.darks||[]).map(d=>Object.assign({},d));if((L.kind==='bright')!==!!invertMode)toggleInvertMode();updateInventoryUI();} // a level back on the surface, exactly as it was saved
+function buildStart(){createItemMode=true;itemCacheMode=true;document.body.classList.add('build');buildLoadLib().then(buildBar);updateInventoryUI();flashSaveStatus(txt('build.welcome'));}
+function buildBar(){let el=document.getElementById('buildBar');if(!el){el=document.createElement('div');el.id='buildBar';document.body.appendChild(el);
+    const st=document.createElement('style');st.textContent=`#buildBar{position:fixed;top:8px;left:50%;transform:translateX(-50%);z-index:9000;display:flex;align-items:center;gap:6px;flex-wrap:wrap;justify-content:center;max-width:96vw;background:rgba(0,0,0,.9);border:1px solid #fff;padding:6px 10px;color:#fff;font:12px/1.4 system-ui,'Inter',sans-serif;letter-spacing:.6px}
+#buildBar b{font-weight:700;letter-spacing:1.6px;margin-right:4px}#buildBar input,#buildBar select{background:#000;color:#fff;border:1px solid rgba(255,255,255,.5);font:inherit;padding:2px 6px}#buildBar input{width:150px}
+#buildBar button{background:none;color:#fff;border:1px solid rgba(255,255,255,.35);font:inherit;letter-spacing:inherit;cursor:pointer;padding:2px 8px}#buildBar button:hover{background:rgba(255,255,255,.14)}#buildBar button.on{background:#fff;color:#000}`;document.head.appendChild(st);
+    for(const ev of['mousedown','mouseup','click','wheel','contextmenu'])el.addEventListener(ev,e=>e.stopPropagation());el.addEventListener('keydown',e=>e.stopPropagation());}
+  const names=Object.keys(buildLib.levels).sort(),esc=v=>String(v).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+  el.innerHTML=`<b>${txt('build.title')}</b><input id="bdName" maxlength="40" placeholder="${esc(txt('build.name'))}" value="${esc(buildName)}"><button id="bdSave">${txt('build.save')}</button>
+<select id="bdLoad"><option value="">${txt('build.load')}</option>${names.map(n=>`<option value="${esc(n)}">${esc(n)}${buildLib.levels[n].kind==='bright'?' ○':' ●'}</option>`).join('')}</select>
+<button id="bdNew">${txt('build.new')}</button><button id="bdBlank">${txt('build.blank')}</button><button id="bdTest"${buildTest?' class="on"':''}>${txt(buildTest?'build.back':'build.test')}</button>
+<button id="bdDel">${txt('build.delete')}</button><button id="bdExport">${txt('build.export')}</button><button id="bdQuit">${txt('build.quit')}</button>`;
+  const $=id=>document.getElementById(id),nm=()=>$('bdName').value.trim();$('bdName').oninput=()=>{buildName=$('bdName').value;};
+  $('bdSave').onclick=async()=>{const n=nm();if(!n){flashSaveStatus(txt('build.need_name'));return;}if(buildTest){flashSaveStatus(txt('build.not_while_testing'));return;}buildLib.levels[n]=Object.assign({name:n},buildLevelData());if(await buildKeep())flashSaveStatus(txt('build.saved',n));buildName=n;buildBar();};
+  $('bdLoad').onchange=e=>{const n=e.target.value;if(!n||!buildLib.levels[n])return;if(buildTest)buildBack();buildApply(buildLib.levels[n]);buildName=n;flashSaveStatus(txt('build.loaded',n));buildBar();};
+  $('bdNew').onclick=()=>{if(buildTest)buildBack();rebuild();buildDarks=[];buildName='';buildBar();};
+  $('bdBlank').onclick=()=>{if(buildTest)buildBack();clearStage();buildDarks=[];buildBar();};
+  $('bdTest').onclick=()=>{if(buildTest)buildBack();else buildPlay();buildBar();};
+  $('bdDel').onclick=async()=>{const n=nm();if(!buildLib.levels[n]){flashSaveStatus(txt('build.no_such',n));return;}if(!confirm(txt('build.delete_ask',n)))return;delete buildLib.levels[n];if(await buildKeep())flashSaveStatus(txt('build.deleted',n));buildBar();};
+  $('bdExport').onclick=()=>{saveFile('levels.json',JSON.stringify(buildLib));flashSaveStatus(txt('build.exported',Object.keys(buildLib.levels).length,Object.keys(buildLib.prefabs).length));};
+  $('bdQuit').onclick=()=>{loading('leave',true);setTimeout(()=>{location.href='TitleSplash.html';},300);};}
+function buildPlay(){buildTest=buildLevelData();const d=buildDarks[0];if(d){const t=buildDarks.slice();buildDarks=[];triggerBlackRemnant(d.x,d.y,performance.now(),d.mass||T.massScaleMax*T.blackMult,d.energy||T.collEnergy,true);buildDarks=t;} // (true: placed, so never a duck) // Test: the surface played as it would be (a Dark Remnant placed starts; a Rift can form; it can be cleared)
+  if(isPaused)togglePause();flashSaveStatus(txt('build.testing'));}
+function buildBack(){const L=buildTest;buildTest=null;if(L)buildApply(L);levelCleared=false;clearInfo=null;flashSaveStatus(txt('build.back_to_build'));} // back to the surface as it was before the test
 var HUB=!window.__SCENE&&window.parent!==window&&/[?&]hub=1/.test(location.search);
 var hubAsleep=false,hubLevel=null,hubOverlay=false,hubShotSize=68,_menuOpen=false,_menuWasPaused=false;
 function hubPost(m){if(HUB)window.parent.postMessage(Object.assign({il:1},m),'*');}
@@ -13437,7 +13474,7 @@ function drawRiftWave(c,bh,now){const a=bh.activateR,L=Math.hypot(W,H),bw=Math.m
 
 let _riftAt=0;
 function riftCheck(now){
-  if(blackHole||levelCleared||!(runT('riftMass')>0)||now-_riftAt<T.riftEveryMs)return;_riftAt=now;
+  if(blackHole||levelCleared||BUILD&&!buildTest||!(runT('riftMass')>0)||now-_riftAt<T.riftEveryMs)return;_riftAt=now;
   const C=Math.max(20,T.riftR),gw=Math.max(2,Math.ceil(W/C)),gh=Math.max(2,Math.ceil(H/C)),N=gw*gh,m=new Float64Array(N),mx=new Float64Array(N),my=new Float64Array(N),me=new Float64Array(N);
   for(let i=0;i<active.length;i++){const q=active[i];if(q.dying||q.captured||q._bhGone||!(q.mass>0))continue;
     const k=Math.min(gh-1,Math.max(0,(q.y/C)|0))*gw+Math.min(gw-1,Math.max(0,(q.x/C)|0));m[k]+=q.mass;mx[k]+=q.x*q.mass;my[k]+=q.y*q.mass;me[k]+=q.energy||0;}
@@ -13465,8 +13502,8 @@ if(!window.__SCENE)registerGuideDisc();
   await loadConfig();
   if(T.wakeBudgetPerFrame>5000)T.wakeBudgetPerFrame=400;if(!(T.fadeBudgetMs>0))T.fadeBudgetMs=4; // (0 meant unlimited: one burst of fades could take seconds) // (old saves: 150000 meant unlimited; waking now queues instead of dropping, so a real budget is safe)
   buildTunePanel();updateRect();
-  if(HUB)hubIdle();else{rebuild();fireEvent('surface');}
-  updateInventoryUI();applyDisc();updateSettleBtn();updateCacheBtn();if(T.soundOn)setSound(true,null,true);
+  if(HUB)hubIdle();else{rebuild();fireEvent('surface');}if(BUILD)buildStart();
+  updateInventoryUI();applyDisc();updateSettleBtn();if(T.soundOn)setSound(true,null,true);
   if(HUB)hubState('ready',true);else rafId=requestAnimationFrame(loop);
 })();
 </script>

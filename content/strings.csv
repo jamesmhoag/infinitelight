@@ -373,7 +373,6 @@ needed = $1 — cracks it takes to break"
 surf.lens_disc_formed_the,Lens disc formed — the orbit keeps accruing Spindles until the Lens is cracked.,surface,
 surf.globe_formed_each_full,"Globe formed — each full lap of the pair earns a String, until the Lens is cracked.",surface,
 surf.lens_formed_round_the,Lens formed round the Weave — it keeps accruing Weaves until the Lens is cracked.,surface,
-surf.create_item,Create item:{state},surface,state = $0 — ON or OFF
 surf.disable_mode_click_an,Disable mode — click an item to switch it off / on,surface,
 surf.disable_mode_off,Disable mode off,surface,
 surf.no_weave_hold_5,"No Weave — hold 5 points perfectly still, close together",surface,
@@ -432,9 +431,6 @@ plural = $3 — ""s"" when more than one
 got = $4 — how much that came to
 item = $5 — the item it went to"
 surf.particle_map,Particle map:{state},surface,state = $0 — ON or OFF
-surf.shown,Shown,surface,
-surf.hidden,Hidden,surface,
-surf.item_cache,Item cache: {state},surface,state = $0 — Shown or Hidden
 surf.every_item_filled_to,Every item filled to its max,surface,
 surf.every_item_cleared,Every item cleared,surface,
 surf.interpolate, Interpolate,surface,
@@ -632,9 +628,7 @@ surf.ui.pause_off,Pause: OFF,chromatic_nebula.html,
 surf.ui.trails_off,Trails: OFF,chromatic_nebula.html,
 surf.ui.sound_off,Sound: OFF,chromatic_nebula.html,
 surf.ui.particle_map_off,Particle map: OFF,chromatic_nebula.html,
-surf.ui.create_item_off,Create item: OFF,chromatic_nebula.html,
 surf.ui.settle_swap,Settle: Swap,chromatic_nebula.html,
-surf.ui.item_cache_hidden,Item cache: Hidden,chromatic_nebula.html,
 surf.ui.cell_shape,Cell shape: ●,chromatic_nebula.html,
 surf.ui.coverage_blob,Coverage: Blob,chromatic_nebula.html,
 surf.ui.invert_off,Invert: OFF,chromatic_nebula.html,
@@ -720,6 +714,36 @@ map.rift,Rift,Surface Map,
 map.rift_info,"A scar where the surface tore. Nothing can cross it, and a String cannot shoot through it. Gone at Midnight.",Surface Map,
 map.rift_tore,"The surface tore: the hex is gone, and the hexes beside it are drained.",Surface Map,
 map.rift_in_the_way,A Rift is in the way: a String only goes in a straight line.,Surface Map,
+title.build,Build mode,the title screen (press ~),
+build.title,BUILD,Build mode,
+build.name,Level name,Build mode,
+build.save,Save,Build mode,
+build.load,Load…,Build mode,
+build.new,New surface,Build mode,
+build.blank,Blank,Build mode,
+build.test,▶ Test,Build mode,
+build.back,◼ Back to build,Build mode,
+build.delete,Delete,Build mode,
+build.export,Export,Build mode,
+build.quit,Title,Build mode,
+build.welcome,"Build mode: every item, endless. Nothing here is saved to your game; name a level and Save it, Test it, Export them all.",Build mode,
+build.need_name,Name the level first.,Build mode,
+build.not_while_testing,Back to build first: a test is not saved.,Build mode,
+build.saved,Saved “{name}” (in this browser: Export to put it in the content files).,Build mode,name = $0 — the level's name
+build.loaded,Loaded “{name}”.,Build mode,name = $0 — the level's name
+build.no_such,There is no level called “{name}”.,Build mode,name = $0 — the name typed
+build.delete_ask,Delete “{name}” from this browser?,Build mode,name = $0 — the level's name
+build.deleted,Deleted “{name}”.,Build mode,name = $0 — the level's name
+build.exported,"Exported levels.json ({levels} levels, {prefabs} prefabs): put it in the content folder.",Build mode,"levels = $0 — how many levels
+prefabs = $1 — how many prefabs"
+build.testing,"Testing: the surface plays as it would in a game (it can be cleared). Back to build puts it back.",Build mode,
+build.back_to_build,Back to the surface as it was.,Build mode,
+build.dark_placed,"A Dark Remnant, placed: it waits until the surface is tested.",Build mode,
+build.surface_tool,Surface: {kind} (click to turn the surface {kind}),Build mode (Create),kind = $0 — dark or bright
+build.dark,dark,Build mode (Create),
+build.bright,bright,Build mode (Create),
+build.surface_dark,The surface is dark.,Build mode (Create),
+build.surface_bright,The surface is bright (white).,Build mode (Create),
 value.life_ms,T.lifeColor,values (shared: any text can use {life_ms}),a pigment's life factor (Life colour tuner)
 value.dim_mass_pct,Math.round(T.remMassFrac*100),values (shared: any text can use {dim_mass_pct}),% of its mass a failed collapse keeps
 value.dim_energy_pct,Math.round(T.remEnergyFrac*100),values (shared: any text can use {dim_energy_pct}),% of its energy a failed collapse keeps
