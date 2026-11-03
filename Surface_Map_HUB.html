@@ -152,7 +152,7 @@ body.shop-open #hdock{z-index:59}#hinv .slot.wal::before{border-color:rgba(255,2
 <div id="veil"></div>
 <div id="bfx"></div><canvas id="hcur"></canvas>
 <iframe id="neb" data-tt="map.ui.surface"></iframe>
-<script src="content.js?v=20261103n"></script><script src="shared.js?v=20261103n"></script>
+<script src="content.js?v=20261103o"></script><script src="shared.js?v=20261103o"></script>
 <script>
 // ╔══════════════════════════════════════════════════════════════════════════════╗
 // ║  MAP ENGINE                                                                 ║
@@ -171,7 +171,7 @@ let clock=3,day=1,pool=6,fresh=true,burstFx=null,dayLog=[],dayCnt={b:0,d:0},pend
 // // clock: the hour (3 = Twilight … 24 = Midnight, the day's last turn); day: your attempts; pool: what the source put out at its last burst; fresh: no ring added yet since it
 let constel=[],armed=null,weaveSel=[],weaveAsk=null,clearFx={},mergeFx=[],feedMsg={t:'',d:'',at:-1e9}; // constellations {keys,type}; the armed map item; a Weave being drawn; animations; the final count
 const TIMES={3:txt('map.twilight'),6:txt('map.dawn'),9:txt('map.morning'),12:txt('map.noon'),15:txt('map.afternoon'),18:txt('map.dusk'),21:txt('map.night'),24:txt('map.midnight')},STEP_H=3; // the day: eight turns of three hours
-const CACHE_V='20261103n'; // the build: bump with shared.js's
+const CACHE_V='20261103o'; // the build: bump with shared.js's
 const SCENE=new URLSearchParams(location.search).get('scene'); // a Guide / event demo: the map plays a scripted moment (no surface behind it)
 let phase='move',turnTimer=0,mergeTimer=0;
 let gameOverReason='';
@@ -252,13 +252,22 @@ function newMap(){ // a new map, a descent and every midnight: the source at the
   cells[K(pQ,pR)].isP=true;burstFx={t0:performance.now(),kind:'burst'};
 }
 function descendDepth(){if(!voidOpen)return;depth++;newMap();showTurn();focusCam(false);updateHint();showMergeFlash(txt('map.descended_to_d',depth));hubEvent('map_descend');saveMap();}
-function camFrame(){ // the camera is held on the spill: past its edges only a margin of lake shows (room for a bottle or a duck to swim in), and a spill smaller than the view sits in its middle
-  if(SCENE||!cam||!SW)return;let x0=1e9,y0=1e9,x1=-1e9,y1=-1e9;for(const k in cells){const c=cells[k],[x,y]=a2w(c.q,c.r);x0=Math.min(x0,x);x1=Math.max(x1,x);y0=Math.min(y0,y);y1=Math.max(y1,y);}if(x0>x1)return;
-  const M=HEX*(1+(T.mapLakeMargin!=null?T.mapLakeMargin:1.1));x0-=M;x1+=M;y0-=M;y1+=M;const o=(X,Y)=>{const[wx,wy]=s2wp(X,Y);return[wx-camX,wy-camY];}; // what the screen's edges show, from the camera
-  const lx=o(0,SH/2)[0],rx=o(SW,SH/2)[0],ty=o(SW/2,0)[1],by=o(SW/2,SH)[1];
-  const fit=viewZoom*Math.min((rx-lx)/(x1-x0),(by-ty)/(y1-y0)),zl=Math.max(T.mapZoomMin||0.55,Math.min(T.mapZoomMax||1.8,fit)); // the zoom at which the spill (and its margin) just fits
-  zoomFloor=zl;if(zoomAuto||viewZoom<zl-1e-3){const d=zl-viewZoom;if(Math.abs(d)>2e-3){viewZoom+=Math.abs(d)<0.01?d:d*0.12;const E=1.3/Math.min(1,viewZoom);if(Math.abs(E-_E)>0.12)mapResize();else camUpdate();_zoomSettle=1;}else if(_zoomSettle){_zoomSettle=0;mapResize();}} // at most out to it; held at it until you zoom in (it follows the spill as it grows and shrinks)
-  camTX=x1-x0<=rx-lx?(x0+x1)/2-(lx+rx)/2:Math.max(x0-lx,Math.min(x1-rx,camTX));camTY=y1-y0<=by-ty?(y0+y1)/2-(ty+by)/2:Math.max(y0-ty,Math.min(y1-by,camTY));}
+function camBounds(keys){ // a set of hexes' extent on the plane, as a rectangle (their corners' furthest points), plus the lake margin round it
+  let x0=1e9,y0=1e9,x1=-1e9,y1=-1e9;for(const k of keys){const c=cells[k]||{q:+k.split(',')[0],r:+k.split(',')[1]},[x,y]=a2w(c.q,c.r);x0=Math.min(x0,x-HEX*0.866);x1=Math.max(x1,x+HEX*0.866);y0=Math.min(y0,y-HEX);y1=Math.max(y1,y+HEX);}
+  const M=HEX*(T.mapLakeMargin!=null?T.mapLakeMargin:1.1);return x0>x1?null:[x0-M,y0-M,x1+M,y1+M];}
+function camView(){const o=(X,Y)=>{const[wx,wy]=s2wp(X,Y);return[wx-camX,wy-camY];};return[o(0,SH/2)[0],o(SW/2,0)[1],o(SW,SH/2)[0],o(SW/2,SH)[1]];} // what the screen's edges show, from the camera (at this zoom)
+function camFit(b){const[lx,ty,rx,by]=camView(),z=Math.max(T.mapZoomMin||0.55,Math.min(T.mapZoomMax||1.8,viewZoom*Math.min((rx-lx)/(b[2]-b[0]),(by-ty)/(b[3]-b[1])))),k=viewZoom/z; // the zoom that just fits b, and the camera then (in its middle)
+  return{z,x:(b[0]+b[2])/2-(lx+rx)/2*k,y:(b[1]+b[3])/2-(ty+by)/2*k};}
+function camZoomTo(z){viewZoom=z;const E=1.3/Math.min(1,z);if(Math.abs(E-_E)>0.12)mapResize();else camUpdate();}
+let camTween=null; // the day's end: one smooth move from where the camera is to where the next day starts (its middle and zoom)
+function camTweenTo(keys,ms){const b=camBounds(keys);if(!b||SCENE)return;const f=camFit(b);camTween={t0:performance.now(),dur:ms,a:{x:camX,y:camY,z:viewZoom},b:f};}
+function camFrame(){ // the camera is held on the spill: at its extent (a rectangle round its hexes, plus the lake margin, room for a bottle or a duck to swim in) it stops dead; a spill smaller than the view sits in its middle
+  if(SCENE||!cam||!SW)return;
+  if(camTween){const t=Math.min(1,(performance.now()-camTween.t0)/camTween.dur),e=t*t*(3-2*t),A=camTween.a,B=camTween.b;camX=camTX=A.x+(B.x-A.x)*e;camY=camTY=A.y+(B.y-A.y)*e;camZoomTo(A.z+(B.z-A.z)*e);if(t>=1){camTween=null;mapResize();}return;}
+  const b=camBounds(Object.keys(cells));if(!b)return;const f=camFit(b);zoomFloor=f.z;
+  if(zoomAuto||viewZoom<f.z-1e-3){const d=f.z-viewZoom;if(Math.abs(d)>2e-3){camZoomTo(viewZoom+(Math.abs(d)<0.01?d:d*0.12));_zoomSettle=1;}else if(_zoomSettle){_zoomSettle=0;mapResize();}} // its zoom follows the spill (at most out to it; held there until you zoom in)
+  const[lx,ty,rx,by]=camView(),cx=v=>b[2]-b[0]<=rx-lx?(b[0]+b[2])/2-(lx+rx)/2:Math.max(b[0]-lx,Math.min(b[2]-rx,v)),cy=v=>b[3]-b[1]<=by-ty?(b[1]+b[3])/2-(ty+by)/2:Math.max(b[1]-ty,Math.min(b[3]-by,v));
+  camTX=cx(camTX);camTY=cy(camTY);camX=cx(camX);camY=cy(camY);} // (a hard edge: the camera itself, not only where it is heading)
 let zoomAuto=true,zoomFloor=0,_zoomSettle=0; // the camera's zoom follows the spill until you zoom in; zooming back out to it picks it up again
 function focusCam(a){const[wx,wy]=a2w(pQ,pR);camTX=wx;camTY=wy;if(!a){camX=camTX;camY=camTY;}}
 function initGame(){ // a new map: score and depth start over; items, resources and discoveries live in the surface's save and are kept
@@ -405,6 +414,7 @@ function endDay(how,n){ // the day ends as a sequence: the rings fall into the s
   const stop=(how==='midnight'||win)?0:n,base=T.mapCollapseMs||1400;let t=0;
   for(let i=outer,j=0;i>stop;i--,j++){const dur=Math.max(110,base*0.55*Math.pow(0.7,j)),ri=i;at(t,()=>fallRing(ri,dur));t+=dur;} // accelerating: each ring falls in faster
   at(t,()=>{burstFx={t0:performance.now(),kind:'flash',dur:700};});at(t+420,finishDay);
+  {const R=how==='midnight'?Math.max(1,T.mapBurstRings||3):win?1:n,ks=[];for(let i=1;i<=R;i++)for(const[q,r]of ring(i))ks.push(K(q,r));camTweenTo(ks.length?ks:['0,0'],t+420);} // the camera moves once, smoothly, to where the next day starts
   feed((how==='midnight'?txt('map.midnight'):(win?txt('map.full_collapse'):txt('map.full_circle'))),(how==='midnight'?txt('map.the_spill_falls_back'):(win?txt('map.everything_falls_into_the'):txt('map.the_rings_past_ring',n))));
   showTurn();updateHint();saveMap();}
 function fallRing(i,dur){ // one ring falls into the source
@@ -947,12 +957,12 @@ function popPlace(k){ // opens (or moves up) the pop-up hex k's surface earned: 
   feed(((p.from?txt('map.a_pop_up_moved'):txt('map.a_pop_up_opened')))+SHOPS[p.id].n,txt('map.rank_click_it_to',p.rank,(at.slice(0,3)==='hub'?txt('map.in_the_source'):'')));return true;}
 function shopTearDown(fr){if(!fr)return;if(fr.slice(0,3)==='hub')hubPop[+fr[3]]=null;else if(cells[fr])delete cells[fr].shop;} // a shop moved up a rank: the old one goes (its hex may open another the next turn)
 function freedShops(){for(const k in cells)popPlace(k);} // each turn every cleared surface that earned a pop-up and has none open tries again (a hex a shop moved out of, a Dark Remnant clear that found no room, a holiday)
-function shopSprite(id,bk,lit,yaw){ // the shop's 3D building (shared.js shopModel) drawn from a little above and turned by yaw (degrees), lit by the time of day: then the glow of its sign and
+function shopSprite(id,bk,lit,yaw,open){ // the shop's 3D building (shared.js shopModel) drawn from a little above and turned by yaw (degrees), lit by the time of day: then the glow of its sign and
   // windows when open; at Q px per unit (as its drawings were at 4×), so a shop stays crisp however near the camera or the menu shows it. Redrawn when the light changes.
   const gw=T.mapShopGlow!=null?T.mapShopGlow:1,fl=bk===(SHOPS[id].bk||'s')&&SHOPS[id].flip,yw=Math.round(yaw||0),sun=DUCK_SUN.c.map(v=>Math.round(v*16)).concat(DUCK_SUN.d.map(v=>Math.round(v*8))).join(','),pt=T.mapShopPitch!=null?T.mapShopPitch:22,
-    base=id+bk+(lit?1:0)+gw+'|'+yw+'|'+pt+'|'+(T.mapShopUpScale||1.7)+'|',key=base+sun;if(shopCv[key])return shopCv[key];
+    base=id+bk+(lit?1:0)+(open?'o':'')+gw+'|'+yw+'|'+pt+'|'+(T.mapShopUpScale||1.7)+'|',key=base+sun;if(shopCv[key])return shopCv[key];
   const si=shopImg('sign_'+id);if(!si.complete||!si.naturalWidth||!_duckTex)return null;
-  const type=shopModel(id,bk,lit,fl,si),M=duckModel(type),Q=4*(bk==='m'||bk==='l'?(T.mapShopUpScale||1.7):1), // (a bigger rank's two-storey store drawn larger, so its door is the size of main street's)
+  const type=shopModel(id,bk,lit,fl,si,open),M=duckModel(type),Q=4*(bk==='m'||bk==='l'?(T.mapShopUpScale||1.7):1), // (a bigger rank's two-storey store drawn larger, so its door is the size of main street's)
     q=quatTurn(quatTurn([0,0,0,1],0,yw*Math.PI/180,0),pt*Math.PI/180,0,0),N=Math.ceil(2*M.g.R*Q)+8,pad=Math.ceil(30*gw)+8;
   const cv=document.createElement('canvas');cv.width=cv.height=N+pad*2;const c=cv.getContext('2d');drawDuck3D(c,type,q,[[cv.width/2,cv.height/2]],Q,1,2048);
   duckEnvUpdate(mc,performance.now());drawDuck3D(c,type+'|glass',q,[[cv.width/2,cv.height/2]],Q,lit?0.3:1,2048,{x:SW/2,y:SH*0.55,lights:[]}); // its glass: reflecting the map round it (faint while the lights are on inside)
@@ -961,16 +971,19 @@ function shopSprite(id,bk,lit,yaw){ // the shop's 3D building (shared.js shopMod
   const m=quatMat(q),fy=M.g.foot;cv._ax=cv.width/2+m[3]*fy*Q;cv._ay=cv.height/2-m[4]*fy*Q;cv._bw=264; // its foot: where it stands on the map; _bw: the size every shop is scaled by (main street's old 66-unit drawing at 4×, so shops keep the size they had)
   for(const k in shopCv)if(k.startsWith(base)&&k!==key)delete shopCv[k]; // (an older light's drawing)
   return shopCv[key]=cv;}
+function streetYaw(a){ // a main street shop at a: its turn so its front edge (in front of the source; behind it, its back) lies along the source hex's edge facing it, as the camera sees it
+  if(!cam)return 0;const s=(d)=>{const[x,y]=a2w(0,0),r=HEX,t=(a+d)*Math.PI/180;return proj(...w2s(x+r*Math.cos(t),y+r*Math.sin(t)));},p=s(-30),q=s(30),[L_,R_]=p[0]<q[0]?[p,q]:[q,p];
+  const rise=Math.atan2(L_[1]-R_[1],R_[0]-L_[0]),pt=(T.mapShopPitch!=null?T.mapShopPitch:22)*Math.PI/180;return Math.round(Math.atan(Math.tan(rise)/Math.max(0.05,Math.sin(pt)))*180/Math.PI);} // (the edge's slope on screen; a turned shop's front slopes by tan(yaw)·sin(its view angle))
 function shopList(){ // every shop on the map now: main street hugging the source (two behind it, two in front), pop-ups on their bright clears
   const out=[],R=HEX*(T.mapStreetRing!=null?T.mapStreetRing:0.8);
-  for(const id in SHOPS){const S=SHOPS[id],a=(S.a||0)*Math.PI/180;if(S.street)out.push({key:id,id,bk:S.bk||'s',wx:R*Math.cos(a),wy:R*Math.sin(a),yaw:-Math.cos(a)*18,lit:shopIsOpen(id,clock,run)});} // (main street's shops turned a little toward the source)
+  for(const id in SHOPS){const S=SHOPS[id],a=(S.a||0)*Math.PI/180;if(S.street)out.push({key:id,id,bk:S.bk||'s',wx:R*Math.cos(a),wy:R*Math.sin(a),yaw:streetYaw(S.a||0),lit:shopIsOpen(id,clock,run)});} // (turned so its front, or its back behind the source, runs along the source's edge)
   hubPop.forEach((h,i)=>{if(!h)return;const a=HUB_SLOTS[i]*Math.PI/180;out.push({key:'hub'+i,id:h.id,rank:h.rank,bk:SHOP_RANK_BLD[h.rank-1],wx:R*1.15*Math.cos(a),wy:R*1.15*Math.sin(a),lit:true});}); // (a little further out than main street) // pop-ups from dark clears, in the source hex
   for(const k in cells){const c=cells[k];if(c.shop&&isBright(k)){const[wx,wy]=a2w(c.q,c.r);out.push({key:k,id:c.shop.id,rank:c.shop.rank,bk:SHOP_RANK_BLD[c.shop.rank-1],wx,wy,lit:true});}}
   return out;}
 function shopTick(){if(SCENE&&!document.body.classList.contains('scene-shops'))return;
   document.body.classList.toggle('thru',!!armed||voidOpen);const box=document.getElementById('shops'),seen=new Set();
   for(const s of shopList()){if(s.lit&&!disc.has('ev:shop_'+s.id))hubEvent('shop_'+s.id); // a shop is discovered the first time it opens
-    const cv=shopSprite(s.id,s.bk,s.lit,s.yaw);if(!cv)continue;seen.add(s.key);let el=shopEls[s.key];
+    const cv=shopSprite(s.id,s.bk,s.lit,s.yaw,!!(shopUI&&shopUI.key===s.key));if(!cv)continue;/* (its doors open while its menu is) */seen.add(s.key);let el=shopEls[s.key];
     if(!el){el=shopEls[s.key]=document.createElement('div');el.className='shop';el.dataset.key=s.key;el.onclick=()=>openShop(s.key);box.appendChild(el);
       let h=7;for(const ch of s.key)h=(h*31+ch.charCodeAt(0))>>>0;el._fl=`neon${h%4} ${(2.5+(h>>4)%60/10).toFixed(1)}s ${-((h>>10)%50)/10}s infinite`;} // its own flicker: which, how fast, where in it
     if(el._cv!==cv){el._cv=cv;const d=document.createElement('canvas');d.width=cv.width;d.height=cv.height;d.getContext('2d').drawImage(cv,0,0);d.style.animation=s.lit?el._fl:'none';el.innerHTML='';el.appendChild(d);}el.classList.toggle('lit',s.lit);el._s=s; // (its own copy: two pop-ups can share a sprite)
@@ -981,7 +994,7 @@ function shopInfo(key){const el=shopEls[key],s=el&&el._s;if(!s)return['',''];con
   return S.street?[S.n,txt(s.lit?'map.shop.open':'map.shop.closed',shopHours(s.id))]:[txt('map.shop.popup',S.n),txt('map.shop.popupinfo',s.rank)];}
 function openShop(key){const el=shopEls[key],s=el&&el._s;if(!s||phase==='collapse')return;
   if(!s.lit){feed(txt('map.is_closed',SHOPS[s.id].n),txt('map.open',shopHours(s.id),(runBad(run,'holiday')?txt('map.a_holiday_it_closes'):'')));return;}
-  shopUI={id:s.id,rank:s.rank||3,exit:s.id==='gift'};renderShop();hubEvent('shop_'+s.id);}
+  shopUI={id:s.id,rank:s.rank||3,exit:s.id==='gift',key};renderShop();hubEvent('shop_'+s.id);}
 function closeShop(){if(shopUI&&shopUI.gift){quitMain();return;} // leaving the Gift Shop: the run is over
   shopUI=null;renderShop();evPump();}
 function shopRows(){const u=shopUI,has=k=>disc.has(k);
@@ -1000,7 +1013,7 @@ function renderShop(){const el=document.getElementById('shop');el.classList.togg
   document.body.classList.toggle('shop-open',!!shopUI);if(!shopUI){syncDock();document.body.classList.remove('focus-clock','focus-items');return;}
   const u=shopUI,S=SHOPS[u.id],all=shopRows(),curs=[...new Set(all.filter(r=>r.cur).map(r=>r.cur))];if(!curs.includes(u.tab))u.tab=curs.includes(S.cur)?S.cur:curs[0];
   const rows=u.pick||u.exit?all:all.filter(r=>r.cur===u.tab); // the whole list: a long one makes the shop taller
-  const art=el.querySelector('.sart'),sp=shopSprite(u.id,S.street?(S.bk||'s'):SHOP_RANK_BLD[u.rank-1],true),card=el.querySelector('.scard');
+  const art=el.querySelector('.sart'),sp=shopSprite(u.id,S.street?(S.bk||'s'):SHOP_RANK_BLD[u.rank-1],true,0,true),card=el.querySelector('.scard');
   if(sp){const w=Math.min(150,sp.width*0.45),h=w*sp.height/sp.width;art.width=sp.width;art.height=sp.height;art.style.width=w+'px';art.style.height=h+'px';art.getContext('2d').drawImage(sp,0,0);}
   shopHover=null;syncDock(); // the wallet slot for the tab shown, in the dock
   document.body.classList.toggle('focus-clock',u.id==='clock');document.body.classList.toggle('focus-items',u.id==='corner'); // what the shop works on, over the dimmed map
