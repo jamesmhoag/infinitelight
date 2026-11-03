@@ -815,6 +815,7 @@ mp.your_turn_d,"Use your items, enter your surface, then move or Rest to end you
 mp.not_your_turn,"It's {name}'s turn: you can look round, and watch.",Surface Map (playing together),name = $0 — whose turn it is
 mp.watch_play,"{name}'s surface: you're on the same hex, so you shine and collect too (what you collect is yours).",Surface Map (playing together),name = $0 — whose surface
 mp.watch_only,"{name}'s surface: you're on another hex, so you can only watch.",Surface Map (playing together),name = $0 — whose surface
+map.rift_moved,The tear threw your buoy clear: to the innermost free hex (or back to main street).,Surface Map,
 value.life_ms,T.lifeColor,values (shared: any text can use {life_ms}),a pigment's life factor (Life colour tuner)
 value.dim_mass_pct,Math.round(T.remMassFrac*100),values (shared: any text can use {dim_mass_pct}),% of its mass a failed collapse keeps
 value.dim_energy_pct,Math.round(T.remEnergyFrac*100),values (shared: any text can use {dim_energy_pct}),% of its energy a failed collapse keeps
