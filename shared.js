@@ -45,6 +45,8 @@ function shopModel(id,bk,lit,fl,si){ // si: the sign's loaded image → the mode
   const mx=(a,b,t)=>{const h=v=>[1,3,5].map(i=>parseInt(v.slice(i,i+2),16)),A=h(a),Bb=h(b);return'rgb('+A.map((v,i)=>Math.round(v+(Bb[i]-v)*t)).join(',')+')';}; // two #rrggbb colours mixed
   [B.wall,B.roof,B.line,'#3a3a40','#4a4a50',...(lit?[mx(S.col,'#fff6e8',0.55),mx(S.col,'#000000',0.5),'#6b5440',S.col,mx(S.col,'#ffffff',0.45),'#fff6e0']:['#2c2c33','#1e1e24','#2a2420','#34343b','#3a3a41','#3a3a40'])]
     .forEach((col,i)=>{c.fillStyle=col;c.fillRect(i*32,0,32,32);}); // flat colours: walls, roof, frames and trim, scaffolding, the window reveals; inside: the room's walls, its floor, the counter and shelves, two of goods, the lamp (the shop's colour when open, dark when closed)
+  if(lit){c.save();c.font='bold 66px system-ui,sans-serif';c.textAlign='center';c.textBaseline='middle';c.lineJoin='round';c.strokeStyle='#ff2d5a';c.lineWidth=10;c.beginPath();c.roundRect?c.roundRect(10,72,236,80,18):c.rect(10,72,236,80);c.stroke(); // an OPEN sign (neon tubes: its letters and its border; the rest is cut away)
+    c.lineWidth=7;c.strokeText(txt('shop.open.sign'),128,113);c.fillStyle='#ff6f8f';c.fillText(txt('shop.open.sign'),128,113);c.restore();}
   const iw=si.naturalWidth||1,ih=si.naturalHeight||1,r=Math.min(500/iw,248/ih),sw=iw*r,sh=ih*r,sx=(A-sw)/2,sy=256+(256-sh)/2;if(!lit)c.filter='brightness(0.32) saturate(0.4)';c.drawImage(si,sx,sy,sw,sh);c.filter='none'; // the sign (dim when closed)
   const pos=[],nrm=[],uv=[],idx=[],W=B.w,H=B.h,D=B.d,z0=D/2,sw_=i=>{const u=(i*32+16)/A,v=16/A;return[[u,v],[u,v],[u,v],[u,v]];};
   const quad=(P,n,U,f,keep)=>{const b=pos.length/3,mx=fl&&!keep?-1:1;for(let i=0;i<4;i++){pos.push(P[i][0]*mx,P[i][1],P[i][2]);nrm.push(n[0]*mx,n[1],n[2]);uv.push(U[i][0],U[i][1],f||0,-1);} // (fl: mirrored, but for the sign)
@@ -58,17 +60,28 @@ function shopModel(id,bk,lit,fl,si){ // si: the sign's loaded image → the mode
   const L=-W/2,WN=B.win.map(([a,b,e,f])=>[L+a,b,L+e,f]),xs=[...new Set([L,W/2,...WN.flatMap(w=>[w[0],w[2]])])].sort((a,b)=>a-b),ys=[...new Set([0,H,...WN.flatMap(w=>[w[1],w[3]])])].sort((a,b)=>a-b),U0=sw_(0);
   for(let i=0;i<xs.length-1;i++)for(let j=0;j<ys.length-1;j++){const cx=(xs[i]+xs[i+1])/2,cy=(ys[j]+ys[j+1])/2;if(WN.some(w=>cx>w[0]&&cx<w[2]&&cy>w[1]&&cy<w[3]))continue; // the front wall, round its openings
     quad([[xs[i],ys[j],z0],[xs[i+1],ys[j],z0],[xs[i+1],ys[j+1],z0],[xs[i],ys[j+1],z0]],[0,0,1],U0);}
-  const rc=3,zr=z0-rc,R4=sw_(4);
+  const rc=3,zr=z0-rc,R4=sw_(4),panes=[],F=lit?3:0,DR=WN.filter(w=>w[1]===0).map(w=>{const hb=B.bar.map(([a,b,e,f])=>[L+a,b,L+e,f]).filter(b=>b[0]>=w[0]-0.1&&b[2]<=w[2]+0.1&&b[3]-b[1]<2&&b[1]>0); // the doors: each opening that reaches the ground (its top: a transom bar across it, else the opening's)
+    const st=B.bar.map(([a,b,e,f])=>[L+a,b,L+e,f]).find(b=>b[1]===0&&b[2]-b[0]<2&&b[0]>w[0]&&b[2]<w[2]);return{w,top:hb.length?hb[0][1]:w[3],st};}); // st: the stile where two leaves meet
   for(const[x0,y0,x1,y1]of WN){ // each opening: its reveals back to the room, and a frame round it
     quad([[x0,y0,z0],[x0,y0,zr],[x0,y1,zr],[x0,y1,z0]],[1,0,0],R4);quad([[x1,y0,zr],[x1,y0,z0],[x1,y1,z0],[x1,y1,zr]],[-1,0,0],R4);quad([[x0,y1,z0],[x0,y1,zr],[x1,y1,zr],[x1,y1,z0]],[0,-1,0],R4);if(y0>0)quad([[x0,y0,zr],[x0,y0,z0],[x1,y0,z0],[x1,y0,zr]],[0,1,0],R4);
     box(x0-0.7,y0,z0-0.4,x0+0.3,y1+0.7,z0+0.5,2);box(x1-0.3,y0,z0-0.4,x1+0.7,y1+0.7,z0+0.5,2);box(x0-0.7,y1-0.3,z0-0.4,x1+0.7,y1+0.7,z0+0.5,2);if(y0>0)box(x0-1.2,y0-0.7,z0-0.4,x1+1.2,y0+0.3,z0+1.1,2);}
-  for(const[x0,y0,x1,y1]of B.bar)box(L+x0,y0,zr+0.5,L+x1,y1,z0+0.2,2);
+  for(const[x0,y0,x1,y1]of B.bar){if(lit&&DR.some(d=>d.st&&d.st[0]===L+x0&&d.st[1]===y0))continue;box(L+x0,y0,zr+0.5,L+x1,y1,z0+0.2,2);}
+  for(const d of DR){const[x0,,x1]=d.w,zc=z0-0.7,t=d.top,leaves=d.st?[[x0+0.3,d.st[0],1],[x1-0.3,d.st[2],-1]]:[[x0+0.3,x1-0.3,1]]; // the doors: closed (glass in a frame), or open into the shop
+    for(const[h,e,dir]of leaves){const w=Math.abs(e-h),a=lit?1.25:0,fx=h+dir*w*Math.cos(a),fz=zc-w*Math.sin(a);
+      beam([h,0.4,zc],[fx,0.4,fz],0.8,2);beam([h,t-0.4,zc],[fx,t-0.4,fz],0.8,2);beam([h,0,zc],[h,t,zc],0.8,2);beam([fx,0,fz],[fx,t,fz],0.8,2);if(!lit)panes.push([Math.min(h,fx)+0.4,0.8,Math.max(h,fx)-0.4,t-0.8,zc]);}
+    if(t<d.w[3]-0.5)panes.push([x0+0.35,t+0.9,x1-0.35,d.w[3]-0.35,z0-0.2]);} // and the transom above
+  for(const[x0,y0,x1,y1]of WN)if(y0>0){panes.push([x0+0.35,y0+0.35,x1-0.35,y1-0.35,z0-0.2]); // the glass of each window, and drapes in the shop's colour behind it
+    const bxF=(a,b,e,f,g,h,i)=>{const n=pos.length/3;box(a,b,e,f,g,h,i);for(let k=n;k<pos.length/3;k++)uv[k*4+2]=F;};bxF(x0+0.2,y1-2.4,z0-1.8,x1-0.2,y1-0.2,z0-1.2,8);bxF(x0+0.2,y0+0.3,z0-1.8,x0+1.8,y1-2.4,z0-1.3,8);bxF(x1-1.8,y0+0.3,z0-1.8,x1-0.2,y1-2.4,z0-1.3,8);}
+  for(const d of DR){const[x0,,x1,y1]=d.w,n=pos.length/3;box(x0+0.2,y1-2.2,z0-1.8,x1-0.2,y1-0.2,z0-1.2,8);for(let k=n;k<pos.length/3;k++)uv[k*4+2]=F;} // a valance over each door
+  if(lit){const g=WN.find(w=>w[1]>0&&w[1]<14);if(g){const[x0,y0,x1]=g,ww=Math.min(15,(x1-x0)*0.7),hh=ww*80/236,cx=(x0+x1)/2,X=v=>fl?-v:v,a=X(cx-ww/2),b=X(cx+ww/2),yb=y0+1.2; // the OPEN sign, in a ground floor window
+    quad([[a,yb,z0-1],[b,yb,z0-1],[b,yb+hh,z0-1],[a,yb+hh,z0-1]],[0,0,1],[[10/A,152/A],[246/A,152/A],[246/A,72/A],[10/A,72/A]],1,1);}}
   {const F=lit?3:0,x0=L+1.2,x1=W/2-1.2,y1=H-1.2,zb=-z0+1.2,RW=sw_(5),RF=sw_(6),bx=(a,b,e,f,g,h,i,fl_)=>{const n=pos.length/3;box(a,b,e,f,g,h,i);for(let k=n;k<pos.length/3;k++)uv[k*4+2]=fl_;}; // the room inside, seen through the openings: lit by its lamp when open (F 3)
     for(const[P,n,U]of[[[[x0,0,zb],[x1,0,zb],[x1,y1,zb],[x0,y1,zb]],[0,0,1],RW],[[[x0,0,zr],[x1,0,zr],[x1,0,zb],[x0,0,zb]],[0,1,0],RF],[[[x0,y1,zb],[x1,y1,zb],[x1,y1,zr],[x0,y1,zr]],[0,-1,0],RW],
       [[[x0,0,zr],[x0,0,zb],[x0,y1,zb],[x0,y1,zr]],[1,0,0],RW],[[[x1,0,zb],[x1,0,zr],[x1,y1,zr],[x1,y1,zb]],[-1,0,0],RW]])quad(P,n,U,F); // back wall, floor, ceiling, sides (facing in)
     const sh=Math.max(2,Math.floor((y1-4)/5.5));for(let k=0;k<sh;k++){const y=4+k*5.5;bx(x0+1.5,y,zb,x1-1.5,y+0.6,zb+3,7,F); // shelves on the back wall, goods on them
       for(let x=x0+2.2,i=k;x<x1-3.5;x+=3.4,i++)bx(x,y+0.6,zb+0.6,x+2.2,y+2.2+(i%3)*0.6,zb+2.4,i%2?9:8,F);}
-    const cw=Math.min(W*0.42,22),cx0=L+W*0.1;bx(cx0,0,zb+7,cx0+cw,5.5,zb+10.5,7,F);bx(cx0+cw*0.6,5.5,zb+8,cx0+cw*0.6+2.5,7.3,zb+9.8,9,F); // the counter, and something on it
+    const dc=DR.length?(DR[0].w[0]+DR[0].w[2])/2:0,rgt=dc<=0,ca=rgt?x1-5:x0+1.2,cb=ca+3.8,cz0=zb+3.5,cz1=zr-3.5,fz=rgt?ca:cb; // the counter: along the side away from the door, running back into the shop
+    bx(ca,0,cz0,cb,5,cz1,7,F);bx(rgt?ca-0.35:cb-0.05,0.3,cz0+0.3,rgt?ca+0.05:cb+0.35,4.7,cz1-0.3,8,F);bx(ca-0.4,5,cz0-0.4,cb+0.4,5.7,cz1+0.4,9,F);bx((ca+cb)/2-1.2,5.7,cz1-4,(ca+cb)/2+1.2,7.2,cz1-2,7,F); // its body, its front in the shop's colour, its top, a till on it
     bx(-2.2,y1-1.1,(zr+zb)/2-1.4,2.2,y1,(zr+zb)/2+1.4,10,lit?1:0);} // the lamp
   const U1=sw_(1);quad([[W/2,0,z0],[W/2,0,-z0],[W/2,H,-z0],[W/2,H,z0]],[1,0,0],U0);quad([[L,0,-z0],[L,0,z0],[L,H,z0],[L,H,-z0]],[-1,0,0],U0);quad([[W/2,0,-z0],[L,0,-z0],[L,H,-z0],[W/2,H,-z0]],[0,0,-1],U0); // the sides and back
   const ov=1.4,rt=1.6,top=H+rt;box(L-ov,H,-z0-ov,W/2+ov,top,z0+ov,2);quad([[L-ov+0.3,top+0.02,z0+ov-0.3],[W/2+ov-0.3,top+0.02,z0+ov-0.3],[W/2+ov-0.3,top+0.02,-z0-ov+0.3],[L-ov+0.3,top+0.02,-z0-ov+0.3]],[0,1,0],U1); // the roof: its edge in the outline colour, its top
@@ -78,7 +91,9 @@ function shopModel(id,bk,lit,fl,si){ // si: the sign's loaded image → the mode
   {const su=[[sx/A,(sy+sh)/A],[(sx+sw)/A,(sy+sh)/A],[(sx+sw)/A,sy/A],[sx/A,sy/A]];quad([[-sW/2,yb,zs],[sW/2,yb,zs],[sW/2,yb+sH,zs],[-sW/2,yb+sH,zs]],[0,0,1],su,lit?1:0,1);
     quad([[sW/2,yb,zs-0.7],[-sW/2,yb,zs-0.7],[-sW/2,yb+sH,zs-0.7],[sW/2,yb+sH,zs-0.7]],[0,0,-1],[su[0],su[1],su[2],su[3]],2,1);} // its face, and its back (the board's shape)
   const cy=(yb+sH)/2;let Rm=0;for(let i=1;i<pos.length;i+=3){pos[i]-=cy;Rm=Math.max(Rm,Math.hypot(pos[i-1],pos[i],pos[i+1]));} // centred (for the renderer's square); its foot is at y −cy
-  _duckModels.set(type,{g:{pos:new Float32Array(pos),nrm:new Float32Array(nrm),uv:new Float32Array(uv),idx:new Uint16Array(idx),R:Rm,foot:-cy},nomk:1,mat:13,c1:[1,1,1],c2:[1,1,1],img:tx});return type;}
+  _duckModels.set(type,{g:{pos:new Float32Array(pos),nrm:new Float32Array(nrm),uv:new Float32Array(uv),idx:new Uint16Array(idx),R:Rm,foot:-cy},nomk:1,mat:13,c1:[1,1,1],c2:[1,1,1],img:tx});
+  pos.length=nrm.length=uv.length=idx.length=0;for(const[a,b,e,f,z]of panes)quad([[a,b-cy,z],[e,b-cy,z],[e,f-cy,z],[a,f-cy,z]],[0,0,1],sw_(0)); // its glass, apart: drawn as glass (it reflects what is round it), after the building
+  const gc=[0.84,0.92,0.95];_duckModels.set(type+'|glass',{g:{pos:new Float32Array(pos),nrm:new Float32Array(nrm),uv:new Float32Array(uv),idx:new Uint16Array(idx),R:Rm},nomk:1,mat:3,c1:gc,c2:gc});return type;}
 function duckGeo(shape){return _duckModels.get('geo|'+shape)||null;} // decoded once at load (duckLoad)
 async function duckLoad(){ // the two baked meshes and the markings texture: decompressed and decoded once, at load
   const D=DUCK_MESH;if(!D.nv)return;

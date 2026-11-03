@@ -152,12 +152,13 @@ body.shop-open #hdock{z-index:59}#hinv .slot.wal::before{border-color:rgba(255,2
 <div id="veil"></div>
 <div id="bfx"></div><canvas id="hcur"></canvas>
 <iframe id="neb" data-tt="map.ui.surface"></iframe>
-<script src="content.js?v=20261103l"></script><script src="shared.js?v=20261103l"></script>
+<script src="content.js?v=20261103m"></script><script src="shared.js?v=20261103m"></script>
 <script>
 // ╔══════════════════════════════════════════════════════════════════════════════╗
 // ║  MAP ENGINE                                                                 ║
 // ╚══════════════════════════════════════════════════════════════════════════════╝
 txtApply(); // the page's own labels (content/strings.csv)
+if(!new URLSearchParams(location.search).get('scene'))loading('boot',true); // until the map is drawn: the surface's word, every hex's picture, the shops (mapReady)
 const mc=document.createElement('canvas'),mctx=mc.getContext('2d'),sc=document.getElementById('scene'); // mc: the plane, drawn in 2D every frame; sc: the 3D scene it is laid into
 let W=1,H=1,invertMode=false,DUCK_TYPES={}; // what the shared renderers (shared.js) read: the scene size, the colour scheme, the duck types (sent by the surface)
 let MW,MH,SW,SH,MK=1,viewZoom=1,_E=0; // MW×MH: the map plane's canvas (bigger than the screen SW×SH, so zooming out and tilting never show its edge); MK: its backing scale
@@ -169,7 +170,7 @@ let clock=3,day=1,pool=6,fresh=true,burstFx=null,dayLog=[],dayCnt={b:0,d:0},pend
 // // clock: the hour (3 = Twilight … 24 = Midnight, the day's last turn); day: your attempts; pool: what the source put out at its last burst; fresh: no ring added yet since it
 let constel=[],armed=null,weaveSel=[],weaveAsk=null,clearFx={},mergeFx=[],feedMsg={t:'',d:'',at:-1e9}; // constellations {keys,type}; the armed map item; a Weave being drawn; animations; the final count
 const TIMES={3:txt('map.twilight'),6:txt('map.dawn'),9:txt('map.morning'),12:txt('map.noon'),15:txt('map.afternoon'),18:txt('map.dusk'),21:txt('map.night'),24:txt('map.midnight')},STEP_H=3; // the day: eight turns of three hours
-const CACHE_V='20261103l'; // the build: bump with shared.js's
+const CACHE_V='20261103m'; // the build: bump with shared.js's
 const SCENE=new URLSearchParams(location.search).get('scene'); // a Guide / event demo: the map plays a scripted moment (no surface behind it)
 let phase='move',turnTimer=0,mergeTimer=0;
 let gameOverReason='';
@@ -648,6 +649,10 @@ function mapRender(){
   if(!SCENE&&!document.hasFocus()&&currentView==='map'){mapRafId=setTimeout(()=>{mapRafId=requestAnimationFrame(mapRender);},1000/(T.mapIdleFps||8));hubPerf.last=0;} // the window is not in use (another window in front): a few frames a second, so a map left open costs little
   else mapRafId=requestAnimationFrame(mapRender);
 }
+function mapReady(){return nebReady&&(currentView==='overlay'||(!prevPending.size&&!mapNeed.length&&shopList().every(s=>shopEls[s.key])));} // nothing left to load before the map is shown (a card over it: the card is what shows)
+let _loadAt=performance.now();
+setInterval(()=>loadTick(),150); // (whatever the view: the map's own loop sleeps under a card)
+function loadTick(){if((_load.why.has('boot')||_load.why.has('back'))&&(mapReady()||performance.now()-_loadAt>12000)){loading('boot',false);loading('back',false);}}
 function startMapLoop(){if(!mapRafId){hubPerf.last=0;mapRafId=requestAnimationFrame(mapRender);}} // (the time the loop was stopped is not a slow frame)
 document.addEventListener('visibilitychange',()=>{hubPerf.last=0;}); // nor is a tab in the background
 
@@ -801,11 +806,11 @@ function neb(m){if(nebEl.contentWindow)nebEl.contentWindow.postMessage(m,'*');}
 function showNeb(on){nebEl.classList.toggle('show',on);if(on){nebEl.focus();try{nebEl.contentWindow.focus();}catch(e){}}else window.focus();}
 function enterNebula(cellKey){
   const c=cells[cellKey];
-  currentView='level';showNeb(true);
+  currentView='level';loading('boot',false);loading('level',true);setTimeout(()=>loading('level',false),12000);showNeb(true); // (the surface says when it is drawn: 'levelReady')
   const resume=nebulaCellKey===cellKey;nebulaCellKey=cellKey;saveMap();
   neb({cmd:'level',key:cellKey,seed:cellSeed(c),cov:cellCov(c),q:c.q,r:c.r,label:`(${c.q},${c.r}) · value ${c.v.toFixed(2)}`,resume,clock}); // clock: the hour its ducks are lit for
 }
-function exitNebula(){currentView='map';const t=performance.now();for(const k in clearFx)if(clearFx[k].t0==null)clearFx[k].t0=t+250;showNeb(false);mapResize();pondSpawn();startMapLoop();updateHint();evPump();}
+function exitNebula(){currentView='map';_loadAt=performance.now();loading('back',true);const t=performance.now();for(const k in clearFx)if(clearFx[k].t0==null)clearFx[k].t0=t+250;showNeb(false);mapResize();pondSpawn();startMapLoop();updateHint();evPump();}
 let evQ=[];
 const evAsked=new Set(); // (asked for once a session: the surface's reply may take a moment to say it is seen)
 function hubEvent(id){if(SCENE)return;if(disc.has('ev:'+id)||evQ.includes(id)||evAsked.has(id))return;evAsked.add(id);evQ.push(id);evPump();}
@@ -835,11 +840,12 @@ window.addEventListener('message',e=>{
   else if(m.type==='bought')shopBought(m);
   else if(m.type==='picked')shopPicked(m); // the hex is captured right away; the player returns with a right-click
   else if(m.type==='return')exitNebula();
+  else if(m.type==='levelReady')loading('level',false);
   else if(m.type==='quit'){
     const c=cells[m.key];
     if(c&&!c.cap&&!m.cleared&&m.img){c.shot=m.img;nebulaCellKey=m.key;}else nebulaCellKey=null;
     saveMap();
-    if(m.to==='main'){location.href='TitleSplash.html';return;}
+    if(m.to==='main'){loading('leave',true);setTimeout(()=>location.href='TitleSplash.html',300);return;}
     exitNebula();
   }
 });
@@ -890,7 +896,7 @@ function statsTick(now){if(!mapMode.stats||now-_stT<250)return;_stT=now; // fram
   document.getElementById('hstats').textContent=[`${gap?(1000/gap).toFixed(0):'–'} fps · frame ${gap.toFixed(1)} ms · worst ${worst.toFixed(0)} ms`,`map work ${wk.toFixed(1)} ms`,`hexes ${n} · open ${op} (locked ${lk}) · bright ${br} · dark ${dk} · void ${vd}`,
     `open value ${sum.toFixed(2)} · avg ${(op?sum/op:0).toFixed(3)} · pool ${(+pool||0).toFixed(2)}`,`rings ${turn} · depth D${depth} · ${clockStr()} · day ${day}`,`pictures ${Object.keys(prev).length} · waiting ${prevPending.size}`,
     `ducks ${pond.length} · shops ${shops} (lit ${lit}) · zoom ${viewZoom.toFixed(2)}`,`plane ${MW}×${MH} ×${MK.toFixed(2)}`].join('\n');}
-function quitMain(){saveMap();location.href='TitleSplash.html';}
+function quitMain(){saveMap();loading('leave',true);setTimeout(()=>location.href='TitleSplash.html',300);}
 
 // ── Discoveries (the same rule as the surface: hover while holding the Dim cost; nothing is spent) ──
 let dcMet=null;
@@ -936,6 +942,7 @@ function shopSprite(id,bk,lit,yaw){ // the shop's 3D building (shared.js shopMod
   const type=shopModel(id,bk,lit,fl,si),M=duckModel(type),Q=4*(bk==='m'||bk==='l'?(T.mapShopUpScale||1.7):1), // (a bigger rank's two-storey store drawn larger, so its door is the size of main street's)
     q=quatTurn(quatTurn([0,0,0,1],0,yw*Math.PI/180,0),pt*Math.PI/180,0,0),N=Math.ceil(2*M.g.R*Q)+8,pad=Math.ceil(30*gw)+8;
   const cv=document.createElement('canvas');cv.width=cv.height=N+pad*2;const c=cv.getContext('2d');drawDuck3D(c,type,q,[[cv.width/2,cv.height/2]],Q,1,2048);
+  duckEnvUpdate(mc,performance.now());drawDuck3D(c,type+'|glass',q,[[cv.width/2,cv.height/2]],Q,lit?0.3:1,2048,{x:SW/2,y:SH*0.55,lights:[]}); // its glass: reflecting the map round it (faint while the lights are on inside)
   if(lit&&gw>0){const g=document.createElement('canvas');g.width=g.height=cv.width;M.eo=1;drawDuck3D(g.getContext('2d'),type,q,[[cv.width/2,cv.height/2]],Q,1,2048);M.eo=0; // the neon: what glows, blurred out over it
     c.save();c.globalCompositeOperation='lighter';for(const[b,a]of[[22,0.8],[7,0.55]]){c.filter='blur('+(b*gw).toFixed(1)+'px)';c.globalAlpha=Math.min(1,a*gw);c.drawImage(g,0,0);}c.restore();}
   const m=quatMat(q),fy=M.g.foot;cv._ax=cv.width/2+m[3]*fy*Q;cv._ay=cv.height/2-m[4]*fy*Q;cv._bw=264; // its foot: where it stands on the map; _bw: the size every shop is scaled by (main street's old 66-unit drawing at 4×, so shops keep the size they had)
