@@ -38,6 +38,41 @@ function bottleModel(type){const[,col,part]=type.split(':');let g=_duckModels.ge
   const c=part==='glass'?BOTTLE_COL[col]||BOTTLE_COL.clear:part==='cork'?[176,126,78]:[238,228,198],M={g,nomk:1,mat:part==='glass'?(col==='gold'?7:col==='white'?0:3):1,c1:c.map(v=>v/255),c2:c.map(v=>v/255)};_duckModels.set(type,M);return M;}
 function drawBottleScene(G,d,o){ // a bottle on the lake: its letter (a glass one, until opened), the cork, then the bottle (a duck's bottle is gold or opaque white: what is in it is a surprise)
   for(const part of d.empty?['glass']:d.duck?['cork','glass']:['note','cork','glass'])drawDuckScene(G,'bottle:'+d.col+':'+part,o);}
+// ── A shop: its building as a 3D model the duck renderer draws (material 13, painted): walls with window and door openings, the lit room
+// behind them, frames and a roof edge, scaffolding on the roof and the sign mounted on it. One texture holds its colours, the room and the sign. ──
+function shopModel(id,bk,lit,fl,gi,si){ // gi, si: the room's and the sign's loaded images → the model's type, for drawDuck3D
+  const type='shop:'+id+':'+bk+(lit?1:0)+(fl?1:0);if(_duckModels.has(type))return type;const B=SHOP_BLD[bk],S=SHOPS[id],A=512,tx=document.createElement('canvas');tx.width=tx.height=A;const c=tx.getContext('2d');
+  [B.wall,B.roof,B.line,'#3a3a40','#4a4a50'].forEach((col,i)=>{c.fillStyle=col;c.fillRect(i*32,0,32,32);}); // flat colours: walls, roof, frames and trim, scaffolding, the window reveals
+  c.save();c.beginPath();c.rect(0,64,256,160);c.clip();c.fillStyle=lit?S.col:'#3a3a42';c.fillRect(0,64,256,160);c.globalCompositeOperation='multiply';c.drawImage(gi,0,64,256,160); // the room inside, tinted with the shop's colour (dark when it is closed)
+  if(lit){const g=c.createRadialGradient(128,100,0,128,100,150);g.addColorStop(0,'rgba(255,248,230,.6)');g.addColorStop(1,'rgba(255,248,230,0)');c.globalCompositeOperation='screen';c.fillStyle=g;c.fillRect(0,64,256,160);}c.restore(); // a lamp in an open shop
+  const iw=si.naturalWidth||1,ih=si.naturalHeight||1,r=Math.min(500/iw,248/ih),sw=iw*r,sh=ih*r,sx=(A-sw)/2,sy=256+(256-sh)/2;if(!lit)c.filter='brightness(0.32) saturate(0.4)';c.drawImage(si,sx,sy,sw,sh);c.filter='none'; // the sign (dim when closed)
+  const pos=[],nrm=[],uv=[],idx=[],W=B.w,H=B.h,D=B.d,z0=D/2,sw_=i=>{const u=(i*32+16)/A,v=16/A;return[[u,v],[u,v],[u,v],[u,v]];};
+  const quad=(P,n,U,f,keep)=>{const b=pos.length/3,mx=fl&&!keep?-1:1;for(let i=0;i<4;i++){pos.push(P[i][0]*mx,P[i][1],P[i][2]);nrm.push(n[0]*mx,n[1],n[2]);uv.push(U[i][0],U[i][1],f||0,-1);} // (fl: mirrored, but for the sign)
+    const g=j=>pos.slice((b+j)*3,(b+j)*3+3),a=g(0),e1=g(1).map((v,i)=>v-a[i]),e2=g(2).map((v,i)=>v-a[i]),N=[n[0]*mx,n[1],n[2]],cz=(e1[1]*e2[2]-e1[2]*e2[1])*N[0]+(e1[2]*e2[0]-e1[0]*e2[2])*N[1]+(e1[0]*e2[1]-e1[1]*e2[0])*N[2];
+    if(cz>=0)idx.push(b,b+1,b+2,b,b+2,b+3);else idx.push(b,b+2,b+1,b,b+3,b+2);}; // wound to face its normal
+  const box=(x0,y0,a0,x1,y1,a1,i)=>{const U=sw_(i);quad([[x0,y0,a1],[x1,y0,a1],[x1,y1,a1],[x0,y1,a1]],[0,0,1],U);quad([[x1,y0,a0],[x0,y0,a0],[x0,y1,a0],[x1,y1,a0]],[0,0,-1],U);
+    quad([[x1,y0,a1],[x1,y0,a0],[x1,y1,a0],[x1,y1,a1]],[1,0,0],U);quad([[x0,y0,a0],[x0,y0,a1],[x0,y1,a1],[x0,y1,a0]],[-1,0,0],U);quad([[x0,y1,a1],[x1,y1,a1],[x1,y1,a0],[x0,y1,a0]],[0,1,0],U);quad([[x0,y0,a0],[x1,y0,a0],[x1,y0,a1],[x0,y0,a1]],[0,-1,0],U);};
+  const beam=(p,q,t,i)=>{const d=q.map((v,j)=>v-p[j]),l=Math.hypot(...d)||1,u=d.map(v=>v/l),up=Math.abs(u[1])<0.9?[0,1,0]:[1,0,0],cr=(a,b)=>[a[1]*b[2]-a[2]*b[1],a[2]*b[0]-a[0]*b[2],a[0]*b[1]-a[1]*b[0]],nz=v=>{const k=Math.hypot(...v)||1;return v.map(x=>x/k);},
+    e1=nz(cr(u,up)),e2=nz(cr(u,e1)),h=t/2,U=sw_(i),C=(o,s1,s2)=>o.map((v,j)=>v+e1[j]*s1*h+e2[j]*s2*h); // a square beam from p to q
+    for(const [s1,s2,s3,s4,n] of [[1,-1,1,1,e1],[-1,1,-1,-1,e1.map(v=>-v)],[1,1,-1,1,e2],[-1,-1,1,-1,e2.map(v=>-v)]])quad([C(p,s1,s2),C(q,s1,s2),C(q,s3,s4),C(p,s3,s4)],n,U);};
+  const L=-W/2,WN=B.win.map(([a,b,e,f])=>[L+a,b,L+e,f]),xs=[...new Set([L,W/2,...WN.flatMap(w=>[w[0],w[2]])])].sort((a,b)=>a-b),ys=[...new Set([0,H,...WN.flatMap(w=>[w[1],w[3]])])].sort((a,b)=>a-b),U0=sw_(0);
+  for(let i=0;i<xs.length-1;i++)for(let j=0;j<ys.length-1;j++){const cx=(xs[i]+xs[i+1])/2,cy=(ys[j]+ys[j+1])/2;if(WN.some(w=>cx>w[0]&&cx<w[2]&&cy>w[1]&&cy<w[3]))continue; // the front wall, round its openings
+    quad([[xs[i],ys[j],z0],[xs[i+1],ys[j],z0],[xs[i+1],ys[j+1],z0],[xs[i],ys[j+1],z0]],[0,0,1],U0);}
+  const rc=3,zr=z0-rc,R4=sw_(4),L2=sw_(2);let bx0=1e9,by0=1e9,bx1=-1e9,by1=-1e9;
+  for(const[x0,y0,x1,y1]of WN){bx0=Math.min(bx0,x0);by0=Math.min(by0,y0);bx1=Math.max(bx1,x1);by1=Math.max(by1,y1); // each opening: its reveals back to the room, and a frame round it
+    quad([[x0,y0,z0],[x0,y0,zr],[x0,y1,zr],[x0,y1,z0]],[1,0,0],R4);quad([[x1,y0,zr],[x1,y0,z0],[x1,y1,z0],[x1,y1,zr]],[-1,0,0],R4);quad([[x0,y1,z0],[x0,y1,zr],[x1,y1,zr],[x1,y1,z0]],[0,-1,0],R4);if(y0>0)quad([[x0,y0,zr],[x0,y0,z0],[x1,y0,z0],[x1,y0,zr]],[0,1,0],R4);
+    box(x0-0.7,y0,z0-0.4,x0+0.3,y1+0.7,z0+0.5,2);box(x1-0.3,y0,z0-0.4,x1+0.7,y1+0.7,z0+0.5,2);box(x0-0.7,y1-0.3,z0-0.4,x1+0.7,y1+0.7,z0+0.5,2);if(y0>0)box(x0-1.2,y0-0.7,z0-0.4,x1+1.2,y0+0.3,z0+1.1,2);}
+  for(const[x0,y0,x1,y1]of B.bar)box(L+x0,y0,zr+0.5,L+x1,y1,z0+0.2,2);
+  {const u0=0,v0=64/A,u1=256/A,v1=224/A;quad([[bx0,by0,zr],[bx1,by0,zr],[bx1,by1,zr],[bx0,by1,zr]],[0,0,1],[[u0,v1],[u1,v1],[u1,v0],[u0,v0]],lit?1:0);} // the room, seen through every opening
+  const U1=sw_(1);quad([[W/2,0,z0],[W/2,0,-z0],[W/2,H,-z0],[W/2,H,z0]],[1,0,0],U0);quad([[L,0,-z0],[L,0,z0],[L,H,z0],[L,H,-z0]],[-1,0,0],U0);quad([[W/2,0,-z0],[L,0,-z0],[L,H,-z0],[W/2,H,-z0]],[0,0,-1],U0); // the sides and back
+  const ov=1.4,rt=1.6,top=H+rt;box(L-ov,H,-z0-ov,W/2+ov,top,z0+ov,2);quad([[L-ov+0.3,top+0.02,z0+ov-0.3],[W/2+ov-0.3,top+0.02,z0+ov-0.3],[W/2+ov-0.3,top+0.02,-z0-ov+0.3],[L-ov+0.3,top+0.02,-z0-ov+0.3]],[0,1,0],U1); // the roof: its edge in the outline colour, its top
+  const aspect=sw/sh,sW=Math.min(W*0.9,W*0.72*aspect),sH=sW/aspect,yb=top+B.ph,zs=z0-3; // the sign, mounted on the scaffolding at the roof's front
+  for(const[a,b]of B.posts){const xa=L+a,xb=L+b,xm=(xa+xb)/2,yt=yb+sH*0.55;beam([xa,top,zs-1.2],[xa,yt,zs-1.2],1.1,3);beam([xb,top,zs-1.2],[xb,yt,zs-1.2],1.1,3); // two uprights, a V between them, struts back to the roof
+    beam([xa,yb-0.2,zs-1.2],[xm,top,zs-1.2],0.8,3);beam([xb,yb-0.2,zs-1.2],[xm,top,zs-1.2],0.8,3);beam([xa,yt-1,zs-1.2],[xa,top,zs-8],0.8,3);beam([xb,yt-1,zs-1.2],[xb,top,zs-8],0.8,3);}
+  {const su=[[sx/A,(sy+sh)/A],[(sx+sw)/A,(sy+sh)/A],[(sx+sw)/A,sy/A],[sx/A,sy/A]];quad([[-sW/2,yb,zs],[sW/2,yb,zs],[sW/2,yb+sH,zs],[-sW/2,yb+sH,zs]],[0,0,1],su,lit?1:0,1);
+    quad([[sW/2,yb,zs-0.7],[-sW/2,yb,zs-0.7],[-sW/2,yb+sH,zs-0.7],[sW/2,yb+sH,zs-0.7]],[0,0,-1],[su[0],su[1],su[2],su[3]],2,1);} // its face, and its back (the board's shape)
+  const cy=(yb+sH)/2;let Rm=0;for(let i=1;i<pos.length;i+=3){pos[i]-=cy;Rm=Math.max(Rm,Math.hypot(pos[i-1],pos[i],pos[i+1]));} // centred (for the renderer's square); its foot is at y −cy
+  _duckModels.set(type,{g:{pos:new Float32Array(pos),nrm:new Float32Array(nrm),uv:new Float32Array(uv),idx:new Uint16Array(idx),R:Rm,foot:-cy},nomk:1,mat:13,c1:[1,1,1],c2:[1,1,1],img:tx});return type;}
 function duckGeo(shape){return _duckModels.get('geo|'+shape)||null;} // decoded once at load (duckLoad)
 async function duckLoad(){ // the two baked meshes and the markings texture: decompressed and decoded once, at load
   const D=DUCK_MESH;if(!D.nv)return;
@@ -64,7 +99,7 @@ function duckCtx(gl){
     'void main(){vec3 P=aP,N=aN;if(uFl>0.0){P.z*=uFl;N=vec3(0.0,0.0,aN.z>=0.0?1.0:-1.0);}'+ // Paper: pressed flat to a thin card, each face the side view as drawn
     'vM=N;vU=aU;vH=0.0;if(uSc>0.5){vec3 w=uPos+uR*P*uMS;vH=w.z;vec4 v=uV*vec4(w,1.0);vP=v.xyz;vN=uVR*(uR*N);gl_Position=uPj*v;}'+
     'else{vec3 p=uR*P;vP=p;vN=uR*N;gl_Position=vec4(p.xy*uK.x,-p.z*uK.y,1.0);}}'));
-  gl.attachShader(pr,sh(gl.FRAGMENT_SHADER,(dd?'#extension GL_OES_standard_derivatives : enable\n':'')+'precision mediump float;varying vec3 vN;varying vec3 vM;varying vec4 vU;varying vec3 vP;varying float vH;uniform float uCl;uniform float uNk;uniform float uBp;'+
+  gl.attachShader(pr,sh(gl.FRAGMENT_SHADER,(dd?'#extension GL_OES_standard_derivatives : enable\n':'')+'precision mediump float;varying vec3 vN;varying vec3 vM;varying vec4 vU;varying vec3 vP;varying float vH;uniform float uCl;uniform float uNk;uniform float uBp;uniform sampler2D uImg;uniform float uEo;'+
     'uniform vec3 uC1;uniform vec3 uC2;uniform float uM;uniform float uGl;uniform float uTr;uniform float uA;uniform sampler2D uTex;uniform vec4 uTS;'+
     'uniform sampler2D uEnv;uniform vec3 uEP;uniform float uEA;uniform vec4 uLd[6];uniform vec3 uLc[6];uniform vec3 uDim;uniform float uAA;uniform vec3 uSunL;uniform vec3 uSunC;'+
     'vec3 hue(float h){return clamp(abs(mod(h*6.0+vec3(0.0,4.0,2.0),6.0)-3.0)-1.0,0.0,1.0);}'+
@@ -87,8 +122,9 @@ function duckCtx(gl){
     'c=mix(c,eC,eye);c=mix(c,lC,ln);'+
     'vec3 env=vec3(0.0),gs=vec3(0.0);if(m==2.0||m==3.0||m==7.0){vec3 r=reflect(-V,n);env=texture2D(uEnv,clamp(uEP.xy-r.xy*uEP.z,0.0,1.0)).rgb;'+
     'for(int i=0;i<6;i++){if(uLd[i].w>0.0)gs+=uLc[i]*uLd[i].w*pow(max(0.0,dot(n,normalize(normalize(uLd[i].xyz)+V))),90.0);}}'+ // (empty light slots are skipped: normalize(0) is NaN)
-    'vec3 col;float a=1.0;'+
+    'vec3 col;float a=1.0;bool em=m==13.0&&vU.z>0.5&&vU.z<1.5;if(uEo>0.5&&!em){gl_FragColor=vec4(0.0);return;}'+ // em: what glows on a painted model (uEo: draw only that — a shop's neon glow is blurred from it)
     'if(m==1.0){col=c*(0.62+0.32*g)*(0.35+0.75*dif)+pow(nh,12.0)*0.12*uGl;}'+
+    'else if(m==13.0){vec4 t=texture2D(uImg,vU.xy);if(t.a<0.5)discard;col=vU.z>1.5?vec3(0.13,0.13,0.15)*(0.45+0.6*dif):vU.z>0.5?t.rgb:t.rgb*(0.3+0.8*dif)+pow(nh,30.0)*0.04;}'+ // Painted (a shop): its texture (uv in vU.xy), lit by the sun; vU.z 1 = glowing (an open shop\'s sign and windows), 2 = the back of a sign
     'else if(m==3.0){float sp=(pow(nh,80.0)*1.6+rim*0.6)*uGl;col=c*(0.7*(0.55+0.5*dif)+0.25*edg)+sp+env*uEA*(0.3+0.7*edg)+gs;a=min(1.0,0.42+0.55*pow(edg,1.5)+sp/1.2+ln*0.6);}'+
     'else if(m==2.0||m==7.0){float au=m==7.0?1.0:0.0;vec3 r=reflect(-V,n);float el=dot(env,vec3(0.3,0.59,0.11)),hz=smoothstep(-0.2,0.25,r.y),fr=pow(edg,2.0);'+ // Metal and Gold: a chrome-style horizon split and the scene's brightness drive a dark → metal → bright ramp, so both read as polished metal
     'float s=0.02+0.42*dif*hz+0.3*hz+1.1*el*uEA+0.35*fr*hz;vec3 g0=mix(c*0.07,vec3(0.13,0.06,0.01),au),g2=mix(vec3(1.0),vec3(1.0,0.95,0.7),au),gt=mix(vec3(1.0),vec3(1.0,0.82,0.42),au);'+ // steel: near-black → silver → white; gold: dark bronze → gold → pale gold
@@ -102,14 +138,14 @@ function duckCtx(gl){
     'else if(m==11.0){col=vec3(0.0);}'+ // Silhouette: all black from wherever it is seen
     'else if(m==12.0){col=c*(0.86+0.14*dif);}'+ // Paper: flat colour, the drawing as it is
     'else{col=c*(0.3+0.8*dif)+(pow(nh,60.0)+pow(nh,8.0)*0.12)*uGl+rim*0.235+c*uTr*0.45*edg;a=1.0-uTr*0.4*edg*edg;}'+
-    'col=min(col,vec3(1.0))*(m==4.0||m==10.0||m==11.0?vec3(1.0):(m==5.0||m==6.0)?mix(uSunC,vec3(1.0),0.6):uSunC);'+ // lit by its colour (clamped first: a highlight brighter than white would burn back to white) (a Dim duck is lit by its remnant glow; Bright and Shining ones mostly by themselves)
+    'col=min(col,vec3(1.0))*(m==4.0||m==10.0||m==11.0||em?vec3(1.0):(m==5.0||m==6.0)?mix(uSunC,vec3(1.0),0.6):uSunC);'+ // lit by its colour (clamped first: a highlight brighter than white would burn back to white) (a Dim duck is lit by its remnant glow; Bright and Shining ones mostly by themselves)
     'a*=uA;gl_FragColor=vec4(min(col,vec3(1.0))*a,a);}'));
   gl.linkProgram(pr);if(!gl.getProgramParameter(pr,gl.LINK_STATUS)){console.error(gl.getProgramInfoLog(pr));return null;}
   const at={},un={};for(const k of ['aP','aN','aU'])at[k]=gl.getAttribLocation(pr,k);
-  for(const k of ['uNk','uCl','uFl','uR','uK','uC1','uC2','uM','uGl','uTr','uA','uTex','uTS','uEnv','uEP','uEA','uLd','uLc','uDim','uAA','uBp','uSc','uV','uPj','uVR','uPos','uMS','uSunL','uSunC'])un[k]=gl.getUniformLocation(pr,k);
+  for(const k of ['uImg','uEo','uNk','uCl','uFl','uR','uK','uC1','uC2','uM','uGl','uTr','uA','uTex','uTS','uEnv','uEP','uEA','uLd','uLc','uDim','uAA','uBp','uSc','uV','uPj','uVR','uPos','uMS','uSunL','uSunC'])un[k]=gl.getUniformLocation(pr,k);
   const envT=gl.createTexture();gl.bindTexture(gl.TEXTURE_2D,envT);gl.texImage2D(gl.TEXTURE_2D,0,gl.RGBA,1,1,0,gl.RGBA,gl.UNSIGNED_BYTE,new Uint8Array([0,0,0,255]));
   for(const [p,v] of [[gl.TEXTURE_MIN_FILTER,gl.LINEAR],[gl.TEXTURE_MAG_FILTER,gl.LINEAR],[gl.TEXTURE_WRAP_S,gl.CLAMP_TO_EDGE],[gl.TEXTURE_WRAP_T,gl.CLAMP_TO_EDGE]])gl.texParameteri(gl.TEXTURE_2D,p,v);
-  return{gl,pr,at,un,envT,envCv:document.createElement('canvas'),envAt:-1,bufs:new Map(),mtex:null};}
+  return{gl,pr,at,un,envT,envCv:document.createElement('canvas'),envAt:-1,bufs:new Map(),mtex:null,itex:new Map()};}
 // ── Time of day: the light ducks are lit by. Each hour of the map's clock (3 Twilight … 24 Midnight) has a direction (x right, y up the screen, z out of the ground
 // towards the viewer, as a duck on a surface is seen) and a colour: the moon overhead at midnight, cool; the sun low to one side at dawn, warm; high at noon, white
 // (the look ducks always had); low to the other side at dusk, warm; cool again into the night. duckSun(h) blends between the hours (T.duckSunA: how much of it shows).
@@ -144,6 +180,10 @@ function duckBind(G,M,env,hpx){ // everything a duck draw shares: its mesh and m
   gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER,B.i);const u=G.un;
   gl.activeTexture(gl.TEXTURE0);gl.bindTexture(gl.TEXTURE_2D,G.mtex);gl.uniform1i(u.uTex,0);gl.uniform4f(u.uTS,_duckTex.s,_duckTex.t,_duckTex.f,_duckTex.p);
   gl.activeTexture(gl.TEXTURE1);gl.bindTexture(gl.TEXTURE_2D,G.envT);gl.uniform1i(u.uEnv,1);
+  if(M.img){let t=G.itex.get(M.img);if(!t){t=gl.createTexture();gl.bindTexture(gl.TEXTURE_2D,t);gl.pixelStorei(gl.UNPACK_PREMULTIPLY_ALPHA_WEBGL,false);gl.texImage2D(gl.TEXTURE_2D,0,gl.RGBA,gl.RGBA,gl.UNSIGNED_BYTE,M.img);gl.generateMipmap(gl.TEXTURE_2D); // a painted model's texture (once per context)
+      for(const [p,v] of [[gl.TEXTURE_MIN_FILTER,gl.LINEAR_MIPMAP_LINEAR],[gl.TEXTURE_MAG_FILTER,gl.LINEAR],[gl.TEXTURE_WRAP_S,gl.CLAMP_TO_EDGE],[gl.TEXTURE_WRAP_T,gl.CLAMP_TO_EDGE]])gl.texParameteri(gl.TEXTURE_2D,p,v);G.itex.set(M.img,t);}
+    gl.activeTexture(gl.TEXTURE2);gl.bindTexture(gl.TEXTURE_2D,t);gl.uniform1i(u.uImg,2);}
+  gl.uniform1f(u.uEo,M.eo?1:0);
   const refl=M.mat===2||M.mat===3||M.mat===7,ld=new Float32Array(24),lc=new Float32Array(18);
   if(refl&&env){gl.uniform3f(u.uEP,1-env.x/Math.max(1,W),env.y/Math.max(1,H),0.22);gl.uniform1f(u.uEA,M.mat===3?T.glassReflect:T.metalReflA);
     (env.lights||[]).slice(0,6).forEach((l,i)=>{const dx=l[0]-env.x,dy=-(l[1]-env.y),dz=Math.max(20,l[6]*0.6),mix=v=>(v+255*1.6)/2.6/255; // glints mostly white, tinted by the light (as on the game's metal)
@@ -165,7 +205,7 @@ function drawDuck3D(c,type,q,at,h,alpha,maxS,env){ // the type's model turned by
   gl.viewport(0,0,S,S);gl.enable(gl.SCISSOR_TEST);gl.scissor(0,0,S+2,S+2);gl.clearColor(0,0,0,0);gl.clearDepth(1);gl.clear(gl.COLOR_BUFFER_BIT|gl.DEPTH_BUFFER_BIT);gl.scissor(0,0,S,S); // the clear runs 2px past the copied square: the copy's filtering reads a pixel beyond it
   duckBind(G,M,env,h);const u=G.un;
   gl.uniform1f(u.uSc,0);gl.uniform1f(u.uCl,0);gl.uniform1f(u.uBp,DUCK_MESH.tex.b?T.duckBump/_duckTex.t:0); // bump depth in model units (a strip px is 1/t of one)
-  gl.uniformMatrix3fv(u.uR,false,quatMat(q));gl.uniform2f(u.uK,2*h/S,1/(M.g.R+0.01));gl.uniform1f(u.uA,1);
+  gl.uniformMatrix3fv(u.uR,false,q.length===9?q:quatMat(q));gl.uniform2f(u.uK,2*h/S,1/(M.g.R+0.01));gl.uniform1f(u.uA,1); // (q: a quaternion, or already a 3×3 turn)
   duckDrawCalls(G,M);
   const sy=G.cv.height-S;c.save();c.globalAlpha*=alpha;for(const p of at)c.drawImage(G.cv,0,sy,S,S,p[0]-S/2,p[1]-S/2,S,S);c.restore();}
 function drawDuckScene(G,type,o){ // a duck straight into a scene (G = duckCtx of the scene's own context): o.rot a 3×3 (column-major) turn in the
@@ -176,7 +216,18 @@ function drawDuckScene(G,type,o){ // a duck straight into a scene (G = duckCtx o
   gl.uniformMatrix3fv(u.uR,false,o.rot);gl.uniform1f(u.uMS,o.size);gl.uniform3fv(u.uPos,o.pos);gl.uniformMatrix4fv(u.uV,false,o.view);gl.uniformMatrix4fv(u.uPj,false,o.proj);gl.uniformMatrix3fv(u.uVR,false,o.viewRot);
   gl.uniform1f(u.uA,o.alpha==null?1:o.alpha);if(o.mirror)gl.frontFace(gl.CW);duckDrawCalls(G,M);if(o.mirror)gl.frontFace(gl.CCW);} // o.mirror: a reflection (its turn mirrored), so its faces wind the other way
 // (a Bright / Shining duck's glow takes the time of day's colour, as its body does)
-function duckGlow(c,type,x,y,h,now,ph){const v=DUCK_TYPES[type];if(!v)return;if(v.mat==='shadow'){const R=h*0.4;drawDarkRemnantAt(c,x,y,R,now,R/60,(ph||0)*400);return;} // a Silhouette: a Dark Remnant's beating glow behind it
+const _silC={a:null,b:null};
+function duckSilGlow(c,type,q,x,y,h,now,ph,sy){ // a Silhouette's glow: a Dark Remnant's two beating rings, in the shape of the duck as it is turned (q), so it follows the outline
+  const M=duckModel(type);if(!M||!_duckTex||!(T.bhRingBeatMs>0))return false;sy=sy||1;
+  const k=h*0.4/60,P=Math.ceil(Math.max(T.bhBlurWide,T.bhRing2BlurWide||0)*k*2.5+h*0.3),N=Math.ceil(2*M.g.R*h)+4+2*P;
+  for(const n of ['a','b'])if(!_silC[n]){_silC[n]=document.createElement('canvas');}const A=_silC.a,B=_silC.b;if(A.width!==N){A.width=A.height=B.width=B.height=N;}
+  const a=A.getContext('2d'),b=B.getContext('2d');a.clearRect(0,0,N,N);drawDuck3D(a,type,q,[[N/2,N/2]],h,1,0);
+  b.globalCompositeOperation='copy';b.drawImage(A,0,0);b.globalCompositeOperation='source-in';b.fillStyle='rgb(255,150,36)';b.fillRect(0,0,N,N);b.globalCompositeOperation='source-over'; // the outline, in the rings' amber
+  for(const [beat,off,amt,aw,am,bw,bm] of [[T.bhRingBeatMs,0,T.bhRingPulseAmt,T.bhAlphaWide,T.bhAlphaMid,T.bhBlurWide,T.bhBlurMid],[T.bhRing2BeatMs||T.bhRingBeatMs,0.5,T.bhRing2PulseAmt,T.bhRing2AlphaWide,T.bhRing2AlphaMid,T.bhRing2BlurWide,T.bhRing2BlurMid]]){
+    const pu=heartbeatPulse((((now+(ph||0)*400)%beat)/beat+off+1)%1)*(amt||0);
+    for(const [al,bl,gr] of [[aw,bw*1.6,1.14+0.12*pu],[am,bm,1.05+0.07*pu]]){if(!(al>0))continue;const w=N*gr,hh=N*gr*sy;c.save();c.globalCompositeOperation='lighter';c.globalAlpha=Math.min(1,al*(1+pu*0.6));c.filter='blur('+Math.max(0.5,(bl||0)*k*(1+pu*0.5)).toFixed(1)+'px)';c.drawImage(B,x-w/2,y-hh/2,w,hh);c.restore();}} // a wide soft swell, and a tight one at the edge
+  return true;}
+function duckGlow(c,type,x,y,h,now,ph,q,sy){const v=DUCK_TYPES[type];if(!v)return;if(v.mat==='shadow'){if(q&&duckSilGlow(c,type,q,x,y,h,now,ph,sy))return;const R=h*0.4;drawDarkRemnantAt(c,x,y,R,now,R/60,(ph||0)*400);return;} // a Silhouette: a Dark Remnant's beating glow round its outline (turned by q; a ring behind it without one)
   if(v.mat==='crystal'){const R=h*T.duckGlow*0.4,g=c.createRadialGradient(x,y,0,x,y,R),a=0.22+0.1*Math.sin(now/240+ph);g.addColorStop(0,'rgba(235,240,255,'+a.toFixed(3)+')');g.addColorStop(1,'rgba(235,240,255,0)');c.save();c.globalCompositeOperation='lighter';c.fillStyle=g;c.beginPath();c.arc(x,y,R,0,6.2832);c.fill();c.restore();return;}
   if(v.mat!=='bright'&&v.mat!=='shining'&&v.mat!=='dim')return;
   const br=v.mat==='bright',lit=(r,g,b)=>[r,g,b].map((x,i)=>Math.round(x*(0.4+0.6*DUCK_SUN.c[i]))).join(','),col=br?lit(255,252,240):v.mat==='dim'?(T.dimGlowRed|0)+','+(T.dimGlowGreen|0)+','+(T.dimGlowBlue|0):lit(...v.col),R=h*T.duckGlow*(br?0.62:0.5),gr=c.createRadialGradient(x,y,0,x,y,R);
@@ -320,8 +371,12 @@ function cursorDot(cx,x,y,dimA,edgeCol){
 // SHOPS: main street ones (street) stand round the source at angle a° (0 = right, 90 = in front, −90 = behind it; flip: its door on the other side), always there, lit only while open: hours are [open, close) on the map's clock (3 Twilight … 24 Midnight;
 // 0–27 = 24 hours). Pop-ups open on a bright clear whose surface collected at least T.mapShop<Cur>1/2/3 of their collectable (cur, also what they
 // mostly charge in) — rank 1..3, the size of the store (SHOP_RANK_BLD); at: those thresholds' defaults. col: the colour its glass is lit with.
-// SHOP_BLD: each building and where its glass sits behind its empty windows (shops/*.svg, in SVG units).
-const SHOP_BLD={s:{b:'bld_s',g:'glass_s.png',gx:1.75,gy:10.75},d:{b:'bld_s_dark',g:'glass_s.png',gx:1.75,gy:10.75},m:{b:'bld_m',g:'glass_m.png',gx:3.25,gy:7.75},l:{b:'bld_l',g:'glass_m.png',gx:3.25,gy:18},t:{b:'bld_t',g:'glass_t.png',gx:1.25,gy:4}}; // (the glass: the room inside, drawn at 4×, its walls and floor as lines)
+// SHOP_BLD: each building as a 3D model (shopModel), in the units of its old drawings: w × h × d the walls, win its window and door openings
+// [x0, y0, x1, y1] (from its front's bottom left), bar the frames across them, posts the sign's scaffolding (pairs of uprights, braced, ph tall above the roof),
+// wall / roof / line its colours (line: frames, the roof's edge and the trim, as the drawings' outlines), g the room seen through the windows (lit with the shop's colour).
+const SHOP_BLD={s:{w:58,h:30,d:24,win:[[4,0,24,22],[28,9,54,22]],bar:[[4,10,24,11],[13.5,0,14.5,10]],posts:[[12,19],[39,46]],ph:6,wall:'#7f7f7f',roof:'#8a8a8a',line:'#595959',g:'glass_s.png'},
+  m:{w:64,h:28,d:26,win:[[3,15,20,23],[22,15,35,23],[37,15,61,23],[7,3,20,11],[22,0,32,12],[34,3,57,11]],bar:[[26.6,0,27.4,12]],posts:[[8,11],[24,27],[37,40],[53,56]],ph:4,wall:'#adadad',roof:'#b8b8b8',line:'#595959',g:'glass_m.png'}};
+SHOP_BLD.d=Object.assign({},SHOP_BLD.s,{wall:'#0b0b0d',roof:'#141418',line:'#7f7f7f'});SHOP_BLD.l=Object.assign({},SHOP_BLD.m,{ph:11}); // the Gift Shop's dark one; rank 3's tall scaffolding
 const SHOP_RANK_BLD=['s','m','l'];
 const HUB_SLOTS=[180,0]; // (the hex's flat side edges; main street takes its four slanted ones) // two more spots in the source hex (angles, as main street's): a pop-up earned on a dark clear opens there
 const SHOPS={
@@ -403,12 +458,18 @@ const FORTUNE_GOOD={classic:{next:'duck'},c0:{x3:'dial'},c1:{x3:'leash'},c2:{x3:
 const FORTUNE_BAD={slowmove:'Your step is dim and heavy: every move takes two times of day, and a String takes one.',exo1:'The exotic ones look dim to you: each exotic remnant collects as just 1.',
   noduck:'Too dim to be found: no duck will come to you today.',rift:'The dark gathers closer: a Rift tears the surface with 10,000 less mass.',slow:'Your light is dim: Strings and Weaves each take a second longer to earn.',
   holiday:'A dim holiday: no pop-up shop opens, and main street closes a time of day early.',laps:'Dimness drags: a Spindle needs one more orbit, a Weave one more point, and constellations pay every other time of day.'};
-function fortuneText(f,duckName){if(!f)return'';if(!f.good)return FORTUNE_BAD[f.id]||'';const g=FORTUNE_GOOD[f.id]||{},w='The '+(duckName||'duck')+' smiles on you: ';
-  return w+(g.x3?(g.x3==='all'?'every item you earn comes in threes':KIND_NAME[g.x3].replace(/s$/,'se')+'s come in threes when you earn them'):g.luck?'+20% '+({d:'duck',e:'exotic duck',r:'rare exotic duck'}[g.luck])+' chance':
-    g.next==='rare'?'the next Dark Remnant is a rare exotic duck, but every Key is lost and Keys stay closed to you for the rest of the run':'the next Dark Remnant is '+(g.next==='exotic'?'an exotic duck':'a duck'))+(g.next?'.':' (today).');}
-const DAILY=[{id:'boom',n:'Boom or Bust',t:'Every collection today is ×5 or nothing (50 / 50)'},{id:'inf',item:'leash',n:'Endless Spindles',t:'Spindles never run out today, but your Strings and Weaves are lost, and none come'},
-  {id:'inf',item:'dial',n:'Endless Strings',t:'Strings never run out today, but your Spindles and Weaves are lost, and none come'},{id:'inf',item:'weave',n:'Endless Weaves',t:'Weaves never run out today, but your Spindles and Strings are lost, and none come'},
-  {id:'glasses',n:'Broken Glasses',t:'Only Lens constellations can be woven today, but each pays a Prism, Knot, Gate and Key (and no Lens)'}];
+function fortuneParts(f,duckName){ // [what it says, what it does]: the telling, and the change it makes to play
+  if(!f)return['',''];if(!f.good){const t=FORTUNE_BAD[f.id]||'',k=t.indexOf(': ');return k<0?['',t]:[t.slice(0,k)+'.',t[k+2].toUpperCase()+t.slice(k+3)];}
+  const g=FORTUNE_GOOD[f.id]||{},e=g.x3?(g.x3==='all'?'every item you earn comes in threes':KIND_NAME[g.x3].replace(/s$/,'se')+'s come in threes when you earn them'):g.luck?'+20% '+({d:'duck',e:'exotic duck',r:'rare exotic duck'}[g.luck])+' chance':
+    g.next==='rare'?'the next Dark Remnant is a rare exotic duck, but every Key is lost and Keys stay closed to you for the rest of the run':'the next Dark Remnant is '+(g.next==='exotic'?'an exotic duck':'a duck');
+  return['The '+(duckName||'duck')+' smiles on you.',e[0].toUpperCase()+e.slice(1)+(g.next?'.':' (today).')];}
+function fortuneText(f,duckName){const[a,b]=fortuneParts(f,duckName);return a&&b?a.replace(/\.$/,'')+': '+b[0].toLowerCase()+b.slice(1):a+b;}
+// DAILY: the Daily Wonders: n its name, t what it does (the change to play), f what the Carnival says of it; scene: its card's live demo
+const DAILY=[{id:'boom',n:'Boom or Bust',t:'Every collection today is ×5 or nothing (50 / 50)',f:'Step right up: five times the light, or none at all.',scene:'collect'},
+  {id:'inf',item:'leash',n:'Endless Spindles',t:'Spindles never run out today, but your Strings and Weaves are lost, and none come',f:'One thread that never ends, and nothing else to tie it to.',scene:'unwind'},
+  {id:'inf',item:'dial',n:'Endless Strings',t:'Strings never run out today, but your Spindles and Weaves are lost, and none come',f:'Go anywhere you like. Only go.',scene:'stringhome'},
+  {id:'inf',item:'weave',n:'Endless Weaves',t:'Weaves never run out today, but your Spindles and Strings are lost, and none come',f:'Every star joins up today, though nothing else does.',scene:'weave'},
+  {id:'glasses',n:'Broken Glasses',t:'Only Lens constellations can be woven today, but each pays a Prism, Knot, Gate and Key (and no Lens)',f:'The cracks let the colours through.',scene:'lens'}];
 function statusHTML(s){ // the Guide's Status page, and beside a shop's menu: the wallet against its caps, today's fortune and bonus, duck luck, the permanent upgrades
   if(!s)return'';const r=s.run||{},row=(a,b)=>`<tr><td>${a}</td><td>${b}</td></tr>`,f=n=>Math.floor(n||0).toLocaleString('en-US'),pc=v=>Math.round(v*1000)/10+'%';
   return`<table class="stt">${['bright','dim','neutron','magnetic','pulsing',...ACCUM_KINDS].map(k=>row(KIND_NAME[k],f(s.inv[k])+' / '+f(s.cap[k]))).join('')}</table>`+
