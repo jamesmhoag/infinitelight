@@ -55,29 +55,35 @@ function meshKit(A,fl){ // fl: mirrored left to right (but for what is kept, a s
         quad([[ra*c0,y0+ya,ra*s0],[ra*c1,y0+ya,ra*s1],[rb*c1,y0+yb,rb*s1],[rb*c0,y0+yb,rb*s0]],[nr*Math.cos(tm),ny,nr*Math.sin(tm)],U);}}};
   const geo=R=>({pos:new Float32Array(pos),nrm:new Float32Array(nrm),uv:new Float32Array(uv),idx:new Uint16Array(idx),R});
   return{pos,nrm,uv,idx,sw_,quad,box,beam,lathe,geo};}
-// ── A player's buoy (the Surface Map): a striped float, a mast with a lamp and a spot light, the player's name on a sign, and the souvenirs they have kept hung round it ──
+// ── A player's buoy (the Surface Map): a float in its colour, a mast with the player's name on a sign, a lantern on top (its spot light), and the
+// souvenirs they have kept hung round it ──
 const BUOY_SOUV={postcard:6,keychain:5,hat:7,stuffy:8,tshirt:9}; // each souvenir's swatch on it
 const BUOY_SOUV_ICO={postcard:'✉️',keychain:'🔑',hat:'🎩',stuffy:'🧸',tshirt:'👕'}; // each souvenir in Collections
 const BUOY_ICO='<svg viewBox="0 0 22 22" width="16" height="16"><path fill="currentColor" d="M10.2 2h1.6v3h1.4v2.4h-1.4V9h2.4l2.3 6.2H5.5L7.8 9h2.4V7.4H8.8V5h1.4z"/><path fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" d="M2 18.4c2 0 2-1.2 4-1.2s2 1.2 4 1.2 2-1.2 4-1.2 2 1.2 4 1.2 2-1.2 2-1.2"/></svg>'; // the dock's and inventory's slot for your buoy (Status and your collections)
 const TIMES={3:txt('map.twilight'),6:txt('map.dawn'),9:txt('map.morning'),12:txt('map.noon'),15:txt('map.afternoon'),18:txt('map.dusk'),21:txt('map.night'),24:txt('map.midnight')}; // the map's day: eight times, three hours apart (a prefab's times too)
 const SOUV_KEY='il_souvenirs_v1'; // the Gift Shop's souvenirs: kept through every new start
 function souvenirs(){try{return JSON.parse(localStorage.getItem(SOUV_KEY)||'{}')||{};}catch(e){return{};}}
-function buoyModel(name,souv){ // name: up to 20 characters; souv: the souvenir ids kept (the latest of each kind) → the model's type, for drawDuckScene (its sign: type+'|sign', drawn facing you)
-  name=String(name||'').slice(0,20);const type='buoy:'+name+'|'+souv.join(',');if(_duckModels.has(type))return type;const A=1024,tx=document.createElement('canvas');tx.width=tx.height=A;const c=tx.getContext('2d');
-  ['#d8342c','#f2f0ea','#2a2c33','#fff1b0','#142033','#e0b040','#f4e8cf','#3f6fd8','#9a6a44','#e04a8a'].forEach((col,i)=>{c.fillStyle=col;c.fillRect(i*32,0,32,32);}); // red, white, metal, lamp, sign, then the souvenirs
+const EFFECT_HEX=['#FF690E','#B0FF06','#01FF6B','#08BAFF','#4E05FF','#FE04C1']; // the six effect colours (the surface's pigments)
+const hexMix=(a,b)=>'#'+[1,3,5].map(i=>Math.round((parseInt(a.slice(i,i+2),16)+parseInt(b.slice(i,i+2),16))/2).toString(16).padStart(2,'0')).join('');
+const BUOY_COLS=[...EFFECT_HEX.flatMap((h,i)=>[h,hexMix(h,EFFECT_HEX[(i+1)%6])]),'#ffffff','#c8c8c8','#8c8c8c','#4a4a4a','#141414']; // a buoy's colours: the effect colours, one between each, then white, greys and black (later: skins like the ducks')
+function buoyModel(name,souv,col){ // name: up to 20 characters; souv: the souvenir ids kept (the latest of each kind); col: its colour → the model's type, for drawDuckScene
+  name=String(name||'').slice(0,20);col=col||BUOY_COLS[0];const type='buoy:'+name+'|'+souv.join(',')+'|'+col;if(_duckModels.has(type))return type;const A=1024,tx=document.createElement('canvas');tx.width=tx.height=A;const c=tx.getContext('2d');
+  [col,col.toLowerCase()==='#ffffff'?'#26262c':'#f2f0ea','#2a2c33','#fff1b0','#142033','#e0b040','#f4e8cf','#3f6fd8','#9a6a44','#e04a8a','#c9ced6'].forEach((cl,i)=>{c.fillStyle=cl;c.fillRect(i*32,0,32,32);}); // its colour, the band, metal, lamp, sign, then the souvenirs, glass
   c.font='bold 84px system-ui,sans-serif';c.textAlign='center';c.textBaseline='middle';const nw=c.measureText(name||' ').width,fs=84*Math.min(1,(A-80)/Math.max(1,nw)),tw=Math.max(240,Math.min(A-16,nw*fs/84+64)); // the sign: the name at a size 20 characters still fit, on a board as wide as it needs
   c.fillStyle='#142033';c.fillRect((A-tw)/2,512,tw,160);c.strokeStyle='#f2f0ea';c.lineWidth=7;c.strokeRect((A-tw)/2+8,520,tw-16,144);c.font='bold '+fs.toFixed(0)+'px system-ui,sans-serif';c.fillStyle='#ffffff';c.fillText(name,A/2,594);
   const K=meshKit(A,false),{uv,quad,box,beam,lathe}=K,glow=(f)=>{const n=uv.length/4;f();for(let k=n;k<uv.length/4;k++)uv[k*4+2]=1;};
-  lathe([[-0.55,0],[-0.5,0.22],[-0.25,0.5],[0,0.58],[0.12,0.58],[0.22,0.46],[0.28,0.2],[0.3,0]],22,[0,0,0,1,1,0,0],0); // the float: red, its white band at the waterline
-  beam([0,0.28,0],[0,1.72,0],0.07,2);for(let i=0;i<3;i++){const a=i/3*6.2832+0.5;beam([0.42*Math.cos(a),0.24,0.42*Math.sin(a)],[0,1.34,0],0.05,0);} // the mast, and its red cage
-  glow(()=>box(-0.09,1.72,-0.09,0.09,1.9,0.09,3));box(-0.12,1.9,-0.12,0.12,1.95,0.12,2); // the lamp (it lights the spot)
-  const S=meshKit(A,false),sh=0.5,sw=sh*tw/160,y0=2.0,u0=(A-tw)/2/A,u1=1-u0,v0=512/A,v1=672/A; // the sign board on top, in proportion to its face (its own model: it turns to face you as the buoy turns)
-  beam([0,1.95,0],[0,y0,0],0.07,2);S.box(-sw/2,y0,-0.04,sw/2,y0+sh,0.04,4);S.quad([[-sw/2,y0,0.045],[sw/2,y0,0.045],[sw/2,y0+sh,0.045],[-sw/2,y0+sh,0.045]],[0,0,1],[[u0,v1],[u1,v1],[u1,v0],[u0,v0]],1); // (its face lit)
-  S.quad([[sw/2,y0,-0.045],[-sw/2,y0,-0.045],[-sw/2,y0+sh,-0.045],[sw/2,y0+sh,-0.045]],[0,0,-1],[[u0,v1],[u1,v1],[u1,v0],[u0,v0]],1); // (both faces read the right way round)
+  lathe([[-0.55,0],[-0.5,0.22],[-0.25,0.5],[0,0.58],[0.12,0.58],[0.22,0.46],[0.28,0.2],[0.3,0]],22,[0,0,0,1,1,0,0],0); // the float: its colour, the band at the waterline
+  beam([0,0.28,0],[0,1.76,0],0.07,2);for(let i=0;i<3;i++){const a=i/3*6.2832+0.5;beam([0.42*Math.cos(a),0.24,0.42*Math.sin(a)],[0,1.3,0],0.05,0);} // the mast, and its cage
+  const sh=0.4,sw=sh*tw/160,y0=1.3,u0=(A-tw)/2/A,u1=1-u0,v0=512/A,v1=672/A,F=[[u0,v1],[u1,v1],[u1,v0],[u0,v0]]; // the sign, on the mast: a framed board, thick, the name on both faces
+  box(-sw/2-0.03,y0-0.03,-0.04,sw/2+0.03,y0+sh+0.03,0.04,2);quad([[-sw/2,y0,0.042],[sw/2,y0,0.042],[sw/2,y0+sh,0.042],[-sw/2,y0+sh,0.042]],[0,0,1],F);quad([[sw/2,y0,-0.042],[-sw/2,y0,-0.042],[-sw/2,y0+sh,-0.042],[sw/2,y0+sh,-0.042]],[0,0,-1],F);
+  box(-0.12,1.76,-0.12,0.12,1.81,0.12,2);for(let i=0;i<4;i++){const a=i/4*6.2832+0.785;beam([0.1*Math.cos(a),1.81,0.1*Math.sin(a)],[0.1*Math.cos(a),2.02,0.1*Math.sin(a)],0.025,2);} // the lantern: a base, four posts,
+  glow(()=>lathe([[0,0.06],[0.03,0.085],[0.18,0.085],[0.21,0.05]],14,[3],1.81)); // its lit glass,
+  lathe([[0,0.14],[0.05,0.1],[0.1,0.03],[0.13,0]],14,[2],2.02);beam([0,2.14,0],[0,2.2,0],0.03,2); // and its cap
   souv.forEach((id,i)=>{const a=i/Math.max(1,souv.length)*6.2832+1.1,x=0.62*Math.cos(a),z=0.62*Math.sin(a),k=BUOY_SOUV[id]||6; // each souvenir, hung on the float's rim
     if(id==='keychain'){beam([x,0.3,z],[x,0.12,z],0.015,2);box(x-0.05,0.05,z-0.05,x+0.05,0.13,z+0.05,k);}else if(id==='postcard')box(x-0.11,0.12,z-0.02,x+0.11,0.28,z+0.02,k);
     else if(id==='hat'){box(x-0.1,0.28,z-0.1,x+0.1,0.31,z+0.1,k);box(x-0.06,0.31,z-0.06,x+0.06,0.4,z+0.06,k);}else if(id==='stuffy')box(x-0.08,0.28,z-0.08,x+0.08,0.44,z+0.08,k);else box(x-0.1,0.1,z-0.02,x+0.1,0.28,z+0.02,k);});
-  _duckModels.set(type,{g:K.geo(2.1),nomk:1,mat:13,c1:[1,1,1],c2:[1,1,1],img:tx});_duckModels.set(type+'|sign',{g:S.geo(2.6),nomk:1,mat:13,c1:[1,1,1],c2:[1,1,1],img:tx});return type;}
+  _duckModels.set(type,{g:K.geo(2.3),nomk:1,mat:13,c1:[1,1,1],c2:[1,1,1],img:tx});return type;}
+const BUOY_LAMP=1.93; // the lantern's height, in its own units (where its spot light comes from)
 // ── A shop: its building as a 3D model the duck renderer draws (material 13, painted): walls with window and door openings, the lit room
 // behind them, frames and a roof edge, scaffolding on the roof and the sign mounted on it. One texture holds its colours, the room and the sign. ──
 function shopModel(id,bk,lit,fl,si,open){ // si: the sign's loaded image; open: its doors stand open (its menu is open) → the model's type, for drawDuck3D
