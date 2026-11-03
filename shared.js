@@ -49,10 +49,10 @@ function duckCtx(gl){
     'else{vec3 p=uR*aP;vP=p;vN=uR*aN;gl_Position=vec4(p.xy*uK.x,-p.z*uK.y,1.0);}}'));
   gl.attachShader(pr,sh(gl.FRAGMENT_SHADER,(dd?'#extension GL_OES_standard_derivatives : enable\n':'')+'precision mediump float;varying vec3 vN;varying vec3 vM;varying vec4 vU;varying vec3 vP;uniform float uBp;'+
     'uniform vec3 uC1;uniform vec3 uC2;uniform float uM;uniform float uGl;uniform float uTr;uniform float uA;uniform sampler2D uTex;uniform vec4 uTS;'+
-    'uniform sampler2D uEnv;uniform vec3 uEP;uniform float uEA;uniform vec4 uLd[6];uniform vec3 uLc[6];uniform vec3 uDim;uniform float uAA;'+
+    'uniform sampler2D uEnv;uniform vec3 uEP;uniform float uEA;uniform vec4 uLd[6];uniform vec3 uLc[6];uniform vec3 uDim;uniform float uAA;uniform vec3 uSunL;uniform vec3 uSunC;'+
     'vec3 hue(float h){return clamp(abs(mod(h*6.0+vec3(0.0,4.0,2.0),6.0)-3.0)-1.0,0.0,1.0);}'+
     'float cov(float v){float d=(v*255.0-128.0)/48.0;float w='+(dd?'max(fwidth(d)*0.75,0.02)':'uAA')+';return smoothstep(-w,w,d);}'+ // distance field → anti-aliased coverage
-    'void main(){vec3 n=normalize(vN);if(!gl_FrontFacing)n=-n;vec3 V=vec3(0.0,0.0,1.0),L=normalize(vec3(-0.45,0.62,0.64)),H=normalize(L+V);'+
+    'void main(){vec3 n=normalize(vN);if(!gl_FrontFacing)n=-n;vec3 V=vec3(0.0,0.0,1.0),L=normalize(uSunL),H=normalize(L+V);'+ // the time of day's sun or moon (duckSun)
     'float dif=max(0.0,dot(n,L)),nh=max(0.0,dot(n,H)),nz=max(0.0,n.z),edg=1.0-nz,rim=pow(edg,3.0);'+
     'float pw=uTS.w*uTS.x;vec4 mk=texture2D(uTex,vec2(vU.x/pw,vU.y/uTS.y)),mf=texture2D(uTex,vec2((uTS.x+uTS.z+vU.z-128.0)/pw,vU.y/uTS.y)),mt=texture2D(uTex,vec2((2.0*uTS.x+vU.x)/pw,(vU.z-128.0+0.5*uTS.y)/uTS.y));'+ // side view; front view by depth across; top view (if drawn) by depth across
     'vec3 mn=normalize(vM);float side=smoothstep(0.3,0.5,abs(mn.z)),notTop=1.0-smoothstep(0.8,0.95,abs(mn.y)),fw=smoothstep(0.5,0.85,mn.x);'+ // fw: faces forward
@@ -79,13 +79,22 @@ function duckCtx(gl){
     'else if(m==5.0){col=c*(0.62+0.42*dif)+pow(nh,40.0)*uGl+0.157+rim*0.35;a=min(1.0,0.5+0.45*pow(edg,1.3)+ln+eye);}'+ // bright: a little translucent (the scene shows through its middle), its rim and markings solid
     'else if(m==6.0){col=c*(0.85+0.4*dif)+pow(nh,40.0)*uGl+0.118;}'+
     'else{col=c*(0.3+0.8*dif)+(pow(nh,60.0)+pow(nh,8.0)*0.12)*uGl+rim*0.235+c*uTr*0.45*edg;a=1.0-uTr*0.4*edg*edg;}'+
+    'col*=m==4.0?vec3(1.0):(m==5.0||m==6.0)?mix(uSunC,vec3(1.0),0.6):uSunC;'+ // lit by its colour (a Dim duck is lit by its remnant glow; Bright and Shining ones mostly by themselves)
     'a*=uA;gl_FragColor=vec4(min(col,vec3(1.0))*a,a);}'));
   gl.linkProgram(pr);if(!gl.getProgramParameter(pr,gl.LINK_STATUS)){console.error(gl.getProgramInfoLog(pr));return null;}
   const at={},un={};for(const k of ['aP','aN','aU'])at[k]=gl.getAttribLocation(pr,k);
-  for(const k of ['uR','uK','uC1','uC2','uM','uGl','uTr','uA','uTex','uTS','uEnv','uEP','uEA','uLd','uLc','uDim','uAA','uBp','uSc','uV','uPj','uVR','uPos','uMS'])un[k]=gl.getUniformLocation(pr,k);
+  for(const k of ['uR','uK','uC1','uC2','uM','uGl','uTr','uA','uTex','uTS','uEnv','uEP','uEA','uLd','uLc','uDim','uAA','uBp','uSc','uV','uPj','uVR','uPos','uMS','uSunL','uSunC'])un[k]=gl.getUniformLocation(pr,k);
   const envT=gl.createTexture();gl.bindTexture(gl.TEXTURE_2D,envT);gl.texImage2D(gl.TEXTURE_2D,0,gl.RGBA,1,1,0,gl.RGBA,gl.UNSIGNED_BYTE,new Uint8Array([0,0,0,255]));
   for(const [p,v] of [[gl.TEXTURE_MIN_FILTER,gl.LINEAR],[gl.TEXTURE_MAG_FILTER,gl.LINEAR],[gl.TEXTURE_WRAP_S,gl.CLAMP_TO_EDGE],[gl.TEXTURE_WRAP_T,gl.CLAMP_TO_EDGE]])gl.texParameteri(gl.TEXTURE_2D,p,v);
   return{gl,pr,at,un,envT,envCv:document.createElement('canvas'),envAt:-1,bufs:new Map(),mtex:null};}
+// ── Time of day: the light ducks are lit by. Each hour of the map's clock (3 Twilight … 24 Midnight) has a direction (x right, y up the screen, z out of the ground
+// towards the viewer, as a duck on a surface is seen) and a colour: the moon overhead at midnight, cool; the sun low to one side at dawn, warm; high at noon, white
+// (the look ducks always had); low to the other side at dusk, warm; cool again into the night. duckSun(h) blends between the hours (T.duckSunA: how much of it shows).
+const DUCK_SUN_H=[[0,[0,0,1],[0.5,0.58,0.86]],[3,[0.35,0.2,0.9],[0.55,0.5,0.82]],[6,[0.92,0.22,0.32],[1,0.62,0.48]],[9,[0.45,0.55,0.7],[1,0.88,0.74]],[12,[-0.45,0.62,0.64],[1,1,1]],
+  [15,[-0.75,0.5,0.45],[1,0.9,0.76]],[18,[-0.93,0.18,0.3],[1,0.52,0.36]],[21,[-0.3,0.3,0.9],[0.5,0.56,0.86]],[24,[0,0,1],[0.5,0.58,0.86]]];
+let DUCK_SUN={d:[-0.45,0.62,0.64],c:[1,1,1]}; // what duckBind lights with (in the view's own axes)
+function duckSun(h){h=((h%24)+24)%24;let i=0;while(i<DUCK_SUN_H.length-2&&h>=DUCK_SUN_H[i+1][0])i++;const[a,da,ca]=DUCK_SUN_H[i],[b,db,cb]=DUCK_SUN_H[i+1],t=(h-a)/(b-a),e=t*t*(3-2*t),k=T.duckSunA!=null?T.duckSunA:1,
+  noon=DUCK_SUN_H[4],mx=(p,q,r)=>p.map((v,j)=>v+(q[j]-v)*r),d=mx(da,db,e),c=mx(ca,cb,e);return{d:mx(noon[1],d,k),c:mx(noon[2],c,k)};}
 let _dgl=null;
 function duckGL(){ // the offscreen renderer drawDuck3D paints through
   if(_dgl!==null)return _dgl;_dgl=false;const cv=document.createElement('canvas');cv.width=cv.height=256;
@@ -117,7 +126,7 @@ function duckBind(G,M,env,hpx){ // everything a duck draw shares: its mesh and m
       ld.set([dx,dy,dz,l[5]*T.metalLightA],i*4);lc.set([mix(l[2]),mix(l[3]),mix(l[4])],i*3);});}
   else{gl.uniform3f(u.uEP,0.5,0.5,0.22);gl.uniform1f(u.uEA,refl?0.5:0);}
   gl.uniform4fv(u.uLd,ld);gl.uniform3fv(u.uLc,lc);gl.uniform3f(u.uDim,T.dimGlowRed/255,T.dimGlowGreen/255,T.dimGlowBlue/255);gl.uniform1f(u.uAA,Math.max(0.05,0.6/Math.max(1,hpx*0.01)));
-  gl.uniform3fv(u.uC1,M.c1);gl.uniform3fv(u.uC2,M.c2);gl.uniform1f(u.uM,M.mat);gl.uniform1f(u.uGl,T.duckGloss);gl.uniform1f(u.uTr,T.duckTrans);}
+  gl.uniform3fv(u.uSunL,DUCK_SUN.d);gl.uniform3fv(u.uSunC,DUCK_SUN.c);gl.uniform3fv(u.uC1,M.c1);gl.uniform3fv(u.uC2,M.c2);gl.uniform1f(u.uM,M.mat);gl.uniform1f(u.uGl,T.duckGloss);gl.uniform1f(u.uTr,T.duckTrans);}
 function duckDrawCalls(G,M){ // depth pre-pass so only the nearest surface is coloured; glass shows its inside wall first
   const gl=G.gl,n=M.g.idx.length;gl.enable(gl.DEPTH_TEST);gl.depthFunc(gl.LEQUAL);gl.enable(gl.BLEND);gl.blendFunc(gl.ONE,gl.ONE_MINUS_SRC_ALPHA);gl.enable(gl.CULL_FACE);
   if(M.mat===3){gl.cullFace(gl.FRONT);gl.drawElements(gl.TRIANGLES,n,gl.UNSIGNED_SHORT,0);}

@@ -114,7 +114,7 @@ button:hover{background:rgba(255,255,255,0.15);}
   <div id="dock" class="bottom"><div id="inventoryPanel"></div><div id="touch-info"></div></div>
   <canvas id="cur"></canvas>
 </div>
-<script src="shared.js?v=20261102zf"></script>
+<script src="shared.js?v=20261102zg"></script>
 <script>
 const _SRC=document.documentElement.outerHTML; // kept so the Encyclopedia can run live scenes as embedded copies of the game
 // Safety: a negative / non-finite gradient radius would throw and kill the frame — clamp it, and log the first offender's stack so it can be traced.
@@ -13948,7 +13948,7 @@ function cardHTML(ev,mini){ // the one card format: name bar, art box, type line
   return `<div class="mtg${mini?' sm':''}" data-ev="${ev.id}" style="--rc:${r[0]}"><div class="nm"><b>${gEsc(ev.name)}</b><span class="gem"></span></div><div class="art" data-scene="${ev.scene}">${mini?`<canvas class="rl-m" width="64" height="64" data-k="${ev.ico}"></canvas>`:''}</div><div class="ty"><span>${gEsc(ev.type.replace(/^Event — /,''))}</span><span>${r[1]}</span></div><div class="tx">${ev.facts().map(f=>`<p>${gEsc(f)}</p>`).join('')}<p class="fl">${gEsc(ev.flavor)}</p></div></div>`;
 }
 function mountScene(h,w,hh){if(!h||h.firstChild||document.querySelectorAll('.rl-live iframe,.mtg .art iframe').length>=5)return;const f=document.createElement('iframe'),nm=h.dataset.s||h.dataset.scene;f.style.cssText='border:0;max-width:100%;pointer-events:none;background:#000;border-radius:6px;'+(w?`width:${w}px;height:${hh}px`:'width:100%;height:100%');
-  if(nm.slice(0,4)==='hub:')f.src='Surface_Map_HUB.html?v=20261102zf&scene='+nm.slice(4)+'&T='+encodeURIComponent(JSON.stringify(mapSceneT()));else f.srcdoc=liveSrc(nm);h.appendChild(f);} // a Surface Map demo is played by the map itself
+  if(nm.slice(0,4)==='hub:')f.src='Surface_Map_HUB.html?v=20261102zg&scene='+nm.slice(4)+'&T='+encodeURIComponent(JSON.stringify(mapSceneT()));else f.srcdoc=liveSrc(nm);h.appendChild(f);} // a Surface Map demo is played by the map itself
 function mapSceneT(){const o={};for(const k in T)if(/^(map|bh|duck|wake|glass|metal|dimGlow|glowHalo|maxSpeed)/.test(k))o[k]=T[k];return o;} // what a map demo needs of the tuners
 function showEventCard(id,review){
   const ev=EVENTS.find(e=>e.id===id);if(!ev)return;guideCSS();
@@ -14174,7 +14174,7 @@ function hubIcons(){const o={};for(const k of ['leash','dial','weave','prism','k
 function hubDefs(){let tab=null;return TUNE_DEFS.map(d=>{if(d.sec){tab=d.tab;return{sec:d.sec,tab};}return{key:d.key,label:d.label,min:d.min,max:d.max,step:d.step,tip:d.tip,type:d.type,options:d.options,tab};});} // every tuner, for the map's Tune panel (plain data: a sound's test button stays here)
 function hubState(type,defs){hubPost({type:type||'state',T:Object.assign({},T),inv:Object.assign({},inventory),disc:[...discSeen],ducks:duckLog,duckTypes:DUCK_TYPES,icons:hubIcons(),defs:defs?hubDefs():null});}
 function hubWake(){hubAsleep=false;if(!rafId)rafId=requestAnimationFrame(loop);}
-function hubIdle(){clearStage();feedAlert.until=0;levelCoverage=null;hubLevel=null;if(isPaused)togglePause();if(!hubOverlay)hubAsleep=true;} // back on the map: the loop stops (it shares the map's thread); a Guide / event card over the map keeps it
+function hubIdle(){DUCK_SUN=duckSun(12);clearStage();feedAlert.until=0;levelCoverage=null;hubLevel=null;if(isPaused)togglePause();if(!hubOverlay)hubAsleep=true;} // back on the map: the loop stops (it shares the map's thread); a Guide / event card over the map keeps it
 function hubOverlay_(on){hubOverlay=on;wrap.classList.toggle('hub-ov',on);if(on)hubWake();} // the map's Guide / event cards show over a bare black stage
 function hubOverlayCheck(){if(hubOverlay&&!_rulesOpen&&!_evOpen&&!_evQ.length){hubOverlay_(false);hubAsleep=true;hubState('overlayDone');}}
 function clearFootText(){return HUB?'right-click to return to the Surface Map':'right-click to rebuild';}
@@ -14220,7 +14220,7 @@ function restoreSession(d){
 async function hubStartLevel(m){
   _shotGen++;hubWake();if(_menuOpen)closeGameMenu();
   let rec=null;if(m.resume){try{rec=await IDB.get('session');}catch(e){}}
-  hubLevel={key:m.key,seed:m.seed,cov:m.cov};levelCoverage=m.cov;lvHex=m.q!=null?[m.q,m.r]:null;
+  hubLevel={key:m.key,seed:m.seed,cov:m.cov};if(m.clock!=null)DUCK_SUN=duckSun(m.clock); // its ducks are lit by the map's time of daylevelCoverage=m.cov;lvHex=m.q!=null?[m.q,m.r]:null;
   if(rec&&rec.key===m.key&&rec.data){try{restoreSession(rec.data);flashSaveStatus('Surface '+m.label+' — continued where you left it');}catch(e){console.error(e);rec=null;}}
   if(!rec||rec.key!==m.key){ensureDarkRemnantTheme();rebuild(m.seed);levelCoverage=m.cov;flashSaveStatus('Surface '+m.label);fireEvent('surface');}
   hubLevel.key=m.key;if(isPaused)togglePause();
@@ -14358,10 +14358,11 @@ DUCK_TYPES.bighead={name:'Big Head Duck',axis:'Size',detail:'huge head, small bo
 [['wood','Wooden',[176,118,64],[128,78,38]],['glass','Glass',DUCK_YEL,DUCK_ORA],['metal','Metal',[196,200,210],[150,154,166]],['dim','Dim',[150,70,30],[110,48,20]],['bright','Bright',[255,250,232],[255,226,196]],['shining','Shining',DUCK_YEL,DUCK_ORA],['gold','Gold',[255,196,52],[226,146,34]]]
   .forEach(([id,n,c1,c2])=>DUCK_TYPES[id]={name:n+' Duck',axis:'Material',detail:id==='wood'?'wood':id==='dim'?'black, lit by a Dim Remnant glow':n.toLowerCase(),tex:id,mat:id,col:c1,col2:c2,rare:id==='gold'?1:0});
 const DUCK_IDS=Object.keys(DUCK_TYPES);
-Object.assign(T,{duckChance:0.25,duckExoticChance:0.2,duckLuckStep:0.01,duckRareChance:0.03,duckSize:46,duckSpin:0.5,duckDrift:6,duckGloss:0.9,duckBump:1,duckTrans:0.35,duckGlow:2.5,duckMass:40,duckTumble:0.6,duckSpinDamp:0.4,duckMaxSpin:0.25,volDuck:1});
+Object.assign(T,{duckSunA:1,duckChance:0.25,duckExoticChance:0.2,duckLuckStep:0.01,duckRareChance:0.03,duckSize:46,duckSpin:0.5,duckDrift:6,duckGloss:0.9,duckBump:1,duckTrans:0.35,duckGlow:2.5,duckMass:40,duckTumble:0.6,duckSpinDamp:0.4,duckMaxSpin:0.25,volDuck:1});
 TUNE_DEFS.push({sec:'Ducks',tab:'gameplay'},
  {key:'duckChance',label:'Duck chance',min:0,max:1,step:0.01,tip:'Chance a Dark Remnant comes out as a duck instead (the surface then carries on)'},
  {key:'duckExoticChance',label:'Exotic chance',min:0,max:1,step:0.01,tip:'Chance a duck is an exotic (one colour, size or material change)'},
+ {key:'duckSunA',label:'Duck time-of-day light',min:0,max:1,step:0.05,tip:'How much the time of day lights the ducks: the moon overhead at midnight, the sun rising cool to warm, white at noon, setting warm, back to moonlight (0 = always noon)'},
  {key:'duckLuckStep',label:'Duck luck per miss',min:0,max:0.2,step:0.005,tip:'Added to Duck chance for every Dark Remnant that was not a duck, and to Exotic chance for every duck that was classic; back to the base on a hit (game data: carried from surface to surface and day to day)'},
  {key:'duckRareChance',label:'Rare exotic chance',min:0,max:1,step:0.005,tip:'Chance a duck is a rare exotic: Rainbow, Big Head or Gold'},
  {key:'duckSize',label:'Duck size',min:16,max:140,step:1,tip:'Height (px) of a classic duck on the surface'},
