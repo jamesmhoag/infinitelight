@@ -114,7 +114,7 @@ button:hover{background:rgba(255,255,255,0.15);}
   <div id="dock" class="bottom"><div id="inventoryPanel"></div><div id="touch-info"></div></div>
   <canvas id="cur"></canvas>
 </div>
-<script src="shared.js?v=20261102zi"></script>
+<script src="shared.js?v=20261102zj"></script>
 <script>
 const _SRC=document.documentElement.outerHTML; // kept so the Encyclopedia can run live scenes as embedded copies of the game
 // Safety: a negative / non-finite gradient radius would throw and kill the frame — clamp it, and log the first offender's stack so it can be traced.
@@ -568,7 +568,7 @@ const T={
   volHornConsume:   1,  // playFrenchHorn('consumeLoud')— a Point consumes another Point
   volTubaFormation: 0.5,  // playTubaBlast — a Dim remnant forms
   volTubaMerge:     0.6,  // playTubaBlast — two Dim remnants merge
-  volCymbal:        0,  // playCymbalCrash — a nova-triggering collision between Bright/Active remnants
+  volCymbal:        0,  // playCymbalCrash — a nova-triggering collision between Bright/Exotic remnants
   volPointDeathTimpani: 3, // playTimpani — an ordinary (non-Bright) point fades out at end of life
   volDialUse:       1,  // playClarinet — the String is used on a point
   volPrismUse:      1,  // playClarinet — the Prism is used on a point
@@ -585,7 +585,7 @@ const T={
   volGateChimes: 0.7,   // playGateRestoreChimes
   glissVol:0.75, glissWave:'sawtooth', glissNotes:13, glissGapMs:59, glissLingerMs:560, glissChimeHits:23, glissSpanMs:825, glissClang:0.25, // synth glissando + how metallic the bar chimes are
   sizeVarPct:0.05, remEnScaleMin:0.8, remEnScaleMax:1.6, remEnScaleE:5, bhWakeMinVar:0.3, kStraighten:6, dimWhirlRMin:30, brightStasisRMin:30, fieldGrowMs:600, globeRPerSpeed:60, globeRMin:40, globeRMax:220,
-  volNovaChime:  0.55,   // playNovaChime — the ascending cluster on a Bright/Active nova
+  volNovaChime:  0.55,   // playNovaChime — the ascending cluster on a Bright/Exotic nova
   volConsume:    3,   // playTimpani — each individual point being consumed by the Dark Remnant
   volFinale:     1.65,   // playOrchestraFinale as a whole (stab + long chord), when the Dark Remnant first appears
 
@@ -776,14 +776,14 @@ const T={
   glowStretchAlpha:0.4, glowStretchSize:2.4, glowStretchPerSpeed:0.35, glowStretchMax:0.7, glowStretchRotK:5.5, glowStretchMinSpeed:0, // moving/spinning objects: a subtle stretched glow at the object itself (NOT a trail) — strength · base size (×radius) · elongation per unit speed · elongation cap · extra puff per unit spin · slowest speed that still stretches
   remAlpha:     1.0,
 
-  // Active Remnant — created when two white (Bright) remnants collide, or a
+  // Exotic Remnant — created when two white (Bright) remnants collide, or a
   // white remnant collides with a white point. Its exact type (Neutron,
   // Magnetic, or Pulsing) is decided at creation from the colliding objects'
   // own color balance, speed, and rotation — see chooseActiveRemnantType.
   magBalanceLow:   0.22, // color-balance score at/below this = "heavily weighted" -> Magnetic
   magBalanceHigh:  0.85, // color-balance score at/above this = "nearly perfect" -> Magnetic
-  remBounceNovaThresh:2.5, // combined motion score (0..4) needed for a Bright/Active remnant collision to nova instead of bounce
-  statusEnergy:2, activeStatusMax:4, remMassFrac:0.2, remEnergyFrac:0.2, // energy a remnant gains per status from active remnants · share of a Point's / pigment's mass and energy a remnant keeps
+  remBounceNovaThresh:2.5, // combined motion score (0..4) needed for a Bright/Exotic remnant collision to nova instead of bounce
+  statusEnergy:2, activeStatusMax:4, remMassFrac:0.2, remEnergyFrac:0.2, // energy a remnant gains per status from exotic remnants · share of a Point's / pigment's mass and energy a remnant keeps
   contactSpinK:    0.35,   // how much of the tangential slip at a contact is turned into spin / sliding per frame (0 = frictionless)
   whirlLens:       1.6,    // Dim DEPTH: how strongly it pinches what is inside toward its centre (an inverted lens: things shrink and thin out until they are one tiny glowing point); 0 = off
   whirlExp:        5.5,      // Dim DEPTH: steepness of the pinch curve — 1 is gentle, higher keeps the rim flat and piles the pinch into the centre
@@ -1305,11 +1305,11 @@ const TUNE_DEFS=[
   {key:'glowStretchMinSpeed',label:'Glow min v',min:0,max:0.5,step:0.01,   tip:'Slowest speed that still gets a stretched glow (spin alone can still trigger it)'},
   {key:'remAlpha',    label:'Core α',      min:0,max:1.0,step:0.1,    tip:'Remnant core alpha'},
 
-  {sec:'Active Remnant',tab:'gameplay'},
-  {key:'remBounceNovaThresh',label:'Nova thresh',min:0,max:4,step:0.1,tip:'Combined motion score (each object\'s speed/maxSpeed + rot/maxRotSpeed fraction, summed across both — 0=both still, 4=both maxed) a Bright/Active remnant collision needs to break into a nova instead of just bouncing'},
-  {key:'remBounceSpinK', label:'Bounce spin', min:0,max:0.1,step:0.001, tip:'How much rotation a Bright/Active remnant picks up from a bounce collision, per unit of tangential impact speed'},
-  {key:'statusEnergy',label:'Status energy',min:0,max:20,step:0.5,tip:'Energy a Dim / Bright / relic (or active remnant) gains for each status an active remnant gives it (Enlarged, Shrunk, colour, pulse). x10 when collected'},
-  {key:'activeStatusMax',label:'Active status max',min:0,max:8,step:1,tip:'How many distinct statuses (Enlarged, Shrunk, each colour pair, each Pulsing beat) an active remnant can stack from the other active types'},
+  {sec:'Exotic Remnant',tab:'gameplay'},
+  {key:'remBounceNovaThresh',label:'Nova thresh',min:0,max:4,step:0.1,tip:'Combined motion score (each object\'s speed/maxSpeed + rot/maxRotSpeed fraction, summed across both — 0=both still, 4=both maxed) a Bright/Exotic remnant collision needs to break into a nova instead of just bouncing'},
+  {key:'remBounceSpinK', label:'Bounce spin', min:0,max:0.1,step:0.001, tip:'How much rotation a Bright/Exotic remnant picks up from a bounce collision, per unit of tangential impact speed'},
+  {key:'statusEnergy',label:'Status energy',min:0,max:20,step:0.5,tip:'Energy a Dim / Bright / relic (or exotic remnant) gains for each status an exotic remnant gives it (Enlarged, Shrunk, colour, pulse). x10 when collected'},
+  {key:'activeStatusMax',label:'Exotic status max',min:0,max:8,step:1,tip:'How many distinct statuses (Enlarged, Shrunk, each colour pair, each Pulsing beat) an exotic remnant can stack from the other active types'},
   {key:'remMassFrac',label:'Remnant mass %',min:0,max:1,step:0.01,tip:'Share of its mass (and colour mix) a remnant keeps when made from a Point or a failed collapse'},
   {key:'remEnergyFrac',label:'Remnant energy %',min:0,max:1,step:0.01,tip:'Share of its energy a remnant keeps when made from a Point or a failed collapse'},
   {key:'contactSpinK', label:'Contact spin', min:0,max:1,step:0.01, tip:'Surface friction when objects touch: spin is slowed toward 0, or sped up / reversed, depending on the angle, speed and spin of what touched'},
@@ -1512,7 +1512,7 @@ const TUNE_DEFS=[
   {key:'volPulsePlace', label:'Place vol (high, echo)', min:0,max:0.3,step:0.005,tip:'Volume of the first tap when placed',test:()=>playPulsingRemnantSound(TEST_P,true,1)},
   {key:'volPulsePickup',label:'Pickup vol (low, echo)', min:0,max:0.3,step:0.005,tip:'Volume of the first tap when picked up',test:()=>playPulsingRemnantSound(TEST_P,false,1)},
   {sec:'Remnant Collisions',tab:'sounds'},
-  {key:'volCollisionBounce',label:'Bounce vol',min:0,max:0.3,step:0.005,tip:'Base volume of a Bright/Active remnant bounce collision — actual volume is scaled DOWN further for a slower/gentler hit',
+  {key:'volCollisionBounce',label:'Bounce vol',min:0,max:0.3,step:0.005,tip:'Base volume of a Bright/Exotic remnant bounce collision — actual volume is scaled DOWN further for a slower/gentler hit',
     test:()=>{if(!canPlay())return;reserveVoice();const now=audioCtx.currentTime;const vol=T.volCollisionBounce;const freq=noteFreq(1,0.85);const dur=0.35+durJitter();
       const o=audioCtx.createOscillator();o.type='triangle';o.frequency.value=freq;const g=audioCtx.createGain();g.gain.value=0;o.connect(g);g.connect(masterGain);
       g.gain.setValueAtTime(0,now);g.gain.linearRampToValueAtTime(vol,now+0.01);g.gain.exponentialRampToValueAtTime(0.0001,now+dur);o.start(now);o.stop(now+dur+0.05);releaseVoiceOn(o,g);}},
@@ -1531,7 +1531,7 @@ const TUNE_DEFS=[
   {key:'volTubaFormation',label:'Formation vol',min:0,max:3,step:0.05,tip:'A Dim Remnant forms',test:()=>playTubaBlast(40,1,1)},
   {key:'volTubaMerge',    label:'Merge vol',    min:0,max:3,step:0.05,tip:'Two Dim Remnants merge into one',test:()=>playTubaBlast(60,2,1)},
   {sec:'Bright Remnant Nova Collision (Cymbal)',tab:'sounds'},
-  {key:'volCymbal',label:'Crash vol',min:0,max:3,step:0.05,tip:'A collision between Bright/Active remnants violent enough to trigger a nova',test:()=>playCymbalCrash(50,1)},
+  {key:'volCymbal',label:'Crash vol',min:0,max:3,step:0.05,tip:'A collision between Bright/Exotic remnants violent enough to trigger a nova',test:()=>playCymbalCrash(50,1)},
   {sec:'Item Usage — String (Clarinet)',tab:'sounds'},
   {key:'volDialUse',label:'Use vol',min:0,max:3,step:0.05,tip:'The String is used on a point',test:()=>playClarinet(1,40,1)},
   {sec:'Item Usage — Prism (Clarinet)',tab:'sounds'},
@@ -1555,7 +1555,7 @@ const TUNE_DEFS=[
   {sec:'Gate Restore (Bar Chimes)',tab:'sounds'},
   {key:'volGateChimes',label:'Restore chimes',min:0,max:3,step:0.05,tip:'The ascending glissando + resolving chord when a Gate restores something',test:()=>playGateRestoreChimes()},
   {sec:'Nova Formation (Bar Chimes)',tab:'sounds'},
-  {key:'volNovaChime',label:'Nova chime cluster',  min:0,max:3,step:0.05,tip:'The dense ascending bar-chime cluster on a Bright/Active remnant nova',test:()=>playNovaChime([{w:1,hue:1/6}],40,60)},
+  {key:'volNovaChime',label:'Nova chime cluster',  min:0,max:3,step:0.05,tip:'The dense ascending bar-chime cluster on a Bright/Exotic remnant nova',test:()=>playNovaChime([{w:1,hue:1/6}],40,60)},
   {sec:'Dark Remnant',tab:'sounds'},
   {key:'volConsume',   label:'Consume (Timpani)',min:0,max:3,step:0.05,tip:'Each individual point being consumed once the Dark Remnant is drawing everything in',test:()=>playTimpani(1,40,1.5*T.volConsume)},
   {key:'volFinale',    label:'Finale (whole orchestra)',min:0,max:3,step:0.05,tip:'The whole opening stab + long sustained chord when the Dark Remnant first appears',test:()=>playOrchestraFinale(50,50)},
@@ -2869,7 +2869,7 @@ function setScaleState(q,st,now){
   q._radFrom=q.radMult||1;q._radTo=m;q._radAt=now;q._radDone=false;
   if(q.isActiveRemnant&&(q.remKind==='magnetic'||q.remKind==='pulsing')&&(q._hToA!==1||q._hToB!==1)){q._hFromA=q._nhA||1;q._hFromB=q._nhB||1;q._hToA=1;q._hToB=1;q._hAt=now;} // halves follow the whole scale
 }
-function statusBonus(q,type,val){ // +T.statusEnergy energy per new status an active remnant gives a remnant — each distinct status stacks (Enlarged, Shrunk, each colour, pulse); an active remnant stacks those from the OTHER active types, up to T.activeStatusMax
+function statusBonus(q,type,val){ // +T.statusEnergy energy per new status an exotic remnant gives a remnant — each distinct status stacks (Enlarged, Shrunk, each colour, pulse); an exotic remnant stacks those from the OTHER active types, up to T.activeStatusMax
   if(!q||!q.isRemnant||q.remKind==='black'||!(T.statusEnergy>0))return;
   const act=!!q.isActiveRemnant;
   if(act&&((type==='scale'&&q.remKind==='neutron')||(type==='colour'&&q.remKind==='magnetic')||(type==='pulse'&&q.remKind==='pulsing')))return;
@@ -2885,7 +2885,7 @@ function activeRemnantRange(p){
   if(p.remKind==='pulsing')return T.pulsingEffR*m*Math.max(p.halfA||1,p.halfB||1);
   return 0;
 }
-// ── Bright/Active remnant solid collisions ──────────────────────────────────
+// ── Bright/Exotic remnant solid collisions ──────────────────────────────────
 // Two Bright (white) or Active (Neutron/Magnetic/Pulsing) remnants meeting
 // each other are solid — they bounce off one another, picking up rotation
 // from the impact, UNLESS the collision itself is violent enough (see
@@ -3074,7 +3074,7 @@ function applyMagTarget(q,ci){
 // A Neutron / Pulsing remnant that a Magnetic has coloured acquires that colour's real effect (THROW, FLING, ORBIT, WHIRL,
 // CATCH, SNARE) and applies it, as a point of that colour would, to what its own field reaches.
 function tintForce(p,q,R,ci){
-  if(q.failedCollapse||q.captured||R<=0||q.isActiveRemnant)return; // Active Remnants never push each other
+  if(q.failedCollapse||q.captured||R<=0||q.isActiveRemnant)return; // Exotic Remnants never push each other
   if(ci===undefined)ci=curTintCI(p);if(ci===undefined)return;
   let src=p._tintSrc;if(!src)src=p._tintSrc={id:'tint'+p.id,failedCollapse:false};
   src.x=p.x;src.y=p.y;src.ci=ci;src.energy=T.tintForceE;
@@ -3100,7 +3100,7 @@ function applyActiveRemnantEffect(p,q){
   if(q._whirlAt>_nullNow)return; // swirling in a Dim WHIRL: no other effect reaches it // embedded in a Lens: nothing affects it
   if(dialFxMul(q)<=0)return; // String-launched points ignore every effect field until their time is up, then feel them gradually
   if(q===p||q.captured||q.dying)return;
-  if(q.isRemnant&&q.remKind===p.remKind)return; // an Active Remnant never affects its own type
+  if(q.isRemnant&&q.remKind===p.remKind)return; // an Exotic Remnant never affects its own type
   if(sharesPulse(p)&&shareReach(p,q)===0)return; // (an attributed Neutron / Magnetic acts only inside the Pulsing beam shape it has taken on)
   if(q.isActiveRemnant){ // Active-on-Active is its own, STATUS-based effect: it sticks after the field is gone and is nothing like what they do to everything else
     const now2=performance.now();
@@ -3202,7 +3202,7 @@ let gateFx=null,keyFx=null; // the Gate's rewind transition / the Key's insert-t
 let keyShapes=[];        // one entry per Key in the purse, oldest first — each remembers the Pattern that formed it
 let inventory={bright:0,dim:0,neutron:0,magnetic:0,pulsing:0,dial:0,leash:0,prism:0,gate:0,knot:0,key:0,lens:0,weave:0};
 let invDisabled=new Set(),invDisableMode=false,discSeen=new Set();
-let ducks=[],duckLog={},duckLuck={d:0,e:0}; // rubber ducks on this surface / the duck collection (type → count, saved with the inventory) / failed tries since the last duck (d) and the last exotic (e): each adds T.duckLuckStep to its chance (saved, so it carries across surfaces and days)
+let ducks=[],duckLog={},duckLuck={d:0,e:0},runState=runFresh(); // rubber ducks on this surface / the duck collection (type → count, saved with the inventory) / failed tries since the last duck (d) and the last exotic (e): each adds T.duckLuckStep to its chance (saved, so it carries across surfaces and days)
 let invFlash={kind:null,at:0};   // last slot that gained an item (its icon pulses)
 let earnFx=[],constellationFx=[]; // real-time visual effects (see drawEarnFx / drawConstellationFx)
 (function loadInventory(){
@@ -3213,6 +3213,7 @@ let earnFx=[],constellationFx=[]; // real-time visual effects (see drawEarnFx / 
     if(Array.isArray(saved.discovered))discSeen=new Set(saved.discovered);
     if(saved.ducks&&typeof saved.ducks==='object')duckLog=saved.ducks;
     if(saved.luck)duckLuck=Object.assign({d:0,e:0},saved.luck);
+    if(saved.run)runState=Object.assign(runFresh(),saved.run);
       if(typeof saved.notch==='number')inventory.knot=Math.min(invMaxFor('knot'),inventory.knot+saved.notch);
     for(const k of ['prism','knot','gate','key','lens'])if(inventory[k]>0)discSeen.add('ev:pat_'+k);} // Pattern items already held (from before forming one revealed it) show in the Guide
   }catch(e){/* localStorage unavailable — start fresh, still fully playable */}
@@ -3234,7 +3235,7 @@ function cycleKeyRing(){if(keyShapes.length>1)keyShapes.push(keyShapes.shift());
 // merged in — discoveries are a union and duck counts the larger — so one copy can never write away what another found. It is backed up in
 // IndexedDB too, so a full or cleared localStorage loses nothing.
 let _discReset=false;
-function invPayload(){return Object.assign({},inventory,{disabled:[...invDisabled],discovered:[...discSeen],ducks:duckLog,luck:duckLuck,at:Date.now()});}
+function invPayload(){return Object.assign({},inventory,{disabled:[...invDisabled],discovered:[...discSeen],ducks:duckLog,luck:duckLuck,run:runState,at:Date.now()});}
 function invMerge(saved){if(!saved)return false;let ch=false;const rk=_discReset==='all'||_discReset==='ducks'; // _discReset: true (discoveries reset), 'ducks' (ducks spent in a shop), 'all' (the Gift Shop wipe): what this save must not merge back
   if((_discReset!==true&&_discReset!=='all')&&Array.isArray(saved.discovered))for(const d of saved.discovered)if(!discSeen.has(d)){discSeen.add(d);ch=true;}
   if(!rk&&saved.ducks&&typeof saved.ducks==='object')for(const k in saved.ducks){const n=saved.ducks[k]|0;if(n>(duckLog[k]||0)){duckLog[k]=n;ch=true;}} // (a Gift Shop wipe: nothing is merged back)
@@ -3250,13 +3251,23 @@ function saveInventory(){
 }
 window.addEventListener('storage',e=>{if(e.key!==INV_STORAGE_KEY||!e.newValue||window.__SCENE)return;try{if(invMerge(JSON.parse(e.newValue))){applyDisc();updateInventoryUI();}}catch(x){}}); // another copy saved: take what it found
 if(!window.__SCENE)IDB.get('inventory').then(raw=>{if(!raw)return;const b=JSON.parse(raw);let loc=null;try{loc=JSON.parse(localStorage.getItem(INV_STORAGE_KEY)||'null');}catch(e){}
-  const older=!loc||(b.at||0)>(loc.at||0);if(older){for(const k of INV_KINDS)if(typeof b[k]==='number')inventory[k]=b[k];if(b.luck)duckLuck=Object.assign({d:0,e:0},b.luck);} // the backup is newer (or the only copy): its counts too
+  const older=!loc||(b.at||0)>(loc.at||0);if(older){for(const k of INV_KINDS)if(typeof b[k]==='number')inventory[k]=b[k];if(b.luck)duckLuck=Object.assign({d:0,e:0},b.luck);if(b.run)runState=Object.assign(runFresh(),b.run);} // the backup is newer (or the only copy): its counts too
   if(invMerge(b)||older){applyDisc();updateInventoryUI();saveInventory();}}).catch(()=>{});
 function fmtCount(n){n=Math.floor(n||0);if(n<=9999)return''+n;if(n<100000)return(Math.floor(n/100)/10).toFixed(1)+'k';if(n<1000000)return Math.floor(n/1000)+'k';return(Math.floor(n/10000)/100).toFixed(2)+'m';} // 99.9k · 999k · 9.99m
-function invMaxFor(kind){return Math.max(T['invMax'+kind[0].toUpperCase()+kind.slice(1)],shopCap(kind,k=>discSeen.has(k)));} // the tuner, or a bigger cap bought in a shop
+function runFresh(){return{day:0,fortune:null,bonus:null,charm:0,draw:null,next:null,keysGone:0,daily:-1};} // a new run's state (shared.js: runBad, runGood, runBonus read it)
+function runT(k){ // a tuner as today's fortune, daily wonder, Luck Charms and the Lucky Duck make it (the tuner itself is never changed, so the config is never saved with them)
+  const v=T[k],r=runState,lucky=discSeen.has('up:lucky'),g=runGood(r)?FORTUNE_GOOD[r.fortune.id]||{}:{};
+  if(k==='duckChance')return runBad(r,'noduck')?0:v*(lucky?2:1)+0.05*(r.charm||0)+(g.luck==='d'?0.2:0);
+  if(k==='duckExoticChance')return v*(lucky?2:1)+(g.luck==='e'?0.2:0);if(k==='duckRareChance')return v*(lucky?2:1)+(g.luck==='r'?0.2:0);if(k==='duckLuckStep')return lucky?0.04:v;
+  if(k==='orbitsPerDial'||k==='weaveMinPoints')return v+(runBad(r,'laps')?1:0);if(k==='flockSecondsPerLeash'||k==='weaveSeconds')return v+(runBad(r,'slow')?1:0);
+  if(k==='riftMass')return v>0&&runBad(r,'rift')?Math.max(1000,v-10000):v;return v;}
+function invMaxFor(kind){if(kind==='key'&&runState.keysGone)return 0;return Math.max(T['invMax'+kind[0].toUpperCase()+kind.slice(1)],shopCap(kind,k=>discSeen.has(k)));} // the tuner, or a bigger cap bought in a shop
 // Adds (or, with a negative amount, spends) units of one inventory kind,
 // clamped between 0 and that kind's current tunable max.
-function addInventory(kind,amount){
+function addInventory(kind,amount,bought){ // bought: from a shop (no fortune or bonus applies)
+  if(amount>0&&!bought&&ACCUM_KINDS.includes(kind)){const b=runState.bonus,x=runGood(runState)&&(FORTUNE_GOOD[runState.fortune.id]||{}).x3;
+    if(b&&b.id==='inf'&&b.item!==kind&&['leash','dial','weave'].includes(kind))return; // an Endless … day: the other two never come
+    if(x==='all'||x===kind)amount*=3;} // a good fortune: in threes
   const max=invMaxFor(kind);
   if(amount>0){invFlash={kind,at:performance.now()};if(kind==='dial')fireEvent('string');else if(kind==='leash')fireEvent('spindle');else if(kind==='weave')fireEvent('weave');else if(kind==='prism'||kind==='knot'||kind==='gate'||kind==='key'||kind==='lens')fireEvent('pat_'+kind);} // holding a Pattern item reveals it, as forming one does
   inventory[kind]=Math.max(0,Math.min(max,inventory[kind]+amount));
@@ -3264,10 +3275,11 @@ function addInventory(kind,amount){
   updateInventoryUI();
 }
 // Bright/Dim remnants left over at Surface Clear are "collected artifacts."
-function remnantValue(p,kind){const e=!!p.enriched,k=e?100:10;if(kind==='bright'||kind==='dim')return Math.max(1,Math.ceil((p.energy||0)*k));return (e?100:1)+((p._stB&&p._stB.length)||0)*Math.ceil(T.statusEnergy*k);} // what collecting this remnant is worth (Neutron / Magnetic / Pulsing: 1, enriched 100, plus each stacked status)
+function remnantValue(p,kind){const e=!!p.enriched,k=e?100:10;if(kind==='bright'||kind==='dim')return Math.max(1,Math.ceil((p.energy||0)*k));if(runBad(runState,'exo1'))return 1;return (e?100:1)+((p._stB&&p._stB.length)||0)*Math.ceil(T.statusEnergy*k);} // what collecting this remnant is worth (Neutron / Magnetic / Pulsing: 1, enriched 100, plus each stacked status) // (a dim fortune: exotic remnants collect as 1)
 let surfaceTally={},surfaceLost={};
 function tallyLost(p){const k=collectKindOf(p);if(k)surfaceLost[k]=(surfaceLost[k]||0)+remnantValue(p,k);}
-function collectRemnantsToInventory(whiteCount,brownCount,activeCounts){const tt=(k,n)=>{if(n>0)surfaceTally[k]=(surfaceTally[k]||0)+n;};tt('bright',whiteCount);tt('dim',brownCount);if(activeCounts)for(const k in activeCounts)tt(k,activeCounts[k]);
+function boomBust(n){return runBonus(runState,'boom')?(Math.random()<0.5?n*5:0):n;} // a Boom or Bust day: ×5 or nothing
+function collectRemnantsToInventory(whiteCount,brownCount,activeCounts){whiteCount=boomBust(whiteCount);brownCount=boomBust(brownCount);if(activeCounts)for(const k in activeCounts)activeCounts[k]=boomBust(activeCounts[k]);const tt=(k,n)=>{if(n>0)surfaceTally[k]=(surfaceTally[k]||0)+n;};tt('bright',whiteCount);tt('dim',brownCount);if(activeCounts)for(const k in activeCounts)tt(k,activeCounts[k]);
   if(activeCounts)for(const k in activeCounts)if(activeCounts[k]>0)addInventory(k,activeCounts[k]);
   if(whiteCount>0)addInventory('bright',whiteCount);
   if(brownCount>0)addInventory('dim',brownCount);
@@ -3324,7 +3336,7 @@ function updateOrbitAndChase(now,dt){
       if(Math.abs(ot.windAccum)>Math.abs(wBefore)+1e-4)ot.accAt=performance.now(); // the orbit is actively growing
       const pth=ot.path||(ot.path=[]); // A's track around B (flat x,y pairs relative to B) — replayed as the 'last pass' when earned
       if(pth.length<2||Math.hypot(dx-pth[pth.length-2],dy-pth[pth.length-1])>=2){pth.push(dx,dy);if(pth.length>1000)pth.splice(0,2);}
-      const needed=6.2832*T.orbitsPerDial,sgn=Math.sign(ot.windAccum);
+      const needed=6.2832*runT('orbitsPerDial'),sgn=Math.sign(ot.windAccum);
       if(Math.abs(ot.windAccum)>=needed){
         const sA=Math.hypot(A.vx,A.vy),sB=Math.hypot(B.vx,B.vy);
         if(sB>Math.max(0.02,0.25*sA)){
@@ -3335,7 +3347,7 @@ function updateOrbitAndChase(now,dt){
         } else {
           ot.windAccum-=sgn*needed;
           addInventory('leash',1);ot.doneShow=true; // the counter keeps showing the target until the next first orbit completes
-          earnFx.push({kind:'dial',center:B,radius:ot.baselineDist,tol:ot.baselineDist*T.orbitDistTolerance+1,path:(ot.path||[]).slice(),val:(+T.orbitsPerDial.toFixed(1))+' orbits',born:performance.now(),dur:T.earnDialMs});
+          earnFx.push({kind:'dial',center:B,radius:ot.baselineDist,tol:ot.baselineDist*T.orbitDistTolerance+1,path:(ot.path||[]).slice(),val:(+runT('orbitsPerDial').toFixed(1))+' orbits',born:performance.now(),dur:T.earnDialMs});
           playAchievementScale(B.ci,T.volAchieveDial);
           ot.path=[];
         }
@@ -3389,7 +3401,7 @@ function processUnwinds(now,dt){
   }
   if(any)flushParticlePaints();
 }
-// Weave: more than five countable points inside T.weaveRadius (each at least T.minPointDist from the others), held for T.weaveSeconds, earns 1 Weave and draws a star between them.
+// Weave: more than five countable points inside T.weaveRadius (each at least T.minPointDist from the others), held for runT('weaveSeconds'), earns 1 Weave and draws a star between them.
 function weaveStarOk(P){ // outer 3 = the points furthest from the group's centre; the other 2 must both be OUTSIDE their triangle (barycentric test)
   const A=P[0],Q=P.map(q=>({x:_wrapD(q.x-A.x,W),y:_wrapD(q.y-A.y,H),q}));let cx=0,cy=0;for(const q of Q){cx+=q.x;cy+=q.y;}cx/=Q.length;cy/=Q.length;
   Q.sort((a,b)=>Math.hypot(b.x-cx,b.y-cy)-Math.hypot(a.x-cx,a.y-cy));const [a,b,c]=Q;
@@ -3397,7 +3409,7 @@ function weaveStarOk(P){ // outer 3 = the points furthest from the group's centr
 }
 function updateWeaves(whites,dt){
   whites=whites.filter(p=>!p.vx&&!p.vy&&!p.rot&&p.rotGoal===undefined); // Weave points hold perfectly still: any motion or spin drops a point and the count restarts
-  const R=T.weaveRadius,md2=T.minPointDist*T.minPointDist,need=Math.max(5,T.weaveMinPoints|0),secs=T.weaveSeconds*1000,WG=whiteGrid(whites,Math.max(30,R)),used=new Set(),seen=new Set();
+  const R=T.weaveRadius,md2=T.minPointDist*T.minPointDist,need=Math.max(5,runT('weaveMinPoints')|0),secs=runT('weaveSeconds')*1000,WG=whiteGrid(whites,Math.max(30,R)),used=new Set(),seen=new Set();
   for(let i=0;i<whites.length;i++){
     const A=whites[i];if(used.has(A.id))continue;
     const cand=[];
@@ -3419,10 +3431,10 @@ function updateWeaves(whites,dt){
 }
 // ── Spindle: ONE WAY. A trailing point (the leasher) is leashed to the closest point AHEAD of it that shares its speed and spin
 // (headings may differ — two points chasing each other's tail round a circle are 'the same' offset in time) while the distance
-// between them stays steady. Holding that for T.flockSecondsPerLeash earns 1 Spindle. A leasher can itself be someone's target
+// between them stays steady. Holding that for runT('flockSecondsPerLeash') earns 1 Spindle. A leasher can itself be someone's target
 // (chains), and one point can be the target of many leashers; each leasher picks only its closest viable target.
 function updateLeashes(whites,dt){
-  const R=T.flockRadius,cosA=Math.cos(T.leashAheadAngle),needed=T.flockSecondsPerLeash*1000,seen=new Set(),LG=whiteGrid(whites,Math.max(30,R));
+  const R=T.flockRadius,cosA=Math.cos(T.leashAheadAngle),needed=runT('flockSecondsPerLeash')*1000,seen=new Set(),LG=whiteGrid(whites,Math.max(30,R));
   for(let i=0;i<whites.length;i++){
     const A=whites[i],sA=Math.hypot(A.vx,A.vy);
     if(sA<0.02||A._glb)continue; // a leasher has to be moving
@@ -3450,7 +3462,7 @@ function updateLeashes(whites,dt){
       else{
         lt.ms-=needed;lt.doneShow=true;
         addInventory('dial',1);
-        earnFx.push({kind:'leash',members:[A,best],radius:bd,val:T.flockSecondsPerLeash.toFixed(1)+'s',born:performance.now(),dur:T.earnLeashMs});
+        earnFx.push({kind:'leash',members:[A,best],radius:bd,val:runT('flockSecondsPerLeash').toFixed(1)+'s',born:performance.now(),dur:T.earnLeashMs});
         playAchievementScale(A.ci,T.volAchieveLeash);
       }
     }
@@ -4971,7 +4983,7 @@ function handleLensClick(sh,now){ // one lens, however many halves it has across
   const fl=mem[0].tint,bg=mem[0].lk?mem[0].lk.big:undefined;
   for(const m of mem){m.tint=fl;if(m.lk&&bg!==undefined)m.lk.big=bg;}
 }
-function _lensClickOne(sh,now){ // lenses made from an Active Remnant act as a button
+function _lensClickOne(sh,now){ // lenses made from an Exotic Remnant act as a button
   const lk=sh.lk;if(!lk||!sh._gp)return;
   const bb=sh._bb,list=[];
   for(const q of active){if(q.dying||q.captured||q.x<bb[0]||q.x>bb[2]||q.y<bb[1]||q.y>bb[3])continue;if(inGlassShape(sh,q.x,q.y))list.push(q);}
@@ -5633,6 +5645,7 @@ function resetDiscoveries(){discSeen=new Set();_discReset=true;saveInventory();a
 window.resetDiscoveries=resetDiscoveries;
 for(const ev of ['mousedown','mouseup','click','dblclick','contextmenu','wheel'])document.addEventListener(ev,e=>{const el=e.target.closest&&e.target.closest('.disc-lock');if(el){e.stopPropagation();e.preventDefault();}},true); // an undiscovered element cannot be used
 function updateInventoryUI(){
+  if(runBonus(runState,'inf'))inventory[runState.bonus.item]=invMaxFor(runState.bonus.item); // an Endless … day: never runs out
   const el=document.getElementById('inventoryPanel');
   if(!el)return;
   const show=true; // the inventory is reachable whether paused or not
@@ -6314,7 +6327,7 @@ function performInventoryDrop(mx,my,now){
   }
   const isBrightT=target.collapsed&&!target.failedCollapse&&!target.isRemnant;
   if(kind==='prism'){
-    if(!prismValidTarget(target))return refuse('Prism works on a Point or a Bright/Active remnant.');
+    if(!prismValidTarget(target))return refuse('Prism works on a Point or a Bright/Exotic remnant.');
     const targetCI=((armedInvItem.effect%6)+6)%6;
     if(target.isRemnant&&target.isActiveRemnant&&target.remKind==='magnetic'){
       // Magnetic: the prism's colour becomes the new primary — the alternate side updates with it, exactly like a
@@ -6397,7 +6410,7 @@ function collectRemnant(c){
   pressedIDs.delete(c.p.id);if(lastActivatedId===c.p.id)lastActivatedId=-1;
   // Bright / Dim remnants are worth 10× their energy, rounded up (0.823 → 9, 0.0003 → 1); Neutron, Magnetic and Pulsing always count 1
   const per=remnantValue(c.p,c.kind),got=Math.min(per,Math.max(1,invMaxFor(c.kind)-inventory[c.kind]));
-  addInventory(c.kind,got);surfaceTally[c.kind]=(surfaceTally[c.kind]||0)+got;
+  got=boomBust(got);addInventory(c.kind,got);surfaceTally[c.kind]=(surfaceTally[c.kind]||0)+got;
   if(_batchSnd){}else if(collectHold&&collectSeen.size>1)playScaleStep();else{const cp=c.p.remKind?c.p:Object.assign({},c.p,{remKind:'brown'});_playRemnantActionSoundInner(cp,false,1);} // exactly the tuner's pickup sound for that remnant type
    // wiping up: a rising glissando links the pickups
   spawnCollectSparks(c.p); // the remnant's edge breaks into particles that gather inward and rise
@@ -6535,7 +6548,7 @@ function avoidDockFor(x,y,r){
 function triggerBlackRemnant(x,y,now,mass,energy,fromGate,rift){ // rift: a Rift (too much mass in one place) is always a Dark Remnant, never a duck
   if(blackHole)return; // only one remnant event at a time
   if(!fromGate){const lg=gateAtPoint(x,y);if(lg){lockDarkInGate(lg,x,y,now,mass,energy);return;}} // formed inside a Gate: it stays locked in there
-  const canDuck=!fromGate&&!rift&&!window.__SCENE&&(dormantCount>0||active.some(q=>!q.isRemnant&&!q.dying&&!q.captured&&Math.hypot(q.x-x,q.y-y)>60)),asDuck=canDuck&&Math.random()<T.duckChance+duckLuck.d*T.duckLuckStep; // a duck instead — only while the surface still has something to play
+  const canDuck=!fromGate&&!rift&&!window.__SCENE&&(dormantCount>0||active.some(q=>!q.isRemnant&&!q.dying&&!q.captured&&Math.hypot(q.x-x,q.y-y)>60)),asDuck=canDuck&&(!!runState.next||Math.random()<runT('duckChance')+duckLuck.d*runT('duckLuckStep')); // a duck instead — only while the surface still has something to play
   if(canDuck){duckLuck.d=asDuck?0:duckLuck.d+1;saveInventory();} // a miss makes the next one likelier; a duck rebases it
   if(fromGate!=='nogrow'&&!(performance.now()-_lastNovaAt<400&&Math.hypot(_lastNovaX-x,_lastNovaY-y)<250)){ // every Dark Remnant begins with a nova (mergers and deaths already fired theirs)
     const nm=Math.min(mass||0,T.massScaleMax*T.blackMult),synthN={x,y,vx:0,vy:0,rot:0,rotation:0,pvx:0,pvy:0,mass:Math.max(1,nm),energy:Math.max(0.001,Math.min(energy||0.5,5)),masses:randomColorMasses(),sigR:255,sigG:255,sigB:255,peakEffectR:0};
@@ -7310,7 +7323,7 @@ function triggerRemnantCollisionNova(a,b,now,forceR,kind){
   return {debris,leftover};
 }
 
-// An Active Remnant's type is set entirely by the variables of the two things
+// An Exotic Remnant's type is set entirely by the variables of the two things
 // that collided to create it — no randomness. Magnetic takes priority even
 // when the motion is also "maxed", per the explicit override rule: a fast,
 // heavily-spinning but color-balanced collision still resolves as Magnetic,
@@ -7329,7 +7342,7 @@ function chooseActiveRemnantType(a,b,combinedMasses){
 }
 
 // Two white remnants colliding, or a white remnant colliding with a white
-// point, creates an Active Remnant instead of a plain fresh white one — same
+// point, creates an Exotic Remnant instead of a plain fresh white one — same
 // nova-then-leftover shape as triggerRemnantCollisionNova, but the leftover's
 // exact type is chosen from the inputs themselves (see chooseActiveRemnantType),
 // and a nova is always generated here regardless of which type results.
@@ -7387,7 +7400,7 @@ function triggerActiveRemnantNova(a,b,now,forceR){
     pvx:0,pvy:0,mass:combinedMass,energy:combinedEnergy,
     masses:combinedMasses,sigR:rgb.r,sigG:rgb.g,sigB:rgb.b,peakEffectR:0};
   playCymbalCrash(combinedMass,T.volCymbal); // same crash used for the plain white-white collision
-  const debris=triggerNova(synth,now,forceR); // novas are always generated in Active Remnant creation scenarios
+  const debris=triggerNova(synth,now,forceR); // novas are always generated in Exotic Remnant creation scenarios
   let leftover=null;
   if(checkBlackRemnantByMass(combinedMass)){
     triggerBlackRemnant(synth.x,synth.y,now,combinedMass,combinedEnergy);
@@ -8306,7 +8319,7 @@ function playTubaBlast(mass,ci,volMul){
 // dyn scales the collision-derived "how hard did this land" intensity (see
 // item 14 — slower collisions play noticeably lighter).
 function playDimRemnantSound(p,isPlace,dyn){
-  if(!isPlace){playClarinet(p.ci!=null?p.ci:0,p.mass||1,(T.volDimPickup/0.07)*Math.max(0.15,dyn==null?1:dyn),1);return;} // pickup: a low woodwind (oboe / bassoon range), like the active remnants
+  if(!isPlace){playClarinet(p.ci!=null?p.ci:0,p.mass||1,(T.volDimPickup/0.07)*Math.max(0.15,dyn==null?1:dyn),1);return;} // pickup: a low woodwind (oboe / bassoon range), like the exotic remnants
   if(!canPlay())return;
   reserveVoice();
   const now=audioCtx.currentTime;
@@ -10594,7 +10607,7 @@ _pm('activated-forces');
     if(!p.collapsed||p.failedCollapse||p.isRemnant||p.captured||p.dying||p.unwind||isBonded(p)||p.whiteFx||p.blackFx||p._stasis||p._nullAt>_nullNow)continue;const curR=p.wakeProgress;if(curR<=0)continue;if(curR>p.peakEffectR)p.peakEffectR=curR;fillRadiusBuf(p.x,p.y,fxReach(p,curR));const brake=p.ci===5;for(let ni=0;ni<_radLen;ni++){const q=active[_radBuf[ni]];if(brake&&q.vx*q.vx+q.vy*q.vy<0.0001&&q.rot*q.rot<1e-8)continue;applyForce(p,q,1.0,dt,curR);}for(const d of ducks)applyForce(p,d,1.0,dt,curR);}
 
 _pm('white-wake');
-  // Active Remnant effects (Neutron/Magnetic/Pulsing) — each type wakes every dormant particle inside its effect
+  // Exotic Remnant effects (Neutron/Magnetic/Pulsing) — each type wakes every dormant particle inside its effect
   // range (like a Point does) and continuously acts on every ordinary point caught there, woken or not.
   // They are direct mutations of the point's own properties (never a temporary overlay), so they keep applying
   // even after the point leaves the range. Simulation-time only: nothing here advances while paused.
@@ -10816,14 +10829,14 @@ _pm('point-update');
   if(a.enriched&&b.enriched){const cm=a.mass+b.mass,ce=a.energy+b.energy,cx=(a.x+b.x)*0.5,cy=(a.y+b.y)*0.5,deb=triggerNova({x:cx,y:cy,vx:0,vy:0,rot:0,rotation:0,pvx:0,pvy:0,mass:cm,energy:ce,masses:[1,1,1,1,1,1],sigR:60,sigG:60,sigB:70,peakEffectR:0},now,T.whiteEffMax);if(deb)for(let di=0;di<deb.length;di++)newRemnants.push(deb[di]);if(!blackHole)triggerBlackRemnant(cx,cy,now,Math.max(cm,T.massScaleMax*T.blackMult),ce);dead[i]=1;dead[j]=1;break;}
   if(!a.enriched&&!b.enriched){const k0=bigger(a,b,ra,rb),o=k0===a?b:a;k0.enriched=true;k0.mass+=o.mass;for(let k=0;k<6;k++)k0.masses[k]+=o.masses[k];k0.energy+=o.energy;k0.vx=(a.vx+b.vx)/2;k0.vy=(a.vy+b.vy)/2;fireEvent('dimrelic');if(k0===a){dead[j]=1;continue;}dead[i]=1;break;}
 }
-      if((a.enriched||b.enriched)&&a.isRemnant&&b.isRemnant&&a.remKind!=='brown'&&b.remKind!=='brown'&&a.remKind!=='black'&&b.remKind!=='black'){bounceRemnants(a,b,ra,rb);continue;} // a relic REFLECTS off every other Bright / active remnant or relic (momentum only: no damage, no merge)
+      if((a.enriched||b.enriched)&&a.isRemnant&&b.isRemnant&&a.remKind!=='brown'&&b.remKind!=='brown'&&a.remKind!=='black'&&b.remKind!=='black'){bounceRemnants(a,b,ra,rb);continue;} // a relic REFLECTS off every other Bright / exotic remnant or relic (momentum only: no damage, no merge)
       if(a.enriched||b.enriched)continue; // an ENRICHED remnant is never consumed, never merges and takes no damage from any collision (not even with its own kind)
       if((a.blackFx||b.blackFx)&&!(a.blackFx&&b.blackFx))continue; // ECLIPSE passes through everything except another ECLIPSE (the standard consume rules apply between the two)
       // Pairs that pass over each other are settled FIRST, so they exchange nothing — no contact spin, no speed, no wear:
       { // a Dim (Dim) Remnant no longer collides/consolidates with anything except a Point, the Dark
         // Remnant itself, or another Dim Remnant — two Dim Remnants that collide DO merge (see the plain
         // larger-consumes-smaller capture below), same as any other same-kind pairing.
-        // Active Remnants (Neutron/Magnetic/Pulsing) still reach and affect it through their own separate effect fields, untouched.
+        // Exotic Remnants (Neutron/Magnetic/Pulsing) still reach and affect it through their own separate effect fields, untouched.
         const aDim=a.isRemnant&&a.remKind==='brown',bDim=b.isRemnant&&b.remKind==='brown';
         if((aDim||bDim)&&!(aDim&&bDim)){
           const other=aDim?b:a;
@@ -10856,30 +10869,30 @@ _pm('point-update');
         // (a remnant is layered over / under a crystalized pigment or point: it never collides, so it can never get stuck on one)
         continue;
       }
-      // Two Active Remnants (Neutron/Magnetic/Pulsing) colliding with each
+      // Two Exotic Remnants (Neutron/Magnetic/Pulsing) colliding with each
       // other is its own special case, ranked above the generic remnant
       // collision below: it always forms a Dark Remnant outright.
       if(a.isActiveRemnant&&b.isActiveRemnant){
         if(combinedMotionScore(a,b)<T.remBounceNovaThresh){bounceRemnants(a,b,ra,rb);continue;} // solid bounce — too gentle to break apart
-        if(pausedNow&&!gateFx){togglePause();flashSaveStatus('⚠ Two Active Remnants collided — a Dark Remnant forms! Resuming to clear the surface…');} // the one collision that can't wait
+        if(pausedNow&&!gateFx){togglePause();flashSaveStatus('⚠ Two Exotic Remnants collided — a Dark Remnant forms! Resuming to clear the surface…');} // the one collision that can't wait
         const combinedMass=a.mass+b.mass,combinedEnergy=a.energy+b.energy;
         const cx=(a.x+b.x)*0.5,cy=(a.y+b.y)*0.5;
         const synth={x:cx,y:cy,mass:combinedMass,energy:combinedEnergy,masses:[0,0,0,0,0,0],sigR:60,sigG:60,sigB:70,peakEffectR:0};
-        const debris=triggerNova(synth,now,T.whiteEffMax); // novas are always generated in Active Remnant creation scenarios
+        const debris=triggerNova(synth,now,T.whiteEffMax); // novas are always generated in Exotic Remnant creation scenarios
         for(let di=0;di<debris.length;di++)newRemnants.push(debris[di]);
         if(!blackHole)triggerBlackRemnant(cx,cy,now,combinedMass,combinedEnergy);
         dead[i]=1;dead[j]=1;
         break;
       }
       // A white (Bright) remnant colliding with another white remnant, or
-      // with a white point outright, creates an Active Remnant rather than
+      // with a white point outright, creates an Exotic Remnant rather than
       // a plain fresh white one. (White+brown and brown+brown collisions
       // fall through to the generic case below, unchanged.)
       const aPlainWhiteRem=aRem&&a.remKind==='white'&&!a.isActiveRemnant;
       const bPlainWhiteRem=bRem&&b.remKind==='white'&&!b.isActiveRemnant;
-      // An Active Remnant meeting ANOTHER REMNANT (a Bright remnant, i.e.
+      // An Exotic Remnant meeting ANOTHER REMNANT (a Bright remnant, i.e.
       // both are dead objects) is a solid collision like any other
-      // Bright/Active remnant pair — bounce unless violent enough to nova.
+      // Bright/Exotic remnant pair — bounce unless violent enough to nova.
       if((a.isActiveRemnant&&bPlainWhiteRem)||(b.isActiveRemnant&&aPlainWhiteRem)){
         if(combinedMotionScore(a,b)<T.remBounceNovaThresh){bounceRemnants(a,b,ra,rb);continue;}
         const fu=triggerMaxBrightFusion(a,b,now);
@@ -10891,7 +10904,7 @@ _pm('point-update');
       // A still-LIVING Point (not a remnant) meeting an Active
       // Remnant is a different thing entirely: the star just absorbs it,
       // same as it always has — no bounce/nova threshold applies here.
-      // Points keep absorbing Bright/Active remnants unconditionally;
+      // Points keep absorbing Bright/Exotic remnants unconditionally;
       // the collision-speed bounce-vs-nova rule is only for remnant+remnant.
       if((a.isActiveRemnant&&bWhite)||(b.isActiveRemnant&&aWhite)){
         const fu=triggerMaxBrightFusion(a,b,now);
@@ -11213,7 +11226,7 @@ function drawRemnantEffectGlow(c,p){
   } else if(p.remKind==='pulsing'){
     const ctr=pulseDir(p),bs=pulsingBeamState(p);
     const c0=ctr+bs.side*Math.PI;
-    const wc=invRGB(255,255,255); // Pulsing's beam glow is white — the one part of an active remnant Invert mode should flip
+    const wc=invRGB(255,255,255); // Pulsing's beam glow is white — the one part of an exotic remnant Invert mode should flip
     {const pcol=p.magTintCI!==undefined?magRGB(pulseTintCI(p,bs.side)):wc;wedge(bs.rMain,c0-bs.halfWidth,c0+bs.halfWidth,pcol.r,pcol.g,pcol.b);}
     if(bs.bothStub){const c1=ctr+(1-bs.side)*Math.PI,hw=Math.PI/2;wedge(bs.minR,c1-hw,c1+hw,wc.r,wc.g,wc.b);}
   }
@@ -13007,7 +13020,7 @@ function drawChainFocus(ctx,now){
 // Neutron/Magnetic/Pulsing effect areas ALWAYS show in pause mode (not just
 // when something happens to be caught in them), each drawn to match the
 // exact range and shape of what it actually does each frame in
-// updateOrbitAndChase's sibling, the Active Remnant effects loop in step().
+// updateOrbitAndChase's sibling, the Exotic Remnant effects loop in step().
 function drawActiveRemnantEffectAreas(ctx){
   ctx.save();
   ctx.globalCompositeOperation='source-over';
@@ -13209,7 +13222,7 @@ function drawAchievementProgress(ctx){
   if(best.size===0&&!hasLeash)return;
   ctx.save();ctx.font=`${T.achProgSize}px monospace`;ctx.textAlign='left';ctx.globalCompositeOperation='source-over';
   best.forEach(ot=>{
-    const A=ot.A,B=ot.B,orb=Math.abs(ot.windAccum)/6.2832,target=Math.max(1,T.orbitsPerDial);
+    const A=ot.A,B=ot.B,orb=Math.abs(ot.windAccum)/6.2832,target=Math.max(1,runT('orbitsPerDial'));
     const rgb='255,215,120';
     if(orb>=1){ // the ring gathers once the first orbit is done
       ctx.strokeStyle=`rgba(${rgb},${(T.achProgAlpha*0.5*Math.min(1,orb/target)+T.achProgAlpha*0.15).toFixed(3)})`;
@@ -13222,12 +13235,12 @@ function drawAchievementProgress(ctx){
     { // the count sits just outside the ring at the point where the sweep starts / ends
       const a0=ot.lastAngle-ot.windAccum,tx=B.x+Math.cos(a0)*(ot.baselineDist+10),ty=B.y+Math.sin(a0)*(ot.baselineDist+10);
       ctx.textAlign=Math.cos(a0)>=0?'left':'right';
-      const shownN=(ot.doneShow&&orb<1)?Math.max(1,Math.round(T.orbitsPerDial)):Math.floor(orb);if(orb>=1)ot.doneShow=false;
+      const shownN=(ot.doneShow&&orb<1)?Math.max(1,Math.round(runT('orbitsPerDial'))):Math.floor(orb);if(orb>=1)ot.doneShow=false;
       ctx.fillText(String(shownN),tx,ty+3);
     }
   });
   if(hasLeash){
-    const needed=T.flockSecondsPerLeash*1000;
+    const needed=runT('flockSecondsPerLeash')*1000;
     for(const k in leashTrack){
       const lt=leashTrack[k];
       if(!lt.A||!lt.B||lt.A.dying||lt.B.dying||!live(lt.accAt)){lt.doneShow=false;continue;}
@@ -13241,7 +13254,7 @@ function drawAchievementProgress(ctx){
       ctx.fillStyle=`rgba(170,240,255,${al.toFixed(3)})`;
       ctx.beginPath();ctx.arc(lt.B.x,lt.B.y,3,0,6.2832);ctx.fill();
       ctx.textAlign='left';
-      const shownS=(lt.doneShow&&lt.ms<1000)?Math.max(1,Math.round(T.flockSecondsPerLeash)):Math.floor(lt.ms/1000);if(lt.ms>=1000)lt.doneShow=false;
+      const shownS=(lt.doneShow&&lt.ms<1000)?Math.max(1,Math.round(runT('flockSecondsPerLeash'))):Math.floor(lt.ms/1000);if(lt.ms>=1000)lt.doneShow=false;
       ctx.fillText(String(shownS),lt.A.x+10+dx/dd*8,lt.A.y-10+dy/dd*8);
     }
   }
@@ -13671,7 +13684,7 @@ const SCENES={};
   SCENES.dbl={dur:5000,setup(S){grid(S);},tick(S,t,now){
     if(t<900){mouse.x=S.W/2+(S.W/2-20)*(1-t/900)*0.5;mouse.y=S.H/2;}
     else if(!S.d){S.d=1;cursorClickAt=now;autoSelectClosestTargets(S.W/2,S.H/2,now);}}};
-  const wv=mv=>({get dur(){return T.weaveSeconds*1000+T.weaveStarMs+1800;},setup(S){for(let i=0;i<5;i++){const a=-1.5708+i/5*TAU,p=S.pnt(S.W/2+Math.cos(a)*45,S.H/2+Math.sin(a)*45,5);p.lifespan=Infinity; // SNARE points brake each other, so they hold still
+  const wv=mv=>({get dur(){return runT('weaveSeconds')*1000+T.weaveStarMs+1800;},setup(S){for(let i=0;i<5;i++){const a=-1.5708+i/5*TAU,p=S.pnt(S.W/2+Math.cos(a)*45,S.H/2+Math.sin(a)*45,5);p.lifespan=Infinity; // SNARE points brake each other, so they hold still
       S['p'+i]=p;}},
     tick(S,t){if(mv&&!S.m&&t>700){S.m=1;S.p1.vx=0.4;}}});
   SCENES.weave=wv(false);SCENES.weavemove=wv(true);
@@ -13789,7 +13802,7 @@ function sceneBoot(name,TT){
 // A tabbed, plain-language guide. Every entry has a small live rendering (it follows the Invert setting) and the Encyclopedia tab lists every entry.
 let _rulesOpen=false,_rulesWasPaused=false,_rulesTab='start',_rulesFilter='';
 window._rulesOpen=false;
-const RULE_TABS=[['start','Start here'],['touch','How to clean up'],['things','Particles & points'],['bright','Bright & Dim'],['rem','Remnants'],['items','Items'],['shapes','Shapes'],['map','Lifecycle'],['events','Events'],['book','Glossary']];
+const RULE_TABS=[['start','Start here'],['touch','How to clean up'],['things','Particles & points'],['bright','Bright & Dim'],['rem','Remnants'],['items','Items'],['shapes','Shapes'],['map','Lifecycle'],['events','Events'],['book','Glossary'],['status','Status']];
 // [id, tab, name, picture, one-line summary, [[label,text],…]]
 const RULES=[
 ["surface","start","Surface","particle","The surface is the play area. It is covered in sleeping particles, like paint that was spilled. Your job is to clean up the spill.",[["Starts","Sleeping particles in six colours. A few are black (ECLIPSE) or white (CRYSTALIZE)."],["Clean","It is clean when nothing is left to shine. Remnants still around are collected for you, then a SURFACE CLEARED box shows everything you collected."],["Dark ending","If a Dark Remnant ends it, the box also shows remnants it swallowed. It shows no mass or energy lost."],["Again","Right-click the box to make a new surface."]]],
@@ -13814,15 +13827,15 @@ const RULES=[
 ["SNARE","things","SNARE","pig","Brakes things: speed and spin both fall.",[]],
 ["ECLIPSE","things","ECLIPSE","eclipse","A black one. It turns what it touches black.",[["Pigment","Does nothing until it shines. While shining it blackens whatever it touches as it moves (it has no ring)."],["Point","Not shining: blackens what it touches. Shining: a ring that blackens everything inside."],["Bumps","Nothing bumps or consumes it except another ECLIPSE."],["Point form","When it bursts, its nova lays CRYSTALIZE particles with some colour mixed in. It leaves an enriched Dim Remnant (a relic)."]]],
 ["CRYSTALIZE","things","CRYSTALIZE","crystal","A white one. Solid, so it bounces.",[["Solid","Bounces off other points, keeping momentum. It is never merged or consumed."],["Pigment","While shining, whatever it bounces off turns white."],["Point","Not shining: whatever it bumps turns white. Shining: a ring that whitens everything inside."],["Hits hurt","Every bump costs it life, more for hard or spinning hits, until it dims into its remnant."],["Meets ECLIPSE","Touched by both at once, a thing becomes a random colour for a while and ignores both."],["Point form","Its nova lays ECLIPSE particles. It leaves an enriched Bright Remnant."]]],
-["pnt","bright","Point","pnt","A pigment that grew enough to collapse.",[["Needs","Enough mass, all three primary colours in balance, and enough energy. Without the energy it dims into a Dim Remnant."],["Born","A flash, then a white core."],["Shining","It always has a ring. Shining makes the ring bigger."],["Life","Always runs down."],["Eats","Wins against pigments and remnants it touches. Between two Points the heavier wins."],["Active remnants","One that touches an active remnant fuses with it into a giant Point and a nova."],["Dark","Super heavy (about twice the Dark Remnant mass) makes a Dark Remnant."]]],
+["pnt","bright","Point","pnt","A pigment that grew enough to collapse.",[["Needs","Enough mass, all three primary colours in balance, and enough energy. Without the energy it dims into a Dim Remnant."],["Born","A flash, then a white core."],["Shining","It always has a ring. Shining makes the ring bigger."],["Life","Always runs down."],["Eats","Wins against pigments and remnants it touches. Between two Points the heavier wins."],["Active remnants","One that touches an exotic remnant fuses with it into a giant Point and a nova."],["Dark","Super heavy (about twice the Dark Remnant mass) makes a Dark Remnant."]]],
 ["nova","bright","Nova","nova","The ring thrown out when a Point bursts.",[["Does","Pushes things away, cracks Lenses it reaches (or breaks one it bursts inside), wakes particles, then lays new particles in the burst colours."],["Size","Grows with the mass. Light ones fill only the outer ring."],["Slow","It slows the game: 5% for the smallest nova up to 50% for the largest. Each one holds its slow until its timer passes. Slows add up, to at most 75% (a quarter speed)."],["Leaves","A Bright Remnant."]]],
 ["dim","rem","Dim Remnant","dim","A dark glowing dot.",[["Born","From a pigment that ran out of life or failed to collapse. The inward flash shows it."],["Collect","Click it for DEPTH. You get 10 times its energy, rounded up, at least 1."],["Joins","Only meets Points, Dark Remnants and other Dim Remnants (those merge)."]]],
-["brem","rem","Bright Remnant","brem","A small white diamond.",[["Born","From a Point that burst."],["Collect","Gives BALANCE, 10 times its energy rounded up."],["Bumps","Slow bumps bounce, spinning them. A fast one makes a nova and an active remnant."],["Which one","Colours very lopsided or very balanced: Magnetic. Fast and spinning: Pulsing. Otherwise Neutron."]]],
+["brem","rem","Bright Remnant","brem","A small white diamond.",[["Born","From a Point that burst."],["Collect","Gives BALANCE, 10 times its energy rounded up."],["Bumps","Slow bumps bounce, spinning them. A fast one makes a nova and an exotic remnant."],["Which one","Colours very lopsided or very balanced: Magnetic. Fast and spinning: Pulsing. Otherwise Neutron."]]],
 ["neutron","rem","Neutron Remnant","neutron","A square that breathes in and out.",[["Collect","Gives DYNAMISM: 1, plus each status stacked on it."],["Does","In its range, things become Enlarged while it is big and Shrunk while it is small. They stay that way until they merge."]]],
 ["magnetic","rem","Magnetic Remnant","magnetic","A diamond cut in two colours.",[["Collect","Gives HARMONY: 1, plus each status stacked on it."],["Does","Each half turns things in its half to its colour. Two opposite colours blend to white and switch effects off."],["Black and white","A very balanced Bright makes one that crystalizes on one side and eclipses on the other."]]],
 ["pulsing","rem","Pulsing Remnant","pulsing","A triangle that flips and sends a beam.",[["Collect","Gives RHYTHM: 1, plus each status stacked on it."],["Beam","The beam grows and shrinks. While on its first side it shines everything it reaches and wakes particles. Its second side only carries its second colour: it never switches anything off. Past the max-active cap the oldest active goes dark first (the snake)."]]],
-["sharing","rem","Active remnants together","magnetic","Active remnants hand their effects to each other and to other remnants.",[["Own kind","An active remnant never affects its own kind."],["Neutron onto others","A Magnetic or Pulsing takes the Neutron's size: one half big, the other small, and it follows the Neutron's breathing."],["Pulsing onto others","A Neutron or Magnetic starts to copy the Pulsing beat. It takes the Pulsing beam shape and timing, and it only works inside that beam."],["Magnetic onto others","A Neutron or Pulsing becomes coloured with its pair. It then applies that colour's effect, and a Pulsing uses one colour per side. Opposite colours make it white with no colour."],["Bright remnants","Neutron scales them. Magnetic tints them. Pulsing cannot shine them, because remnants cannot shine."],["Dim and Dark","Magnetic leaves them alone. They keep their colour."],["Never push","Coloured active remnants never push other active remnants."],["Crash","Two active remnants that hit hard make a Dark Remnant. A soft hit just bounces."]]],
-["dark","rem","Dark Remnant","dark","A huge dark circle. It cannot be collected.",[["Comes from","A giant Point, two big ECLIPSE or CRYSTALIZE Points meeting, two active remnants crashing, or a Key."],["Does","Breaks every Lens and Gate, freezes everything, then draws all of it in until the surface is empty."],["Dock","The items and feed hide until it is over."]]],
+["sharing","rem","Active remnants together","magnetic","Active remnants hand their effects to each other and to other remnants.",[["Own kind","An exotic remnant never affects its own kind."],["Neutron onto others","A Magnetic or Pulsing takes the Neutron's size: one half big, the other small, and it follows the Neutron's breathing."],["Pulsing onto others","A Neutron or Magnetic starts to copy the Pulsing beat. It takes the Pulsing beam shape and timing, and it only works inside that beam."],["Magnetic onto others","A Neutron or Pulsing becomes coloured with its pair. It then applies that colour's effect, and a Pulsing uses one colour per side. Opposite colours make it white with no colour."],["Bright remnants","Neutron scales them. Magnetic tints them. Pulsing cannot shine them, because remnants cannot shine."],["Dim and Dark","Magnetic leaves them alone. They keep their colour."],["Never push","Coloured exotic remnants never push other exotic remnants."],["Crash","Two exotic remnants that hit hard make a Dark Remnant. A soft hit just bounces."]]],
+["dark","rem","Dark Remnant","dark","A huge dark circle. It cannot be collected.",[["Comes from","A giant Point, two big ECLIPSE or CRYSTALIZE Points meeting, two exotic remnants crashing, or a Key."],["Does","Breaks every Lens and Gate, freezes everything, then draws all of it in until the surface is empty."],["Dock","The items and feed hide until it is over."]]],
 ["relic","rem","Relic","relic","A remnant with a soft outline.",[["Tough","Never eaten and never hurt by bumps."],["Worth","Collects as 100."],["Dim relic","Two Dim Remnants at max size merge into one; an ECLIPSE Point that bursts leaves one. Two Dim relics meeting fire a nova and become a Dark Remnant."],["Bright relic","A CRYSTALIZE Point that bursts leaves one. It never merges: it reflects off other remnants and relics."]]],
 ["collect","rem","Collecting","dim","Remnants turn into items.",[["Order","Relic active, relic plain, active, then plain."],["String shots","A flying String shot collects remnants it touches."],["Full","A full item will not collect."],["Heat","Collecting several in one press adds heat."]]],
 ["DEPTH","items","DEPTH","dim","Costs Dim. Click to place a whirl circle.",[["Does","Pulls everything in its reach round and in. Things inside ignore other effects. It wakes particles inside."],["Cost","Dim, every few moments while it stands."],["Click it","Click it again to destroy it. A new one removes what it overlaps."]]],
@@ -13910,12 +13923,12 @@ const CONV={
  faildim:{t:'Failed collapse → Dim Remnant',f:()=>['a pigment that is heavy and balanced enough but has energy < '+T.collEnergy+' dims instead of collapsing','it is rebuilt by makeRemnant: mass × '+T.remMassFrac+', energy × '+T.remEnergyFrac+', colour mix × '+T.remMassFrac,'example: mass 300, energy 20 → mass '+cvn(300*T.remMassFrac,1)+', energy '+cvn(20*T.remEnergyFrac,2)]},
  collapse:{t:'Pigment → Point',f:()=>['needs mass > '+T.collMass+' (Mass req)','needs energy ≥ '+T.collEnergy+' (Energy req); less and it dims instead','needs colour balance: every primary ≥ '+T.triadMin+' of the mix and weakest ÷ strongest ≥ '+T.triadBal,'Point radius = '+T.whiteMinR+' + ('+T.whiteMaxR+' − '+T.whiteMinR+') × (1 − (1 − t)^'+T.massCurvePow+'), t = (mass − '+T.brightMassMin+') ÷ ('+T.brightMassMax+' − '+T.brightMassMin+')','Point life = (mass ÷ energy) × '+T.lifeStarK+' ÷ (radius × '+T.lifeStarDiv+') ms, never more than '+T.lifeMaxS+' s, and it always counts down','mass and energy carry over unchanged']},
  pointdeath:{t:'Point → Bright Remnant (+ nova)',f:()=>{const m=300,e=62;return['remnant mass = Point mass × '+T.remMassFrac+' (Remnant mass %), remnant energy = Point energy × '+T.remEnergyFrac+' (Remnant energy %), colour mix × '+T.remMassFrac,'example: a Point with mass '+m+' and energy '+e+' leaves mass '+cvn(m*T.remMassFrac,1)+' and energy '+cvn(e*T.remEnergyFrac,2),'the rest of the energy is not carried over: the nova lays new particles with fresh energy ('+T.particleStartEnergy+' ± '+T.particleEnergyJitter+', ÷ 10) × (1 − distance ÷ radius)²','nova radius = '+T.novaMassBase+' × √mass (at least '+cvn(PIXEL_SIZE*2,1)+' px); total particle mass laid = Point mass (a thin nova fills only its outer ring)','a Point of at least half the Dark Remnant mass ('+Math.round(T.massScaleMax*T.blackMult/2)+') leaves an ACTIVE remnant instead (type chosen as in a fusion: colour balance, then speed and spin)','every nova slows game time: '+T.dilMin+' (smallest) to '+T.dilMax+' (largest), never below ×'+T.dilFloor];}},
- fuse:{t:'Bright + Bright → active remnant',f:()=>['they only break apart if combined motion ≥ '+T.remBounceNovaThresh+' (each: speed ÷ '+T.maxSpeed+' + spin ÷ '+T.maxRotSpeed+'); softer hits just bounce','colour balance ≤ '+T.magBalanceLow+' or ≥ '+T.magBalanceHigh+' → Magnetic (≥ '+T.magBWScore+' makes a Black & White one)','otherwise: (faster speed ÷ '+T.maxSpeed+') + (faster spin ÷ '+T.maxRotSpeed+') ≥ '+T.pulseSumThresh+' → Pulsing, else Neutron','leftover remnant: mass × '+T.remMassFrac+', energy × '+T.remEnergyFrac+' of the two combined; the nova is sized from the combined mass']},
+ fuse:{t:'Bright + Bright → exotic remnant',f:()=>['they only break apart if combined motion ≥ '+T.remBounceNovaThresh+' (each: speed ÷ '+T.maxSpeed+' + spin ÷ '+T.maxRotSpeed+'); softer hits just bounce','colour balance ≤ '+T.magBalanceLow+' or ≥ '+T.magBalanceHigh+' → Magnetic (≥ '+T.magBWScore+' makes a Black & White one)','otherwise: (faster speed ÷ '+T.maxSpeed+') + (faster spin ÷ '+T.maxRotSpeed+') ≥ '+T.pulseSumThresh+' → Pulsing, else Neutron','leftover remnant: mass × '+T.remMassFrac+', energy × '+T.remEnergyFrac+' of the two combined; the nova is sized from the combined mass']},
  crash:{t:'Active + Active → Dark Remnant',f:()=>['combined motion ≥ '+T.remBounceNovaThresh+' (speed ÷ '+T.maxSpeed+' + spin ÷ '+T.maxRotSpeed+', both objects); softer and they bounce','they are replaced by a nova of the combined mass, then a Dark Remnant']},
- dark:{t:'Dark Remnant',f:()=>['a Point of mass ≥ '+Math.round(T.massScaleMax*T.blackMult)+' (Mass scale max × Mass ×) dies into one','two Points of at least half that mass meeting, two active remnants crashing, two relics meeting, or a Key also make one','it grows over '+T.blackGrowMs+' ms, freezes everything, then draws everything in at '+T.blackLaunchPerMs+' objects per ms']},
+ dark:{t:'Dark Remnant',f:()=>['a Point of mass ≥ '+Math.round(T.massScaleMax*T.blackMult)+' (Mass scale max × Mass ×) dies into one','two Points of at least half that mass meeting, two exotic remnants crashing, two relics meeting, or a Key also make one','it grows over '+T.blackGrowMs+' ms, freezes everything, then draws everything in at '+T.blackLaunchPerMs+' objects per ms']},
  relic:{t:'Relics',f:()=>['two Dim Remnants of mass ≥ '+T.dimMassMax+' (Dim max mass) merge: one becomes a relic (enriched) with the combined mass and energy','two relics of that mass meeting make a nova and a Dark Remnant','an ECLIPSE Point that dies leaves an enriched Dim, a CRYSTALIZE Point an enriched Bright; relics are never eaten, merged or damaged and collect as ×100']},
  collect:{t:'Collecting',f:()=>['Bright / Dim: ceil(energy × 10), at least 1; relics ceil(energy × 100)','Neutron / Magnetic / Pulsing remnants: 1 (relics 100), plus +'+Math.ceil(T.statusEnergy*10)+' (relic +'+Math.ceil(T.statusEnergy*100)+') per stacked status','so a remnant with energy '+cvn(2.3,1)+' collects as '+Math.ceil(2.3*10)+' (relic '+Math.ceil(2.3*100)+')']},
- status:{t:'Status energy',f:()=>['a Dim, Bright or relic gains +'+T.statusEnergy+' energy for every new status it picks up: Enlarged, Shrunk, or (Bright only) a colour','an active remnant stacks them too, from the other two active types: Enlarged, Shrunk, each colour pair, each Pulsing beat — up to '+T.activeStatusMax,'+'+T.statusEnergy+' energy collects as +'+Math.ceil(T.statusEnergy*10)+' (relic +'+Math.ceil(T.statusEnergy*100)+')']},
+ status:{t:'Status energy',f:()=>['a Dim, Bright or relic gains +'+T.statusEnergy+' energy for every new status it picks up: Enlarged, Shrunk, or (Bright only) a colour','an exotic remnant stacks them too, from the other two active types: Enlarged, Shrunk, each colour pair, each Pulsing beat — up to '+T.activeStatusMax,'+'+T.statusEnergy+' energy collects as +'+Math.ceil(T.statusEnergy*10)+' (relic +'+Math.ceil(T.statusEnergy*100)+')']},
  unwind:{t:'Spindle unwind',f:()=>['every '+T.unwindMs+' ms the target gives back '+T.unwindPct+'% of its starting mass as particles, so any size unwinds in '+(Math.ceil(100/T.unwindPct)*T.unwindMs/1000).toFixed(1)+' s','while it unwinds nothing touches it and it touches nothing: no collisions, no effects either way','each lump carries energy = lump mass × (target energy ÷ target mass), so energy is conserved per mass','a still target spreads up to '+T.unwindMaxWidth+' px over '+T.unwindGrowMs+' ms; when its mass is gone it disappears (no remnant)']}
 };
 // ── Events: the first time something happens, a card pauses the game and unlocks its Guide entries ──
@@ -13925,14 +13938,14 @@ const EVENTS=[
  {id:'dim',name:'Ember Remnant',type:'Event — Dim Remnant',rar:'c',scene:'pointfail',ico:'dim',facts:()=>['A pigment that runs dry, or fails to collapse, leaves a Dim Remnant.','Collect it for DEPTH. A failed collapse keeps '+Math.round(T.remMassFrac*100)+'% mass and '+Math.round(T.remEnergyFrac*100)+'% energy.'],flavor:'What is left when the light gives up.'},
  {id:'point',name:'Collapse',type:'Event — Point',rar:'u',scene:'pointform',ico:'bright',facts:()=>['A big, colour-balanced, energetic pigment collapses: mass > '+T.collMass+', energy ≥ '+T.collEnergy+'.','A Point always has a ring, and always loses life.'],flavor:'Too much light for one small thing.'},
  {id:'bright',name:'Afterglow',type:'Event — Bright Remnant',rar:'u',scene:'nova',ico:'brem',facts:()=>['When a Point runs out of life it bursts in a nova and leaves a Bright Remnant.','The remnant keeps '+Math.round(T.remMassFrac*100)+'% of its mass and '+Math.round(T.remEnergyFrac*100)+'% of its energy.'],flavor:'The glow stays after the star is gone.'},
- {id:'neutron',name:'Neutron Remnant',type:'Event — Active Remnant',rar:'r',scene:'fuse_n',ico:'neutron',facts:()=>['Two Bright Remnants colliding hard make an active remnant. Middling colours, not enough speed and spin together: a Neutron.','It breathes: things in its range are Enlarged while it is big and Shrunk while it is small.'],flavor:'It inhales the small and exhales the great.'},
- {id:'magnetic',name:'Magnetic Remnant',type:'Event — Active Remnant',rar:'r',scene:'fuse_m',ico:'magnetic',facts:()=>['Very lopsided or very balanced colours make a Magnetic Remnant.','Each half turns what it touches to its own colour.'],flavor:'Two poles, one argument.'},
- {id:'pulsing',name:'Pulsing Remnant',type:'Event — Active Remnant',rar:'r',scene:'fuse_p',ico:'pulsing',facts:()=>['Fast, fast-spinning collisions make a Pulsing Remnant.','Its beam shines what it reaches on its first side and collects loose remnants it touches; the second side switches nothing off.'],flavor:'A heartbeat with an opinion.'},
+ {id:'neutron',name:'Neutron Remnant',type:'Event — Exotic Remnant',rar:'r',scene:'fuse_n',ico:'neutron',facts:()=>['Two Bright Remnants colliding hard make an exotic remnant. Middling colours, not enough speed and spin together: a Neutron.','It breathes: things in its range are Enlarged while it is big and Shrunk while it is small.'],flavor:'It inhales the small and exhales the great.'},
+ {id:'magnetic',name:'Magnetic Remnant',type:'Event — Exotic Remnant',rar:'r',scene:'fuse_m',ico:'magnetic',facts:()=>['Very lopsided or very balanced colours make a Magnetic Remnant.','Each half turns what it touches to its own colour.'],flavor:'Two poles, one argument.'},
+ {id:'pulsing',name:'Pulsing Remnant',type:'Event — Exotic Remnant',rar:'r',scene:'fuse_p',ico:'pulsing',facts:()=>['Fast, fast-spinning collisions make a Pulsing Remnant.','Its beam shines what it reaches on its first side and collects loose remnants it touches; the second side switches nothing off.'],flavor:'A heartbeat with an opinion.'},
  {id:'dark',name:'The Dark Remnant',type:'Event — Ending',rar:'m',scene:'dark',ico:'dark',facts:()=>['It breaks every Lens and Gate, freezes everything, then draws it all in.','A Point of mass ≥ '+Math.round(T.massScaleMax*T.blackMult)+' makes one.'],flavor:'Everything that shone, once.'},
  {id:'cleared',name:'Surface Cleared',type:'Event — Ending',rar:'u',scene:'cleared',ico:'nova',facts:()=>['Nothing is left to shine. The surface washes to white and every remnant is collected for you.','Right-click the box to make a new surface.'],flavor:'Clean. For now.'},
- {id:'spindle',name:'Unwinding',type:'Event — Achievement',rar:'u',scene:'unwind',ico:'leash',facts:()=>['A point circled a still one '+T.orbitsPerDial+' times and earned a Spindle.','Use it on a Point or Pigment to unwind it back into particles.'],flavor:'Round and round, until it came undone.'},
- {id:'string',name:'In Pursuit',type:'Event — Achievement',rar:'u',scene:'stringhome',ico:'dial',facts:()=>['One point followed another with the same speed and spin for '+T.flockSecondsPerLeash+' seconds and earned a String.','Load it, then fire pigments and Points at the cursor.'],flavor:'Always one step behind, and perfectly happy.'},
- {id:'weave',name:'Stillness',type:'Event — Achievement',rar:'r',scene:'weave',ico:'weave',facts:()=>['Five points held perfectly still, close together, for '+T.weaveSeconds+' seconds.','Click the Weave item to link lit points into Patterns.'],flavor:'The hardest thing to do here is nothing.'},
+ {id:'spindle',name:'Unwinding',type:'Event — Achievement',rar:'u',scene:'unwind',ico:'leash',facts:()=>['A point circled a still one '+runT('orbitsPerDial')+' times and earned a Spindle.','Use it on a Point or Pigment to unwind it back into particles.'],flavor:'Round and round, until it came undone.'},
+ {id:'string',name:'In Pursuit',type:'Event — Achievement',rar:'u',scene:'stringhome',ico:'dial',facts:()=>['One point followed another with the same speed and spin for '+runT('flockSecondsPerLeash')+' seconds and earned a String.','Load it, then fire pigments and Points at the cursor.'],flavor:'Always one step behind, and perfectly happy.'},
+ {id:'weave',name:'Stillness',type:'Event — Achievement',rar:'r',scene:'weave',ico:'weave',facts:()=>['Five points held perfectly still, close together, for '+runT('weaveSeconds')+' seconds.','Click the Weave item to link lit points into Patterns.'],flavor:'The hardest thing to do here is nothing.'},
  {id:'pat_prism',name:'Prism Pattern',type:'Event — Pattern',rar:'u',scene:'prism',ico:'prism',facts:()=>['A closed 3-point loop, held steady: a Prism.','What its edges touch takes the first point\'s colour.'],flavor:'Three points, every colour.'},
  {id:'pat_knot',name:'Knot Pattern',type:'Event — Pattern',rar:'u',scene:'knot',ico:'knot',facts:()=>['A 3-point loop with a spur reaching inside: a Knot.','What its edges touch becomes remnants.'],flavor:'Some things are better left tied.'},
  {id:'pat_gate',name:'Gate Pattern',type:'Event — Pattern',rar:'u',scene:'gate',ico:'gate',facts:()=>['A closed 4-point loop: a Gate.','It locks its contents in. A Key repeating its post pattern opens it.'],flavor:'It only opens for the right song.'},
@@ -13949,7 +13962,7 @@ function cardHTML(ev,mini){ // the one card format: name bar, art box, type line
   return `<div class="mtg${mini?' sm':''}" data-ev="${ev.id}" style="--rc:${r[0]}"><div class="nm"><b>${gEsc(ev.name)}</b><span class="gem"></span></div><div class="art" data-scene="${ev.scene}">${mini?`<canvas class="rl-m" width="64" height="64" data-k="${ev.ico}"></canvas>`:''}</div><div class="ty"><span>${gEsc(ev.type.replace(/^Event — /,''))}</span><span>${r[1]}</span></div><div class="tx">${ev.facts().map(f=>`<p>${gEsc(f)}</p>`).join('')}<p class="fl">${gEsc(ev.flavor)}</p></div></div>`;
 }
 function mountScene(h,w,hh){if(!h||h.firstChild||document.querySelectorAll('.rl-live iframe,.mtg .art iframe').length>=5)return;const f=document.createElement('iframe'),nm=h.dataset.s||h.dataset.scene;f.style.cssText='border:0;max-width:100%;pointer-events:none;background:#000;border-radius:6px;'+(w?`width:${w}px;height:${hh}px`:'width:100%;height:100%');
-  if(nm.slice(0,4)==='hub:')f.src='Surface_Map_HUB.html?v=20261102zi&scene='+nm.slice(4)+'&T='+encodeURIComponent(JSON.stringify(mapSceneT()));else f.srcdoc=liveSrc(nm);h.appendChild(f);} // a Surface Map demo is played by the map itself
+  if(nm.slice(0,4)==='hub:')f.src='Surface_Map_HUB.html?v=20261102zj&scene='+nm.slice(4)+'&T='+encodeURIComponent(JSON.stringify(mapSceneT()));else f.srcdoc=liveSrc(nm);h.appendChild(f);} // a Surface Map demo is played by the map itself
 function mapSceneT(){const o={};for(const k in T)if(/^(map|bh|duck|wake|glass|metal|dimGlow|glowHalo|maxSpeed)/.test(k))o[k]=T[k];return o;} // what a map demo needs of the tuners
 function showEventCard(id,review){
   const ev=EVENTS.find(e=>e.id===id);if(!ev)return;guideCSS();
@@ -13994,7 +14007,7 @@ const MAP_EDGES=[
  {id:'fuseN',a:'bright',b:'neutron',l:'collide',scene:'fuse_n',cost:10,conv:['fuse'],cond:()=>['two Bright Remnants collide with combined motion ≥ '+T.remBounceNovaThresh,'colour balance between '+T.magBalanceLow+' and '+T.magBalanceHigh,'faster speed ÷ '+T.maxSpeed+' + faster spin ÷ '+T.maxRotSpeed+' < '+T.pulseSumThresh]},
  {id:'fuseM',a:'bright',b:'magnetic',l:'collide',scene:'fuse_m',cost:10,conv:['fuse'],cond:()=>['the same collision, but colour balance ≤ '+T.magBalanceLow+' or ≥ '+T.magBalanceHigh]},
  {id:'fuseP',a:'bright',b:'pulsing',l:'collide',scene:'fuse_p',cost:10,conv:['fuse'],cond:()=>['the same collision, colour in the middle, but faster speed ÷ '+T.maxSpeed+' + faster spin ÷ '+T.maxRotSpeed+' ≥ '+T.pulseSumThresh]},
- {id:'crash',a:'pulsing',b:'dark',l:'two active',scene:'crash',cost:25,conv:['crash'],cond:()=>['any two active remnants collide with combined motion ≥ '+T.remBounceNovaThresh]},
+ {id:'crash',a:'pulsing',b:'dark',l:'two active',scene:'crash',cost:25,conv:['crash'],cond:()=>['any two exotic remnants collide with combined motion ≥ '+T.remBounceNovaThresh]},
  {id:'relicmk',a:'dim',b:'dimrelic',l:'two max Dim',scene:'relic',cost:30,conv:['relic'],cond:()=>['two Dim Remnants, each at its max size (mass ≥ '+T.dimMassMax+', or Enlarged to it), collide: they merge into one Dim relic']},
  {id:'relicdark',a:'dimrelic',b:'dark',l:'two Dim relics',scene:'relic',cost:40,conv:['relic','dark'],cond:()=>['two Dim relics collide: a nova, then a Dark Remnant']},
  {id:'toEcl',a:'pigment',b:'eclipse',l:'blackened',scene:'eclipse',cost:15,conv:[],cond:()=>['touched by an active ECLIPSE, a Prism ECLIPSE edge, a HARMONY gesture, or three evenly spaced colour effects at once']},
@@ -14127,6 +14140,8 @@ function rulesRender(){
     body.innerHTML='<div class="lc"><div class="lc-l"><p class="rl-note">Every kind of thing and what it can become. Hover a thing or a line to see it beside the map; click to keep it there. Lines you have not discovered are dashed.</p><canvas id="mapCv" width="900" height="500"></canvas></div><div id="mapInfo" class="lc-r" data-e="x"></div></div>';
     const cv=document.getElementById('mapCv'),at=e=>{const r=cv.getBoundingClientRect();return{x:(e.clientX-r.left)*cv.width/r.width,y:(e.clientY-r.top)*cv.height/r.height};};
     cv.onpointermove=e=>{_mapMouse=at(e);};cv.onpointerleave=()=>{_mapMouse=null;};cv.onpointerdown=e=>{_mapMouse=at(e);_mapSel=mapHit(cv.width,cv.height);};
+  } else if(_rulesTab==='status'){
+    body.innerHTML='<style>.stt{border-collapse:collapse;font-size:13px;margin:4px 0 10px;color:inherit}.stt td{padding:2px 12px 2px 0;vertical-align:top;color:inherit!important;opacity:1}.stt td:first-child{opacity:.65;white-space:nowrap}.stg{font-weight:600;margin-top:8px}.stu{font-size:13px;opacity:.85}</style><p class="rl-note">Your wallet and its caps, today\'s fortune and wonder, duck luck, and the upgrades you have bought for good.</p>'+statusHTML(statusData());
   } else if(_rulesTab==='events'){
     body.innerHTML='<p class="rl-note">Events you have witnessed. Click a card to see it again; face-down cards are still to come.</p><div class="ev-grid">'+EVENTS.map(ev=>evSeen(ev.id)?cardHTML(ev,true):'<div class="mtg sm back">?</div>').join('')+'</div>';
   } else {
@@ -14173,7 +14188,9 @@ var hubAsleep=false,hubLevel=null,hubOverlay=false,hubShotSize=68,_menuOpen=fals
 function hubPost(m){if(HUB)window.parent.postMessage(Object.assign({il:1},m),'*');}
 function hubIcons(){const o={};for(const k of ['leash','dial','weave','prism','knot','gate','key','lens','dim'])if(ICON_SVG[k])o[k]=ICON_SVG[k];return o;} // the map's dock shows the surface's own item icons
 function hubDefs(){let tab=null;return TUNE_DEFS.map(d=>{if(d.sec){tab=d.tab;return{sec:d.sec,tab};}return{key:d.key,label:d.label,min:d.min,max:d.max,step:d.step,tip:d.tip,type:d.type,options:d.options,tab};});} // every tuner, for the map's Tune panel (plain data: a sound's test button stays here)
-function hubState(type,defs){hubPost({type:type||'state',T:Object.assign({},T),inv:Object.assign({},inventory),disc:[...discSeen],ducks:duckLog,duckTypes:DUCK_TYPES,icons:hubIcons(),defs:defs?hubDefs():null});}
+function hubState(type,defs){hubPost({type:type||'state',T:Object.assign({},T),inv:Object.assign({},inventory),disc:[...discSeen],ducks:duckLog,duckTypes:DUCK_TYPES,icons:hubIcons(),defs:defs?hubDefs():null,run:runState,status:statusData()});}
+function statusData(){const cap={};for(const k of ['bright','dim','neutron','magnetic','pulsing',...ACCUM_KINDS])cap[k]=invMaxFor(k); // the Status page (shared.js statusHTML)
+  return{inv:Object.assign({},inventory),cap,run:runState,ch:{d:runT('duckChance'),e:runT('duckExoticChance'),r:runT('duckRareChance'),luck:duckLuck.d*runT('duckLuckStep')},owned:SHOP_ITEMS.filter(i=>shopOnce(i)&&discSeen.has('up:'+i.id)).map(i=>i.n)};}
 function hubWake(){hubAsleep=false;if(!rafId)rafId=requestAnimationFrame(loop);}
 function hubIdle(){DUCK_SUN=duckSun(12);clearStage();feedAlert.until=0;levelCoverage=null;hubLevel=null;if(isPaused)togglePause();if(!hubOverlay)hubAsleep=true;} // back on the map: the loop stops (it shares the map's thread); a Guide / event card over the map keeps it
 function hubOverlay_(on){hubOverlay=on;wrap.classList.toggle('hub-ov',on);if(on)hubWake();} // the map's Guide / event cards show over a bare black stage
@@ -14241,15 +14258,17 @@ window.addEventListener('message',e=>{
   if(m.cmd==='level')hubStartLevel(m);
   else if(m.cmd==='preview')hubPreviews(m.items,m.size);
   else if(m.cmd==='drop')IDB.del('session').catch(()=>{});
-  else if(m.cmd==='guide'){hubOverlay_(true);openRules();}
+  else if(m.cmd==='guide'){hubOverlay_(true);if(m.tab)_rulesTab=m.tab;openRules();}
   else if(m.cmd==='event'){if(discSeen.has('ev:'+m.id)){hubState('overlayDone');return;}hubOverlay_(true);fireEvent(m.id);}
   else if(m.cmd==='sound')setSound(m.on,m.vol);
   else if(m.cmd==='tune'){applyLoadedConfig(m.T,true);debounceSave();}
   else if(m.cmd==='discover'){discSeen.add(m.id);saveInventory();hubState();}
   else if(m.cmd==='spend'){inventory[m.kind]=Math.max(0,(inventory[m.kind]||0)-(m.n||1));saveInventory();updateInventoryUI();hubState();} // the map used an item (Spindle, String, Weave)
   else if(m.cmd==='award'){addInventory(m.kind,m.n||1);hubState();} // a map constellation paid out
-  else if(m.cmd==='buy'){hubPost(Object.assign({type:'bought',id:m.id},shopBuy(m.id,m.arg)));hubState();} // a shop on the map: this pays and hands it over
-  else if(m.cmd==='wipe'){for(const k of INV_KINDS)inventory[k]=0;duckLog={};duckLuck={d:0,e:0};discSeen=new Set();invDisabled=new Set();keyShapes=[];_discReset='all';IDB.del('session').catch(()=>{});saveInventory();updateInventoryUI();applyDisc();hubState();} // the Gift Shop: everything goes
+  else if(m.cmd==='buy'){hubPost(Object.assign({type:'bought',id:m.id},shopBuy(m.id,m.arg)));hubState();}
+  else if(m.cmd==='pick'){hubPost(Object.assign({type:'picked'},shopPick(m.i)));hubState();} // a drawn card turned over
+  else if(m.cmd==='day'){if(m.newRun)runState=runFresh();else if(m.day!==runState.day)Object.assign(runState,{fortune:null,bonus:null,charm:0,draw:null});runState.day=m.day;saveInventory();updateInventoryUI();hubState();} // a new day: today's fortune, bonus and Luck Charms are over // a shop on the map: this pays and hands it over
+  else if(m.cmd==='wipe'){for(const k of INV_KINDS)inventory[k]=0;duckLog={};duckLuck={d:0,e:0};runState=runFresh();discSeen=new Set();invDisabled=new Set();keyShapes=[];_discReset='all';IDB.del('session').catch(()=>{});saveInventory();updateInventoryUI();applyDisc();hubState();} // the Gift Shop: everything goes
   else if(m.cmd==='state')hubState('state',true);
   else if(m.cmd==='quack'){if(DUCK_TYPES[m.type])duckVoice({type:m.type},m.v||1);} // a lake duck on the map was bumped or dunked
 });
@@ -14259,18 +14278,28 @@ function shopBuy(id,arg){
   const it=shopItem(id),has=k=>discSeen.has(k);if(!it||it.fx.souv)return{ok:0,msg:'Not for sale here'};const fx=it.fx,own=Object.keys(duckLog).filter(k=>duckLog[k]>0);
   if(shopOnce(it)&&has('up:'+id))return{ok:0,msg:'Already yours'};if(it.req&&!has('up:'+it.req))return{ok:0,msg:'Needs '+shopItem(it.req).n+' first'};
   if(fx.give)for(const k in fx.give)if(inventory[k]>=invMaxFor(k))return{ok:0,msg:'Your purse is full ('+fmtCount(invMaxFor(k))+' '+k+')'};
+  if(fx.draw==='daily'&&runState.daily===runState.day)return{ok:0,msg:'A Daily Wonder is once a day: come back tomorrow'};const cost=shopPrice(it,runState),sec=fx.draw==='secret'?secretCards():null;if(sec&&!sec.length)return{ok:0,msg:'No secrets left to tell'};
   let pool=own,axis=null;
   if(fx.duck==='pick'&&!DUCK_TYPES[arg])return{ok:0,msg:'Pick a duck'};
   if(fx.duck==='exotic'){const by={};for(const k of own)by[DUCK_TYPES[k].axis]=(by[DUCK_TYPES[k].axis]||0)+duckLog[k];axis=Object.keys(by).sort((a,b)=>by[b]-by[a])[0];if(!axis||by[axis]<it.cost)return{ok:0,msg:'You need '+it.cost+' ducks of one kind'};pool=own.filter(k=>DUCK_TYPES[k].axis===axis);}
   if(it.cur==='duck'){if(own.reduce((s,k)=>s+duckLog[k],0)<it.cost)return{ok:0,msg:'You need '+it.cost+' duck'+(it.cost>1?'s':'')};spendDucks(it.cost,pool);if(!_discReset)_discReset='ducks';}
-  else{if((inventory[it.cur]||0)<it.cost)return{ok:0,msg:'You need '+it.cost.toLocaleString('en-US')+' '+it.cur};inventory[it.cur]-=it.cost;}
+  else{if((inventory[it.cur]||0)<cost)return{ok:0,msg:'You need '+cost.toLocaleString('en-US')+' '+it.cur};inventory[it.cur]-=cost;}
   let got=it.n;
-  if(fx.give)for(const k in fx.give)addInventory(k,fx.give[k]);
+  if(fx.give)for(const k in fx.give)addInventory(k,fx.give[k],true);
+  if(fx.charm){runState.charm=(runState.charm||0)+1;duckLuck.d+=0.01/Math.max(0.001,runT('duckLuckStep'));got='Luck Charm: +5% duck chance today';} // and +1% on the next drop
+  let draw=null;if(fx.draw){const D=fx.draw==='secret'?sec:fx.draw==='fortune'?[0,1,2].map(()=>{if(Math.random()<0.5){const t=DUCK_IDS[(Math.random()*DUCK_IDS.length)|0];return{good:1,id:t,duck:DUCK_TYPES[t].name};}const b=Object.keys(FORTUNE_BAD);return{good:0,id:b[(Math.random()*b.length)|0]};}):DAILY.slice().sort(()=>Math.random()-0.5).slice(0,3);
+    runState.draw={kind:fx.draw,cards:D};draw={kind:fx.draw,cards:D.map(c=>fx.draw==='daily'?{n:c.n,t:c.t}:{back:1})};got=it.n+': pick a card';} // face down, but for the wonders
   if(fx.duck){const ax=fx.duck==='exotic'?(axis==='Classic'?null:axis):fx.duck,pk=a=>a[Math.floor(Math.random()*a.length)];
     const t=fx.duck==='pick'?arg:fx.duck==='roll'?rollDuckType():pk(DUCK_IDS.filter(k=>k!=='classic'&&(ax?DUCK_TYPES[k].axis===ax:!DUCK_TYPES[k].rare)));
     duckLog[t]=(duckLog[t]||0)+1;got='\u{1F986} '+DUCK_TYPES[t].name;}
   if(fx.disc)discSeen.add(fx.disc);if(shopOnce(it))discSeen.add('up:'+id);
-  saveInventory();updateInventoryUI();applyDisc();return{ok:1,msg:got};}
+  saveInventory();updateInventoryUI();applyDisc();return{ok:1,msg:got,draw};}
+function secretCards(){const c=[...EVENTS.map(e=>({id:'ev:'+e.id,n:e.name})),...RULES.filter(e=>(T['dc_g_'+e[0]]||0)>0).map(e=>({id:'g_'+e[0],n:e[2]}))].filter(c=>!discSeen.has(c.id));return c.sort(()=>Math.random()-0.5).slice(0,3);} // what a Card of Secrets can turn up: events and Guide entries not yet discovered
+function shopPick(i){const d=runState.draw,c=d&&d.cards[i];if(!c)return{ok:0,text:'Nothing to pick'};runState.draw=null;let title,text; // a card turned over: what it gives
+  if(d.kind==='secret'){discSeen.add(c.id);title='A secret';text=c.n+' is discovered for good.';}
+  else if(d.kind==='fortune'){runState.fortune=c;const g=c.good?FORTUNE_GOOD[c.id]||{}:{};if(g.next)runState.next=g.next;if(g.next==='rare'){runState.keysGone=1;inventory.key=0;}title=c.good?'A good fortune':'A dim fortune';text=fortuneText(c,c.duck);}
+  else{runState.bonus={id:c.id,item:c.item||null};runState.daily=runState.day;if(c.id==='inf')for(const k of ['leash','dial','weave'])inventory[k]=k===c.item?invMaxFor(k):0;title=c.n;text=c.t+'.';}
+  saveInventory();updateInventoryUI();applyDisc();return{ok:1,title,text,good:d.kind!=='fortune'||!!c.good};}
 document.addEventListener('visibilitychange',()=>{if(document.hidden&&HUB&&hubLevel&&!hubAsleep)saveSession();}); // closing the tab mid-surface keeps it
 // ── Pause menu (Esc) ──
 function syncGameMenu(){
@@ -14378,8 +14407,9 @@ TUNE_DEFS.push({sec:'Ducks',tab:'gameplay'},
  {key:'duckTrans',label:'Duck translucency',min:0,max:1,step:0.05,tip:'How much light passes through the plastic at thin edges'},
  {key:'duckGlow',label:'Shining duck glow',min:0,max:6,step:0.1,tip:'Size of the light a Bright or Shining duck gives off (× its size)'},
  {key:'volDuck',label:'Duck voice vol',min:0,max:3,step:0.05,tip:'Quacks and squeaks when a duck is hit',test:()=>duckVoice({type:'classic'},1)});
-function rollDuckType(){const r=Math.random(),pick=a=>a[Math.floor(Math.random()*a.length)];
-  if(r<T.duckRareChance+T.duckExoticChance+duckLuck.e*T.duckLuckStep){duckLuck.e=0;return r<T.duckRareChance?pick(DUCK_IDS.filter(k=>DUCK_TYPES[k].rare)):pick(DUCK_IDS.filter(k=>k!=='classic'&&!DUCK_TYPES[k].rare));} // an exotic rebases the luck
+function rollDuckType(){const pick=a=>a[Math.floor(Math.random()*a.length)],nx=runState.next;if(nx){runState.next=null;saveInventory();} // a fortune's promised duck
+  const r=nx==='rare'?0:nx==='exotic'?runT('duckRareChance'):Math.random();
+  if(r<runT('duckRareChance')+runT('duckExoticChance')+duckLuck.e*runT('duckLuckStep')){duckLuck.e=0;return r<runT('duckRareChance')?pick(DUCK_IDS.filter(k=>DUCK_TYPES[k].rare)):pick(DUCK_IDS.filter(k=>k!=='classic'&&!DUCK_TYPES[k].rare));} // an exotic rebases the luck
   duckLuck.e++;return 'classic';}
 // ── The model pipeline: SHAPE from the strip, TEXTURE from the type ──
 // One pipeline makes every type (the classic and all its exotics, and any added later). SHAPE: the side view's silhouette is
@@ -14546,13 +14576,13 @@ TUNE_DEFS.push({sec:'Rift',tab:'gameplay'},
  {key:'riftEveryMs',label:'Rift check ms',min:50,max:2000,step:50,tip:'How often the surface is checked for a Rift'});
 let _riftAt=0;
 function riftCheck(now){
-  if(blackHole||levelCleared||!(T.riftMass>0)||now-_riftAt<T.riftEveryMs)return;_riftAt=now;
+  if(blackHole||levelCleared||!(runT('riftMass')>0)||now-_riftAt<T.riftEveryMs)return;_riftAt=now;
   const C=Math.max(20,T.riftR),gw=Math.max(2,Math.ceil(W/C)),gh=Math.max(2,Math.ceil(H/C)),N=gw*gh,m=new Float64Array(N),mx=new Float64Array(N),my=new Float64Array(N),me=new Float64Array(N);
   for(let i=0;i<active.length;i++){const q=active[i];if(q.dying||q.captured||q._bhGone||!(q.mass>0))continue;
     const k=Math.min(gh-1,Math.max(0,(q.y/C)|0))*gw+Math.min(gw-1,Math.max(0,(q.x/C)|0));m[k]+=q.mass;mx[k]+=q.x*q.mass;my[k]+=q.y*q.mass;me[k]+=q.energy||0;}
   let best=0,bi=-1,bj=-1;
   for(let j=0;j<gh-1;j++)for(let i=0;i<gw-1;i++){const a=j*gw+i,sm=m[a]+m[a+1]+m[a+gw]+m[a+gw+1];if(sm>best){best=sm;bi=i;bj=j;}}
-  if(best<T.riftMass)return;
+  if(best<runT('riftMass'))return;
   const ks=[bj*gw+bi,bj*gw+bi+1,(bj+1)*gw+bi,(bj+1)*gw+bi+1];let sx=0,sy=0,se=0;for(const k of ks){sx+=mx[k];sy+=my[k];se+=me[k];}
   const cx=sx/best,cy=sy/best;logEv('rift: mass '+Math.round(best)+' within '+(2*C)+'px at '+(cx|0)+','+(cy|0));
   fireEvent('rift');flashSaveStatus('⚠ A Rift tore open: '+Math.round(best).toLocaleString()+' mass in one place.');
@@ -14561,7 +14591,7 @@ function riftCheck(now){
 RULES.push(["rift","rem","Rift","dark","When too much mass gathers in one place, the surface tears and a Dark Remnant forms there.",[["When","The mass of everything inside one area (about twice Rift area across) reaches Rift mass."],["Always","A Rift is always a Dark Remnant, never a duck."],["Ends","Like any Dark Remnant, it draws in the whole surface. Inside a Gate it is locked in."]]]);
 SCENES.rift={dur:9000,setup(S){T.riftMass=2650;T.riftR=60;for(let i=0;i<6;i++){const a=i/6*6.2832,r=S.rem(S.W/2+Math.cos(a)*90,S.H/2+Math.sin(a)*70,'brown');r.mass=450;updateCached(r);r.vx=-Math.cos(a)*0.9;r.vy=-Math.sin(a)*0.7;}}}; // dim remnants drift together until their mass tears the surface
 Object.assign(RULE_EV,{rift:'rift'});Object.assign(RULE_SCENES,{rift:['rift']});
-EVENTS.push({id:'rift',name:'The Rift',type:'Event — Ending',rar:'m',scene:'rift',ico:'dark',facts:()=>['Mass of '+Math.round(T.riftMass).toLocaleString()+' or more gathered in one place and tore the surface.','A Rift is always a Dark Remnant, never a duck.'],flavor:'Too much light in one place.'});
+EVENTS.push({id:'rift',name:'The Rift',type:'Event — Ending',rar:'m',scene:'rift',ico:'dark',facts:()=>['Mass of '+Math.round(runT('riftMass')).toLocaleString()+' or more gathered in one place and tore the surface.','A Rift is always a Dark Remnant, never a duck.'],flavor:'Too much light in one place.'});
 EVENTS.push({id:'duck',name:'Rubber Duck',type:'Event — Duck',rar:'r',scene:'duck',ico:'duck:classic',facts:()=>['A Dark Remnant came out as a rubber duck. The surface carries on.','Click it to add it to your collection (Guide → Ducks).'],flavor:'Squeak.'});
 document.addEventListener('keydown',e=>{
   if(_evOpen){if(e.key==='Escape'||e.key==='Enter')closeEventCard();e.stopPropagation();e.preventDefault();return;}
