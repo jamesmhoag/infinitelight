@@ -800,6 +800,23 @@ function onWhite(wx,wy){ // the water is lit white here: a bright clear's glow, 
   for(let dq=-3;dq<=3;dq++)for(let dr=-3;dr<=3;dr++){const c=cells[K(q+dq,r+dr)];if(c&&c.cap&&c.kind!=='dark'){const[cx,cy]=a2w(c.q,c.r);if(Math.hypot(wx-cx,wy-cy)<HEX*2.4)return true;}}return false;}
 const s2wp=(X,Y)=>{const[x,y]=unproj(X,Y);return s2w(x,y);},w2sc=(wx,wy)=>proj(...w2s(wx,wy)); // screen ↔ world, through the tilt
 const offView=(X,Y,m)=>X<-m||X>SW+m||Y<-m||Y>SH+m;
+// A parade: every duck of one kind (all of a Colour, Size or Material) and the classic one, in a line across the lake like ducklings behind
+// their mother: by size, biggest first, for Size (the Big Head where its size puts it); otherwise the special one leads, the other specials
+// next, then the rest. One of each, never two alike. While it passes, no other duck or bottle comes in. A touch spins one and a click dunks it,
+// but none of them ever leaves the line: always forward. (Once a day for each kind you have all of.)
+let parade=null,_paradeAt=0;const paradeSeen=new Set();
+function paradeKinds(){const by={};for(const id in DUCK_TYPES){const a=DUCK_TYPES[id].axis;if(!a||a==='Classic')continue;(by[a]=by[a]||[]).push(id);}return Object.keys(by).filter(a=>by[a].every(id=>(duckLog[id]||0)>0)).map(a=>[a,by[a]]);}
+function paradeOrder(axis,ids){const sz=id=>(DUCK_TYPES[id].scale||1),L=ids.slice();if(DUCK_TYPES.classic&&!L.includes('classic'))L.push('classic');
+  if(axis==='Size')return L.sort((a,b)=>sz(b)-sz(a)||(DUCK_TYPES[b].head?1:0)-(DUCK_TYPES[a].head?1:0));
+  const rank=id=>id==='classic'?3:DUCK_TYPES[id].rare?0:DUCK_TYPES[id].mid?1:2;return L.sort((a,b)=>rank(a)-rank(b));}
+function paradeStep(now,dt){
+  if(parade){parade.s+=parade.v*dt;if(!pond.some(d=>d.parade)){parade=null;_paradeAt=now+60000;}return;}
+  if(SCENE||currentView!=='map'||now<_paradeAt||!water.pts.length)return;_paradeAt=now+8000;
+  const K2=paradeKinds().filter(([a])=>!paradeSeen.has(a+'|'+day));if(!K2.length)return;const[axis,ids]=K2[0];paradeSeen.add(axis+'|'+day);
+  let R=0;for(const k in cells){const c=cells[k];if(!c.isVoid)R=Math.max(R,Math.hypot(...a2w(c.q,c.r)));}R+=HEX*1.3; // its line: round the spill, just off its shore, once all the way round
+  const sg=Math.random()<0.5?1:-1,th=Math.random()*6.2832;parade={R,th,sg,s:0,v:0.9,path:2*Math.PI*R};let off=0,prev=0;
+  for(const id of paradeOrder(axis,ids)){const t=DUCK_TYPES[id],sz=(t.scale||1)*HEX*0.62;off+=prev?(prev+sz)*0.62:0;prev=sz;pond.push({type:id,x:R*Math.cos(th),y:R*Math.sin(th),hd:th+sg*Math.PI/2,sp:0,cur:0,next:1e15,born:now,seen:true,lastRip:0,ph:Math.random()*6.28,parade:{off}});}
+  feed(txt('map.parade'),txt('map.parade_d',axis));}
 function duckRoster(){ // which ducks may swim: one of each type you own; several of one type only when that is the only type you own
   const own=Object.keys(duckLog).filter(k=>duckLog[k]>0);if(own.length===1)return Array(Math.min(12,duckLog[own[0]])).fill(own[0]);return own;}
 let bottleNext=0,letter=null; // when the next message in a bottle floats in; the letter open now
@@ -896,8 +913,8 @@ function pondStep(now){
   const c=mctx,dt=Math.min(50,now-(pondT||now))/16.67;pondT=now;if(currentView!=='map')return; // ripples and glows go on the plane; the ducks are drawn in the scene (sceneRender)
   scanWater(now);if(pondAsk.length&&water.pts.length){const P=water.pts[(Math.random()*water.pts.length)|0];pondPut(pondAsk.shift(),P[0],P[1],now);} // (it bobs up out of the water)
   const want=Math.round(Math.min(T.mapDucks!=null?T.mapDucks:5,duckRoster().length)*Math.min(1,water.frac*2.5)); // a little water on screen: fewer ducks (none for none)
-  const nd=pond.filter(d=>!d.bottle).length;if(nd<want&&now>pondNext){spawnLakeDuck(now);pondNext=now+900+Math.random()*1500;}
-  if(!SCENE&&now>bottleNext&&water.frac>0.05&&!pond.some(d=>d.bottle)){spawnLakeDuck(now,true);bottleNext=now+(T.mapBottleMs||90000)*(0.6+0.8*Math.random());} // one bottle at a time
+  paradeStep(now,dt);const nd=pond.filter(d=>!d.bottle).length;if(nd<want&&now>pondNext&&!parade){spawnLakeDuck(now);pondNext=now+900+Math.random()*1500;}
+  if(!SCENE&&!parade&&now>bottleNext&&water.frac>0.05&&!pond.some(d=>d.bottle)){spawnLakeDuck(now,true);bottleNext=now+(T.mapBottleMs||90000)*(0.6+0.8*Math.random());} // one bottle at a time
   const cw=mX>=0&&!menuOpen&&!shopUI&&overScene()?s2wp(mX,mY):null;let cv=0,ca=0; // the cursor on the water, and how fast it moves (world px per ms)
   if(cw&&_cwPrev&&now>_cwPrev.t){const dx=cw[0]-_cwPrev.x,dy=cw[1]-_cwPrev.y;cv=Math.hypot(dx,dy)/(now-_cwPrev.t);ca=Math.atan2(dy,dx);}_cwPrev=cw?{x:cw[0],y:cw[1],t:now}:null;_cvLast=cv/(T.mapDuckBumpV||0.35);
   pond=pond.filter(d=>{
@@ -911,6 +928,8 @@ function pondStep(now){
     if(dk>=1)d.dunk=0;else if(dk<0.3){const u=dk/0.3;sink=u*u;}else if(dk<0.55)sink=1;else{if(!d._up){d._up=1;ripples.push({x:d.x,y:d.y,t:now,dk:onWhite(d.x,d.y),big:1});}const u=(dk-0.55)/0.45;sink=-(2.7*Math.pow(u-1,3)+1.7*Math.pow(u-1,2));} // (up with a little bob past its floating height)
     if(d.splash&&now-d.born<700)sink=Math.max(sink,1-(now-d.born)/700);d._sink=sink; // a splash: it comes up out of the water
     if(!d.dunk)d._up=0;
+    if(d.parade&&parade){const s=parade.s-d.parade.off,th=parade.th+parade.sg*s/parade.R,dir=th+parade.sg*Math.PI/2;d.x=parade.R*Math.cos(th);d.y=parade.R*Math.sin(th);if(!sp_)d.hd+=Math.atan2(Math.sin(dir-d.hd),Math.cos(dir-d.hd))*0.12*dt; // in the parade: always on, along its line (a touch spins it, a click dunks it, it never leaves the line)
+      if(now-d.lastRip>380){d.lastRip=now;ripples.push({x:d.x,y:d.y,t:now,dk:onWhite(d.x,d.y)});}const t=DUCK_TYPES[d.type]||{};d._s=HEX*0.62*(t.scale||1)/(t.head?1.25:1);return s<parade.path;}
     if(d.kick){d.kick*=Math.pow(0.97,dt);if(d.kick<0.05)d.kick=0;}if(d.twist){d.hd+=d.twist*dt;d.twist*=Math.pow(0.94,dt);if(Math.abs(d.twist)<0.002)d.twist=0;}
     if(now>d.next){d.next=now+1800+Math.random()*3000;d.cur=Math.random()<0.1?(Math.random()<0.5?-1:1)*0.03:(Math.random()-0.5)*0.006;d.dash=Math.random()<0.18?now+1200+Math.random()*1200:0;} // now and then a dash // mostly a gentle curve on its way across; now and then a doughnut
     const paddle=d.bottle?0.12+(d.kick||0)*0.6:(d.dash>now?1.5:0.38+0.28*Math.max(0,Math.sin(now/260+d.ph)))+(d.kick||0),go=(d.splash&&now-d.born<900)||sp_||d.dunk?0:paddle;d.sp+=(go-d.sp)*(d.kick?0.2:0.05)*dt; // spinning or under water: it stops
