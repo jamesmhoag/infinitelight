@@ -13043,12 +13043,21 @@ function partsBox(parts){let x0=1e9,y0=1e9,x1=-1e9,y1=-1e9;for(const c of parts)
 function edgeEnterT(b,cx,cy,vx,vy){ // frames until a box (b, about (cx, cy)) moving at (vx, vy) first overlaps the screen; null: never
   let lo=0,hi=Infinity;for(const[a0,a1,v,L]of[[cx+b.x0,cx+b.x1,vx,W],[cy+b.y0,cy+b.y1,vy,H]]){if(Math.abs(v)<1e-6){if(a1<0||a0>L)return null;continue;}let t0=(0-a1)/v,t1=(L-a0)/v;if(t0>t1)[t0,t1]=[t1,t0];lo=Math.max(lo,t0);hi=Math.min(hi,t1);}
   return lo<=hi&&hi>0?lo:null;}
-function edgePlace(parts,P,mx,my){ // placed at an edge: pushed fully off the nearest edge (and Prefab buffer px more), to wait until its motion carries it on
+function edgePlace(parts,P,mx,my,quiet){ // placed at an edge: pushed fully off the nearest edge (and Prefab buffer px more), to wait until its motion carries it on
   const b=partsBox(parts),buf=T.prefabEdgeBuf!=null?T.prefabEdgeBuf:20,m=Math.min(mx,W-mx,my,H-my);let cx=mx,cy=my;
   if(m===mx)cx=-b.x1-buf;else if(m===W-mx)cx=W-b.x0+buf;else if(m===my)cy=-b.y1-buf;else cy=H-b.y0+buf;
   let vx=0,vy=0;for(const c of parts){vx+=c.vx||0;vy+=c.vy||0;}vx/=parts.length;vy/=parts.length;
-  if(edgeEnterT(b,cx,cy,vx,vy)==null){flashSaveStatus(txt(Math.hypot(vx,vy)<1e-6?'pre.never_on_still':'pre.never_on_away'));return false;}
-  edgeQ.push({parts:JSON.parse(JSON.stringify(parts)),name:P?P.name:'',cx,cy,vx,vy,in:parts.map(()=>false)});flashSaveStatus(txt('pre.waits_off'));return true;}
+  if(edgeEnterT(b,cx,cy,vx,vy)==null){if(!quiet)flashSaveStatus(txt(Math.hypot(vx,vy)<1e-6?'pre.never_on_still':'pre.never_on_away'));return false;}
+  edgeQ.push({parts:JSON.parse(JSON.stringify(parts)),name:P?P.name:'',cx,cy,vx,vy,in:parts.map(()=>false)});if(!quiet)flashSaveStatus(txt('pre.waits_off'));return true;}
+// A surface started at a time of day (a map hex, or Build mode's Test at a time): by Prefab chance, one prefab whose times include that hour
+// appears. A still one phases in somewhere on the surface (anywhere: it wraps); one that moves may instead drift in from off an edge.
+const prefabLib=()=>Object.assign({},buildContent().prefabs,BUILD?buildLib.prefabs:{}); // (the content files' prefabs; in Build mode, the ones made here too)
+const prefabAt=(P,h)=>P.from<=P.to?h>=P.from&&h<=P.to:h>=P.from||h<=P.to; // its times include hour h (from – to, across Midnight too)
+function prefabSpawn(h){if(h==null||!(Math.random()<(T.prefabChance!=null?T.prefabChance:0.35)))return null;
+  const L=Object.values(prefabLib()).filter(P=>P.parts&&P.parts.length&&prefabAt(P,h));if(!L.length)return null;const P=L[(Math.random()*L.length)|0];
+  const mv=P.parts.some(c=>Math.hypot(c.vx||0,c.vy||0)>1e-6);
+  if(mv&&Math.random()<0.5)for(let i=0;i<12;i++){const s=(Math.random()*4)|0,u=Math.random(),mx=s===0?2:s===1?W-2:u*W,my=s===2?2:s===3?H-2:u*H;if(edgePlace(P.parts,P,mx,my,true)){logEv('prefab '+P.name+' drifts in');return P;}} // drifting in, from wherever along an edge it would come on
+  phaseIn(P.parts,Math.random()*W,Math.random()*H,P.ph);logEv('prefab '+P.name+' phases in');return P;}
 function preRemove(L){if(!L)return;if(L.obj){const i=active.indexOf(L.obj);if(i>=0){pressedIDs.delete(L.obj.id);active.splice(i,1);}}else if(L.shape){const i=fixedShapes.indexOf(L.shape);if(i>=0){fixedShapes.splice(i,1);rebuildGlassList();}}}
 function prefabTick(now,dt){
   if(BUILD){const k=preTool()?currentVariant()+'|'+preSel.length:'';if(k!==_preBarK){_preBarK=k;buildBar();}} // (the bar's prefab row follows the tool)
@@ -13104,9 +13113,9 @@ function preBarWire($){if(!preTool())return;
 // browser (IndexedDB 'build'); Export downloads every one as content/levels.json, which the game reads as it loads (jsonRead). Its ducks are
 // part of the level: collectable when it is played.
 var BUILD=!window.__SCENE&&/[?&]build=1/.test(location.search);
-let buildTest=null,buildDarks=[],buildLib={levels:{},prefabs:{}},buildName='';
+let buildTest=null,buildDarks=[],buildLib={levels:{},prefabs:{}},buildName='',buildTime=0;
 const buildDarkR=d=>Math.min(T.whiteEffMax,Math.max(T.whiteEffMin,40))*remEnScaleOf(d.energy||T.collEnergy); // a placed Dark Remnant's size, as it would form
-const buildContent=()=>{const c=jsonRead('levels');return{levels:c.levels||{},prefabs:c.prefabs||{}};}; // the levels and prefabs in the content files
+let _contentLib=null;const buildContent=()=>_contentLib||(_contentLib=(c=>({levels:c.levels||{},prefabs:c.prefabs||{}}))(jsonRead('levels'))); // the levels and prefabs in the content files (read once)
 async function buildLoadLib(){let b=null;try{b=await IDB.get('build');}catch(e){}const c=buildContent();buildLib={levels:Object.assign({},c.levels,b&&b.levels),prefabs:Object.assign({},c.prefabs,b&&b.prefabs)};}
 async function buildKeep(){try{await IDB.put('build',buildLib);}catch(e){flashSaveStatus(txt('surf.save_failed',e.message));return false;}return true;} // (kept in this browser while building)
 function buildLevelData(){const d=JSON.parse(JSON.stringify(serializeMap(true)));delete d.T;d.dormant=buildPack(d.dormant);return{kind:invertMode?'bright':'dark',data:d,darks:buildDarks.map(d=>Object.assign({},d)),edge:JSON.parse(JSON.stringify(edgeQ)),at:Date.now()};} // the surface as it is now: everything on it, its Dark Remnants waiting
@@ -13123,19 +13132,20 @@ function buildBar(){let el=document.getElementById('buildBar');if(!el){el=docume
   const names=Object.keys(buildLib.levels).sort(),esc=v=>String(v).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
   el.innerHTML=`<b>${txt('build.title')}</b><input id="bdName" maxlength="40" placeholder="${esc(txt('build.name'))}" value="${esc(buildName)}"><button id="bdSave">${txt('build.save')}</button>
 <select id="bdLoad"><option value="">${txt('build.load')}</option>${names.map(n=>`<option value="${esc(n)}">${esc(n)}${buildLib.levels[n].kind==='bright'?' ○':' ●'}</option>`).join('')}</select>
-<button id="bdNew">${txt('build.new')}</button><button id="bdBlank">${txt('build.blank')}</button><button id="bdTest"${buildTest?' class="on"':''}>${txt(buildTest?'build.back':'build.test')}</button>
+<button id="bdNew">${txt('build.new')}</button><button id="bdBlank">${txt('build.blank')}</button><button id="bdTest"${buildTest?' class="on"':''}>${txt(buildTest?'build.back':'build.test')}</button><select id="bdTime" title="${esc(txt('build.test_time_tip'))}"><option value="0">${txt('build.test_no_time')}</option>${Object.keys(TIMES).map(h=>`<option value="${h}"${+h===buildTime?' selected':''}>${TIMES[h]}</option>`).join('')}</select>
 <button id="bdDel">${txt('build.delete')}</button><button id="bdExport">${txt('build.export')}</button><button id="bdQuit">${txt('build.quit')}</button>${preBarHTML(esc)}`;
   const $=id=>document.getElementById(id),nm=()=>$('bdName').value.trim();$('bdName').oninput=()=>{buildName=$('bdName').value;};
   $('bdSave').onclick=async()=>{const n=nm();if(!n){flashSaveStatus(txt('build.need_name'));return;}if(buildTest){flashSaveStatus(txt('build.not_while_testing'));return;}buildLib.levels[n]=Object.assign({name:n},buildLevelData());if(await buildKeep())flashSaveStatus(txt('build.saved',n));buildName=n;buildBar();};
   $('bdLoad').onchange=e=>{const n=e.target.value;if(!n||!buildLib.levels[n])return;if(buildTest)buildBack();buildApply(buildLib.levels[n]);buildName=n;flashSaveStatus(txt('build.loaded',n));buildBar();};
   $('bdNew').onclick=()=>{if(buildTest)buildBack();rebuild();buildDarks=[];edgeQ=[];phasing=[];buildName='';buildBar();};
   $('bdBlank').onclick=()=>{if(buildTest)buildBack();clearStage();buildDarks=[];edgeQ=[];phasing=[];buildBar();};
+  $('bdTime').onchange=e=>{buildTime=+e.target.value;};
   $('bdTest').onclick=()=>{if(buildTest)buildBack();else buildPlay();buildBar();};
   $('bdDel').onclick=async()=>{const n=nm();if(!buildLib.levels[n]){flashSaveStatus(txt('build.no_such',n));return;}if(!confirm(txt('build.delete_ask',n)))return;delete buildLib.levels[n];if(await buildKeep())flashSaveStatus(txt('build.deleted',n));buildBar();};
   $('bdExport').onclick=()=>{saveFile('levels.json',JSON.stringify(buildLib));flashSaveStatus(txt('build.exported',Object.keys(buildLib.levels).length,Object.keys(buildLib.prefabs).length));};
   $('bdQuit').onclick=()=>{loading('leave',true);setTimeout(()=>{location.href='TitleSplash.html';},300);};preBarWire($);}
-function buildPlay(){buildTest=buildLevelData();const d=buildDarks[0];if(d){const t=buildDarks.slice();buildDarks=[];triggerBlackRemnant(d.x,d.y,performance.now(),d.mass||T.massScaleMax*T.blackMult,d.energy||T.collEnergy,true);buildDarks=t;} // (true: placed, so never a duck) // Test: the surface played as it would be (a Dark Remnant placed starts; a Rift can form; it can be cleared)
-  if(isPaused)togglePause();flashSaveStatus(txt('build.testing'));}
+function buildPlay(){buildTest=buildLevelData();const P=buildTime?prefabSpawn(buildTime):null;const d=buildDarks[0];if(d){const t=buildDarks.slice();buildDarks=[];triggerBlackRemnant(d.x,d.y,performance.now(),d.mass||T.massScaleMax*T.blackMult,d.energy||T.collEnergy,true);buildDarks=t;} // (true: placed, so never a duck) // Test: the surface played as it would be (a Dark Remnant placed starts; a Rift can form; it can be cleared)
+  if(isPaused)togglePause();flashSaveStatus(buildTime?(P?txt('build.test_prefab',P.name,TIMES[buildTime]):txt('build.test_none',TIMES[buildTime])):txt('build.testing'));} // (at a time of day: which prefab, if any, appeared)
 function buildBack(){const L=buildTest;buildTest=null;if(L)buildApply(L);levelCleared=false;clearInfo=null;flashSaveStatus(txt('build.back_to_build'));} // back to the surface as it was before the test
 var HUB=!window.__SCENE&&window.parent!==window&&/[?&]hub=1/.test(location.search);
 var hubAsleep=false,hubLevel=null,hubOverlay=false,hubShotSize=68,_menuOpen=false,_menuWasPaused=false;
@@ -13201,7 +13211,7 @@ async function hubStartLevel(m){
   let rec=null;if(m.resume){try{rec=await IDB.get('session');}catch(e){}}
   hubLevel={key:m.key,seed:m.seed,cov:m.cov};if(m.clock!=null)DUCK_SUN=duckSun(m.clock);levelCoverage=m.cov;lvHex=m.q!=null?[m.q,m.r]:null; // (its ducks are lit by the map's time of day; its coverage is the hex's)
   if(rec&&rec.key===m.key&&rec.data){try{restoreSession(rec.data);flashSaveStatus(txt('surf.surface_continued_where_you',m.label));}catch(e){console.error(e);rec=null;}}
-  if(!rec||rec.key!==m.key){if(m.white){if(!invertMode)toggleInvertMode();}else ensureDarkRemnantTheme();rebuild(m.seed);levelCoverage=m.cov;flashSaveStatus(txt('surf.surface',m.label));fireEvent('surface');}
+  if(!rec||rec.key!==m.key){if(m.white){if(!invertMode)toggleInvertMode();}else ensureDarkRemnantTheme();rebuild(m.seed);levelCoverage=m.cov;flashSaveStatus(txt('surf.surface',m.label));fireEvent('surface');prefabSpawn(m.clock);} // (a new surface: maybe a prefab for this time of day)
   hubLevel.key=m.key;if(isPaused)togglePause();
   requestAnimationFrame(()=>requestAnimationFrame(()=>hubPost({type:'levelReady'}))); // drawn: the map's loading screen can go
 }

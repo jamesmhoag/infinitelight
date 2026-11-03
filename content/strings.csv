@@ -772,6 +772,11 @@ pre.clear_part,Use the prefab's,Build mode (Prefab),
 pre.save,Save prefab,Build mode (Prefab),
 pre.saved,Saved prefab “{name}” ({n} parts).,Build mode (Prefab),"name = $0 — its name
 n = $1 — how many parts"
+build.test_no_time,Test at: no time,Build mode,
+build.test_time_tip,Test as if the surface were entered at this time of day: a prefab for it may appear (by Prefab chance),Build mode,
+build.test_prefab,Testing at {time}: “{name}” appeared.,Build mode,"name = $0 — the prefab
+time = $1 — the time of day"
+build.test_none,Testing at {time}: no prefab this time.,Build mode,time = $0 — the time of day
 value.life_ms,T.lifeColor,values (shared: any text can use {life_ms}),a pigment's life factor (Life colour tuner)
 value.dim_mass_pct,Math.round(T.remMassFrac*100),values (shared: any text can use {dim_mass_pct}),% of its mass a failed collapse keeps
 value.dim_energy_pct,Math.round(T.remEnergyFrac*100),values (shared: any text can use {dim_energy_pct}),% of its energy a failed collapse keeps
