@@ -145,7 +145,7 @@ body.shop-open #hdock{z-index:59}#hinv .slot.wal{border-color:rgba(255,255,255,.
 <div id="veil"></div>
 <canvas id="hcur"></canvas>
 <iframe id="neb" title="Surface"></iframe>
-<script src="shared.js?v=20261103h"></script>
+<script src="shared.js?v=20261103i"></script>
 <script>
 // ╔══════════════════════════════════════════════════════════════════════════════╗
 // ║  MAP ENGINE                                                                 ║
@@ -161,7 +161,7 @@ let clock=3,day=1,pool=6,fresh=true,burstFx=null,dayLog=[],dayCnt={b:0,d:0},pend
 // // clock: the hour (3 = Twilight … 24 = Midnight, the day's last turn); day: your attempts; pool: what the source put out at its last burst; fresh: no ring added yet since it
 let constel=[],armed=null,weaveSel=[],weaveAsk=null,clearFx={},mergeFx=[],feedMsg={t:'',d:'',at:-1e9}; // constellations {keys,type}; the armed map item; a Weave being drawn; animations; the final count
 const TIMES={3:'Twilight',6:'Dawn',9:'Morning',12:'Noon',15:'Afternoon',18:'Dusk',21:'Night',24:'Midnight'},STEP_H=3; // the day: eight turns of three hours
-const CACHE_V='20261103h'; // the build: bump with shared.js's
+const CACHE_V='20261103i'; // the build: bump with shared.js's
 const SCENE=new URLSearchParams(location.search).get('scene'); // a Guide / event demo: the map plays a scripted moment (no surface behind it)
 let phase='move',turnTimer=0,mergeTimer=0;
 let gameOverReason='';
@@ -251,7 +251,7 @@ function advanceTurn(){ // time moves on (a move) by one time of day; the spill 
   awardConstellations();freedShops();clock+=STEP_H;
   if(clock>24){clock=24;endDay('midnight',0);return;} // after Midnight: the day ends (the new day starts once it has all fallen in)
   if(fresh)fresh=false;else{turn++;addRing(turn);}redistribute();decayCycle();showTurn();}
-const canRest=()=>!SCENE&&clock===24&&currentView==='map'&&!menuOpen&&!shopUI&&phase!=='collapse'&&phase!=='ended'&&phase!=='gameover'; // Midnight, on the map: the day can be ended (moving still ends it too)
+const canRest=()=>tired()&&currentView==='map'&&!menuOpen&&!shopUI&&phase!=='collapse'&&phase!=='ended'&&phase!=='gameover'; // Midnight, on the map: the day can be ended (Rest is the only way: no moves at Midnight)
 function rest(){if(!canRest())return;advanceTurn();updateHint();saveMap();} // Rest: the day ends at Midnight without a move, after any last thing (a shop, an item) you wanted to do
 const clockStr=()=>TIMES[clock]||TIMES[Math.max(3,Math.floor(clock/3)*3)]||'Twilight';
 function showTurn(){const el=document.getElementById('turn-label');el.textContent=clockStr()+' · Day '+day;el.classList.add('show');clearTimeout(turnTimer);turnTimer=setTimeout(()=>el.classList.remove('show'),1200);} // (always shown; it glows when the time changes)
@@ -286,14 +286,15 @@ function completeCaptureForCell(cellKey,kind,tally){
   // (a clear takes no time: only a move, without a String, moves the day on)
   updateHint();hubEvent('map_clear');saveMap();
 }
+const tired=()=>clock===24&&!SCENE; // Midnight: no more moves (Rest ends the day)
 function doMove(tq,tr){
-  if(phase==='gameover'||phase==='collapse')return;
+  if(phase==='gameover'||phase==='collapse')return;if(tired()){feed('Too tired to move','Rest (under Midnight) to end the day');return;}
   const tc=cells[K(tq,tr)];
   if(tc&&tc.isVoid&&voidOpen&&tq===0&&tr===0){const ok=cells[K(pQ,pR)];if(ok)ok.isP=false;descendDepth();return;}
   const ok=cells[K(pQ,pR)];if(ok)ok.isP=false;
   pQ=tq;pR=tr;tc.isP=true;focusCam(true);
   advanceTurn();if(runBad(run,'slowmove')&&phase!=='collapse'&&phase!=='gameover')advanceTurn();if(phase==='collapse'){updateHint();saveMap();return;}if(phase!=='gameover')phase='move';
-  if(phase==='move'&&!getMoves().length){phase='gameover';gameOverReason='no viable moves';}
+  if(phase==='move'&&!tired()&&!getMoves().length){phase='gameover';gameOverReason='no viable moves';}
   updateHint();saveMap();
 }
 let hintLine=['',''];
@@ -301,12 +302,12 @@ function updateHint(){ // the feed's resting line: what you can do now
   const c=cells[K(pQ,pR)];let a='',b='';
   if(phase==='ended'){a='The run is won · '+dayLog.length+' day'+(dayLog.length===1?'':'s');b='Back to the main menu to start the days again';}
   else if(phase==='gameover'){a='Game over: '+gameOverReason;b='A new map keeps your items';}
-  else if(phase==='captured'){a='Cleared!';b='Move on';}
+  else if(phase==='captured'){a=tired()?'Cleared! Too tired to move':'Cleared!';b=tired()?'Rest (under Midnight) to end the day':'Move on';}
   else if(phase==='collapse'){a=pendingEnd?(pendingEnd.how==='midnight'?'Midnight':'Full circle'):'Day '+(day-1)+' cleared';b=pendingEnd?'The rings fall into the source…':'Close the report to start the day';}
   else if(armed==='weave'){a='Weave · click bright hexes, then the first again to close (3 to 5)';b=weaveSel.length?weaveSel.length+' chosen':'right-click, Esc or the slot again to stop';}
   else if(armed==='dial'){a='String · click any open hex to go straight there';b='1 String per hex of distance · no time passes';}
   else if(armed==='leash'){a='Spindle · click a cleared hex to unwind it, or an open one to wind it up to 1.00';b='A great Dark Remnant takes 3';}
-  else if(c&&!c.cap&&!c.isVoid&&phase==='move'){a=c.v<=0?'No value here: nothing to clear':`Space / click to ${nebulaCellKey===K(pQ,pR)?'continue this surface':'enter this surface'} (${c.v.toFixed(2)})`;b=clockStr()+' · day '+day+(clock===24?' · or Rest (under Midnight) to end the day':' · or move');}
+  else if(c&&!c.cap&&!c.isVoid&&phase==='move'){a=c.v<=0?'No value here: nothing to clear':`Space / click to ${nebulaCellKey===K(pQ,pR)?'continue this surface':'enter this surface'} (${c.v.toFixed(2)})`;b=clockStr()+' · day '+day+' · or move';if(tired()){a='Too tired to move';b='Rest (under Midnight) to end the day'+(c.v>0?' · or '+(nebulaCellKey===K(pQ,pR)?'continue':'enter')+' this surface ('+c.v.toFixed(2)+')':'');}}
   hintLine=[a,b];}
 function feed(t,d){feedMsg={t,d:d||'',at:performance.now()};} // a map message in the dock's feed (stays a few seconds)
 function hexInfo(c){ // what hovering a hex tells you
@@ -544,7 +545,7 @@ function mapRender(){
   camX+=(camTX-camX)*0.1;camY+=(camTY-camY)*0.1;
   mctx.setTransform(MK,0,0,MK,0,0);mctx.fillStyle='#050608';mctx.fillRect(0,0,MW,MH);
   mapNeed=[];
-  const moves=(phase==='move'||phase==='captured')?getMoves():[];
+  const moves=(phase==='move'||phase==='captured')&&!tired()?getMoves():[];
   const candMap={};for(const m of moves)candMap[K(m.q,m.r)]=m;
   const hoverKey=hQ!==null?K(hQ,hR):null;
   const hoverMove=hoverKey?candMap[hoverKey]:null;
@@ -663,7 +664,7 @@ sc.addEventListener('click',e=>{
   if(armed==='dial'){stringMove(q,r);return;}
   if(armed==='weave'){if(!weaveAsk)weaveClick(k);return;}
   if(q===pQ&&r===pR){doCapture();return;}
-  const moves=getMoves();if(moves.find(m=>m.q===q&&m.r===r))doMove(q,r);
+  const moves=getMoves();if(moves.find(m=>m.q===q&&m.r===r))doMove(q,r); // (at Midnight it only says you are too tired)
 });
 sc.addEventListener('mouseleave',()=>{hQ=null;hR=null;});
 document.addEventListener('click',e=>{ // a lake duck clicked (even under a read-out like the legend): dunked, it comes back up — and the click goes no further
@@ -921,9 +922,10 @@ function freedShops(){for(const k in cells)popPlace(k);} // each turn every clea
 function shopSprite(id,bk,lit,yaw){ // the shop's 3D building (shared.js shopModel) drawn from a little above and turned by yaw (degrees), lit by the time of day: then the glow of its sign and
   // windows when open; at Q px per unit (as its drawings were at 4×), so a shop stays crisp however near the camera or the menu shows it. Redrawn when the light changes.
   const gw=T.mapShopGlow!=null?T.mapShopGlow:1,fl=bk===(SHOPS[id].bk||'s')&&SHOPS[id].flip,yw=Math.round(yaw||0),sun=DUCK_SUN.c.map(v=>Math.round(v*16)).concat(DUCK_SUN.d.map(v=>Math.round(v*8))).join(','),pt=T.mapShopPitch!=null?T.mapShopPitch:22,
-    base=id+bk+(lit?1:0)+gw+'|'+yw+'|'+pt+'|',key=base+sun;if(shopCv[key])return shopCv[key];
+    base=id+bk+(lit?1:0)+gw+'|'+yw+'|'+pt+'|'+(T.mapShopUpScale||1.7)+'|',key=base+sun;if(shopCv[key])return shopCv[key];
   const si=shopImg('sign_'+id);if(!si.complete||!si.naturalWidth||!_duckTex)return null;
-  const type=shopModel(id,bk,lit,fl,si),M=duckModel(type),Q=4,q=quatTurn(quatTurn([0,0,0,1],0,yw*Math.PI/180,0),pt*Math.PI/180,0,0),N=Math.ceil(2*M.g.R*Q)+8,pad=Math.ceil(30*gw)+8;
+  const type=shopModel(id,bk,lit,fl,si),M=duckModel(type),Q=4*(bk==='m'||bk==='l'?(T.mapShopUpScale||1.7):1), // (a bigger rank's two-storey store drawn larger, so its door is the size of main street's)
+    q=quatTurn(quatTurn([0,0,0,1],0,yw*Math.PI/180,0),pt*Math.PI/180,0,0),N=Math.ceil(2*M.g.R*Q)+8,pad=Math.ceil(30*gw)+8;
   const cv=document.createElement('canvas');cv.width=cv.height=N+pad*2;const c=cv.getContext('2d');drawDuck3D(c,type,q,[[cv.width/2,cv.height/2]],Q,1,2048);
   if(lit&&gw>0){const g=document.createElement('canvas');g.width=g.height=cv.width;M.eo=1;drawDuck3D(g.getContext('2d'),type,q,[[cv.width/2,cv.height/2]],Q,1,2048);M.eo=0; // the neon: what glows, blurred out over it
     c.save();c.globalCompositeOperation='lighter';for(const[b,a]of[[22,0.8],[7,0.55]]){c.filter='blur('+(b*gw).toFixed(1)+'px)';c.globalAlpha=Math.min(1,a*gw);c.drawImage(g,0,0);}c.restore();}
@@ -1034,7 +1036,7 @@ function cursorTick(now){ // the surface's standard cursor (shared.js): brighter
   const dp=window.devicePixelRatio||1;if(hcur.width!==Math.round(innerWidth*dp)){hcur.width=Math.round(innerWidth*dp);hcur.height=Math.round(innerHeight*dp);}
   hcx.setTransform(dp,0,0,dp,0,0);hcx.clearRect(0,0,innerWidth,innerHeight);if(currentView!=='map'||menuOpen||shopUI||mX<0)return;
   const over=ptOver,ui=over&&over!==sc&&over.closest&&over.closest('button,.slot,.hbtn,.shop,input,select');
-  const k=hQ!==null?K(hQ,hR):null,c=k?cells[k]:null,act=!!ui||!!(c&&(armed==='leash'?(c.cap||(!c.isVoid&&c.v<1)):armed==='dial'?(!c.cap&&!c.isVoid):armed==='weave'?isBright(k):(k===K(pQ,pR)||getMoves().some(m=>K(m.q,m.r)===k))));
+  const k=hQ!==null?K(hQ,hR):null,c=k?cells[k]:null,act=!!ui||!!(c&&(armed==='leash'?(c.cap||(!c.isVoid&&c.v<1)):armed==='dial'?(!c.cap&&!c.isVoid):armed==='weave'?isBright(k):(k===K(pQ,pR)||(!tired()&&getMoves().some(m=>K(m.q,m.r)===k)))));
   const base=T.cursorBaseR||8,lw=T.cursorLineW||2,press=mDownAt>0?Math.min(1,(now-mDownAt)/(T.cursorClickDurMs||120)):0,cR=base*(1-(T.cursorClickShrink!=null?T.cursorClickShrink:0.7)*0.4*press);
   _curA+=((act?1:(T.cursorIdleAlphaMult!=null?T.cursorIdleAlphaMult:0.5))-_curA)*0.25;const ev=act?255:Math.round(255*(1-(T.cursorIdleBorderDark!=null?T.cursorIdleBorderDark:0.4))),col=armed?'255,220,120':`${ev},${ev},${ev}`;
   {const[wx,wy]=s2wp(mX,mY);cursorTrailRecord(wx,wy,now,overScene());}cursorBase(hcx,mX,mY,cR,_curA,1,col,lw);cursorRing(hcx,mX,mY,cR,_curA,col,lw);cursorDot(hcx,mX,mY,_curA,col);}
