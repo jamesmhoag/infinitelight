@@ -24,7 +24,7 @@ function duckModel(type){ // a type = one of the two baked meshes + its own colo
   const M={g:geo,mat:v.tex==='rainbow'?8:DUCK_MAT[v.mat||'plastic'],c1:(v.col||DUCK_YEL).map(c=>c/255),c2:(v.col2||DUCK_ORA).map(c=>c/255)};
   _duckModels.set(type,M);return M;}
 // ── A message in a bottle: a lathed glass bottle lying along its x axis (as a duck faces x), its cork, and the rolled letter inside; drawn by the duck renderer ──
-const BOTTLE_COL={clear:[214,236,240],green:[66,140,84],brown:[128,74,30]};
+const BOTTLE_COL={clear:[214,236,240],green:[66,140,84],brown:[128,74,30],gold:[255,196,52],white:[244,242,236]}; // (gold: the Gold duck's material; white: opaque)
 function latheGeo(prof,seg){ // prof: [[x, r], …] round the x axis → a mesh the duck shader can draw (no markings: its uv points at the strip's empty corner)
   const pos=[],nrm=[],uv=[],idx=[],n=prof.length;let R=0;
   for(let i=0;i<n;i++){const[x,r]=prof[i],a=prof[Math.max(0,i-1)],b=prof[Math.min(n-1,i+1)],dx=b[0]-a[0],dr=b[1]-a[1],l=Math.hypot(dx,dr)||1,nx=-dr/l,nr=dx/l;
@@ -35,9 +35,8 @@ function bottleModel(type){const[,col,part]=type.split(':');let g=_duckModels.ge
   if(!g){const P={glass:[[-1,0],[-1,0.2],[-0.97,0.29],[-0.9,0.32],[0.3,0.32],[0.45,0.27],[0.58,0.15],[0.66,0.115],[0.92,0.115],[0.95,0.14],[1,0.14],[1,0.1],[0.95,0.1]],
       cork:[[0.82,0],[0.82,0.105],[1.1,0.105],[1.13,0.09],[1.13,0]],note:[[-0.72,0],[-0.72,0.15],[0.3,0.15],[0.3,0]]}[part];
     g=latheGeo(P,part==='glass'?28:16);_duckModels.set('geo|bottle:'+part,g);}
-  const c=part==='glass'?BOTTLE_COL[col]||BOTTLE_COL.clear:part==='cork'?[176,126,78]:[238,228,198],M={g,nomk:1,mat:part==='glass'?3:1,c1:c.map(v=>v/255),c2:c.map(v=>v/255)};_duckModels.set(type,M);return M;}
-function drawBottleScene(G,d,o){ // a bottle on the lake: what it holds (a letter, or a duck), the cork, then the glass over them (opened: just the glass)
-  if(!d.empty&&d.duck&&DUCK_TYPES[d.duck]){const R=o.rot,sz=o.size*0.36/Math.max(1,Math.sqrt(DUCK_TYPES[d.duck].scale||1)),off=-0.2*o.size;drawDuckScene(G,d.duck,Object.assign({},o,{size:sz,pos:[o.pos[0]+R[0]*off,o.pos[1]+R[1]*off,o.pos[2]],px:o.px*0.36}));}
+  const c=part==='glass'?BOTTLE_COL[col]||BOTTLE_COL.clear:part==='cork'?[176,126,78]:[238,228,198],M={g,nomk:1,mat:part==='glass'?(col==='gold'?7:col==='white'?0:3):1,c1:c.map(v=>v/255),c2:c.map(v=>v/255)};_duckModels.set(type,M);return M;}
+function drawBottleScene(G,d,o){ // a bottle on the lake: its letter (a glass one, until opened), the cork, then the bottle (a duck's bottle is gold or opaque white: what is in it is a surprise)
   for(const part of d.empty?['glass']:d.duck?['cork','glass']:['note','cork','glass'])drawDuckScene(G,'bottle:'+d.col+':'+part,o);}
 function duckGeo(shape){return _duckModels.get('geo|'+shape)||null;} // decoded once at load (duckLoad)
 async function duckLoad(){ // the two baked meshes and the markings texture: decompressed and decoded once, at load
