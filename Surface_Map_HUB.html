@@ -432,6 +432,9 @@ function sceneInit(){
   const buf=gl.createBuffer();gl.bindBuffer(gl.ARRAY_BUFFER,buf);gl.bufferData(gl.ARRAY_BUFFER,new Float32Array([0,0,1,0,0,1,1,1]),gl.STATIC_DRAW);
   const tex=gl.createTexture();gl.bindTexture(gl.TEXTURE_2D,tex);for(const [p,v] of [[gl.TEXTURE_MIN_FILTER,gl.LINEAR],[gl.TEXTURE_MAG_FILTER,gl.LINEAR],[gl.TEXTURE_WRAP_S,gl.CLAMP_TO_EDGE],[gl.TEXTURE_WRAP_T,gl.CLAMP_TO_EDGE]])gl.texParameteri(gl.TEXTURE_2D,p,v);
   return{gl,pr,buf,tex,aP:gl.getAttribLocation(pr,'aP'),uPV:gl.getUniformLocation(pr,'uPV'),uS:gl.getUniformLocation(pr,'uS'),uT:gl.getUniformLocation(pr,'uT'),duck:duckCtx(gl)};}
+function bottleOpts(d,now,side,alpha){ // a bottle lying on the water, half under it (side 1: what shows above; −1: its reflection), rocking about its length
+  const[px,py]=w2s(d.x,d.y),[X,Y,k]=proj(px,py),f=duckFace(d,now),r=0.18*Math.sin(now/900+d.ph),c=Math.cos(r),s_=Math.sin(r),sd=[-f[1],f[0],0],z=side,up=[sd[0]*s_,sd[1]*s_,c*z],sx=[sd[0]*c,sd[1]*c,-s_*z],size=d._s*0.85;
+  return{rot:new Float32Array([f[0],f[1],0,...up,...sx]),size,pos:[px-MW/2,py-MH/2,side*size*0.04*Math.sin(now/650+d.ph)],view:cam.view,proj:cam.proj,viewRot:cam.viewRot,env:{x:X,y:Y,lights:[]},px:size*k,alpha,mirror:side<0,clip:side};}
 function duckFace(d,now){const a=d.hd+((DUCK_TYPES[d.type]||{}).mat==='paper'?now/900+d.ph:0);return[Math.cos(a),Math.sin(a),0];} // which way a lake duck faces (a Paper one keeps turning, to show its thinness)
 function sceneRender(now){
   if(!G3)G3=sceneInit();if(!G3||!cam)return;const gl=G3.gl;
@@ -445,9 +448,10 @@ function sceneRender(now){
     const u=Math.min(1,(now-_sun.t0)/(T.mapPrevFadeMs||450));_sunH=_sun.from+(_sun.to-_sun.from)*u*u*(3-2*u); // over the time a hex's new picture eases in
     const s=duckSun(_sunH),R=cam.viewRot,l=[s.d[0],-s.d[1],s.d[2]];DUCK_SUN={d:[0,1,2].map(i=>R[i]*l[0]+R[3+i]*l[1]+R[6+i]*l[2]),c:s.c};} // (the plane's y runs down the screen)
   const ra=T.mapDuckRefl!=null?T.mapDuckRefl:0.4; // ducks are mirrored in the surface beneath them
-  if(ra>0){gl.clear(gl.DEPTH_BUFFER_BIT);for(const d of pond){if(!d._s||d.bottle)continue;const[px,py]=w2s(d.x,d.y),[X,Y,k]=proj(px,py),f=duckFace(d,now),size=d._s,bob=size*(0.36+0.03*Math.sin(now/700+d.ph));
+  if(ra>0){gl.clear(gl.DEPTH_BUFFER_BIT);for(const d of pond)if(d._s&&d.bottle)drawBottleScene(G3.duck,d,bottleOpts(d,now,-1,ra));for(const d of pond){if(!d._s||d.bottle)continue;const[px,py]=w2s(d.x,d.y),[X,Y,k]=proj(px,py),f=duckFace(d,now),size=d._s,bob=size*(0.36+0.03*Math.sin(now/700+d.ph));
     drawDuckScene(G3.duck,d.type,{rot:new Float32Array([f[0],f[1],0, 0,0,-1, -f[1],f[0],0]),size,pos:[px-MW/2,py-MH/2,-bob],view:cam.view,proj:cam.proj,viewRot:cam.viewRot,env:{x:X,y:Y,lights:[]},px:size*k,alpha:ra*(d.fade!=null?d.fade:1),mirror:true});}
     gl.clear(gl.DEPTH_BUFFER_BIT);}
+  for(const d of pond)if(d._s&&d.bottle){if(!envd){duckEnvUpdate(mc,now,G3.duck);envd=true;}drawBottleScene(G3.duck,d,bottleOpts(d,now,1,1));} // glass: it reflects the scene round it
   for(const d of pond){if(!d._s||d.bottle)continue;const v=DUCK_TYPES[d.type]||{},refl=v.mat==='metal'||v.mat==='gold'||v.mat==='glass',[px,py]=w2s(d.x,d.y),[X,Y,k]=proj(px,py);
     if(refl&&!envd){duckEnvUpdate(mc,now,G3.duck);envd=true;}
     const f=duckFace(d,now),size=d._s; // upright on the plane: its forward along its heading, its up out of the plane (mirrored across, as the view flips y)
@@ -642,7 +646,7 @@ sc.addEventListener('click',e=>{
 sc.addEventListener('mouseleave',()=>{hQ=null;hR=null;});
 document.addEventListener('click',e=>{ // a lake duck clicked (even under a read-out like the legend): dunked, it comes back up — and the click goes no further
   if(drag&&drag.moved)return;if(currentView!=='map'||menuOpen||shopUI||!(e.target===sc||(e.target.closest&&!e.target.closest('button,.slot,.shop,input,select,#hdock,#tuneP,#mModes,#shop,#menu,#day-report,#letter'))))return;
-  const du=duckUnder(e.clientX,e.clientY);if(!du||du.dunk)return;e.stopPropagation();if(du.bottle){openBottle(du);return;}
+  const du=duckUnder(e.clientX,e.clientY);if(!du||du.dunk)return;e.stopPropagation();if(du.bottle){if(!du.empty)openBottle(du);return;}
   du.dunk=performance.now();ripples.push({x:du.x,y:du.y,t:du.dunk,dk:onWhite(du.x,du.y),big:1});neb({cmd:'quack',type:du.type,v:1});},true);
 document.addEventListener('keydown',e=>{
   if(e.code==='Escape'){e.preventDefault();if(letter){closeLetter();return;}if(shopUI){closeShop();return;}if(currentView==='map'&&armed){armed=null;weaveSel=[];weaveAsk=null;updateHint();syncDock();return;}if(currentView==='map')toggleMenu();return;}
@@ -680,14 +684,14 @@ function spawnLakeDuck(now,bottle,splash){ // a duck of yours swims (or splashes
   const free=bottle?['bottle']:roster.filter((t,i)=>(used[t]||0)<roster.slice(0,i+1).filter(x=>x===t).length);if(!free.length||!water.pts.length)return;
   const type=free[(Math.random()*free.length)|0];
   for(let tries=0;tries<12;tries++){const P=water.pts[(Math.random()*water.pts.length)|0],hd=Math.random()*6.2832,dx=Math.cos(hd),dy=Math.sin(hd);
-    if(splash||Math.random()<0.3){pond.push({type,x:P[0],y:P[1],hd,sp:0,cur:0,next:now+1500,born:now,splash:true,seen:true,lastRip:0,ph:Math.random()*6.28,bottle});ripples.push({x:P[0],y:P[1],t:now,dk:onWhite(P[0],P[1]),big:1});return;} // splashes up from under the surface
+    if(splash||Math.random()<0.3){pond.push({type,x:P[0],y:P[1],hd,sp:0,cur:0,next:now+1500,born:now,splash:true,seen:true,lastRip:0,ph:Math.random()*6.28,bottle,col:bottle?['clear','green','brown'][(Math.random()*3)|0]:null});ripples.push({x:P[0],y:P[1],t:now,dk:onWhite(P[0],P[1]),big:1});return;} // splashes up from under the surface
     let x=P[0],y=P[1],ok=true;for(let k=0;k<80;k++){x-=dx*HEX*0.5;y-=dy*HEX*0.5;if(!isWater(x,y)){ok=false;break;}const[X,Y]=w2sc(x,y);if(offView(X,Y,HEX*1.2))break;} // back along its way until it is off screen
-    if(!ok)continue;pond.push({type,x,y,hd,sp:0.45,cur:(Math.random()-0.5)*0.004,next:now+2000+Math.random()*2500,born:now,splash:false,seen:false,lastRip:0,ph:Math.random()*6.28,bottle});return;}}
+    if(!ok)continue;pond.push({type,x,y,hd,sp:0.45,cur:(Math.random()-0.5)*0.004,next:now+2000+Math.random()*2500,born:now,splash:false,seen:false,lastRip:0,ph:Math.random()*6.28,bottle,col:bottle?['clear','green','brown'][(Math.random()*3)|0]:null});return;}}
 function openBottle(d){ // clicked: the cork comes out and the letter is unrolled to read (one you have not read yet, while there are any)
-  pond=pond.filter(x=>x!==d);ripples.push({x:d.x,y:d.y,t:performance.now(),dk:onWhite(d.x,d.y),big:1});
-  let rd=[];try{rd=JSON.parse(localStorage.getItem(LETTER_KEY)||'[]')||[];}catch(e){}if(rd.length>=LETTERS.length)rd=[];
-  const left=LETTERS.map((_,i)=>i).filter(i=>!rd.includes(i)),i=left[(Math.random()*left.length)|0];rd.push(i);try{localStorage.setItem(LETTER_KEY,JSON.stringify(rd));}catch(e){}
-  letter=LETTERS[i];const el=document.getElementById('letter');el.querySelector('.lt').textContent=letter.t;el.querySelector('.lf').textContent=letter.f;el.querySelector('.ln').textContent=(rd.length)+' of '+LETTERS.length+' read';
+  d.empty=true;d.kick=2;d.dash=performance.now()+800;ripples.push({x:d.x,y:d.y,t:performance.now(),dk:onWhite(d.x,d.y),big:1}); // the empty bottle goes back on the water
+  let rd=[];try{rd=JSON.parse(localStorage.getItem(LETTER_KEY)||'[]')||[];}catch(e){}
+  const left=LETTERS.map((_,i)=>i).filter(i=>!rd.includes(i)),i=left.length?left[(Math.random()*left.length)|0]:(Math.random()*LETTERS.length)|0;if(!rd.includes(i))rd.push(i);try{localStorage.setItem(LETTER_KEY,JSON.stringify(rd));}catch(e){} // collected for good (the Guide's Letters); once every one is found, they come again
+  letter=LETTERS[i];const el=document.getElementById('letter');el.querySelector('.lt').textContent=letter.t;el.querySelector('.lf').textContent=letter.f;el.querySelector('.ln').textContent=(rd.length)+' of '+LETTERS.length+' letters collected · kept in the Guide (Letters)';
   el.classList.remove('show');void el.offsetWidth;el.classList.add('show');hubEvent('map_bottle');}
 function closeLetter(){letter=null;document.getElementById('letter').classList.remove('show');evPump();}
 const LETTER_KEY='il_letters_v1';
@@ -720,7 +724,7 @@ function pondStep(now){
     const t=d.bottle?{scale:1.4}:DUCK_TYPES[d.type]||{},pop=(d.splash?Math.min(1,(now-d.born)/700):1)*dkS;d._s=HEX*0.62*(t.scale||1)/(t.head?1.25:1)*pop;return true;}); // world units per model unit (its type's size; a splash grows it up out of the water)
   ripples=ripples.filter(r=>now-r.t<1800);
   for(const r of ripples){const a=(now-r.t)/1800,[X,Y]=w2s(r.x,r.y),R=4+a*HEX*(r.big?1.6:0.9);c.strokeStyle=`rgba(${r.dk?'20,24,32':sunInk().join(',')},${(0.5*(1-a)*(1-a)).toFixed(3)})`;c.lineWidth=r.big?2:1.4;c.beginPath();c.arc(X,Y,R,0,6.2832);c.stroke();} // rings on the water (the camera foreshortens them)
-  for(const d of pond)if(d._s){const[X,Y]=w2s(d.x,d.y);if(d.bottle){drawBottle(c,X,Y,d._s,d.hd,now,d.ph);continue;}duckGlow(c,d.type,X,Y,d._s,now,d.ph); // a Bright / Shining / Dim duck lights the water round it
+  for(const d of pond)if(d._s){const[X,Y]=w2s(d.x,d.y);if(d.bottle)continue;duckGlow(c,d.type,X,Y,d._s,now,d.ph); // a Bright / Shining / Dim duck lights the water round it
     const r=Math.max(0,Math.min(1,(d.sp-0.6)/0.9)); // paddling hard: the same bow wake a pigment pushes into particles, on the water ahead of it
     if(r>0.02){const ink=onWhite(d.x,d.y)?[20,24,32]:sunInk();drawWakeShape(c,X,Y,Math.cos(d.hd),Math.sin(d.hd),d._s*1.4,r,Math.min(0.45,(T.wakeMaxA!=null?T.wakeMaxA:0.35)*1.2*Math.min(1,r*1.6)),ink,ink);}}
 }
@@ -986,7 +990,7 @@ function feedTick(now){ // the feed: a recent message, else what the cursor is o
   if(now-feedMsg.at<3500){a=feedMsg.t;b=feedMsg.d;}
   else if(shopUI){[a,b]=shopHover||[SHOPS[shopUI.id].n,shopUI.exit?'':'Point at an item to read about it'];}
   else if(over&&over.closest&&over.closest('.shop')){[a,b]=shopInfo(over.closest('.shop').dataset.key);}
-  else if(du&&du.bottle){a='A message in a bottle';b='Click it to open it and read the letter inside';}
+  else if(du&&du.bottle){a=du.empty?'An empty bottle':'A message in a bottle';b=du.empty?'Its letter is in the Guide (Letters)':'Click it to open it and read the letter inside';}
   else if(du){const v=DUCK_TYPES[du.type]||{};a=duckStar(v)+(v.name||'Duck')+' × '+(duckLog[du.type]||0);b=(v.axis||'')+(v.detail?': '+v.detail:'')+' · swimming on the lake';}
   else if(hc){[a,b]=hexInfo(hc);}else{[a,b]=hintLine;}
   if(fn.textContent!==a)fn.textContent=a||'';if(fdd.textContent!==(b||''))fdd.textContent=b||'';}
