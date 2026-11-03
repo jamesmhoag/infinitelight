@@ -18,11 +18,26 @@ const DUCK_YEL=[255,222,40],DUCK_ORA=[255,128,10];
 const DUCK_MAT={plastic:0,wood:1,metal:2,glass:3,dim:4,bright:5,shining:6,gold:7,crystal:9,eclipse:10,shadow:11,paper:12}; // (8: rainbow)
 const duckStar=v=>v&&v.rare?'★ ':v&&v.mid?'☆ ':''; // a rare exotic's mark; a mid-tier one's
 const _duckModels=new Map();let _duckTex=null;
-function duckModel(type){ // a type = one of the two baked meshes + its own colours and material
-  if(_duckModels.has(type))return _duckModels.get(type);
+function duckModel(type){ // a type = one of the two baked meshes + its own colours and material (or 'bottle:<colour>:<part>', a message in a bottle's glass, cork or letter)
+  if(_duckModels.has(type))return _duckModels.get(type);if(type.slice(0,7)==='bottle:')return bottleModel(type);
   const v=DUCK_TYPES[type]||DUCK_TYPES.classic,geo=duckGeo(v.head?'bighead':'classic');if(!geo)return null;
   const M={g:geo,mat:v.tex==='rainbow'?8:DUCK_MAT[v.mat||'plastic'],c1:(v.col||DUCK_YEL).map(c=>c/255),c2:(v.col2||DUCK_ORA).map(c=>c/255)};
   _duckModels.set(type,M);return M;}
+// ── A message in a bottle: a lathed glass bottle lying along its x axis (as a duck faces x), its cork, and the rolled letter inside; drawn by the duck renderer ──
+const BOTTLE_COL={clear:[214,236,240],green:[66,140,84],brown:[128,74,30]};
+function latheGeo(prof,seg){ // prof: [[x, r], …] round the x axis → a mesh the duck shader can draw (no markings: its uv points at the strip's empty corner)
+  const pos=[],nrm=[],uv=[],idx=[],n=prof.length;let R=0;
+  for(let i=0;i<n;i++){const[x,r]=prof[i],a=prof[Math.max(0,i-1)],b=prof[Math.min(n-1,i+1)],dx=b[0]-a[0],dr=b[1]-a[1],l=Math.hypot(dx,dr)||1,nx=-dr/l,nr=dx/l;
+    for(let j=0;j<=seg;j++){const t=j/seg*6.2832,c=Math.cos(t),sn=Math.sin(t);pos.push(x,r*c,r*sn);nrm.push(nx,nr*c,nr*sn);uv.push(0,0,128,-1);R=Math.max(R,Math.hypot(x,r));}}
+  for(let i=0;i<n-1;i++)for(let j=0;j<seg;j++){const a=i*(seg+1)+j,b=a+seg+1;idx.push(a,a+1,b,a+1,b+1,b);}
+  return{pos:new Float32Array(pos),nrm:new Float32Array(nrm),uv:new Float32Array(uv),idx:new Uint16Array(idx),R};}
+function bottleModel(type){const[,col,part]=type.split(':');let g=_duckModels.get('geo|bottle:'+part);
+  if(!g){const P={glass:[[-1,0],[-1,0.2],[-0.97,0.29],[-0.9,0.32],[0.3,0.32],[0.45,0.27],[0.58,0.15],[0.66,0.115],[0.92,0.115],[0.95,0.14],[1,0.14],[1,0.1],[0.95,0.1]],
+      cork:[[0.82,0],[0.82,0.105],[1.1,0.105],[1.13,0.09],[1.13,0]],note:[[-0.72,0],[-0.72,0.15],[0.3,0.15],[0.3,0]]}[part];
+    g=latheGeo(P,part==='glass'?28:16);_duckModels.set('geo|bottle:'+part,g);}
+  const c=part==='glass'?BOTTLE_COL[col]||BOTTLE_COL.clear:part==='cork'?[176,126,78]:[238,228,198],M={g,nomk:1,mat:part==='glass'?3:1,c1:c.map(v=>v/255),c2:c.map(v=>v/255)};_duckModels.set(type,M);return M;}
+function drawBottleScene(G,d,o){ // a bottle on the lake: the letter (until it is opened), the cork, then the glass over them
+  for(const part of d.empty?['glass']:['note','cork','glass'])drawDuckScene(G,'bottle:'+d.col+':'+part,o);}
 function duckGeo(shape){return _duckModels.get('geo|'+shape)||null;} // decoded once at load (duckLoad)
 async function duckLoad(){ // the two baked meshes and the markings texture: decompressed and decoded once, at load
   const D=DUCK_MESH;if(!D.nv)return;
@@ -45,16 +60,17 @@ function duckCtx(gl){
   const sh=(t,src)=>{const s=gl.createShader(t);gl.shaderSource(s,src);gl.compileShader(s);if(!gl.getShaderParameter(s,gl.COMPILE_STATUS))console.error(gl.getShaderInfoLog(s));return s;};
   const pr=gl.createProgram();
   gl.attachShader(pr,sh(gl.VERTEX_SHADER,'attribute vec3 aP;attribute vec3 aN;attribute vec4 aU;uniform mat3 uR;uniform vec2 uK;uniform float uFl;varying vec3 vN;varying vec3 vM;varying vec4 vU;varying vec3 vP;'+
-    'uniform float uSc;uniform mat4 uV;uniform mat4 uPj;uniform mat3 uVR;uniform vec3 uPos;uniform float uMS;'+ // uSc: in a scene (uR = the duck's turn in the world, uMS its size, uPos where it is; uV / uPj the camera)
+    'uniform float uSc;uniform mat4 uV;uniform mat4 uPj;uniform mat3 uVR;uniform vec3 uPos;uniform float uMS;varying float vH;'+ // uSc: in a scene (uR = the duck's turn in the world, uMS its size, uPos where it is; uV / uPj the camera)
     'void main(){vec3 P=aP,N=aN;if(uFl>0.0){P.z*=uFl;N=vec3(0.0,0.0,aN.z>=0.0?1.0:-1.0);}'+ // Paper: pressed flat to a thin card, each face the side view as drawn
-    'vM=N;vU=aU;if(uSc>0.5){vec4 v=uV*vec4(uPos+uR*P*uMS,1.0);vP=v.xyz;vN=uVR*(uR*N);gl_Position=uPj*v;}'+
+    'vM=N;vU=aU;vH=0.0;if(uSc>0.5){vec3 w=uPos+uR*P*uMS;vH=w.z;vec4 v=uV*vec4(w,1.0);vP=v.xyz;vN=uVR*(uR*N);gl_Position=uPj*v;}'+
     'else{vec3 p=uR*P;vP=p;vN=uR*N;gl_Position=vec4(p.xy*uK.x,-p.z*uK.y,1.0);}}'));
-  gl.attachShader(pr,sh(gl.FRAGMENT_SHADER,(dd?'#extension GL_OES_standard_derivatives : enable\n':'')+'precision mediump float;varying vec3 vN;varying vec3 vM;varying vec4 vU;varying vec3 vP;uniform float uBp;'+
+  gl.attachShader(pr,sh(gl.FRAGMENT_SHADER,(dd?'#extension GL_OES_standard_derivatives : enable\n':'')+'precision mediump float;varying vec3 vN;varying vec3 vM;varying vec4 vU;varying vec3 vP;varying float vH;uniform float uCl;uniform float uNk;uniform float uBp;'+
     'uniform vec3 uC1;uniform vec3 uC2;uniform float uM;uniform float uGl;uniform float uTr;uniform float uA;uniform sampler2D uTex;uniform vec4 uTS;'+
     'uniform sampler2D uEnv;uniform vec3 uEP;uniform float uEA;uniform vec4 uLd[6];uniform vec3 uLc[6];uniform vec3 uDim;uniform float uAA;uniform vec3 uSunL;uniform vec3 uSunC;'+
     'vec3 hue(float h){return clamp(abs(mod(h*6.0+vec3(0.0,4.0,2.0),6.0)-3.0)-1.0,0.0,1.0);}'+
     'float cov(float v){float d=(v*255.0-128.0)/48.0;float w='+(dd?'max(fwidth(d)*0.75,0.02)':'uAA')+';return smoothstep(-w,w,d);}'+ // distance field → anti-aliased coverage
-    'void main(){vec3 n=normalize(vN);if(!gl_FrontFacing)n=-n;vec3 V=vec3(0.0,0.0,1.0),L=normalize(uSunL),H=normalize(L+V);'+ // the time of day's sun or moon (duckSun)
+    'void main(){if(uCl*vH<0.0)discard;vec3 n=normalize(vN);'+ // uCl: only what is above the water (1), or below it (−1, a reflection) — a bottle floats half under
+    'if(!gl_FrontFacing)n=-n;vec3 V=vec3(0.0,0.0,1.0),L=normalize(uSunL),H=normalize(L+V);'+ // the time of day's sun or moon (duckSun)
     'float dif=max(0.0,dot(n,L)),nh=max(0.0,dot(n,H)),nz=max(0.0,n.z),edg=1.0-nz,rim=pow(edg,3.0);'+
     'float pw=uTS.w*uTS.x;vec4 mk=texture2D(uTex,vec2(vU.x/pw,vU.y/uTS.y)),mf=texture2D(uTex,vec2((uTS.x+uTS.z+vU.z-128.0)/pw,vU.y/uTS.y)),mt=texture2D(uTex,vec2((2.0*uTS.x+vU.x)/pw,(vU.z-128.0+0.5*uTS.y)/uTS.y));'+ // side view; front view by depth across; top view (if drawn) by depth across
     'vec3 mn=normalize(vM);float side=smoothstep(0.3,0.5,abs(mn.z)),notTop=1.0-smoothstep(0.8,0.95,abs(mn.y)),fw=smoothstep(0.5,0.85,mn.x);'+ // fw: faces forward
@@ -64,6 +80,7 @@ function duckCtx(gl){
     (dd?'if(uBp>0.0){float sd=smoothstep(-1.4,0.6,(mk.b*255.0-128.0)/48.0)*side,sm=max(smoothstep(-1.4,0.6,(mk.a*255.0-128.0)/48.0)*(1.0-fv),smoothstep(-1.4,0.6,(mf.a*255.0-128.0)/48.0)*fv),se=smoothstep(-1.4,0.6,(mk.g*255.0-128.0)/48.0)*side;'+ // bump: lines and the mouth dip, the eyes stand proud — shading, not geometry (the SVG-baked mesh carries no grooves)
       'float pe=smoothstep(-3.0,-1.0,(mk.g*255.0-128.0)/48.0);float hb=(0.55*se-0.9*sd*(1.0-pe)*(1.0-beak))*uBp;vec3 dpx=dFdx(vP),dpy=dFdy(vP);float hx=dFdx(hb),hy=dFdy(hb);vec3 r1=cross(dpy,n),r2=cross(n,dpx);float det=dot(dpx,r1);'+
       'if(abs(det)>1e-9){n=normalize(abs(det)*n-sign(det)*(hx*r1+hy*r2));dif=max(0.0,dot(n,L));nh=max(0.0,dot(n,H));nz=max(0.0,n.z);edg=1.0-nz;rim=pow(edg,3.0);}}':'')+
+    'if(uNk>0.5){beak=0.0;eye=0.0;ln=0.0;}'+ // a plain model (a bottle): no duck markings
     'float m=uM;vec3 c=mix(uC1,uC2,beak);if(m==8.0){c=mix(hue(fract(vU.x/149.0+vU.y/138.0*0.6)),uC2,beak);m=0.0;}'+
     'float g=0.5+0.5*sin(vU.x*0.33+4.0*sin(vU.y*0.06+vU.x*0.01)+vU.y*0.04);vec3 eC=vec3(0.98),lC=vec3(0.086,0.086,0.1);'+
     'if(m==1.0){eC=uC1*(1.05+0.35*g);lC=uC1*(0.22+0.12*g);}'+ // wood: wooden eyes, darkened wood in the mouth and lines
@@ -89,7 +106,7 @@ function duckCtx(gl){
     'a*=uA;gl_FragColor=vec4(min(col,vec3(1.0))*a,a);}'));
   gl.linkProgram(pr);if(!gl.getProgramParameter(pr,gl.LINK_STATUS)){console.error(gl.getProgramInfoLog(pr));return null;}
   const at={},un={};for(const k of ['aP','aN','aU'])at[k]=gl.getAttribLocation(pr,k);
-  for(const k of ['uFl','uR','uK','uC1','uC2','uM','uGl','uTr','uA','uTex','uTS','uEnv','uEP','uEA','uLd','uLc','uDim','uAA','uBp','uSc','uV','uPj','uVR','uPos','uMS','uSunL','uSunC'])un[k]=gl.getUniformLocation(pr,k);
+  for(const k of ['uNk','uCl','uFl','uR','uK','uC1','uC2','uM','uGl','uTr','uA','uTex','uTS','uEnv','uEP','uEA','uLd','uLc','uDim','uAA','uBp','uSc','uV','uPj','uVR','uPos','uMS','uSunL','uSunC'])un[k]=gl.getUniformLocation(pr,k);
   const envT=gl.createTexture();gl.bindTexture(gl.TEXTURE_2D,envT);gl.texImage2D(gl.TEXTURE_2D,0,gl.RGBA,1,1,0,gl.RGBA,gl.UNSIGNED_BYTE,new Uint8Array([0,0,0,255]));
   for(const [p,v] of [[gl.TEXTURE_MIN_FILTER,gl.LINEAR],[gl.TEXTURE_MAG_FILTER,gl.LINEAR],[gl.TEXTURE_WRAP_S,gl.CLAMP_TO_EDGE],[gl.TEXTURE_WRAP_T,gl.CLAMP_TO_EDGE]])gl.texParameteri(gl.TEXTURE_2D,p,v);
   return{gl,pr,at,un,envT,envCv:document.createElement('canvas'),envAt:-1,bufs:new Map(),mtex:null};}
@@ -133,7 +150,7 @@ function duckBind(G,M,env,hpx){ // everything a duck draw shares: its mesh and m
       ld.set([dx,dy,dz,l[5]*T.metalLightA],i*4);lc.set([mix(l[2]),mix(l[3]),mix(l[4])],i*3);});}
   else{gl.uniform3f(u.uEP,0.5,0.5,0.22);gl.uniform1f(u.uEA,refl?0.5:0);}
   gl.uniform4fv(u.uLd,ld);gl.uniform3fv(u.uLc,lc);gl.uniform3f(u.uDim,T.dimGlowRed/255,T.dimGlowGreen/255,T.dimGlowBlue/255);gl.uniform1f(u.uAA,Math.max(0.05,0.6/Math.max(1,hpx*0.01)));
-  gl.uniform3fv(u.uSunL,DUCK_SUN.d);gl.uniform3fv(u.uSunC,DUCK_SUN.c);gl.uniform3fv(u.uC1,M.c1);gl.uniform3fv(u.uC2,M.c2);gl.uniform1f(u.uM,M.mat);gl.uniform1f(u.uFl,M.mat===12?0.07:0);gl.uniform1f(u.uGl,T.duckGloss);gl.uniform1f(u.uTr,T.duckTrans);}
+  gl.uniform3fv(u.uSunL,DUCK_SUN.d);gl.uniform3fv(u.uSunC,DUCK_SUN.c);gl.uniform3fv(u.uC1,M.c1);gl.uniform3fv(u.uC2,M.c2);gl.uniform1f(u.uM,M.mat);gl.uniform1f(u.uFl,M.mat===12?0.07:0);gl.uniform1f(u.uNk,M.nomk?1:0);gl.uniform1f(u.uGl,T.duckGloss);gl.uniform1f(u.uTr,T.duckTrans);}
 function duckDrawCalls(G,M){ // depth pre-pass so only the nearest surface is coloured; glass shows its inside wall first
   const gl=G.gl,n=M.g.idx.length;gl.enable(gl.DEPTH_TEST);gl.depthFunc(gl.LEQUAL);gl.enable(gl.BLEND);gl.blendFunc(gl.ONE,gl.ONE_MINUS_SRC_ALPHA);gl.enable(gl.CULL_FACE);
   if(M.mat===3){gl.cullFace(gl.FRONT);gl.drawElements(gl.TRIANGLES,n,gl.UNSIGNED_SHORT,0);}
@@ -147,7 +164,7 @@ function drawDuck3D(c,type,q,at,h,alpha,maxS,env){ // the type's model turned by
   if(G.cv.width<S||G.cv.height<S){G.cv.width=G.cv.height=Math.min(2048,Math.max(S,G.cv.width*2));}
   gl.viewport(0,0,S,S);gl.enable(gl.SCISSOR_TEST);gl.scissor(0,0,S+2,S+2);gl.clearColor(0,0,0,0);gl.clearDepth(1);gl.clear(gl.COLOR_BUFFER_BIT|gl.DEPTH_BUFFER_BIT);gl.scissor(0,0,S,S); // the clear runs 2px past the copied square: the copy's filtering reads a pixel beyond it
   duckBind(G,M,env,h);const u=G.un;
-  gl.uniform1f(u.uSc,0);gl.uniform1f(u.uBp,DUCK_MESH.tex.b?T.duckBump/_duckTex.t:0); // bump depth in model units (a strip px is 1/t of one)
+  gl.uniform1f(u.uSc,0);gl.uniform1f(u.uCl,0);gl.uniform1f(u.uBp,DUCK_MESH.tex.b?T.duckBump/_duckTex.t:0); // bump depth in model units (a strip px is 1/t of one)
   gl.uniformMatrix3fv(u.uR,false,quatMat(q));gl.uniform2f(u.uK,2*h/S,1/(M.g.R+0.01));gl.uniform1f(u.uA,1);
   duckDrawCalls(G,M);
   const sy=G.cv.height-S;c.save();c.globalAlpha*=alpha;for(const p of at)c.drawImage(G.cv,0,sy,S,S,p[0]-S/2,p[1]-S/2,S,S);c.restore();}
@@ -155,7 +172,7 @@ function drawDuckScene(G,type,o){ // a duck straight into a scene (G = duckCtx o
   // world, o.size world units per model unit, o.pos where it is, o.view / o.proj / o.viewRot the camera; o.env as drawDuck3D (screen px), o.px its size on screen
   const M=duckModel(type);if(!G||!M||!_duckTex)return;const gl=G.gl,u=G.un;
   duckBind(G,M,o.env,o.px||o.size);
-  gl.uniform1f(u.uSc,1);gl.uniform1f(u.uBp,DUCK_MESH.tex.b?T.duckBump/_duckTex.t*o.size:0);
+  gl.uniform1f(u.uSc,1);gl.uniform1f(u.uCl,o.clip||0);gl.uniform1f(u.uBp,DUCK_MESH.tex.b?T.duckBump/_duckTex.t*o.size:0);
   gl.uniformMatrix3fv(u.uR,false,o.rot);gl.uniform1f(u.uMS,o.size);gl.uniform3fv(u.uPos,o.pos);gl.uniformMatrix4fv(u.uV,false,o.view);gl.uniformMatrix4fv(u.uPj,false,o.proj);gl.uniformMatrix3fv(u.uVR,false,o.viewRot);
   gl.uniform1f(u.uA,o.alpha==null?1:o.alpha);if(o.mirror)gl.frontFace(gl.CW);duckDrawCalls(G,M);if(o.mirror)gl.frontFace(gl.CCW);} // o.mirror: a reflection (its turn mirrored), so its faces wind the other way
 // (a Bright / Shining duck's glow takes the time of day's colour, as its body does)
@@ -442,16 +459,9 @@ const LETTERS=[
  {t:'The light here is borrowed. Make some of your own.',f:'— Y.'},
  {t:'I think escape is not a door. I think it is a choice you make again every day. Today I chose. Tomorrow I will choose again.',f:'— Z.'},
  {t:'If no one has said it yet today: well done.',f:'— a stranger who means it'}];
-function drawBottle(c,X,Y,s,hd,now,ph){ // a glass bottle on its side, corked, a rolled letter inside; it rocks on the water
-  const L=s*1.5,W=s*0.5,rk=Math.sin(now/900+ph)*0.12;c.save();c.translate(X,Y);c.rotate(hd+rk);
-  c.fillStyle='rgba(0,0,0,0.22)';c.beginPath();c.ellipse(2,3,L*0.55,W*0.62,0,0,6.2832);c.fill(); // its shadow in the water
-  const g=c.createLinearGradient(0,-W/2,0,W/2);g.addColorStop(0,'rgba(190,235,215,0.75)');g.addColorStop(0.5,'rgba(90,160,135,0.55)');g.addColorStop(1,'rgba(40,90,80,0.7)');
-  c.fillStyle=g;c.beginPath();c.roundRect(-L*0.5,-W/2,L*0.68,W,W*0.42);c.fill(); // the body
-  c.beginPath();c.moveTo(L*0.16,-W*0.42);c.quadraticCurveTo(L*0.3,-W*0.2,L*0.36,-W*0.18);c.lineTo(L*0.36,W*0.18);c.quadraticCurveTo(L*0.3,W*0.2,L*0.16,W*0.42);c.closePath();c.fill(); // the shoulder and neck
-  c.fillStyle='#f1e6c8';c.fillRect(-L*0.36,-W*0.17,L*0.44,W*0.34);c.strokeStyle='rgba(120,90,50,0.6)';c.lineWidth=Math.max(0.6,s*0.03);for(let i=1;i<4;i++){const x=-L*0.36+i*L*0.11;c.beginPath();c.moveTo(x,-W*0.17);c.lineTo(x,W*0.17);c.stroke();} // the rolled letter
-  c.fillStyle='#b07a42';c.beginPath();c.roundRect(L*0.35,-W*0.16,L*0.14,W*0.32,W*0.06);c.fill();c.fillStyle='rgba(255,255,255,0.18)';c.fillRect(L*0.37,-W*0.13,L*0.1,W*0.08); // the cork
-  c.strokeStyle='rgba(235,255,245,0.65)';c.lineWidth=Math.max(0.8,s*0.05);c.beginPath();c.moveTo(-L*0.4,-W*0.3);c.lineTo(L*0.1,-W*0.3);c.stroke(); // a glint
-  c.restore();}
+function drawBottle(c,X,Y,s,hd,now,ph,col){ // a message in a bottle as an icon: the 3D bottle, turned a little
+  const yaw=hd+Math.sin(now/900+(ph||0))*0.12,q=[0,Math.sin(yaw/2),0,Math.cos(yaw/2)],tl=[Math.sin(0.25),0,0,Math.cos(0.25)],m=(a,b)=>[a[3]*b[0]+a[0]*b[3]+a[1]*b[2]-a[2]*b[1],a[3]*b[1]-a[0]*b[2]+a[1]*b[3]+a[2]*b[0],a[3]*b[2]+a[0]*b[1]-a[1]*b[0]+a[2]*b[3],a[3]*b[3]-a[0]*b[0]-a[1]*b[1]-a[2]*b[2]],Q=m(tl,q);
+  for(const part of ['note','cork','glass'])drawDuck3D(c,'bottle:'+(col||'green')+':'+part,Q,[[X,Y]],s,1,0,null);}
 function drawHeatArc(cx,x,y,R,now,heat){ // heat (or its cooldown draining) round the inside of a cursor's ring
   const d=heat.disp;if(d<0.012)return;const cool=heat.until>now,r=R*0.82;
   cx.save();cx.lineCap='round';cx.lineWidth=Math.max(1.4,R*0.12);

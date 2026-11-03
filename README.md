@@ -31,12 +31,14 @@ The Surface Map draws its ground on a 2D canvas and sends it to the GPU every fr
 - `chromaticNebulaInventory_v1` — items, resources, discoveries and the duck collection (kept by a new map)
 - `nebula-config` — tuners, sound setting, hex-layer tuners
 - `il_map_v1` — the Surface Map (pop-up shops live on their hexes)
-- `il_letters_v1` — which messages in a bottle you have read
+- `il_letters_v1` — the letters you have found (the Guide's Letters book, in the order found)
 - `il_souvenirs_v1` — Gift Shop souvenirs (kept through the Gift Shop's wipe)
 - IndexedDB `infiniteLight` / `kv` / `session` — the unfinished surface, saved exactly when you leave it
 
 ## Keys
 - **Esc** — pause menu (sound + volume, readouts, Guide, quit). On the map: sound, Guide, hex-layer tuners, quit.
+- **~** (or H) — hide / show the panels, on a surface and on the Surface Map
+- **Surface Map**: Modes (Telemetry: each hex's value, coverage and ring on the ground; Stats: fps, frame times and the hex grid; the Performance log) and Tune (every tuner, as on a surface). Lake ducks: brush one slowly and it spins, hit it fast and it putters off, click it and it is dunked. Now and then a message in a bottle floats in (`mapBottleMs`): a 3D clear, green or brown glass bottle (drawn by the duck renderer, `bottleModel` in `shared.js`), half under the water and reflected in it. It drifts like a duck; clicking it opens a letter (`LETTERS`), and the empty bottle goes back on the water. Letters found are kept (`il_letters_v1`) and read in the Guide's **Letters** book
 - **~** (or H) — hide / show the panels (and the time of day), on a surface and on the Surface Map: one setting for both
 - **Surface Map**: Modes (Telemetry: each hex's value, coverage and ring on the ground; Stats: fps, frame times and the hex grid; the Performance log) and Tune (every tuner, as on a surface). Lake ducks: brush one slowly and it spins, hit it fast and it putters off, click it and it is dunked. Now and then a message in a bottle floats in (`mapBottleMs`): it drifts like a duck, and clicking it opens a letter (`LETTERS` in `shared.js`)
 - **Spindle** (armed on the map): a cleared hex back to a surface, or an open hex below 1.00 wound up to 1.00 and held there until cleared
