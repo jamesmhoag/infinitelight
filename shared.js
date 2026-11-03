@@ -60,16 +60,16 @@ function shopModel(id,bk,lit,fl,si,open){ // si: the sign's loaded image; open: 
   const L=-W/2,WN=B.win.map(([a,b,e,f])=>[L+a,b,L+e,f]),xs=[...new Set([L,W/2,...WN.flatMap(w=>[w[0],w[2]])])].sort((a,b)=>a-b),ys=[...new Set([0,H,...WN.flatMap(w=>[w[1],w[3]])])].sort((a,b)=>a-b),U0=sw_(0);
   for(let i=0;i<xs.length-1;i++)for(let j=0;j<ys.length-1;j++){const cx=(xs[i]+xs[i+1])/2,cy=(ys[j]+ys[j+1])/2;if(WN.some(w=>cx>w[0]&&cx<w[2]&&cy>w[1]&&cy<w[3]))continue; // the front wall, round its openings
     quad([[xs[i],ys[j],z0],[xs[i+1],ys[j],z0],[xs[i+1],ys[j+1],z0],[xs[i],ys[j+1],z0]],[0,0,1],U0);}
-  const rc=3,zr=z0-rc,R4=sw_(4),panes=[],F=lit?3:0,DR=WN.filter(w=>w[1]===0).map(w=>{const hb=B.bar.map(([a,b,e,f])=>[L+a,b,L+e,f]).filter(b=>b[0]>=w[0]-0.1&&b[2]<=w[2]+0.1&&b[3]-b[1]<2&&b[1]>0); // the doors: each opening that reaches the ground (its top: a transom bar across it, else the opening's)
-    const st=B.bar.map(([a,b,e,f])=>[L+a,b,L+e,f]).find(b=>b[1]===0&&b[2]-b[0]<2&&b[0]>w[0]&&b[2]<w[2]);return{w,top:hb.length?hb[0][1]:w[3],st};}); // st: the stile where two leaves meet
+  const rc=3,zr=z0-rc,R4=sw_(4),panes=[],F=lit?3:0,BW=B.bar.map(([a,b,e,f])=>[L+a,b,L+e,f]),inD=(b,w)=>b[0]>=w[0]-0.1&&b[2]<=w[2]+0.1&&b[1]>=w[1]-0.1&&b[3]<=w[3]+0.1,DR=WN.filter(w=>w[1]===0).map(w=>{ // the doors: each opening that reaches the ground, the whole of it (its glazing bars are the door's own)
+    const rails=BW.filter(b=>inD(b,w)&&b[3]-b[1]<2&&b[1]>0).map(b=>(b[1]+b[3])/2),st=BW.find(b=>inD(b,w)&&b[1]===0&&b[2]-b[0]<2&&b[0]>w[0]&&b[2]<w[2]);return{w,top:w[3],rails,st};}); // rails: across the door (they swing with it); st: the stile where two leaves meet
   for(const[x0,y0,x1,y1]of WN){ // each opening: its reveals back to the room, and a frame round it
     quad([[x0,y0,z0],[x0,y0,zr],[x0,y1,zr],[x0,y1,z0]],[1,0,0],R4);quad([[x1,y0,zr],[x1,y0,z0],[x1,y1,z0],[x1,y1,zr]],[-1,0,0],R4);quad([[x0,y1,z0],[x0,y1,zr],[x1,y1,zr],[x1,y1,z0]],[0,-1,0],R4);if(y0>0)quad([[x0,y0,zr],[x0,y0,z0],[x1,y0,z0],[x1,y0,zr]],[0,1,0],R4);
     box(x0-0.7,y0,z0-0.4,x0+0.3,y1+0.7,z0+0.5,2);box(x1-0.3,y0,z0-0.4,x1+0.7,y1+0.7,z0+0.5,2);box(x0-0.7,y1-0.3,z0-0.4,x1+0.7,y1+0.7,z0+0.5,2);if(y0>0)box(x0-1.2,y0-0.7,z0-0.4,x1+1.2,y0+0.3,z0+1.1,2);}
-  for(const[x0,y0,x1,y1]of B.bar){if(open&&DR.some(d=>d.st&&d.st[0]===L+x0&&d.st[1]===y0))continue;box(L+x0,y0,zr+0.5,L+x1,y1,z0+0.2,2);}
+  for(const b of BW){const d=DR.find(d=>inD(b,d.w));if(d&&(open||b!==d.st))continue;box(b[0],b[1],zr+0.5,b[2],b[3],z0+0.2,2);} // (a door's own bars are drawn with it; its meeting stile only while it is shut)
   for(const d of DR){const[x0,,x1]=d.w,zc=z0-0.7,t=d.top,leaves=d.st?[[x0+0.3,d.st[0],1],[x1-0.3,d.st[2],-1]]:[[x0+0.3,x1-0.3,1]]; // the doors: closed (glass in a frame), or, while its menu is open, open into the shop
     for(const[h,e,dir]of leaves){const w=Math.abs(e-h),a=open?1.25:0,fx=h+dir*w*Math.cos(a),fz=zc-w*Math.sin(a);
-      beam([h,0.4,zc],[fx,0.4,fz],0.8,2);beam([h,t-0.4,zc],[fx,t-0.4,fz],0.8,2);beam([h,0,zc],[h,t,zc],0.8,2);beam([fx,0,fz],[fx,t,fz],0.8,2);if(!open)panes.push([Math.min(h,fx)+0.4,0.8,Math.max(h,fx)-0.4,t-0.8,zc]);}
-    if(t<d.w[3]-0.5)panes.push([x0+0.35,t+0.9,x1-0.35,d.w[3]-0.35,z0-0.2]);} // and the transom above
+      beam([h,0.4,zc],[fx,0.4,fz],0.8,2);beam([h,t-0.4,zc],[fx,t-0.4,fz],0.8,2);beam([h,0,zc],[h,t,zc],0.8,2);beam([fx,0,fz],[fx,t,fz],0.8,2);for(const y of d.rails)beam([h,y,zc],[fx,y,fz],0.8,2);if(!open)panes.push([Math.min(h,fx)+0.4,0.8,Math.max(h,fx)-0.4,t-0.8,zc]);}
+  }
   for(const[x0,y0,x1,y1]of WN)if(y0>0){panes.push([x0+0.35,y0+0.35,x1-0.35,y1-0.35,z0-0.2]); // the glass of each window, and drapes in the shop's colour behind it
     const bxF=(a,b,e,f,g,h,i)=>{const n=pos.length/3;box(a,b,e,f,g,h,i);for(let k=n;k<pos.length/3;k++)uv[k*4+2]=F;};bxF(x0+0.2,y1-2.4,z0-1.8,x1-0.2,y1-0.2,z0-1.2,8);bxF(x0+0.2,y0+0.3,z0-1.8,x0+1.8,y1-2.4,z0-1.3,8);bxF(x1-1.8,y0+0.3,z0-1.8,x1-0.2,y1-2.4,z0-1.3,8);}
   for(const d of DR){const[x0,,x1,y1]=d.w,n=pos.length/3;box(x0+0.2,y1-2.2,z0-1.8,x1-0.2,y1-0.2,z0-1.2,8);for(let k=n;k<pos.length/3;k++)uv[k*4+2]=F;} // a valance over each door
@@ -397,8 +397,9 @@ function cursorDot(cx,x,y,dimA,edgeCol){
 // wall / roof / line its colours (line: frames, the roof's edge and the trim, as the drawings' outlines), and the room inside is built in 3D too (walls, floor, shelves of goods, a counter, a lamp; lit with the shop's colour when open).
 const SHOP_BLD={s:{w:58,h:30,d:24,win:[[4,0,24,22],[28,9,54,22]],bar:[[4,10,24,11]],posts:[[12,19],[39,46]],ph:6,wall:'#7f7f7f',roof:'#8a8a8a',line:'#595959'},
   m:{w:64,h:28,d:26,win:[[3,15,20,23],[22,15,35,23],[37,15,61,23],[7,3,20,11],[22,0,32,12],[34,3,57,11]],bar:[[26.6,0,27.4,12]],posts:[[8,11],[24,27],[37,40],[53,56]],ph:4,wall:'#adadad',roof:'#b8b8b8',line:'#595959'}};
-SHOP_BLD.d=Object.assign({},SHOP_BLD.s,{wall:'#0b0b0d',roof:'#141418',line:'#7f7f7f'});SHOP_BLD.l=Object.assign({},SHOP_BLD.m,{ph:11}); // the Gift Shop's dark one; rank 3's tall scaffolding
-const SHOP_RANK_BLD=['s','m','l'];
+SHOP_BLD.d=Object.assign({},SHOP_BLD.s,{wall:'#0b0b0d',roof:'#141418',line:'#7f7f7f'});SHOP_BLD.l=Object.assign({},SHOP_BLD.m,{ph:11}); // the Gift Shop's dark one; rank 3: the wide two-storey store with tall scaffolding
+SHOP_BLD.t={w:34,h:40,d:20,win:[[4,28,15,36],[19,28,30,36],[4,16,15,24],[19,16,30,24],[4,0,14,13],[18,3,30,11]],bar:[[4,6.5,14,7.3]],posts:[[6,10],[24,28]],ph:5,wall:'#8c8c8c',roof:'#989898',line:'#595959'}; // rank 2: the tall one (three storeys, narrow)
+const SHOP_RANK_BLD=['s','t','l']; // a pop-up's store by rank: small, tall, wide and two-storey (the biggest)
 const HUB_SLOTS=[180,0]; // (the hex's flat side edges; main street takes its four slanted ones) // two more spots in the source hex (angles, as main street's): a pop-up earned on a dark clear opens there
 const SHOPS={};for(const r of csvRead('shops'))SHOPS[r.id]={n:r.name,tag:r.tag,about:r.about,street:cu(r.street),open:cu(r.open),close:cu(r.close),col:r.col,a:cu(r.angle),bk:cu(r.building),flip:cu(r.flip),cur:cu(r.currency),at:r.rank1===''?undefined:[cellV(r.rank1),cellV(r.rank2),cellV(r.rank3)]}; // content/shops.csv
 // SHOP_ITEMS: [id, shop, name, cost, cur (blank: the shop's own, else bright), r (the pop-up rank that first carries it), fx, req (an item owned first), dc (Dim to

@@ -37,6 +37,8 @@ body.scene .hbtn,body.scene:not(.scene-shops) #shops,body.scene #hdock,body.scen
 #rest-btn{position:absolute;top:38px;left:50%;transform:translateX(-50%);display:none;font:12px/1.5 system-ui,'Inter',sans-serif;letter-spacing:1.2px;padding:3px 18px;background:#000;border:1px solid #fff;color:#fff;border-radius:0;cursor:pointer;z-index:20}#rest-btn:hover{background:#fff;color:#000}
 #rest-btn:hover{background:rgba(150,160,255,0.28)}#rest-btn.on{display:block} /* at Midnight: end the day when you are ready (under the time of day; ~ keeps it) */
 #bfx{position:fixed;inset:0;pointer-events:none;z-index:70}#bfx i{position:absolute;font:600 12px 'Share Tech Mono',monospace;font-style:normal;white-space:nowrap;transform:translate(-50%,0);animation:bfxUp 1.6s ease-out forwards;text-shadow:0 0 4px #000,0 0 8px #000}
+#bfx b.tap{position:absolute;width:6px;height:6px;margin:-3px 0 0 -3px;border-radius:50%;border:1.5px solid rgba(235,245,255,.95);box-shadow:0 0 6px rgba(220,235,255,.8);animation:tapRing .6s ease-out forwards}@keyframes tapRing{to{transform:scale(6);opacity:0;border-width:.5px}} /* a tap on a closed shop's glass */
+.shop.rattle{animation:rattle .18s linear 2}@keyframes rattle{25%{translate:1px 0}75%{translate:-1px 0}}
 #bfx i.up{color:#9fffa8}#bfx i.dn{color:#ff9a8a}@keyframes bfxUp{0%{opacity:0;transform:translate(-50%,8px)}15%{opacity:1}100%{opacity:0;transform:translate(-50%,-36px)}} /* a purchase: what it gave (+) and spent (−), rising off each slot */
 #hinv .slot.gain{box-shadow:0 0 0 1px rgba(150,255,170,.9),0 0 14px rgba(140,255,160,.6);transition:box-shadow .2s}#hinv .slot.spend{box-shadow:0 0 0 1px rgba(255,150,130,.9),0 0 14px rgba(255,130,110,.55);transition:box-shadow .2s}
 #turn-label.bought{color:#ffd76a!important;text-shadow:0 0 18px rgba(255,210,110,.95)!important;letter-spacing:4px}
@@ -152,7 +154,7 @@ body.shop-open #hdock{z-index:59}#hinv .slot.wal::before{border-color:rgba(255,2
 <div id="veil"></div>
 <div id="bfx"></div><canvas id="hcur"></canvas>
 <iframe id="neb" data-tt="map.ui.surface"></iframe>
-<script src="content.js?v=20261103p"></script><script src="shared.js?v=20261103p"></script>
+<script src="content.js?v=20261103q"></script><script src="shared.js?v=20261103q"></script>
 <script>
 // ╔══════════════════════════════════════════════════════════════════════════════╗
 // ║  MAP ENGINE                                                                 ║
@@ -171,7 +173,7 @@ let clock=3,day=1,pool=6,fresh=true,burstFx=null,dayLog=[],dayCnt={b:0,d:0},pend
 // // clock: the hour (3 = Twilight … 24 = Midnight, the day's last turn); day: your attempts; pool: what the source put out at its last burst; fresh: no ring added yet since it
 let constel=[],armed=null,weaveSel=[],weaveAsk=null,clearFx={},mergeFx=[],feedMsg={t:'',d:'',at:-1e9}; // constellations {keys,type}; the armed map item; a Weave being drawn; animations; the final count
 const TIMES={3:txt('map.twilight'),6:txt('map.dawn'),9:txt('map.morning'),12:txt('map.noon'),15:txt('map.afternoon'),18:txt('map.dusk'),21:txt('map.night'),24:txt('map.midnight')},STEP_H=3; // the day: eight turns of three hours
-const CACHE_V='20261103p'; // the build: bump with shared.js's
+const CACHE_V='20261103q'; // the build: bump with shared.js's
 const SCENE=new URLSearchParams(location.search).get('scene'); // a Guide / event demo: the map plays a scripted moment (no surface behind it)
 let phase='move',turnTimer=0,mergeTimer=0;
 let gameOverReason='';
@@ -967,7 +969,7 @@ function shopSprite(id,bk,lit,yaw,open){ // the shop's 3D building (shared.js sh
   const gw=T.mapShopGlow!=null?T.mapShopGlow:1,fl=bk===(SHOPS[id].bk||'s')&&SHOPS[id].flip,yw=Math.round(yaw||0),sun=DUCK_SUN.c.map(v=>Math.round(v*16)).concat(DUCK_SUN.d.map(v=>Math.round(v*8))).join(','),pt=T.mapShopPitch!=null?T.mapShopPitch:22,
     base=id+bk+(lit?1:0)+(open?'o':'')+gw+'|'+yw+'|'+pt+'|'+(T.mapShopUpScale||1.7)+'|',key=base+sun;if(shopCv[key])return shopCv[key];
   const si=shopImg('sign_'+id);if(!si.complete||!si.naturalWidth||!_duckTex)return null;
-  const type=shopModel(id,bk,lit,fl,si,open),M=duckModel(type),Q=4*(bk==='m'||bk==='l'?(T.mapShopUpScale||1.7):1), // (a bigger rank's two-storey store drawn larger, so its door is the size of main street's)
+  const type=shopModel(id,bk,lit,fl,si,open),M=duckModel(type),Q=4*(bk==='m'||bk==='l'||bk==='t'?(T.mapShopUpScale||1.7):1), // (a bigger rank's two-storey store drawn larger, so its door is the size of main street's)
     q=quatTurn(quatTurn([0,0,0,1],0,yw*Math.PI/180,0),pt*Math.PI/180,0,0),N=Math.ceil(2*M.g.R*Q)+8,pad=Math.ceil(30*gw)+8;
   const cv=document.createElement('canvas');cv.width=cv.height=N+pad*2;const c=cv.getContext('2d');drawDuck3D(c,type,q,[[cv.width/2,cv.height/2]],Q,1,2048);
   {const sun=DUCK_SUN.c;duckEnvUpdate(shopEnv(),performance.now());DUCK_SUN.c=sun.map(v=>v+(1-v)*0.75); // its glass: reflecting the street round the source (faint while the lights are on inside), barely tinted by the time of day
@@ -998,8 +1000,15 @@ function shopTick(){if(SCENE&&!document.body.classList.contains('scene-shops'))r
   for(const k in shopEls)if(!seen.has(k)){shopEls[k].remove();delete shopEls[k];}}
 function shopInfo(key){const el=shopEls[key],s=el&&el._s;if(!s)return['',''];const S=SHOPS[s.id];
   return S.street?[S.n,txt(s.lit?'map.shop.open':'map.shop.closed',shopHours(s.id))]:[txt('map.shop.popup',S.n),txt('map.shop.popupinfo',s.rank)];}
+let tapN=0,tapAt=0; // taps on closed glass in quick succession
+function shopTap(s){const now=performance.now();tapN=now-tapAt<900?tapN+1:1;tapAt=now;neb({cmd:'tap'}); // its sound, and a ring on the glass where it was tapped (as on a surface's glass)
+  const lay=document.getElementById('bfx');if(lay&&mX>=0){const r=document.createElement('b');r.className='tap';r.style.left=mX+'px';r.style.top=mY+'px';lay.appendChild(r);setTimeout(()=>r.remove(),700);}
+  const el=shopEls[s.key];if(el){el.classList.remove('rattle');void el.offsetWidth;el.classList.add('rattle');}
+  if(tapN===5)feed(txt('map.tap.yell'),txt('map.tap.yell2',SHOPS[s.id].n));} // the fifth: someone inside has had enough
 function openShop(key){const el=shopEls[key],s=el&&el._s;if(!s||phase==='collapse')return;
-  if(!s.lit){feed(txt('map.is_closed',SHOPS[s.id].n),txt('map.open',shopHours(s.id),(runBad(run,'holiday')?txt('map.a_holiday_it_closes'):'')));return;}
+  if(!s.lit){shopTap(s); // a tap on its glass
+    const g=runGood(run);if(!(g&&(FORTUNE_GOOD[g.id]||{}).knock)){if(tapN<5)feed(txt('map.is_closed',SHOPS[s.id].n),txt('map.open',shopHours(s.id),(runBad(run,'holiday')?txt('map.a_holiday_it_closes'):'')));return;}
+    feed(txt('map.tap.knock',SHOPS[s.id].n),txt('map.tap.knock2'));} // Friendly Neighborhood (a good fortune): a knock opens it up
   shopUI={id:s.id,rank:s.rank||3,exit:s.id==='gift',key};renderShop();hubEvent('shop_'+s.id);}
 function closeShop(){if(shopUI&&shopUI.gift){quitMain();return;} // leaving the Gift Shop: the run is over
   shopUI=null;renderShop();evPump();}
