@@ -444,3 +444,11 @@ function drawBottle(c,X,Y,s,hd,now,ph){ // a glass bottle on its side, corked, a
   c.fillStyle='#b07a42';c.beginPath();c.roundRect(L*0.35,-W*0.16,L*0.14,W*0.32,W*0.06);c.fill();c.fillStyle='rgba(255,255,255,0.18)';c.fillRect(L*0.37,-W*0.13,L*0.1,W*0.08); // the cork
   c.strokeStyle='rgba(235,255,245,0.65)';c.lineWidth=Math.max(0.8,s*0.05);c.beginPath();c.moveTo(-L*0.4,-W*0.3);c.lineTo(L*0.1,-W*0.3);c.stroke(); // a glint
   c.restore();}
+function drawHeatArc(cx,x,y,R,now,heat){ // heat (or its cooldown draining) round the inside of a cursor's ring
+  const d=heat.disp;if(d<0.012)return;const cool=heat.until>now,r=R*0.82;
+  cx.save();cx.lineCap='round';cx.lineWidth=Math.max(1.4,R*0.12);
+  cx.strokeStyle='rgba(255,255,255,0.12)';cx.beginPath();cx.arc(x,y,r,0,6.2832);cx.stroke(); // the track: a full ring = max heat
+  const h=cool?205:(50-d*50),col=cool?`hsla(${h},70%,70%,0.85)`:`hsla(${h},95%,${62-d*10}%,0.9)`; // cool blue while cooling; warm → red as it fills
+  cx.strokeStyle=col;cx.beginPath();cx.arc(x,y,r,-Math.PI/2,-Math.PI/2+d*6.2832);cx.stroke();
+  cx.restore();
+}

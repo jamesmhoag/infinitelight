@@ -198,7 +198,8 @@ let overUI=false,hoverInvKind=null,overFeed=false; // pointer is over ANY interf
 const wrap=document.getElementById('wrap'),statsEl=document.getElementById('stats'),touchInfoEl=document.getElementById('touch-info');
 // HEAT: every additional unique selection made by a swipe / double-click / item use adds heat; past T.heatMax the cursor cools down (shut off) for T.heatCooldownMs
 // and then needs a NEW press before it works again. heat.disp is the smoothed amount shown on the cursor (full ring = T.heatMax).
-const heat={v:0,disp:0,until:0,dur:1,needNew:false,last:0};
+let heat={v:0,disp:0,until:0,dur:1,needNew:false,last:0}; // (let: a second player's own heat is swapped in while their input runs — withHeat)
+function withHeat(h,fn){const o=heat;heat=h;try{return fn();}finally{heat=o;}}
 function heatBlocked(now){return heat.until>now||heat.needNew;}
 function heatAdd(n,now){
   if(!(n>0)||heat.until>now)return;
@@ -211,14 +212,6 @@ function heatTick(now){
   else{ if(heat.until&&heat.until<=now){heat.until=0;heat.v=0;} heat.v=Math.max(0,heat.v-T.heatDecay*dt/1000); }
   const target=heat.until>now?Math.max(0,(heat.until-now)/heat.dur):Math.min(1,heat.v/Math.max(1,T.heatMax));
   heat.disp+=(target-heat.disp)*Math.min(1,dt/120);
-}
-function drawHeatArc(cx,x,y,R,now){
-  const d=heat.disp;if(d<0.012)return;const cool=heat.until>now,r=R*0.82;
-  cx.save();cx.lineCap='round';cx.lineWidth=Math.max(1.4,R*0.12);
-  cx.strokeStyle='rgba(255,255,255,0.12)';cx.beginPath();cx.arc(x,y,r,0,6.2832);cx.stroke(); // the track: a full ring = max heat
-  const h=cool?205:(50-d*50),col=cool?`hsla(${h},70%,70%,0.85)`:`hsla(${h},95%,${62-d*10}%,0.9)`; // cool blue while cooling; warm → red as it fills
-  cx.strokeStyle=col;cx.beginPath();cx.arc(x,y,r,-Math.PI/2,-Math.PI/2+d*6.2832);cx.stroke();
-  cx.restore();
 }
 let statsCollapsed=false,statsLineIdx=0,telemetryOn=false,dynamicsOn=false,classOn=false,showRadii=false,statsFull='';
 function toggleRadii(){showRadii=!showRadii;const b=document.getElementById('rdb');if(b)b.textContent='Effect radii: '+(showRadii?'ON':'OFF');}
@@ -6406,19 +6399,19 @@ function bondOf(p){return activeBonds.find(b=>b.chain.indexOf(p)!==-1)||null;} /
 function collectRemnant(c){
   c.inShape=!!bondOf(c.p);
   if(!c.free){ const hn=performance.now(); if(heatBlocked(hn))return false; // an overheated cursor collects nothing
-    if(_collHeatPress===mouseDownAt)heatAdd(1,hn);else _collHeatPress=mouseDownAt; } // (a String shot collecting costs no heat) the first object of a press is free; each further one adds heat, like a swipe
+    const pr=_collectFor?_collectFor.downAt:mouseDownAt;if(_collHeatPress===pr)heatAdd(1,hn);else _collHeatPress=pr; } // (a String shot collecting costs no heat) the first object of a press is free; each further one adds heat, like a swipe
   c.p._collected=true;if(blackHole)c.p._bhGone=true;lastCollectDoneAt=performance.now();discObj(c.p);
-  if(inventory[c.kind]>=invMaxFor(c.kind)){flashSaveStatus(INV_LABEL[c.kind]+' is full');return false;}
+  if(!_collectFor&&inventory[c.kind]>=invMaxFor(c.kind)){flashSaveStatus(INV_LABEL[c.kind]+' is full');return false;}
   for(let bi=activeBonds.length-1;bi>=0;bi--){const bd=activeBonds[bi];if(bd.chain.indexOf(c.p)!==-1)popBond(bd,bi);} // a node taken out breaks its Pattern / prism / knot; the other nodes drift free
   const idx=active.indexOf(c.p);if(idx>=0)active.splice(idx,1);
   pressedIDs.delete(c.p.id);if(lastActivatedId===c.p.id)lastActivatedId=-1;
   // Bright / Dim remnants are worth 10× their energy, rounded up (0.823 → 9, 0.0003 → 1); Neutron, Magnetic and Pulsing always count 1
-  const per=remnantValue(c.p,c.kind),got=boomBust(Math.min(per,Math.max(1,invMaxFor(c.kind)-inventory[c.kind]))); // (a Boom or Bust day: ×5 or nothing)
-  addInventory(c.kind,got);surfaceTally[c.kind]=(surfaceTally[c.kind]||0)+got;
+  const per=remnantValue(c.p,c.kind),got=_collectFor?per:boomBust(Math.min(per,Math.max(1,invMaxFor(c.kind)-inventory[c.kind]))); // (a Boom or Bust day: ×5 or nothing)
+  if(_collectFor)mpGot(c.kind,got);else{addInventory(c.kind,got);surfaceTally[c.kind]=(surfaceTally[c.kind]||0)+got;if(MP.live)MP.score.host+=got;} // a second player's pickup is theirs
   if(_batchSnd){}else if(collectHold&&collectSeen.size>1)playScaleStep();else{const cp=c.p.remKind?c.p:Object.assign({},c.p,{remKind:'brown'});_playRemnantActionSoundInner(cp,false,1);} // exactly the tuner's pickup sound for that remnant type
    // wiping up: a rising glissando links the pickups
   spawnCollectSparks(c.p); // the remnant's edge breaks into particles that gather inward and rise
-  earnFx.push({kind:'plus',x:c.p.x,y:c.p.y-14,text:INV_ICON[c.kind]+' +'+got,born:performance.now(),dur:1100});
+  earnFx.push({kind:'plus',x:c.p.x,y:c.p.y-14,text:(_collectFor?'Friend ':'')+INV_ICON[c.kind]+' +'+got,born:performance.now(),dur:1100});if(_collectFor)return true;
   {const nf=performance.now();if(collectFeed.kind===c.kind&&nf-collectFeed.t<1500){collectFeed.n++;collectFeed.got+=got;}else collectFeed={kind:c.kind,n:1,got,t:nf};collectFeed.t=nf;flashSaveStatus(INV_ICON[c.kind]+' collected '+collectFeed.n+' '+COLLECT_NAME[c.kind]+(collectFeed.n===1?'':'s')+' for '+collectFeed.got+' '+INV_LABEL[c.kind]);}
   return true;
 }
@@ -6462,10 +6455,9 @@ function handleCollectHold(now){
     collectHold=true;collectSeen.clear();
     collectSeen.add(downOnRemnant.p.id);collectRemnant(downOnRemnant);
   }
-  if(mouse.x<0||mouse.y<0||mouse.x>=W||mouse.y>=H)return;
-  const c=collectableAt(mouse.x,mouse.y);
-  if(c&&!collectSeen.has(c.p.id)){collectSeen.add(c.p.id);collectRemnant(c);}
+  collectUnder(mouse.x,mouse.y,collectSeen);
 }
+function collectUnder(x,y,seen){if(x<0||y<0||x>=W||y>=H)return;const c=collectableAt(x,y);if(c&&!seen.has(c.p.id)){seen.add(c.p.id);collectRemnant(c);}} // a collecting sweep takes what is under it, once each
 let levelCleared=false,clearInfo=null,totalActivations=0,levelStartTime=0,simulationStarted=false;
 let clearShift=null;
 function drawClearShift(ctx,now){
@@ -9708,8 +9700,10 @@ function handleInventoryPaint(now){
 function handleHeldActivation(now){
   if(heatBlocked(now))return;
   if(blackHole||collectHold||!mouseDown||uiPress||overUI||pressConsumed||conMode||!dragMode||createActive()||armedInvItem)return;
-  if(mouse.x<0||mouse.y<0||mouse.x>=W||mouse.y>=H)return;
-  const mx=mouse.x,my=mouse.y,R2=T.touchR*T.touchR;
+  heldActivateAt(mouse.x,mouse.y,heldSeen,now);}
+function heldActivateAt(mx,my,heldSeen,now){ // a held press sweeping at (mx,my): wakes the nearest thing under it not yet seen this press (the host's press, or a second player's)
+  if(mx<0||my<0||mx>=W||my>=H)return;
+  const R2=T.touchR*T.touchR;
   // A point is 'seen' only while the cursor stays over it. Once the cursor has left its ring the mark is dropped, so a
   // point that was snaked off the active list (max-active cap) — or otherwise deactivated — can be picked up again
   // on the next pass of the same held click. (Marks still stop a point being re-picked every frame while under the cursor.)
@@ -11953,7 +11947,7 @@ function drawSymbolFor(cx,x,y,cR,sp,holdT){
   cx.restore();
 }
 function computeHoverAndCursor(now){
-  syncCursorCanvas();curCtx.clearRect(0,0,W,H);
+  syncCursorCanvas();curCtx.clearRect(0,0,W,H);mpDrawGuest(curCtx,now); // (a friend's cursor, whatever yours is doing)
   const mouseInBounds=mouse.x>0&&mouse.x<W&&mouse.y>0&&mouse.y<H;
   heatTick(now);const heatLocked=heat.until>now; // overheated: the cursor drops to its idle look until the cooldown has run out
   let hoverObj=(mouseInBounds&&!overUI&&!heatLocked)?findHoverObject(mouse.x,mouse.y):null;
@@ -12037,7 +12031,7 @@ function computeHoverAndCursor(now){
     cursorTrailRecord(mouse.x,mouse.y,now,!overUI&&mouseInBounds);cursorBase(cx,mouse.x,mouse.y,cR,dimA,tintK,edgeCol,cLw); // (shared.js: the same cursor, and its trail, on the Surface Map)
     if(itemRing){const ac0=armedCursorRGB();drawItemRing(cx,mouse.x,mouse.y,cR,armedInvItem.kind,armedInvItem.effect||0,`${ac0.r|0},${ac0.g|0},${ac0.b|0}`,dimA,cLw,now,Math.max(0,holdT));}
     else cursorRing(cx,mouse.x,mouse.y,cR,dimA,edgeCol,cLw);
-    drawHeatArc(cx,mouse.x,mouse.y,cR,now); // heat (or the cooldown draining) runs round the inside of the ring
+    drawHeatArc(cx,mouse.x,mouse.y,cR,now,heat); // heat (or the cooldown draining) runs round the inside of the ring
     // Center dot, with its own small glow
     if(!itemRing)cursorDot(cx,mouse.x,mouse.y,dimA,edgeCol);
     if(hoverObj){const hi=buildInfoFor(hoverObj,now);if(hi.scale>0){cx.beginPath();cx.arc(mouse.x,mouse.y,Math.max(0,hi.curR),0,6.2832);cx.strokeStyle=`rgba(${hi.r},${hi.g},${hi.b},${(hi.scale*10|0)/100})`;cx.lineWidth=0.75;cx.stroke();}}
@@ -13590,7 +13584,7 @@ function loop(now){rafId=null;_batchSnd=false;audioCallsThisFrame=0;revalidateUI
     const dtm=lastLoopNow?Math.min(100,now-lastLoopNow):0;lastLoopNow=now;
     if(conMode)conLevel=Math.min(1,conLevel+dtm/Math.max(1,T.pauseStopMs));
     else if(conLevel>0)conLevel=Math.max(0,conLevel-dtm/Math.max(1,T.pauseResumeMs));
-  }if(prevArmed&&!armedInvItem&&mouseDown&&!uiPress)pressConsumed=true; /* the held item just ran out: this press is spent */ const ts=updateTimeScale(now);syncParticleMapToPause();updateKeyFx(now);handleCollectHold(now);handleHoldCharge(now);try{handleDialHold(now);handleItemHold(now);}catch(err){console.error(err);try{endItemHold();}catch(e2){}}handleHeldActivation(now);flushDialCollects();handleInventoryPaint(now);prevArmed=!!armedInvItem;syncActivationSounds();const _t0=performance.now();try{step(now,ts);}catch(err){console.error(err);}const _t1=performance.now();try{draw(now);}catch(err){console.error(err);}const _t2=performance.now(); /* an error in one frame can never stop the loop again */perfStep+=((_t1-_t0)-perfStep)*0.1;perfDraw+=((_t2-_t1)-perfDraw)*0.1;perfRecord(now,_t1-_t0,_t2-_t1);if(visible&&!hubAsleep)rafId=requestAnimationFrame(loop);}
+  }if(prevArmed&&!armedInvItem&&mouseDown&&!uiPress)pressConsumed=true; /* the held item just ran out: this press is spent */ const ts=updateTimeScale(now);syncParticleMapToPause();updateKeyFx(now);handleCollectHold(now);handleHoldCharge(now);try{handleDialHold(now);handleItemHold(now);}catch(err){console.error(err);try{endItemHold();}catch(e2){}}handleHeldActivation(now);mpTick(now);flushDialCollects();handleInventoryPaint(now);prevArmed=!!armedInvItem;syncActivationSounds();const _t0=performance.now();try{step(now,ts);}catch(err){console.error(err);}const _t1=performance.now();try{draw(now);}catch(err){console.error(err);}const _t2=performance.now(); /* an error in one frame can never stop the loop again */perfStep+=((_t1-_t0)-perfStep)*0.1;perfDraw+=((_t2-_t1)-perfDraw)*0.1;perfRecord(now,_t1-_t0,_t2-_t1);if(visible&&!hubAsleep)rafId=requestAnimationFrame(loop);}
 window.rebuild=rebuild;window.toggleTrails=toggleTrails;
 // ═════════════════════════ LIVE SCENES ═════════════════════════
 // The Encyclopedia embeds a copy of this very game (same code, same physics, same effects) in a small frame and scripts a tiny world in it.
@@ -14343,6 +14337,50 @@ function shopPick(i){const d=runState.draw,c=d&&d.cards[i];if(!c)return{ok:0,tex
   else{runState.bonus={id:c.id,item:c.item||null};if(c.id==='inf')for(const k of ['leash','dial','weave'])inventory[k]=k===c.item?invMaxFor(k):0;title=c.n;text=c.t+'.';}
   saveInventory();updateInventoryUI();applyDisc();return{ok:1,title,text,good:d.kind!=='fortune'||!!c.good};}
 document.addEventListener('visibilitychange',()=>{if(document.hidden&&HUB&&hubLevel&&!hubAsleep)saveSession();}); // closing the tab mid-surface keeps it
+// ── Play together: a friend joins this surface from a link (join.html). Their browser shows this canvas as a video and sends their pointer;
+// here it shines and collects with the same shine caps (one Max shining for both), its own heat, and what it collects is theirs (it goes to their save) ──
+const MP={peer:null,conn:null,call:null,bc:null,id:null,score:{host:0,guest:0},sent:0};
+let _collectFor=null; // while a second player's pickup runs: that player
+const GUEST={x:-9999,y:-9999,down:false,downAt:0,downX:0,downY:0,drag:false,downOn:null,hold:false,seen:new Set(),cseen:new Set(),mine:new Set(),heat:{v:0,disp:0,until:0,dur:1,needNew:false,last:0},at:0};
+function mpSend(o){try{if(MP.conn&&MP.conn.open)MP.conn.send(o);else if(MP.bc)MP.bc.postMessage(o);}catch(e){}}
+function mpLink(){return new URL('join.html?room='+encodeURIComponent(MP.id)+(MP.bc?'&net=bc':''),location.href).href;}
+function mpShow(t){const el=document.getElementById('gmLink');if(el){el.style.display='';el.innerHTML=t;}flashSaveStatus(String(t).replace(/<[^>]+>/g,' '));}
+function mpHost(){ // starts hosting (once): a share link for a friend; ?net=bc plays over a BroadcastChannel instead (two tabs of this browser)
+  if(MP.id){mpShow(`Send your friend this link:<br><b>${gEsc(mpLink())}</b>`);try{navigator.clipboard.writeText(mpLink());}catch(e){}return;}
+  MP.id='il-'+Math.random().toString(36).slice(2,8);
+  if(new URLSearchParams(location.search).get('net')==='bc'||(window.parent!==window&&new URLSearchParams(window.parent.location.search).get('net')==='bc')){MP.bc=new BroadcastChannel('il-'+MP.id);MP.bc.onmessage=e=>mpOn(e.data);mpShow(`Waiting for your friend…<br><b>${gEsc(mpLink())}</b>`);return;}
+  mpShow('Opening a room…');const go=()=>{MP.peer=new Peer(MP.id);
+    MP.peer.on('open',()=>{mpShow(`Send your friend this link (copied):<br><b>${gEsc(mpLink())}</b>`);try{navigator.clipboard.writeText(mpLink());}catch(e){}});
+    MP.peer.on('error',e=>mpShow('Could not open a room ('+gEsc(e.type||e)+')'));
+    MP.peer.on('connection',c=>{if(MP.conn&&MP.conn.open){c.close();return;}MP.conn=c;c.on('data',mpOn);c.on('open',()=>{mpJoined();try{MP.call=MP.peer.call(c.peer,canvas.captureStream(30));}catch(e){}});c.on('close',mpLeft);});};
+  if(window.Peer)go();else{const sc=document.createElement('script');sc.src='https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js';sc.onload=go;sc.onerror=()=>mpShow('Could not load the connection library');document.head.appendChild(sc);}}
+function mpJoined(){MP.live=true;MP.score={host:0,guest:0};mpShow('Your friend is here. Shine together; what each of you collects is your own.');mpSend({t:'hi',W,H});}
+function mpLeft(){MP.live=false;MP.conn=null;GUEST.x=-9999;GUEST.down=false;mpShow('Your friend left. The link still works.');}
+function mpGot(kind,n){MP.score.guest+=n;mpSend({t:'got',kind,n});}
+function mpOn(m){ // the friend's pointer (x, y as fractions of this surface)
+  if(!m||!m.t)return;const now=performance.now(),x=m.x*W,y=m.y*H;
+  if(m.t==='join'&&MP.bc){mpJoined();return;}if(m.t==='bye'){mpLeft();return;}
+  if(m.t==='move'){GUEST.x=x;GUEST.y=y;GUEST.at=now;if(GUEST.down&&!GUEST.drag&&Math.hypot(x-GUEST.downX,y-GUEST.downY)>DRAG_DEADZONE&&now-GUEST.downAt>DRAG_HOLD_MS){GUEST.drag=true;GUEST.seen.clear();}}
+  else if(m.t==='down'){GUEST.x=x;GUEST.y=y;if(levelCleared||blackHole)return;if(GUEST.heat.needNew&&now>=GUEST.heat.until)GUEST.heat.needNew=false;
+    Object.assign(GUEST,{down:true,downAt:now,downX:x,downY:y,drag:false,hold:false});GUEST.seen.clear();GUEST.cseen.clear();GUEST.downOn=collectableAt(x,y);}
+  else if(m.t==='up'){if(!GUEST.down)return;GUEST.down=false;if(GUEST.hold||GUEST.drag||levelCleared||blackHole||x<0||y<0||x>=W||y>=H)return;
+    const c=collectableAt(x,y);if(c&&c.kind)mpAs(()=>collectRemnant(c));else mpAs(()=>{activateAt(x,y,now,true);if(lastActivatedId>=0)GUEST.mine.add(lastActivatedId);});}
+  else if(m.t==='rclick'){for(const id of GUEST.mine)pressedIDs.delete(id);for(const p of active)if(GUEST.mine.has(p.id))p.touchStart=-1;GUEST.mine.clear();} // puts out only what they lit
+}
+function mpAs(fn){_collectFor=GUEST;try{return withHeat(GUEST.heat,fn);}finally{_collectFor=null;}}
+function mpTick(now){ // each frame: the friend's held press (wiping and mopping, or a collecting sweep), their heat, and what they need to draw
+  if(!MP.live)return;withHeat(GUEST.heat,()=>heatTick(now));
+  if(GUEST.down&&!blackHole&&!levelCleared){
+    if(GUEST.downOn){if(!GUEST.hold&&(GUEST.drag||now-GUEST.downAt>=HOLD_CHARGE_DELAY_MS)){GUEST.hold=true;GUEST.cseen.add(GUEST.downOn.p.id);mpAs(()=>collectRemnant(GUEST.downOn));}if(GUEST.hold)mpAs(()=>collectUnder(GUEST.x,GUEST.y,GUEST.cseen));}
+    else if(GUEST.drag)mpAs(()=>{if(!heatBlocked(now)){const n0=lastActivatedId;heldActivateAt(GUEST.x,GUEST.y,GUEST.seen,now);if(lastActivatedId!==n0&&lastActivatedId>=0)GUEST.mine.add(lastActivatedId);}});}
+  if(now-MP.sent>33){MP.sent=now;const st={t:'st',hx:mouse.x/W,hy:mouse.y/H,heat:{disp:GUEST.heat.disp,until:GUEST.heat.until-now,v:GUEST.heat.v},score:MP.score,cleared:levelCleared};
+    if(MP.bc&&now-(MP.frameAt||0)>120){MP.frameAt=now;try{st.frame=canvas.toDataURL('image/jpeg',0.5);}catch(e){}} // (two tabs: frames instead of a video)
+    mpSend(st);}}
+function mpDrawGuest(cx,now){ // the friend's cursor over this surface: a gold ring with their heat, and the score
+  if(!MP.live)return;
+  if(GUEST.x>=0&&now-GUEST.at<4000){const R=(T.cursorBaseR||8)*1.1;cx.save();cx.strokeStyle='rgba(255,205,90,0.9)';cx.lineWidth=2;cx.beginPath();cx.arc(GUEST.x,GUEST.y,R,0,6.2832);cx.stroke();
+    cx.fillStyle='rgba(255,205,90,0.9)';cx.font='10px system-ui';cx.textAlign='center';cx.fillText('Friend',GUEST.x,GUEST.y-R-4);cx.restore();drawHeatArc(cx,GUEST.x,GUEST.y,R,now,GUEST.heat);}
+  cx.save();cx.font='12px system-ui';cx.textAlign='right';cx.fillStyle='rgba(255,255,255,0.75)';cx.fillText('You '+fmtCount(MP.score.host)+' · Friend '+fmtCount(MP.score.guest),W-12,H-12);cx.restore();}
 // ── Pause menu (Esc) ──
 function syncGameMenu(){
   const m=document.getElementById('gameMenu');if(!m)return;const q=s=>m.querySelector(s);
@@ -14370,6 +14408,7 @@ function openGameMenu(){
 <div class="gl">Sound</div><div class="row"><button id="gmSnd"></button><input id="gmVol" type="range" min="0" max="1" step="0.05" title="Volume"></div>
 <div class="gl">Readouts</div><div class="row"><button id="gmTel" data-disc="mode_telemetry">Telemetry</button><button id="gmRisk">Risks</button><button id="gmDyn" data-disc="mode_dynamics">Dynamics</button><button id="gmCls" data-disc="mode_class">Class</button><button id="gmRad" data-disc="mode_radii">Radii</button></div>
 <div class="gl">Help</div><button id="gmGuide" data-disc="slot_guide">Guide</button>
+<div class="gl">Play together</div><button id="gmInvite">Invite a friend</button><div id="gmLink" style="display:none;font-size:11px;line-height:1.4;word-break:break-all"></div>
 <div class="gl">Leave</div>${HUB?'<button id="gmMap">Quit to the Surface Map (saves this surface)</button>':''}<button id="gmMain">Quit to main menu${HUB?' (saves this surface)':''}</button>
 <div class="gl" style="text-transform:none;letter-spacing:0">~ hides the panels · H also works</div></div>`;
     wrap.appendChild(m);
@@ -14379,7 +14418,7 @@ function openGameMenu(){
     on('gmResume',closeGameMenu);on('gmSnd',()=>setSound(audioMuted));
     m.querySelector('#gmVol').addEventListener('input',e=>setSound(true,e.target.value));
     on('gmTel',()=>toggleReadout('tel'));on('gmRisk',()=>toggleReadout('risk'));on('gmDyn',()=>toggleReadout('dyn'));on('gmCls',()=>toggleReadout('cls'));on('gmRad',()=>toggleReadout('rad'));
-    on('gmGuide',openRules);on('gmMain',()=>quitTo('main'));if(HUB)on('gmMap',()=>quitTo('map'));
+    on('gmGuide',openRules);on('gmInvite',mpHost);on('gmMain',()=>quitTo('main'));if(HUB)on('gmMap',()=>quitTo('map'));
   }
   m.style.display='flex';wrap.classList.add('menu-open');releaseMouseDown(performance.now());uiPress=false;syncGameMenu();applyDisc();
 }
@@ -14391,6 +14430,7 @@ function closeGameMenu(){
 RULE_TAB_COST.surf=5;
 RULE_BLURB.surf='The map of surfaces. Every hex is a spill to clean up.';
 RULES.push(
+["together","start","Play together","dim","Esc, then Invite a friend: a link is copied for you to send. Your friend opens it and plays on your surface with you.",[["Shining","You share the same shine cap (Max shining): whatever either of you lights counts toward it."],["Heat","Each of you has your own heat."],["Collecting","Whatever your friend collects goes to their own save; whatever you collect is yours. The score shows both."],["Their right-click","Puts out only what they lit."],["Connection","Your two browsers talk directly; a free public service only introduces them. Some strict networks block it."]]],
 ["menu","start","Pause menu (Esc)","dim","Esc pauses and opens the menu. ~ (or H) hides the panels.",[["Sound","Turn sound on or off and set the volume."],["Readouts","Switch telemetry, risks, dynamics, class and effect radii."],["Guide","Opens this guide."],["Leave","Quit to the Surface Map or the main menu. An unfinished surface is saved exactly as it is."]]],
 ["hubmap","surf","Surface Map","particle","A map of hexes around a white source. Every hex is a surface covered in spilled particles.",[["Start","At Twilight the source bursts out three rings, every hex at 1.00. You stand beside it."],["Particle layer","An uncleared hex shows the particles still on it, one pattern running on across the hexes. The more value a hex holds, the more of it is covered."],["Value","The open hexes share what the source put out. Locked hexes (next to a bright clear) keep theirs."],["Saved","The map is saved as you go. New map starts the map again but keeps every item you have."]]],
 ["hubtime","surf","Time of day","nova","Every move is one time of day (clearing a surface takes none).",[["The day","Twilight, Dawn, Morning, Noon, Afternoon, Dusk, Night, Midnight: eight turns. Midnight is the last."],["Next day","After Midnight the rings fall back into the source one by one, faster each time, it flashes and bursts out again: a new day at Twilight. Days count your attempts."],["Day log","Each day is logged: how it ended (Bright collapse, Dark collapse, or neither at Midnight) and how many bright and dark hexes you cleared."],["Free","A String move takes no time."]]],
