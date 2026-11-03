@@ -33,8 +33,8 @@ body.scene .hbtn,body.scene:not(.scene-shops) #shops,body.scene #hdock,body.scen
 /* the surface (chromatic_nebula.html): hidden with visibility, not display, so it keeps its size for the hex previews */
 #neb{position:fixed;inset:0;width:100%;height:100%;border:0;z-index:50;visibility:hidden;pointer-events:none;background:#000}
 #neb.show{visibility:visible;pointer-events:auto}
-#turn-label{position:absolute;top:40px;left:50%;transform:translateX(-50%);font-family:'Orbitron',sans-serif;font-size:16px;white-space:nowrap;color:rgba(255,255,255,0.7);pointer-events:none;transition:color 0.4s,text-shadow 0.4s;letter-spacing:2px;z-index:10}
-#rest-btn{position:absolute;top:66px;left:50%;transform:translateX(-50%);display:none;font:13px 'Orbitron',sans-serif;letter-spacing:2px;padding:5px 18px;background:rgba(150,160,255,0.12);border:1px solid rgba(190,200,255,0.55);color:#fff;border-radius:5px;cursor:pointer;z-index:20}
+#turn-label{position:absolute;top:8px;left:50%;transform:translateX(-50%);background:rgba(0,0,0,.55);padding:2px 10px 3px;border-radius:3px;font-family:'Orbitron',sans-serif;font-size:16px;white-space:nowrap;color:rgba(255,255,255,0.7);pointer-events:none;transition:color 0.4s,text-shadow 0.4s;letter-spacing:2px;z-index:10}
+#rest-btn{position:absolute;top:38px;left:50%;transform:translateX(-50%);display:none;font:12px/1.5 system-ui,'Inter',sans-serif;letter-spacing:1.2px;padding:3px 18px;background:#000;border:1px solid #fff;color:#fff;border-radius:0;cursor:pointer;z-index:20}#rest-btn:hover{background:#fff;color:#000}
 #rest-btn:hover{background:rgba(150,160,255,0.28)}#rest-btn.on{display:block} /* at Midnight: end the day when you are ready (under the time of day; ~ keeps it) */
 #bfx{position:fixed;inset:0;pointer-events:none;z-index:70}#bfx i{position:absolute;font:600 12px 'Share Tech Mono',monospace;font-style:normal;white-space:nowrap;transform:translate(-50%,0);animation:bfxUp 1.6s ease-out forwards;text-shadow:0 0 4px #000,0 0 8px #000}
 #bfx i.up{color:#9fffa8}#bfx i.dn{color:#ff9a8a}@keyframes bfxUp{0%{opacity:0;transform:translate(-50%,8px)}15%{opacity:1}100%{opacity:0;transform:translate(-50%,-36px)}} /* a purchase: what it gave (+) and spent (−), rising off each slot */
@@ -152,7 +152,7 @@ body.shop-open #hdock{z-index:59}#hinv .slot.wal::before{border-color:rgba(255,2
 <div id="veil"></div>
 <div id="bfx"></div><canvas id="hcur"></canvas>
 <iframe id="neb" data-tt="map.ui.surface"></iframe>
-<script src="content.js?v=20261103o"></script><script src="shared.js?v=20261103o"></script>
+<script src="content.js?v=20261103p"></script><script src="shared.js?v=20261103p"></script>
 <script>
 // ╔══════════════════════════════════════════════════════════════════════════════╗
 // ║  MAP ENGINE                                                                 ║
@@ -171,7 +171,7 @@ let clock=3,day=1,pool=6,fresh=true,burstFx=null,dayLog=[],dayCnt={b:0,d:0},pend
 // // clock: the hour (3 = Twilight … 24 = Midnight, the day's last turn); day: your attempts; pool: what the source put out at its last burst; fresh: no ring added yet since it
 let constel=[],armed=null,weaveSel=[],weaveAsk=null,clearFx={},mergeFx=[],feedMsg={t:'',d:'',at:-1e9}; // constellations {keys,type}; the armed map item; a Weave being drawn; animations; the final count
 const TIMES={3:txt('map.twilight'),6:txt('map.dawn'),9:txt('map.morning'),12:txt('map.noon'),15:txt('map.afternoon'),18:txt('map.dusk'),21:txt('map.night'),24:txt('map.midnight')},STEP_H=3; // the day: eight turns of three hours
-const CACHE_V='20261103o'; // the build: bump with shared.js's
+const CACHE_V='20261103p'; // the build: bump with shared.js's
 const SCENE=new URLSearchParams(location.search).get('scene'); // a Guide / event demo: the map plays a scripted moment (no surface behind it)
 let phase='move',turnTimer=0,mergeTimer=0;
 let gameOverReason='';
@@ -957,6 +957,11 @@ function popPlace(k){ // opens (or moves up) the pop-up hex k's surface earned: 
   feed(((p.from?txt('map.a_pop_up_moved'):txt('map.a_pop_up_opened')))+SHOPS[p.id].n,txt('map.rank_click_it_to',p.rank,(at.slice(0,3)==='hub'?txt('map.in_the_source'):'')));return true;}
 function shopTearDown(fr){if(!fr)return;if(fr.slice(0,3)==='hub')hubPop[+fr[3]]=null;else if(cells[fr])delete cells[fr].shop;} // a shop moved up a rank: the old one goes (its hex may open another the next turn)
 function freedShops(){for(const k in cells)popPlace(k);} // each turn every cleared surface that earned a pop-up and has none open tries again (a hex a shop moved out of, a Dark Remnant clear that found no room, a holiday)
+let _shopEnv=null;
+function shopEnv(){ // what a shop's glass reflects: the hexes round the source (where the shops stand), softened, with a pale sheen from above
+  const e=_shopEnv||(_shopEnv=document.createElement('canvas'));e.width=e.height=256;const g=e.getContext('2d'),[x,y]=w2s(0,0),R=HEX*6*MK;
+  g.fillStyle='#202228';g.fillRect(0,0,256,256);g.filter='blur(6px)';try{g.drawImage(mc,x*MK-R/2,y*MK-R/2,R,R,0,0,256,256);}catch(err){}g.filter='none';
+  const sh=g.createLinearGradient(0,0,0,256);sh.addColorStop(0,'rgba(230,236,245,.45)');sh.addColorStop(0.45,'rgba(230,236,245,.08)');sh.addColorStop(1,'rgba(0,0,0,.25)');g.fillStyle=sh;g.fillRect(0,0,256,256);return e;}
 function shopSprite(id,bk,lit,yaw,open){ // the shop's 3D building (shared.js shopModel) drawn from a little above and turned by yaw (degrees), lit by the time of day: then the glow of its sign and
   // windows when open; at Q px per unit (as its drawings were at 4×), so a shop stays crisp however near the camera or the menu shows it. Redrawn when the light changes.
   const gw=T.mapShopGlow!=null?T.mapShopGlow:1,fl=bk===(SHOPS[id].bk||'s')&&SHOPS[id].flip,yw=Math.round(yaw||0),sun=DUCK_SUN.c.map(v=>Math.round(v*16)).concat(DUCK_SUN.d.map(v=>Math.round(v*8))).join(','),pt=T.mapShopPitch!=null?T.mapShopPitch:22,
@@ -965,7 +970,8 @@ function shopSprite(id,bk,lit,yaw,open){ // the shop's 3D building (shared.js sh
   const type=shopModel(id,bk,lit,fl,si,open),M=duckModel(type),Q=4*(bk==='m'||bk==='l'?(T.mapShopUpScale||1.7):1), // (a bigger rank's two-storey store drawn larger, so its door is the size of main street's)
     q=quatTurn(quatTurn([0,0,0,1],0,yw*Math.PI/180,0),pt*Math.PI/180,0,0),N=Math.ceil(2*M.g.R*Q)+8,pad=Math.ceil(30*gw)+8;
   const cv=document.createElement('canvas');cv.width=cv.height=N+pad*2;const c=cv.getContext('2d');drawDuck3D(c,type,q,[[cv.width/2,cv.height/2]],Q,1,2048);
-  duckEnvUpdate(mc,performance.now());drawDuck3D(c,type+'|glass',q,[[cv.width/2,cv.height/2]],Q,lit?0.3:1,2048,{x:SW/2,y:SH*0.55,lights:[]}); // its glass: reflecting the map round it (faint while the lights are on inside)
+  {const sun=DUCK_SUN.c;duckEnvUpdate(shopEnv(),performance.now());DUCK_SUN.c=sun.map(v=>v+(1-v)*0.75); // its glass: reflecting the street round the source (faint while the lights are on inside), barely tinted by the time of day
+    drawDuck3D(c,type+'|glass',q,[[cv.width/2,cv.height/2]],Q,lit?0.3:1,2048,{x:W/2,y:H/2,lights:[]});DUCK_SUN.c=sun;}
   if(lit&&gw>0){const g=document.createElement('canvas');g.width=g.height=cv.width;M.eo=1;drawDuck3D(g.getContext('2d'),type,q,[[cv.width/2,cv.height/2]],Q,1,2048);M.eo=0; // the neon: what glows, blurred out over it
     c.save();c.globalCompositeOperation='lighter';for(const[b,a]of[[22,0.8],[7,0.55]]){c.filter='blur('+(b*gw).toFixed(1)+'px)';c.globalAlpha=Math.min(1,a*gw);c.drawImage(g,0,0);}c.restore();}
   const m=quatMat(q),fy=M.g.foot;cv._ax=cv.width/2+m[3]*fy*Q;cv._ay=cv.height/2-m[4]*fy*Q;cv._bw=264; // its foot: where it stands on the map; _bw: the size every shop is scaled by (main street's old 66-unit drawing at 4×, so shops keep the size they had)
