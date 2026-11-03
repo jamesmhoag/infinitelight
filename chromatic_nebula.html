@@ -12892,7 +12892,7 @@ function guideCSS(){
 .rl-b{display:none;padding:2px 12px 10px}.rl-c.open .rl-b{display:block}.rl-b p{margin:5px 0}
 .rl-x{margin:4px 0}.rl-live{display:inline-block;vertical-align:top;margin:4px 6px 4px 0;min-width:340px;min-height:200px;background:#000;border-radius:6px}
 .rl-math{margin:4px 0}.rl-mh{font-weight:bold;margin-top:6px}.rl-math ul,#mapInfo ul{margin:3px 0 3px 18px;padding:0}
-#rulesOverlay,#rulesOverlay *,#evOverlay,#evOverlay *{cursor:auto!important}#rulesOverlay button,#rulesOverlay .rl-h,#evOverlay button,.mtg.sm{cursor:pointer!important}
+
 #wrap.rules-open #cur,#wrap.ev-open #cur,#wrap.menu-open #cur{display:none!important}
 #rulesOverlay canvas.rl-m,#evOverlay canvas.rl-m{position:static!important;display:block}
 #rlFind{width:100%;box-sizing:border-box;padding:6px 10px;border-radius:0;border:1px solid rgba(128,128,128,.55);background:transparent;color:inherit;font:13px system-ui,'Inter',sans-serif;letter-spacing:.4px;margin-bottom:8px}
@@ -13363,7 +13363,7 @@ function openGameMenu(){
     const st=document.createElement('style');st.textContent=`#gameMenu{position:absolute;inset:0;z-index:55;display:none;align-items:center;justify-content:center;background:rgba(0,0,0,.55)}
 #wrap.hub-ov>*:not(#rulesOverlay):not(#evOverlay){visibility:hidden!important}
 #wrap.rules-open #gameMenu{display:none!important}
-#gameMenu,#gameMenu *{cursor:auto!important}#gameMenu button{cursor:pointer!important}
+
 #gameMenu .gm{width:300px;background:#000;border:1px solid #fff;padding:16px 22px 14px;color:#fff;font:12px/1.5 system-ui,'Inter',sans-serif;letter-spacing:.6px;display:flex;flex-direction:column;gap:1px} /* as a shop's list on the map */
 #gameMenu h2{margin:0 0 14px;font:700 19px/1.25 system-ui,'Inter',sans-serif;letter-spacing:1.6px;text-align:center}
 #gameMenu .gl{opacity:.5;font-size:10px;margin:10px 0 2px;text-transform:uppercase;letter-spacing:1.4px}
@@ -13630,6 +13630,7 @@ if(!window.__SCENE)registerGuideDisc();
   if(T.wakeBudgetPerFrame>5000)T.wakeBudgetPerFrame=400;if(!(T.fadeBudgetMs>0))T.fadeBudgetMs=4; // (0 meant unlimited: one burst of fades could take seconds) // (old saves: 150000 meant unlimited; waking now queues instead of dropping, so a real budget is safe)
   buildTunePanel();updateRect();
   if(HUB)hubIdle();else{rebuild();fireEvent('surface');}if(BUILD)buildStart();
+  gameCursor({hide:el=>{const own=!/rules-open|ev-open|menu-open/.test(wrap.className)&&!document.getElementById('duckView')&&!!(el&&el.closest&&el.closest('#wrap'))&&!el.closest('#rulesOverlay,#evOverlay,#gameMenu');curCanvas.style.visibility=own?'':'hidden';return own;}}); // over the scene and its dock, the surface's own cursor; over every menu, card and panel outside it, the same cursor (never the system's)
   updateInventoryUI();applyDisc();updateSettleBtn();if(T.soundOn)setSound(true,null,true);
   if(HUB)hubState('ready',true);else rafId=requestAnimationFrame(loop);
 })();

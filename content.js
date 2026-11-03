@@ -51,3 +51,45 @@ function loading(why,on){const s=_load.why,was=s.size>0;if(on)s.add(why);else s.
   const show=()=>{if(!s.size)return;if(!document.body){document.addEventListener('DOMContentLoaded',show,{once:true});return;}const el=loadingEl();void el.offsetWidth;el.classList.add('on');_load.shown=performance.now();};
   if(now)_load.t=setTimeout(show,why==='boot'?0:140); // (a quick change never flashes it)
   else _load.t=setTimeout(()=>{if(s.size||!_load.el)return;_load.el.classList.remove('on');},Math.max(0,450-(performance.now()-_load.shown)));} // once shown, at least a moment
+
+// ═════════════════════════ THE GAME'S CURSOR (every page) ═════════════════════════
+// One cursor everywhere: the system cursor never shows (any state, any menu). The ring, its bloom and its dot; brighter over anything that does
+// something. Its click reaction is the surface's, the same on every page: a press shrinks it in (cursorClickShrink, over cursorClickDurMs), held on
+// it flares out past rest, a release eases it back from wherever it was; a right-click punches it outward. Colour and dimming cross-fade (~55 ms).
+function cursorBase(cx,x,y,cR,dimA,tintK,edgeCol,lw){
+  const g=cx.createRadialGradient(x,y,0,x,y,cR*0.85);g.addColorStop(0,`rgba(0,0,0,${(0.5*dimA*tintK).toFixed(3)})`);g.addColorStop(0.75,`rgba(0,0,0,${(0.28*dimA*tintK).toFixed(3)})`);g.addColorStop(1,'rgba(0,0,0,0)');
+  cx.beginPath();cx.arc(x,y,cR*0.85,0,6.2832);cx.fillStyle=g;cx.fill();
+  cx.globalCompositeOperation='screen';cx.filter='blur(7px)';cx.globalAlpha=0.6*dimA; // the bloom behind the sharp ring
+  cx.beginPath();cx.arc(x,y,cR,0,6.2832);cx.strokeStyle=`rgba(${edgeCol},0.9)`;cx.lineWidth=lw*2.5;cx.stroke();
+  cx.filter='none';cx.globalAlpha=1;cx.globalCompositeOperation='source-over';}
+function cursorRing(cx,x,y,cR,dimA,edgeCol,lw){cx.beginPath();cx.arc(x,y,cR,0,6.2832);cx.strokeStyle=`rgba(${edgeCol},${(0.80*dimA).toFixed(3)})`;cx.lineWidth=lw;cx.stroke();}
+function cursorDot(cx,x,y,dimA,edgeCol){
+  cx.globalCompositeOperation='screen';cx.filter='blur(3px)';cx.globalAlpha=0.7*dimA;cx.beginPath();cx.arc(x,y,1.4,0,6.2832);cx.fillStyle=`rgba(${edgeCol},0.9)`;cx.fill();
+  cx.filter='none';cx.globalAlpha=1;cx.globalCompositeOperation='source-over';cx.beginPath();cx.arc(x,y,0.75,0,6.2832);cx.fillStyle=`rgba(${edgeCol},${(0.65*dimA).toFixed(3)})`;cx.fill();}
+const _gcT=()=>(typeof T!=='undefined'&&T)?T:{};
+const gcState=()=>({down:false,at:-1,rel:-1,from:0,rAt:-1,r:255,g:255,b:255,dim:0.5,last:0});
+function gcHoldT(st,now,D){const el=now-st.at;if(el<D){const p=el/D;return-(1-(1-p)*(1-p));}const p=Math.min(1,(el-D)/D);return-1+2*(1-(1-p)*(1-p));} // −1 at the bottom of the punch, 0 at rest, +1 flared
+function gcPress(st,now){st.down=true;st.at=now;}
+function gcRelease(st,now){if(st.down){st.rel=now;st.from=gcHoldT(st,now,_gcT().cursorClickDurMs||120);}st.down=false;}
+function gcRClick(st,now){st.rAt=now;}
+function gcRadius(st,now){const t=_gcT(),D=t.cursorClickDurMs||120,S=t.cursorClickShrink!=null?t.cursorClickShrink:0.7;let h=0;
+  if(st.down)h=gcHoldT(st,now,D);else if(st.rel>=0){const p=Math.min(1,(now-st.rel)/D);h=st.from*(1-(1-(1-p)*(1-p)));}
+  const rt=st.rAt>=0?Math.min(1,(now-st.rAt)/D):1;return(t.cursorBaseR||8)*(1+S*h+S*(1-(1-(1-rt)*(1-rt))));}
+function gcDraw(cx,st,x,y,act,now,col){ // the cursor at (x, y): act (over something it can act on) brightens it; col: [r, g, b] for a tool in hand
+  const t=_gcT(),lw=t.cursorLineW||2,dt=st.last?Math.min(100,now-st.last):16,kf=1-Math.exp(-dt/55);st.last=now;
+  const ev=act?255:Math.max(0,(255*(1-(t.cursorIdleBorderDark!=null?t.cursorIdleBorderDark:0.4)))|0),c=col||[ev,ev,ev];
+  st.r+=(c[0]-st.r)*kf;st.g+=(c[1]-st.g)*kf;st.b+=(c[2]-st.b)*kf;st.dim+=(((act||col)?1:(t.cursorIdleAlphaMult!=null?t.cursorIdleAlphaMult:0.5))-st.dim)*kf;
+  const e=`${st.r|0},${st.g|0},${st.b|0}`,cR=gcRadius(st,now);cx.save();cursorBase(cx,x,y,cR,st.dim,1,e,lw);cursorRing(cx,x,y,cR,st.dim,e,lw);cursorDot(cx,x,y,st.dim,e);cx.restore();}
+const gcActEl=el=>!!(el&&el.closest&&el.closest('button:not(:disabled),a[href],input,select,textarea,label,[onclick],.slot,.srow,.mtg.sm,.rl-h,[data-c],[data-n],[data-t]'));
+const GC={cv:null,x:-1,y:-1,el:null,st:gcState(),opt:{}};
+function gameCursor(opt){GC.opt=opt||{};if(GC.cv)return; // opt.hide(el): the page draws its own there; opt.act(el), opt.col(el): its own sense of what the cursor is over
+  const sy=document.createElement('style');sy.textContent='html,body,*,*::before,*::after{cursor:none!important}';document.head.appendChild(sy);
+  const cv=GC.cv=document.createElement('canvas');cv.style.cssText='position:fixed;left:0;top:0;width:100vw;height:100vh;pointer-events:none;z-index:2147483647';document.body.appendChild(cv);
+  addEventListener('pointermove',e=>{GC.x=e.clientX;GC.y=e.clientY;GC.el=e.target;},true);
+  addEventListener('pointerdown',e=>{GC.x=e.clientX;GC.y=e.clientY;GC.el=e.target;if(e.button===2)gcRClick(GC.st,performance.now());else if(e.button===0)gcPress(GC.st,performance.now());},true);
+  addEventListener('pointerup',e=>{if(e.button===0)gcRelease(GC.st,performance.now());},true);
+  document.addEventListener('mouseout',e=>{if(!e.relatedTarget)GC.x=-1;});addEventListener('blur',()=>{GC.x=-1;});
+  const tick=now=>{const dp=window.devicePixelRatio||1,w=Math.round(innerWidth*dp),h=Math.round(innerHeight*dp);if(cv.width!==w||cv.height!==h){cv.width=w;cv.height=h;}
+    const c=cv.getContext('2d');c.setTransform(dp,0,0,dp,0,0);c.clearRect(0,0,innerWidth,innerHeight);GC.shown=false;
+    if(GC.x>=0&&!(GC.opt.hide&&GC.opt.hide(GC.el))){GC.shown=true;gcDraw(c,GC.st,GC.x,GC.y,GC.opt.act?GC.opt.act(GC.el):gcActEl(GC.el),now,GC.opt.col?GC.opt.col(GC.el):null);}
+    requestAnimationFrame(tick);};requestAnimationFrame(tick);}
