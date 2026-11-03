@@ -40,8 +40,8 @@ function drawBottleScene(G,d,o){ // a bottle on the lake: its letter (a glass on
   for(const part of d.empty?['glass']:d.duck?['cork','glass']:['note','cork','glass'])drawDuckScene(G,'bottle:'+d.col+':'+part,o);}
 // ── A shop: its building as a 3D model the duck renderer draws (material 13, painted): walls with window and door openings, the lit room
 // behind them, frames and a roof edge, scaffolding on the roof and the sign mounted on it. One texture holds its colours, the room and the sign. ──
-function shopModel(id,bk,lit,fl,si){ // si: the sign's loaded image → the model's type, for drawDuck3D
-  const type='shop:'+id+':'+bk+(lit?1:0)+(fl?1:0);if(_duckModels.has(type))return type;const B=SHOP_BLD[bk],S=SHOPS[id],A=512,tx=document.createElement('canvas');tx.width=tx.height=A;const c=tx.getContext('2d');
+function shopModel(id,bk,lit,fl,si,open){ // si: the sign's loaded image; open: its doors stand open (its menu is open) → the model's type, for drawDuck3D
+  const type='shop:'+id+':'+bk+(lit?1:0)+(fl?1:0)+(open?'o':'');if(_duckModels.has(type))return type;const B=SHOP_BLD[bk],S=SHOPS[id],A=512,tx=document.createElement('canvas');tx.width=tx.height=A;const c=tx.getContext('2d');
   const mx=(a,b,t)=>{const h=v=>[1,3,5].map(i=>parseInt(v.slice(i,i+2),16)),A=h(a),Bb=h(b);return'rgb('+A.map((v,i)=>Math.round(v+(Bb[i]-v)*t)).join(',')+')';}; // two #rrggbb colours mixed
   [B.wall,B.roof,B.line,'#3a3a40','#4a4a50',...(lit?[mx(S.col,'#fff6e8',0.55),mx(S.col,'#000000',0.5),'#6b5440',S.col,mx(S.col,'#ffffff',0.45),'#fff6e0']:['#2c2c33','#1e1e24','#2a2420','#34343b','#3a3a41','#3a3a40'])]
     .forEach((col,i)=>{c.fillStyle=col;c.fillRect(i*32,0,32,32);}); // flat colours: walls, roof, frames and trim, scaffolding, the window reveals; inside: the room's walls, its floor, the counter and shelves, two of goods, the lamp (the shop's colour when open, dark when closed)
@@ -65,10 +65,10 @@ function shopModel(id,bk,lit,fl,si){ // si: the sign's loaded image → the mode
   for(const[x0,y0,x1,y1]of WN){ // each opening: its reveals back to the room, and a frame round it
     quad([[x0,y0,z0],[x0,y0,zr],[x0,y1,zr],[x0,y1,z0]],[1,0,0],R4);quad([[x1,y0,zr],[x1,y0,z0],[x1,y1,z0],[x1,y1,zr]],[-1,0,0],R4);quad([[x0,y1,z0],[x0,y1,zr],[x1,y1,zr],[x1,y1,z0]],[0,-1,0],R4);if(y0>0)quad([[x0,y0,zr],[x0,y0,z0],[x1,y0,z0],[x1,y0,zr]],[0,1,0],R4);
     box(x0-0.7,y0,z0-0.4,x0+0.3,y1+0.7,z0+0.5,2);box(x1-0.3,y0,z0-0.4,x1+0.7,y1+0.7,z0+0.5,2);box(x0-0.7,y1-0.3,z0-0.4,x1+0.7,y1+0.7,z0+0.5,2);if(y0>0)box(x0-1.2,y0-0.7,z0-0.4,x1+1.2,y0+0.3,z0+1.1,2);}
-  for(const[x0,y0,x1,y1]of B.bar){if(lit&&DR.some(d=>d.st&&d.st[0]===L+x0&&d.st[1]===y0))continue;box(L+x0,y0,zr+0.5,L+x1,y1,z0+0.2,2);}
-  for(const d of DR){const[x0,,x1]=d.w,zc=z0-0.7,t=d.top,leaves=d.st?[[x0+0.3,d.st[0],1],[x1-0.3,d.st[2],-1]]:[[x0+0.3,x1-0.3,1]]; // the doors: closed (glass in a frame), or open into the shop
-    for(const[h,e,dir]of leaves){const w=Math.abs(e-h),a=lit?1.25:0,fx=h+dir*w*Math.cos(a),fz=zc-w*Math.sin(a);
-      beam([h,0.4,zc],[fx,0.4,fz],0.8,2);beam([h,t-0.4,zc],[fx,t-0.4,fz],0.8,2);beam([h,0,zc],[h,t,zc],0.8,2);beam([fx,0,fz],[fx,t,fz],0.8,2);if(!lit)panes.push([Math.min(h,fx)+0.4,0.8,Math.max(h,fx)-0.4,t-0.8,zc]);}
+  for(const[x0,y0,x1,y1]of B.bar){if(open&&DR.some(d=>d.st&&d.st[0]===L+x0&&d.st[1]===y0))continue;box(L+x0,y0,zr+0.5,L+x1,y1,z0+0.2,2);}
+  for(const d of DR){const[x0,,x1]=d.w,zc=z0-0.7,t=d.top,leaves=d.st?[[x0+0.3,d.st[0],1],[x1-0.3,d.st[2],-1]]:[[x0+0.3,x1-0.3,1]]; // the doors: closed (glass in a frame), or, while its menu is open, open into the shop
+    for(const[h,e,dir]of leaves){const w=Math.abs(e-h),a=open?1.25:0,fx=h+dir*w*Math.cos(a),fz=zc-w*Math.sin(a);
+      beam([h,0.4,zc],[fx,0.4,fz],0.8,2);beam([h,t-0.4,zc],[fx,t-0.4,fz],0.8,2);beam([h,0,zc],[h,t,zc],0.8,2);beam([fx,0,fz],[fx,t,fz],0.8,2);if(!open)panes.push([Math.min(h,fx)+0.4,0.8,Math.max(h,fx)-0.4,t-0.8,zc]);}
     if(t<d.w[3]-0.5)panes.push([x0+0.35,t+0.9,x1-0.35,d.w[3]-0.35,z0-0.2]);} // and the transom above
   for(const[x0,y0,x1,y1]of WN)if(y0>0){panes.push([x0+0.35,y0+0.35,x1-0.35,y1-0.35,z0-0.2]); // the glass of each window, and drapes in the shop's colour behind it
     const bxF=(a,b,e,f,g,h,i)=>{const n=pos.length/3;box(a,b,e,f,g,h,i);for(let k=n;k<pos.length/3;k++)uv[k*4+2]=F;};bxF(x0+0.2,y1-2.4,z0-1.8,x1-0.2,y1-0.2,z0-1.2,8);bxF(x0+0.2,y0+0.3,z0-1.8,x0+1.8,y1-2.4,z0-1.3,8);bxF(x1-1.8,y0+0.3,z0-1.8,x1-0.2,y1-2.4,z0-1.3,8);}
@@ -395,7 +395,7 @@ function cursorDot(cx,x,y,dimA,edgeCol){
 // SHOP_BLD: each building as a 3D model (shopModel), in the units of its old drawings: w × h × d the walls, win its window and door openings
 // [x0, y0, x1, y1] (from its front's bottom left), bar the frames across them, posts the sign's scaffolding (pairs of uprights, braced, ph tall above the roof),
 // wall / roof / line its colours (line: frames, the roof's edge and the trim, as the drawings' outlines), and the room inside is built in 3D too (walls, floor, shelves of goods, a counter, a lamp; lit with the shop's colour when open).
-const SHOP_BLD={s:{w:58,h:30,d:24,win:[[4,0,24,22],[28,9,54,22]],bar:[[4,10,24,11],[13.5,0,14.5,10]],posts:[[12,19],[39,46]],ph:6,wall:'#7f7f7f',roof:'#8a8a8a',line:'#595959'},
+const SHOP_BLD={s:{w:58,h:30,d:24,win:[[4,0,24,22],[28,9,54,22]],bar:[[4,10,24,11]],posts:[[12,19],[39,46]],ph:6,wall:'#7f7f7f',roof:'#8a8a8a',line:'#595959'},
   m:{w:64,h:28,d:26,win:[[3,15,20,23],[22,15,35,23],[37,15,61,23],[7,3,20,11],[22,0,32,12],[34,3,57,11]],bar:[[26.6,0,27.4,12]],posts:[[8,11],[24,27],[37,40],[53,56]],ph:4,wall:'#adadad',roof:'#b8b8b8',line:'#595959'}};
 SHOP_BLD.d=Object.assign({},SHOP_BLD.s,{wall:'#0b0b0d',roof:'#141418',line:'#7f7f7f'});SHOP_BLD.l=Object.assign({},SHOP_BLD.m,{ph:11}); // the Gift Shop's dark one; rank 3's tall scaffolding
 const SHOP_RANK_BLD=['s','m','l'];
