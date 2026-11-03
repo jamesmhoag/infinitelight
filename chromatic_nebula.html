@@ -5310,7 +5310,7 @@ function checkLevelClear(now){
     levelCleared=true;breakAllCreations(now);
     clearInfo={type:'black',timeMs:now-levelStartTime,clicks:totalActivations,
       collapsedMass:blackHole.collapsedMass||0,collapsedEnergy:blackHole.collapsedEnergy||0,
-      collectedMass:blackHole.scoreMass||0,collectedEnergy:blackHole.scoreEnergy||0};
+      collectedMass:blackHole.scoreMass||0,collectedEnergy:blackHole.scoreEnergy||0,rift:blackHole.rift?blackHole.rift.a:null};
     collectAllDucks();hubLevelCleared();
     return;
   }
@@ -5369,19 +5369,20 @@ function avoidDockFor(x,y,r){
 }
 function triggerBlackRemnant(x,y,now,mass,energy,fromGate,rift){ // rift: a Rift (too much mass in one place) is always a Dark Remnant, never a duck
   if(blackHole)return; // only one remnant event at a time
-  if(!fromGate){const lg=gateAtPoint(x,y);if(lg){lockDarkInGate(lg,x,y,now,mass,energy);return;}} // formed inside a Gate: it stays locked in there
+  if(!fromGate&&!rift){const lg=gateAtPoint(x,y);if(lg){lockDarkInGate(lg,x,y,now,mass,energy);return;}} // formed inside a Gate: it stays locked in there
   const canDuck=!fromGate&&!rift&&!window.__SCENE&&(dormantCount>0||active.some(q=>!q.isRemnant&&!q.dying&&!q.captured&&Math.hypot(q.x-x,q.y-y)>60)),asDuck=canDuck&&(!!runState.next||Math.random()<runT('duckChance')+duckLuck.d*runT('duckLuckStep')); // a duck instead — only while the surface still has something to play
   if(canDuck){duckLuck.d=asDuck?0:duckLuck.d+1;saveInventory();} // a miss makes the next one likelier; a duck rebases it
-  if(fromGate!=='nogrow'&&!(performance.now()-_lastNovaAt<400&&Math.hypot(_lastNovaX-x,_lastNovaY-y)<250)){ // every Dark Remnant begins with a nova (mergers and deaths already fired theirs)
+  if(fromGate!=='nogrow'&&!rift&&!(performance.now()-_lastNovaAt<400&&Math.hypot(_lastNovaX-x,_lastNovaY-y)<250)){ // every Dark Remnant begins with a nova (mergers and deaths already fired theirs)
     const nm=Math.min(mass||0,T.massScaleMax*T.blackMult),synthN={x,y,vx:0,vy:0,rot:0,rotation:0,pvx:0,pvy:0,mass:Math.max(1,nm),energy:Math.max(0.001,Math.min(energy||0.5,5)),masses:randomColorMasses(),sigR:255,sigG:255,sigB:255,peakEffectR:0};
     const deb=triggerNova(synthN,now,undefined,true);if(deb)for(const d of deb)active.push(d);
   }
   if(asDuck){spawnDuck(x,y,now);return;} // the nova still fires; the surface carries on
   const targetR=Math.min(T.whiteEffMax,Math.max(T.whiteEffMin,40))*remEnScaleOf(energy);
-  fireEvent('dark');
+  if(!rift)fireEvent('dark');
   blackHole={x,y,targetR,consumeR:0,waveR:0,growStart:now,phase:'grow',activateR:0,scoreMass:0,scoreEnergy:0,collapsedMass:mass||0,collapsedEnergy:energy||0,complete:false,wakes:[],impacts:[]};
   if(fromGate==='nogrow')blackHole.growStart=now-T.blackGrowMs-1; // released from a Gate: already full size, no re-appearing
-  blackHole._spawnPurge=true; // applied at the start of the next Dark Remnant update (this can be called mid collision pass, where `active` must not shrink)
+  if(rift){const a=Math.random()*Math.PI,w0=T.riftWMin||40,w=w0+Math.random()*Math.max(0,(T.riftWMax||80)-w0);Object.assign(blackHole,{rift:{a,nx:-Math.sin(a),ny:Math.cos(a),seed:Math.random()*100},targetR:w/2,phase:'crack',crackStart:now});} // a Rift: a line across the screen at a random angle (through where the mass was), its black stripe 40–80 px wide
+  else blackHole._spawnPurge=true; // applied at the start of the next Dark Remnant update (this can be called mid collision pass, where `active` must not shrink)
   releaseMouseDown(now);pressedIDs.clear();pendingActs.clear();lastActivatedId=-1;
   armedInvItem=null;setConMode(false); // the Dark Remnant takes over completely — no armed tool or Pattern mode survives its appearance
   speedMult=1; // a Dark Remnant always plays out at normal speed
@@ -5419,15 +5420,15 @@ function bhContactSweep(now){
   if(bh._spawnPurge){ // whatever was already under it when it appeared is deleted silently — no wake, impact or sound
     bh._spawnPurge=false; // debris in flight would settle into nebula particles after the accounting — drop it
     for(let i=active.length-1;i>=0;i--){const q=active[i];const rr=(q.isRemnant||q.failedCollapse)?pointVisibleRadius(q):Math.max(0.5,q.displayR||0.5);
-      if(Math.hypot(_wrapD(q.x-bh.x,W),_wrapD(q.y-bh.y,H))<bh.targetR+rr){tallyLost(q);bh.scoreMass+=q.mass;bh.scoreEnergy+=q.energy;pressedIDs.delete(q.id);pendingActs.delete(q.id);active.splice(i,1);}}
+      if(Math.hypot(...bhVec(bh,q.x,q.y))<bh.targetR+rr){tallyLost(q);bh.scoreMass+=q.mass;bh.scoreEnergy+=q.energy;pressedIDs.delete(q.id);pendingActs.delete(q.id);active.splice(i,1);}}
   }
   if(!(bh.consumeR>0)||bh.phase==='active')return;
   for(let i=active.length-1;i>=0;i--){
     const p=active[i];
-    const dx=_wrapD(p.x-bh.x,W),dy=_wrapD(p.y-bh.y,H);
+    const[dx,dy]=bhVec(bh,p.x,p.y);
     let md=Math.hypot(dx,dy);
     if(p._bhPX!==undefined){ // closest approach of this frame's straight path (from last sweep's position to now)
-      const px=_wrapD(p._bhPX-bh.x,W),py=_wrapD(p._bhPY-bh.y,H);
+      const[px,py]=bhVec(bh,p._bhPX,p._bhPY);
       const sx=dx-px,sy=dy-py,L=sx*sx+sy*sy;
       if(L>0&&L<(W*0.25)*(W*0.25)){let t=-(px*sx+py*sy)/L;t=Math.max(0,Math.min(1,t));md=Math.min(md,Math.hypot(px+t*sx,py+t*sy));}
     }
@@ -5437,7 +5438,7 @@ function bhContactSweep(now){
     const d=Math.max(1,Math.hypot(dx,dy)),nx=dx/d,ny=dy/d;
     tallyLost(p);bh.scoreMass+=p.mass;bh.scoreEnergy+=p.energy;
     if(bh.phase!=='active'){pressedIDs.delete(p.id);pendingActs.delete(p.id);active.splice(i,1);continue;} // appearing / spreading: anything in the footprint just vanishes — no wake, impact or sound
-    const edgeX=bh.x+nx*bh.consumeR,edgeY=bh.y+ny*bh.consumeR;
+    const edgeX=(bh.rift?p.x-dx:bh.x)+nx*bh.consumeR,edgeY=(bh.rift?p.y-dy:bh.y)+ny*bh.consumeR; // (on a Rift: the stripe's edge beside it)
     bhAddWake(bh,edgeX,edgeY,nx,ny,Math.hypot(p.vx,p.vy),p.mass,p.r,p.g,p.b);
     bh.impacts.push({x:edgeX,y:edgeY,r:p.r,g:p.g,b:p.b,size:bhImpactSizeFor(p.mass)*(0.85+Math.random()*0.3),born:now});
     if(bh.impacts.length>120)bh.impacts.shift();
@@ -5450,13 +5451,13 @@ function bhContactSweep(now){
 // rate (blackLaunchPerMs). Only launched objects are ever touched per frame — the rest of the field costs nothing.
 function bhEnqueue(bh,p){
   p._bhQ=true;p.birthProgress=1;p.vx=0;p.vy=0;p.pvx=0;p.pvy=0;p.rot=0;
-  p._bhD=Math.hypot(_wrapD(p.x-bh.x,W),_wrapD(p.y-bh.y,H));
+  p._bhD=Math.hypot(...bhVec(bh,p.x,p.y));
   const q=bh.queue;let lo=bh.qi,hi=q.length;
   while(lo<hi){const m=(lo+hi)>>1;if(q[m]._bhD<=p._bhD)lo=m+1;else hi=m;}
   q.splice(lo,0,p);
 }
 function bhDrawIn(bh,now,dt){
-  if(!bh.queue){bh.queue=[];bh.qi=0;bh.flying=[];bh._acc=0;for(let i=0;i<active.length;i++){const p=active[i];p._bhQ=true;p.birthProgress=1;p.vx=0;p.vy=0;p.pvx=0;p.pvy=0;p.rot=0;p._bhD=Math.hypot(_wrapD(p.x-bh.x,W),_wrapD(p.y-bh.y,H));bh.queue.push(p);}
+  if(!bh.queue){bh.queue=[];bh.qi=0;bh.flying=[];bh._acc=0;for(let i=0;i<active.length;i++){const p=active[i];p._bhQ=true;p.birthProgress=1;p.vx=0;p.vy=0;p.pvx=0;p.pvy=0;p.rot=0;p._bhD=Math.hypot(...bhVec(bh,p.x,p.y));bh.queue.push(p);}
     bh.queue.sort((a,b)=>a._bhD-b._bhD);}
   bh._acc+=Math.max(0,dt)*T.blackLaunchPerMs;
   if(bh._batch===undefined)bh._batch=1;
@@ -5464,7 +5465,7 @@ function bhDrawIn(bh,now,dt){
     bh._acc-=bh._batch;
     for(let n=0;n<bh._batch&&bh.qi<bh.queue.length;n++){ // a batch = the next few nearest objects, launched together (reads as a ring)
       const p=bh.queue[bh.qi++];if(p._bhGone)continue;
-      const dx=_wrapD(bh.x-p.x,W),dy=_wrapD(bh.y-p.y,H),d=Math.hypot(dx,dy)||1;
+      const v=bhVec(bh,p.x,p.y),dx=-v[0],dy=-v[1],d=Math.hypot(dx,dy)||1; // (at a Rift: straight across to its line)
       p.vx=dx/d*T.blackFlySpeed;p.vy=dy/d*T.blackFlySpeed;p._bhFly=true;bh.flying.push(p);
     }
     const B=Math.max(1,T.blackBatch|0);bh._batch=B<=1?1:Math.max(1,Math.round(B*(0.75+0.5*Math.random()))); // ~B, randomised
@@ -5476,11 +5477,11 @@ function bhDrawIn(bh,now,dt){
     const p=bh.flying[k];
     p.x+=p.vx*ts;p.y+=p.vy*ts;
     if(p.x<0)p.x+=W;else if(p.x>=W)p.x-=W;if(p.y<0)p.y+=H;else if(p.y>=H)p.y-=H;
-    const dx=_wrapD(p.x-bh.x,W),dy=_wrapD(p.y-bh.y,H),d=Math.hypot(dx,dy);
+    const[dx,dy]=bhVec(bh,p.x,p.y),d=Math.hypot(dx,dy);
     const r=(p.isRemnant||p.failedCollapse)?pointVisibleRadius(p):Math.max(0.5,p.displayR||0.5);
     if(d<bh.consumeR+r){
       tallyLost(p);bh.scoreMass+=p.mass;bh.scoreEnergy+=p.energy;
-      const dd=d||1,nx=dx/dd,ny=dy/dd,edgeX=bh.x+nx*bh.consumeR,edgeY=bh.y+ny*bh.consumeR;
+      const dd=d||1,nx=dx/dd,ny=dy/dd,edgeX=(bh.rift?p.x-dx:bh.x)+nx*bh.consumeR,edgeY=(bh.rift?p.y-dy:bh.y)+ny*bh.consumeR;
       bhAddWake(bh,edgeX,edgeY,nx,ny,T.blackFlySpeed,p.mass,p.r,p.g,p.b);
       bh.impacts.push({x:edgeX,y:edgeY,r:p.r,g:p.g,b:p.b,size:bhImpactSizeFor(p.mass)*(0.85+Math.random()*0.3),born:now});
       if(bh.impacts.length>120)bh.impacts.shift();
@@ -5496,21 +5497,22 @@ function bhWaveSync(bh,now){
   const R=bh.activateR;
   for(let i=0;i<active.length;i++){const p=active[i];
     if(p._bhKilled){p.vx=0;p.vy=0;p.pvx=0;p.pvy=0;p.rot=0;continue;}
-    if(Math.hypot(_wrapD(p.x-bh.x,W),_wrapD(p.y-bh.y,H))<=R){p.vx=0;p.vy=0;p.pvx=0;p.pvy=0;p.rot=0;p._bhKilled=true;}
+    if(Math.hypot(...bhVec(bh,p.x,p.y))<=R){p.vx=0;p.vy=0;p.pvx=0;p.pvy=0;p.rot=0;p._bhKilled=true;}
   }
   _dormantFadeOnRemove=true;
   for(let idx=0;idx<dormant.length;idx++){const dp=dormant[idx];if(!dp)continue;
-    if(Math.hypot(_wrapD(dp.x-bh.x,W),_wrapD(dp.y-bh.y,H))>R)continue;
+    if(Math.hypot(...bhVec(bh,dp.x,dp.y))>R)continue;
     removeDormant(idx,now);initWoken(dp,0);dp.vx=0;dp.vy=0;dp.rot=0;dp._bhKilled=true;active.push(dp);
   }
   _dormantFadeOnRemove=false;
-  if(R>=Math.sqrt(W*W+H*H)-1)bh.particlesWoken=true;
+  if(R>=bhReach(bh)-1)bh.particlesWoken=true;
 }
 function processBlackRemnant(now,dt){
   if(!blackHole||blackHole.complete)return;
   const bh=blackHole;
   if(!bh._brk){bh._brk=true;bhBreakFixtures(now);} // the Dark Remnant breaks every Lens (bright remnants at their corners) and every Gate — all of it is then drawn in
   bhContactSweep(now); // first thing, in every phase (grow / expand / active)
+  if(bh.phase==='crack'){if(now-bh.crackStart>=(T.riftCrackMs||1100)){bh.phase='grow';bh.growStart=now;}return;} // a Rift: the crack runs across the screen first, then it opens (grow)
   // Grow-in: single point -> derived full scale, running alongside the white's
   // own nova (see triggerNova/triggerBlackRemnant call sites). While growing,
   // the remnant is purely visual — it doesn't yet pull, consume, or affect
@@ -5531,7 +5533,7 @@ function processBlackRemnant(now,dt){
     }
     return;
   }
-  const maxR=Math.sqrt(W*W+H*H);
+  const maxR=bhReach(bh);
   if(bh.phase==='expand'){
     // Keep freezing anything that appears mid-expansion (freshly-woken
     // stragglers) so NOTHING moves anywhere on screen while the darkness is
@@ -5563,7 +5565,7 @@ function processBlackRemnant(now,dt){
   // but capped: only enough to bring the active count up to blackMaxActive, so it's a steady 1-out-1-in swap with
   // whatever just got consumed above, rather than the whole remaining dormant field flooding in in a single frame.
   let drawInBudget=Math.max(0,T.blackMaxActive-active.length);
-  if(drawInBudget>0)forEachDormant(bh.x|0,bh.y|0,bh.activateR,(dp,idx)=>{
+  if(drawInBudget>0)forEachDormant(bh.x|0,bh.y|0,bh.rift?Math.sqrt(W*W+H*H):bh.activateR,(dp,idx)=>{
     if(drawInBudget<=0)return;
     drawInBudget--;
     _dormantFadeOnRemove=true;removeDormant(idx,now);_dormantFadeOnRemove=false;
@@ -5581,7 +5583,7 @@ function processBlackRemnant(now,dt){
     let orphan=false;for(let i=0;i<active.length;i++){if(!active[i]._bhQ){bhEnqueue(bh,active[i]);orphan=true;}}
     if(!orphan){
       let anyDormantLeft=false;
-      if(active.length===0)forEachDormant(bh.x|0,bh.y|0,bh.activateR,()=>{anyDormantLeft=true;});
+      if(active.length===0)forEachDormant(bh.x|0,bh.y|0,bh.rift?Math.sqrt(W*W+H*H):bh.activateR,()=>{anyDormantLeft=true;});
       if(active.length===0&&bh.wakes.length===0&&!anyDormantLeft&&!ducks.length){bh.complete=true;ensureDarkRemnantTheme();purgeAfterBlack();}
     }
   }
@@ -5613,6 +5615,7 @@ function drawBlackRemnantBG(ctx,now){
   if(!blackHole)return;
   const bh=blackHole;
   if(bh.phase!=='expand'||bh.activateR<=0.5)return;
+  if(bh.rift){drawRiftWave(ctx,bh,now);return;}
   { const cv=ctx.canvas; if(!bh._pre||bh._pre.width!==cv.width||bh._pre.height!==cv.height){bh._pre=document.createElement('canvas');bh._pre.width=cv.width;bh._pre.height=cv.height;}
     const px=bh._pre.getContext('2d');px.setTransform(1,0,0,1,0,0);px.clearRect(0,0,cv.width,cv.height);px.drawImage(cv,0,0); } // what the front is about to wash over
   ctx.save();
@@ -5650,7 +5653,7 @@ function drawBlackRemnant(ctx,now){
   if(!blackHole)return;
   const bh=blackHole;
   const R=Math.max(0.5,bh.consumeR);
-  if(R>0.5)wrapCopies(bh.x,bh.y,R*1.5+T.bhRingWidth,(ox,oy)=>{ // crossing a screen edge, a second copy shows on the opposite side
+  if(bh.rift)drawRift(ctx,bh,now);else if(R>0.5)wrapCopies(bh.x,bh.y,R*1.5+T.bhRingWidth,(ox,oy)=>{ // crossing a screen edge, a second copy shows on the opposite side
     ctx.save();ctx.translate(ox,oy);
     // Two independent glow ring layers, each with their own width/blur/
     // heartbeat/sway vars — the second one's heartbeat starts at the
@@ -10096,7 +10099,7 @@ function renderWorld(now,suppressGlow,asPlay){
     // In the normal scheme the background is already black so this is invisible/harmless; in Invert mode it's the
     // thing that actually carries the background from white to black as the Dark Remnant finishes consuming the surface.
     const bgR=Math.min(Math.sqrt(W*W+H*H),blackHole.activateR);
-    if(bgR>0){ctx.save();ctx.beginPath();ctx.arc(blackHole.x,blackHole.y,bgR,0,6.2832);ctx.fillStyle='#000';ctx.fill();ctx.restore();}
+    if(bgR>0){ctx.save();ctx.beginPath();if(blackHole.rift){ctx.translate(blackHole.x,blackHole.y);ctx.rotate(blackHole.rift.a);const L=Math.hypot(W,H);ctx.rect(-L,-bgR,2*L,2*bgR);}else ctx.arc(blackHole.x,blackHole.y,bgR,0,6.2832);ctx.fillStyle='#000';ctx.fill();ctx.restore();} // (a Rift's: a band along it)
   }
 
   if(!pointsCanvas){pointsCanvas=document.createElement('canvas');pointsCtx=pointsCanvas.getContext('2d');}
@@ -13074,7 +13077,7 @@ async function quitTo(dest){ // the pause menu's Quit buttons
   const key=hubLevel&&hubLevel.key;hubIdle();
   hubPost({type:'quit',to:dest,key,cleared:!rec,img:rec?rec.img:null,T:Object.assign({},T),inv:Object.assign({},inventory),disc:[...discSeen]});
 }
-function hubLevelCleared(){if(!HUB||!hubLevel)return;IDB.del('session').catch(()=>{});hubPost({type:'cleared',key:hubLevel.key,kind:clearInfo&&clearInfo.type==='black'?'dark':'bright',tally:surfaceTally});} // the tally: what this surface collected (a pop-up shop may open on it)
+function hubLevelCleared(){if(!HUB||!hubLevel)return;IDB.del('session').catch(()=>{});hubPost({type:'cleared',key:hubLevel.key,kind:clearInfo&&clearInfo.type==='black'?(clearInfo.rift!=null?'rift':'dark'):'bright',ang:clearInfo&&clearInfo.rift,tally:surfaceTally});} // the tally: what this surface collected (a pop-up shop may open on it)
 window.addEventListener('message',e=>{
   const m=e.data;if(!HUB||e.source!==window.parent||!m||!m.cmd)return;
   if(m.size)hubShotSize=m.size;
@@ -13319,9 +13322,9 @@ function duckStep(now,ts){
     for(let k=i+1;k<ducks.length;k++){const e=ducks[k];if(!e._hull||e._bhK)continue;const dx=_wrapD(e.x-d.x,W),dy=_wrapD(e.y-d.y,H),dd=Math.hypot(dx,dy)||1e-4,R=Hd.m+e._hull.m;if(dd>=R)continue;
       const nx=dx/dd,ny=dy/dd,imp=duckImpulse(d,e,{nx,ny,pen:R-dd,px:nx*Hd.m,py:ny*Hd.m},duckMass(e),true);if(imp>0.05){duckVoice(d,imp/T.maxSpeed);duckVoice(e,imp/T.maxSpeed);}}}}
 function duckDark(d,bh,now,ts){ // a Dark Remnant stops it as its wave passes, draws it in with everything else, and swallows it (true = gone)
-  const dx=_wrapD(bh.x-d.x,W),dy=_wrapD(bh.y-d.y,H),dist=Math.hypot(dx,dy)||1,r=(d._hull?d._hull.m:duckSizeOf(d)*0.4);
+  const v=bhVec(bh,d.x,d.y),dx=-v[0],dy=-v[1],dist=Math.hypot(dx,dy)||1,r=(d._hull?d._hull.m:duckSizeOf(d)*0.4);
   if(dist<(bh.consumeR||0)+r){duckVoice(d,1);bhConsumeSound({ci:0,mass:duckMass(d)});
-    if(bh.phase==='active'){const nx=-dx/dist,ny=-dy/dist;bh.impacts.push({x:bh.x+nx*bh.consumeR,y:bh.y+ny*bh.consumeR,r:255,g:222,b:40,size:bhImpactSizeFor(duckMass(d)),born:now});}
+    if(bh.phase==='active'){const nx=-dx/dist,ny=-dy/dist;bh.impacts.push({x:(bh.rift?d.x+dx:bh.x)+nx*bh.consumeR,y:(bh.rift?d.y+dy:bh.y)+ny*bh.consumeR,r:255,g:222,b:40,size:bhImpactSizeFor(duckMass(d)),born:now});}
     flashSaveStatus(txt('surf.the_dark_remnant_swallowed',DUCK_TYPES[d.type].name));return true;}
   if(!d._bhK&&(bh.phase==='active'||(bh.activateR||0)>=dist)){d._bhK=true;d.vx=d.vy=d.rot=d.wx=d.wy=0;}
   if(d._bhK&&bh.phase==='active'&&bh.queue&&(bh.qi>=bh.queue.length||(bh.qi>0&&bh.queue[bh.qi-1]._bhD>=dist))){const s=Math.min(dist,T.blackFlySpeed*ts);d.x=((d.x+dx/dist*s)%W+W)%W;d.y=((d.y+dy/dist*s)%H+H)%H;}
@@ -13412,7 +13415,24 @@ Object.assign(RULE_EV,{duck:'duck',duckexo:'duck'});Object.assign(RULE_SCENES,{d
 // ═════════════════════════ RIFT ═════════════════════════
 // The mechanics trend toward ever more mass in fewer places. A Rift (a Tear): when the mass of everything on the surface inside one
 // area — any 2×2 block of Rift-area cells — reaches Rift mass, the surface tears there and a Dark Remnant forms at that mass's centre.
-// A Rift is ALWAYS a Dark Remnant (no duck roll). Inside a Gate it is locked in like any Dark Remnant formed there.
+// A Rift is not a Dark Remnant: it is a line. A glass crack runs across the screen at a random angle through that mass, glowing with the Dark
+// Remnant's pulse, and opens into a jagged pure black stripe (Rift width). Whatever it opens over is lost. Then a wave runs out from it on both
+// sides, parallel to it, and everything is drawn straight across to it and consumed (bursts of spikes where it hits), by the Dark Remnant's own
+// collapse settings (blackHole with .rift: every distance is to its line). Remnants can still be collected at the last second. On the Surface Map
+// the hex is gone: a scar (see riftCell there).
+function bhVec(bh,x,y){if(!bh.rift)return[_wrapD(x-bh.x,W),_wrapD(y-bh.y,H)];const r=bh.rift,s=(x-bh.x)*r.nx+(y-bh.y)*r.ny;return[r.nx*s,r.ny*s];} // from the hole (a Dark Remnant's centre, or the nearest point of a Rift's line) out to (x,y)
+function bhReach(bh){if(!bh.rift)return Math.sqrt(W*W+H*H);let m=0;for(const[x,y]of[[0,0],[W,0],[0,H],[W,H]])m=Math.max(m,Math.abs((x-bh.x)*bh.rift.nx+(y-bh.y)*bh.rift.ny));return m;} // how far its wave runs to cover the screen
+function drawRift(c,bh,now){const r=bh.rift,L=Math.hypot(W,H),tx=r.ny,ty=-r.nx;
+  if(bh.phase==='crack'){const u=Math.min(1,(now-bh.crackStart)/Math.max(1,T.riftCrackMs||1100)),l=L*(1-Math.pow(1-u,3)),P=new Path2D(); // the crack runs out both ways from where the mass was, like glass: a jagged line, short splinters off it
+    for(const sd of[-1,1]){let px=bh.x,py=bh.y;P.moveTo(px,py);for(let d=14,i=0;d<=l;d+=14,i++){const j=(riftJag(i,r.seed+sd)-0.5)*6;px=bh.x+tx*d*sd+r.nx*j;py=bh.y+ty*d*sd+r.ny*j;P.lineTo(px,py);
+      if(riftJag(i+50,r.seed+sd)<0.22){const ba=(riftJag(i+80,r.seed)-0.5)*1.6,bl=8+22*riftJag(i+90,r.seed),bx=tx*sd*Math.cos(ba)-ty*sd*Math.sin(ba),by=tx*sd*Math.sin(ba)+ty*sd*Math.cos(ba);P.lineTo(px+bx*bl,py+by*bl);P.moveTo(px,py);}}}
+    drawRiftGlow(c,P,now,0.5,0,true);c.save();c.strokeStyle='rgba(255,255,255,0.9)';c.lineWidth=1.2;c.stroke(P);c.restore();return;}
+  drawRiftGlow(c,riftStripe(new Path2D(),bh.x-tx*L,bh.y-ty*L,bh.x+tx*L,bh.y+ty*L,Math.max(0.5,bh.consumeR),r.seed,14),now,1);} // open: the stripe (its edges in the pulsing glow)
+function drawRiftWave(c,bh,now){const a=bh.activateR,L=Math.hypot(W,H),bw=Math.max(30,Math.min(150,a*0.2)); // the wave out from a Rift, both sides at once: the dark behind it, a white flare and the Dark Remnant's glow along its fronts
+  c.save();c.translate(bh.x,bh.y);c.rotate(bh.rift.a);const g=c.createLinearGradient(0,-a,0,a);g.addColorStop(0,'rgba(0,0,0,0)');g.addColorStop(0.12,'rgba(0,0,0,0.95)');g.addColorStop(0.88,'rgba(0,0,0,0.95)');g.addColorStop(1,'rgba(0,0,0,0)');
+  c.filter=`blur(${T.bhExpandBlur}px)`;c.fillStyle=g;c.fillRect(-L,-a,2*L,2*a);c.filter='none';c.globalCompositeOperation='screen';
+  for(const sd of[-1,1]){const y=sd*a,f=c.createLinearGradient(0,y-bw*sd,0,y+bw*0.35*sd);f.addColorStop(0,'rgba(255,255,255,0)');f.addColorStop(0.72,'rgba(255,255,255,0.5)');f.addColorStop(1,'rgba(255,255,255,0)');c.fillStyle=f;c.fillRect(-L,Math.min(y-bw*sd,y+bw*0.35*sd),2*L,bw*1.35);}
+  c.globalCompositeOperation='source-over';const P=new Path2D();P.moveTo(-L,-a);P.lineTo(L,-a);P.moveTo(-L,a);P.lineTo(L,a);drawRiftGlow(c,P,now,1,0,true);c.restore();}
 
 
 let _riftAt=0;

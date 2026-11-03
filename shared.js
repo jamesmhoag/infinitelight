@@ -371,6 +371,23 @@ function drawBHGlowRing(mainCtx,bh,R,now,phaseOffset,cfg,canvasHolder,drawVoidCo
   mainCtx.filter='none';mainCtx.globalAlpha=1;
   mainCtx.restore();
 }
+// ── A Rift (shared): a jagged pure black stripe along a line, outlined with the Dark Remnant's pulsing glow. The surface draws one across the
+// screen as it tears; the Surface Map draws the scar it leaves (and joins neighbouring scars into one edge, or three into a triangle). ──
+function riftJag(i,seed){const x=Math.sin(i*127.1+seed*311.7)*43758.5453;return x-Math.floor(x);} // a fixed jag per step (the same every frame)
+function riftStripe(P,x0,y0,x1,y1,w,seed,step){ // adds a jagged stripe from (x0,y0) to (x1,y1), w its half width (±35%), to Path2D P
+  const dx=x1-x0,dy=y1-y0,L=Math.hypot(dx,dy)||1,tx=dx/L,ty=dy/L,nx=-ty,ny=tx,n=Math.max(2,Math.ceil(L/(step||12))),top=[],bot=[];
+  for(let i=0;i<=n;i++){const u=i/n,cx=x0+dx*u,cy=y0+dy*u,e=i===0||i===n?0.25:1,a=w*(0.65+0.7*riftJag(i,seed))*e,b=w*(0.65+0.7*riftJag(i+999,seed))*e;top.push([cx+nx*a,cy+ny*a]);bot.push([cx-nx*b,cy-ny*b]);}
+  P.moveTo(...top[0]);for(const p of top)P.lineTo(...p);for(let i=bot.length-1;i>=0;i--)P.lineTo(...bot[i]);P.closePath();return P;}
+function riftPoly(P,pts,w,seed){ // a jagged filled polygon (three scars merged into a triangle): each side pushed in and out by up to w
+  const out=[];pts.forEach((a,j)=>{const b=pts[(j+1)%pts.length],L=Math.hypot(b[0]-a[0],b[1]-a[1]),n=Math.max(2,Math.ceil(L/10)),nx=-(b[1]-a[1])/L,ny=(b[0]-a[0])/L;
+    for(let i=0;i<n;i++){const u=i/n,o=w*(riftJag(i+j*97,seed)-0.5)*2;out.push([a[0]+(b[0]-a[0])*u+nx*o,a[1]+(b[1]-a[1])*u+ny*o]);}});
+  P.moveTo(...out[0]);for(const p of out)P.lineTo(...p);P.closePath();return P;}
+function drawRiftGlow(c,P,now,k,ph,line){ // P's outline in the Dark Remnant's pulsing glow (its two rings' widths, blurs and heartbeat; k scales them), then P filled pure black (line: a crack, only stroked)
+  if(T.bhRingBeatMs>0){const o=ph||0;c.save();c.globalCompositeOperation='lighter';c.lineJoin='round';
+    for(const[bl,al,wd,bm,pa,off,col]of[[T.bhBlurWide,T.bhAlphaWide,T.bhRingWidth,T.bhRingBeatMs,T.bhRingPulseAmt,0,'255,150,40'],[T.bhRing2BlurMid,T.bhRing2AlphaMid,T.bhRing2Width,T.bhRing2BeatMs,T.bhRing2PulseAmt,0.5,'255,120,20']]){
+      const pu=heartbeatPulse((((now+o)%bm)/bm+off)%1)*pa;c.filter=bl>0?`blur(${Math.max(0.5,bl*k).toFixed(1)}px)`:'none';c.globalAlpha=Math.min(1,(al||0.6)*(1+pu*0.6));c.strokeStyle=`rgb(${col})`;c.lineWidth=Math.max(1,wd*k*(1+pu));c.stroke(P);}
+    c.restore();}
+  if(!line){c.fillStyle='#000';c.fill(P);}}
 const _drMapH1={canvas:null,ctx:null},_drMapH2={canvas:null,ctx:null};
 function drawDarkRemnantAt(ctx,x,y,R,now,f,ph){ // the surface's Dark Remnant look at (x,y), void radius R; f scales its ring widths, blurs and sway (R ÷ the surface's own radius)
   if(!(T.bhRingBeatMs>0)||!isFinite(x+y+R))return; // (the map has nothing to draw it with until the surface has sent its tuners)
