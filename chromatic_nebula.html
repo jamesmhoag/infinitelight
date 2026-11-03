@@ -114,7 +114,7 @@ button:hover{background:rgba(255,255,255,0.15);}
   <div id="dock" class="bottom"><div id="inventoryPanel"></div><div id="touch-info"></div></div>
   <canvas id="cur"></canvas>
 </div>
-<script src="shared.js?v=20261103c"></script>
+<script src="shared.js?v=20261103g"></script>
 <script>
 const _SRC=document.documentElement.outerHTML; // kept so the Encyclopedia can run live scenes as embedded copies of the game
 // Safety: a negative / non-finite gradient radius would throw and kill the frame — clamp it, and log the first offender's stack so it can be traced.
@@ -1599,8 +1599,10 @@ TUNE_DEFS.push({sec:'Master volume',tab:'sounds'},{key:'masterVol',label:'Master
  {sec:'Surface Map — shops',tab:'gameplay'},
  {key:'mapStreetSize',label:'Shop size',min:0.15,max:1.5,step:0.01,tip:'Width of a main street shop (× hex size); every shop, pop-ups too, is drawn at this scale'},
  {key:'mapStreetRing',label:'Main street ring',min:0,max:2,step:0.05,tip:'How far from the centre of the source the main street shops stand (× hex size): two behind it, two in front'},
- {key:'mapShopGlow',label:'Shop neon glow',min:0,max:3,step:0.05,tip:'How strongly an open shop\'s sign and windows glow'});
-Object.assign(T,{mapStreetSize:0.75,mapStreetRing:0.8,mapShopGlow:1});
+ {key:'mapShopGlow',label:'Shop neon glow',min:0,max:3,step:0.05,tip:'How strongly an open shop\'s sign and windows glow'},
+ {key:'mapShopPitch',label:'Shop view angle',min:0,max:60,step:1,tip:'Degrees: how far from straight ahead the 3D shops are seen from above (their roofs and sign scaffolding show more)'},
+ {key:'mapDockLingerMs',label:'Dock linger ms',min:0,max:10000,step:100,tip:'With the dock reduced (its ▾ or ~): how long an item stays up after it is used, its count changes or the dock is toggled'});
+Object.assign(T,{mapStreetSize:0.75,mapStreetRing:0.8,mapShopGlow:1,mapShopPitch:22,mapDockLingerMs:2500});
 for(const id in SHOPS){const S=SHOPS[id];if(S.street)continue;for(let i=1;i<=3;i++){const k=shopTK(S.cur)+i;T[k]=S.at[i-1];TUNE_DEFS.push({key:k,label:S.n.slice(0,18)+' rank '+i+' at',min:0,max:9999999,step:1,tip:'A bright clear whose surface collected at least this much '+S.cur+' opens a rank '+i+' '+S.n+' on its hex (0 = never)'});}}
 let tuneTab='gameplay',tuneFilter='',tuneSel=null,tuneBuf='';
 document.addEventListener('keydown',e=>{ // type digits / '.' to set the last-touched tuner row; clamps to its min/max and snaps to its step
@@ -13959,7 +13961,7 @@ const EVENTS=[
  {id:'pat_gate',name:'Gate Pattern',type:'Event — Pattern',rar:'u',scene:'gate',ico:'gate',facts:()=>['A closed 4-point loop: a Gate.','It locks its contents in. A Key repeating its post pattern opens it.'],flavor:'It only opens for the right song.'},
  {id:'pat_key',name:'Key Pattern',type:'Event — Pattern',rar:'r',scene:'gate',ico:'key',facts:()=>['A 3-point loop with two spurs outside it: a Key.','It opens a Gate, or with enough matching Points ends the surface with a Dark Remnant.'],flavor:'Shaped like the thing it opens.'},
  {id:'pat_lens',name:'Lens Pattern',type:'Event — Pattern',rar:'r',scene:'lens',ico:'lens',facts:()=>['A closed 5-point loop: a Lens.','Fill a loop with glass. Crack it enough and it breaks into Bright Remnants.'],flavor:'Look closer. It looks back.'}];
-let _evQ=[],_evOpen=false,_evWasPaused=false,_evReview=false,_evHand=[],_evAct=0; // discoveries made together come as a hand: one card shown, the rest to pick
+let _evQ=[],_evOpen=false,_evWasPaused=false,_evReview=false,_evHand=[],_evAct=0,_evDraw=false; // _evDraw: a Carnival draw is showing (it closes only by picking) // discoveries made together come as a hand: one card shown, the rest to pick
 function fireEvent(id){if(window.__SCENE||discSeen.has('ev:'+id)||_evQ.indexOf(id)>=0||!EVENTS.some(e=>e.id===id))return;_evQ.push(id);}
 function eventPump(){if(!_evQ.length||_rulesOpen||_menuOpen||(_evOpen&&!_evHand.length))return;const n=_evHand.length;_evHand.push(..._evQ.splice(0));showEventCard(_evHand[n?_evAct:0],false);} // new ones join an open hand
 const gEsc=s=>String(s).replace(/[&<>]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[c]));
@@ -13969,10 +13971,10 @@ const TIER=['I','II','III','IV','V'],TIER_COL=['#8b8678','#918a76','#978c71','#9
 const tierOfCost=c=>c<3?0:c<10?1:c<20?2:c<40?3:4,evTier=ev=>ev.tier!=null?ev.tier:EV_TIER[ev.rar]||0;
 function cardHTML(ev,mini){ // the one card format: name bar, art box, type line, text box with facts + flavour
   const t=evTier(ev);
-  return `<div class="mtg${mini?' sm':''}" data-ev="${ev.id}" style="--rc:${TIER_COL[t]}"><div class="nm"><b>${gEsc(ev.name)}</b><span class="gem"></span></div><div class="art" data-scene="${ev.scene}">${mini?`<canvas class="rl-m" width="64" height="64" data-k="${ev.ico}"></canvas>`:''}</div><div class="ty"><span>${gEsc(ev.type.replace(/^Event — /,''))}</span><span>Tier ${TIER[t]}</span></div><div class="tx">${(mini?ev.facts().slice(0,1):ev.facts()).map(f=>`<p>${gEsc(f)}</p>`).join('')}<p class="fl">${gEsc(ev.flavor)}</p></div></div>`; // (small: its first line and its flavour; the rest when it is opened)
+  return `<div class="mtg${mini?' sm':''}" data-ev="${ev.id}" style="--rc:${TIER_COL[t]}"><div class="nm"><b>${gEsc(ev.name)}</b><span class="gem"></span></div><div class="art" data-scene="${ev.scene}">${mini?`<canvas class="rl-m" width="64" height="64" data-k="${ev.ico}"></canvas>`:''}</div><div class="ty"><span>${gEsc(ev.type.replace(/^Event — /,''))}</span><span>Tier ${TIER[t]}</span></div><div class="tx">${(mini?ev.facts().slice(0,1):ev.facts()).map(f=>`<p${ev.fx?' class="fx"':''}>${gEsc(f)}</p>`).join('')}${ev.flavor?`<p class="fl">${gEsc(ev.flavor)}</p>`:''}</div></div>`; // (small: its first line and its flavour; the rest when it is opened) (fx: the lines are changes to play, set apart from the flavour)
 }
 function mountScene(h,w,hh){if(!h||h.firstChild||document.querySelectorAll('.rl-live iframe,.mtg .art iframe').length>=5)return;const f=document.createElement('iframe'),nm=h.dataset.s||h.dataset.scene;f.style.cssText='border:0;max-width:100%;pointer-events:none;background:#000;border-radius:6px;'+(w?`width:${w}px;height:${hh}px`:'width:100%;height:100%');
-  if(nm.slice(0,4)==='hub:')f.src='Surface_Map_HUB.html?v=20261103c&scene='+nm.slice(4)+'&T='+encodeURIComponent(JSON.stringify(mapSceneT()))+'&D='+encodeURIComponent(JSON.stringify(Object.fromEntries(Object.entries(DUCK_TYPES).slice(0,4))));else f.srcdoc=liveSrc(nm);h.appendChild(f);} // a Surface Map demo is played by the map itself
+  if(nm.slice(0,4)==='hub:'){const[sn,dk]=nm.slice(4).split(':');f.src='Surface_Map_HUB.html?v=20261103g&scene='+sn+'&T='+encodeURIComponent(JSON.stringify(mapSceneT()))+'&D='+encodeURIComponent(JSON.stringify(dk&&DUCK_TYPES[dk]?{[dk]:DUCK_TYPES[dk]}:Object.fromEntries(Object.entries(DUCK_TYPES).slice(0,4))));}else f.srcdoc=liveSrc(nm);h.appendChild(f);} // a Surface Map demo is played by the map itself
 function mapSceneT(){const o={};for(const k in T)if(/^(map|bh|duck|wake|glass|metal|dimGlow|glowHalo|maxSpeed)/.test(k))o[k]=T[k];return o;} // what a map demo needs of the tuners
 function showCardHTML(html){ // a Guide card (an entry or a shop) opened over the Guide, where an event card shows
   guideCSS();_evOpen=true;_evReview=true;const ov=evOverlayEl();ov.innerHTML=`<div class="ev-box">${html}<button id="evOk">Close</button></div>`;ov.style.display='flex';wrap.classList.add('ev-open');
@@ -14002,7 +14004,7 @@ function shopCardHTML(k,mini){const S=SHOPS[k],seen=evSeen('shop_'+k),t=S.street
   const items=(curs.length>1?'<div class="ctabs">'+curs.map((c,j)=>`<span class="${j?'':'on'}" data-t="${j}">${gEsc(c)}</span>`).join('')+'</div>':'')+curs.map((c,j)=>`<div class="clist" data-t="${j}"${j?' style="display:none"':''}>`+its.filter(i=>cu(i)===c).map(i=>`<div class="si" data-disc="si_${i.id}"><span>${gEsc(i.n)}${S.street?'':' <i>(rank '+i.r+')</i>'}</span><b>${f(i.cost)}</b></div>`).join('')+'</div>').join('');
   const art=mini?`<img class="sign" src="shops/sign_${k}.svg" alt="">`:`<div class="art-live" data-scene="hub:shops"></div>`;
   return `<div class="mtg${mini?' sm':' full'}" data-shop="${k}" style="--rc:${TIER_COL[t]}"><div class="nm"><b>${gEsc(S.n)}</b><span class="gem"></span></div><div class="art">${art}</div><div class="ty"><span>Shop · ${S.street?'main street':'pop-up'}</span><span>Tier ${TIER[t]}</span></div><div class="tx"><p>${gEsc(S.tag)}</p>${mini?'':`<p>${gEsc(how)}</p><p>${gEsc(S.about||'')}</p><p><b>Sells</b> (each found by discovery):</p>${items}`}</div></div>`;}
-function closeEventCard(){
+function closeEventCard(){if(_evDraw)return;
   const ov=document.getElementById('evOverlay');if(ov){ov.querySelectorAll('iframe').forEach(f=>f.remove());ov.style.display='none';}
   wrap.classList.remove('ev-open');_evOpen=false;_evHand=[];
   if(!_evReview&&!_evWasPaused&&isPaused&&!_rulesOpen){togglePause();pauseRampDur=Math.max(pauseRampDur,T.evResumeMs);} // a slow start back, to pick up where you were
@@ -14140,7 +14142,11 @@ function guideCSS(){
 .mtg.sm{width:210px;font-size:11px}.mtg.sm .art{height:80px}.mtg.sm .tx{min-height:0;font-size:11px}.mtg.back{height:230px;display:flex;align-items:center;justify-content:center;font-size:44px;opacity:.5;background:#222}
 .ev-grid{display:flex;flex-wrap:wrap;gap:12px}
 #evOverlay{position:absolute;inset:0;z-index:70;display:none;align-items:center;justify-content:center;background:rgba(0,0,0,.72)}
-.ev-box{display:flex;flex-direction:column;align-items:center;gap:8px;max-height:96%;overflow:auto}.ev-box .mtg{width:min(340px,86vw)}.ev-un{color:#cfd6e4;font:12px system-ui;max-width:340px;text-align:center}.ev-hand{display:flex;gap:6px;justify-content:center;flex-wrap:wrap;max-width:92vw}.ev-hand .mtg.sm{width:96px;opacity:.8;transition:transform .15s,opacity .15s}.ev-hand .mtg.sm:hover{opacity:1;transform:translateY(-4px)}.ev-hand .mtg.sm .tx,.ev-hand .mtg.sm .ty{display:none}.ev-hand .mtg.sm .art{height:54px}.ev-hand .mtg.sm .nm{font-size:10px}
+.ev-box{display:flex;flex-direction:column;align-items:center;gap:8px;max-height:96%;overflow:auto}.ev-box .mtg{width:min(340px,86vw)}.ev-un{color:#cfd6e4;font:12px system-ui;max-width:340px;text-align:center}.ev-draw{display:flex;gap:12px;justify-content:center;flex-wrap:wrap;max-width:94vw}.ev-draw .mtg.sm{width:180px;transition:transform .15s}.ev-draw .mtg.sm:hover{transform:translateY(-6px)}
+.mtg.cb{opacity:1;border:2px solid var(--rc);border-radius:8px;background:radial-gradient(circle at 50% 45%,#3a2a48 0,#16111c 60%,#0c0a10 100%),repeating-linear-gradient(45deg,#1a1622 0 6px,#221c2c 6px 12px)}
+.mtg.cb .cq{font-size:54px;color:var(--rc);text-shadow:0 0 14px rgba(255,140,230,.55),0 0 3px #000}.ev-un.dt{font-size:14px;color:#f0e6ff}
+.mtg .tx p.fx{font:11.5px/1.4 ui-monospace,Menlo,Consolas,monospace;background:#0000000f;border-left:3px solid var(--rc);padding:3px 7px;border-radius:2px;color:#1d2230}
+.ev-hand{display:flex;gap:6px;justify-content:center;flex-wrap:wrap;max-width:92vw}.ev-hand .mtg.sm{width:96px;opacity:.8;transition:transform .15s,opacity .15s}.ev-hand .mtg.sm:hover{opacity:1;transform:translateY(-4px)}.ev-hand .mtg.sm .tx,.ev-hand .mtg.sm .ty{display:none}.ev-hand .mtg.sm .art{height:54px}.ev-hand .mtg.sm .nm{font-size:10px}
 #evOk{background:#2d6cdf;color:#fff;border:0;border-radius:8px;padding:8px 22px;font-size:15px}
 .rl-cards{display:flex;flex-wrap:wrap;gap:12px;align-items:flex-start}.rl-sec{margin:16px 0 8px;font-size:15px}.mtg.sm{cursor:pointer}.mtg.sm .tx p{margin:2px 0}
 .ev-box .mtg.full{width:min(440px,92vw)}.mtg.full .art{height:190px}.mtg .art-live{width:100%;height:100%}.mtg.full .tx{max-height:none}.mtg .tx .rl-live{display:block;min-width:0;width:100%;height:170px;min-height:0;margin:6px 0}
@@ -14323,8 +14329,7 @@ window.addEventListener('message',e=>{
   else if(m.cmd==='discover'){discSeen.add(m.id);saveInventory();hubState();}
   else if(m.cmd==='spend'){inventory[m.kind]=Math.max(0,(inventory[m.kind]||0)-(m.n||1));saveInventory();updateInventoryUI();hubState();} // the map used an item (Spindle, String, Weave)
   else if(m.cmd==='award'){addInventory(m.kind,m.n||1);hubState();} // a map constellation paid out
-  else if(m.cmd==='buy'){hubPost(Object.assign({type:'bought',id:m.id},shopBuy(m.id,m.arg)));hubState();}
-  else if(m.cmd==='pick'){hubPost(Object.assign({type:'picked'},shopPick(m.i)));hubState();} // a drawn card turned over
+  else if(m.cmd==='buy'){const r=shopBuy(m.id,m.arg);hubPost(Object.assign({type:'bought',id:m.id},r));if(r.draw){hubOverlay_(true);showDraw();}hubState();} // a Carnival card: the draw shows here, over the map
   else if(m.cmd==='day'){if(m.newRun)runState=runFresh();else if(m.day!==runState.day)Object.assign(runState,{fortune:null,bonus:null,charm:0,draw:null,dimDone:{}});runState.day=m.day;saveInventory();updateInventoryUI();hubState();} // a new day: today's fortune, bonus and Luck Charms are over // a shop on the map: this pays and hands it over
   else if(m.cmd==='wipe'){for(const k of INV_KINDS)inventory[k]=0;duckLog={};duckLuck={d:0,e:0};runState=runFresh();discSeen=new Set();invDisabled=new Set();keyShapes=[];_discReset='all';IDB.del('session').catch(()=>{});saveInventory();updateInventoryUI();applyDisc();hubState();} // the Gift Shop: everything goes
   else if(m.cmd==='state')hubState('state',true);
@@ -14357,7 +14362,18 @@ function shopPick(i){const d=runState.draw,c=d&&d.cards[i];if(!c)return{ok:0,tex
   if(d.kind==='secret'){discSeen.add(c.id);title='A secret';text=c.n+' is discovered for good.';saveInventory();applyDisc();hubOverlay_(true);if(c.ev)showEventCard(c.ev,true);else showCardHTML(ruleCardHTML(RULES.find(x=>x[0]===c.rule),false));return{ok:1,title,text,good:true,show:1};} // the card itself, shown over the map
   else if(d.kind==='fortune'){runState.fortune=c;const g=c.good?FORTUNE_GOOD[c.id]||{}:{};if(g.next)runState.next=g.next;if(g.next==='rare'){runState.keysGone=1;inventory.key=0;}title=c.good?'A good fortune':'A dim fortune';text=fortuneText(c,c.duck);}
   else{runState.bonus={id:c.id,item:c.item||null};if(c.id==='inf')for(const k of ['leash','dial','weave'])inventory[k]=k===c.item?invMaxFor(k):0;title=c.n;text=c.t+'.';}
-  saveInventory();updateInventoryUI();applyDisc();return{ok:1,title,text,good:d.kind!=='fortune'||!!c.good};}
+  saveInventory();updateInventoryUI();applyDisc();showCardHTML(cardHTML(drawEv(d.kind,c)));mountScene(document.querySelector('#evOverlay .art'));return{ok:1,title,text,good:d.kind!=='fortune'||!!c.good,show:1};} // the card itself, as every other card
+const FORTUNE_SCENE={slowmove:'hub:move',holiday:'hub:street',laps:'hub:constellation',rift:'rift',noduck:'dark',exo1:'relic',slow:'relic'}; // a dim fortune's demo: what it changes, else Dim and Dark Remnants
+function drawEv(kind,c){ // a Carnival card in the one card format: its change to play as its lines, what is said of it as its flavour, a live demo of it (a good fortune: its duck on the lake)
+  if(kind==='fortune'){const[fl,fx]=fortuneParts(c,c.duck),v=c.good?DUCK_TYPES[c.id]||{}:null;
+    return{id:'fortune',name:c.good?'A good fortune':'A dim fortune',type:c.good?'Fortune — '+(v.name||'Duck'):'Fortune — Dim',tier:c.good?(v.rare?3:v.mid?2:c.id==='classic'?0:1):1,scene:c.good?'hub:fortune:'+c.id:FORTUNE_SCENE[c.id]||'relic',ico:c.good?'duck:'+c.id:'dim',fx:1,facts:()=>[fx],flavor:fl};}
+  return{id:'wonder',name:c.n,type:'Daily Wonder',tier:2,scene:c.scene||'collect',ico:c.item||(c.id==='glasses'?'lens':'bright'),fx:1,facts:()=>[c.t+'.'],flavor:c.f||''};}
+function showDraw(){ // a Carnival draw, over the map: three cards to pick from (face down, but for the wonders); a pick turns it over (shopPick)
+  const d=runState.draw;if(!d)return;guideCSS();_evOpen=true;_evReview=true;_evDraw=true;const ov=evOverlayEl();ov.querySelectorAll('iframe').forEach(f=>f.remove());
+  const back=i=>`<div class="mtg sm back cb" data-i="${i}" style="--rc:${TIER_COL[d.kind==='secret'?3:1]}"><div class="cq">${d.kind==='secret'?'✦':'☾'}</div></div>`;
+  ov.innerHTML=`<div class="ev-box"><div class="ev-un dt">${{secret:'A Card of Secrets: pick one, and it is yours to know',fortune:'Fortune Telling: pick a card for today',daily:'A Daily Wonder: keep one of three, for today'}[d.kind]}</div><div class="ev-draw">${d.cards.map((c,i)=>d.kind==='daily'?cardHTML(drawEv('daily',c),true).replace('class="mtg sm"','class="mtg sm" data-i="'+i+'"'):back(i)).join('')}</div></div>`;
+  ov.style.display='flex';wrap.classList.add('ev-open');ov.querySelectorAll('canvas.rl-m').forEach(cv=>rulesDraw(cv,cv.dataset.k));cardSize(ov);
+  ov.querySelectorAll('.ev-draw .mtg').forEach(el=>el.onclick=()=>{_evDraw=false;hubPost(Object.assign({type:'picked'},shopPick(+el.dataset.i)));hubState();});}
 document.addEventListener('visibilitychange',()=>{if(document.hidden&&HUB&&hubLevel&&!hubAsleep)saveSession();}); // closing the tab mid-surface keeps it
 // ── Play together: a friend joins this surface from a link (join.html). Their browser shows this canvas as a video and sends their pointer;
 // here it shines and collects with the same shine caps (one Max shining for both), its own heat, and what it collects is theirs (it goes to their save) ──
@@ -14625,7 +14641,7 @@ function drawDucks(c,now){
   for(const d of ducks){duckInit(d);const age=(now-d.born)/600,pop=age>=1?1:1+2.7*Math.pow(age-1,3)+1.7*Math.pow(age-1,2),h=duckSizeOf(d)*Math.max(0,pop);
     if(age<1.5){c.save();c.strokeStyle='rgba(255,240,150,'+(0.6*(1-age/1.5))+')';c.lineWidth=2;c.beginPath();c.arc(d.x,d.y,h*(0.4+age*0.8),0,6.2832);c.stroke();c.restore();}
     const e=h*0.7,xs=[d.x],ys=[d.y],at=[];if(d.x<e)xs.push(d.x+W);else if(d.x>W-e)xs.push(d.x-W);if(d.y<e)ys.push(d.y+H);else if(d.y>H-e)ys.push(d.y-H); // across a screen edge it shows on both sides, as it moves
-    for(const x of xs)for(const y of ys){at.push([x,y]);duckGlow(c,d.type,x,y,h,now,d.ph);}
+    for(const x of xs)for(const y of ys){at.push([x,y]);duckGlow(c,d.type,x,y,h,now,d.ph,d.q);}
     if(h>0.5){const v=DUCK_TYPES[d.type],refl=v.mat==='metal'||v.mat==='gold'||v.mat==='glass';if(refl)duckEnvUpdate(c.canvas,now);
       drawDuck3D(c,d.type,d.q,at,h,1,0,refl?{x:d.x,y:d.y,lights:metalLights([d.x-h,d.y-h,d.x+h,d.y+h])}:null);}}}
 // ── The collection (Guide → Ducks): every collected type, and a viewer to turn and zoom it ──
@@ -14653,7 +14669,7 @@ function duckPondMount(){
 function duckPondDraw(now){
   const P=duckPond;if(!P||!P.cv.isConnected){duckPond=null;return;}const c=P.c,k=P.dpr;c.clearRect(0,0,P.cv.width,P.cv.height);let envd=false;
   for(const d of P.list){d.q=quatTurn(d.q,d.wx,d.wy,0);d.wx*=0.985;d.wy*=0.985;const v=DUCK_TYPES[d.k],refl=v.mat==='metal'||v.mat==='gold'||v.mat==='glass',x=d.x*k,y=(d.y+Math.sin(now/900+d.ph)*d.h*0.03)*k;
-    if(refl&&!envd){duckEnvUpdate(canvas,now);envd=true;}duckGlow(c,d.k,x,y,d.h*k,now,d.ph);drawDuck3D(c,d.k,d.q,[[x,y]],d.h*k,1,0,refl?{x:W/2,y:H/2,lights:[]}:null);}
+    if(refl&&!envd){duckEnvUpdate(canvas,now);envd=true;}duckGlow(c,d.k,x,y,d.h*k,now,d.ph,d.q);drawDuck3D(c,d.k,d.q,[[x,y]],d.h*k,1,0,refl?{x:W/2,y:H/2,lights:[]}:null);}
   const h=P.hov;if(h){const v=DUCK_TYPES[h.k];c.font=(12*k)+'px system-ui,sans-serif';c.textAlign='center';c.fillStyle='rgba(240,240,240,0.9)';c.fillText(duckStar(v)+v.name+' × '+duckLog[h.k],h.x*k,Math.max(14*k,(h.y-h.h*0.7)*k));}}
 function drawDuckIcon(c,S,type){const k=DUCK_TYPES[type]?type:'classic';drawDuck3D(c,k,DUCK_ICON_Q,[[S/2,S/2]],S*0.8/(DUCK_TYPES[k].head?1.25:1),1);}
 function openDuckViewer(type){
@@ -14673,7 +14689,7 @@ function openDuckViewer(type){
   cv.addEventListener('dblclick',()=>{q=DUCK_ICON_Q.slice();zoom=1;auto=true;});
   const fr=()=>{if(!run)return;const now=performance.now();if(auto)q=quatTurn(q,0,0.008,0);c.clearRect(0,0,N,N);const sc=v.scale||1,h=N*0.62*zoom*Math.min(1,sc)/(v.head?1.25:1);
     if(sc!==1)drawDuck3D(c,'classic',q,[[N/2,N/2]],h/sc,0.2,N); // the classic duck at the same turn and zoom, for scale
-    duckGlow(c,type,N/2,N/2,h,now,0);duckEnvUpdate(canvas,now);drawDuck3D(c,type,q,[[N/2,N/2]],h,1,N,{x:W/2,y:H/2,lights:[]});requestAnimationFrame(fr);};fr();}
+    duckGlow(c,type,N/2,N/2,h,now,0,q);duckEnvUpdate(canvas,now);drawDuck3D(c,type,q,[[N/2,N/2]],h,1,N,{x:W/2,y:H/2,lights:[]});requestAnimationFrame(fr);};fr();}
 SCENES.duck={dur:6500,setup(S){S.ps=[];S.ring(6,30,60,(x,y,i)=>S.ps.push(S.pig(x,y,i,10)));},
   tick(S,t,now){if(!S.fired&&t>700){S.fired=1;S.d=spawnDuck(S.W/2,S.H/2,now,DUCK_IDS[(S.n-1)%DUCK_IDS.length]);S.d.vx=S.d.vy=0;}
     if(S.d&&!S.shot&&t>1700){S.shot=1;for(const p of S.ps){const dx=S.d.x-p.x,dy=S.d.y-p.y,l=Math.hypot(dx,dy)||1;p.vx=dx/l*1.6;p.vy=dy/l*1.6;}}}}; // pigments thrown at it bounce off; it squeaks and tumbles

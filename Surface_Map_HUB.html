@@ -16,13 +16,18 @@ body{background:#050608;overflow:hidden;font-family:'Share Tech Mono',monospace;
 /* the dock: the surface's item slots and feed, as on a surface */
 #hdock{position:absolute;left:50%;bottom:0;transform:translateX(-50%);display:flex;flex-direction:column;z-index:20;max-width:96vw;border-radius:8px 8px 0 0;overflow:hidden}
 #hinv{display:flex;gap:3px;justify-content:center;background:rgba(0,0,0,0.75);padding:3px 5px;border-bottom:1px solid rgba(255,255,255,0.12)}
-#hinv .slot{position:relative;display:flex;flex-direction:column;align-items:center;justify-content:center;width:34px;height:34px;border-radius:5px;border:1px solid rgba(255,255,255,0.15);background:rgba(255,255,255,0.05);font:9px/1.2 monospace;color:rgba(255,255,255,0.85);user-select:none}
-#hinv .slot:hover{background:rgba(255,255,255,0.12)}#hinv .slot.armed{background:rgba(255,220,120,0.28);border-color:rgba(255,220,120,0.8)}#hinv .slot.empty{opacity:0.4}
+#hinv .slot{position:relative;display:flex;flex-direction:column;align-items:center;justify-content:center;width:34px;height:34px;border-radius:5px;border:1px solid transparent;background:none;font:9px/1.2 monospace;color:rgba(255,255,255,0.85);user-select:none;text-shadow:0 0 3px #000,0 0 6px #000;transition:transform .28s ease,opacity .28s} /* no backing: the icon and its count */
+#hinv .slot svg{filter:drop-shadow(0 0 2px #000) drop-shadow(0 0 4px #000)}#hinv .slot:hover{background:rgba(255,255,255,0.1)}
+#hinv .dmin{width:18px;font-size:11px;opacity:.55;cursor:pointer}#hinv .dmin:hover{opacity:1}
+body.dock-min #hfeed{display:none} /* the dock's own hide: the feed goes, and the items keep out of the way (as with ~) */
+body.dock-min #hinv,body.ui-hidden #hinv{background:none;border-bottom-color:transparent}
+body.dock-min:not(.shop-open) #hinv:not(:hover) .slot:not(.up),body.ui-hidden:not(.shop-open) #hinv:not(:hover) .slot:not(.up){transform:translateY(115%);opacity:0} /* until you point at their place: then they come up from below */#hinv .slot.armed{background:rgba(255,220,120,0.28);border-color:rgba(255,220,120,0.8)}#hinv .slot.empty{opacity:0.4}
 #hinv .slot svg{width:18px;height:18px;color:#fff}#hinv .slot b{font-weight:400;margin-top:1px}#hinv .sep{width:6px}
 #hfeed{font:12px monospace;text-align:center;min-width:420px;height:30px;color:#fff;background:rgba(0,0,0,0.6);padding:3px 14px;display:flex;flex-direction:column;justify-content:center}
 #hfeed .fn{line-height:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}#hfeed .fd{font-size:9px;line-height:11px;opacity:0.62;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 #hfeed button{font:11px monospace;margin:0 4px;padding:1px 8px;background:rgba(255,220,120,0.2);border:1px solid rgba(255,220,120,0.7);color:#fff;border-radius:3px}
 #bottom-bar{bottom:76px}#legend{bottom:76px}
+body.scene-calm #turn-label{display:none!important} /* a fortune's lake: just its ducks */
 body.scene .hbtn,body.scene:not(.scene-shops) #shops,body.scene #hdock,body.scene #legend,body.scene #bottom-bar,body.scene body.scene #capture-hint,body.scene #hcur{display:none!important} /* the map as a 3D scene: the plane (drawn in 2D, then laid in the scene as its ground) and the ducks on it */
 /* the surface (chromatic_nebula.html): hidden with visibility, not display, so it keeps its size for the hex previews */
 #neb{position:fixed;inset:0;width:100%;height:100%;border:0;z-index:50;visibility:hidden;pointer-events:none;background:#000}
@@ -85,8 +90,6 @@ body.thru .shop{pointer-events:none} /* an armed map item, or the open source, r
 #shop .sstat{position:fixed;right:16px;top:50%;transform:translateY(-50%)}
 #shop .sstat{width:290px;max-height:70vh;overflow:auto;background:rgba(0,0,0,.9);border:1px solid rgba(255,255,255,.35);padding:12px 14px;color:#ddd;font:11px/1.45 system-ui,sans-serif}#shop .sth{font:700 13px system-ui;letter-spacing:1.4px;margin-bottom:6px}
 #shop .stt{border-collapse:collapse;width:100%}#shop .stt td{padding:1px 6px 1px 0;vertical-align:top}#shop .stt td:first-child{opacity:.6;white-space:nowrap}#shop .stg{font-weight:600;margin:8px 0 2px}#shop .stu{opacity:.85}
-#shop .scards{display:flex;gap:10px;justify-content:center;margin:6px 0 10px}#shop .scardx{width:76px;min-height:108px;border:1px solid #fff;border-radius:6px;padding:6px;font-size:10px;line-height:1.35;cursor:pointer;display:flex;flex-direction:column;gap:4px;justify-content:center;text-align:center}
-#shop .scardx.back{background:repeating-linear-gradient(45deg,#1a1a22 0 6px,#26262f 6px 12px);font-size:28px}#shop .scardx.on{width:150px;background:#111;border-color:#ffd76a}#shop .scardx.off{opacity:.25;cursor:default}#shop .scardx b{font-size:11px}#shop .scardx:hover:not(.off){border-color:#ffd76a}
 body.focus-clock #turn-label,body.focus-items #hdock{z-index:59;filter:drop-shadow(0 0 10px rgba(255,220,140,.8))}body.focus-clock #turn-label{color:#fff;text-shadow:0 0 14px rgba(255,255,255,.85)}
 #shop .sart{display:block;margin-bottom:-14px;position:relative;z-index:1;pointer-events:none}
 #shop .scard{position:relative;width:300px;background:#000;border:1px solid #fff;padding:16px 22px 14px;color:#fff;font:12px/1.5 system-ui,'Inter',sans-serif;letter-spacing:.6px}
@@ -140,7 +143,7 @@ body.shop-open #hdock{z-index:59}#hinv .slot.wal{border-color:rgba(255,255,255,.
 <div id="veil"></div>
 <canvas id="hcur"></canvas>
 <iframe id="neb" title="Surface"></iframe>
-<script src="shared.js?v=20261103c"></script>
+<script src="shared.js?v=20261103g"></script>
 <script>
 // ╔══════════════════════════════════════════════════════════════════════════════╗
 // ║  MAP ENGINE                                                                 ║
@@ -156,7 +159,7 @@ let clock=3,day=1,pool=6,fresh=true,burstFx=null,dayLog=[],dayCnt={b:0,d:0},pend
 // // clock: the hour (3 = Twilight … 24 = Midnight, the day's last turn); day: your attempts; pool: what the source put out at its last burst; fresh: no ring added yet since it
 let constel=[],armed=null,weaveSel=[],weaveAsk=null,clearFx={},mergeFx=[],feedMsg={t:'',d:'',at:-1e9}; // constellations {keys,type}; the armed map item; a Weave being drawn; animations; the final count
 const TIMES={3:'Twilight',6:'Dawn',9:'Morning',12:'Noon',15:'Afternoon',18:'Dusk',21:'Night',24:'Midnight'},STEP_H=3; // the day: eight turns of three hours
-const CACHE_V='20261103c'; // the build: bump with shared.js's
+const CACHE_V='20261103g'; // the build: bump with shared.js's
 const SCENE=new URLSearchParams(location.search).get('scene'); // a Guide / event demo: the map plays a scripted moment (no surface behind it)
 let phase='move',turnTimer=0,mergeTimer=0;
 let gameOverReason='';
@@ -309,9 +312,21 @@ function hexInfo(c){ // what hovering a hex tells you
   if(c.cap&&c.kind==='dark')return[g&&g.type==='dark3'?'Great Dark Remnant':'Dark Remnant clear',(g&&g.type==='dark3'?'Three swirled into one · a Spindle ×3 unwinds it':'Locks nothing · the spill cannot spread past it')+' · value '+c.capVal.toFixed(2)];
   if(c.cap)return['Bright clear'+(cn.length?' · '+cn.map(x=>x.type).join(', ')+' star':''),'Locks its neighbours · value '+c.capVal.toFixed(2)+(g?' · merged':'')];
   return[(c.isP?'You · ':'')+'Surface '+c.v.toFixed(2),(c.full?'Wound up by a Spindle: held at 1.00 · ':c.locked?'Locked by a bright clear · ':'')+'covered '+Math.round(cellCov(c)*100)+'%'+(k===nebulaCellKey?' · saved where you left it':'')];}
+const ITEM_NOTE={leash:'Unwinds a cleared hex back to a surface (a great Dark Remnant takes 3), or winds an open one below 1.00 up to 1.00',dial:'Goes straight to any open hex: 1 per hex of distance, and no time passes',
+  weave:'Joins 3 to 5 bright clears into a constellation: 3 pays a Prism each time of day, 4 a Gate or Knot, 5 a Key or Lens',prism:'Used on a surface: a loop round the first point you pick recolours everything inside to match it',
+  knot:'Used on a surface: a 3-point loop turns everything inside it into Dim Remnants',gate:'Used on a surface: a loop of lit points becomes a barrier that locks what is inside it in',
+  key:'Used on a surface: opens a Gate to release what it holds',lens:'Used on a surface: links a loop of lit points or remnants (they are used up), or fills a completed Pattern with glass'};
+function itemInfo(k,c){ // an item in the dock: what it does; in hand over a hex, what it would do there (and what it costs)
+  const n=inv[k]||0,nm=KIND_NAME[k]||k;if(!ITEM_NOTE[k])return[curName(k),'You have '+fmtN(shopWallet(k))];
+  if(!c)return[nm+' × '+n+(armed===k?' · in hand':DOCK_ITEMS.includes(k)?' · click to take it in hand':' · earned on the map'),ITEM_NOTE[k]];
+  const ck=K(c.q,c.r),g=c.mergeId!=null?mergeGroups.find(x=>x.id===c.mergeId):null,have=(m,u)=>m+(n<u?' · you have '+n:'');
+  if(k==='leash')return[nm+' here',c.cap?have('Unwind this clear: '+(g&&g.type==='dark3'?3:1)+' Spindle'+(g&&g.type==='dark3'?'s':''),g&&g.type==='dark3'?3:1):!c.isVoid&&c.v<1&&!c.full?have('Wind it up from '+c.v.toFixed(2)+' to 1.00: 1 Spindle',1):'Nothing to do here'];
+  if(k==='dial'){if(c.cap||c.isVoid||ck===K(pQ,pR))return[nm+' here','Only an open hex you are not on'];const d=dist(pQ,pR,c.q,c.r);return[nm+' here',have('Go straight here: '+d+' String'+(d>1?'s':'')+' · no time passes',d)];}
+  if(k==='weave')return[nm+' here',isBright(ck)?(weaveSel.includes(ck)?(weaveSel[0]===ck&&weaveSel.length>=3?'Click to close the loop':'Chosen ('+weaveSel.length+')'):'Add this bright clear ('+weaveSel.length+' chosen)'):'Only bright clears can be woven'];
+  return[nm,ITEM_NOTE[k]];}
 // ── Items on the map: Spindle unwinds a clear; String moves without time; Weave joins bright hexes into constellations ──
 const isBright=k=>{const c=cells[k];return!!(c&&c.cap&&c.kind!=='dark');};
-function armItem(kind){if(phase==='ended'||phase==='collapse')return;armed=armed===kind?null:kind;weaveSel=[];weaveAsk=null;updateHint();syncDock();}
+function armItem(kind){if(phase==='ended'||phase==='collapse')return;armed=armed===kind?null:kind;dockUp[kind]=performance.now();weaveSel=[];weaveAsk=null;updateHint();syncDock();}
 function spend(kind,n){inv[kind]=Math.max(0,(inv[kind]||0)-n);neb({cmd:'spend',kind,n});syncDock();}
 function spindleFill(k){ // Spindle on an open hex below 1.00: wound up to 1.00, and held there (like a locked hex) until it is cleared
   const c=cells[k];if(!c||c.cap||c.isVoid||c.v>=1)return;if((inv.leash||0)<1){feed('Spindle','You have none');return;}
@@ -739,7 +754,9 @@ function pondStep(now){
     const t=d.bottle?{scale:1.4}:DUCK_TYPES[d.type]||{};d._s=HEX*0.62*(t.scale||1)/(t.head?1.25:1);return true;}); // world units per model unit (its type's size)
   ripples=ripples.filter(r=>now-r.t<1800);
   for(const r of ripples){const a=(now-r.t)/1800,[X,Y]=w2s(r.x,r.y),R=4+a*HEX*(r.big?1.6:0.9);c.strokeStyle=`rgba(${r.dk?'20,24,32':sunInk().join(',')},${(0.5*(1-a)*(1-a)).toFixed(3)})`;c.lineWidth=r.big?2:1.4;c.beginPath();c.arc(X,Y,R,0,6.2832);c.stroke();} // rings on the water (the camera foreshortens them)
-  for(const d of pond)if(d._s){const[X,Y]=w2s(d.x,d.y);if(d.bottle){if(d.isNew&&!d.empty)duckGlow(c,'shining',X,Y,d._s*1.2,now,d.ph);continue;}duckGlow(c,d.type,X,Y,d._s,now,d.ph); // a Bright / Shining / Dim duck lights the water round it
+  for(const d of pond)if(d._s){const[X,Y]=w2s(d.x,d.y);if(d.bottle){if(d.isNew&&!d.empty)duckGlow(c,'shining',X,Y,d._s*1.2,now,d.ph);continue;}if((DUCK_TYPES[d.type]||{}).mat==='shadow'&&cam){const f=duckFace(d,now),R=cam.viewRot,r=[f[0],f[1],0, 0,0,1, -f[1],f[0],0],m=new Float32Array(9),b=duckBob(d,now); // a Silhouette: its glow in the outline the camera sees, laid on the water under it
+      for(let i=0;i<3;i++)for(let j=0;j<3;j++)m[j*3+i]=R[i]*r[j*3]+R[3+i]*r[j*3+1]+R[6+i]*r[j*3+2];duckGlow(c,d.type,X,Y-b*Math.tan(cam.th),d._s,now,d.ph,m,1/Math.cos(cam.th));}
+    else duckGlow(c,d.type,X,Y,d._s,now,d.ph); // a Bright / Shining / Dim duck lights the water round it
     const r=Math.max(0,Math.min(1,(d.sp-0.6)/0.9)); // paddling hard: the same bow wake a pigment pushes into particles, on the water ahead of it
     if(r>0.02){const ink=onWhite(d.x,d.y)?[20,24,32]:sunInk();drawWakeShape(c,X,Y,Math.cos(d.hd),Math.sin(d.hd),d._s*1.4,r,Math.min(0.45,(T.wakeMaxA!=null?T.wakeMaxA:0.35)*1.2*Math.min(1,r*1.6)),ink,ink);}}
 }
@@ -897,38 +914,32 @@ function popPlace(k){ // opens (or moves up) the pop-up hex k's surface earned: 
   feed((p.from?'A pop-up moved up: ':'A pop-up opened: ')+SHOPS[p.id].n,'Rank '+p.rank+(at.slice(0,3)==='hub'?' · in the source':'')+' · click it to shop');return true;}
 function shopTearDown(fr){if(!fr)return;if(fr.slice(0,3)==='hub')hubPop[+fr[3]]=null;else if(cells[fr])delete cells[fr].shop;} // a shop moved up a rank: the old one goes (its hex may open another the next turn)
 function freedShops(){for(const k in cells)popPlace(k);} // each turn every cleared surface that earned a pop-up and has none open tries again (a hex a shop moved out of, a Dark Remnant clear that found no room, a holiday)
-function shopSprite(id,bk,lit){ // glass (tinted with the shop's colour, dark when closed) behind the building's empty windows, then the sign above, glowing when lit;
-  // the vectors are drawn at Q× their SVG size, so a shop stays crisp however near the camera or the menu shows it
-  const gw=T.mapShopGlow!=null?T.mapShopGlow:1,fl=bk===(SHOPS[id].bk||'s')&&SHOPS[id].flip,key=id+bk+(lit?1:0)+gw;if(shopCv[key])return shopCv[key];
-  const S=SHOPS[id],B=SHOP_BLD[bk],bi=shopImg(B.b),gi=shopImg(B.g),si=shopImg('sign_'+id);if(![bi,gi,si].every(i=>i.complete&&i.naturalWidth))return null;
-  const Q=4,gq=B.g.endsWith('.png')?1:Q,bw=bi.naturalWidth*Q,bh=bi.naturalHeight*Q,gW=gi.naturalWidth*gq,gH=gi.naturalHeight*gq,sk=Math.min(bw*0.9/si.naturalWidth,bw*0.72/si.naturalHeight),sw=si.naturalWidth*sk,sh=si.naturalHeight*sk,ov=bh*0.12,pad=44;
-  const cv=document.createElement('canvas');cv.width=Math.ceil(Math.max(bw,sw)+pad*2);cv.height=Math.ceil(sh+bh-ov+pad*2);const c=cv.getContext('2d'),bx=(cv.width-bw)/2,by=cv.height-pad-bh,gx=bx+B.gx*Q,gy=by+B.gy*Q;
-  const gl=document.createElement('canvas');gl.width=gW;gl.height=gH;const g=gl.getContext('2d');
-  g.drawImage(gi,0,0,gW,gH);g.globalCompositeOperation='multiply';g.fillStyle=lit?S.col:'#3a3a42';g.fillRect(0,0,gW,gH);
-  if(lit){const lr=g.createRadialGradient(gW*0.5,gH*0.28,0,gW*0.5,gH*0.28,gW*0.55);lr.addColorStop(0,`rgba(255,248,230,${Math.min(1,0.6*gw)})`);lr.addColorStop(1,'rgba(255,248,230,0)');g.globalCompositeOperation='screen';g.fillStyle=lr;g.fillRect(0,0,gW,gH);} // a lamp inside an open shop
-  g.globalCompositeOperation='destination-in';g.drawImage(gi,0,0,gW,gH);
-  c.save();if(fl){c.translate(2*bx+bw,0);c.scale(-1,1);} // flip: the building (and its room) mirrored, the sign not
-  if(lit&&gw>0){c.save();c.shadowColor=S.col;c.shadowBlur=18*gw;c.drawImage(gl,gx,gy);c.restore();}else c.drawImage(gl,gx,gy);
-  c.drawImage(bi,bx,by,bw,bh);
-  if(lit&&gw>0){c.save();c.globalCompositeOperation='screen';c.filter='blur(5px)';c.globalAlpha=Math.min(1,0.55*gw);c.drawImage(gl,gx,gy);c.restore();} // light spills out of the windows
-  c.restore();
-  c.save();if(lit&&gw>0){c.shadowColor=S.col;c.shadowBlur=26*gw;c.drawImage(si,(cv.width-sw)/2,by+ov-sh,sw,sh);c.shadowBlur=8*gw;}else if(!lit)c.filter='brightness(0.32) saturate(0.4)';
-  c.drawImage(si,(cv.width-sw)/2,by+ov-sh,sw,sh);c.restore();
-  cv._ax=cv.width/2;cv._ay=cv.height-pad;cv._bw=bw;return shopCv[key]=cv;}
+function shopSprite(id,bk,lit,yaw){ // the shop's 3D building (shared.js shopModel) drawn from a little above and turned by yaw (degrees), lit by the time of day: then the glow of its sign and
+  // windows when open; at Q px per unit (as its drawings were at 4×), so a shop stays crisp however near the camera or the menu shows it. Redrawn when the light changes.
+  const gw=T.mapShopGlow!=null?T.mapShopGlow:1,fl=bk===(SHOPS[id].bk||'s')&&SHOPS[id].flip,yw=Math.round(yaw||0),sun=DUCK_SUN.c.map(v=>Math.round(v*16)).concat(DUCK_SUN.d.map(v=>Math.round(v*8))).join(','),pt=T.mapShopPitch!=null?T.mapShopPitch:22,
+    base=id+bk+(lit?1:0)+gw+'|'+yw+'|'+pt+'|',key=base+sun;if(shopCv[key])return shopCv[key];
+  const B=SHOP_BLD[bk],gi=shopImg(B.g),si=shopImg('sign_'+id);if(![gi,si].every(i=>i.complete&&i.naturalWidth)||!_duckTex)return null;
+  const type=shopModel(id,bk,lit,fl,gi,si),M=duckModel(type),Q=4,q=quatTurn(quatTurn([0,0,0,1],0,yw*Math.PI/180,0),pt*Math.PI/180,0,0),N=Math.ceil(2*M.g.R*Q)+8,pad=Math.ceil(30*gw)+8;
+  const cv=document.createElement('canvas');cv.width=cv.height=N+pad*2;const c=cv.getContext('2d');drawDuck3D(c,type,q,[[cv.width/2,cv.height/2]],Q,1,2048);
+  if(lit&&gw>0){const g=document.createElement('canvas');g.width=g.height=cv.width;M.eo=1;drawDuck3D(g.getContext('2d'),type,q,[[cv.width/2,cv.height/2]],Q,1,2048);M.eo=0; // the neon: what glows, blurred out over it
+    c.save();c.globalCompositeOperation='lighter';for(const[b,a]of[[22,0.8],[7,0.55]]){c.filter='blur('+(b*gw).toFixed(1)+'px)';c.globalAlpha=Math.min(1,a*gw);c.drawImage(g,0,0);}c.restore();}
+  const m=quatMat(q),fy=M.g.foot;cv._ax=cv.width/2+m[3]*fy*Q;cv._ay=cv.height/2-m[4]*fy*Q;cv._bw=264; // its foot: where it stands on the map; _bw: the size every shop is scaled by (main street's old 66-unit drawing at 4×, so shops keep the size they had)
+  for(const k in shopCv)if(k.startsWith(base)&&k!==key)delete shopCv[k]; // (an older light's drawing)
+  return shopCv[key]=cv;}
 function shopList(){ // every shop on the map now: main street hugging the source (two behind it, two in front), pop-ups on their bright clears
   const out=[],R=HEX*(T.mapStreetRing!=null?T.mapStreetRing:0.8);
-  for(const id in SHOPS){const S=SHOPS[id],a=(S.a||0)*Math.PI/180;if(S.street)out.push({key:id,id,bk:S.bk||'s',wx:R*Math.cos(a),wy:R*Math.sin(a),lit:shopIsOpen(id,clock,run)});}
+  for(const id in SHOPS){const S=SHOPS[id],a=(S.a||0)*Math.PI/180;if(S.street)out.push({key:id,id,bk:S.bk||'s',wx:R*Math.cos(a),wy:R*Math.sin(a),yaw:-Math.cos(a)*18,lit:shopIsOpen(id,clock,run)});} // (main street's shops turned a little toward the source)
   hubPop.forEach((h,i)=>{if(!h)return;const a=HUB_SLOTS[i]*Math.PI/180;out.push({key:'hub'+i,id:h.id,rank:h.rank,bk:SHOP_RANK_BLD[h.rank-1],wx:R*1.15*Math.cos(a),wy:R*1.15*Math.sin(a),lit:true});}); // (a little further out than main street) // pop-ups from dark clears, in the source hex
   for(const k in cells){const c=cells[k];if(c.shop&&isBright(k)){const[wx,wy]=a2w(c.q,c.r);out.push({key:k,id:c.shop.id,rank:c.shop.rank,bk:SHOP_RANK_BLD[c.shop.rank-1],wx,wy,lit:true});}}
   return out;}
 function shopTick(){if(SCENE&&!document.body.classList.contains('scene-shops'))return;
   document.body.classList.toggle('thru',!!armed||voidOpen);const box=document.getElementById('shops'),seen=new Set();
   for(const s of shopList()){if(s.lit&&!disc.has('ev:shop_'+s.id))hubEvent('shop_'+s.id); // a shop is discovered the first time it opens
-    const cv=shopSprite(s.id,s.bk,s.lit);if(!cv)continue;seen.add(s.key);let el=shopEls[s.key];
+    const cv=shopSprite(s.id,s.bk,s.lit,s.yaw);if(!cv)continue;seen.add(s.key);let el=shopEls[s.key];
     if(!el){el=shopEls[s.key]=document.createElement('div');el.className='shop';el.dataset.key=s.key;el.onclick=()=>openShop(s.key);box.appendChild(el);
       let h=7;for(const ch of s.key)h=(h*31+ch.charCodeAt(0))>>>0;el._fl=`neon${h%4} ${(2.5+(h>>4)%60/10).toFixed(1)}s ${-((h>>10)%50)/10}s infinite`;} // its own flicker: which, how fast, where in it
     if(el._cv!==cv){el._cv=cv;const d=document.createElement('canvas');d.width=cv.width;d.height=cv.height;d.getContext('2d').drawImage(cv,0,0);d.style.animation=s.lit?el._fl:'none';el.innerHTML='';el.appendChild(d);}el.classList.toggle('lit',s.lit);el._s=s; // (its own copy: two pop-ups can share a sprite)
-    const[X,Y,k]=proj(...w2s(s.wx,s.wy)),sc_=HEX*(T.mapStreetSize||0.75)*k/(shopImg('bld_s').naturalWidth*4||cv._bw); // every shop at main street's scale: the set keeps its own sizes
+    const[X,Y,k]=proj(...w2s(s.wx,s.wy)),sc_=HEX*(T.mapStreetSize||0.75)*k/cv._bw; // every shop at main street's scale: the set keeps its own sizes
     const tf=`translate(${(X-cv._ax*sc_).toFixed(1)}px,${(Y-cv._ay*sc_).toFixed(1)}px) scale(${sc_.toFixed(4)})`;if(el._tf!==tf){el._tf=tf;el.style.transform=tf;el.style.zIndex=Math.round(Y);}} // (only when it moved)
   for(const k in shopEls)if(!seen.has(k)){shopEls[k].remove();delete shopEls[k];}}
 function shopInfo(key){const el=shopEls[key],s=el&&el._s;if(!s)return['',''];const S=SHOPS[s.id];
@@ -937,7 +948,6 @@ function openShop(key){const el=shopEls[key],s=el&&el._s;if(!s||phase==='collaps
   if(!s.lit){feed(SHOPS[s.id].n+' is closed','Open '+shopHours(s.id)+(runBad(run,'holiday')?' (a holiday: it closes a time of day early)':''));return;}
   shopUI={id:s.id,rank:s.rank||3,exit:s.id==='gift'};renderShop();hubEvent('shop_'+s.id);}
 function closeShop(){if(shopUI&&shopUI.gift){quitMain();return;} // leaving the Gift Shop: the run is over
-  if(shopUI&&shopUI.draw&&!shopUI.draw.res)return; // a drawn card is still to be picked
   shopUI=null;renderShop();evPump();}
 function shopRows(){const u=shopUI,has=k=>disc.has(k);
   if(u.exit)return[{c:1,n:'Yes',sub:'(enter the GIFT SHOP)',go:giftEnter},{c:1,n:'No',sub:'(not yet)',go:closeShop}];
@@ -960,8 +970,6 @@ function renderShop(){const el=document.getElementById('shop');el.classList.togg
   shopHover=null;syncDock(); // the wallet slot for the tab shown, in the dock
   document.body.classList.toggle('focus-clock',u.id==='clock');document.body.classList.toggle('focus-items',u.id==='corner'); // what the shop works on, over the dimmed map
   const st=el.querySelector('.sstat');st.style.display=u.exit?'none':'';st.innerHTML='<div class="sth">Status</div>'+statusHTML(runStatus);
-  if(u.draw){const d=u.draw;card.innerHTML=`<h2>${S.n}</h2><div class="stag">${d.res?d.res.title:d.kind==='daily'?'Keep one of three, for today.':'Pick a card.'}</div><div class="scards">`+d.cards.map((c,i)=>`<div class="scardx${c.back&&!(d.res&&d.res.i===i)?' back':''}${d.res&&d.res.i===i?' on':''}${d.res&&d.res.i!==i?' off':''}" data-i="${i}">${d.res&&d.res.i===i?d.res.text:c.back?'?':'<b>'+c.n+'</b>'+c.t}</div>`).join('')+'</div>'+(d.res?'<div class="srow c" data-ok="1"><span>OK</span></div>':'');
-    card.querySelectorAll('.scardx').forEach(x=>x.onclick=()=>{if(!d.res&&!d.wait){d.wait=1;d.at=+x.dataset.i;neb({cmd:'pick',i:+x.dataset.i});}});const ok=card.querySelector('[data-ok]');if(ok)ok.onclick=()=>{shopUI.draw=null;renderShop();};return;}
   card.innerHTML=`<h2>${u.exit?'EXIT?':u.pick?'Pick a Duck':S.n}</h2><div class="stag">${u.exit?'You will lose everything.<br>Are you ready to escape?':u.pick?'Ninety-nine ducks for the one you choose.':S.tag}</div>`+
     (curs.length&&!u.pick&&!u.exit?'<div class="stabs">'+curs.map(c=>`<span class="${c===u.tab?'on':''}" data-t="${c}">${curIcon(c)}</span>`).join('')+'</div>':'')+'<div class="srows">'+ // a tab for each thing it takes, by its symbol (one alone stays as the open tab)
     rows.map((r,i)=>r.c?`<div class="srow c" data-i="${i}"><span>${r.n}<br>${r.sub}</span></div>`:
@@ -975,10 +983,9 @@ function shopBuy(it,arg){
   neb({cmd:'buy',id:it.id,arg});}
 function shopBought(m){const it=shopItem(m.id);if(!it)return;feed(m.ok?'Bought: '+m.msg:it.n,m.ok?SHOPS[it.shop].n:m.msg);
   if(m.ok&&it.fx.clock){clock=it.fx.clock;showTurn();updateHint();saveMap();} // the Clock smith turns the day's clock
-  if(m.ok&&m.draw&&shopUI)shopUI.draw=m.draw; // cards to pick from
+  if(m.ok&&m.draw){document.getElementById('shop').classList.remove('show');currentView='overlay';showNeb(true);} // a Carnival card: the surface shows the draw (and the card picked) over the map; the shop comes back when it closes
   if(m.ok&&shopUI&&shopUI.pick)shopUI.pick=false;if(shopUI)renderShop();}
-function shopPicked(m){if(!shopUI||!shopUI.draw)return;if(m.show){shopUI.draw=null;document.getElementById('shop').classList.remove('show');currentView='overlay';showNeb(true);feed(m.title||'',m.text||'');return;} // a secret: its own card, shown by the surface; the shop comes back when it closes
-shopUI.draw.res=Object.assign({i:shopUI.draw.at},m);feed(m.title||'',m.text||'');renderShop();} // the card turned over
+function shopPicked(m){feed(m.title||'',m.text||'');} // a Carnival card turned over (shown by the surface)
 function souvenirs(){try{return JSON.parse(localStorage.getItem(SOUV_KEY)||'{}')||{};}catch(e){return{};}}
 function giftEnter(){ // Yes: everything is lost (the purse, ducks, discoveries and the map); souvenirs are bought from your last Bright and kept
   giftWallet=inv.bright||0;evAsked.clear();neb({cmd:'wipe'});try{localStorage.removeItem(MAP_KEY);}catch(e){}initGame();shopUI={id:'gift',rank:3,gift:true};renderShop();}
@@ -994,20 +1001,29 @@ function syncDock(){const box=document.getElementById('hinv');if(!box)return;
   box.innerHTML=DOCK_ITEMS.map(k=>`<div class="slot${armed===k?' armed':''}${(inv[k]||0)<=0?' empty':''}" data-k="${k}" title="${KIND_NAME[k]}">${icons[k]||KIND_NAME[k][0]}<b>${inv[k]||0}</b></div>`).join('')+
     '<div class="sep"></div>'+['prism','knot','gate','key','lens'].filter(k=>(inv[k]||0)>0).map(k=>`<div class="slot empty" data-k="${k}" title="${KIND_NAME[k]} (earned)">${icons[k]||KIND_NAME[k][0]}<b>${inv[k]}</b></div>`).join('')+
     (shopUI?'<div class="sep"></div>'+(shopUI.gift?['gift']:['bright','dim','neutron','magnetic','pulsing','duck']).map(c=>`<div class="slot${c===shopUI.tab?' wal':''}" data-k="${c}" title="${curName(c)}">${curIcon(c)}<b>${fmtN(shopWallet(c))}</b></div>`).join(''):''); // in a shop: every purse, the open tab's lit
+  box.insertAdjacentHTML('beforeend',`<div class="slot dmin" data-k="dmin" title="${dockMin?'Show the feed':'Hide the feed (the items come up when you point at them)'}">${dockMin?'▴':'▾'}</div>`);
+  for(const k of [...DOCK_ITEMS,'prism','knot','gate','key','lens'])if((inv[k]||0)!==dockSeen[k]){if(dockSeen[k]!=null)dockUp[k]=performance.now();dockSeen[k]=inv[k]||0;} // a count that changed shows for a while
+  dockLinger(performance.now());
   for(const el of box.querySelectorAll('.slot'))if(DOCK_ITEMS.includes(el.dataset.k))el.onclick=()=>armItem(el.dataset.k);
+  box.querySelector('.dmin').onclick=()=>{dockMin=!dockMin;try{localStorage.setItem('il_dockmin',dockMin?'1':'');}catch(e){}document.body.classList.toggle('dock-min',dockMin);dockUp.dmin=performance.now();for(const k of DOCK_ITEMS)dockUp[k]=performance.now();syncDock();};
   const fd=document.getElementById('hfeed');if(weaveAsk){fd.innerHTML='<div class="fn">Make: '+weaveAsk.map(k=>`<button data-k="${k}">${KIND_NAME[k]}</button>`).join('')+'</div><div class="fd">'+weaveSel.length+' bright hexes · 1 Weave</div>';for(const b of fd.querySelectorAll('button'))b.onclick=()=>makeConstellation(b.dataset.k);}
   else if(fd.querySelector('button'))fd.innerHTML='<div class="fn"></div><div class="fd"></div>';}
+let dockMin=false;try{dockMin=!!localStorage.getItem('il_dockmin');}catch(e){}document.body.classList.toggle('dock-min',dockMin);
+const dockUp={},dockSeen={}; // when each slot was last used or changed: in the reduced dock it stays up a while after (Dock linger ms)
+function dockLinger(now){const ms=T.mapDockLingerMs!=null?T.mapDockLingerMs:2500;for(const el of document.querySelectorAll('#hinv .slot')){const k=el.dataset.k;el.classList.toggle('up',armed===k||now-(dockUp[k]||-1e9)<ms);}}
 function duckUnder(X,Y){let best=null,bd=1e9;for(const d of pond){if(!d._s)continue;const[px,py]=w2s(d.x,d.y),[sx,sy,k]=proj(px,py),r=d._s*k*0.9,dd=Math.hypot(X-sx,Y-sy);if(dd<r&&dd<bd){bd=dd;best=d;}}return best;}
 function feedTick(now){ // the feed: a recent message, else what the cursor is over (a duck, a hex), else what you can do now
-  if(weaveAsk)return;const fd=document.getElementById('hfeed');if(!fd)return;const fn=fd.querySelector('.fn'),fdd=fd.querySelector('.fd');if(!fn)return;
+  dockLinger(now);if(weaveAsk)return;const fd=document.getElementById('hfeed');if(!fd)return;const fn=fd.querySelector('.fn'),fdd=fd.querySelector('.fd');if(!fn)return;
   let a,b;const over=currentView==='map'&&!menuOpen?ptOver:null,onMap=over===sc;
   const du=onMap?duckUnder(mX,mY):null,hc=onMap&&hQ!==null?cells[K(hQ,hR)]:null;
+  const slot=over&&over.closest&&over.closest('#hinv .slot');
   if(now-feedMsg.at<3500){a=feedMsg.t;b=feedMsg.d;}
+  else if(slot){[a,b]=itemInfo(slot.dataset.k);}
   else if(shopUI){[a,b]=shopHover||[SHOPS[shopUI.id].n,shopUI.exit?'':'Point at an item to read about it'];}
   else if(over&&over.closest&&over.closest('.shop')){[a,b]=shopInfo(over.closest('.shop').dataset.key);}
   else if(du&&du.bottle){a=du.empty?'An empty bottle':'A message in a bottle';b=du.empty?'Its letter is in the Guide (Letters)':'Click it to open it and read the letter inside';}
   else if(du){const v=DUCK_TYPES[du.type]||{};a=duckStar(v)+(v.name||'Duck')+' × '+(duckLog[du.type]||0);b=(v.axis||'')+(v.detail?': '+v.detail:'')+' · swimming on the lake';}
-  else if(hc){[a,b]=hexInfo(hc);}else{[a,b]=hintLine;}
+  else if(hc&&armed){[a,b]=itemInfo(armed,hc);a=hexInfo(hc)[0]+' · '+a;}else if(hc){[a,b]=hexInfo(hc);}else{[a,b]=armed?itemInfo(armed):hintLine;}
   if(fn.textContent!==a)fn.textContent=a||'';if(fdd.textContent!==(b||''))fdd.textContent=b||'';}
 const hcur=document.getElementById('hcur'),hcx=hcur.getContext('2d');
 function cursorTick(now){ // the surface's standard cursor (shared.js): brighter over something it can act on
@@ -1039,6 +1055,8 @@ const SCENES={
   light(){sceneReset(1);viewZoom=1;sceneDucks(4);for(let i=1;i<=7;i++)at(i*1300,()=>{clock=3+i*3;showTurn();});return 10500;}, // the lake's ducks in each hour's light
   lake(){sceneReset(1);viewZoom=1;sceneDucks(4);const pick=()=>pond.filter(d=>!d.bottle&&d._s&&!d.dunk)[0];
     at(2500,()=>{const d=pick();if(d)d.spin={t0:performance.now(),dur:1500,rate:0.3};});at(4500,()=>{const d=pick();if(d){d.kick=4;d.dash=performance.now()+1500;}});at(6500,()=>{const d=pick();if(d){d.dunk=performance.now();ripples.push({x:d.x,y:d.y,t:d.dunk,big:1});}});return 9500;}, // brushed: a spin · hit: off it putters · clicked: dunked
+  fortune(){sceneReset(1);viewZoom=1.9;sceneDucks(3);const pick=i=>pond.filter(d=>!d.bottle&&d._s&&!d.dunk)[i];
+    at(400,()=>{camX=camTX=0;camY=camTY=HEX*2.1;pond.forEach((d,i)=>{const a=(70+i*20)*Math.PI/180;d.x=Math.cos(a)*HEX*(2.6+0.3*(i%2));d.y=Math.sin(a)*HEX*2.6;d.seen=false;});}); /* in front of the hexes, where the camera looks */at(2600,()=>{const d=pick(0);if(d)d.spin={t0:performance.now(),dur:1500,rate:0.3};});at(5200,()=>{const d=pick(1);if(d)d.spin={t0:performance.now(),dur:1500,rate:-0.3};});return 9000;}, // a good fortune's card: its duck, three on the lake
   bottle(){sceneReset(1);viewZoom=1.2;pond=[];at(600,()=>{water.at=0;scanWater(performance.now());spawnLakeDuck(performance.now(),true,true);});at(4200,()=>{const d=pond.find(x=>x.bottle);if(d)openBottle(d);});at(8500,closeLetter);return 9500;}, // floats in, then opened
   view(){sceneReset();viewZoom=1.2;const P=[[1,0],[0,1],[-1,0.3],[0,-1],[0,0]];P.forEach(([x,y],i)=>at(700+i*1300,()=>{const L=0.4*Math.min(SW,SH)/viewZoom;camTX=x*L;camTY=y*L;}));return 8000;}, // looking round, then back
   items(){sceneReset();inv={leash:5,dial:9,weave:3};at(500,()=>sceneCap('2,-1','bright'));at(1500,()=>{armed='leash';});at(2600,()=>unclear('2,-1'));
@@ -1061,7 +1079,7 @@ function sceneDucks(n){const ids=Object.keys(DUCK_TYPES).slice(0,n);duckLog={};f
 function sceneRing(kind){sceneReset(4);const r3=ring(3).map(([q,r])=>K(q,r));r3.forEach((k,i)=>at(300+i*140,()=>{if(i<r3.length-1)sceneCap(k,kind(i));else{completeCaptureForCell(k,kind(i));if(clearFx[k])clearFx[k].t0=performance.now();}}));return 300+r3.length*140+4200;}
 function sceneLoop(){const f=SCENES[SCENE]||SCENES.map;const ms=f();setTimeout(sceneLoop,ms);}
 // ═══ START ═══
-if(SCENE){document.body.classList.add('scene');if(SCENE==='shops'||SCENE==='street')document.body.classList.add('scene-shops');try{const u=new URLSearchParams(location.search);T=JSON.parse(u.get('T')||'{}');DUCK_TYPES=JSON.parse(u.get('D')||'{}');}catch(e){T={};}HEX=T.mapHexSize||HEX;viewZoom=1.3;mapResize();camUpdate&&SW&&camUpdate();sceneLoop();startMapLoop();}
+if(SCENE){document.body.classList.add('scene');if(SCENE==='shops'||SCENE==='street')document.body.classList.add('scene-shops');if(SCENE==='fortune')document.body.classList.add('scene-calm');try{const u=new URLSearchParams(location.search);T=JSON.parse(u.get('T')||'{}');DUCK_TYPES=JSON.parse(u.get('D')||'{}');}catch(e){T={};}HEX=T.mapHexSize||HEX;viewZoom=1.3;mapResize();camUpdate&&SW&&camUpdate();sceneLoop();startMapLoop();}
 else{nebEl.src='chromatic_nebula.html?hub=1&v='+CACHE_V;if(!loadMap())initGame();startMapLoop();neb({cmd:'state'});}
 </script>
 </body>
