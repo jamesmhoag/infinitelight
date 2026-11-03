@@ -12,10 +12,13 @@ function csvRead(name){ // synchronous, so the code that builds on it has it at 
 const cellV=s=>{s=String(s==null?'':s).trim();return s===''?'':s==='true'?true:s==='false'?false:/^-?(\d+\.?\d*|\.\d+)(e[-+]?\d+)?$/i.test(s)?+s:s;}; // a cell as a number / true / false / text
 const cu=s=>s===''||s==null?undefined:cellV(s); // an empty cell: no value
 const cvJ=s=>{s=String(s||'').trim();if(!s)return null;try{return JSON.parse(s);}catch(e){console.error('content: not JSON',s);return null;}}; // a cell holding a small JSON value (an effect)
-const _tplF=new Map();
-function tpl(s,args){ // a content text: {0}… from args; any other {…} a sum over the game's state (the tuners T, runT…), worked out as it shows
+const _tplF=new Map(),TXT={},TXV={},VAL={}; // compiled sums; the texts (content/strings.csv); each text's own named values; the shared values (its value.<name> rows)
+const _tplC=(e,args)=>{let f=_tplF.get(e);if(!f){try{f=new Function('$','return ('+e.replace(/\$(\d+)/g,'$[$1]')+');');}catch(x){f=()=>'{'+e+'}';}_tplF.set(e,f);}try{const v=f(args||[]);return v==null?'':v;}catch(x){return '{'+e+'}';}};
+function tpl(s,args,vars){ // a content text, as it shows. {name}: the text's own value (vars: name → what fills it, $0 / $1… the values the code hands it), else a shared value
+  // (value.<name> in content/strings.csv); {0}…: the code's values in order; anything else in braces: a sum over the game's state (the tuners T, runT…)
   if(s==null)return'';s=String(s);if(s.indexOf('{')<0)return s;
-  return s.replace(/\{([^{}]+)\}/g,(m,e)=>{if(/^\d+$/.test(e))return args&&args[+e]!=null?args[+e]:'';let f=_tplF.get(e);if(!f){try{f=new Function('return ('+e+');');}catch(x){f=()=>m;}_tplF.set(e,f);}try{const v=f();return v==null?'':v;}catch(x){return m;}});}
-const TXT={};try{for(const r of csvRead('strings'))TXT[r.key]=r.text;}catch(e){console.error(e);}
-function txt(k,...a){const s=TXT[k];if(s==null){console.warn('content: no text',k);return k;}return tpl(s,a);} // a piece of the game's text (content/strings.csv), {0}… filled from a
+  return s.replace(/\{([^{}]+)\}/g,(m,e)=>{if(/^\d+$/.test(e))return args&&args[+e]!=null?args[+e]:'';const w=vars&&vars[e]!=null?vars[e]:VAL[e];return _tplC(w!=null?w:e,args);});}
+function txtVals(s){const o={};for(const l of String(s||'').split('\n')){const m=l.match(/^\s*([\w]+)\s*=\s*(.*?)\s*(?:—.*)?$/);if(m)o[m[1]]=m[2];}return o;} // a text's values column: one per line, name = what fills it — what it is
+try{for(const r of csvRead('strings')){if(r.key.slice(0,6)==='value.')VAL[r.key.slice(6)]=r.text;else{TXT[r.key]=r.text;if(r.values)TXV[r.key]=txtVals(r.values);}}}catch(e){console.error(e);}
+function txt(k,...a){const s=TXT[k];if(s==null){console.warn('content: no text',k);return k;}return tpl(s,a,TXV[k]);} // a piece of the game's text (content/strings.csv), its {names} filled from a ($0…) by its values column
 function txtApply(root){for(const el of (root||document).querySelectorAll('[data-tx]'))el.textContent=txt(el.dataset.tx);for(const el of (root||document).querySelectorAll('[data-tt]'))el.title=txt(el.dataset.tt);for(const el of (root||document).querySelectorAll('[data-tp]'))el.placeholder=txt(el.dataset.tp);} // the page's own labels

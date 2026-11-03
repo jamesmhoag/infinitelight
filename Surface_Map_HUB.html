@@ -17,11 +17,12 @@ body{background:#050608;overflow:hidden;font-family:'Share Tech Mono',monospace;
 #hdock{position:absolute;left:50%;bottom:0;transform:translateX(-50%);display:flex;flex-direction:column;z-index:20;max-width:96vw;border-radius:8px 8px 0 0;overflow:hidden}
 #hinv{display:flex;gap:3px;justify-content:center;padding:3px 5px} /* no common backing: each item stands on its own */
 #hinv .slot{position:relative;display:flex;flex-direction:column;align-items:center;justify-content:center;width:34px;height:34px;border-radius:5px;border:1px solid transparent;background:none;font:9px/1.2 monospace;color:rgba(255,255,255,0.85);user-select:none;text-shadow:0 0 3px #000,0 0 6px #000;overflow:hidden}#hinv .slot>*{transition:transform .28s ease,opacity .28s} /* no backing: the icon and its count */
-#hinv .slot svg{filter:drop-shadow(0 0 2px #000) drop-shadow(0 0 4px #000)}#hinv .slot:hover{background:rgba(255,255,255,0.1)}
-#hinv .dmin{width:18px;font-size:11px;opacity:.55;cursor:pointer}#hinv .dmin:hover{opacity:1}
-body.dock-min #hfeed{display:none} /* the dock's own hide: the feed goes, and the items keep out of the way (as with ~) */
-body.dock-min:not(.shop-open) #hinv .slot:not(.up):not(:hover)>*,body.ui-hidden:not(.shop-open) #hinv .slot:not(.up):not(:hover)>*{transform:translateY(130%);opacity:0} /* each item down out of the way until you point at its own place: then it comes up from below */
-body.ui-hidden #hinv .dmin{display:none}#hinv .slot.armed{background:rgba(255,220,120,0.28);border-color:rgba(255,220,120,0.8)}#hinv .slot.empty{opacity:0.4}
+#hinv .slot::before{content:'';position:absolute;inset:0;border-radius:5px;background:rgba(8,10,16,.5);border:1px solid rgba(255,255,255,.18);transition:transform .28s ease,opacity .28s,background .15s} /* each button its own see-through backing */
+#hinv .slot>*{position:relative}#hinv .slot svg{filter:drop-shadow(0 0 2px #000) drop-shadow(0 0 4px #000)}#hinv .slot:hover::before{background:rgba(255,255,255,0.14)}
+#hinv .dmin{font-size:13px;cursor:pointer}#hinv .dmin>span{opacity:.6}#hinv .dmin:hover>span{opacity:1} /* the feed's ▾ / ▴: a button like the others */
+body.dock-min #hfeed{display:none} /* the dock's own hide (its ▾): the feed goes, and each item keeps out of the way until pointed at (~ leaves the dock as it is, but for the ▾) */
+body.dock-min:not(.shop-open) #hinv .slot:not(.up):not(:hover)>*,body.dock-min:not(.shop-open) #hinv .slot:not(.up):not(:hover)::before{transform:translateY(130%);opacity:0} /* each item down out of the way until you point at its own place: then it comes up from below */
+body.ui-hidden #hinv .dmin{display:none}#hinv .slot.armed::before{background:rgba(255,220,120,0.28);border-color:rgba(255,220,120,0.8)}#hinv .slot.empty{opacity:0.4}
 #hinv .slot svg{width:18px;height:18px;color:#fff}#hinv .slot b{font-weight:400;margin-top:1px}#hinv .sep{width:6px}
 #hfeed{font:12px monospace;text-align:center;min-width:420px;height:30px;color:#fff;background:rgba(0,0,0,0.6);padding:3px 14px;display:flex;flex-direction:column;justify-content:center}
 #hfeed .fn{line-height:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}#hfeed .fd{font-size:9px;line-height:11px;opacity:0.62;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
@@ -108,7 +109,7 @@ body.focus-clock #turn-label,body.focus-items #hdock{z-index:59;filter:drop-shad
 #shop .stt tr.chg td{animation:stChg 2s ease-out}@keyframes stChg{0%{background:rgba(255,215,106,.45);color:#fff}100%{background:transparent}}
 #shop .srow.c{justify-content:center;text-align:center;margin:10px 0}
 #shop .srows{min-height:108px;margin-bottom:6px}#shop .stabs{display:flex;justify-content:center;gap:4px;margin:-12px 0 12px;flex-wrap:wrap}#shop .stabs span{display:flex;align-items:center;justify-content:center;width:26px;height:24px;border:1px solid rgba(255,255,255,.35);cursor:pointer;opacity:.55}#shop .stabs span svg{width:16px;height:16px;color:#fff}#shop .stabs span.on{opacity:1;border-color:#fff;background:rgba(255,255,255,.12)}
-body.shop-open #hdock{z-index:59}#hinv .slot.wal{border-color:rgba(255,255,255,.6);background:rgba(255,255,255,.12)}
+body.shop-open #hdock{z-index:59}#hinv .slot.wal::before{border-color:rgba(255,255,255,.6);background:rgba(255,255,255,.12)}
 </style>
 </head>
 <body>
@@ -151,7 +152,7 @@ body.shop-open #hdock{z-index:59}#hinv .slot.wal{border-color:rgba(255,255,255,.
 <div id="veil"></div>
 <div id="bfx"></div><canvas id="hcur"></canvas>
 <iframe id="neb" data-tt="map.ui.surface"></iframe>
-<script src="content.js?v=20261103k"></script><script src="shared.js?v=20261103k"></script>
+<script src="content.js?v=20261103l"></script><script src="shared.js?v=20261103l"></script>
 <script>
 // ╔══════════════════════════════════════════════════════════════════════════════╗
 // ║  MAP ENGINE                                                                 ║
@@ -168,7 +169,7 @@ let clock=3,day=1,pool=6,fresh=true,burstFx=null,dayLog=[],dayCnt={b:0,d:0},pend
 // // clock: the hour (3 = Twilight … 24 = Midnight, the day's last turn); day: your attempts; pool: what the source put out at its last burst; fresh: no ring added yet since it
 let constel=[],armed=null,weaveSel=[],weaveAsk=null,clearFx={},mergeFx=[],feedMsg={t:'',d:'',at:-1e9}; // constellations {keys,type}; the armed map item; a Weave being drawn; animations; the final count
 const TIMES={3:txt('map.twilight'),6:txt('map.dawn'),9:txt('map.morning'),12:txt('map.noon'),15:txt('map.afternoon'),18:txt('map.dusk'),21:txt('map.night'),24:txt('map.midnight')},STEP_H=3; // the day: eight turns of three hours
-const CACHE_V='20261103k'; // the build: bump with shared.js's
+const CACHE_V='20261103l'; // the build: bump with shared.js's
 const SCENE=new URLSearchParams(location.search).get('scene'); // a Guide / event demo: the map plays a scripted moment (no surface behind it)
 let phase='move',turnTimer=0,mergeTimer=0;
 let gameOverReason='';
@@ -1023,7 +1024,7 @@ function syncDock(){const box=document.getElementById('hinv');if(!box)return;
   box.innerHTML=DOCK_ITEMS.map(k=>`<div class="slot${armed===k?' armed':''}${(inv[k]||0)<=0?' empty':''}" data-k="${k}" title="${KIND_NAME[k]}">${icons[k]||KIND_NAME[k][0]}<b>${inv[k]||0}</b></div>`).join('')+
     '<div class="sep"></div>'+['prism','knot','gate','key','lens'].filter(k=>(inv[k]||0)>0).map(k=>`<div class="slot empty" data-k="${k}" title="${KIND_NAME[k]} (earned)">${icons[k]||KIND_NAME[k][0]}<b>${inv[k]}</b></div>`).join('')+
     (shopUI?'<div class="sep"></div>'+(shopUI.gift?['gift']:['bright','dim','neutron','magnetic','pulsing','duck']).map(c=>`<div class="slot${c===shopUI.tab?' wal':''}" data-k="${c}" title="${curName(c)}">${curIcon(c)}<b>${fmtN(shopWallet(c))}</b></div>`).join(''):''); // in a shop: every purse, the open tab's lit
-  box.insertAdjacentHTML('beforeend',`<div class="slot dmin" data-k="dmin" title="${txt(dockMin?'map.dock.show':'map.dock.hide')}">${dockMin?'▴':'▾'}</div>`);
+  box.insertAdjacentHTML('beforeend',`<div class="slot dmin" data-k="dmin" title="${txt(dockMin?'map.dock.show':'map.dock.hide')}"><span>${dockMin?'▴':'▾'}</span></div>`);
   for(const k of [...DOCK_ITEMS,'prism','knot','gate','key','lens'])if((inv[k]||0)!==dockSeen[k]){if(dockSeen[k]!=null)dockUp[k]=performance.now();dockSeen[k]=inv[k]||0;} // a count that changed shows for a while
   dockLinger(performance.now());
   for(const el of box.querySelectorAll('.slot'))if(DOCK_ITEMS.includes(el.dataset.k))el.onclick=()=>armItem(el.dataset.k);

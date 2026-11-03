@@ -1,598 +1,699 @@
-key,text,where
-tune.sec.popranks,Surface Map — pop-up ranks,Tune menu
-tune.poprank.label,{0} rank {1} at,Tune menu
-tune.poprank.tip,A bright clear whose surface collected at least this much {0} opens a rank {1} {2} on its hex (0 = never),Tune menu
-tune.save,Save vars…,Tune menu
-tune.load,Load vars…,Tune menu
-tune.filter,Filter settings…,Tune menu
-tune.tab.theme,Theme,Tune menu
-tune.tab.gameplay,Gameplay,Tune menu
-tune.tab.sounds,Sounds,Tune menu
-tune.tab.discoveries,Discoveries,Tune menu
-tune.tab.map,Surface Map,Tune menu
-kind.prism,Prism,names of things
-kind.gate,Gate,names of things
-kind.knot,Knot,names of things
-kind.key,Key,names of things
-kind.lens,Lens,names of things
-kind.leash,Spindle,names of things
-kind.dial,String,names of things
-kind.weave,Weave,names of things
-kind.bright,Bright,names of things
-kind.dim,Dim,names of things
-kind.neutron,Neutron,names of things
-kind.magnetic,Magnetic,names of things
-kind.pulsing,Pulsing,names of things
-fortune.duck,duck,names of things
-ev.shop.type,Event — Shop,events
-ev.shop.street,"A main street shop, round the source, open for the first time. It is lit only while it is open.",events
-ev.shop.popup,"A pop-up, open for the first time: a cleared surface that collected enough {0} opened it.",events
-ev.shop.card,Its card is in the Guide (Shops).,events
-map.twilight,Twilight,Surface Map
-map.dawn,Dawn,Surface Map
-map.morning,Morning,Surface Map
-map.noon,Noon,Surface Map
-map.afternoon,Afternoon,Surface Map
-map.dusk,Dusk,Surface Map
-map.night,Night,Surface Map
-map.midnight,Midnight,Surface Map
-map.hex_merge_rings_3,⬡ Hex Merge · Rings −3,Surface Map
-map.three_dark_remnants_become,● Three Dark Remnants become one · Rings −3,Surface Map
-map.merge_rings_1,△ Merge · Rings −1,Surface Map
-map.descended_to_d,Descended to D{0},Surface Map
-map.day,{0} · Day {1},Surface Map
-map.no_value_cannot_capture,no value — cannot capture,Surface Map
-map.too_tired_to_move,Too tired to move,Surface Map
-map.rest_under_midnight_to,Rest (under Midnight) to end the day,Surface Map
-map.s,s,Surface Map
-map.the_run_is_won,The run is won · {0} day{1},Surface Map
-map.back_to_the_main,Back to the main menu to start the days again,Surface Map
-map.game_over,Game over: {0},Surface Map
-map.a_new_map_keeps,A new map keeps your items,Surface Map
-map.cleared_too_tired_to,Cleared! Too tired to move,Surface Map
-map.cleared,Cleared!,Surface Map
-map.move_on,Move on,Surface Map
-map.full_circle,Full circle,Surface Map
-map.day_cleared,Day {0} cleared,Surface Map
-map.the_rings_fall_into,The rings fall into the source…,Surface Map
-map.close_the_report_to,Close the report to start the day,Surface Map
-map.weave_click_bright_hexes,"Weave · click bright hexes, then the first again to close (3 to 5)",Surface Map
-map.chosen,{0} chosen,Surface Map
-map.right_click_esc_or,"right-click, Esc or the slot again to stop",Surface Map
-map.string_click_any_open,String · click any open hex to go straight there,Surface Map
-map.1_string_per_hex,1 String per hex of distance · no time passes,Surface Map
-map.spindle_click_a_cleared,"Spindle · click a cleared hex to unwind it, or an open one to wind it up to 1.00",Surface Map
-map.a_great_dark_remnant,A great Dark Remnant takes 3,Surface Map
-map.no_value_here_nothing,No value here: nothing to clear,Surface Map
-map.continue_this_surface,continue this surface,Surface Map
-map.enter_this_surface,enter this surface,Surface Map
-map.space_click_to,Space / click to {0} ({1}),Surface Map
-map.day_or_move,{0} · day {1} · or move,Surface Map
-map.continue,continue,Surface Map
-map.enter,enter,Surface Map
-map.or_this_surface, · or {0} this surface ({1}),Surface Map
-map.rest_under_midnight_to_2,Rest (under Midnight) to end the day{0},Surface Map
-map.the_source,The source,Surface Map
-map.open_step_in_to,Open: step in to descend,Surface Map
-map.the_spill_pours_from,The spill pours from here · bursts at Twilight,Surface Map
-map.void,Void,Surface Map
-map.nothing_left_here,Nothing left here,Surface Map
-map.great_dark_remnant,Great Dark Remnant,Surface Map
-map.dark_remnant_clear,Dark Remnant clear,Surface Map
-map.three_swirled_into_one,Three swirled into one · a Spindle ×3 unwinds it,Surface Map
-map.locks_nothing_the_spill,Locks nothing · the spill cannot spread past it,Surface Map
-map.value,{0} · value {1},Surface Map
-map.star, · {0} star,Surface Map
-map.bright_clear,Bright clear{0},Surface Map
-map.merged, · merged,Surface Map
-map.locks_its_neighbours_value,Locks its neighbours · value {0}{1},Surface Map
-map.you,You · ,Surface Map
-map.surface,{0}Surface {1},Surface Map
-map.wound_up_by_a,Wound up by a Spindle: held at 1.00 · ,Surface Map
-map.locked_by_a_bright,Locked by a bright clear · ,Surface Map
-map.saved_where_you_left, · saved where you left it,Surface Map
-map.covered,{0}covered {1}%{2},Surface Map
-map.unwinds_a_cleared_hex,"Unwinds a cleared hex back to a surface (a great Dark Remnant takes 3), or winds an open one below 1.00 up to 1.00",Surface Map
-map.goes_straight_to_any,"Goes straight to any open hex: 1 per hex of distance, and no time passes",Surface Map
-map.joins_3_to_5,"Joins 3 to 5 bright clears into a constellation: 3 pays a Prism each time of day, 4 a Gate or Knot, 5 a Key or Lens",Surface Map
-map.used_on_a_surface,Used on a surface: a loop round the first point you pick recolours everything inside to match it,Surface Map
-map.used_on_a_surface_2,Used on a surface: a 3-point loop turns everything inside it into Dim Remnants,Surface Map
-map.used_on_a_surface_3,Used on a surface: a loop of lit points becomes a barrier that locks what is inside it in,Surface Map
-map.used_on_a_surface_4,Used on a surface: opens a Gate to release what it holds,Surface Map
-map.used_on_a_surface_5,"Used on a surface: links a loop of lit points or remnants (they are used up), or fills a completed Pattern with glass",Surface Map
-map.you_have,You have {0},Surface Map
-map.in_hand, · in hand,Surface Map
-map.click_to_take_it, · click to take it in hand,Surface Map
-map.earned_on_the_map, · earned on the map,Surface Map
-map.here,{0} here,Surface Map
-map.nothing_to_do_here,Nothing to do here,Surface Map
-map.only_an_open_hex,Only an open hex you are not on,Surface Map
-map.click_to_close_the,Click to close the loop,Surface Map
-map.chosen_2,Chosen ({0}),Surface Map
-map.add_this_bright_clear,Add this bright clear ({0} chosen),Surface Map
-map.only_bright_clears_can,Only bright clears can be woven,Surface Map
-map.spindle,Spindle,Surface Map
-map.you_have_none,You have none,Surface Map
-map.surface_wound_up_to,Surface wound up to 1.00 · it holds until cleared,Surface Map
-map.this_takes_you_have,This takes {0} (you have {1}),Surface Map
-map.unwound,Unwound,Surface Map
-map.the_great_dark_remnant,The great Dark Remnant is a surface again,Surface Map
-map.the_hex_is_a,The hex is a surface again · the value spreads over it,Surface Map
-map.string,String,Surface Map
-map.that_is_away_you,That is {0} away (you have {1}),Surface Map
-map.es,es,Surface Map
-map.a_time_of_day, · a time of day passed,Surface Map
-map.no_time_passed, · no time passed,Surface Map
-map.hex,{0} hex{1}{2},Surface Map
-map.weave,Weave,Surface Map
-map.only_bright_hexes_can,Only bright hexes can be joined,Surface Map
-map.at_most_5_click,At most 5: click the first to close it,Surface Map
-map.you_have_no_weave,You have no Weave,Surface Map
-map.constellation,{0} constellation,Surface Map
-map.broke_older, · broke {0} older,Surface Map
-map.gives_a_every_time,Gives a {0} every time of day{1},Surface Map
-map.constellations,Constellations,Surface Map
-map.neither_midnight,Neither · midnight,Surface Map
-map.bright_collapse,Bright collapse,Surface Map
-map.dark_collapse,Dark collapse,Surface Map
-map.every_hex_cleared,Every hex cleared,Surface Map
-map.full_collapse,Full collapse,Surface Map
-map.the_spill_falls_back,The spill falls back into the source,Surface Map
-map.everything_falls_into_the,Everything falls into the source,Surface Map
-map.the_rings_past_ring,The rings past ring {0} fall into the source,Surface Map
-map.full_collapse_the_run,Full collapse · the run is won,Surface Map
-map.day_ended_at_midnight,Day {0} ended at midnight,Surface Map
-map.bright_dark_a_new,{0} bright · {1} dark · a new burst,Surface Map
-map.the_run_is_won_2,THE RUN IS WON,Surface Map
-map.day_cleared_2,DAY {0} CLEARED,Surface Map
-map.at_ring, at ring {0},Surface Map
-map.your_items_and_discoveries, · your items and discoveries are kept,Surface Map
-map.bright_dark_this_day,{0}{1} · {2} bright · {3} dark this day{4},Surface Map
-map.back_to_the_main_2,Back to the main menu,Surface Map
-map.day_twilight,Day {0} · Twilight,Surface Map
-map.a_duck_you_have,A duck you have never had was in the bottle! It is on the lake now.,Surface Map
-map.a_duck_was_in,A duck was in the bottle.,Surface Map
-map.added_to_your_collection,Added to your collection · now {0} of this kind,Surface Map
-map.of_letters_collected_kept,{0} of {1} letters collected · kept in the Guide (Letters),Surface Map
-map.on,ON,Surface Map
-map.off,OFF,Surface Map
-map.sound,Sound: {0},Surface Map
-map.dim,{0} Dim,Surface Map
-map.a_pop_up_moved,A pop-up moved up: ,Surface Map
-map.a_pop_up_opened,A pop-up opened: ,Surface Map
-map.in_the_source, · in the source,Surface Map
-map.rank_click_it_to,Rank {0}{1} · click it to shop,Surface Map
-map.is_closed,{0} is closed,Surface Map
-map.a_holiday_it_closes, (a holiday: it closes a time of day early),Surface Map
-map.open,Open {0}{1},Surface Map
-map.exit,EXIT?,Surface Map
-map.pick_a_duck,Pick a Duck,Surface Map
-map.ninety_nine_ducks_for,Ninety-nine ducks for the one you choose.,Surface Map
-map.you_need_bright,You need {0} bright,Surface Map
-map.souvenir,Souvenir: {0},Surface Map
-map.kept_whatever_comes_next,"Kept, whatever comes next",Surface Map
-map.bought,Bought: {0},Surface Map
-map.constellation_lens,✦ Constellation · Lens,Surface Map
-map.1_lens,+1 Lens,Surface Map
-map.unwind_this_clear_spindle,Unwind this clear: {0} Spindle{1},Surface Map
-map.wind_it_up_from,Wind it up from {0} to 1.00: 1 Spindle,Surface Map
-map.go_straight_here_string,Go straight here: {0} String{1} · no time passes,Surface Map
-map.go.dissipated,all captures dissipated,Surface Map
-map.go.zero,turn reduced to zero,Surface Map
-map.go.nomoves,no viable moves,Surface Map
-map.item.youhave, · you have {0},Surface Map
-map.days.none,No day has ended yet,Surface Map
-map.days.day,Day,Surface Map
-map.days.ended,Ended,Surface Map
-map.days.bright,Bright,Surface Map
-map.days.dark,Dark,Surface Map
-map.days.all,All,Surface Map
-map.stat.gameover, · game over: {0},Surface Map
-map.shop.open,Open · {0} · click to shop,Surface Map
-map.shop.closed,Closed · {0},Surface Map
-map.shop.popup,{0} · pop-up,Surface Map
-map.shop.popupinfo,Rank {0} · open while its bright clear lasts · click to shop,Surface Map
-map.gift.yes,Yes,Surface Map
-map.gift.yessub,(enter the GIFT SHOP),Surface Map
-map.gift.no,No,Surface Map
-map.gift.nosub,(not yet),Surface Map
-map.shop.yours,✓ yours,Surface Map
-map.shop.tomorrow,tomorrow,Surface Map
-map.shop.upsoon,its effect is still to come,Surface Map
-map.shop.souvkept,kept: you have {0},Surface Map
-map.cur.gift,Your last Bright (souvenirs),Surface Map
-map.cur.duck,Ducks,Surface Map
-map.shop.status,Status,Surface Map
-map.gift.ask,You will lose everything.<br>Are you ready to escape?,Surface Map
-map.shop.tab1,You have {0} · {1} thing for it,Surface Map
-map.shop.tab,You have {0} · {1} things for it,Surface Map
-map.dock.show,Show the feed,Surface Map
-map.dock.hide,Hide the feed (the items come up when you point at them),Surface Map
-map.weave.make,Make:,Surface Map
-map.weave.cost,{0} bright hexes · 1 Weave,Surface Map
-map.shop.point,Point at an item to read about it,Surface Map
-map.bottle.empty,An empty bottle,Surface Map
-map.bottle.full,A message in a bottle,Surface Map
-map.bottle.emptyinfo,Its letter is in the Guide (Letters),Surface Map
-map.bottle.fullinfo,Click it to open it and read the letter inside,Surface Map
-map.duck.name,{0} × {1},Surface Map
-map.duck.info,{0} · swimming on the lake,Surface Map
-map.ui.rest,Rest,Surface_Map_HUB.html
-map.ui.guide,Guide,Surface_Map_HUB.html
-map.ui.menu_esc,Menu (Esc),Surface_Map_HUB.html
-map.ui.modes,Modes ▾,Surface_Map_HUB.html
-map.ui.tune,Tune ▾,Surface_Map_HUB.html
-map.ui.telemetry_hex_values,Telemetry: hex values,Surface_Map_HUB.html
-map.ui.stats_frames_hexes,Stats: frames & hexes,Surface_Map_HUB.html
-map.ui.performance_log,Performance log,Surface_Map_HUB.html
-map.ui.new_map,new map,Surface_Map_HUB.html
-map.ui.you,you,Surface_Map_HUB.html
-map.ui.cleared_bright,cleared (bright),Surface_Map_HUB.html
-map.ui.cleared_dark_remnant,cleared (dark remnant),Surface_Map_HUB.html
-map.ui.locked,locked,Surface_Map_HUB.html
-map.ui.merged,merged,Surface_Map_HUB.html
-map.ui.void,void,Surface_Map_HUB.html
-map.ui.paused,PAUSED,Surface_Map_HUB.html
-map.ui.resume_esc,Resume (Esc),Surface_Map_HUB.html
-map.ui.sound,Sound,Surface_Map_HUB.html
-map.ui.help,Help,Surface_Map_HUB.html
-map.ui.performance,Performance,Surface_Map_HUB.html
-map.ui.days,Days,Surface_Map_HUB.html
-map.ui.leave,Leave,Surface_Map_HUB.html
-map.ui.quit_to_main_menu,Quit to main menu,Surface_Map_HUB.html
-map.ui.filter_settings,Filter settings…,Surface_Map_HUB.html
-map.ui.surface,Surface,Surface_Map_HUB.html
-map.confirm.newmap,Start a new map? Your items and discoveries are kept.,Surface Map
-menu.paused,PAUSED,menus
-menu.resume,Resume (Esc),menus
-menu.sound,Sound,menus
-menu.volume,Volume,menus
-menu.readouts,Readouts,menus
-menu.telemetry,Telemetry,menus
-menu.risks,Risks,menus
-menu.dynamics,Dynamics,menus
-menu.class,Class,menus
-menu.radii,Radii,menus
-menu.help,Help,menus
-menu.guide,Guide,menus
-menu.together,Play together,menus
-menu.invite,Invite a friend,menus
-menu.leave,Leave,menus
-menu.tomap,Quit to the Surface Map (saves this surface),menus
-menu.tomain,Quit to main menu,menus
-menu.tomain.save,Quit to main menu (saves this surface),menus
-menu.tilde,~ hides the panels · H also works,menus
-menu.sound.off,Sound: OFF,menus
-menu.sound.on,Sound: ON,menus
-title.continue,Continue,title screen
-title.start,Start,title screen
-title.guide,Guide,title screen
-title.newmap,New map,title screen
-disc.cost,{0} Dim,title screen
-surf.on,ON,surface
-surf.off,OFF,surface
-surf.effect_radii,Effect radii: {0},surface
-surf.telemetry,Telemetry: {0},surface
-surf.class,Class: {0},surface
-surf.dynamics,Dynamics: {0},surface
-surf.on_2, ON,surface
-surf.off_2, OFF,surface
-surf.trails,Trails:{0},surface
-surf.pause,Pause:{0},surface
-surf.gate_mode_loop_lit," Gate mode — loop lit points, or click inside a Pattern",surface
-surf.lens_mode_link_a," Lens mode — link a loop of lit points or remnants (they are consumed), or click inside a completed Pattern to fill it (uses 1 Lens)",surface
-surf.knot_mode_link_a,✂ Knot mode — link a 3-point loop: everything inside it becomes Dim Remnants (uses 1 Knot),surface
-surf.prism_mode_link_a,◭ Prism mode — link a loop around the first point you pick: everything inside recolours to match it (uses 1 Prism),surface
-surf.weave_mode_link_the,⛓ Weave mode — link the lit points; each completed Pattern uses 1 Weave,surface
-surf.pause_mode,Pause mode,surface
-surf.play_this_sound,Play this sound,surface
-surf.tune,Tune ▴,surface
-surf.tune_2,Tune ▾,surface
-surf.modes,Modes ▾,surface
-surf.modes_2,Modes ▴,surface
-surf.scales_effect_radii_in,scales effect radii in its field between min and max{0} · ,surface
-surf.recolours_to_overlaps_blend,recolours to {0} / {1} (overlaps blend; opposites crystalize) · ,surface
-surf.beam_activates_on_its,beam activates on its first side (the max-active snake retires the oldest){0} · ,surface
-surf.invert,Invert:{0},surface
-surf.pattern_broke_out_of,Pattern broke — out of {0}.,surface
-surf.a_point_was_destroyed,A point was destroyed — the shape broke apart.,surface
-surf.weave,Weave,surface
-surf.knot,Knot,surface
-surf.prism,Prism,surface
-surf.now_a_one_way, — now a one-way Gate.,surface
-surf.edge_applied_to_the,{0} edge applied to the {1}{2},surface
-surf.that_is_already_a,That is already a Gate.,surface
-surf.that_is_already_a_2,That is already a Lens.,surface
-surf.gate_fences_the_pattern,Gate fences the Pattern (one-way).,surface
-surf.lens_fills_the_pattern,Lens fills the Pattern.,surface
-surf.that_pattern_is_fading,That Pattern is fading — a Lens can't be added.,surface
-surf.gate_formed_from_the,Gate formed from the Pattern (one-way).,surface
-surf.lens_formed_from_the,Lens formed from the Pattern.,surface
-surf.too_tight_to_close,Too tight to close here — the join would be under {0}°. Keep going or pick another point.,surface
-surf.knot_mode_needs_a,Knot mode needs a 3-point loop — nothing spent.,surface
-surf.connection_submitted_no_matching,Connection submitted — no matching symbol.,surface
-surf.is_empty,{0} is empty.,surface
-surf.gate_formed_a_key,Gate formed — a Key opens it.,surface
-surf.colour_change_lens_formed,Colour-change Lens formed.,surface
-surf.neutron_lens_formed_click,Neutron Lens formed — click to toggle scale.,surface
-surf.pulsing_lens_formed_click,Pulsing Lens formed — click to set velocity & spin.,surface
-surf.lens_formed,Lens formed.,surface
-surf.forming_hold_it_steady,{0} forming — hold it steady…,surface
-surf.needs_at_least_3,Needs at least 3 nodes to close.,surface
-surf.spindle_shapes_take_3,Spindle shapes take 3–5 corners — rectangle only.,surface
-surf.port_window_hold_and,Port / Window: hold and drag a rectangle (wheel while dragging: ellipse).,surface
-surf.lens_type_swapped,Lens type swapped.,surface
-surf.lens_fills_the_shape,Lens fills the shape.,surface
-surf.gate_fills_the_shape,Gate fills the shape — its different edge type makes it a one-way barrier.,surface
-surf.gate_fills_the_barrier,Gate fills the barrier shape.,surface
-surf.not_a_valid_pattern,Not a valid Pattern — discarded.,surface
-surf.lens_needs_a_closed,Lens needs a closed shape.,surface
-surf.plate_needs_a_closed,Plate needs a closed shape.,surface
-surf.gate_needs_a_closed,Gate needs a closed shape.,surface
-surf.overlap_separated_an_inside,Overlap separated — an inside corner was made where the shapes meet.,surface
-surf.a_dark_remnant_formed,⚠ A Dark Remnant formed inside a Gate — it is locked in. Open the Gate with a Key to release it.,surface
-surf.gate_unlocked_the_dark,🗝 Gate unlocked — the Dark Remnant inside is released!,surface
-surf.gate_unlocked_its_contents,🗝 Gate unlocked — its contents float free.,surface
-surf.the_lens_is_splitting,The Lens is splitting…,surface
-surf.lens_cracked_of_double,Lens cracked ({0} of {1}) — double-click again.,surface
-surf.lens_disc_formed_the,Lens disc formed — the orbit keeps accruing Spindles until the Lens is cracked.,surface
-surf.globe_formed_each_full,"Globe formed — each full lap of the pair earns a String, until the Lens is cracked.",surface
-surf.lens_formed_round_the,Lens formed round the Weave — it keeps accruing Weaves until the Lens is cracked.,surface
-surf.create_item,Create item:{0},surface
-surf.disable_mode_click_an,Disable mode — click an item to switch it off / on,surface
-surf.disable_mode_off,Disable mode off,surface
-surf.no_weave_hold_5,"No Weave — hold 5 points perfectly still, close together",surface
-surf.is_disabled_item_cache,{0} is disabled (Item cache → off),surface
-surf.no_spindle_earn_one,No Spindle — earn one by keeping points moving together,surface
-surf.no_knot_earn_one,No Knot — earn one with a 4-point loop that has a dent,surface
-surf.no_lens_earn_one,No Lens — earn one with a 5-point Spindle loop,surface
-surf.no_gate_earn_one,No Gate — earn one with a 4-point loop,surface
-surf.no_prism_earn_one,No Prism — earn one with a 3-point loop,surface
-surf.create,Create,surface
-surf.balance,BALANCE,surface
-surf.depth,DEPTH,surface
-surf.dynamism,DYNAMISM,surface
-surf.harmony,HARMONY,surface
-surf.rhythm,RHYTHM,surface
-surf.string,String,surface
-surf.spindle,Spindle,surface
-surf.gate,Gate,surface
-surf.key,Key,surface
-surf.lens,Lens,surface
-surf.places_particles_points_and,"Places particles, points and remnants (middle-click: type · wheel: color)",surface
-surf.click_swipe_double_click,"Click / swipe / double-click (nearest Max-activated targets): each touched point or particle is enlarged (it bursts like a nova) or shrunk (it implodes everything near inward) — one random outcome per gesture, 1 Neutron each",surface
-surf.click_a_dim_remnant,Click a Dim Remnant: it is consumed and becomes a stationary DEPTH (bigger for a heavier remnant) — click it again to destroy it; a new one removes whatever it overlaps. Costs Dim every interval while it stands,surface
-surf.click_a_bright_remnant,"Click a Bright Remnant: it is consumed and becomes a stationary BALANCE (a square turned like the remnant, bigger for a heavier one) — everything inside freezes (lifespans too), the outside bounces off; click it again to destroy it and let it all move on. A new one removes whatever it overlaps. Costs Bright every interval while it stands",surface
-surf.harmony_colour_click_swipe,HARMONY (colour) — click / swipe / double-click (nearest Max-activated targets): everything touched (points and particles) takes ONE random new colour effect — each at its own place in that colour's range — 1 each,surface
-surf.rhythm_motion_click_swipe,"RHYTHM (motion) — click / swipe / double-click (nearest Max-activated targets): everything touched (particles wake) gets the SAME one random motion — one direction, one speed, one spin (straight, or a big / mid / tight arc; fast or slow) — 1 each",surface
-surf.sets_speed_spin_of,Sets speed / spin of Points & remnants — STOP by default (wheel: 7 states),surface
-surf.enter_pattern_mode_each,Enter Pattern mode: each completed Pattern uses 1 Spindle,surface
-surf.link_a_loop_around,"Link a loop around a point: after a hold, everything inside recolours (or converts, for a remnant) to match it — the loop's other corners become permanent copies of it too",surface
-surf.loop_of_lit_points,Loop of lit points builds a locking Gate · Key opens it,surface
-surf.enter_knot_mode_a,Enter knot mode: a 3-point loop dims everything inside it,surface
-surf.drives_your_oldest_key,Drives your oldest key shape through the surface into a Dark Remnant,surface
-surf.link_a_loop_of,"Link a loop of lit points / remnants to make a fixed Lens, or click inside any completed Pattern to fill it (a Prism lends its colour and click effect)",surface
-surf.undiscovered,▒ undiscovered,surface
-surf.discovering,discovering {0}{1},surface
-surf.hover_one_activate_one,"hover one, activate one or collect one to discover it",surface
-surf.discoveries_reset,Discoveries reset.,surface
-surf.not_enough,{0} — not enough.,surface
-surf.depth_needs_a_dim,DEPTH needs a Dim Remnant,surface
-surf.balance_needs_a_bright,BALANCE needs a Bright Remnant,surface
-surf.under_the_cursor_it,{0} under the cursor — it is consumed.,surface
-surf.ran_out,{0} ran out.,surface
-surf.get_ready,Get ready…,surface
-surf.your_turn_repeat_the,Your turn — repeat the pattern,surface
-surf.round_get_ready,Round {0} — get ready,surface
-surf.wrong_the_key_is,Wrong — the key is lost.,surface
-surf.a_burst_needs_neutrons,A burst needs {0} Neutrons.,surface
-surf.moment_captured,⛩ Moment captured,surface
-surf.is_full,{0} is full,surface
-surf.s,s,surface
-surf.collected_for,{0} collected {1} {2}{3} for {4} {5},surface
-surf.particle_map,Particle map:{0},surface
-surf.shown,Shown,surface
-surf.hidden,Hidden,surface
-surf.item_cache,Item cache: {0},surface
-surf.every_item_filled_to,Every item filled to its max,surface
-surf.every_item_cleared,Every item cleared,surface
-surf.interpolate, Interpolate,surface
-surf.swap, Swap,surface
-surf.settle,Settle:{0},surface
-surf.cell_shape,Cell shape: {0},surface
-surf.coverage,Coverage: {0}{1},surface
-surf.stage_cleared_blank_canvas,Stage cleared — blank canvas.,surface
-surf.save_failed,Save failed: {0},surface
-surf.map_saved,Map saved.,surface
-surf.map_downloaded,Map downloaded.,surface
-surf.map_loaded,Map loaded.,surface
-surf.load_failed,Load failed: {0},surface
-surf.load_failed_could_not,Load failed: could not read file.,surface
-surf.sound,Sound:{0},surface
-surf.inertializer_click_objects_or,Inertializer — click objects or drag a box to select them first.,surface
-surf.inertializer_selected_aim_wheel,"Inertializer — {0} selected · aim, wheel to spin, click empty space to apply",surface
-surf.inertializer_nothing_selectable_in,Inertializer — nothing selectable in that box.,surface
-surf.inertializer_object_set_to,"Inertializer — {0} object{1} set to speed {2}, spin {3}.",surface
-surf.repurpose_click_a_shape,Repurpose: click a shape to take its form from.,surface
-surf.form_taken_now_click,"Form taken — now click what to make it out of (a Lens, particle, point, remnant…)",surface
-surf.click_what_to_make,Click what to make it out of.,surface
-surf.making_in_that_shape,"Making {0} in that shape — wheel rotates, click to place, right-click to start over",surface
-surf.that_needs_a_closed,That needs a closed shape to be made from.,surface
-surf.spindle_shapes_take_3_2,Spindle shapes take 3–5 corners.,surface
-surf.placed,Placed {0} {1},surface
-surf.nothing_could_be_placed,Nothing could be placed there.,surface
-surf.fixed_prism_click_points,"Fixed Prism — {0} · click points; click the first to close, the last to finish an edge",surface
-surf.fixed_knot_edge_or,"Fixed Knot — edge or polygon: what it holds becomes remnants · click points; first = close, last = finish",surface
-surf.fixed_spindle_closed_3,Fixed Spindle — closed 3-point (Prism) or 4-point (Gate) loop earns its item,surface
-surf.hold_and_drag_a,{0} · hold and drag a rectangle (wheel while dragging: ellipse),surface
-surf.unbreakable,unbreakable,surface
-surf.breakable_at_speed,breakable at speed,surface
-surf.barrier_click_points_last,Barrier — {0} · click points; last point again to finish,surface
-surf.cache_a_locked_gate,"Cache — a locked Gate with a central keyhole, a metal barrier edge and glass in four tinted panes: open it with a Key by repeating the pane pattern (tinted panes keep their colour effect while you play)",surface
-surf.case_a_crate_with,"Case — a Crate with glass inside instead of posts: same wood, same breaking, the glass goes with it",surface
-surf.crate_dim_breakable_gate,Crate — dim breakable gate,surface
-surf.plate_solid_steel_rings,"Plate — solid steel, rings like a bell",surface
-surf.gate_barrier_edge_locks,"Gate — barrier edge, locks contents in",surface
-surf.click_points_first_again,"{0} · click points, first again to close, or click inside a shape",surface
-surf.clear, (clear),surface
-surf.tinted, tinted {0},surface
-surf.glass_like_a_lens,Glass{0} — like a Lens that never breaks · click inside a closed shape,surface
-surf.tinted_objects_under_it, tinted {0} — objects under it receive that colour's effect,surface
-surf.lens_click_inside_a,"Lens{0} — click inside a closed shape to fill it, or draw a closed shape · nothing under it can be clicked / collected / connected",surface
-surf.inertializer_click_drag_box,"Inertializer — click / drag-box to select points, remnants and shapes · the vector sets direction + speed and curls with spin · wheel spins · click empty space to apply · right-click clears",surface
-surf.standard_cursor,Standard cursor,surface
-surf.touching_a_particle_blends,{0} · touching a particle blends colours by mass,surface
-surf.grid_particle,Grid particle — {0},surface
-surf.remove_click_or_swipe,"Remove — click or swipe to delete any particle, point, remnant, Pattern, fixed edge or glass",surface
-surf.pigment,Pigment — {0},surface
-surf.always_active_effect_radius, (always active · effect radius),surface
-surf.core, core,surface
-surf.point,Point — {0}{1},surface
-surf.remnant_dark_triggers_the,Remnant — Dark ★ (triggers the Dark Remnant!),surface
-surf.remnant_neutron_radius_effect,Remnant — Neutron (radius/effect-range pulse on nearby points),surface
-surf.remnant_magnetic_splits_nearby,Remnant — Magnetic (splits nearby points into two colors),surface
-surf.remnant_pulsing_beam_activates,Remnant — Pulsing (beam activates nearby points on its first side; the max-active snake retires the oldest),surface
-surf.remnant_enriched_neutron_never,Remnant — Enriched Neutron (never breaks or is consumed · collects ×100),surface
-surf.remnant_enriched_magnetic_never,Remnant — Enriched Magnetic (never breaks or is consumed · collects ×100),surface
-surf.remnant_enriched_pulsing_never,Remnant — Enriched Pulsing (never breaks or is consumed · collects ×100),surface
-surf.remnant_enriched_dim_collect,Remnant — Enriched Dim (collect count ×100) · what an ECLIPSE Point leaves,surface
-surf.remnant_enriched_bright_collect,Remnant — Enriched Bright (collect count ×100) · what a CRYSTALIZE Point leaves,surface
-surf.remnant,Remnant — {0},surface
-surf.repurpose_placing_the_shape,"Repurpose — placing the shape made of {0} · wheel rotates, middle-click turns 90°, right-click to start over",surface
-surf.repurpose_now_click_what,"Repurpose — now click what to make it out of (Lens, particle, point, remnant…)",surface
-surf.repurpose_click_a_shape_2,Repurpose — click a shape to take its form from,surface
-surf.move_placing_the_shape,"Move — placing the shape once · wheel rotates, middle-click turns 90°, right-click puts it back",surface
-surf.duplicate_placing_copies_of,"Duplicate — placing copies of the shape · wheel rotates, middle-click turns 90°, right-click when done",surface
-surf.move_click_or_swipe,Move — click or swipe a target to pick it up (wheel switches to Duplicate),surface
-surf.duplicate_click_or_swipe,Duplicate — click or swipe a target to copy it (wheel switches to Move),surface
-surf.picked, ({0} picked),surface
-surf.move_placing_once_wheel,"Move — placing {0} once · wheel rotates, middle-click turns 90°, right-click puts it back",surface
-surf.copy, copy,surface
-surf.copies, copies,surface
-surf.duplicate_placing_wheel_rotates,"Duplicate — placing {0}{1} · wheel rotates, middle-click turns 90°, right-click when done",surface
-surf.no_items_to_cycle,No items to cycle to yet.,surface
-surf.a_dark_remnant_is,A Dark Remnant is already active.,surface
-surf.picked_up_wheel_rotates,"Picked up {0} — wheel rotates smoothly, middle-click turns 90°, click to place",surface
-surf.copied_object_click_to,Copied {0} object{1} — click to place a duplicate.,surface
-surf.picked_up_the_shape,Picked up the shape,surface
-surf.copied_the_shape,Copied the shape,surface
-surf.wheel_rotates_smoothly_middle,"{0} — wheel rotates smoothly, middle-click turns 90°, click to place",surface
-surf.click_an_object_to,Click an object to copy it.,surface
-surf.pattern_cancelled,Pattern cancelled.,surface
-surf.two_exotic_remnants_collided,⚠ Two Exotic Remnants collided — a Dark Remnant forms! Resuming to clear the surface…,surface
-surf.i_guide,ⓘ Guide,surface
-surf.rules_the_object_map,"Rules, the object map, events you have witnessed and the glossary · pauses the game",surface
-surf.readouts,◎ Readouts,surface
-surf.t_telemetry_r_risks,T telemetry · R risks · D dynamics · C class · centre circle: effect radii (right-click with nothing shining also cycles them),surface
-surf.game_speed,🖱 Game speed,surface
-surf.paused,Paused,surface
-surf.click_cycle_pause_1,"Click: cycle Pause/1×/2×/4×/8× · scroll: Pause, ×0.25, ×0.5, ×1, ×2, ×4, ×8 — currently {0}",surface
-surf.clear_items,✖ Clear items,surface
-surf.removes_every_item_from,Removes every item from the inventory (one-shot),surface
-surf.fill_items,⤒ Fill items,surface
-surf.fills_every_item_to,Fills every item to its max (one-shot),surface
-surf.disable_items,⦸ Disable items,surface
-surf.toggle_then_click_items,"Toggle, then click items to switch them off / on · saved with the state",surface
-surf.hover_this_feed_holding,hover this feed holding {0} Dim to discover it,surface
-surf.mode,⛓ {0} mode,surface
-surf.no_eligible_targets_available,No eligible targets available right now,surface
-surf.targets_available_chain_bonds,Targets available: {0} · chain: {1} · bonds: {2},surface
-surf.bright_remnant, Bright remnant,surface
-surf.can_t_collect_inventory,Can't collect — inventory full,surface
-surf.mass_energy,{0}mass {1} · energy {2}{3}{4},surface
-surf.dim_remnant, dim remnant,surface
-surf.mass_energy_2,mass {0} · energy {1}{2}{3},surface
-surf.mass_energy_r_px,mass {0} · energy {1} · r={2}/{3}px{4}{5},surface
-surf.edge,{0}{1} edge,surface
-surf.click_to_shine_right,click to shine · right-click to stop all shining,surface
-surf.fps_sim_ms_draw,"{0}{1} fps{2}
-sim {3} ms{4}
-draw {5} ms{6}
-active: {7}
-★ {8} (max {9})
-✕ {10}
-◌ {11}{12}
-E peak: {13} [{14}]
-M peak: {15} [{16}]
-★→● mass: {17}
-Σ mass: {18}
-Σ energy: {19}
-grid: {20}×{21}",surface
-surf.surface_continued_where_you,Surface {0} — continued where you left it,surface
-surf.surface,Surface {0},surface
-surf.opening_a_room,Opening a room…,surface
-surf.could_not_open_a,Could not open a room ({0}),surface
-surf.could_not_load_the,Could not load the connection library,surface
-surf.your_friend_is_here,Your friend is here. Shine together; what each of you collects is your own.,surface
-surf.your_friend_left_the,Your friend left. The link still works.,surface
-surf.a_dark_remnant_came,A Dark Remnant came out as a duck: {0}!,surface
-surf.the_dark_remnant_swallowed,🦆 The Dark Remnant swallowed a {0}.,surface
-surf.rare_exotic,rare exotic,surface
-surf.classic,classic,surface
-surf.exotic,exotic,surface
-surf.collected_click_to_collect,{0}{1} · {2} · collected {3} · click to collect,surface
-surf.collected,🦆 Collected: {0} ({1}),surface
-surf.a_rift_tore_open,⚠ A Rift tore open: {0} mass in one place.,surface
-surf.ui.rebuild,Rebuild,chromatic_nebula.html
-surf.ui.modes,Modes ▾,chromatic_nebula.html
-surf.ui.tune,Tune ▾,chromatic_nebula.html
-surf.ui.image,Image…,chromatic_nebula.html
-surf.ui.clear_image,Clear image,chromatic_nebula.html
-surf.ui.reset,Reset,chromatic_nebula.html
-surf.ui.pause_off,Pause: OFF,chromatic_nebula.html
-surf.ui.trails_off,Trails: OFF,chromatic_nebula.html
-surf.ui.sound_off,Sound: OFF,chromatic_nebula.html
-surf.ui.particle_map_off,Particle map: OFF,chromatic_nebula.html
-surf.ui.create_item_off,Create item: OFF,chromatic_nebula.html
-surf.ui.settle_swap,Settle: Swap,chromatic_nebula.html
-surf.ui.item_cache_hidden,Item cache: Hidden,chromatic_nebula.html
-surf.ui.cell_shape,Cell shape: ●,chromatic_nebula.html
-surf.ui.coverage_blob,Coverage: Blob,chromatic_nebula.html
-surf.ui.invert_off,Invert: OFF,chromatic_nebula.html
-surf.ui.effect_radii_off,Effect radii: OFF,chromatic_nebula.html
-surf.ui.telemetry_off,Telemetry: OFF,chromatic_nebula.html
-surf.ui.dynamics_off,Dynamics: OFF,chromatic_nebula.html
-surf.ui.class_off,Class: OFF,chromatic_nebula.html
-surf.ui.clear_stage,Clear stage,chromatic_nebula.html
-surf.ui.save_map,Save map,chromatic_nebula.html
-surf.ui.load_map,Load map,chromatic_nebula.html
-surf.ui.reset_discoveries,Reset discoveries,chromatic_nebula.html
-surf.ui.log,log ⤓,chromatic_nebula.html
-surf.ui.or_just_drag_and,Or just drag-and-drop an image onto the canvas,chromatic_nebula.html
-surf.ui.remove_the_dropped_image,Remove the dropped image and go back to the procedural nebula,chromatic_nebula.html
-surf.ui.collapse_expand_the_statistics,collapse / expand the statistics,chromatic_nebula.html
-surf.ui.change_the_line_shown,change the line shown while collapsed,chromatic_nebula.html
-surf.ui.download_the_performance_log,"download the performance log (worst frames, phase timings, events)",chromatic_nebula.html
-map.buy.title,Bought: {0},Surface Map
-guide.tab.disc,Discoveries,"cards, Guide, Status"
-guide.tab.map,Taxonomy,"cards, Guide, Status"
-guide.tab.items,Items,"cards, Guide, Status"
-guide.tab.shapes,Shapes,"cards, Guide, Status"
-guide.tab.surf,Surface Map,"cards, Guide, Status"
-guide.tab.shops,Shops,"cards, Guide, Status"
-guide.tab.ducks,Ducks,"cards, Guide, Status"
-guide.tab.book,Glossary,"cards, Guide, Status"
-guide.tab.notes,Letters,"cards, Guide, Status"
-guide.tab.status,Status,"cards, Guide, Status"
-card.fortune.good,A good fortune,"cards, Guide, Status"
-card.fortune.dim,A dim fortune,"cards, Guide, Status"
-card.fortune.type,Fortune — {0},"cards, Guide, Status"
-card.fortune.typedim,Fortune — Dim,"cards, Guide, Status"
-card.wonder.type,Daily Wonder,"cards, Guide, Status"
-card.draw.secret,"A Card of Secrets: pick one, and it is yours to know","cards, Guide, Status"
-card.draw.fortune,Fortune Telling: pick a card for today,"cards, Guide, Status"
-card.draw.daily,"A Daily Wonder: keep one of three, for today","cards, Guide, Status"
-card.close,Close,"cards, Guide, Status"
-card.unlocks,Unlocks in the Guide: {0},"cards, Guide, Status"
-status.today,Today,"cards, Guide, Status"
-status.fortune,Fortune,"cards, Guide, Status"
-status.wonder,Daily wonder,"cards, Guide, Status"
-status.charms,Luck Charms,"cards, Guide, Status"
-status.duck,Duck chance,"cards, Guide, Status"
-status.duckval,{0} · next +{1},"cards, Guide, Status"
-status.exotic,Exotic / rare,"cards, Guide, Status"
-status.keys,Keys,"cards, Guide, Status"
-status.keyslost,lost for this run,"cards, Guide, Status"
-status.upgrades,Permanent upgrades,"cards, Guide, Status"
-status.none,none yet,"cards, Guide, Status"
-card.continue,Continue,"cards, Guide, Status"
+key,text,where,values
+tune.sec.popranks,Surface Map — pop-up ranks,Tune menu,
+tune.poprank.label,{shop} rank {rank} at,Tune menu,"shop = $0 — the shop's name (shortened)
+rank = $1 — the rank"
+tune.poprank.tip,A bright clear whose surface collected at least this much {currency} opens a rank {rank} {shop} on its hex (0 = never),Tune menu,"currency = $0 — what it collects
+rank = $1 — the rank
+shop = $2 — the shop's name"
+tune.save,Save vars…,Tune menu,
+tune.load,Load vars…,Tune menu,
+tune.filter,Filter settings…,Tune menu,
+tune.tab.theme,Theme,Tune menu,
+tune.tab.gameplay,Gameplay,Tune menu,
+tune.tab.sounds,Sounds,Tune menu,
+tune.tab.discoveries,Discoveries,Tune menu,
+tune.tab.map,Surface Map,Tune menu,
+kind.prism,Prism,names of things,
+kind.gate,Gate,names of things,
+kind.knot,Knot,names of things,
+kind.key,Key,names of things,
+kind.lens,Lens,names of things,
+kind.leash,Spindle,names of things,
+kind.dial,String,names of things,
+kind.weave,Weave,names of things,
+kind.bright,Bright,names of things,
+kind.dim,Dim,names of things,
+kind.neutron,Neutron,names of things,
+kind.magnetic,Magnetic,names of things,
+kind.pulsing,Pulsing,names of things,
+fortune.duck,duck,names of things,
+ev.shop.type,Event — Shop,events,
+ev.shop.street,"A main street shop, round the source, open for the first time. It is lit only while it is open.",events,
+ev.shop.popup,"A pop-up, open for the first time: a cleared surface that collected enough {currency} opened it.",events,currency = $0 — what the surface collected
+ev.shop.card,Its card is in the Guide (Shops).,events,
+map.twilight,Twilight,Surface Map,
+map.dawn,Dawn,Surface Map,
+map.morning,Morning,Surface Map,
+map.noon,Noon,Surface Map,
+map.afternoon,Afternoon,Surface Map,
+map.dusk,Dusk,Surface Map,
+map.night,Night,Surface Map,
+map.midnight,Midnight,Surface Map,
+map.hex_merge_rings_3,⬡ Hex Merge · Rings −3,Surface Map,
+map.three_dark_remnants_become,● Three Dark Remnants become one · Rings −3,Surface Map,
+map.merge_rings_1,△ Merge · Rings −1,Surface Map,
+map.descended_to_d,Descended to D{depth},Surface Map,depth = $0 — how deep you have descended
+map.day,{time} · Day {day},Surface Map,"time = $0 — the time of day
+day = $1 — the day number"
+map.no_value_cannot_capture,no value — cannot capture,Surface Map,
+map.too_tired_to_move,Too tired to move,Surface Map,
+map.rest_under_midnight_to,Rest (under Midnight) to end the day,Surface Map,
+map.s,s,Surface Map,
+map.the_run_is_won,The run is won · {days} day{plural},Surface Map,"days = $0 — how many days it took
+plural = $1 — ""s"" when more than one day"
+map.back_to_the_main,Back to the main menu to start the days again,Surface Map,
+map.game_over,Game over: {reason},Surface Map,reason = $0 — why the game ended
+map.a_new_map_keeps,A new map keeps your items,Surface Map,
+map.cleared_too_tired_to,Cleared! Too tired to move,Surface Map,
+map.cleared,Cleared!,Surface Map,
+map.move_on,Move on,Surface Map,
+map.full_circle,Full circle,Surface Map,
+map.day_cleared,Day {day} cleared,Surface Map,day = $0 — the day that ended
+map.the_rings_fall_into,The rings fall into the source…,Surface Map,
+map.close_the_report_to,Close the report to start the day,Surface Map,
+map.weave_click_bright_hexes,"Weave · click bright hexes, then the first again to close (3 to 5)",Surface Map,
+map.chosen,{chosen} chosen,Surface Map,chosen = $0 — bright hexes chosen for the Weave
+map.right_click_esc_or,"right-click, Esc or the slot again to stop",Surface Map,
+map.string_click_any_open,String · click any open hex to go straight there,Surface Map,
+map.1_string_per_hex,1 String per hex of distance · no time passes,Surface Map,
+map.spindle_click_a_cleared,"Spindle · click a cleared hex to unwind it, or an open one to wind it up to 1.00",Surface Map,
+map.a_great_dark_remnant,A great Dark Remnant takes 3,Surface Map,
+map.no_value_here_nothing,No value here: nothing to clear,Surface Map,
+map.continue_this_surface,continue this surface,Surface Map,
+map.enter_this_surface,enter this surface,Surface Map,
+map.space_click_to,Space / click to {action} ({value}),Surface Map,"action = $0 — ""enter"" or ""continue"" this surface
+value = $1 — the hex's value"
+map.day_or_move,{time} · day {day} · or move,Surface Map,"time = $0 — the time of day
+day = $1 — the day number"
+map.continue,continue,Surface Map,
+map.enter,enter,Surface Map,
+map.or_this_surface, · or {action} this surface ({value}),Surface Map,"action = $0 — ""enter"" or ""continue""
+value = $1 — the hex's value"
+map.rest_under_midnight_to_2,Rest (under Midnight) to end the day{or_enter},Surface Map,"or_enter = $0 — ""· or enter this surface…"" when it has value left"
+map.the_source,The source,Surface Map,
+map.open_step_in_to,Open: step in to descend,Surface Map,
+map.the_spill_pours_from,The spill pours from here · bursts at Twilight,Surface Map,
+map.void,Void,Surface Map,
+map.nothing_left_here,Nothing left here,Surface Map,
+map.great_dark_remnant,Great Dark Remnant,Surface Map,
+map.dark_remnant_clear,Dark Remnant clear,Surface Map,
+map.three_swirled_into_one,Three swirled into one · a Spindle ×3 unwinds it,Surface Map,
+map.locks_nothing_the_spill,Locks nothing · the spill cannot spread past it,Surface Map,
+map.value,{kind} · value {value},Surface Map,"kind = $0 — what the Dark Remnant clear does
+value = $1 — the clear's value"
+map.star, · {stars} star,Surface Map,stars = $0 — the constellations it is part of
+map.bright_clear,Bright clear{star},Surface Map,"star = $0 — ""· <kind> star"" when it is in a constellation"
+map.merged, · merged,Surface Map,
+map.locks_its_neighbours_value,Locks its neighbours · value {value}{merged},Surface Map,"value = $0 — the clear's value
+merged = $1 — ""· merged"" when it is part of a merge"
+map.you,You · ,Surface Map,
+map.surface,{you}Surface {value},Surface Map,"you = $0 — ""You · "" on your own hex
+value = $1 — the hex's value"
+map.wound_up_by_a,Wound up by a Spindle: held at 1.00 · ,Surface Map,
+map.locked_by_a_bright,Locked by a bright clear · ,Surface Map,
+map.saved_where_you_left, · saved where you left it,Surface Map,
+map.covered,{state}covered {pct}%{saved},Surface Map,"state = $0 — wound up / locked, when it is
+pct = $1 — how much of the hex is covered (%)
+saved = $2 — ""· saved where you left it"" on the surface you left"
+map.unwinds_a_cleared_hex,"Unwinds a cleared hex back to a surface (a great Dark Remnant takes 3), or winds an open one below 1.00 up to 1.00",Surface Map,
+map.goes_straight_to_any,"Goes straight to any open hex: 1 per hex of distance, and no time passes",Surface Map,
+map.joins_3_to_5,"Joins 3 to 5 bright clears into a constellation: 3 pays a Prism each time of day, 4 a Gate or Knot, 5 a Key or Lens",Surface Map,
+map.used_on_a_surface,Used on a surface: a loop round the first point you pick recolours everything inside to match it,Surface Map,
+map.used_on_a_surface_2,Used on a surface: a 3-point loop turns everything inside it into Dim Remnants,Surface Map,
+map.used_on_a_surface_3,Used on a surface: a loop of lit points becomes a barrier that locks what is inside it in,Surface Map,
+map.used_on_a_surface_4,Used on a surface: opens a Gate to release what it holds,Surface Map,
+map.used_on_a_surface_5,"Used on a surface: links a loop of lit points or remnants (they are used up), or fills a completed Pattern with glass",Surface Map,
+map.you_have,You have {amount},Surface Map,amount = $0 — how much of it you have
+map.in_hand, · in hand,Surface Map,
+map.click_to_take_it, · click to take it in hand,Surface Map,
+map.earned_on_the_map, · earned on the map,Surface Map,
+map.here,{item} here,Surface Map,item = $0 — the item's name
+map.nothing_to_do_here,Nothing to do here,Surface Map,
+map.only_an_open_hex,Only an open hex you are not on,Surface Map,
+map.click_to_close_the,Click to close the loop,Surface Map,
+map.chosen_2,Chosen ({chosen}),Surface Map,chosen = $0 — bright hexes chosen so far
+map.add_this_bright_clear,Add this bright clear ({chosen} chosen),Surface Map,chosen = $0 — bright hexes chosen so far
+map.only_bright_clears_can,Only bright clears can be woven,Surface Map,
+map.spindle,Spindle,Surface Map,
+map.you_have_none,You have none,Surface Map,
+map.surface_wound_up_to,Surface wound up to 1.00 · it holds until cleared,Surface Map,
+map.this_takes_you_have,This takes {cost} (you have {have}),Surface Map,"cost = $0 — Spindles it takes
+have = $1 — Spindles you have"
+map.unwound,Unwound,Surface Map,
+map.the_great_dark_remnant,The great Dark Remnant is a surface again,Surface Map,
+map.the_hex_is_a,The hex is a surface again · the value spreads over it,Surface Map,
+map.string,String,Surface Map,
+map.that_is_away_you,That is {distance} away (you have {have}),Surface Map,"distance = $0 — hexes away (Strings it takes)
+have = $1 — Strings you have"
+map.es,es,Surface Map,
+map.a_time_of_day, · a time of day passed,Surface Map,
+map.no_time_passed, · no time passed,Surface Map,
+map.hex,{distance} hex{plural}{time},Surface Map,"distance = $0 — hexes moved
+plural = $1 — ""es"" when more than one
+time = $2 — whether a time of day passed"
+map.weave,Weave,Surface Map,
+map.only_bright_hexes_can,Only bright hexes can be joined,Surface Map,
+map.at_most_5_click,At most 5: click the first to close it,Surface Map,
+map.you_have_no_weave,You have no Weave,Surface Map,
+map.constellation,{kind} constellation,Surface Map,kind = $0 — what the constellation pays
+map.broke_older, · broke {broken} older,Surface Map,broken = $0 — older constellations it broke
+map.gives_a_every_time,Gives a {kind} every time of day{broke},Surface Map,"kind = $0 — what it pays
+broke = $1 — ""· broke N older"" when it broke some"
+map.constellations,Constellations,Surface Map,
+map.neither_midnight,Neither · midnight,Surface Map,
+map.bright_collapse,Bright collapse,Surface Map,
+map.dark_collapse,Dark collapse,Surface Map,
+map.every_hex_cleared,Every hex cleared,Surface Map,
+map.full_collapse,Full collapse,Surface Map,
+map.the_spill_falls_back,The spill falls back into the source,Surface Map,
+map.everything_falls_into_the,Everything falls into the source,Surface Map,
+map.the_rings_past_ring,The rings past ring {ring} fall into the source,Surface Map,ring = $0 — the ring the collapse stops at
+map.full_collapse_the_run,Full collapse · the run is won,Surface Map,
+map.day_ended_at_midnight,Day {day} ended at midnight,Surface Map,day = $0 — the day that ended
+map.bright_dark_a_new,{bright} bright · {dark} dark · a new burst,Surface Map,"bright = $0 — bright clears that day
+dark = $1 — Dark Remnant clears that day"
+map.the_run_is_won_2,THE RUN IS WON,Surface Map,
+map.day_cleared_2,DAY {day} CLEARED,Surface Map,day = $0 — the day that ended
+map.at_ring, at ring {ring},Surface Map,ring = $0 — the ring it ended at
+map.your_items_and_discoveries, · your items and discoveries are kept,Surface Map,
+map.bright_dark_this_day,{how}{ring} · {bright} bright · {dark} dark this day{won},Surface Map,"how = $0 — how the day ended
+ring = $1 — "" at ring N"" when it ended at a ring
+bright = $2 — bright clears that day
+dark = $3 — Dark Remnant clears that day
+won = $4 — the won-run note, when won"
+map.back_to_the_main_2,Back to the main menu,Surface Map,
+map.day_twilight,Day {day} · Twilight,Surface Map,day = $0 — the new day
+map.a_duck_you_have,A duck you have never had was in the bottle! It is on the lake now.,Surface Map,
+map.a_duck_was_in,A duck was in the bottle.,Surface Map,
+map.added_to_your_collection,Added to your collection · now {count} of this kind,Surface Map,count = $0 — how many of this duck you now have
+map.of_letters_collected_kept,{found} of {total} letters collected · kept in the Guide (Letters),Surface Map,"found = $0 — letters found
+total = $1 — letters there are"
+map.on,ON,Surface Map,
+map.off,OFF,Surface Map,
+map.sound,Sound: {state},Surface Map,state = $0 — ON or OFF
+map.dim,{cost} Dim,Surface Map,cost = $0 — Dim it takes
+map.a_pop_up_moved,A pop-up moved up: ,Surface Map,
+map.a_pop_up_opened,A pop-up opened: ,Surface Map,
+map.in_the_source, · in the source,Surface Map,
+map.rank_click_it_to,Rank {rank}{where} · click it to shop,Surface Map,"rank = $0 — the pop-up's rank
+where = $1 — "" · in the source"" when it opened there"
+map.is_closed,{shop} is closed,Surface Map,shop = $0 — the shop's name
+map.a_holiday_it_closes, (a holiday: it closes a time of day early),Surface Map,
+map.open,Open {hours}{holiday},Surface Map,"hours = $0 — the shop's opening hours
+holiday = $1 — the holiday note, on a dim holiday"
+map.exit,EXIT?,Surface Map,
+map.pick_a_duck,Pick a Duck,Surface Map,
+map.ninety_nine_ducks_for,Ninety-nine ducks for the one you choose.,Surface Map,
+map.you_need_bright,You need {cost} bright,Surface Map,cost = $0 — its price
+map.souvenir,Souvenir: {item},Surface Map,item = $0 — the souvenir
+map.kept_whatever_comes_next,"Kept, whatever comes next",Surface Map,
+map.bought,Bought: {item},Surface Map,item = $0 — what was bought (from the surface)
+map.constellation_lens,✦ Constellation · Lens,Surface Map,
+map.1_lens,+1 Lens,Surface Map,
+map.unwind_this_clear_spindle,Unwind this clear: {cost} Spindle{plural},Surface Map,"cost = $0 — Spindles it takes (3 for a great Dark Remnant)
+plural = $1 — ""s"" when more than one"
+map.wind_it_up_from,Wind it up from {value} to 1.00: 1 Spindle,Surface Map,value = $0 — the hex's value now
+map.go_straight_here_string,Go straight here: {cost} String{plural} · no time passes,Surface Map,"cost = $0 — Strings it takes (1 per hex of distance)
+plural = $1 — ""s"" when more than one"
+map.go.dissipated,all captures dissipated,Surface Map,
+map.go.zero,turn reduced to zero,Surface Map,
+map.go.nomoves,no viable moves,Surface Map,
+map.item.youhave, · you have {amount},Surface Map,amount = $0 — how many of the item you have
+map.days.none,No day has ended yet,Surface Map,
+map.days.day,Day,Surface Map,
+map.days.ended,Ended,Surface Map,
+map.days.bright,Bright,Surface Map,
+map.days.dark,Dark,Surface Map,
+map.days.all,All,Surface Map,
+map.stat.gameover, · game over: {reason},Surface Map,reason = $0 — why the game ended
+map.shop.open,Open · {hours} · click to shop,Surface Map,hours = $0 — the shop's opening hours
+map.shop.closed,Closed · {hours},Surface Map,hours = $0 — the shop's opening hours
+map.shop.popup,{shop} · pop-up,Surface Map,shop = $0 — the shop's name
+map.shop.popupinfo,Rank {rank} · open while its bright clear lasts · click to shop,Surface Map,rank = $0 — the pop-up's rank
+map.gift.yes,Yes,Surface Map,
+map.gift.yessub,(enter the GIFT SHOP),Surface Map,
+map.gift.no,No,Surface Map,
+map.gift.nosub,(not yet),Surface Map,
+map.shop.yours,✓ yours,Surface Map,
+map.shop.tomorrow,tomorrow,Surface Map,
+map.shop.upsoon,its effect is still to come,Surface Map,
+map.shop.souvkept,kept: you have {kept},Surface Map,kept = $0 — souvenirs of this kind you have
+map.cur.gift,Your last Bright (souvenirs),Surface Map,
+map.cur.duck,Ducks,Surface Map,
+map.shop.status,Status,Surface Map,
+map.gift.ask,You will lose everything.<br>Are you ready to escape?,Surface Map,
+map.shop.tab1,You have {have} · {things} thing for it,Surface Map,"have = $0 — how much of the currency you have
+things = $1 — things it buys here"
+map.shop.tab,You have {have} · {things} things for it,Surface Map,"have = $0 — how much of the currency you have
+things = $1 — things it buys here"
+map.dock.show,Show the feed,Surface Map,
+map.dock.hide,Hide the feed (the items come up when you point at them),Surface Map,
+map.weave.make,Make:,Surface Map,
+map.weave.cost,{chosen} bright hexes · 1 Weave,Surface Map,chosen = $0 — bright hexes chosen
+map.shop.point,Point at an item to read about it,Surface Map,
+map.bottle.empty,An empty bottle,Surface Map,
+map.bottle.full,A message in a bottle,Surface Map,
+map.bottle.emptyinfo,Its letter is in the Guide (Letters),Surface Map,
+map.bottle.fullinfo,Click it to open it and read the letter inside,Surface Map,
+map.duck.name,{duck} × {count},Surface Map,"duck = $0 — the duck's name (★ rare, ☆ mid)
+count = $1 — how many you have"
+map.duck.info,{kind} · swimming on the lake,Surface Map,kind = $0 — its kind and detail
+map.ui.rest,Rest,Surface_Map_HUB.html,
+map.ui.guide,Guide,Surface_Map_HUB.html,
+map.ui.menu_esc,Menu (Esc),Surface_Map_HUB.html,
+map.ui.modes,Modes ▾,Surface_Map_HUB.html,
+map.ui.tune,Tune ▾,Surface_Map_HUB.html,
+map.ui.telemetry_hex_values,Telemetry: hex values,Surface_Map_HUB.html,
+map.ui.stats_frames_hexes,Stats: frames & hexes,Surface_Map_HUB.html,
+map.ui.performance_log,Performance log,Surface_Map_HUB.html,
+map.ui.new_map,new map,Surface_Map_HUB.html,
+map.ui.you,you,Surface_Map_HUB.html,
+map.ui.cleared_bright,cleared (bright),Surface_Map_HUB.html,
+map.ui.cleared_dark_remnant,cleared (dark remnant),Surface_Map_HUB.html,
+map.ui.locked,locked,Surface_Map_HUB.html,
+map.ui.merged,merged,Surface_Map_HUB.html,
+map.ui.void,void,Surface_Map_HUB.html,
+map.ui.paused,PAUSED,Surface_Map_HUB.html,
+map.ui.resume_esc,Resume (Esc),Surface_Map_HUB.html,
+map.ui.sound,Sound,Surface_Map_HUB.html,
+map.ui.help,Help,Surface_Map_HUB.html,
+map.ui.performance,Performance,Surface_Map_HUB.html,
+map.ui.days,Days,Surface_Map_HUB.html,
+map.ui.leave,Leave,Surface_Map_HUB.html,
+map.ui.quit_to_main_menu,Quit to main menu,Surface_Map_HUB.html,
+map.ui.filter_settings,Filter settings…,Surface_Map_HUB.html,
+map.ui.surface,Surface,Surface_Map_HUB.html,
+map.confirm.newmap,Start a new map? Your items and discoveries are kept.,Surface Map,
+menu.paused,PAUSED,menus,
+menu.resume,Resume (Esc),menus,
+menu.sound,Sound,menus,
+menu.volume,Volume,menus,
+menu.readouts,Readouts,menus,
+menu.telemetry,Telemetry,menus,
+menu.risks,Risks,menus,
+menu.dynamics,Dynamics,menus,
+menu.class,Class,menus,
+menu.radii,Radii,menus,
+menu.help,Help,menus,
+menu.guide,Guide,menus,
+menu.together,Play together,menus,
+menu.invite,Invite a friend,menus,
+menu.leave,Leave,menus,
+menu.tomap,Quit to the Surface Map (saves this surface),menus,
+menu.tomain,Quit to main menu,menus,
+menu.tomain.save,Quit to main menu (saves this surface),menus,
+menu.tilde,~ hides the panels · H also works,menus,
+menu.sound.off,Sound: OFF,menus,
+menu.sound.on,Sound: ON,menus,
+title.continue,Continue,title screen,
+title.start,Start,title screen,
+title.guide,Guide,title screen,
+title.newmap,New map,title screen,
+disc.cost,{cost} Dim,title screen,cost = $0 — Dim it takes
+surf.on,ON,surface,
+surf.off,OFF,surface,
+surf.effect_radii,Effect radii: {state},surface,state = $0 — ON or OFF
+surf.telemetry,Telemetry: {state},surface,state = $0 — ON or OFF
+surf.class,Class: {state},surface,state = $0 — ON or OFF
+surf.dynamics,Dynamics: {state},surface,state = $0 — ON or OFF
+surf.on_2, ON,surface,
+surf.off_2, OFF,surface,
+surf.trails,Trails:{state},surface,state = $0 — ON or OFF
+surf.pause,Pause:{state},surface,state = $0 — ON or OFF
+surf.gate_mode_loop_lit," Gate mode — loop lit points, or click inside a Pattern",surface,
+surf.lens_mode_link_a," Lens mode — link a loop of lit points or remnants (they are consumed), or click inside a completed Pattern to fill it (uses 1 Lens)",surface,
+surf.knot_mode_link_a,✂ Knot mode — link a 3-point loop: everything inside it becomes Dim Remnants (uses 1 Knot),surface,
+surf.prism_mode_link_a,◭ Prism mode — link a loop around the first point you pick: everything inside recolours to match it (uses 1 Prism),surface,
+surf.weave_mode_link_the,⛓ Weave mode — link the lit points; each completed Pattern uses 1 Weave,surface,
+surf.pause_mode,Pause mode,surface,
+surf.play_this_sound,Play this sound,surface,
+surf.tune,Tune ▴,surface,
+surf.tune_2,Tune ▾,surface,
+surf.modes,Modes ▾,surface,
+surf.modes_2,Modes ▴,surface,
+surf.scales_effect_radii_in,scales effect radii in its field between min and max{tint} · ,surface,"tint = $0 — "" · carries <colour>"" when it carries one"
+surf.recolours_to_overlaps_blend,recolours to {colour} / {opposite} (overlaps blend; opposites crystalize) · ,surface,"colour = $0 — its colour
+opposite = $1 — its opposite colour"
+surf.beam_activates_on_its,beam activates on its first side (the max-active snake retires the oldest){tint} · ,surface,"tint = $0 — "" · carries <colour>"" when it carries one"
+surf.invert,Invert:{state},surface,state = $0 — ON or OFF
+surf.pattern_broke_out_of,Pattern broke — out of {item}.,surface,item = $0 — the item it ran out of
+surf.a_point_was_destroyed,A point was destroyed — the shape broke apart.,surface,
+surf.weave,Weave,surface,
+surf.knot,Knot,surface,
+surf.prism,Prism,surface,
+surf.now_a_one_way, — now a one-way Gate.,surface,
+surf.edge_applied_to_the,{edge} edge applied to the {shape}{gate},surface,"edge = $0 — the edge
+shape = $1 — the shape it went on
+gate = $2 — the one-way note, on a Gate"
+surf.that_is_already_a,That is already a Gate.,surface,
+surf.that_is_already_a_2,That is already a Lens.,surface,
+surf.gate_fences_the_pattern,Gate fences the Pattern (one-way).,surface,
+surf.lens_fills_the_pattern,Lens fills the Pattern.,surface,
+surf.that_pattern_is_fading,That Pattern is fading — a Lens can't be added.,surface,
+surf.gate_formed_from_the,Gate formed from the Pattern (one-way).,surface,
+surf.lens_formed_from_the,Lens formed from the Pattern.,surface,
+surf.too_tight_to_close,Too tight to close here — the join would be under {angle}°. Keep going or pick another point.,surface,angle = $0 — the smallest angle a join may have (Con min angle tuner)
+surf.knot_mode_needs_a,Knot mode needs a 3-point loop — nothing spent.,surface,
+surf.connection_submitted_no_matching,Connection submitted — no matching symbol.,surface,
+surf.is_empty,{item} is empty.,surface,item = $0 — the item
+surf.gate_formed_a_key,Gate formed — a Key opens it.,surface,
+surf.colour_change_lens_formed,Colour-change Lens formed.,surface,
+surf.neutron_lens_formed_click,Neutron Lens formed — click to toggle scale.,surface,
+surf.pulsing_lens_formed_click,Pulsing Lens formed — click to set velocity & spin.,surface,
+surf.lens_formed,Lens formed.,surface,
+surf.forming_hold_it_steady,{kind} forming — hold it steady…,surface,kind = $0 — what is forming
+surf.needs_at_least_3,Needs at least 3 nodes to close.,surface,
+surf.spindle_shapes_take_3,Spindle shapes take 3–5 corners — rectangle only.,surface,
+surf.port_window_hold_and,Port / Window: hold and drag a rectangle (wheel while dragging: ellipse).,surface,
+surf.lens_type_swapped,Lens type swapped.,surface,
+surf.lens_fills_the_shape,Lens fills the shape.,surface,
+surf.gate_fills_the_shape,Gate fills the shape — its different edge type makes it a one-way barrier.,surface,
+surf.gate_fills_the_barrier,Gate fills the barrier shape.,surface,
+surf.not_a_valid_pattern,Not a valid Pattern — discarded.,surface,
+surf.lens_needs_a_closed,Lens needs a closed shape.,surface,
+surf.plate_needs_a_closed,Plate needs a closed shape.,surface,
+surf.gate_needs_a_closed,Gate needs a closed shape.,surface,
+surf.overlap_separated_an_inside,Overlap separated — an inside corner was made where the shapes meet.,surface,
+surf.a_dark_remnant_formed,⚠ A Dark Remnant formed inside a Gate — it is locked in. Open the Gate with a Key to release it.,surface,
+surf.gate_unlocked_the_dark,🗝 Gate unlocked — the Dark Remnant inside is released!,surface,
+surf.gate_unlocked_its_contents,🗝 Gate unlocked — its contents float free.,surface,
+surf.the_lens_is_splitting,The Lens is splitting…,surface,
+surf.lens_cracked_of_double,Lens cracked ({cracks} of {needed}) — double-click again.,surface,"cracks = $0 — cracks so far
+needed = $1 — cracks it takes to break"
+surf.lens_disc_formed_the,Lens disc formed — the orbit keeps accruing Spindles until the Lens is cracked.,surface,
+surf.globe_formed_each_full,"Globe formed — each full lap of the pair earns a String, until the Lens is cracked.",surface,
+surf.lens_formed_round_the,Lens formed round the Weave — it keeps accruing Weaves until the Lens is cracked.,surface,
+surf.create_item,Create item:{state},surface,state = $0 — ON or OFF
+surf.disable_mode_click_an,Disable mode — click an item to switch it off / on,surface,
+surf.disable_mode_off,Disable mode off,surface,
+surf.no_weave_hold_5,"No Weave — hold 5 points perfectly still, close together",surface,
+surf.is_disabled_item_cache,{item} is disabled (Item cache → off),surface,item = $0 — the item
+surf.no_spindle_earn_one,No Spindle — earn one by keeping points moving together,surface,
+surf.no_knot_earn_one,No Knot — earn one with a 4-point loop that has a dent,surface,
+surf.no_lens_earn_one,No Lens — earn one with a 5-point Spindle loop,surface,
+surf.no_gate_earn_one,No Gate — earn one with a 4-point loop,surface,
+surf.no_prism_earn_one,No Prism — earn one with a 3-point loop,surface,
+surf.create,Create,surface,
+surf.balance,BALANCE,surface,
+surf.depth,DEPTH,surface,
+surf.dynamism,DYNAMISM,surface,
+surf.harmony,HARMONY,surface,
+surf.rhythm,RHYTHM,surface,
+surf.string,String,surface,
+surf.spindle,Spindle,surface,
+surf.gate,Gate,surface,
+surf.key,Key,surface,
+surf.lens,Lens,surface,
+surf.places_particles_points_and,"Places particles, points and remnants (middle-click: type · wheel: color)",surface,
+surf.click_swipe_double_click,"Click / swipe / double-click (nearest Max-activated targets): each touched point or particle is enlarged (it bursts like a nova) or shrunk (it implodes everything near inward) — one random outcome per gesture, 1 Neutron each",surface,
+surf.click_a_dim_remnant,Click a Dim Remnant: it is consumed and becomes a stationary DEPTH (bigger for a heavier remnant) — click it again to destroy it; a new one removes whatever it overlaps. Costs Dim every interval while it stands,surface,
+surf.click_a_bright_remnant,"Click a Bright Remnant: it is consumed and becomes a stationary BALANCE (a square turned like the remnant, bigger for a heavier one) — everything inside freezes (lifespans too), the outside bounces off; click it again to destroy it and let it all move on. A new one removes whatever it overlaps. Costs Bright every interval while it stands",surface,
+surf.harmony_colour_click_swipe,HARMONY (colour) — click / swipe / double-click (nearest Max-activated targets): everything touched (points and particles) takes ONE random new colour effect — each at its own place in that colour's range — 1 each,surface,
+surf.rhythm_motion_click_swipe,"RHYTHM (motion) — click / swipe / double-click (nearest Max-activated targets): everything touched (particles wake) gets the SAME one random motion — one direction, one speed, one spin (straight, or a big / mid / tight arc; fast or slow) — 1 each",surface,
+surf.sets_speed_spin_of,Sets speed / spin of Points & remnants — STOP by default (wheel: 7 states),surface,
+surf.enter_pattern_mode_each,Enter Pattern mode: each completed Pattern uses 1 Spindle,surface,
+surf.link_a_loop_around,"Link a loop around a point: after a hold, everything inside recolours (or converts, for a remnant) to match it — the loop's other corners become permanent copies of it too",surface,
+surf.loop_of_lit_points,Loop of lit points builds a locking Gate · Key opens it,surface,
+surf.enter_knot_mode_a,Enter knot mode: a 3-point loop dims everything inside it,surface,
+surf.drives_your_oldest_key,Drives your oldest key shape through the surface into a Dark Remnant,surface,
+surf.link_a_loop_of,"Link a loop of lit points / remnants to make a fixed Lens, or click inside any completed Pattern to fill it (a Prism lends its colour and click effect)",surface,
+surf.undiscovered,▒ undiscovered,surface,
+surf.discovering,discovering {done}{left},surface,"done = $0 — the filled part of the bar
+left = $1 — the empty part of the bar"
+surf.hover_one_activate_one,"hover one, activate one or collect one to discover it",surface,
+surf.discoveries_reset,Discoveries reset.,surface,
+surf.not_enough,{item} — not enough.,surface,item = $0 — DEPTH or BALANCE
+surf.depth_needs_a_dim,DEPTH needs a Dim Remnant,surface,
+surf.balance_needs_a_bright,BALANCE needs a Bright Remnant,surface,
+surf.under_the_cursor_it,{what} under the cursor — it is consumed.,surface,what = $0 — what is needed under the cursor
+surf.ran_out,{item} ran out.,surface,item = $0 — DEPTH or BALANCE
+surf.get_ready,Get ready…,surface,
+surf.your_turn_repeat_the,Your turn — repeat the pattern,surface,
+surf.round_get_ready,Round {round} — get ready,surface,round = $0 — the round number
+surf.wrong_the_key_is,Wrong — the key is lost.,surface,
+surf.a_burst_needs_neutrons,A burst needs {cost} Neutrons.,surface,cost = $0 — Neutrons a burst takes (Neutron burst cost tuner)
+surf.moment_captured,⛩ Moment captured,surface,
+surf.is_full,{item} is full,surface,item = $0 — the item
+surf.s,s,surface,
+surf.collected_for,{icon} collected {count} {kind}{plural} for {got} {item},surface,"icon = $0 — the item's icon
+count = $1 — how many were collected
+kind = $2 — what they were
+plural = $3 — ""s"" when more than one
+got = $4 — how much that came to
+item = $5 — the item it went to"
+surf.particle_map,Particle map:{state},surface,state = $0 — ON or OFF
+surf.shown,Shown,surface,
+surf.hidden,Hidden,surface,
+surf.item_cache,Item cache: {state},surface,state = $0 — Shown or Hidden
+surf.every_item_filled_to,Every item filled to its max,surface,
+surf.every_item_cleared,Every item cleared,surface,
+surf.interpolate, Interpolate,surface,
+surf.swap, Swap,surface,
+surf.settle,Settle:{mode},surface,mode = $0 — Interpolate or Swap
+surf.cell_shape,Cell shape: {shape},surface,shape = $0 — ● ■ or ▲
+surf.coverage,Coverage: {first}{rest},surface,"first = $0 — the mode's first letter, capitalised
+rest = $1 — the rest of the mode's name"
+surf.stage_cleared_blank_canvas,Stage cleared — blank canvas.,surface,
+surf.save_failed,Save failed: {error},surface,error = $0 — what went wrong
+surf.map_saved,Map saved.,surface,
+surf.map_downloaded,Map downloaded.,surface,
+surf.map_loaded,Map loaded.,surface,
+surf.load_failed,Load failed: {error},surface,error = $0 — what went wrong
+surf.load_failed_could_not,Load failed: could not read file.,surface,
+surf.sound,Sound:{state},surface,state = $0 — ON or OFF
+surf.inertializer_click_objects_or,Inertializer — click objects or drag a box to select them first.,surface,
+surf.inertializer_selected_aim_wheel,"Inertializer — {count} selected · aim, wheel to spin, click empty space to apply",surface,count = $0 — objects selected
+surf.inertializer_nothing_selectable_in,Inertializer — nothing selectable in that box.,surface,
+surf.inertializer_object_set_to,"Inertializer — {count} object{plural} set to speed {speed}, spin {spin}.",surface,"count = $0 — objects set
+plural = $1 — ""s"" when more than one
+speed = $2 — the speed
+spin = $3 — the spin"
+surf.repurpose_click_a_shape,Repurpose: click a shape to take its form from.,surface,
+surf.form_taken_now_click,"Form taken — now click what to make it out of (a Lens, particle, point, remnant…)",surface,
+surf.click_what_to_make,Click what to make it out of.,surface,
+surf.making_in_that_shape,"Making {what} in that shape — wheel rotates, click to place, right-click to start over",surface,what = $0 — what is being made
+surf.that_needs_a_closed,That needs a closed shape to be made from.,surface,
+surf.spindle_shapes_take_3_2,Spindle shapes take 3–5 corners.,surface,
+surf.placed,Placed {count} {what},surface,"count = $0 — how many were placed
+what = $1 — what was placed"
+surf.nothing_could_be_placed,Nothing could be placed there.,surface,
+surf.fixed_prism_click_points,"Fixed Prism — {colour} · click points; click the first to close, the last to finish an edge",surface,colour = $0 — its colour
+surf.fixed_knot_edge_or,"Fixed Knot — edge or polygon: what it holds becomes remnants · click points; first = close, last = finish",surface,
+surf.fixed_spindle_closed_3,Fixed Spindle — closed 3-point (Prism) or 4-point (Gate) loop earns its item,surface,
+surf.hold_and_drag_a,{kind} · hold and drag a rectangle (wheel while dragging: ellipse),surface,"kind = $0 — Window, Pit or Mirror, and what it does"
+surf.unbreakable,unbreakable,surface,
+surf.breakable_at_speed,breakable at speed,surface,
+surf.barrier_click_points_last,Barrier — {kind} · click points; last point again to finish,surface,kind = $0 — unbreakable or breakable at speed
+surf.cache_a_locked_gate,"Cache — a locked Gate with a central keyhole, a metal barrier edge and glass in four tinted panes: open it with a Key by repeating the pane pattern (tinted panes keep their colour effect while you play)",surface,
+surf.case_a_crate_with,"Case — a Crate with glass inside instead of posts: same wood, same breaking, the glass goes with it",surface,
+surf.crate_dim_breakable_gate,Crate — dim breakable gate,surface,
+surf.plate_solid_steel_rings,"Plate — solid steel, rings like a bell",surface,
+surf.gate_barrier_edge_locks,"Gate — barrier edge, locks contents in",surface,
+surf.click_points_first_again,"{kind} · click points, first again to close, or click inside a shape",surface,kind = $0 — the Gate or cache kind
+surf.clear, (clear),surface,
+surf.tinted, tinted {colour},surface,colour = $0 — its colour
+surf.glass_like_a_lens,Glass{tint} — like a Lens that never breaks · click inside a closed shape,surface,"tint = $0 — "" (clear)"" or "" tinted <colour>"""
+surf.tinted_objects_under_it, tinted {colour} — objects under it receive that colour's effect,surface,colour = $0 — its colour
+surf.lens_click_inside_a,"Lens{tint} — click inside a closed shape to fill it, or draw a closed shape · nothing under it can be clicked / collected / connected",surface,"tint = $0 — "" (clear)"" or "" tinted <colour>"""
+surf.inertializer_click_drag_box,"Inertializer — click / drag-box to select points, remnants and shapes · the vector sets direction + speed and curls with spin · wheel spins · click empty space to apply · right-click clears",surface,
+surf.standard_cursor,Standard cursor,surface,
+surf.touching_a_particle_blends,{colour} · touching a particle blends colours by mass,surface,colour = $0 — its colour
+surf.grid_particle,Grid particle — {colour},surface,colour = $0 — its colour
+surf.remove_click_or_swipe,"Remove — click or swipe to delete any particle, point, remnant, Pattern, fixed edge or glass",surface,
+surf.pigment,Pigment — {colour},surface,colour = $0 — its colour
+surf.always_active_effect_radius, (always active · effect radius),surface,
+surf.core, core,surface,
+surf.point,Point — {colour}{core},surface,"colour = $0 — its colour
+core = $1 — "" core"" for a white or black one"
+surf.remnant_dark_triggers_the,Remnant — Dark ★ (triggers the Dark Remnant!),surface,
+surf.remnant_neutron_radius_effect,Remnant — Neutron (radius/effect-range pulse on nearby points),surface,
+surf.remnant_magnetic_splits_nearby,Remnant — Magnetic (splits nearby points into two colors),surface,
+surf.remnant_pulsing_beam_activates,Remnant — Pulsing (beam activates nearby points on its first side; the max-active snake retires the oldest),surface,
+surf.remnant_enriched_neutron_never,Remnant — Enriched Neutron (never breaks or is consumed · collects ×100),surface,
+surf.remnant_enriched_magnetic_never,Remnant — Enriched Magnetic (never breaks or is consumed · collects ×100),surface,
+surf.remnant_enriched_pulsing_never,Remnant — Enriched Pulsing (never breaks or is consumed · collects ×100),surface,
+surf.remnant_enriched_dim_collect,Remnant — Enriched Dim (collect count ×100) · what an ECLIPSE Point leaves,surface,
+surf.remnant_enriched_bright_collect,Remnant — Enriched Bright (collect count ×100) · what a CRYSTALIZE Point leaves,surface,
+surf.remnant,Remnant — {kind},surface,kind = $0 — the remnant's kind
+surf.repurpose_placing_the_shape,"Repurpose — placing the shape made of {what} · wheel rotates, middle-click turns 90°, right-click to start over",surface,what = $0 — what the shape is made of
+surf.repurpose_now_click_what,"Repurpose — now click what to make it out of (Lens, particle, point, remnant…)",surface,
+surf.repurpose_click_a_shape_2,Repurpose — click a shape to take its form from,surface,
+surf.move_placing_the_shape,"Move — placing the shape once · wheel rotates, middle-click turns 90°, right-click puts it back",surface,
+surf.duplicate_placing_copies_of,"Duplicate — placing copies of the shape · wheel rotates, middle-click turns 90°, right-click when done",surface,
+surf.move_click_or_swipe,Move — click or swipe a target to pick it up (wheel switches to Duplicate),surface,
+surf.duplicate_click_or_swipe,Duplicate — click or swipe a target to copy it (wheel switches to Move),surface,
+surf.picked, ({count} picked),surface,count = $0 — objects picked
+surf.move_placing_once_wheel,"Move — placing {count} once · wheel rotates, middle-click turns 90°, right-click puts it back",surface,count = $0 — objects being moved
+surf.copy, copy,surface,
+surf.copies, copies,surface,
+surf.duplicate_placing_wheel_rotates,"Duplicate — placing {count}{copies} · wheel rotates, middle-click turns 90°, right-click when done",surface,"count = $0 — objects copied
+copies = $1 — "" copy"" or "" copies"""
+surf.no_items_to_cycle,No items to cycle to yet.,surface,
+surf.a_dark_remnant_is,A Dark Remnant is already active.,surface,
+surf.picked_up_wheel_rotates,"Picked up {count} — wheel rotates smoothly, middle-click turns 90°, click to place",surface,count = $0 — objects picked up
+surf.copied_object_click_to,Copied {count} object{plural} — click to place a duplicate.,surface,"count = $0 — objects copied
+plural = $1 — ""s"" when more than one"
+surf.picked_up_the_shape,Picked up the shape,surface,
+surf.copied_the_shape,Copied the shape,surface,
+surf.wheel_rotates_smoothly_middle,"{what} — wheel rotates smoothly, middle-click turns 90°, click to place",surface,what = $0 — what is being placed
+surf.click_an_object_to,Click an object to copy it.,surface,
+surf.pattern_cancelled,Pattern cancelled.,surface,
+surf.two_exotic_remnants_collided,⚠ Two Exotic Remnants collided — a Dark Remnant forms! Resuming to clear the surface…,surface,
+surf.i_guide,ⓘ Guide,surface,
+surf.rules_the_object_map,"Rules, the object map, events you have witnessed and the glossary · pauses the game",surface,
+surf.readouts,◎ Readouts,surface,
+surf.t_telemetry_r_risks,T telemetry · R risks · D dynamics · C class · centre circle: effect radii (right-click with nothing shining also cycles them),surface,
+surf.game_speed,🖱 Game speed,surface,
+surf.paused,Paused,surface,
+surf.click_cycle_pause_1,"Click: cycle Pause/1×/2×/4×/8× · scroll: Pause, ×0.25, ×0.5, ×1, ×2, ×4, ×8 — currently {speed}",surface,speed = $0 — the game speed now
+surf.clear_items,✖ Clear items,surface,
+surf.removes_every_item_from,Removes every item from the inventory (one-shot),surface,
+surf.fill_items,⤒ Fill items,surface,
+surf.fills_every_item_to,Fills every item to its max (one-shot),surface,
+surf.disable_items,⦸ Disable items,surface,
+surf.toggle_then_click_items,"Toggle, then click items to switch them off / on · saved with the state",surface,
+surf.hover_this_feed_holding,hover this feed holding {cost} Dim to discover it,surface,cost = $0 — Dim it takes
+surf.mode,⛓ {item} mode,surface,item = $0 — the item the mode uses
+surf.no_eligible_targets_available,No eligible targets available right now,surface,
+surf.targets_available_chain_bonds,Targets available: {targets} · chain: {chain} · bonds: {bonds},surface,"targets = $0 — targets available
+chain = $1 — points in the chain
+bonds = $2 — bonds made"
+surf.bright_remnant, Bright remnant,surface,
+surf.can_t_collect_inventory,Can't collect — inventory full,surface,
+surf.mass_energy,{effect}mass {mass} · energy {energy}{motion}{life},surface,"effect = $0 — what the remnant does, when it does something
+mass = $1 — its mass
+energy = $2 — its energy
+motion = $3 — its speed and spin, with Dynamics on
+life = $4 — its life left"
+surf.dim_remnant, dim remnant,surface,
+surf.mass_energy_2,mass {mass} · energy {energy}{motion}{life},surface,"mass = $0 — its mass
+energy = $1 — its energy
+motion = $2 — its speed and spin, with Dynamics on
+life = $3 — its life left"
+surf.mass_energy_r_px,mass {mass} · energy {energy} · r={r}/{r_max}px{motion}{life},surface,"mass = $0 — its mass
+energy = $1 — its energy
+r = $2 — its ring now (px)
+r_max = $3 — its ring at most (px)
+motion = $4 — its speed and spin, with Dynamics on
+life = $5 — its life left"
+surf.edge,{ok}{edge} edge,surface,"ok = $0 — ""＋ "" when it can be placed
+edge = $1 — the edge's kind"
+surf.click_to_shine_right,click to shine · right-click to stop all shining,surface,
+surf.fps_sim_ms_draw,"{paused}{fps} fps{fps_min}
+sim {sim} ms{sim_max}
+draw {draw} ms{draw_max}
+active: {active}
+★ {points} (max {max_points})
+✕ {fixed}
+◌ {remnants}{dark}
+E peak: {peak_e} [{peak_e_kind}]
+M peak: {peak_m} [{peak_m_kind}]
+★→● mass: {dark_mass}
+Σ mass: {mass}
+Σ energy: {energy}
+grid: {grid_w}×{grid_h}",surface,"paused = $0 — the paused / speed tag
+fps = $1 — frames a second
+fps_min = $2 — slowest frames a second lately
+sim = $3 — simulation ms
+sim_max = $4 — slowest simulation ms lately
+draw = $5 — drawing ms
+draw_max = $6 — slowest drawing ms lately
+active = $7 — things shining
+points = $8 — Points
+max_points = $9 — most Points at once
+fixed = $10 — fixed shapes
+remnants = $11 — remnants
+dark = $12 — Dark Remnants
+peak_e = $13 — highest energy
+peak_e_kind = $14 — what had it
+peak_m = $15 — highest mass
+peak_m_kind = $16 — what had it
+dark_mass = $17 — mass that makes a Dark Remnant
+mass = $18 — all the mass
+energy = $19 — all the energy
+grid_w = $20 — grid width
+grid_h = $21 — grid height"
+surf.surface_continued_where_you,Surface {surface} — continued where you left it,surface,surface = $0 — the surface's name
+surf.surface,Surface {surface},surface,surface = $0 — the surface's name
+surf.opening_a_room,Opening a room…,surface,
+surf.could_not_open_a,Could not open a room ({error}),surface,error = $0 — what went wrong
+surf.could_not_load_the,Could not load the connection library,surface,
+surf.your_friend_is_here,Your friend is here. Shine together; what each of you collects is your own.,surface,
+surf.your_friend_left_the,Your friend left. The link still works.,surface,
+surf.a_dark_remnant_came,A Dark Remnant came out as a duck: {duck}!,surface,duck = $0 — the duck
+surf.the_dark_remnant_swallowed,🦆 The Dark Remnant swallowed a {duck}.,surface,duck = $0 — the duck
+surf.rare_exotic,rare exotic,surface,
+surf.classic,classic,surface,
+surf.exotic,exotic,surface,
+surf.collected_click_to_collect,{axis}{detail} · {rarity} · collected {count} · click to collect,surface,"axis = $0 — its kind (Colour, Size, Material)
+detail = $1 — "": <detail>"" when it has one
+rarity = $2 — rare exotic, exotic or classic
+count = $3 — how many you have"
+surf.collected,🦆 Collected: {duck} ({count}),surface,"duck = $0 — the duck
+count = $1 — how many you have now"
+surf.a_rift_tore_open,⚠ A Rift tore open: {mass} mass in one place.,surface,mass = $0 — the mass that tore it
+surf.ui.rebuild,Rebuild,chromatic_nebula.html,
+surf.ui.modes,Modes ▾,chromatic_nebula.html,
+surf.ui.tune,Tune ▾,chromatic_nebula.html,
+surf.ui.image,Image…,chromatic_nebula.html,
+surf.ui.clear_image,Clear image,chromatic_nebula.html,
+surf.ui.reset,Reset,chromatic_nebula.html,
+surf.ui.pause_off,Pause: OFF,chromatic_nebula.html,
+surf.ui.trails_off,Trails: OFF,chromatic_nebula.html,
+surf.ui.sound_off,Sound: OFF,chromatic_nebula.html,
+surf.ui.particle_map_off,Particle map: OFF,chromatic_nebula.html,
+surf.ui.create_item_off,Create item: OFF,chromatic_nebula.html,
+surf.ui.settle_swap,Settle: Swap,chromatic_nebula.html,
+surf.ui.item_cache_hidden,Item cache: Hidden,chromatic_nebula.html,
+surf.ui.cell_shape,Cell shape: ●,chromatic_nebula.html,
+surf.ui.coverage_blob,Coverage: Blob,chromatic_nebula.html,
+surf.ui.invert_off,Invert: OFF,chromatic_nebula.html,
+surf.ui.effect_radii_off,Effect radii: OFF,chromatic_nebula.html,
+surf.ui.telemetry_off,Telemetry: OFF,chromatic_nebula.html,
+surf.ui.dynamics_off,Dynamics: OFF,chromatic_nebula.html,
+surf.ui.class_off,Class: OFF,chromatic_nebula.html,
+surf.ui.clear_stage,Clear stage,chromatic_nebula.html,
+surf.ui.save_map,Save map,chromatic_nebula.html,
+surf.ui.load_map,Load map,chromatic_nebula.html,
+surf.ui.reset_discoveries,Reset discoveries,chromatic_nebula.html,
+surf.ui.log,log ⤓,chromatic_nebula.html,
+surf.ui.or_just_drag_and,Or just drag-and-drop an image onto the canvas,chromatic_nebula.html,
+surf.ui.remove_the_dropped_image,Remove the dropped image and go back to the procedural nebula,chromatic_nebula.html,
+surf.ui.collapse_expand_the_statistics,collapse / expand the statistics,chromatic_nebula.html,
+surf.ui.change_the_line_shown,change the line shown while collapsed,chromatic_nebula.html,
+surf.ui.download_the_performance_log,"download the performance log (worst frames, phase timings, events)",chromatic_nebula.html,
+map.buy.title,Bought: {item},Surface Map,item = $0 — what was bought
+guide.tab.disc,Discoveries,"cards, Guide, Status",
+guide.tab.map,Taxonomy,"cards, Guide, Status",
+guide.tab.items,Items,"cards, Guide, Status",
+guide.tab.shapes,Shapes,"cards, Guide, Status",
+guide.tab.surf,Surface Map,"cards, Guide, Status",
+guide.tab.shops,Shops,"cards, Guide, Status",
+guide.tab.ducks,Ducks,"cards, Guide, Status",
+guide.tab.book,Glossary,"cards, Guide, Status",
+guide.tab.notes,Letters,"cards, Guide, Status",
+guide.tab.status,Status,"cards, Guide, Status",
+card.fortune.good,A good fortune,"cards, Guide, Status",
+card.fortune.dim,A dim fortune,"cards, Guide, Status",
+card.fortune.type,Fortune — {duck},"cards, Guide, Status",duck = $0 — the duck it is named for
+card.fortune.typedim,Fortune — Dim,"cards, Guide, Status",
+card.wonder.type,Daily Wonder,"cards, Guide, Status",
+card.draw.secret,"A Card of Secrets: pick one, and it is yours to know","cards, Guide, Status",
+card.draw.fortune,Fortune Telling: pick a card for today,"cards, Guide, Status",
+card.draw.daily,"A Daily Wonder: keep one of three, for today","cards, Guide, Status",
+card.close,Close,"cards, Guide, Status",
+card.unlocks,Unlocks in the Guide: {entries},"cards, Guide, Status",entries = $0 — the Guide entries it unlocks
+status.today,Today,"cards, Guide, Status",
+status.fortune,Fortune,"cards, Guide, Status",
+status.wonder,Daily wonder,"cards, Guide, Status",
+status.charms,Luck Charms,"cards, Guide, Status",
+status.duck,Duck chance,"cards, Guide, Status",
+status.duckval,{chance} · next +{luck},"cards, Guide, Status","chance = $0 — the duck chance
+luck = $1 — what the next drop adds"
+status.exotic,Exotic / rare,"cards, Guide, Status",
+status.keys,Keys,"cards, Guide, Status",
+status.keyslost,lost for this run,"cards, Guide, Status",
+status.upgrades,Permanent upgrades,"cards, Guide, Status",
+status.none,none yet,"cards, Guide, Status",
+card.continue,Continue,"cards, Guide, Status",
+value.life_ms,T.lifeColor,values (shared: any text can use {life_ms}),a pigment's life factor (Life colour tuner)
+value.dim_mass_pct,Math.round(T.remMassFrac*100),values (shared: any text can use {dim_mass_pct}),% of its mass a failed collapse keeps
+value.dim_energy_pct,Math.round(T.remEnergyFrac*100),values (shared: any text can use {dim_energy_pct}),% of its energy a failed collapse keeps
+value.collapse_mass,T.collMass,values (shared: any text can use {collapse_mass}),mass a pigment needs to collapse into a Point
+value.collapse_energy,T.collEnergy,values (shared: any text can use {collapse_energy}),energy a pigment needs to collapse into a Point
+value.dark_mass,Math.round(T.massScaleMax*T.blackMult),values (shared: any text can use {dark_mass}),mass that makes a Dark Remnant
+value.spindle_orbits,runT('orbitsPerDial'),values (shared: any text can use {spindle_orbits}),orbits a Spindle needs (today: with any fortune)
+value.string_seconds,runT('flockSecondsPerLeash'),values (shared: any text can use {string_seconds}),seconds a String needs (today)
+value.weave_seconds,runT('weaveSeconds'),values (shared: any text can use {weave_seconds}),seconds a Weave needs (today)
+value.letters_total,LETTERS.length,values (shared: any text can use {letters_total}),letters there are
+value.rift_mass,Math.round(runT('riftMass')).toLocaleString(),values (shared: any text can use {rift_mass}),mass in one place that tears a Rift (today)
