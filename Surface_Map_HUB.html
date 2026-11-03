@@ -57,6 +57,18 @@ body.scene .hbtn,body.scene #shops,body.scene #hdock,body.scene #legend,body.sce
 #menu input[type=range]{flex:1}
 .dlog{width:100%;border-collapse:collapse;font-size:12px}.dlog td,.dlog th{padding:2px 6px;text-align:left;font-weight:400}.dlog th{opacity:.55}.dlog tr.w td{color:#ffd76a}
 #day-report .dsum{font-size:13px;text-align:center;opacity:.85}
+/* Modes / Tune / stats, as on a surface; ~ (or H) hides every panel */
+#modes-btn{top:16px;left:182px}#tune-btn{top:16px;left:262px}
+#mModes,#tuneP{position:absolute;top:46px;z-index:25;display:none;background:rgba(0,0,0,0.86);border:1px solid rgba(255,255,255,0.14);border-radius:6px;font:11px 'Share Tech Mono',monospace;color:#ddd}
+#mModes{left:182px;padding:5px;flex-direction:column;gap:3px}#mModes.show,#tuneP.show{display:flex}#mModes button{text-align:left}
+#mModes button,#tuneP button{font:11px 'Share Tech Mono',monospace;padding:4px 9px;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.14);color:#ccc;border-radius:3px}
+#mModes button.on,#tuneP button.on{background:rgba(255,220,120,0.22);border-color:rgba(255,220,120,0.7);color:#fff}
+#tuneP{left:16px;width:330px;max-height:calc(100vh - 140px);flex-direction:column;overflow:hidden}
+#tuneP .tabs{display:flex;gap:3px;padding:6px}#tuneP .tabs button{flex:1}#tuneP input[type=search]{margin:0 6px 6px;font:11px monospace;background:#111;color:#eee;border:1px solid #333;padding:3px 5px}
+#tuneP .rows{overflow:auto;padding:0 8px 8px}#tuneP .sec{opacity:.55;margin:8px 0 3px;text-transform:uppercase;letter-spacing:1px;font-size:10px}
+#tuneP .row{display:flex;gap:6px;align-items:center;margin:2px 0}#tuneP .row>span{flex:0 0 130px;font-size:11px;opacity:.85;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}#tuneP .row b{flex:0 0 52px;font-weight:400;text-align:right}#tuneP input[type=range],#tuneP select{flex:1;min-width:0}
+#hstats{position:absolute;top:96px;right:16px;z-index:10;display:none;font:10px/1.55 'Share Tech Mono',monospace;color:rgba(255,255,255,0.6);text-align:right;white-space:pre;background:rgba(0,0,0,0.45);padding:6px 9px;border-radius:5px}#hstats.show{display:block}
+body.ui-hidden .hbtn,body.ui-hidden #hdock,body.ui-hidden #legend,body.ui-hidden #bottom-bar,body.ui-hidden #cell-count,body.ui-hidden #depth-display,body.ui-hidden #turn-label,body.ui-hidden #hstats,body.ui-hidden #mModes,body.ui-hidden #tuneP{display:none!important}
 /* shops: upright on the plane (placed through the camera each frame); open ones glow like neon */
 #shops{position:absolute;inset:0;pointer-events:none;z-index:6;overflow:hidden}
 .shop{position:absolute;left:0;top:0;transform-origin:0 0;pointer-events:auto;will-change:transform}.shop canvas{display:block;will-change:opacity} /* each its own layer: moving or flickering one repaints nothing */
@@ -91,6 +103,11 @@ body.thru .shop{pointer-events:none} /* an armed map item, or the open source, r
   <div id="cell-count" data-disc="hub_cells"></div>
   <button class="hbtn" id="guide-btn" data-disc="hub_guide" onclick="openGuide()">Guide</button>
   <button class="hbtn" id="menu-btn" onclick="toggleMenu()">Menu (Esc)</button>
+  <button class="hbtn" id="modes-btn" data-disc="hud_modes" onclick="togglePanel('mModes')">Modes ▾</button>
+  <button class="hbtn" id="tune-btn" data-disc="hud_tune" onclick="togglePanel('tuneP')">Tune ▾</button>
+  <div id="mModes"><button id="mdTel" data-disc="mode_telemetry" onclick="setMapMode('tel')">Telemetry: hex values</button><button id="mdStats" onclick="setMapMode('stats')">Stats: frames &amp; hexes</button><button onclick="downloadHubLog()">Performance log</button></div>
+  <div id="tuneP"><div class="tabs"></div><input type="search" placeholder="Filter settings…"><div class="rows"></div></div>
+  <div id="hstats"></div>
   <button class="hbtn" id="restart-btn" data-disc="hub_restart" onclick="if(confirm('Start a new map? Your items and discoveries are kept.'))initGame()">new map</button>
   <div id="bottom-bar" data-disc="hub_score"><span id="score-display"></span></div>
   <div id="capture-hint"></div>
@@ -117,7 +134,7 @@ body.thru .shop{pointer-events:none} /* an armed map item, or the open source, r
 <div id="veil"></div>
 <canvas id="hcur"></canvas>
 <iframe id="neb" title="Surface"></iframe>
-<script src="shared.js?v=20261102ze"></script>
+<script src="shared.js?v=20261102zf"></script>
 <script>
 // ╔══════════════════════════════════════════════════════════════════════════════╗
 // ║  MAP ENGINE                                                                 ║
@@ -133,7 +150,7 @@ let clock=3,day=1,pool=6,fresh=true,burstFx=null,dayLog=[],dayCnt={b:0,d:0},pend
 // // clock: the hour (3 = Twilight … 24 = Midnight, the day's last turn); day: your attempts; pool: what the source put out at its last burst; fresh: no ring added yet since it
 let constel=[],armed=null,weaveSel=[],weaveAsk=null,clearFx={},mergeFx=[],feedMsg={t:'',d:'',at:-1e9}; // constellations {keys,type}; the armed map item; a Weave being drawn; animations; the final count
 const TIMES={3:'Twilight',6:'Dawn',9:'Morning',12:'Noon',15:'Afternoon',18:'Dusk',21:'Night',24:'Midnight'},STEP_H=3; // the day: eight turns of three hours
-const CACHE_V='20261102ze'; // the build: bump with shared.js's
+const CACHE_V='20261102zf'; // the build: bump with shared.js's
 const SCENE=new URLSearchParams(location.search).get('scene'); // a Guide / event demo: the map plays a scripted moment (no surface behind it)
 let phase='move',turnTimer=0,mergeTimer=0;
 let gameOverReason='';
@@ -413,13 +430,13 @@ function sceneRender(now){
   gl.uniformMatrix4fv(G3.uPV,false,cam.pv);gl.uniform2f(G3.uS,MW,MH);gl.drawArrays(gl.TRIANGLE_STRIP,0,4);
   if(!G3.duck)return;let envd=false;
   const ra=T.mapDuckRefl!=null?T.mapDuckRefl:0.4; // ducks are mirrored in the surface beneath them
-  if(ra>0){gl.clear(gl.DEPTH_BUFFER_BIT);for(const d of pond){if(!d._s)continue;const[px,py]=w2s(d.x,d.y),[X,Y,k]=proj(px,py),f=[Math.cos(d.hd),Math.sin(d.hd),0],size=d._s,bob=size*(0.36+0.03*Math.sin(now/700+d.ph));
+  if(ra>0){gl.clear(gl.DEPTH_BUFFER_BIT);for(const d of pond){if(!d._s)continue;const[px,py]=w2s(d.x,d.y),[X,Y,k]=proj(px,py),f=[Math.cos(d.hd),Math.sin(d.hd),0],size=d._s,bob=size*(0.36+0.03*Math.sin(now/700+d.ph));if(d._dz<0)continue; // (no mirror image while it is under)
     drawDuckScene(G3.duck,d.type,{rot:new Float32Array([f[0],f[1],0, 0,0,-1, -f[1],f[0],0]),size,pos:[px-MW/2,py-MH/2,-bob],view:cam.view,proj:cam.proj,viewRot:cam.viewRot,env:{x:X,y:Y,lights:[]},px:size*k,alpha:ra*(d.fade!=null?d.fade:1),mirror:true});}
     gl.clear(gl.DEPTH_BUFFER_BIT);}
   for(const d of pond){if(!d._s)continue;const v=DUCK_TYPES[d.type]||{},refl=v.mat==='metal'||v.mat==='gold'||v.mat==='glass',[px,py]=w2s(d.x,d.y),[X,Y,k]=proj(px,py);
     if(refl&&!envd){duckEnvUpdate(mc,now,G3.duck);envd=true;}
     const f=[Math.cos(d.hd),Math.sin(d.hd),0],size=d._s; // upright on the plane: its forward along its heading, its up out of the plane (mirrored across, as the view flips y)
-    drawDuckScene(G3.duck,d.type,{rot:new Float32Array([f[0],f[1],0, 0,0,1, -f[1],f[0],0]),size,pos:[px-MW/2,py-MH/2,size*(0.36+0.03*Math.sin(now/700+d.ph))],view:cam.view,proj:cam.proj,viewRot:cam.viewRot,env:{x:X,y:Y,lights:[]},px:size*k});}}
+    drawDuckScene(G3.duck,d.type,{rot:new Float32Array([f[0],f[1],0, 0,0,1, -f[1],f[0],0]),size,pos:[px-MW/2,py-MH/2,size*(0.36+0.03*Math.sin(now/700+d.ph))+(d._dz||0)],view:cam.view,proj:cam.proj,viewRot:cam.viewRot,env:{x:X,y:Y,lights:[]},px:size*k});}}
 let _glow=null;
 function glowSprite(bl,ba){ // one bright clear's glow (a wide and a mid blur pass and its soft white core), drawn once per hex size and setting
   const key=HEX+'|'+bl+'|'+ba+'|'+MK;if(_glow&&_glow.key===key)return _glow.cv;const R=HEX*(1.7+bl*3.6),S=Math.ceil(2*R*MK),cv=document.createElement('canvas');cv.width=cv.height=S;
@@ -528,7 +545,8 @@ function mapRender(){
     if(c.isVoid){if(c.q===0&&c.r===0&&voidOpen){mctx.font=`${HEX*0.45}px 'Orbitron',sans-serif`;mctx.textAlign='center';mctx.textBaseline='middle';mctx.fillStyle='rgba(180,140,255,0.5)';mctx.fillText('▽',sx,sy+1);}else if(c.q===0&&c.r===0){mctx.beginPath();mctx.arc(sx,sy,3,0,Math.PI*2);mctx.fillStyle='rgba(255,255,255,0.06)';mctx.fill();}else{const m=4;mctx.strokeStyle='rgba(255,255,255,0.08)';mctx.lineWidth=1;mctx.beginPath();mctx.moveTo(sx-m,sy-m);mctx.lineTo(sx+m,sy+m);mctx.stroke();mctx.beginPath();mctx.moveTo(sx+m,sy-m);mctx.lineTo(sx-m,sy+m);mctx.stroke();}}
     if(bright)brightOnes.push([sx,sy,c.capVal,stroke,sw,cp]); // drawn after the bleed below
   }
-  if(!SCENE&&cam&&mX>=0){const[px,py]=unproj(mX,mY),k=proj(px,py)[2]||1;cursorStain(mctx,now,2*(T.cursorBaseR||8)*(T.cursorStainW!=null?T.cursorStainW:0.85)/k,false,w2s,MK);} // the cursor's stain, on the ground
+  if(!SCENE&&cam&&mX>=0){const[px,py]=unproj(mX,mY),k=proj(px,py)[2]||1;cursorStain(mctx,now,2*(T.cursorBaseR||8)*(T.cursorStainW!=null?T.cursorStainW:0.85)/k,false,w2s);} // the cursor's stain, on the ground: only where the hexes' particles let it show
+  if(mapMode.tel&&disc.has('mode_telemetry')||mapMode.tel&&!discCost('mode_telemetry'))telemetryLayer();
   hubPh('hexes');
   // Bright clears bleed into their neighbours: every bright hex together, blurred and screened over the map, then their outline and value on top
   if(brightOnes.length){const bl=T.mapClearBlur!=null?T.mapClearBlur:0.6,ba=T.mapClearBleed!=null?T.mapClearBleed:0.85;
@@ -580,20 +598,23 @@ function mapRender(){
   if(phase==='gameover')st+=' · game over: '+gameOverReason;
   document.getElementById('score-display').textContent=st;
   {const el=document.getElementById('turn-label'),tl=clockStr()+' · Day '+day;if(el.textContent!==tl)el.textContent=tl;}
-  ptOver=mX>=0?document.elementFromPoint(mX,mY):null;shopTick();discTick();feedTick(now);cursorTick(now);hubPh('hud');hubPerfFrame(now); // ptOver: one hit test a frame, before the shops move (a hit test after a style change forces a layout)
+  ptOver=mX>=0?document.elementFromPoint(mX,mY):null;statsTick(now);shopTick();discTick();feedTick(now);cursorTick(now);hubPh('hud');hubPerfFrame(now); // ptOver: one hit test a frame, before the shops move (a hit test after a style change forces a layout)
   mapRafId=requestAnimationFrame(mapRender);
 }
 function startMapLoop(){if(!mapRafId){hubPerf.last=0;mapRafId=requestAnimationFrame(mapRender);}} // (the time the loop was stopped is not a slow frame)
 document.addEventListener('visibilitychange',()=>{hubPerf.last=0;}); // nor is a tab in the background
 
 const evA=e=>p2a(...unproj(e.clientX,e.clientY)); // the hex under the cursor, through the tilt
-let mX=-1,mY=-1,mDownAt=-1,mUpAt=-1,ptOver=null; // the cursor (drawn by the shared cursor code, as on a surface)
+let mX=-1,mY=-1,mDownAt=-1,mUpAt=-1,ptOver=null; // the cursor
+const overScene=()=>ptOver===sc||!!(ptOver&&ptOver.closest&&!ptOver.closest('button,.slot,.shop,input,select,#hdock,#tuneP,#mModes,#shop,#menu,#day-report')); // over the map itself (a read-out like the legend does not count as being in the way) (drawn by the shared cursor code, as on a surface)
 sc.addEventListener('mousemove',e=>{if(currentView==='map')[hQ,hR]=evA(e);});
 document.addEventListener('mousemove',e=>{mX=e.clientX;mY=e.clientY;},true);document.addEventListener('mousedown',()=>{mDownAt=performance.now();},true);document.addEventListener('mouseup',()=>{mUpAt=performance.now();mDownAt=-1;},true);
-window.addEventListener('wheel',e=>{if(currentView!=='map'||menuOpen||shopUI)return;e.preventDefault();zoomView(Math.exp(-e.deltaY*0.0015));},{passive:false});
+window.addEventListener('wheel',e=>{if(currentView!=='map'||menuOpen||shopUI||(e.target.closest&&e.target.closest('#tuneP,#mModes')))return;e.preventDefault();zoomView(Math.exp(-e.deltaY*0.0015));},{passive:false});
 sc.addEventListener('contextmenu',e=>{e.preventDefault();if(currentView==='map'&&armed){armed=null;weaveSel=[];weaveAsk=null;updateHint();syncDock();}}); // right-click puts a selected item down
 sc.addEventListener('click',e=>{
-  if(currentView!=='map'||phase==='gameover'||phase==='ended'||phase==='collapse')return;
+  if(currentView!=='map')return;
+  {const du=duckUnder(e.clientX,e.clientY);if(du&&!(du.dunk&&performance.now()-du.dunk<(T.mapDuckDunkMs||1300))){du.dunk=performance.now();ripples.push({x:du.x,y:du.y,t:du.dunk,ink:onWhite(du.x,du.y)?'20,24,32':'255,255,255',big:1});neb({cmd:'quack',type:du.type,v:1});return;}} // a lake duck: dunked, it pops back up
+  if(phase==='gameover'||phase==='ended'||phase==='collapse')return;
   const[q,r]=evA(e),k=K(q,r);
   if(armed==='leash'){if(cells[k]&&cells[k].cap)unclear(k);return;} // an armed map item takes the click
   if(armed==='dial'){stringMove(q,r);return;}
@@ -605,6 +626,8 @@ sc.addEventListener('mouseleave',()=>{hQ=null;hR=null;});
 document.addEventListener('keydown',e=>{
   if(e.code==='Escape'){e.preventDefault();if(shopUI){closeShop();return;}if(currentView==='map'&&armed){armed=null;weaveSel=[];weaveAsk=null;updateHint();syncDock();return;}if(currentView==='map')toggleMenu();return;}
   if(menuOpen||shopUI)return;
+  if(e.target&&/^(INPUT|SELECT|TEXTAREA)$/.test(e.target.tagName))return; // typing in the Tune panel's filter
+  if(e.code==='Backquote'||e.code==='KeyH'){document.body.classList.toggle('ui-hidden');return;}
   if(e.code==='Space'){e.preventDefault();if(currentView==='map')doCapture();}
   if(currentView==='map'&&(e.key==='+'||e.key==='='))zoomView(1.15);if(currentView==='map'&&(e.key==='-'||e.key==='_'))zoomView(1/1.15);
 });
@@ -615,7 +638,7 @@ window.addEventListener('resize',mapResize);
 // ║  grid. The surface's own duck renderer draws them (one sheet per frame,      ║
 // ║  sent back as an ImageBitmap); the map moves them and draws their ripples.   ║
 // ╚══════════════════════════════════════════════════════════════════════════════╝
-let pond=[],ripples=[],pondT=0,pondNext=0,water={at:0,pts:[],frac:0};
+let pond=[],ripples=[],pondT=0,pondNext=0,water={at:0,pts:[],frac:0},_cwPrev=null; // _cwPrev: the cursor on the water last frame (how fast it bumps a duck)
 function isWater(wx,wy){ // world point well clear of every hex
   const q=(Math.sqrt(3)/3*wx-1/3*wy)/HEX,r=(2/3*wy)/HEX;for(let dq=-2;dq<=2;dq++)for(let dr=-2;dr<=2;dr++){const c=cells[K(Math.round(q)+dq,Math.round(r)+dr)];if(!c)continue;const[cx,cy]=a2w(c.q,c.r);if(Math.hypot(wx-cx,wy-cy)<HEX*1.7)return false;}return true;}
 function onWhite(wx,wy){ // the water is lit white here: a bright clear's glow, or the source's
@@ -642,9 +665,19 @@ function pondStep(now){
   const c=mctx,dt=Math.min(50,now-(pondT||now))/16.67;pondT=now;if(currentView!=='map')return; // ripples and glows go on the plane; the ducks are drawn in the scene (sceneRender)
   scanWater(now);const want=Math.round(Math.min(T.mapDucks!=null?T.mapDucks:5,duckRoster().length)*Math.min(1,water.frac*2.5)); // a little water on screen: fewer ducks (none for none)
   if(pond.length<want&&now>pondNext){spawnLakeDuck(now);pondNext=now+900+Math.random()*1500;}
+  const cw=mX>=0&&!menuOpen&&!shopUI&&overScene()?s2wp(mX,mY):null;let cv=0,ca=0; // the cursor on the water, and how fast it moves (world px per ms)
+  if(cw&&_cwPrev&&now>_cwPrev.t){const dx=cw[0]-_cwPrev.x,dy=cw[1]-_cwPrev.y;cv=Math.hypot(dx,dy)/(now-_cwPrev.t);ca=Math.atan2(dy,dx);}_cwPrev=cw?{x:cw[0],y:cw[1],t:now}:null;
   pond=pond.filter(d=>{
+    if(cw&&d._s&&!d.dunk&&now-(d.hitAt||0)>400&&Math.hypot(cw[0]-d.x,cw[1]-d.y)<d._s*0.8){d.hitAt=now;const vf=T.mapDuckBumpV!=null?T.mapDuckBumpV:0.35;
+      if(cv<vf)d.spin={t0:now,dur:1500,rate:(Math.random()<0.5?-1:1)*(0.12+0.25*cv/vf)}; // a slow touch: it spins where it is
+      else{d.hd=ca;d.kick=Math.min(5,1+2.5*cv/vf);d.dash=now+900+Math.min(1500,600*cv/vf);ripples.push({x:d.x,y:d.y,t:now,ink:onWhite(d.x,d.y)?'20,24,32':'255,255,255'});} // a hit: it putters off the way it was pushed
+      neb({cmd:'quack',type:d.type,v:Math.min(1,cv/vf/3)});}
+    const sp_=d.spin&&now-d.spin.t0<d.spin.dur?d.spin:null;if(sp_)d.hd+=sp_.rate*dt*(1-(now-sp_.t0)/sp_.dur);else d.spin=null;
+    const dk=d.dunk?(now-d.dunk)/(T.mapDuckDunkMs||1300):1;if(dk>=1){if(d.dunk){ripples.push({x:d.x,y:d.y,t:now,ink:onWhite(d.x,d.y)?'20,24,32':'255,255,255',big:1});}d.dunk=0;d._dz=0;} // back up: a splash
+    else{const r=dk<0.25?dk/0.25:dk<0.55?1:1-(dk-0.55)/0.45,ob=dk>0.55?Math.sin(Math.PI*(dk-0.55)/0.45)*0.25:0;d._dz=-(1.3*r*r-ob)*(d._s||0);} // under, a moment, then up with a bob past the surface
+    if(d.kick){d.kick*=Math.pow(0.97,dt);if(d.kick<0.05)d.kick=0;}
     if(now>d.next){d.next=now+1800+Math.random()*3000;d.cur=Math.random()<0.1?(Math.random()<0.5?-1:1)*0.03:(Math.random()-0.5)*0.006;d.dash=Math.random()<0.18?now+1200+Math.random()*1200:0;} // now and then a dash // mostly a gentle curve on its way across; now and then a doughnut
-    const paddle=(d.dash>now?1.5:0.38+0.28*Math.max(0,Math.sin(now/260+d.ph))),go=d.splash&&now-d.born<900?0:paddle;d.sp+=(go-d.sp)*0.05*dt;
+    const paddle=(d.dash>now?1.5:0.38+0.28*Math.max(0,Math.sin(now/260+d.ph)))+(d.kick||0),go=(d.splash&&now-d.born<900)||sp_||d.dunk?0:paddle;d.sp+=(go-d.sp)*(d.kick?0.2:0.05)*dt; // spinning or under water: it stops
     if(!isWater(d.x,d.y)){const l=Math.hypot(d.x,d.y)||1;d.x+=d.x/l*1.6*dt;d.y+=d.y/l*1.6*dt;const out=Math.atan2(d.y,d.x);d.hd+=Math.atan2(Math.sin(out-d.hd),Math.cos(out-d.hd))*0.08*dt;} // the growing spill pushes it out
     else{const ax=d.x+Math.cos(d.hd)*HEX*1.4,ay=d.y+Math.sin(d.hd)*HEX*1.4;if(!isWater(ax,ay)){const out=Math.atan2(d.y,d.x),tan=out+(Math.sin(d.hd-out)>0?1.2:-1.2);d.hd+=Math.atan2(Math.sin(tan-d.hd),Math.cos(tan-d.hd))*0.06*dt;} // the shore ahead: it veers along it
       else d.hd+=d.cur*dt;}
@@ -697,7 +730,8 @@ function hubEvent(id){if(SCENE)return;if(disc.has('ev:'+id)||evQ.includes(id))re
 function evPump(){if(currentView!=='map'||menuOpen||!nebReady||!evQ.length)return;const id=evQ.shift();if(disc.has('ev:'+id)){evPump();return;}currentView='overlay';showNeb(true);neb({cmd:'event',id});}
 function openGuide(){if(!nebReady||currentView!=='map')return;currentView='overlay';showNeb(true);neb({cmd:'guide'});}
 function takeState(m){
-  if(m.T){T=m.T;if(SW)camUpdate();}if(m.ducks)duckLog=m.ducks;if(m.duckTypes)DUCK_TYPES=m.duckTypes;if(m.icons)icons=m.icons;if(m.inv){inv=m.inv;syncDock();}if(m.disc)disc=new Set(m.disc);if(m.defs&&m.defs.length)tuneDefs=m.defs;
+  // a tuner just set here wins over a message the surface sent before it got it
+  if(m.T){const now=performance.now();for(const k in _tuneLocal)if(now-_tuneLocal[k]<1500)m.T[k]=T[k];else delete _tuneLocal[k];T=m.T;if(SW)camUpdate();}if(m.ducks)duckLog=m.ducks;if(m.duckTypes)DUCK_TYPES=m.duckTypes;if(m.icons)icons=m.icons;if(m.inv){inv=m.inv;syncDock();}if(m.disc)disc=new Set(m.disc);if(m.defs&&m.defs.length)tuneDefs=m.defs;
   if(T.mapHexSize&&T.mapHexSize!==HEX){HEX=T.mapHexSize;focusCam(false);}
   if(m.T)syncRenderSig();applyDisc();syncMenu();if(shopUI)renderShop();
 }
@@ -731,19 +765,45 @@ let menuOpen=false;
 function toggleMenu(){menuOpen=!menuOpen;document.getElementById('menu').classList.toggle('show',menuOpen);syncMenu();if(!menuOpen)evPump();}
 const soundOn=()=>!!T.soundOn;
 function setSound(on,vol){T.soundOn=on?1:0;if(vol!=null)T.masterVol=+vol;neb({cmd:'sound',on,vol:vol!=null?+vol:null});syncMenu();}
-function syncMenu(){
+function syncMenu(){syncModes();
   document.getElementById('mDays').innerHTML=dayLogHTML();
   document.getElementById('mSnd').textContent='Sound: '+(soundOn()?'ON':'OFF');document.getElementById('mVol').value=T.masterVol!=null?T.masterVol:0.7;
-  for(const el of document.querySelectorAll('#mTune input')){el.value=T[el.dataset.k];el.nextElementSibling.textContent=+(+T[el.dataset.k]).toFixed(2);}
+  for(const el of document.querySelectorAll('#mTune [data-k],#tuneP [data-k]')){if(T[el.dataset.k]==null)continue;el.value=T[el.dataset.k];if(el.nextElementSibling)el.nextElementSibling.textContent=+(+T[el.dataset.k]).toFixed(2);}
 }
-function buildTune(){ // the same tuner definitions as the surface's Tune menu (one source)
-  const box=document.getElementById('mTune');box.innerHTML='';
-  for(const d of tuneDefs){const r=document.createElement('div');r.className='row';r.title=d.tip||'';
-    r.innerHTML=`<span>${d.label}</span><input type="range" min="${d.min}" max="${d.max}" step="${d.step}" data-k="${d.key}"><b></b>`;
-    r.querySelector('input').addEventListener('input',e=>{T[d.key]=+e.target.value;neb({cmd:'tune',T:{[d.key]:T[d.key]}});if(d.key==='mapHexSize'){HEX=T.mapHexSize;focusCam(false);}if(/^map(Tilt|Persp|Zoom(Min|Max))$/.test(d.key))mapResize();syncRenderSig();syncMenu();});
-    box.appendChild(r);}
-  syncMenu();
-}
+const _tuneLocal={};
+function tuneSet(k,v){T[k]=v;_tuneLocal[k]=performance.now();neb({cmd:'tune',T:{[k]:v}});if(k==='mapHexSize'){HEX=T.mapHexSize;focusCam(false);}if(/^map(Tilt|Persp|Zoom(Min|Max))$/.test(k))mapResize();syncRenderSig();syncMenu();} // a tuner changed here: the surface keeps and saves it
+function tuneRows(box,defs){ // the surface's own tuner definitions (one source), as rows: a slider, or a choice
+  box.innerHTML='';for(const d of defs){if(d.sec){const h=document.createElement('div');h.className='sec';h.textContent=d.sec;box.appendChild(h);continue;}const r=document.createElement('div');r.className='row';r.title=d.tip||'';
+    r.innerHTML=d.type==='select'?`<span>${d.label}</span><select data-k="${d.key}">${(d.options||[]).map(o=>`<option>${o}</option>`).join('')}</select>`:`<span>${d.label}</span><input type="range" min="${d.min}" max="${d.max}" step="${d.step}" data-k="${d.key}"><b></b>`;
+    const el=r.querySelector('[data-k]');el.addEventListener(d.type==='select'?'change':'input',e=>tuneSet(d.key,d.type==='select'?e.target.value:+e.target.value));box.appendChild(r);}
+  syncMenu();}
+function buildTune(){tuneRows(document.getElementById('mTune'),tuneDefs.filter(d=>d.key&&d.key.slice(0,3)==='map'));buildTuneP();} // the Esc menu: the map's own layer; the Tune panel: everything
+let tuneTabM='gameplay',tuneQ='';
+function buildTuneP(){const p=document.getElementById('tuneP'),tabs=[...new Set(tuneDefs.map(d=>d.tab).filter(Boolean))];if(!tabs.includes(tuneTabM))tuneTabM=tabs[0]||'gameplay';
+  const tb=p.querySelector('.tabs');tb.innerHTML=tabs.map(t=>`<button data-t="${t}" class="${t===tuneTabM?'on':''}">${t[0].toUpperCase()+t.slice(1)}</button>`).join('');for(const b of tb.querySelectorAll('button'))b.onclick=()=>{tuneTabM=b.dataset.t;buildTuneP();};
+  const q=tuneQ.trim().toLowerCase(),out=[];let sec=null;
+  for(const d of tuneDefs){if(d.tab!==tuneTabM)continue;if(d.sec){sec=d;continue;}if(q&&!((d.label||'')+' '+d.key+' '+(d.tip||'')).toLowerCase().includes(q))continue;if(sec){out.push(sec);sec=null;}out.push(d);}
+  tuneRows(p.querySelector('.rows'),out);}
+document.querySelector('#tuneP input[type=search]').addEventListener('input',e=>{tuneQ=e.target.value;buildTuneP();});
+// ── Modes: Telemetry (each hex's value, coverage and state on the ground) and Stats (frames and the hex grid); remembered in this browser ──
+let mapMode={tel:0,stats:0};try{Object.assign(mapMode,JSON.parse(localStorage.getItem('il_map_modes')||'{}'));}catch(e){}
+function togglePanel(id){for(const o of ['mModes','tuneP'])document.getElementById(o).classList.toggle('show',o===id&&!document.getElementById(o).classList.contains('show'));}
+function setMapMode(k){mapMode[k]=mapMode[k]?0:1;try{localStorage.setItem('il_map_modes',JSON.stringify(mapMode));}catch(e){}syncModes();}
+function syncModes(){document.getElementById('mdTel').classList.toggle('on',!!mapMode.tel);document.getElementById('mdStats').classList.toggle('on',!!mapMode.stats);document.getElementById('hstats').classList.toggle('show',!!mapMode.stats);}
+function telemetryLayer(){ // on the plane, over each hex on screen: its value, and how covered or what it is
+  const fs=Math.max(7,HEX*0.21);mctx.save();mctx.font=`${fs}px 'Share Tech Mono',monospace`;mctx.textAlign='center';mctx.textBaseline='middle';
+  for(const k in cells){const c=cells[k];const[sx,sy]=w2s(...a2w(c.q,c.r));if(sx<-HEX||sx>MW+HEX||sy<-HEX||sy>MH+HEX)continue;
+    const a=c.isVoid?(c.q||c.r?'void':'source'):c.cap?(c.kind==='dark'?'dark ':'bright ')+c.capVal.toFixed(2):c.v.toFixed(3),b=c.isVoid?'':c.cap?(c.shop?SHOPS[c.shop.id].n.split(' ')[0]+' r'+c.shop.rank:'ring '+cellRing(c.q,c.r)):Math.round(cellCov(c)*100)+'% · r'+cellRing(c.q,c.r)+(c.locked?' · lock':'');
+    mctx.fillStyle=c.cap&&c.kind!=='dark'?'rgba(0,0,0,0.85)':'rgba(255,255,255,0.9)';mctx.fillText(a,sx,sy-fs*0.45);mctx.globalAlpha=0.7;mctx.fillText(b,sx,sy+fs*0.6);mctx.globalAlpha=1;}
+  mctx.restore();}
+let _stT=0;
+function statsTick(now){if(!mapMode.stats||now-_stT<250)return;_stT=now; // frames (from the performance log's own record) and the hex grid
+  const f=hubPerf.fr.slice(-60),gap=f.length?f.reduce((s,e)=>s+e.gap,0)/f.length:0,wk=f.length?f.reduce((s,e)=>s+e.work,0)/f.length:0,worst=f.reduce((m,e)=>Math.max(m,e.gap),0);
+  let n=0,op=0,lk=0,br=0,dk=0,vd=0,sum=0;for(const k in cells){const c=cells[k];n++;if(c.isVoid)vd++;else if(c.cap){if(c.kind==='dark')dk++;else br++;}else{op++;sum+=c.v;if(c.locked)lk++;}}
+  const shops=Object.keys(shopEls).length,lit=Object.values(shopEls).filter(e=>e.classList.contains('lit')).length;
+  document.getElementById('hstats').textContent=[`${gap?(1000/gap).toFixed(0):'–'} fps · frame ${gap.toFixed(1)} ms · worst ${worst.toFixed(0)} ms`,`map work ${wk.toFixed(1)} ms`,`hexes ${n} · open ${op} (locked ${lk}) · bright ${br} · dark ${dk} · void ${vd}`,
+    `open value ${sum.toFixed(2)} · avg ${(op?sum/op:0).toFixed(3)} · pool ${(+pool||0).toFixed(2)}`,`rings ${turn} · depth D${depth} · ${clockStr()} · day ${day}`,`pictures ${Object.keys(prev).length} · waiting ${prevPending.size}`,
+    `ducks ${pond.length} · shops ${shops} (lit ${lit}) · zoom ${viewZoom.toFixed(2)}`,`plane ${MW}×${MH} ×${MK.toFixed(2)}`].join('\n');}
 function quitMain(){saveMap();location.href='TitleSplash.html';}
 
 // ── Discoveries (the same rule as the surface: hover while holding the Dim cost; nothing is spent) ──
@@ -864,11 +924,11 @@ const hcur=document.getElementById('hcur'),hcx=hcur.getContext('2d');
 function cursorTick(now){ // the surface's standard cursor (shared.js): brighter over something it can act on
   const dp=window.devicePixelRatio||1;if(hcur.width!==Math.round(innerWidth*dp)){hcur.width=Math.round(innerWidth*dp);hcur.height=Math.round(innerHeight*dp);}
   hcx.setTransform(dp,0,0,dp,0,0);hcx.clearRect(0,0,innerWidth,innerHeight);if(currentView!=='map'||menuOpen||shopUI||mX<0)return;
-  const over=ptOver,ui=over&&over!==sc&&over.closest&&over.closest('button,.slot,.hbtn,.shop');
+  const over=ptOver,ui=over&&over!==sc&&over.closest&&over.closest('button,.slot,.hbtn,.shop,input,select');
   const k=hQ!==null?K(hQ,hR):null,c=k?cells[k]:null,act=!!ui||!!(c&&(armed==='leash'?c.cap:armed==='dial'?(!c.cap&&!c.isVoid):armed==='weave'?isBright(k):(k===K(pQ,pR)||getMoves().some(m=>K(m.q,m.r)===k))));
   const base=T.cursorBaseR||8,lw=T.cursorLineW||2,press=mDownAt>0?Math.min(1,(now-mDownAt)/(T.cursorClickDurMs||120)):0,cR=base*(1-(T.cursorClickShrink!=null?T.cursorClickShrink:0.7)*0.4*press);
   _curA+=((act?1:(T.cursorIdleAlphaMult!=null?T.cursorIdleAlphaMult:0.5))-_curA)*0.25;const ev=act?255:Math.round(255*(1-(T.cursorIdleBorderDark!=null?T.cursorIdleBorderDark:0.4))),col=armed?'255,220,120':`${ev},${ev},${ev}`;
-  {const[wx,wy]=s2wp(mX,mY);cursorTrailRecord(wx,wy,now,over===sc);}cursorBase(hcx,mX,mY,cR,_curA,1,col,lw);cursorRing(hcx,mX,mY,cR,_curA,col,lw);cursorDot(hcx,mX,mY,_curA,col);}
+  {const[wx,wy]=s2wp(mX,mY);cursorTrailRecord(wx,wy,now,overScene());}cursorBase(hcx,mX,mY,cR,_curA,1,col,lw);cursorRing(hcx,mX,mY,cR,_curA,col,lw);cursorDot(hcx,mX,mY,_curA,col);}
 let _curA=0.5;
 
 // ╔══════════════════════════════════════════════════════════════════════════════╗
