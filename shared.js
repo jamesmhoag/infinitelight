@@ -248,16 +248,22 @@ function cursorBase(cx,x,y,cR,dimA,tintK,edgeCol,lw){
   cx.globalCompositeOperation='screen';cx.filter='blur(7px)';cx.globalAlpha=0.6*dimA; // the bloom behind the sharp ring
   cx.beginPath();cx.arc(x,y,cR,0,6.2832);cx.strokeStyle=`rgba(${edgeCol},0.9)`;cx.lineWidth=lw*2.5;cx.stroke();
   cx.filter='none';cx.globalAlpha=1;cx.globalCompositeOperation='source-over';}
-const _curTrail=[];let _curTrailInk=false; // where the cursor has just been: {x, y, t, gap (it was off the scene: the line breaks)}; whether its layer has anything on it
-function cursorTrailClear(cx){if(!_curTrailInk)return;cx.save();cx.setTransform(1,0,0,1,0,0);cx.clearRect(0,0,cx.canvas.width,cx.canvas.height);cx.restore();_curTrailInk=false;} // (an empty layer is left alone)
-function cursorTrail(cx,x,y,now,edgeCol,lw,on){ // a faint light trail behind the cursor that fades over T.cursorTrailLife ms (0 = off), so a cursor lost on a busy surface
-  // is easy to find. cx: the trail's own layer, just above the scene and under every panel; on: the cursor is over the scene itself (no trail over anything else)
-  const ms=T.cursorTrailLife!=null?T.cursorTrailLife:230,A=T.cursorTrailA!=null?T.cursorTrailA:0.6;if(ms<=0||A<=0){_curTrail.length=0;return;}
-  const l=_curTrail[_curTrail.length-1];if(!on){if(l&&!l.gap)_curTrail.push({x,y,t:now,gap:1});}else if(!l||l.gap||Math.hypot(x-l.x,y-l.y)>1.5)_curTrail.push({x,y,t:now});else l.t=now;
-  while(_curTrail.length&&now-_curTrail[0].t>ms)_curTrail.shift();if(_curTrail.length<2)return;
-  cx.save();cx.lineCap='round';cx.lineJoin='round';_curTrailInk=true; // (no canvas filter: a blur on every segment every frame made the cursor lag)
-  for(let i=1;i<_curTrail.length;i++){const a=_curTrail[i-1],b=_curTrail[i];if(a.gap||b.gap)continue;const f=Math.max(0,1-(now-b.t)/ms);cx.strokeStyle=`rgba(${edgeCol},${(A*f).toFixed(3)})`;cx.lineWidth=lw*(1.2+3.3*f);cx.beginPath();cx.moveTo(a.x,a.y);cx.lineTo(b.x,b.y);cx.stroke();}
-  cx.restore();}
+// ── The cursor's stain: where it has just been, laid INTO the scene (under a surface's particles; flat on the map's ground, under its shops), so a
+// cursor gone faint on a busy surface is easy to find. Even toned: the path is drawn as one mask in which overlaps never add up, fading with age from the start.
+const _curTrail=[];let _stainCv=null; // {x, y, t, gap (off the scene: the stain breaks)} — in the scene's own coordinates
+function cursorTrailRecord(x,y,now,on){const ms=T.cursorStainMs!=null?T.cursorStainMs:900,l=_curTrail[_curTrail.length-1];
+  if(ms<=0){_curTrail.length=0;return;}if(!on){if(l&&!l.gap)_curTrail.push({x,y,t:now,gap:1});}else if(!l||l.gap||Math.hypot(x-l.x,y-l.y)>1)_curTrail.push({x,y,t:now});else l.t=now;
+  while(_curTrail.length&&now-_curTrail[0].t>ms)_curTrail.shift();}
+function cursorStain(cx,now,w,dark,toXY,k){ // cx: the scene being drawn; w: the stain's width there; dark: a light background (stain it dark); toXY: trail → cx coords; k: cx px per unit (sharpness)
+  const ms=T.cursorStainMs!=null?T.cursorStainMs:900,A=T.cursorStainA!=null?T.cursorStainA:0.22;if(_curTrail.length<2||ms<=0||A<=0)return;
+  const P=_curTrail.map(p=>{const[x,y]=toXY?toXY(p.x,p.y):[p.x,p.y];return{x,y,gap:p.gap,f:Math.max(0,1-(now-p.t)/ms)};});
+  let x0=1e9,y0=1e9,x1=-1e9,y1=-1e9;for(const p of P){x0=Math.min(x0,p.x);y0=Math.min(y0,p.y);x1=Math.max(x1,p.x);y1=Math.max(y1,p.y);}x0-=w;y0-=w;x1+=w;y1+=w;
+  k=k||1;const cw=Math.ceil((x1-x0)*k),ch=Math.ceil((y1-y0)*k);if(cw<1||ch<1||cw*ch>2.5e7)return;
+  if(!_stainCv)_stainCv=document.createElement('canvas');if(_stainCv.width<cw||_stainCv.height<ch){_stainCv.width=Math.max(cw,_stainCv.width);_stainCv.height=Math.max(ch,_stainCv.height);}
+  const s=_stainCv.getContext('2d'),bg=dark?255:0;s.setTransform(1,0,0,1,0,0);s.globalCompositeOperation='source-over';s.fillStyle=`rgb(${bg},${bg},${bg})`;s.fillRect(0,0,cw,ch);
+  s.setTransform(k,0,0,k,-x0*k,-y0*k);s.globalCompositeOperation=dark?'darken':'lighten';s.lineCap='round';s.lineJoin='round';s.lineWidth=w; // the mask: each piece at its age's strength, the strongest wins where they cross
+  for(let i=1;i<P.length;i++){const a=P[i-1],b=P[i];if(a.gap||b.gap)continue;const v=Math.round(255*A*(a.f+b.f)/2),c=dark?255-v:v;s.strokeStyle=`rgb(${c},${c},${c})`;s.beginPath();s.moveTo(a.x,a.y);s.lineTo(b.x,b.y);s.stroke();}
+  cx.save();cx.globalCompositeOperation=dark?'multiply':'screen';cx.drawImage(_stainCv,0,0,cw,ch,x0,y0,cw/k,ch/k);cx.restore();} // black (white) is no change: only the stain shows
 function cursorRing(cx,x,y,cR,dimA,edgeCol,lw){cx.beginPath();cx.arc(x,y,cR,0,6.2832);cx.strokeStyle=`rgba(${edgeCol},${(0.80*dimA).toFixed(3)})`;cx.lineWidth=lw;cx.stroke();}
 function cursorDot(cx,x,y,dimA,edgeCol){
   cx.globalCompositeOperation='screen';cx.filter='blur(3px)';cx.globalAlpha=0.7*dimA;cx.beginPath();cx.arc(x,y,1.4,0,6.2832);cx.fillStyle=`rgba(${edgeCol},0.9)`;cx.fill();
