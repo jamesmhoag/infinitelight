@@ -788,6 +788,11 @@ s = $1 — “s” for more than one"
 coll.tab.buoy,Buoy,Status & collections,
 coll.buoy.note,"Your buoy's name (on its sign) and its colour. More looks, like the ducks', may come later.",Status & collections,
 map.name.colour,Its colour,Surface Map (a new game),
+title.newplayer,New player,the title screen,
+title.who,Continue as…,the title screen,
+title.player,Player {n},the title screen,n = $0 — which player saved here
+title.day,day {n},the title screen,n = $0 — the day their map is on
+title.back,Back,the title screen,
 value.life_ms,T.lifeColor,values (shared: any text can use {life_ms}),a pigment's life factor (Life colour tuner)
 value.dim_mass_pct,Math.round(T.remMassFrac*100),values (shared: any text can use {dim_mass_pct}),% of its mass a failed collapse keeps
 value.dim_energy_pct,Math.round(T.remEnergyFrac*100),values (shared: any text can use {dim_energy_pct}),% of its energy a failed collapse keeps

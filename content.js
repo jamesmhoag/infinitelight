@@ -2,6 +2,17 @@
 // ── Content (shared): the game's lists, prices, tuners and text are in content/*.csv — edit them there (a spreadsheet keeps the columns; text with
 // commas, quotes or line breaks is "quoted", a quote inside doubled ""). The game reads them as it loads. In text, {…} is filled in as it shows:
 // {0}, {1}… are the values the code hands it (a count, a name); anything else is a sum over the tuners, e.g. {Math.round(T.duckChance*100)}.
+// ── Players (every page): each player saved in this browser has their own save. Player 1's keys are as they always were; player n's are
+// 'p<n>:'-prefixed (localStorage, and the IndexedDB session), so every page reads and writes the chosen player's without knowing it. The player
+// is chosen on the title screen (Continue asks which, when there is more than one) and kept for this tab (sessionStorage), or ?profile=n.
+const IL_SHARED_KEYS=new Set(['il_profiles','il_dockmin','il_map_modes','il_pondmode','nebula-config']); // (the same for every player: the setup, not the save)
+const IL_PROFILE=(()=>{let p=null;try{p=new URLSearchParams(location.search).get('profile');if(p)sessionStorage.setItem('il_profile',p);else p=sessionStorage.getItem('il_profile');}catch(e){}return Math.max(1,parseInt(p)||1);})();
+const IL_PRE=n=>n>1?'p'+n+':':'',_lsGet=Storage.prototype.getItem,_lsSet=Storage.prototype.setItem;
+const profileGet=(n,k)=>{try{return _lsGet.call(localStorage,IL_SHARED_KEYS.has(k)?k:IL_PRE(n)+k);}catch(e){return null;}}; // another player's saved value
+if(IL_PROFILE>1){const S=Storage.prototype,w=f=>function(k,...a){return f.call(this,this===window.localStorage&&!IL_SHARED_KEYS.has(k)?IL_PRE(IL_PROFILE)+k:k,...a);};S.getItem=w(S.getItem);S.setItem=w(S.setItem);S.removeItem=w(S.removeItem);}
+function ilProfiles(){let L=[];try{L=JSON.parse(_lsGet.call(localStorage,'il_profiles')||'[]')||[];}catch(e){}if(!L.includes(1))L.unshift(1);return L;} // every player saved here (ids)
+function ilProfileAdd(){const L=ilProfiles(),n=Math.max(...L)+1;L.push(n);try{_lsSet.call(localStorage,'il_profiles',JSON.stringify(L));}catch(e){}return n;}
+function ilProfileUse(n){try{sessionStorage.setItem('il_profile',String(n));}catch(e){}} // (takes effect on the next page)
 function csvParse(t){const rows=[];let row=[],f='',q=false;t=t.replace(/^﻿/,'');
   for(let i=0;i<t.length;i++){const c=t[i];if(q){if(c==='"'){if(t[i+1]==='"'){f+='"';i++;}else q=false;}else f+=c;}else if(c==='"')q=true;else if(c===','){row.push(f);f='';}
     else if(c==='\n'||c==='\r'){if(c==='\r'&&t[i+1]==='\n')i++;row.push(f);f='';if(row.length>1||row[0]!=='')rows.push(row);row=[];}else f+=c;}
