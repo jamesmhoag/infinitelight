@@ -298,12 +298,12 @@ function cursorDot(cx,x,y,dimA,edgeCol){
 // SHOP_BLD: each building and where its glass sits behind its empty windows (shops/*.svg, in SVG units).
 const SHOP_BLD={s:{b:'bld_s',g:'glass_s.png',gx:1.75,gy:10.75},d:{b:'bld_s_dark',g:'glass_s.png',gx:1.75,gy:10.75},m:{b:'bld_m',g:'glass_m.png',gx:3.25,gy:7.75},l:{b:'bld_l',g:'glass_m.png',gx:3.25,gy:18},t:{b:'bld_t',g:'glass_t.png',gx:1.25,gy:4}}; // (the glass: the room inside, drawn at 4×, its walls and floor as lines)
 const SHOP_RANK_BLD=['s','m','l'];
-const HUB_SLOTS=[168,12]; // two more spots in the source hex (angles, as main street's): a pop-up earned on a dark clear opens there
+const HUB_SLOTS=[180,0]; // (the hex's flat side edges; main street takes its four slanted ones) // two more spots in the source hex (angles, as main street's): a pop-up earned on a dark clear opens there
 const SHOPS={
   corner:{n:'CORNER STORE',tag:'The corners are conveniently cut.',street:1,open:0,close:27,col:'#fff1d0',a:60},
   clock:{n:'Clock smith.',tag:'Turn the Clock, be unlocked.',street:1,open:9,close:18,col:'#fff1d0',a:120,flip:1},
-  xact:{n:'XACT change',tag:'Exchange for spare change.',street:1,open:6,close:15,col:'#fff1d0',a:-122},
-  gift:{n:'GIFT SHOP',tag:'Souvenirs to remember with.',street:1,open:0,close:27,col:'#ffffff',bk:'d',a:-58},
+  xact:{n:'XACT change',tag:'Exchange for spare change.',street:1,open:6,close:15,col:'#fff1d0',a:-120},
+  gift:{n:'GIFT SHOP',tag:'Souvenirs to remember with.',street:1,open:0,close:27,col:'#ffffff',bk:'d',a:-60},
   bright:{n:'BRiGHT IDEAS',tag:'Like a spoon that is also a fork.',cur:'bright',col:'#00c3ff',at:[100,1000,10000]},
   dim:{n:'Dim’s: Carnival of Discovery',tag:'Natural phenomena.',cur:'dim',col:'#ff78e2',at:[100,1000,10000]},
   neutron:{n:'premium NEUTRINOS',tag:'Density, delivered.',cur:'neutron',col:'#8a3cff',at:[5,25,100]},
