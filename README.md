@@ -24,6 +24,9 @@ Every entry is a card in one format (name, a live demo, page and Tier I–V, the
 ## Play together
 Esc on a surface → **Invite a friend** copies a link (`join.html?room=…`). The friend's page shows the host's surface as a live video (PeerJS / WebRTC, peer to peer; the PeerJS public server only makes the introduction) and sends their pointer. On the host it shines, wipes, mops and collects with the same shine cap (`maxActivePoints`) but its own heat; what the friend collects is added to the friend's own save. Add `&net=bc` to the surface's URL to play between two tabs of one browser (BroadcastChannel, no network).
 
+## Performance
+The Surface Map draws its ground on a 2D canvas and sends it to the GPU every frame, so its size is the main cost: `mapPlanePx` caps it, and its sharpness follows the zoom. While the map's window is not the one in use it draws `mapIdleFps` (8) frames a second. The performance log keeps only the last 600 frames, 25 slowest and 400 events, so a map left open does not grow it.
+
 ## Saves (browser storage, per site)
 - `chromaticNebulaInventory_v1` — items, resources, discoveries and the duck collection (kept by a new map)
 - `nebula-config` — tuners, sound setting, hex-layer tuners
@@ -34,7 +37,7 @@ Esc on a surface → **Invite a friend** copies a link (`join.html?room=…`). T
 
 ## Keys
 - **Esc** — pause menu (sound + volume, readouts, Guide, quit). On the map: sound, Guide, hex-layer tuners, quit.
-- **~** (or H) — hide / show the panels, on a surface and on the Surface Map
+- **~** (or H) — hide / show the panels (and the time of day), on a surface and on the Surface Map: one setting for both
 - **Surface Map**: Modes (Telemetry: each hex's value, coverage and ring on the ground; Stats: fps, frame times and the hex grid; the Performance log) and Tune (every tuner, as on a surface). Lake ducks: brush one slowly and it spins, hit it fast and it putters off, click it and it is dunked. Now and then a message in a bottle floats in (`mapBottleMs`): it drifts like a duck, and clicking it opens a letter (`LETTERS` in `shared.js`)
 - **Spindle** (armed on the map): a cleared hex back to a surface, or an open hex below 1.00 wound up to 1.00 and held there until cleared
 - A bright clear collects everything left on the surface at once
