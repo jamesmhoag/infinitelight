@@ -1,0 +1,67 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Infinite Light · Play together</title>
+<style>
+html,body{margin:0;height:100%;background:#000;color:#dde;font:13px system-ui,sans-serif;overflow:hidden}
+#stage{position:fixed;inset:0;display:flex;align-items:center;justify-content:center}
+#vid,#img{max-width:100%;max-height:100%;display:none;background:#05060a}
+#cur{position:fixed;inset:0;pointer-events:none}
+#hit{position:fixed;inset:0;cursor:none}
+#bar{position:fixed;left:50%;bottom:0;transform:translateX(-50%);background:rgba(0,0,0,.75);border:1px solid rgba(255,255,255,.15);border-bottom:0;border-radius:8px 8px 0 0;padding:6px 14px;text-align:center;min-width:280px}
+#bar b{font-weight:600}#st{opacity:.7;font-size:11px;margin-top:2px}#got{font-size:11px;opacity:.85;margin-top:2px}
+#home{position:fixed;left:12px;top:10px;color:#aab;font-size:12px;text-decoration:none;border:1px solid rgba(255,255,255,.2);padding:4px 10px;border-radius:5px;background:rgba(0,0,0,.5)}
+</style>
+</head>
+<body>
+<div id="stage"><video id="vid" autoplay muted playsinline></video><img id="img" alt=""></div>
+<div id="hit"></div><canvas id="cur"></canvas>
+<a id="home" href="index.html">Back to the game</a>
+<div id="bar"><div><b id="sc">You 0 · Host 0</b></div><div id="got"></div><div id="st">Connecting…</div></div>
+<script src="shared.js?v=20261103a"></script>
+<script>
+// A friend's surface, shown here as it plays there: your pointer shines and collects on it (the same shine caps as theirs, your own heat),
+// and everything you collect is yours, added to your own save in this browser.
+const Q=new URLSearchParams(location.search),ROOM=Q.get('room'),BC=Q.get('net')==='bc',INV_KEY='chromaticNebulaInventory_v1';
+const vid=document.getElementById('vid'),img=document.getElementById('img'),cur=document.getElementById('cur'),cx=cur.getContext('2d'),hit=document.getElementById('hit');
+let conn=null,bc=null,me={x:-1,y:-1,down:false},host={x:-1,y:-1},heatS={v:0,disp:0,until:0,dur:1},heatAt=0,score={host:0,guest:0},mine={},lastMove=0,live=false;
+const st=t=>{document.getElementById('st').textContent=t;};
+function send(o){try{if(conn&&conn.open)conn.send(o);else if(bc)bc.postMessage(o);}catch(e){}}
+function media(){return vid.style.display!=='none'?vid:img;}
+function frac(e){const r=media().getBoundingClientRect();return{x:(e.clientX-r.left)/Math.max(1,r.width),y:(e.clientY-r.top)/Math.max(1,r.height)};} // where on their surface, as fractions of it
+function credit(kind,n){ // what you collected goes into your own save (read fresh, so another open copy's changes are kept)
+  mine[kind]=(mine[kind]||0)+n;try{const s=JSON.parse(localStorage.getItem(INV_KEY)||'{}')||{};s[kind]=(+s[kind]||0)+n;s.at=Date.now();localStorage.setItem(INV_KEY,JSON.stringify(s));}catch(e){}
+  document.getElementById('got').textContent='Yours to keep: '+Object.keys(mine).map(k=>(KIND_NAME[k]||k)+' '+mine[k].toLocaleString('en-US')).join(' · ');}
+function onData(m){
+  if(!m||!m.t)return;
+  if(m.t==='hi'){live=true;st('Connected. Click to shine, swipe or hold to wipe, click a remnant to collect it.');}
+  else if(m.t==='got')credit(m.kind,m.n);
+  else if(m.t==='st'){host.x=m.hx;host.y=m.hy;heatS=Object.assign(heatS,m.heat);heatAt=performance.now();score=m.score;document.getElementById('sc').textContent='You '+score.guest.toLocaleString('en-US')+' · Host '+score.host.toLocaleString('en-US');
+    if(m.frame){img.src=m.frame;img.style.display='block';vid.style.display='none';}}}
+function start(){
+  if(!ROOM){st('This link has no room in it. Ask your friend for a new one.');return;}
+  if(BC){bc=new BroadcastChannel('il-'+ROOM);bc.onmessage=e=>onData(e.data);bc.postMessage({t:'join'});return;}
+  const go=()=>{const peer=new Peer();
+    peer.on('open',()=>{conn=peer.connect(ROOM,{reliable:true});conn.on('data',onData);conn.on('close',()=>{live=false;st('Your friend closed the room.');});conn.on('error',()=>st('Lost the connection.'));});
+    peer.on('call',call=>{call.answer();call.on('stream',s=>{vid.srcObject=s;vid.style.display='block';img.style.display='none';vid.play().catch(()=>{});});});
+    peer.on('error',e=>st(e.type==='peer-unavailable'?'That room is closed or the link is old. Ask your friend for a new one.':'Could not connect ('+(e.type||e)+').'));};
+  const sc=document.createElement('script');sc.src='https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js';sc.onload=go;sc.onerror=()=>st('Could not load the connection library.');document.head.appendChild(sc);}
+hit.addEventListener('pointermove',e=>{me.x=e.clientX;me.y=e.clientY;const n=performance.now();if(n-lastMove>15){lastMove=n;send(Object.assign({t:'move'},frac(e)));}});
+hit.addEventListener('pointerdown',e=>{if(e.button!==0)return;me.down=true;send(Object.assign({t:'down'},frac(e)));});
+hit.addEventListener('pointerup',e=>{if(e.button!==0)return;me.down=false;send(Object.assign({t:'up'},frac(e)));});
+hit.addEventListener('pointerleave',()=>{me.x=-1;if(me.down){me.down=false;send({t:'up',x:-1,y:-1});}});
+hit.addEventListener('contextmenu',e=>{e.preventDefault();send({t:'rclick'});});
+window.addEventListener('beforeunload',()=>send({t:'bye'}));
+function draw(now){ // your cursor (with your heat) and the host's
+  const dp=window.devicePixelRatio||1;if(cur.width!==Math.round(innerWidth*dp)){cur.width=Math.round(innerWidth*dp);cur.height=Math.round(innerHeight*dp);cur.style.width=innerWidth+'px';cur.style.height=innerHeight+'px';}
+  cx.setTransform(dp,0,0,dp,0,0);cx.clearRect(0,0,innerWidth,innerHeight);const r=media().getBoundingClientRect();
+  if(host.x>=0&&host.x<=1&&r.width){const X=r.left+host.x*r.width,Y=r.top+host.y*r.height;cx.strokeStyle='rgba(140,200,255,0.8)';cx.lineWidth=2;cx.beginPath();cx.arc(X,Y,9,0,6.2832);cx.stroke();cx.fillStyle='rgba(140,200,255,0.85)';cx.font='10px system-ui';cx.textAlign='center';cx.fillText('Host',X,Y-14);}
+  if(me.x>=0){const R=me.down?7:9;cx.strokeStyle='rgba(255,255,255,0.9)';cx.lineWidth=2;cx.beginPath();cx.arc(me.x,me.y,R,0,6.2832);cx.stroke();cx.fillStyle='#fff';cx.beginPath();cx.arc(me.x,me.y,1.6,0,6.2832);cx.fill();
+    const h=Object.assign({},heatS,{until:heatS.until>0?now+heatS.until-(now-heatAt):0});drawHeatArc(cx,me.x,me.y,R,now,h);}
+  requestAnimationFrame(draw);}
+requestAnimationFrame(draw);start();
+</script>
+</body>
+</html>

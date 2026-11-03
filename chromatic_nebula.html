@@ -114,7 +114,7 @@ button:hover{background:rgba(255,255,255,0.15);}
   <div id="dock" class="bottom"><div id="inventoryPanel"></div><div id="touch-info"></div></div>
   <canvas id="cur"></canvas>
 </div>
-<script src="shared.js?v=20261102zn"></script>
+<script src="shared.js?v=20261103a"></script>
 <script>
 const _SRC=document.documentElement.outerHTML; // kept so the Encyclopedia can run live scenes as embedded copies of the game
 // Safety: a negative / non-finite gradient radius would throw and kill the frame — clamp it, and log the first offender's stack so it can be traced.
@@ -198,7 +198,8 @@ let overUI=false,hoverInvKind=null,overFeed=false; // pointer is over ANY interf
 const wrap=document.getElementById('wrap'),statsEl=document.getElementById('stats'),touchInfoEl=document.getElementById('touch-info');
 // HEAT: every additional unique selection made by a swipe / double-click / item use adds heat; past T.heatMax the cursor cools down (shut off) for T.heatCooldownMs
 // and then needs a NEW press before it works again. heat.disp is the smoothed amount shown on the cursor (full ring = T.heatMax).
-const heat={v:0,disp:0,until:0,dur:1,needNew:false,last:0};
+let heat={v:0,disp:0,until:0,dur:1,needNew:false,last:0}; // (let: a second player's own heat is swapped in while their input runs — withHeat)
+function withHeat(h,fn){const o=heat;heat=h;try{return fn();}finally{heat=o;}}
 function heatBlocked(now){return heat.until>now||heat.needNew;}
 function heatAdd(n,now){
   if(!(n>0)||heat.until>now)return;
@@ -211,14 +212,6 @@ function heatTick(now){
   else{ if(heat.until&&heat.until<=now){heat.until=0;heat.v=0;} heat.v=Math.max(0,heat.v-T.heatDecay*dt/1000); }
   const target=heat.until>now?Math.max(0,(heat.until-now)/heat.dur):Math.min(1,heat.v/Math.max(1,T.heatMax));
   heat.disp+=(target-heat.disp)*Math.min(1,dt/120);
-}
-function drawHeatArc(cx,x,y,R,now){
-  const d=heat.disp;if(d<0.012)return;const cool=heat.until>now,r=R*0.82;
-  cx.save();cx.lineCap='round';cx.lineWidth=Math.max(1.4,R*0.12);
-  cx.strokeStyle='rgba(255,255,255,0.12)';cx.beginPath();cx.arc(x,y,r,0,6.2832);cx.stroke(); // the track: a full ring = max heat
-  const h=cool?205:(50-d*50),col=cool?`hsla(${h},70%,70%,0.85)`:`hsla(${h},95%,${62-d*10}%,0.9)`; // cool blue while cooling; warm → red as it fills
-  cx.strokeStyle=col;cx.beginPath();cx.arc(x,y,r,-Math.PI/2,-Math.PI/2+d*6.2832);cx.stroke();
-  cx.restore();
 }
 let statsCollapsed=false,statsLineIdx=0,telemetryOn=false,dynamicsOn=false,classOn=false,showRadii=false,statsFull='';
 function toggleRadii(){showRadii=!showRadii;const b=document.getElementById('rdb');if(b)b.textContent='Effect radii: '+(showRadii?'ON':'OFF');}
@@ -1576,7 +1569,7 @@ TUNE_DEFS.push({sec:'Time dilation & Risks',tab:'gameplay'},
  {key:'riskWarnMass',label:'Risk WARNING mass',min:1,max:5000,step:10,tip:'Points above this mass show a blinking WARNING (default: half the Dark Remnant formation mass)'},
  {key:'riskDangerMass',label:'Risk DANGER mass',min:1,max:400000,step:100,tip:'Points above this mass show DANGER'},
  {key:'cacheKeyR',label:'Cache keyhole pane R',min:6,max:40,step:1,tip:'Radius of the central keyhole glass pane of a Cache'});
-Object.assign(T,{masterVol:0.7,soundOn:0,mapHexSize:34,mapBurstRings:3,mapCollapseMs:1400,mapSourceGlow:1,mapTilt:32,mapPersp:1400,mapZoomMin:0.55,mapZoomMax:1.8,mapDucks:5,mapDuckRefl:0.4,mapDuckBumpV:0.35,mapDuckDunkMs:1300,mapZoom:1,mapAlpha:1,mapClearBlur:0.6,mapClearBleed:0.85,mapCovMin:0.25,mapCovFull:1,mapPrevFadeMs:450});
+Object.assign(T,{masterVol:0.7,soundOn:0,mapHexSize:34,mapBurstRings:3,mapCollapseMs:1400,mapSourceGlow:1,mapTilt:32,mapPersp:1400,mapZoomMin:0.55,mapZoomMax:1.8,mapDucks:5,mapBottleMs:90000,mapDuckRefl:0.4,mapDuckBumpV:0.35,mapDuckDunkMs:1300,mapZoom:1,mapAlpha:1,mapClearBlur:0.6,mapClearBleed:0.85,mapCovMin:0.25,mapCovFull:1,mapPrevFadeMs:450});
 TUNE_DEFS.push({sec:'Master volume',tab:'sounds'},{key:'masterVol',label:'Master volume',min:0,max:1,step:0.05,tip:'Overall volume (also in the Esc menu)'},
  {sec:'Surface Map — hex surface layer (drawn by the surface renderer: pixel map, blur passes and α all apply)',tab:'gameplay'},
  {key:'mapHexSize',label:'Hex size',min:20,max:90,step:1,tip:'Radius (px) of a Surface Map hex'},
@@ -1588,6 +1581,7 @@ TUNE_DEFS.push({sec:'Master volume',tab:'sounds'},{key:'masterVol',label:'Master
  {key:'mapZoomMin',label:'Map zoom out',min:0.3,max:1,step:0.05,tip:'Furthest the map zooms out (wheel or −)'},
  {key:'mapZoomMax',label:'Map zoom in',min:1,max:3,step:0.05,tip:'Closest the map zooms in (wheel or +)'},
  {key:'mapDucks',label:'Lake ducks',min:0,max:12,step:1,tip:'How many of your collected ducks swim in the open space around the map'},
+ {key:'mapBottleMs',label:'Bottle every ms',min:5000,max:600000,step:5000,tip:'About how long between messages in a bottle floating onto the lake (one at a time)'},
  {key:'mapDuckBumpV',label:'Duck bump speed',min:0.02,max:3,step:0.01,tip:'How fast the cursor must cross a lake duck (world px per ms) to send it puttering off; slower, it just spins where it is'},
  {key:'mapDuckDunkMs',label:'Duck dunk ms',min:300,max:4000,step:50,tip:'How long a clicked lake duck stays dunked before it pops back up'},
  {key:'mapDuckRefl',label:'Duck reflection',min:0,max:1,step:0.05,tip:'How strongly each lake duck is mirrored in the surface beneath it on the Surface Map (0 = no reflection)'},
@@ -6405,19 +6399,19 @@ function bondOf(p){return activeBonds.find(b=>b.chain.indexOf(p)!==-1)||null;} /
 function collectRemnant(c){
   c.inShape=!!bondOf(c.p);
   if(!c.free){ const hn=performance.now(); if(heatBlocked(hn))return false; // an overheated cursor collects nothing
-    if(_collHeatPress===mouseDownAt)heatAdd(1,hn);else _collHeatPress=mouseDownAt; } // (a String shot collecting costs no heat) the first object of a press is free; each further one adds heat, like a swipe
+    const pr=_collectFor?_collectFor.downAt:mouseDownAt;if(_collHeatPress===pr)heatAdd(1,hn);else _collHeatPress=pr; } // (a String shot collecting costs no heat) the first object of a press is free; each further one adds heat, like a swipe
   c.p._collected=true;if(blackHole)c.p._bhGone=true;lastCollectDoneAt=performance.now();discObj(c.p);
-  if(inventory[c.kind]>=invMaxFor(c.kind)){flashSaveStatus(INV_LABEL[c.kind]+' is full');return false;}
+  if(!_collectFor&&inventory[c.kind]>=invMaxFor(c.kind)){flashSaveStatus(INV_LABEL[c.kind]+' is full');return false;}
   for(let bi=activeBonds.length-1;bi>=0;bi--){const bd=activeBonds[bi];if(bd.chain.indexOf(c.p)!==-1)popBond(bd,bi);} // a node taken out breaks its Pattern / prism / knot; the other nodes drift free
   const idx=active.indexOf(c.p);if(idx>=0)active.splice(idx,1);
   pressedIDs.delete(c.p.id);if(lastActivatedId===c.p.id)lastActivatedId=-1;
   // Bright / Dim remnants are worth 10× their energy, rounded up (0.823 → 9, 0.0003 → 1); Neutron, Magnetic and Pulsing always count 1
-  const per=remnantValue(c.p,c.kind),got=boomBust(Math.min(per,Math.max(1,invMaxFor(c.kind)-inventory[c.kind]))); // (a Boom or Bust day: ×5 or nothing)
-  addInventory(c.kind,got);surfaceTally[c.kind]=(surfaceTally[c.kind]||0)+got;
+  const per=remnantValue(c.p,c.kind),got=_collectFor?per:boomBust(Math.min(per,Math.max(1,invMaxFor(c.kind)-inventory[c.kind]))); // (a Boom or Bust day: ×5 or nothing)
+  if(_collectFor)mpGot(c.kind,got);else{addInventory(c.kind,got);surfaceTally[c.kind]=(surfaceTally[c.kind]||0)+got;if(MP.live)MP.score.host+=got;} // a second player's pickup is theirs
   if(_batchSnd){}else if(collectHold&&collectSeen.size>1)playScaleStep();else{const cp=c.p.remKind?c.p:Object.assign({},c.p,{remKind:'brown'});_playRemnantActionSoundInner(cp,false,1);} // exactly the tuner's pickup sound for that remnant type
    // wiping up: a rising glissando links the pickups
   spawnCollectSparks(c.p); // the remnant's edge breaks into particles that gather inward and rise
-  earnFx.push({kind:'plus',x:c.p.x,y:c.p.y-14,text:INV_ICON[c.kind]+' +'+got,born:performance.now(),dur:1100});
+  earnFx.push({kind:'plus',x:c.p.x,y:c.p.y-14,text:(_collectFor?'Friend ':'')+INV_ICON[c.kind]+' +'+got,born:performance.now(),dur:1100});if(_collectFor)return true;
   {const nf=performance.now();if(collectFeed.kind===c.kind&&nf-collectFeed.t<1500){collectFeed.n++;collectFeed.got+=got;}else collectFeed={kind:c.kind,n:1,got,t:nf};collectFeed.t=nf;flashSaveStatus(INV_ICON[c.kind]+' collected '+collectFeed.n+' '+COLLECT_NAME[c.kind]+(collectFeed.n===1?'':'s')+' for '+collectFeed.got+' '+INV_LABEL[c.kind]);}
   return true;
 }
@@ -6461,10 +6455,9 @@ function handleCollectHold(now){
     collectHold=true;collectSeen.clear();
     collectSeen.add(downOnRemnant.p.id);collectRemnant(downOnRemnant);
   }
-  if(mouse.x<0||mouse.y<0||mouse.x>=W||mouse.y>=H)return;
-  const c=collectableAt(mouse.x,mouse.y);
-  if(c&&!collectSeen.has(c.p.id)){collectSeen.add(c.p.id);collectRemnant(c);}
+  collectUnder(mouse.x,mouse.y,collectSeen);
 }
+function collectUnder(x,y,seen){if(x<0||y<0||x>=W||y>=H)return;const c=collectableAt(x,y);if(c&&!seen.has(c.p.id)){seen.add(c.p.id);collectRemnant(c);}} // a collecting sweep takes what is under it, once each
 let levelCleared=false,clearInfo=null,totalActivations=0,levelStartTime=0,simulationStarted=false;
 let clearShift=null;
 function drawClearShift(ctx,now){
@@ -9707,8 +9700,10 @@ function handleInventoryPaint(now){
 function handleHeldActivation(now){
   if(heatBlocked(now))return;
   if(blackHole||collectHold||!mouseDown||uiPress||overUI||pressConsumed||conMode||!dragMode||createActive()||armedInvItem)return;
-  if(mouse.x<0||mouse.y<0||mouse.x>=W||mouse.y>=H)return;
-  const mx=mouse.x,my=mouse.y,R2=T.touchR*T.touchR;
+  heldActivateAt(mouse.x,mouse.y,heldSeen,now);}
+function heldActivateAt(mx,my,heldSeen,now){ // a held press sweeping at (mx,my): wakes the nearest thing under it not yet seen this press (the host's press, or a second player's)
+  if(mx<0||my<0||mx>=W||my>=H)return;
+  const R2=T.touchR*T.touchR;
   // A point is 'seen' only while the cursor stays over it. Once the cursor has left its ring the mark is dropped, so a
   // point that was snaked off the active list (max-active cap) — or otherwise deactivated — can be picked up again
   // on the next pass of the same held click. (Marks still stop a point being re-picked every frame while under the cursor.)
@@ -11952,7 +11947,7 @@ function drawSymbolFor(cx,x,y,cR,sp,holdT){
   cx.restore();
 }
 function computeHoverAndCursor(now){
-  syncCursorCanvas();curCtx.clearRect(0,0,W,H);
+  syncCursorCanvas();curCtx.clearRect(0,0,W,H);mpDrawGuest(curCtx,now); // (a friend's cursor, whatever yours is doing)
   const mouseInBounds=mouse.x>0&&mouse.x<W&&mouse.y>0&&mouse.y<H;
   heatTick(now);const heatLocked=heat.until>now; // overheated: the cursor drops to its idle look until the cooldown has run out
   let hoverObj=(mouseInBounds&&!overUI&&!heatLocked)?findHoverObject(mouse.x,mouse.y):null;
@@ -12036,7 +12031,7 @@ function computeHoverAndCursor(now){
     cursorTrailRecord(mouse.x,mouse.y,now,!overUI&&mouseInBounds);cursorBase(cx,mouse.x,mouse.y,cR,dimA,tintK,edgeCol,cLw); // (shared.js: the same cursor, and its trail, on the Surface Map)
     if(itemRing){const ac0=armedCursorRGB();drawItemRing(cx,mouse.x,mouse.y,cR,armedInvItem.kind,armedInvItem.effect||0,`${ac0.r|0},${ac0.g|0},${ac0.b|0}`,dimA,cLw,now,Math.max(0,holdT));}
     else cursorRing(cx,mouse.x,mouse.y,cR,dimA,edgeCol,cLw);
-    drawHeatArc(cx,mouse.x,mouse.y,cR,now); // heat (or the cooldown draining) runs round the inside of the ring
+    drawHeatArc(cx,mouse.x,mouse.y,cR,now,heat); // heat (or the cooldown draining) runs round the inside of the ring
     // Center dot, with its own small glow
     if(!itemRing)cursorDot(cx,mouse.x,mouse.y,dimA,edgeCol);
     if(hoverObj){const hi=buildInfoFor(hoverObj,now);if(hi.scale>0){cx.beginPath();cx.arc(mouse.x,mouse.y,Math.max(0,hi.curR),0,6.2832);cx.strokeStyle=`rgba(${hi.r},${hi.g},${hi.b},${(hi.scale*10|0)/100})`;cx.lineWidth=0.75;cx.stroke();}}
@@ -13589,7 +13584,7 @@ function loop(now){rafId=null;_batchSnd=false;audioCallsThisFrame=0;revalidateUI
     const dtm=lastLoopNow?Math.min(100,now-lastLoopNow):0;lastLoopNow=now;
     if(conMode)conLevel=Math.min(1,conLevel+dtm/Math.max(1,T.pauseStopMs));
     else if(conLevel>0)conLevel=Math.max(0,conLevel-dtm/Math.max(1,T.pauseResumeMs));
-  }if(prevArmed&&!armedInvItem&&mouseDown&&!uiPress)pressConsumed=true; /* the held item just ran out: this press is spent */ const ts=updateTimeScale(now);syncParticleMapToPause();updateKeyFx(now);handleCollectHold(now);handleHoldCharge(now);try{handleDialHold(now);handleItemHold(now);}catch(err){console.error(err);try{endItemHold();}catch(e2){}}handleHeldActivation(now);flushDialCollects();handleInventoryPaint(now);prevArmed=!!armedInvItem;syncActivationSounds();const _t0=performance.now();try{step(now,ts);}catch(err){console.error(err);}const _t1=performance.now();try{draw(now);}catch(err){console.error(err);}const _t2=performance.now(); /* an error in one frame can never stop the loop again */perfStep+=((_t1-_t0)-perfStep)*0.1;perfDraw+=((_t2-_t1)-perfDraw)*0.1;perfRecord(now,_t1-_t0,_t2-_t1);if(visible&&!hubAsleep)rafId=requestAnimationFrame(loop);}
+  }if(prevArmed&&!armedInvItem&&mouseDown&&!uiPress)pressConsumed=true; /* the held item just ran out: this press is spent */ const ts=updateTimeScale(now);syncParticleMapToPause();updateKeyFx(now);handleCollectHold(now);handleHoldCharge(now);try{handleDialHold(now);handleItemHold(now);}catch(err){console.error(err);try{endItemHold();}catch(e2){}}handleHeldActivation(now);mpTick(now);flushDialCollects();handleInventoryPaint(now);prevArmed=!!armedInvItem;syncActivationSounds();const _t0=performance.now();try{step(now,ts);}catch(err){console.error(err);}const _t1=performance.now();try{draw(now);}catch(err){console.error(err);}const _t2=performance.now(); /* an error in one frame can never stop the loop again */perfStep+=((_t1-_t0)-perfStep)*0.1;perfDraw+=((_t2-_t1)-perfDraw)*0.1;perfRecord(now,_t1-_t0,_t2-_t1);if(visible&&!hubAsleep)rafId=requestAnimationFrame(loop);}
 window.rebuild=rebuild;window.toggleTrails=toggleTrails;
 // ═════════════════════════ LIVE SCENES ═════════════════════════
 // The Encyclopedia embeds a copy of this very game (same code, same physics, same effects) in a small frame and scripts a tiny world in it.
@@ -13892,6 +13887,7 @@ function rulesDraw(cv,k){
     case 'dark':glow(m,m,S*0.45,'rgba(90,90,110,0.5)');c.fillStyle=inv?'#223':'#000';c.beginPath();c.arc(m,m,S*0.24,0,6.2832);c.fill();c.strokeStyle=rulesCol(60,60,70);c.lineWidth=2;c.stroke();break;
     case 'relic':{c.fillStyle=rulesCol(190,225,255);const h3=S*0.12;c.fillRect(m-h3,m-h3,2*h3,2*h3);c.strokeStyle='rgba(255,150,95,0.7)';c.lineWidth=2.4;c.shadowColor='rgb(255,150,95)';c.shadowBlur=8;c.strokeRect(m-h3-5,m-h3-5,2*h3+10,2*h3+10);c.shadowBlur=0;break;}
     case 'barrier':c.fillStyle=inv?'#889':'#c8ccd8';c.fillRect(S*0.12,m-4,S*0.76,8);break;
+    case 'bottle':drawBottle(c,m,m,S*0.42,-0.5,performance.now(),0);break;
     case 'glass':c.fillStyle=eff(3).replace('rgb','rgba').replace(')',',0.45)');c.fillRect(S*0.16,S*0.16,S*0.68,S*0.68);c.strokeStyle=inv?'#889':'#c8ccd8';c.lineWidth=3;c.strokeRect(S*0.16,S*0.16,S*0.68,S*0.68);break;
     case 'gate':case 'crate':case 'plate':case 'case':case 'cache':{
       c.strokeStyle=k==='crate'?'#a07040':(inv?'#889':'#c8ccd8');c.lineWidth=4;c.strokeRect(S*0.14,S*0.14,S*0.72,S*0.72);
@@ -13971,11 +13967,12 @@ function cardHTML(ev,mini){ // the one card format: name bar, art box, type line
   return `<div class="mtg${mini?' sm':''}" data-ev="${ev.id}" style="--rc:${TIER_COL[t]}"><div class="nm"><b>${gEsc(ev.name)}</b><span class="gem"></span></div><div class="art" data-scene="${ev.scene}">${mini?`<canvas class="rl-m" width="64" height="64" data-k="${ev.ico}"></canvas>`:''}</div><div class="ty"><span>${gEsc(ev.type.replace(/^Event — /,''))}</span><span>Tier ${TIER[t]}</span></div><div class="tx">${ev.facts().map(f=>`<p>${gEsc(f)}</p>`).join('')}<p class="fl">${gEsc(ev.flavor)}</p></div></div>`;
 }
 function mountScene(h,w,hh){if(!h||h.firstChild||document.querySelectorAll('.rl-live iframe,.mtg .art iframe').length>=5)return;const f=document.createElement('iframe'),nm=h.dataset.s||h.dataset.scene;f.style.cssText='border:0;max-width:100%;pointer-events:none;background:#000;border-radius:6px;'+(w?`width:${w}px;height:${hh}px`:'width:100%;height:100%');
-  if(nm.slice(0,4)==='hub:')f.src='Surface_Map_HUB.html?v=20261102zn&scene='+nm.slice(4)+'&T='+encodeURIComponent(JSON.stringify(mapSceneT()));else f.srcdoc=liveSrc(nm);h.appendChild(f);} // a Surface Map demo is played by the map itself
+  if(nm.slice(0,4)==='hub:')f.src='Surface_Map_HUB.html?v=20261103a&scene='+nm.slice(4)+'&T='+encodeURIComponent(JSON.stringify(mapSceneT()))+'&D='+encodeURIComponent(JSON.stringify(Object.fromEntries(Object.entries(DUCK_TYPES).slice(0,4))));else f.srcdoc=liveSrc(nm);h.appendChild(f);} // a Surface Map demo is played by the map itself
 function mapSceneT(){const o={};for(const k in T)if(/^(map|bh|duck|wake|glass|metal|dimGlow|glowHalo|maxSpeed)/.test(k))o[k]=T[k];return o;} // what a map demo needs of the tuners
 function showCardHTML(html){ // a Guide card (an entry or a shop) opened over the Guide, where an event card shows
   guideCSS();_evOpen=true;_evReview=true;const ov=evOverlayEl();ov.innerHTML=`<div class="ev-box">${html}<button id="evOk">Close</button></div>`;ov.style.display='flex';wrap.classList.add('ev-open');
-  ov.querySelectorAll('canvas.rl-m').forEach(cv=>rulesDraw(cv,cv.dataset.k));applyDisc();rulesRemount();document.getElementById('evOk').onclick=()=>closeEventCard();}
+  ov.querySelectorAll('canvas.rl-m').forEach(cv=>rulesDraw(cv,cv.dataset.k));applyDisc();rulesRemount();document.getElementById('evOk').onclick=()=>closeEventCard();
+  ov.querySelectorAll('.ctabs span').forEach(t=>t.onclick=()=>{ov.querySelectorAll('.ctabs span').forEach(x=>x.classList.toggle('on',x===t));ov.querySelectorAll('.clist').forEach(l=>l.style.display=l.dataset.t===t.dataset.t?'':'none');});} // a shop card's currency tabs
 function evOverlayEl(){let ov=document.getElementById('evOverlay');
   if(!ov){ov=document.createElement('div');ov.id='evOverlay';wrap.appendChild(ov);for(const t of ['mousedown','mouseup','click','dblclick'])ov.addEventListener(t,e=>e.stopPropagation());ov.addEventListener('contextmenu',e=>{e.stopPropagation();e.preventDefault();});ov.addEventListener('wheel',e=>e.stopPropagation(),{passive:true});}
   return ov;}
@@ -13996,9 +13993,10 @@ function shopCardHTML(k,mini){const S=SHOPS[k],seen=evSeen('shop_'+k),t=S.street
   if(!seen)return mini?shopBackHTML(k):'';
   const how=S.street?(S.open<=0&&S.close>=27?'Open all day':'Open '+(['Twilight','Dawn','Morning','Noon','Afternoon','Dusk','Night','Midnight'][S.open/3-1]||'')+' – '+(['Twilight','Dawn','Morning','Noon','Afternoon','Dusk','Night','Midnight'][S.close/3-1]||''))+' · on main street, round the source'
     :'A pop-up: opens on a cleared surface that collected '+S.cur+' (rank 1 at '+f(T[shopTK(S.cur)+1])+', rank 2 at '+f(T[shopTK(S.cur)+2])+', rank 3 at '+f(T[shopTK(S.cur)+3])+'). A bigger rank carries more.';
-  const items=SHOP_ITEMS.filter(i=>i.shop===k).map(i=>`<div class="si" data-disc="si_${i.id}"><span>${gEsc(i.n)}${S.street?'':' <i>(rank '+i.r+')</i>'}</span><b>${f(i.cost)} ${i.cur}</b></div>`).join('');
+  const its=SHOP_ITEMS.filter(i=>i.shop===k),cu=i=>i.fx.souv?'souvenirs':KIND_NAME[i.cur]||i.cur,curs=[...new Set(its.map(cu))]; // a tab for each thing it takes
+  const items=(curs.length>1?'<div class="ctabs">'+curs.map((c,j)=>`<span class="${j?'':'on'}" data-t="${j}">${gEsc(c)}</span>`).join('')+'</div>':'')+curs.map((c,j)=>`<div class="clist" data-t="${j}"${j?' style="display:none"':''}>`+its.filter(i=>cu(i)===c).map(i=>`<div class="si" data-disc="si_${i.id}"><span>${gEsc(i.n)}${S.street?'':' <i>(rank '+i.r+')</i>'}</span><b>${f(i.cost)}</b></div>`).join('')+'</div>').join('');
   const art=mini?`<img class="sign" src="shops/sign_${k}.svg" alt="">`:`<div class="art-live" data-scene="hub:shops"></div>`;
-  return `<div class="mtg${mini?' sm':' full'}" data-shop="${k}" style="--rc:${TIER_COL[t]}"><div class="nm"><b>${gEsc(S.n)}</b><span class="gem"></span></div><div class="art">${art}</div><div class="ty"><span>Shop · ${S.street?'main street':'pop-up'}</span><span>Tier ${TIER[t]}</span></div><div class="tx"><p>${gEsc(S.tag)}</p>${mini?'':`<p>${gEsc(how)}</p><p><b>Sells</b> (each found by discovery):</p>${items}`}</div></div>`;}
+  return `<div class="mtg${mini?' sm':' full'}" data-shop="${k}" style="--rc:${TIER_COL[t]}"><div class="nm"><b>${gEsc(S.n)}</b><span class="gem"></span></div><div class="art">${art}</div><div class="ty"><span>Shop · ${S.street?'main street':'pop-up'}</span><span>Tier ${TIER[t]}</span></div><div class="tx"><p>${gEsc(S.tag)}</p>${mini?'':`<p>${gEsc(how)}</p><p>${gEsc(S.about||'')}</p><p><b>Sells</b> (each found by discovery):</p>${items}`}</div></div>`;}
 function closeEventCard(){
   const ov=document.getElementById('evOverlay');if(ov){ov.querySelectorAll('iframe').forEach(f=>f.remove());ov.style.display='none';}
   wrap.classList.remove('ev-open');_evOpen=false;_evHand=[];
@@ -14054,9 +14052,9 @@ function mapDrawNode(c,id,x,y,now,known,inv,label){ // one thing on the Taxonomy
   c.save();c.translate(x,y);
   if(!known){c.fillStyle='rgba(128,128,128,.35)';c.beginPath();c.arc(0,0,14,0,6.2832);c.fill();c.fillStyle=inv?'#555':'#aaa';c.font='13px monospace';c.textAlign='center';c.fillText('?',0,5);c.restore();return;}
   const q=ucol(((Math.floor(now/2200)+id.length)%6)/6,1,0.5),rgb=`${q.r|0},${q.g|0},${q.b|0}`,wh=invStr(255,255,255),pl=Math.sin(now/300),rem=taxoRemnant(id);
-  if(rem){rem.x=0;rem.y=0;rem.rotation=(rem.rotation||0)+0.01;const k=({neutron:0.75,dim:1.1,dimrelic:1.1})[id]||1.8;c.scale(k,k); // (each at a size that reads beside the others)
+  if(rem){rem.x=0;rem.y=0;rem.rotation=(rem.rotation||0)+0.01;const k=({neutron:0.75,dim:1.1,dimrelic:1.1,pulsing:3.4})[id]||1.8;c.scale(k,k); // (each at a size that reads beside the others)
    const gc=c.globalCompositeOperation;drawRemnantGlyph(c,rem,now);c.globalCompositeOperation=gc;c.globalAlpha=1;}
-  else if(id==='particle'){c.fillStyle=`rgba(${rgb},0.85)`;c.fillRect(-8,-8,16,16);}
+  else if(id==='particle'){const g=c.createRadialGradient(0,0,0,0,0,15);g.addColorStop(0,`rgba(${rgb},0.95)`);g.addColorStop(0.45,`rgba(${rgb},0.6)`);g.addColorStop(1,`rgba(${rgb},0)`);c.fillStyle=g;c.beginPath();c.arc(0,0,15,0,6.2832);c.fill();} // soft and round, as the spill looks
   else if(id==='pigment'){glowGrad(c,0,0,6,3,rgb,0.6);c.fillStyle=`rgb(${rgb})`;c.beginPath();c.arc(0,0,6,0,6.2832);c.fill();c.strokeStyle=`rgba(${rgb},${(0.45+0.3*pl).toFixed(2)})`;c.beginPath();c.arc(0,0,15+2*pl,0,6.2832);c.stroke();}
   else if(id==='point'){glowGrad(c,0,0,7,4,rgb,0.6);glowGrad(c,0,0,7,2,wh,0.5);c.fillStyle=inv?'#000':'#fff';c.beginPath();c.arc(0,0,7,0,6.2832);c.fill();}
   else if(id==='dark')drawDarkRemnantAt(c,0,0,12,now,12/60,1);
@@ -14125,7 +14123,7 @@ function guideCSS(){
 .rl-math{margin:4px 0}.rl-mh{font-weight:bold;margin-top:6px}.rl-math ul,#mapInfo ul{margin:3px 0 3px 18px;padding:0}
 #rulesOverlay,#rulesOverlay *,#evOverlay,#evOverlay *{cursor:auto!important}#rulesOverlay button,#rulesOverlay .rl-h,#evOverlay button,.mtg.sm{cursor:pointer!important}
 #wrap.rules-open #cur,#wrap.ev-open #cur,#wrap.menu-open #cur{display:none!important}
-#rulesOverlay canvas.rl-m{position:static!important;display:block}
+#rulesOverlay canvas.rl-m,#evOverlay canvas.rl-m{position:static!important;display:block}
 #rlFind{width:100%;box-sizing:border-box;padding:8px 12px;border-radius:8px;border:1px solid rgba(128,128,128,.4);background:rgba(128,128,128,.12);color:inherit;font-size:14px;margin-bottom:8px}
 #mapCv{position:relative;left:auto;top:auto;width:100%;display:block;border-radius:8px;background:#05060a;touch-action:none}.lc{display:flex;gap:14px;align-items:flex-start}.lc-l{flex:1 1 auto;min-width:0}.lc-r{flex:0 0 450px;position:sticky;top:0;max-height:calc(100vh - 170px);overflow:auto}#mapInfo h3{margin:4px 0}#mapInfo .rl-live{margin:6px 0}@media (max-width:820px){.lc{flex-direction:column}.lc-r{flex-basis:auto;position:static;max-height:none;width:100%}}
 .mtg{width:300px;border-radius:14px;padding:8px;background:linear-gradient(#2c2618,#17130c);border:3px solid var(--rc,#8a7a4a);color:#eee;font-family:Georgia,serif;box-sizing:border-box;box-shadow:0 0 18px rgba(0,0,0,.6)}
@@ -14141,7 +14139,8 @@ function guideCSS(){
 #evOk{background:#2d6cdf;color:#fff;border:0;border-radius:8px;padding:8px 22px;font-size:15px}
 .rl-cards{display:flex;flex-wrap:wrap;gap:12px;align-items:flex-start}.rl-sec{margin:16px 0 8px;font-size:15px}.mtg.sm{cursor:pointer}.mtg.sm .tx p{margin:2px 0}
 .ev-box .mtg.full{width:min(440px,92vw)}.mtg.full .art{height:190px}.mtg .art-live{width:100%;height:100%}.mtg.full .tx{max-height:none}.mtg .tx .rl-live{display:block;min-width:0;width:100%;height:170px;min-height:0;margin:6px 0}
-.mtg .art img.sign{max-width:86%;max-height:86%;object-fit:contain}.mtg .art img.sign.hid{filter:brightness(0) drop-shadow(0 0 1px rgba(210,210,220,.75))}.mtg .tx .si{display:flex;justify-content:space-between;gap:8px}.mtg .tx .si b{font-weight:400}
+.mtg .art img.sign{max-width:86%;max-height:86%;object-fit:contain}.mtg .art img.sign.hid{filter:brightness(0) drop-shadow(0 0 1px rgba(210,210,220,.75))}.mtg .tx .si{display:flex;justify-content:space-between;gap:8px}.mtg .tx .si b{font-weight:400}.ctabs{display:flex;gap:4px;flex-wrap:wrap;margin:4px 0}.ctabs span{border:1px solid #0004;border-radius:4px;padding:0 6px;font-size:11px;cursor:pointer!important;opacity:.6}.ctabs span.on{opacity:1;background:#0001;border-color:#000a}
+#rulesOverlay .mtg.sm .tx{height:var(--smtx,auto);overflow:hidden}#rulesOverlay .mtg.sm.back{height:var(--smh,230px)}#rulesOverlay .mtg.sm{min-height:var(--smh,0)}.mtg.sm .nm b{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 #evOverlay .disc-lock{opacity:1!important;position:relative;min-height:28px;background:#000;border:1px dashed #555;border-radius:6px;overflow:hidden}#evOverlay .disc-lock>*{visibility:hidden}
 #evOverlay .disc-lock::after{content:'\\25A2  ' attr(data-cost) ' Dim';position:absolute;inset:0;display:flex;align-items:center;justify-content:center;color:#9aa;font:12px monospace}
 #rulesOverlay .disc-lock{opacity:1!important;position:relative;min-height:30px;background:#000;border:1px dashed #555;border-radius:8px;overflow:hidden}
@@ -14161,6 +14160,10 @@ function ruleCardHTML(e,mini){ // a Guide entry as a card: its name, art (a live
   const art=mini||!sc.length?`<canvas class="rl-m" width="${mini?64:120}" height="${mini?64:120}" data-k="${ico}"></canvas>`:`<div class="art-live" data-disc="${ids.ill}" data-scene="${sc[0]}"></div>`;
   return `<div class="mtg${mini?' sm':' full'}" data-rule="${id}" data-disc="${ids.base}" style="--rc:${TIER_COL[t]}"><div class="nm"><b>${gHi(e[2])}</b><span class="gem"></span></div><div class="art">${art}</div><div class="ty"><span>${gEsc(home)}</span><span>Tier ${TIER[t]}</span></div><div class="tx">${tx}</div></div>`;
 }
+function cardSize(ov){ // every small card the same size: its text box as tall as the longest of them all (every event, Guide entry and shop)
+  const m=document.createElement('div');m.style.cssText='position:absolute;left:-9999px;top:0;visibility:hidden;width:2000px';m.className='rl-cards';
+  m.innerHTML=EVENTS.map(e=>cardHTML(e,true)).join('')+RULES.map(e=>ruleCardHTML(e,true)).join('')+Object.keys(SHOPS).map(k=>shopCardHTML(k,true)).join('');ov.style.removeProperty('--smtx');ov.appendChild(m);
+  let h=0,ch=0;m.querySelectorAll('.mtg.sm:not(.back)').forEach(c=>{const t=c.querySelector('.tx');if(t)h=Math.max(h,t.offsetHeight);});ov.style.setProperty('--smtx',h+'px');m.querySelectorAll('.mtg.sm:not(.back)').forEach(c=>ch=Math.max(ch,c.offsetHeight));ov.style.setProperty('--smh',ch+'px');m.remove();}
 function rulesRemount(){document.querySelectorAll('#evOverlay .art-live,#evOverlay .rl-live,#mapInfo .art-live').forEach(h=>{if(!h.closest('.disc-lock')&&!h.classList.contains('disc-lock'))mountScene(h);});} // (an open card's demos, once discovered)
 function rulesRender(){
   const body=document.getElementById('rlBody');if(!body)return;guideCSS();
@@ -14179,13 +14182,13 @@ function rulesRender(){
       sec('How to play',cards(RULES.filter(e=>e[1]==='start')))+sec('How to clean up',cards(RULES.filter(e=>e[1]==='touch')))+
       sec('Events','<div class="ev-grid">'+EVENTS.map(ev=>evSeen(ev.id)?cardHTML(ev,true):ev.id.slice(0,5)==='shop_'?shopBackHTML(ev.id.slice(5)):'<div class="mtg sm back">?</div>').join('')+'</div>');
   } else if(_rulesTab==='shops'){
-    body.innerHTML='<p class="rl-note">Every shop: main street round the source, and the pop-ups a cleared surface can open. A shop you have not been in shows only the shape of its sign.</p><div class="rl-cards">'+Object.keys(SHOPS).map(k=>shopCardHTML(k,true)).join('')+'</div>'+sec('How shops work',cards(RULES.filter(e=>e[1]==='shops')));
+    body.innerHTML='<p class="rl-note">Main street round the source, and the pop-ups a cleared surface can open. A shop is discovered the first time it opens; until then only the shape of its sign shows.</p>'+sec('How shops work',cards(RULES.filter(e=>e[1]==='shops')))+sec('The shops','<div class="rl-cards">'+Object.keys(SHOPS).map(k=>shopCardHTML(k,true)).join('')+'</div>');
   } else if(_rulesTab==='book'){const f=_rulesFilter.trim().toLowerCase(),list=RULES.slice().sort((a,b)=>a[2].localeCompare(b[2])).filter(e=>!f||(e[2]+' '+e[4]+' '+e[5].map(r=>r[1]).join(' ')).toLowerCase().includes(f));
     body.innerHTML=`<input id="rlFind" type="search" placeholder="Find a word…" value="${_rulesFilter.replace(/"/g,'&quot;')}"><p class="rl-note">Every object, item and shape in the game, A to Z.</p>`+cards(list);
       const fi=document.getElementById('rlFind');fi.addEventListener('input',()=>{_rulesFilter=fi.value;const pos=fi.selectionStart;rulesRender();const n=document.getElementById('rlFind');n.focus();n.setSelectionRange(pos,pos);});
   } else body.innerHTML=(RULE_BLURB[_rulesTab]?`<p class="rl-note">${RULE_BLURB[_rulesTab]}</p>`:'')+cards(RULES.filter(e=>e[1]===_rulesTab))+(_rulesTab==='ducks'?duckCollectionHTML():'');
   body.querySelectorAll('canvas.rl-m').forEach(cv=>rulesDraw(cv,cv.dataset.k));duckPondMount();
-  applyDisc();
+  applyDisc();cardSize(ov);
   if(!_rulesLoop)_rulesLoop=requestAnimationFrame(rulesTick);body.scrollTop=0;
 }
 function rulesTick(now){if(!_rulesOpen){_rulesLoop=0;return;}if(_rulesTab==='map')mapDraw(now);if(_rulesTab==='ducks')duckPondDraw(now);_rulesLoop=requestAnimationFrame(rulesTick);}
@@ -14334,6 +14337,50 @@ function shopPick(i){const d=runState.draw,c=d&&d.cards[i];if(!c)return{ok:0,tex
   else{runState.bonus={id:c.id,item:c.item||null};if(c.id==='inf')for(const k of ['leash','dial','weave'])inventory[k]=k===c.item?invMaxFor(k):0;title=c.n;text=c.t+'.';}
   saveInventory();updateInventoryUI();applyDisc();return{ok:1,title,text,good:d.kind!=='fortune'||!!c.good};}
 document.addEventListener('visibilitychange',()=>{if(document.hidden&&HUB&&hubLevel&&!hubAsleep)saveSession();}); // closing the tab mid-surface keeps it
+// ── Play together: a friend joins this surface from a link (join.html). Their browser shows this canvas as a video and sends their pointer;
+// here it shines and collects with the same shine caps (one Max shining for both), its own heat, and what it collects is theirs (it goes to their save) ──
+const MP={peer:null,conn:null,call:null,bc:null,id:null,score:{host:0,guest:0},sent:0};
+let _collectFor=null; // while a second player's pickup runs: that player
+const GUEST={x:-9999,y:-9999,down:false,downAt:0,downX:0,downY:0,drag:false,downOn:null,hold:false,seen:new Set(),cseen:new Set(),mine:new Set(),heat:{v:0,disp:0,until:0,dur:1,needNew:false,last:0},at:0};
+function mpSend(o){try{if(MP.conn&&MP.conn.open)MP.conn.send(o);else if(MP.bc)MP.bc.postMessage(o);}catch(e){}}
+function mpLink(){return new URL('join.html?room='+encodeURIComponent(MP.id)+(MP.bc?'&net=bc':''),location.href).href;}
+function mpShow(t){const el=document.getElementById('gmLink');if(el){el.style.display='';el.innerHTML=t;}flashSaveStatus(String(t).replace(/<[^>]+>/g,' '));}
+function mpHost(){ // starts hosting (once): a share link for a friend; ?net=bc plays over a BroadcastChannel instead (two tabs of this browser)
+  if(MP.id){mpShow(`Send your friend this link:<br><b>${gEsc(mpLink())}</b>`);try{navigator.clipboard.writeText(mpLink());}catch(e){}return;}
+  MP.id='il-'+Math.random().toString(36).slice(2,8);
+  if(new URLSearchParams(location.search).get('net')==='bc'||(window.parent!==window&&new URLSearchParams(window.parent.location.search).get('net')==='bc')){MP.bc=new BroadcastChannel('il-'+MP.id);MP.bc.onmessage=e=>mpOn(e.data);mpShow(`Waiting for your friend…<br><b>${gEsc(mpLink())}</b>`);return;}
+  mpShow('Opening a room…');const go=()=>{MP.peer=new Peer(MP.id);
+    MP.peer.on('open',()=>{mpShow(`Send your friend this link (copied):<br><b>${gEsc(mpLink())}</b>`);try{navigator.clipboard.writeText(mpLink());}catch(e){}});
+    MP.peer.on('error',e=>mpShow('Could not open a room ('+gEsc(e.type||e)+')'));
+    MP.peer.on('connection',c=>{if(MP.conn&&MP.conn.open){c.close();return;}MP.conn=c;c.on('data',mpOn);c.on('open',()=>{mpJoined();try{MP.call=MP.peer.call(c.peer,canvas.captureStream(30));}catch(e){}});c.on('close',mpLeft);});};
+  if(window.Peer)go();else{const sc=document.createElement('script');sc.src='https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js';sc.onload=go;sc.onerror=()=>mpShow('Could not load the connection library');document.head.appendChild(sc);}}
+function mpJoined(){MP.live=true;MP.score={host:0,guest:0};mpShow('Your friend is here. Shine together; what each of you collects is your own.');mpSend({t:'hi',W,H});}
+function mpLeft(){MP.live=false;MP.conn=null;GUEST.x=-9999;GUEST.down=false;mpShow('Your friend left. The link still works.');}
+function mpGot(kind,n){MP.score.guest+=n;mpSend({t:'got',kind,n});}
+function mpOn(m){ // the friend's pointer (x, y as fractions of this surface)
+  if(!m||!m.t)return;const now=performance.now(),x=m.x*W,y=m.y*H;
+  if(m.t==='join'&&MP.bc){mpJoined();return;}if(m.t==='bye'){mpLeft();return;}
+  if(m.t==='move'){GUEST.x=x;GUEST.y=y;GUEST.at=now;if(GUEST.down&&!GUEST.drag&&Math.hypot(x-GUEST.downX,y-GUEST.downY)>DRAG_DEADZONE&&now-GUEST.downAt>DRAG_HOLD_MS){GUEST.drag=true;GUEST.seen.clear();}}
+  else if(m.t==='down'){GUEST.x=x;GUEST.y=y;if(levelCleared||blackHole)return;if(GUEST.heat.needNew&&now>=GUEST.heat.until)GUEST.heat.needNew=false;
+    Object.assign(GUEST,{down:true,downAt:now,downX:x,downY:y,drag:false,hold:false});GUEST.seen.clear();GUEST.cseen.clear();GUEST.downOn=collectableAt(x,y);}
+  else if(m.t==='up'){if(!GUEST.down)return;GUEST.down=false;if(GUEST.hold||GUEST.drag||levelCleared||blackHole||x<0||y<0||x>=W||y>=H)return;
+    const c=collectableAt(x,y);if(c&&c.kind)mpAs(()=>collectRemnant(c));else mpAs(()=>{activateAt(x,y,now,true);if(lastActivatedId>=0)GUEST.mine.add(lastActivatedId);});}
+  else if(m.t==='rclick'){for(const id of GUEST.mine)pressedIDs.delete(id);for(const p of active)if(GUEST.mine.has(p.id))p.touchStart=-1;GUEST.mine.clear();} // puts out only what they lit
+}
+function mpAs(fn){_collectFor=GUEST;try{return withHeat(GUEST.heat,fn);}finally{_collectFor=null;}}
+function mpTick(now){ // each frame: the friend's held press (wiping and mopping, or a collecting sweep), their heat, and what they need to draw
+  if(!MP.live)return;withHeat(GUEST.heat,()=>heatTick(now));
+  if(GUEST.down&&!blackHole&&!levelCleared){
+    if(GUEST.downOn){if(!GUEST.hold&&(GUEST.drag||now-GUEST.downAt>=HOLD_CHARGE_DELAY_MS)){GUEST.hold=true;GUEST.cseen.add(GUEST.downOn.p.id);mpAs(()=>collectRemnant(GUEST.downOn));}if(GUEST.hold)mpAs(()=>collectUnder(GUEST.x,GUEST.y,GUEST.cseen));}
+    else if(GUEST.drag)mpAs(()=>{if(!heatBlocked(now)){const n0=lastActivatedId;heldActivateAt(GUEST.x,GUEST.y,GUEST.seen,now);if(lastActivatedId!==n0&&lastActivatedId>=0)GUEST.mine.add(lastActivatedId);}});}
+  if(now-MP.sent>33){MP.sent=now;const st={t:'st',hx:mouse.x/W,hy:mouse.y/H,heat:{disp:GUEST.heat.disp,until:GUEST.heat.until-now,v:GUEST.heat.v},score:MP.score,cleared:levelCleared};
+    if(MP.bc&&now-(MP.frameAt||0)>120){MP.frameAt=now;try{st.frame=canvas.toDataURL('image/jpeg',0.5);}catch(e){}} // (two tabs: frames instead of a video)
+    mpSend(st);}}
+function mpDrawGuest(cx,now){ // the friend's cursor over this surface: a gold ring with their heat, and the score
+  if(!MP.live)return;
+  if(GUEST.x>=0&&now-GUEST.at<4000){const R=(T.cursorBaseR||8)*1.1;cx.save();cx.strokeStyle='rgba(255,205,90,0.9)';cx.lineWidth=2;cx.beginPath();cx.arc(GUEST.x,GUEST.y,R,0,6.2832);cx.stroke();
+    cx.fillStyle='rgba(255,205,90,0.9)';cx.font='10px system-ui';cx.textAlign='center';cx.fillText('Friend',GUEST.x,GUEST.y-R-4);cx.restore();drawHeatArc(cx,GUEST.x,GUEST.y,R,now,GUEST.heat);}
+  cx.save();cx.font='12px system-ui';cx.textAlign='right';cx.fillStyle='rgba(255,255,255,0.75)';cx.fillText('You '+fmtCount(MP.score.host)+' · Friend '+fmtCount(MP.score.guest),W-12,H-12);cx.restore();}
 // ── Pause menu (Esc) ──
 function syncGameMenu(){
   const m=document.getElementById('gameMenu');if(!m)return;const q=s=>m.querySelector(s);
@@ -14361,6 +14408,7 @@ function openGameMenu(){
 <div class="gl">Sound</div><div class="row"><button id="gmSnd"></button><input id="gmVol" type="range" min="0" max="1" step="0.05" title="Volume"></div>
 <div class="gl">Readouts</div><div class="row"><button id="gmTel" data-disc="mode_telemetry">Telemetry</button><button id="gmRisk">Risks</button><button id="gmDyn" data-disc="mode_dynamics">Dynamics</button><button id="gmCls" data-disc="mode_class">Class</button><button id="gmRad" data-disc="mode_radii">Radii</button></div>
 <div class="gl">Help</div><button id="gmGuide" data-disc="slot_guide">Guide</button>
+<div class="gl">Play together</div><button id="gmInvite">Invite a friend</button><div id="gmLink" style="display:none;font-size:11px;line-height:1.4;word-break:break-all"></div>
 <div class="gl">Leave</div>${HUB?'<button id="gmMap">Quit to the Surface Map (saves this surface)</button>':''}<button id="gmMain">Quit to main menu${HUB?' (saves this surface)':''}</button>
 <div class="gl" style="text-transform:none;letter-spacing:0">~ hides the panels · H also works</div></div>`;
     wrap.appendChild(m);
@@ -14370,7 +14418,7 @@ function openGameMenu(){
     on('gmResume',closeGameMenu);on('gmSnd',()=>setSound(audioMuted));
     m.querySelector('#gmVol').addEventListener('input',e=>setSound(true,e.target.value));
     on('gmTel',()=>toggleReadout('tel'));on('gmRisk',()=>toggleReadout('risk'));on('gmDyn',()=>toggleReadout('dyn'));on('gmCls',()=>toggleReadout('cls'));on('gmRad',()=>toggleReadout('rad'));
-    on('gmGuide',openRules);on('gmMain',()=>quitTo('main'));if(HUB)on('gmMap',()=>quitTo('map'));
+    on('gmGuide',openRules);on('gmInvite',mpHost);on('gmMain',()=>quitTo('main'));if(HUB)on('gmMap',()=>quitTo('map'));
   }
   m.style.display='flex';wrap.classList.add('menu-open');releaseMouseDown(performance.now());uiPress=false;syncGameMenu();applyDisc();
 }
@@ -14382,6 +14430,7 @@ function closeGameMenu(){
 RULE_TAB_COST.surf=5;
 RULE_BLURB.surf='The map of surfaces. Every hex is a spill to clean up.';
 RULES.push(
+["together","start","Play together","dim","Esc, then Invite a friend: a link is copied for you to send. Your friend opens it and plays on your surface with you.",[["Shining","You share the same shine cap (Max shining): whatever either of you lights counts toward it."],["Heat","Each of you has your own heat."],["Collecting","Whatever your friend collects goes to their own save; whatever you collect is yours. The score shows both."],["Their right-click","Puts out only what they lit."],["Connection","Your two browsers talk directly; a free public service only introduces them. Some strict networks block it."]]],
 ["menu","start","Pause menu (Esc)","dim","Esc pauses and opens the menu. ~ (or H) hides the panels.",[["Sound","Turn sound on or off and set the volume."],["Readouts","Switch telemetry, risks, dynamics, class and effect radii."],["Guide","Opens this guide."],["Leave","Quit to the Surface Map or the main menu. An unfinished surface is saved exactly as it is."]]],
 ["hubmap","surf","Surface Map","particle","A map of hexes around a white source. Every hex is a surface covered in spilled particles.",[["Start","At Twilight the source bursts out three rings, every hex at 1.00. You stand beside it."],["Particle layer","An uncleared hex shows the particles still on it, one pattern running on across the hexes. The more value a hex holds, the more of it is covered."],["Value","The open hexes share what the source put out. Locked hexes (next to a bright clear) keep theirs."],["Saved","The map is saved as you go. New map starts the map again but keeps every item you have."]]],
 ["hubtime","surf","Time of day","nova","Every move is one time of day (clearing a surface takes none).",[["The day","Twilight, Dawn, Morning, Noon, Afternoon, Dusk, Night, Midnight: eight turns. Midnight is the last."],["Next day","After Midnight the rings fall back into the source one by one, faster each time, it flashes and bursts out again: a new day at Twilight. Days count your attempts."],["Day log","Each day is logged: how it ended (Bright collapse, Dark collapse, or neither at Midnight) and how many bright and dark hexes you cleared."],["Free","A String move takes no time."]]],
@@ -14389,28 +14438,29 @@ RULES.push(
 ["hubmove","surf","Moving","pnt","Click a neighbouring hex to move there. Each move takes one time of day.",[["Spread","A new ring of hexes is added and the value is shared out again."],["Abandon","Moving away from an unfinished surface throws it away."],["Pass through","You can move through cleared hexes in a straight line."]]],
 ["hubclear","surf","Clearing a hex","nova","Clean a surface and its hex is captured.",[["Bright","Cleared the normal way, the hex turns white and locks its neighbours. Clearing takes no time: only a move does."],["Dark","Cleared by a Dark Remnant, the hex keeps its Dark Remnant. It locks nothing and takes no time, but the spill cannot spread past it."],["Return","Right-click the SURFACE CLEARED box to return to the map."]]],
 ["hubmerge","surf","Merges","dark","Captured hexes that touch can merge.",[["Triangle","3 touching captured hexes: one ring less."],["Three Dark","3 touching Dark Remnant hexes swirl together into one great Dark Remnant: three rings less."],["Hexagon","7 captured hexes (a centre and its ring): three rings less."]]],
-["hubitems","surf","Items on the map","leash","Some items work on the map too (the dock at the bottom).",[["Spindle","Unwinds a cleared hex back to an open surface; the value spreads over one more hex. A great Dark Remnant takes 3."],["String","Move straight to any hex: 1 String per hex of distance, and no time passes (a dim fortune makes it take one)."],["Weave","Joins bright hexes into a constellation (see Constellations)."]]],
+["hubitems","surf","Items on the map","leash","Some items work on the map too (the dock at the bottom).",[["Spindle","Unwinds a cleared hex back to an open surface; the value spreads over one more hex. A great Dark Remnant takes 3. On an open hex below 1.00 it winds it up to 1.00, held there until it is cleared."],["String","Move straight to any hex: 1 String per hex of distance, and no time passes (a dim fortune makes it take one)."],["Weave","Joins bright hexes into a constellation (see Constellations)."]]],
 ["hubconst","surf","Constellations","weave","Join bright hexes with a Weave: each time of day the constellation gives you one of its item.",[["Shapes","3 bright hexes: a Prism. 4: a Gate or a Knot. 5: a Key or a Lens."],["Crossing","A new constellation that crosses an older one breaks the older one. Any number can stand."],["Free moves","A String move takes no time, so it earns nothing."]]],
 ["hubring","surf","Full circle","nova","A whole ring of clears all of one kind (all bright or all dark) around the source ends the day early. The hexes inside can be any kind.",[["Collapse","The rings beyond it fall into the source one by one, faster each time, then a flash; the ring itself is used up and the value is shared over the open hexes inside. A report of the day follows, and a new day starts at Twilight with what you kept."],["Stars","A bright ring is a Bright Star; a dark ring, a Dark Star."],["The win","A full circle at ring 1 or 2, or every hex cleared, is a full collapse: everything falls in, the run is won and you return to the main menu. The days start over; your items and discoveries are kept."]]],
 ["hubdecay","surf","Decay","dim","When the value an open hex gets drops below 0.01, the oldest capture becomes a void.",[["Game over","No captures left to give up, no turns left, or no moves left."]]],
 ["hubdescend","surf","Descend","dark","Surround the centre with three triangle merges, then step into it.",[["Deeper","A new, deeper map begins. Your score and items come with you."]]],
 ["hublight","surf","Time of day light","nova","Ducks, their ripples, wakes and glows are lit by the time of day.",[["Day","Twilight cools, Dawn rises warm from one side, Noon is high and white, Dusk sets warm on the other, and Midnight is moonlight from overhead."],["Change","At each new hour the light moves round to it, as a hex's new picture eases in (Hex ease ms)."],["Surface","A surface's ducks are lit for the hour you entered it."]]],
 ["hublake","surf","The lake","duck:classic","Your ducks swim in the open water round the map.",[["Brush","Brush one slowly with the cursor and it spins where it is."],["Hit","Cross it fast and it putters off the way you pushed it (Duck bump speed)."],["Dunk","Click it: it sinks into the water, stays under a moment, then comes back up with a splash."]]],
+["hubbottle","surf","Message in a bottle","bottle","Now and then a corked bottle floats onto the lake, or bobs up out of it.",[["Brush","It rocks and drifts like a duck: brush it and it turns, hit it and it skims away."],["Open","Click it: the cork comes out and the letter inside is unrolled to read. Each one is a different letter, until you have read them all."],["Who","Someone else was here before you. Some of them wanted out; some of them left a tip."]]],
 ["hubview","surf","Looking round","particle","The map follows you, but you can look around.",[["Drag","Drag to look around. The source always stays in view."],["Right-click","Back to your hex (or puts an item you are holding down)."],["Modes","Telemetry shows each hex's value, coverage and ring; Stats shows the frame rate and the grid. ~ (or H) hides every panel."]]],
-["shopstreet","shops","Main street","sign:corner","Four shops stand round the source, always: the Corner Store, the Clock smith, XACT change and the Gift Shop.",[["Hours","Each is lit only while it is open: the Corner Store and the Gift Shop all day, the Clock smith Morning to Dusk, XACT change Dawn to Afternoon."],["Focus","The Clock smith brings the time of day into focus, the Corner Store your items."],["Gift Shop","Going in ends the run: everything is lost, and souvenirs bought from your last Bright are kept."]]],
-["shoppop","shops","Pop-ups","sign:bright","A cleared surface that collected enough of one thing opens a pop-up shop on its hex.",[["Ranks","Rank 1, 2 or 3 by how much (the shop's thresholds): the store's size, and how much of its list it carries."],["One of each","A shop that already stands cannot open again. A better rank moves it to the new clear and the old one is torn down; the hex it left may open another the next time of day."],["Order","First the Duck Shop, then the best-ranked exotic shop (a tie at random), then BRiGHT IDEAS, and last Dim's."],["Dark clears","A pop-up earned on a Dark Remnant clear opens in one of two spots in the source hex, as a new shop only."],["Never close","A pop-up stays while its clear lasts; a holiday (a dim fortune) opens none."]]],
-["shopcarn","shops","The Carnival","sign:dim","Dim's sells cards: you pick one to see what it gives.",[["Card of Secrets","50 Bright: one of three face-down cards; what it hides, an event or a Guide entry, is discovered for good."],["Fortune Telling","200 Bright: a good fortune named for a duck, or a dim one, 50 / 50, for the rest of the day."],["Daily Wonder","2,000 Bright, once a day: keep one of three bonuses, each with a catch, for today."]]],
-["shopluck","shops","Duck luck","sign:duck","The Duck Shop trades ducks, and luck.",[["Trades","Flip a Duck (1 duck), Exotic Duck (5 of one kind), Pick a Duck (99)."],["Luck Charm","+5% duck chance for today and +1% on your next drop; each one costs ×10 the last, back to 5,000 each day."],["Lucky Duck","1,000,000 Bright, for good: the base chances double and each miss adds 4%."],["Every miss","A Dark Remnant that is not a duck adds to the next one's chance, and a classic duck to the next exotic's, until one comes."]]]);
-Object.assign(RULE_EV,{hublight:'map',hublake:'duck',hubview:'map',shopstreet:'map',shoppop:'map',shopcarn:'map',shopluck:'map'});Object.assign(RULE_SCENES,{shopstreet:['hub:shops'],shoppop:['hub:shops']});
+["shopstreet","shops","Main street","sign:corner","Shops that stand round the source, always, from the first day.",[["Hours","Each keeps its own hours and is lit only while it is open. A closed shop can not be entered (a holiday, a dim fortune, closes them a time of day early)."],["Discovered","A shop is discovered the first time it opens: one open all day on the first morning, the others at the first hour they open."],["Its card","What each sells and does is on its own card below."]]],
+["shoppop","shops","Pop-ups","sign:bright","A cleared surface that collected enough of one thing opens a pop-up shop.",[["Ranks","Rank 1, 2 or 3 by how much it collected (each shop's thresholds): the store's size, and how much of its list it carries."],["One of each","A shop that already stands at that rank or better does not open again. A better rank moves it to the new clear and the old one is torn down."],["Order","When a clear earns more than one: first the Duck Shop, then the best-ranked exotic shop (a tie at random), then BRiGHT IDEAS, and last Dim's."],["Where","On its own bright hex. A Dark Remnant clear's pop-up opens on the nearest open bright hex, or a free spot in the source hex."],["Again","Every time of day, each cleared surface that earned a pop-up and has none open tries again: a hex a shop moved out of, a dark clear that found no room, a day it was a holiday."],["Stays","A pop-up stays while its clear lasts."]]],
+["shopbuy","shops","Buying","sign:xact","Click an open shop to see what it sells.",[["Tabs","A shop that takes more than one thing has a tab for each; your purse for the tab shows as a slot in the dock."],["Details","Point at an item to read about it in the feed."],["Kept","Upgrades are kept for good, and each item is discovered the first time you see it. Some things are once a day."],["Status","The panel beside a shop shows your purse, its caps, today's fortune and wonder, and the upgrades you own."]]]);
+Object.assign(RULE_EV,{hublight:'map',hublake:'duck',hubview:'map',shopstreet:'map',shoppop:'map',shopbuy:'map'});Object.assign(RULE_SCENES,{shopstreet:['hub:street'],shoppop:['hub:shops']});
 // ── a shop's event: the first time you go into it (its card then shows in the Guide, with what it sells) ──
 for(const k in SHOPS){const S=SHOPS[k];EVENTS.push({id:'shop_'+k,name:S.n,type:'Event — Shop',rar:S.street?'c':'u',scene:'hub:shops',ico:'sign:'+k,
-  facts:()=>[S.street?'A main street shop, round the source. It is lit only while it is open.':'A pop-up: a cleared surface that collected enough '+S.cur+' opened it.','See what it sells in the Guide (Shops); each item is found by discovery.'],flavor:S.tag});}
-Object.assign(RULE_EV,{hubmap:'map',hubtime:'map',hubcell:'map',hubmove:'map',hubclear:'map_clear',hubmerge:'map_merge',hubitems:'map',hubconst:'map_constellation',hubring:'map_ring',hubdecay:'map_decay',hubdescend:'map_descend'});
-Object.assign(RULE_SCENES,{hubmap:['hub:map'],hubcell:['surface'],hubclear:['hub:clear'],hubmerge:['hub:merge'],hubconst:['hub:constellation'],hubring:['hub:ring'],hubdecay:['hub:decay'],hubdescend:['hub:descend'],menu:['readouts']});
+  facts:()=>[S.street?'A main street shop, round the source, open for the first time. It is lit only while it is open.':'A pop-up, open for the first time: a cleared surface that collected enough '+S.cur+' opened it.',S.about||'','Its card is in the Guide (Shops).'],flavor:S.tag});}
+Object.assign(RULE_EV,{hubbottle:'map_bottle',hubmap:'map',hubtime:'map',hubcell:'map',hubmove:'map',hubclear:'map_clear',hubmerge:'map_merge',hubitems:'map',hubconst:'map_constellation',hubring:'map_ring',hubdecay:'map_decay',hubdescend:'map_descend'});
+Object.assign(RULE_SCENES,{hubmap:['hub:map'],hubtime:['hub:time'],hubcell:['surface'],hubmove:['hub:move'],hubclear:['hub:clear'],hubmerge:['hub:merge'],hubitems:['hub:items'],hubconst:['hub:constellation'],hubring:['hub:ring','hub:brightstar','hub:darkstar'],hubdecay:['hub:decay'],hubdescend:['hub:descend'],hublight:['hub:light'],hublake:['hub:lake'],hubview:['hub:view'],hubbottle:['hub:bottle'],menu:['readouts']});
 EVENTS.push(
  {id:'map',name:'The Surface Map',type:'Event — Surface Map',rar:'c',scene:'hub:map',ico:'particle',facts:()=>['Every hex is a surface spilled from the white source at its centre. Click your hex to enter it.','Clear it and the hex is yours. The day runs from Twilight to Midnight.'],flavor:'So many spills. So little time.'},
  {id:'map_clear',name:'Claimed',type:'Event — Surface Map',rar:'u',scene:'hub:clear',ico:'nova',facts:()=>['A cleared hex turns white, or keeps a dark remnant if a Dark Remnant cleared it.','Captured hexes next to each other can merge.'],flavor:'One clean surface. The map remembers.'},
  {id:'map_merge',name:'Merge',type:'Event — Surface Map',rar:'r',scene:'hub:merge',ico:'dark',facts:()=>['Three touching captures merged: the map shrinks by a ring.','Three Dark Remnants swirl into one great one and pull in three rings.'],flavor:'Many surfaces, one shape.'},
+ {id:'map_bottle',name:'Message in a Bottle',type:'Event — Surface Map',rar:'u',scene:'hub:bottle',ico:'bottle',facts:()=>['A bottle floated onto the lake with a letter rolled up inside.','Someone else was here. There are '+LETTERS.length+' letters to find.'],flavor:'Somebody, somewhere, hoped you would read this.'},
  {id:'map_decay',name:'Decay',type:'Event — Surface Map',rar:'u',scene:'hub:decay',ico:'dim',facts:()=>['Value ran too thin, so the oldest capture became a void.'],flavor:'Nothing stays clean forever.'},
  {id:'map_descend',name:'Descent',type:'Event — Surface Map',rar:'m',scene:'hub:descend',ico:'dark',facts:()=>['You stepped into the centre. A deeper map begins.'],flavor:'Under every surface, another.'},
  {id:'map_constellation',name:'Constellation',type:'Event — Surface Map',rar:'u',scene:'hub:constellation',ico:'weave',facts:()=>['A Weave joined bright hexes into a constellation.','Each time of day it gives you one of its item. A newer one crossing it breaks it.'],flavor:'Light, drawn between lights.'},

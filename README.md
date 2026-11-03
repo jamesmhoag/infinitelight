@@ -11,6 +11,7 @@ Served as a static site (GitHub Pages: Settings → Pages → Deploy from branch
 | `TitleSplash.html` | Title screen: Continue / Start (New map) / Guide (discovered first), sound |
 | `Surface_Map_HUB.html` | The Surface Map: a 3D scene (the hex grid drawn as its ground, a tilting, zooming camera, your ducks swimming round it), day clock, map save, Esc menu |
 | `chromatic_nebula.html` | The surface (one level). Runs on its own, or inside the map / title screen with `?hub=1` |
+| `join.html` | Play together: a friend's surface, shown as it plays there; your pointer shines and collects on it |
 | `shared.js` | What the surface and the Surface Map draw the same way — the Dark Remnant's glow, the bow wake, and the rubber duck: its baked meshes and markings (`DUCK_MESH`) and its WebGL renderer (onto a 2D canvas, or straight into a 3D scene) |
 | `shops/` | Shop art (SVG): buildings (`bld_s` small / main street, `bld_s_dark` Gift Shop, `bld_m` medium, `bld_l` large, `bld_t` tall, unused), the glass behind their windows (`glass_*`, white so each shop tints it) and the signs (`sign_<shop>`). The shops themselves, their hours and what they sell are `SHOPS` / `SHOP_ITEMS` in `shared.js` |
 | `tools/build_duck_meshes.js` | Bakes the two 3D duck meshes (classic, Big Head) and the duck markings texture into `shared.js`, from `tools/Duck_Sheet.svg` (vector views: crisp markings, a lighter mesh, lines and eyes shaded by bump) or, with `DUCK_STRIP=tools/duck_strip.png`, the old pixel strip. First `cd tools && npm install` (SVG rendering), then `node tools/build_duck_meshes.js` after changing the drawing or the pipeline |
@@ -18,19 +19,23 @@ Served as a static site (GitHub Pages: Settings → Pages → Deploy from branch
 **New nebula versions must keep the name `chromatic_nebula.html`** — the map and title screen load it by that name. When you replace it, bump the `&v=` number on its `<iframe>` in `Surface_Map_HUB.html` and `TitleSplash.html` so browsers fetch the new copy instead of a cached one.
 
 ## The Guide
-Every entry is a card in one format (name, a live demo, page and Tier I–V, then its details and live math, each behind its own discovery). Pages: **Discoveries** (how to play, how to clean up, and the events witnessed), **Taxonomy** (every kind of thing and what it becomes, drawn with the game's own glyphs; its cards below), Items, Shapes, Surface Map, **Shops** (each shop's card, only its sign's shape until you have been in; what it sells behind each item's discovery), Ducks, Glossary, Status. Going into a shop for the first time is an event. Discoveries made together come as a hand: one card shown, the others below it to pick; closing it eases time back in slowly (`evResumeMs`).
+Every entry is a card in one format (name, a live demo, page and Tier I–V, then its details and live math, each behind its own discovery). Pages: **Discoveries** (how to play, how to clean up, and the events witnessed), **Taxonomy** (every kind of thing and what it becomes, drawn with the game's own glyphs; its cards below), Items, Shapes, Surface Map, **Shops** (How shops work on top: main street, pop-ups, buying; then each shop's card, only its sign's shape until it has opened, with what it does and a tab for each currency it takes), Ducks, Glossary, Status. A shop's first opening is an event (it is discovered then: the Corner Store and Gift Shop on the first morning, the others when they first open). Discoveries made together come as a hand: one card shown, the others below it to pick; closing it eases time back in slowly (`evResumeMs`).
+
+## Play together
+Esc on a surface → **Invite a friend** copies a link (`join.html?room=…`). The friend's page shows the host's surface as a live video (PeerJS / WebRTC, peer to peer; the PeerJS public server only makes the introduction) and sends their pointer. On the host it shines, wipes, mops and collects with the same shine cap (`maxActivePoints`) but its own heat; what the friend collects is added to the friend's own save. Add `&net=bc` to the surface's URL to play between two tabs of one browser (BroadcastChannel, no network).
 
 ## Saves (browser storage, per site)
 - `chromaticNebulaInventory_v1` — items, resources, discoveries and the duck collection (kept by a new map)
 - `nebula-config` — tuners, sound setting, hex-layer tuners
 - `il_map_v1` — the Surface Map (pop-up shops live on their hexes)
+- `il_letters_v1` — which messages in a bottle you have read
 - `il_souvenirs_v1` — Gift Shop souvenirs (kept through the Gift Shop's wipe)
 - IndexedDB `infiniteLight` / `kv` / `session` — the unfinished surface, saved exactly when you leave it
 
 ## Keys
 - **Esc** — pause menu (sound + volume, readouts, Guide, quit). On the map: sound, Guide, hex-layer tuners, quit.
 - **~** (or H) — hide / show the panels, on a surface and on the Surface Map
-- **Surface Map**: Modes (Telemetry: each hex's value, coverage and ring on the ground; Stats: fps, frame times and the hex grid; the Performance log) and Tune (every tuner, as on a surface). Lake ducks: brush one slowly and it spins, hit it fast and it putters off, click it and it is dunked
+- **Surface Map**: Modes (Telemetry: each hex's value, coverage and ring on the ground; Stats: fps, frame times and the hex grid; the Performance log) and Tune (every tuner, as on a surface). Lake ducks: brush one slowly and it spins, hit it fast and it putters off, click it and it is dunked. Now and then a message in a bottle floats in (`mapBottleMs`): it drifts like a duck, and clicking it opens a letter (`LETTERS` in `shared.js`)
 - **Spindle** (armed on the map): a cleared hex back to a surface, or an open hex below 1.00 wound up to 1.00 and held there until cleared
 - A bright clear collects everything left on the surface at once
 - **Space** / click your hex — enter its surface

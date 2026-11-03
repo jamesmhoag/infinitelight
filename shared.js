@@ -300,16 +300,16 @@ const SHOP_BLD={s:{b:'bld_s',g:'glass_s.png',gx:1.75,gy:10.75},d:{b:'bld_s_dark'
 const SHOP_RANK_BLD=['s','m','l'];
 const HUB_SLOTS=[180,0]; // (the hex's flat side edges; main street takes its four slanted ones) // two more spots in the source hex (angles, as main street's): a pop-up earned on a dark clear opens there
 const SHOPS={
-  corner:{n:'CORNER STORE',tag:'The corners are conveniently cut.',street:1,open:0,close:27,col:'#fff1d0',a:60},
-  clock:{n:'Clock smith.',tag:'Turn the Clock, be unlocked.',street:1,open:9,close:18,col:'#fff1d0',a:120,flip:1},
-  xact:{n:'XACT change',tag:'Exchange for spare change.',street:1,open:6,close:15,col:'#fff1d0',a:-120},
-  gift:{n:'GIFT SHOP',tag:'Souvenirs to remember with.',street:1,open:0,close:27,col:'#ffffff',bk:'d',a:-60},
-  bright:{n:'BRiGHT IDEAS',tag:'Like a spoon that is also a fork.',cur:'bright',col:'#00c3ff',at:[100,1000,10000]},
-  dim:{n:'Dim’s: Carnival of Discovery',tag:'Natural phenomena.',cur:'dim',col:'#ff78e2',at:[100,1000,10000]},
-  neutron:{n:'premium NEUTRINOS',tag:'Density, delivered.',cur:'neutron',col:'#8a3cff',at:[5,25,100]},
-  magnetic:{n:'MAGNETS & STUFF',tag:'Opposites attract.',cur:'magnetic',col:'#ff6a00',at:[5,25,100]},
-  pulsing:{n:'the PULSE',tag:'Feel the beat.',cur:'pulsing',col:'#aaff00',at:[5,25,100]},
-  duck:{n:'DUCK SHOP',tag:'Quack, quack, quack, quack.',cur:'duck',col:'#ffe500',at:[1,3,6]}};
+  corner:{n:'CORNER STORE',tag:'The corners are conveniently cut.',about:'Items by the one: Spindles, Strings, Weaves and the shapes. While it is open, your items come into focus over the map.',street:1,open:0,close:27,col:'#fff1d0',a:60},
+  clock:{n:'Clock smith.',tag:'Turn the Clock, be unlocked.',about:'Turns the day\'s clock to Dusk, Noon, Dawn or Midnight. While it is open, the time of day comes into focus over the map.',street:1,open:9,close:18,col:'#fff1d0',a:120,flip:1},
+  xact:{n:'XACT change',tag:'Exchange for spare change.',about:'Changes Bright into 100k Dim or 100 of an exotic remnant.',street:1,open:6,close:15,col:'#fff1d0',a:-120},
+  gift:{n:'GIFT SHOP',tag:'Souvenirs to remember with.',about:'Going in ends the run: the purse, ducks, discoveries and the map are all lost. Souvenirs are bought from your last Bright, and they are kept whatever comes next.',street:1,open:0,close:27,col:'#ffffff',bk:'d',a:-60},
+  bright:{n:'BRiGHT IDEAS',tag:'Like a spoon that is also a fork.',about:'Upgrades that last: higher purse caps, light limits, game speeds, and items placed for you on the Center, the pouch, constellations and shapes.',cur:'bright',col:'#00c3ff',at:[100,1000,10000]},
+  dim:{n:'Dim’s: Carnival of Discovery',tag:'Natural phenomena.',about:'Sells cards, each once a day: a Card of Secrets turns up an event or Guide entry you have not found and shows you its card (gone once nothing is left); Fortune Telling gives a good or a dim fortune for the day; a Daily Wonder keeps one of three bonuses, each with a catch.',cur:'dim',col:'#ff78e2',at:[100,1000,10000]},
+  neutron:{n:'premium NEUTRINOS',tag:'Density, delivered.',about:'Density: purse caps, Knots and Lenses placed on Sectors and the Center, the Neutron pouch, and Pure Density.',cur:'neutron',col:'#8a3cff',at:[5,25,100]},
+  magnetic:{n:'MAGNETS & STUFF',tag:'Opposites attract.',about:'Attraction: how many can be active at once, sweep and blotch selection, Prisms on Sectors and the Center, the Dark Remnant\'s hue, and Pure Harmony.',cur:'magnetic',col:'#ff6a00',at:[5,25,100]},
+  pulsing:{n:'the PULSE',tag:'Feel the beat.',about:'Rhythm: Strings, Spindles, Gates and Keys placed on Sectors and the Center, the Pulsing pouch, and purse caps.',cur:'pulsing',col:'#aaff00',at:[5,25,100]},
+  duck:{n:'DUCK SHOP',tag:'Quack, quack, quack, quack.',about:'Trades ducks: Flip a Duck (1), Exotic Duck (5 of one kind), Pick a Duck (99). Also Luck Charms (+5% duck chance today and +1% on your next drop; each ×10 the last, back to 5,000 a day) and the Lucky Duck (for good: base chances ×2, each miss +4%). Every Dark Remnant that is not a duck raises the next one\'s chance until one comes.',cur:'duck',col:'#ffe500',at:[1,3,6]}};
 // SHOP_ITEMS: [id, shop, name, cost, cur (blank: the shop's own, else bright), r (the pop-up rank that first carries it), fx, req (an item owned first), dc (Dim to
 // hold to discover it: the dc_si_<id> tuner), note]. fx: give {kind:n} · cap {kind:max} (raises a purse cap, once) · clock h (turns the map's clock) ·
 // duck roll | exotic | pick | Size | Colour | Material (a duck of that kind) · disc id (reveals an interface element, once) · souv (a Gift Shop souvenir) ·
@@ -390,3 +390,65 @@ function statusHTML(s){ // the Guide's Status page, and beside a shop's menu: th
     `<div class="stg">Today</div><table class="stt">${row('Fortune',r.fortune?(r.fortune.good?'☀ ':'☾ ')+fortuneText(r.fortune,r.fortune.duck):'—')}${row('Daily wonder',r.bonus?(DAILY.find(d=>d.id===r.bonus.id&&(d.item||'')===(r.bonus.item||''))||{}).n:'—')}${row('Luck Charms',r.charm||0)}`+
     `${row('Duck chance',pc(s.ch.d)+' · next +'+pc(s.ch.luck))}${row('Exotic / rare',pc(s.ch.e)+' / '+pc(s.ch.r))}${r.keysGone?row('Keys','lost for this run'):''}</table>`+
     `<div class="stg">Permanent upgrades</div><div class="stu">${s.owned.length?s.owned.join(' · '):'none yet'}</div>`;}
+// ── Messages in a bottle (the Surface Map's lake): letters from someone else who was here. t: the letter, f: who signed it ──
+const LETTERS=[
+ {t:'If you are reading this, you got further than I did. Every spill I wiped, another one spread. I think the spilling is the point. Get out if you ever see the way.',f:'— M.'},
+ {t:'They told me the map was a gift. A whole world to clean. It took me forty days to notice nobody ever asked me to clean it.',f:'— someone who stopped counting'},
+ {t:'Do not trust the source. It is too bright to look at, and that is how it likes it.',f:'— R.'},
+ {t:'I collected every duck. Every single one. They are lovely. They did not help.',f:'— the one with the rainbow duck'},
+ {t:'This place is a beautiful trap. It keeps your hands busy so your heart forgets what it came here to do. Whatever that was, it was of true value. Remember it.',f:'— A.'},
+ {t:'There is a door. I have not found it. But I have felt it, the way you feel a draft in a closed room.',f:'— T., day 212'},
+ {t:'Tip: a bright clear takes no time. Only a move does. Clear what you stand on before you walk.',f:'— a friend'},
+ {t:'You are doing better than you think. Truly. Keep going.',f:'— J.'},
+ {t:'I left the Gift Shop for last. I think that is what it wants. I think that is the only honest shop on the street.',f:'— L.'},
+ {t:'Tip: Dim\'s Carnival will only read your cards once a day. Spend the rest on what lasts.',f:'— a regular'},
+ {t:'Every morning the rings burst out again and I start over. Every morning I tell myself today I will look for the edge instead. Every morning I clean.',f:'— K.'},
+ {t:'Some days it is enough to make one thing clean. That is not nothing. That is never nothing.',f:'— your neighbour across the water'},
+ {t:'Did you ever notice the hexes never run out? Neither does the light. Neither did I, for a while.',f:'— E.'},
+ {t:'Tip: a Spindle can wind an open hex all the way up to 1.00. It holds there until you clear it.',f:'— someone who learned the hard way'},
+ {t:'If you find a way out, do not look back to check if I am behind you. I will be. I promise.',f:'— S.'},
+ {t:'The shops sell everything except the one thing I wanted, which was a reason.',f:'— a customer'},
+ {t:'I tried to write down what I came here to do. The ink kept turning into particles.',f:'— N.'},
+ {t:'Tip: a Dark Remnant that is not a duck makes the next one likelier. Misses are not wasted.',f:'— a duck keeper'},
+ {t:'The ducks know something. Watch the way they swim away from the source. Always away.',f:'— O.'},
+ {t:'Please, if you get the chance, take it. Do not wait to be ready. Nobody here is ever ready.',f:'— D.'},
+ {t:'I am not trapped. I am resting. There is a difference, and I am learning it.',f:'— V.'},
+ {t:'Tip: a whole ring of one kind round the source ends the day early. Close a ring near the centre and the whole map can fall in.',f:'— a stargazer'},
+ {t:'They want you to think the value is in the score. The value was in the walk you took to get here. It still is.',f:'— P.'},
+ {t:'I think I was someone before this. A person with a kitchen and a window. I keep the window in my head. It helps.',f:'— H.'},
+ {t:'Tip: hold over a remnant and sweep, and everything you cross is collected.',f:'— a tidy one'},
+ {t:'If you are lonely, I am too. That makes two of us, and two is a start.',f:'— somewhere on this lake'},
+ {t:'The Clock smith sells hours. I bought Midnight once, just to make the day end sooner. It did not feel like leaving.',f:'— C.'},
+ {t:'Bright is not the same as good. Dim is not the same as bad. I wish someone had told me sooner.',f:'— B.'},
+ {t:'Do not be afraid of the dark ones. They pull, but they also hold. Some things need holding.',f:'— a Dark Star'},
+ {t:'I found peace here, once, for a whole afternoon. I hope you find yours. Then I hope you leave with it.',f:'— G.'},
+ {t:'Tip: the Corner Store is open all day. If you are ever short of a String, that is where to go.',f:'— the night shift'},
+ {t:'Every bottle I throw comes back. Maybe this one will not. Maybe this one is yours.',f:'— I.'},
+ {t:'It is not an endless trap if you stop running. Stand still a moment. Hear it hum? That is the machine. It is not you.',f:'— Q.'},
+ {t:'You are not the first and you will not be the last. But you could be the one who gets out. Somebody has to.',f:'— W.'},
+ {t:'Tip: three touching captures merge and pull the map in by a ring. Three dark ones pull it in by three.',f:'— a cartographer'},
+ {t:'Whatever happens, be kind to the ducks.',f:'— everyone, honestly'},
+ {t:'I spent a fortune on the Lucky Duck. Worth it. Not for the luck. For the company.',f:'— F.'},
+ {t:'There is something of true value you set down to come here. It is still where you left it. It is waiting.',f:'— U.'},
+ {t:'Tip: a closed Gate keeps whatever is inside it out of the count. A Key that repeats its post pattern opens it.',f:'— a locksmith'},
+ {t:'The light here is borrowed. Make some of your own.',f:'— Y.'},
+ {t:'I think escape is not a door. I think it is a choice you make again every day. Today I chose. Tomorrow I will choose again.',f:'— Z.'},
+ {t:'If no one has said it yet today: well done.',f:'— a stranger who means it'}];
+function drawBottle(c,X,Y,s,hd,now,ph){ // a glass bottle on its side, corked, a rolled letter inside; it rocks on the water
+  const L=s*1.5,W=s*0.5,rk=Math.sin(now/900+ph)*0.12;c.save();c.translate(X,Y);c.rotate(hd+rk);
+  c.fillStyle='rgba(0,0,0,0.22)';c.beginPath();c.ellipse(2,3,L*0.55,W*0.62,0,0,6.2832);c.fill(); // its shadow in the water
+  const g=c.createLinearGradient(0,-W/2,0,W/2);g.addColorStop(0,'rgba(190,235,215,0.75)');g.addColorStop(0.5,'rgba(90,160,135,0.55)');g.addColorStop(1,'rgba(40,90,80,0.7)');
+  c.fillStyle=g;c.beginPath();c.roundRect(-L*0.5,-W/2,L*0.68,W,W*0.42);c.fill(); // the body
+  c.beginPath();c.moveTo(L*0.16,-W*0.42);c.quadraticCurveTo(L*0.3,-W*0.2,L*0.36,-W*0.18);c.lineTo(L*0.36,W*0.18);c.quadraticCurveTo(L*0.3,W*0.2,L*0.16,W*0.42);c.closePath();c.fill(); // the shoulder and neck
+  c.fillStyle='#f1e6c8';c.fillRect(-L*0.36,-W*0.17,L*0.44,W*0.34);c.strokeStyle='rgba(120,90,50,0.6)';c.lineWidth=Math.max(0.6,s*0.03);for(let i=1;i<4;i++){const x=-L*0.36+i*L*0.11;c.beginPath();c.moveTo(x,-W*0.17);c.lineTo(x,W*0.17);c.stroke();} // the rolled letter
+  c.fillStyle='#b07a42';c.beginPath();c.roundRect(L*0.35,-W*0.16,L*0.14,W*0.32,W*0.06);c.fill();c.fillStyle='rgba(255,255,255,0.18)';c.fillRect(L*0.37,-W*0.13,L*0.1,W*0.08); // the cork
+  c.strokeStyle='rgba(235,255,245,0.65)';c.lineWidth=Math.max(0.8,s*0.05);c.beginPath();c.moveTo(-L*0.4,-W*0.3);c.lineTo(L*0.1,-W*0.3);c.stroke(); // a glint
+  c.restore();}
+function drawHeatArc(cx,x,y,R,now,heat){ // heat (or its cooldown draining) round the inside of a cursor's ring
+  const d=heat.disp;if(d<0.012)return;const cool=heat.until>now,r=R*0.82;
+  cx.save();cx.lineCap='round';cx.lineWidth=Math.max(1.4,R*0.12);
+  cx.strokeStyle='rgba(255,255,255,0.12)';cx.beginPath();cx.arc(x,y,r,0,6.2832);cx.stroke(); // the track: a full ring = max heat
+  const h=cool?205:(50-d*50),col=cool?`hsla(${h},70%,70%,0.85)`:`hsla(${h},95%,${62-d*10}%,0.9)`; // cool blue while cooling; warm → red as it fills
+  cx.strokeStyle=col;cx.beginPath();cx.arc(x,y,r,-Math.PI/2,-Math.PI/2+d*6.2832);cx.stroke();
+  cx.restore();
+}
