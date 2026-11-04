@@ -1,6 +1,7 @@
 <!doctype html>
 <html lang="en">
 <head>
+<script>try{if(window.top===window&&Date.now()-(+sessionStorage.getItem("il_load")||0)<15000)document.documentElement.classList.add("il-arrive")}catch(e){}</script><style>html.il-arrive,html.il-arrive body{background:#000!important}html.il-arrive body>*:not(#ilLoad){visibility:hidden!important}</style><!-- opened from a page that was loading: nothing but the loading screen shows from the first paint (content.js lifts it) -->
 <meta charset="utf-8"/><meta name="darkreader-lock"/>
 <meta name="viewport" content="width=device-width,initial-scale=1"/>
 <title>Infinite Light</title>
@@ -28,7 +29,8 @@
 /* =========================
    LAYOUT
    ========================= */
-html,body{height:100%}
+html,body{height:100%;-webkit-user-select:none;user-select:none} /* (a drag never highlights the title's text) */
+#water{position:fixed;inset:0;width:100%;height:100%;z-index:-1;pointer-events:none} /* the title's water: under the title, which blends onto it as it does onto the black */
 body{
   margin:0;
   height:100vh;
@@ -119,11 +121,8 @@ body{
 .text-pair2{ filter:blur(120px); opacity:0.6; --init-blur:120px; --init-alpha:0.6; animation: focus var(--pair2-duration) ease-in-out var(--pair2-delay) infinite alternate; }
 .text-pair3{ filter:blur(120px); opacity:0.6; --init-blur:120px; --init-alpha:0.6; animation: focus var(--pair3-duration) ease-in-out var(--pair3-delay) infinite alternate; }
 
-/* Sound top-right (shared with the game: T.soundOn / T.masterVol) */
-.audio-controls{ position:fixed; top:10px; right:10px; display:flex; gap:6px; align-items:center; z-index:100; }
-.audio-controls button{ font-size:0.7rem; padding:3px 6px; cursor:pointer; }
 /* Main menu */
-.main-menu{ position:fixed; left:50%; bottom:9vh; transform:translateX(-50%); display:flex; flex-direction:column; gap:1px; z-index:100; width:240px; background:#000; border:1px solid #fff; padding:14px 22px; } /* as a shop's list on the map */
+.main-menu{ position:fixed; left:50%; bottom:9vh; transform:translateX(-50%); /* (left: under the ring round Infinite, set by placeMenu) */ display:flex; flex-direction:column; gap:1px; z-index:100; width:240px; background:#000; border:1px solid #fff; padding:14px 22px; } /* as a shop's list on the map */
 .main-menu button{ font:12px/1.5 system-ui,'Inter',sans-serif; letter-spacing:.6px; color:#fff; background:none; border:0; border-radius:0; padding:1px 2px; cursor:pointer; text-align:center; }
 .main-menu button:hover{ background:rgba(255,255,255,0.12); }
 .main-menu button[hidden],#whoList[hidden]{ display:none; }
@@ -138,6 +137,8 @@ body{
 </style>
 </head>
 <body>
+  <canvas id="water"></canvas>
+  <svg width="0" height="0" style="position:absolute" aria-hidden="true"><filter id="tw" filterUnits="userSpaceOnUse" color-interpolation-filters="sRGB"><feImage id="twImg" preserveAspectRatio="none" result="m"/><feDisplacementMap in="SourceGraphic" in2="m" id="twMap" scale="0" xChannelSelector="R" yChannelSelector="G"/></filter></svg>
   <div class="splash-container">
 
     <!-- Glow layers -->
@@ -173,11 +174,6 @@ body{
     <button id="buildBtn" hidden data-tx="title.build"></button>
     <div id="whoList" hidden></div>
   </div>
-  <!-- Sound -->
-  <div class="audio-controls">
-    <button id="toggleAudio"></button>
-    <input id="vol" type="range" min="0" max="1" step="0.05" data-tt="menu.volume">
-  </div>
   <div id="veil"></div>
   <!-- The game, loaded hidden: it holds the Guide, the sound setting, the items and the discoveries -->
   <iframe id="neb" src="chromatic_nebula.html?hub=1&v=20261105a" title="Guide"></iframe>
@@ -185,36 +181,10 @@ body{
 <script src="content.js?v=20261105a"></script>
 <script>loading('boot',true);addEventListener('load',()=>requestAnimationFrame(()=>requestAnimationFrame(()=>loading('boot',false)))); /* the site's first load: the same loading screen as every page */
 txtApply();gameCursor({hide:()=>document.getElementById('neb').classList.contains('show')}); // the game's cursor (the Guide over it draws its own)
-// Audio context
-const AudioContext = window.AudioContext || window.webkitAudioContext;
-const ctx = new AudioContext();
-
-// Two oscillators
-const glowOsc = ctx.createOscillator();
-const textOsc = ctx.createOscillator();
-const glowGain = ctx.createGain();
-const textGain = ctx.createGain();
-glowOsc.connect(glowGain).connect(ctx.destination);
-textOsc.connect(textGain).connect(ctx.destination);
-glowGain.gain.value = 0.05;
-textGain.gain.value = 0.05;
-glowOsc.start();
-textOsc.start();
-
-// Sound: the same setting as the game (T.soundOn / T.masterVol, saved by the game)
+// The game's state the title reads (its tuners, purse and discoveries)
 let T = {}, inv = {dim:0}, disc = new Set(), nebReady = false;
-let audioEnabled = false;
 const nebEl = document.getElementById('neb');
 function neb(m){ if(nebEl.contentWindow) nebEl.contentWindow.postMessage(m,'*'); }
-function applyGain(){ const g = audioEnabled && !document.hidden ? 0.05*(T.masterVol!=null?T.masterVol:0.7) : 0;
-  glowGain.gain.setTargetAtTime(g,ctx.currentTime,0.1); textGain.gain.setTargetAtTime(g,ctx.currentTime,0.1);
-  document.getElementById('toggleAudio').textContent = txt(audioEnabled?'menu.sound.on':'menu.sound.off'); document.getElementById('vol').value = T.masterVol!=null?T.masterVol:0.7; }
-function setSound(on,vol){ audioEnabled = on; if(vol!=null) T.masterVol = +vol; T.soundOn = on?1:0; if(on) ctx.resume(); applyGain(); neb({cmd:'sound',on,vol:vol!=null?+vol:null}); }
-glowGain.gain.value = 0; textGain.gain.value = 0;
-document.getElementById('toggleAudio').onclick = () => setSound(!audioEnabled);
-document.getElementById('vol').oninput = e => setSound(true,e.target.value);
-document.addEventListener('visibilitychange',applyGain); // mute when leaving the screen
-document.addEventListener('pointerdown', e => { if(T.soundOn && !audioEnabled && e.target.id!=='toggleAudio'){ audioEnabled = true; ctx.resume(); applyGain(); } }, true); // the game's sound setting starts with the first click (browsers need one)
 
 // Main menu: Continue goes straight back to the map, or into the surface left unfinished
 const MAP_KEY = 'il_map_v1';
@@ -246,7 +216,7 @@ document.getElementById('buildBtn').onclick = () => { loading('leave',true); set
 document.getElementById('guideBtn').onclick = () => { if(!nebReady) return; nebEl.classList.add('show'); nebEl.focus(); neb({cmd:'guide'}); };
 window.addEventListener('message', e => {
   const m = e.data; if(e.source !== nebEl.contentWindow || !m || !m.il) return;
-  if(m.T){ T = m.T; inv = m.inv||inv; disc = new Set(m.disc||[]); applyDisc(); applyGain(); }
+  if(m.T){ T = m.T; inv = m.inv||inv; disc = new Set(m.disc||[]); applyDisc(); }
   if(m.T) nebReady = true; // 'ready', or its answer to the 'state' asked for below
   if(m.type === 'overlayDone'){ nebEl.classList.remove('show'); window.focus(); }
 });
@@ -267,56 +237,33 @@ function discTick(){
   else { dcMet=null; v.textContent=txt('disc.cost',cost); v.style.color='#666'; }
 }
 
-const glowLayers = [...document.querySelectorAll('.glow-layer')];
-const textLayers = [...document.querySelectorAll('.text-pair')];
-const ringLayers = [...document.querySelectorAll('.ring, .ring-glow1, .ring-glow2, .ring-glow3')];
-
-const glowMinAlpha = 0.28, glowMaxAlpha = 0.6;
-const glowMinBlur = 120, glowMaxBlur = 40;
-const textMinAlpha = 0.25, textMaxAlpha = 0.6;
-const textMinBlur = 4, textMaxBlur = 0;
-
-const pitchMin = 220, pitchMax = 660; // overlapping range
-
-function parseBlur(filter){
-  const m = filter.match(/blur\((\d+\.?\d*)px\)/);
-  return m?parseFloat(m[1]):0;
-}
-
-function updateAudio(){
-  requestAnimationFrame(updateAudio); // keeps running so sound can be switched on at any time
-  discTick();
-  if(!audioEnabled) return;
-
-  // Glow layers
-  let glowF = 0;
-  glowLayers.forEach(l=>{
-    const style = getComputedStyle(l);
-    const alpha = parseFloat(style.opacity);
-    const blur = parseBlur(style.filter);
-    const f = ((alpha-glowMinAlpha)/(glowMaxAlpha-glowMinAlpha) + (glowMaxBlur-blur)/(glowMaxBlur-glowMinBlur))/2;
-    glowF += Math.max(0,Math.min(1,f));
-  });
-  glowF /= glowLayers.length;
-
-  // Text + ring layers
-  let textF = 0;
-  [...textLayers,...ringLayers].forEach(l=>{
-    const style = getComputedStyle(l);
-    const alpha = parseFloat(style.opacity);
-    const blur = parseBlur(style.filter);
-    const f = ((alpha-textMinAlpha)/(textMaxAlpha-textMinAlpha) + (textMaxBlur-blur)/(textMaxBlur-textMinBlur))/2;
-    textF += Math.max(0,Math.min(1,f));
-  });
-  textF /= (textLayers.length+ringLayers.length);
-
-  const glowPitch = pitchMin + (pitchMax-pitchMin)*glowF;
-  const textPitch = pitchMin + (pitchMax-pitchMin)*(1-textF); // invert
-  glowOsc.frequency.setTargetAtTime(glowPitch,ctx.currentTime,0.05);
-  textOsc.frequency.setTargetAtTime(textPitch,ctx.currentTime,0.05);
-}
-
-requestAnimationFrame(updateAudio);
+// The menu sits under the ring round "Infinite"
+function placeMenu(){ const r=document.querySelector('.ring').getBoundingClientRect(),m=document.querySelector('.main-menu'); m.style.left=Math.max(m.offsetWidth/2+12,Math.min(innerWidth-m.offsetWidth/2-12,r.left+r.width/2))+'px'; }
+addEventListener('resize',placeMenu); document.fonts&&document.fonts.ready.then(placeMenu); placeMenu();
+// The water: a click ripples it, a double click splashes, a drag leaves a wake; the cursor's stain is laid in it (content.js cursorStain) — and the title, on the water, ripples with it
+const wv=document.getElementById('water'),wc=wv.getContext('2d'),splash=document.querySelector('.splash-container'),twImg=document.getElementById('twImg'),twMap=document.getElementById('twMap'),tf=document.getElementById('tw');
+const rip=[],DM=document.createElement('canvas');DM.width=128;DM.height=96;const dmc=DM.getContext('2d'),dmI=dmc.createImageData(128,96);let twOn=false,_twAt=0,pX=-1,pY=-1,dn=null;
+const RIP_MS=2200,RIP_V=0.32,RIP_W=26,RIP_L=34,RIP_A=9; // a ring's life (ms), speed (px/ms), width, wavelength and how far it bends the title (px)
+function ripple(x,y,big){ const t=performance.now(); for(let i=0;i<(big?3:1);i++) rip.push({x,y,t:t+i*130,big:!!big}); }
+const onMenu=e=>!!(e.target.closest&&e.target.closest('button,.main-menu,#neb,input'));
+addEventListener('pointerdown',e=>{ if(e.button!==0||onMenu(e)) return; dn={x:e.clientX,y:e.clientY,moved:false}; ripple(e.clientX,e.clientY,false); });
+addEventListener('pointermove',e=>{ pX=e.clientX; pY=e.clientY; if(dn&&(e.buttons&1)){ if(Math.hypot(e.clientX-dn.x,e.clientY-dn.y)>28){ dn.x=e.clientX; dn.y=e.clientY; dn.moved=true; rip.push({x:e.clientX,y:e.clientY,t:performance.now(),sm:1}); } } else dn=null; });
+addEventListener('pointerup',()=>{ dn=null; });
+addEventListener('dblclick',e=>{ if(!onMenu(e)) ripple(e.clientX,e.clientY,true); });
+function water(now){
+  const dp=devicePixelRatio||1,W=innerWidth,H=innerHeight;if(wv.width!==Math.round(W*dp)||wv.height!==Math.round(H*dp)){wv.width=Math.round(W*dp);wv.height=Math.round(H*dp);}
+  wc.setTransform(dp,0,0,dp,0,0);wc.globalCompositeOperation='source-over';wc.fillStyle='#000';wc.fillRect(0,0,W,H);
+  for(let i=rip.length-1;i>=0;i--){const r=rip[i],a=(now-r.t)/RIP_MS;if(a>=1){rip.splice(i,1);continue;}if(a<0)continue;const R=4+(now-r.t)*RIP_V*(r.sm?0.6:1);wc.strokeStyle=`rgba(255,255,255,${(0.42*(1-a)*(1-a)*(r.sm?0.6:1)).toFixed(3)})`;wc.lineWidth=r.big?2:1.3;wc.beginPath();wc.ellipse(r.x,r.y,R,R*0.55,0,0,6.2832);wc.stroke();} // (rings on the water, seen at a slant)
+  if(T&&T.cursorBaseR!=null&&!nebEl.classList.contains('show')){cursorTrailRecord(pX,pY,now,pX>=0);cursorStain(wc,now,2*T.cursorBaseR*(T.cursorStainW!=null?T.cursorStainW:0.85),false);} // the cursor's stain, as on every surface
+  // the title on the water: every live ring bends it (a displacement map over the title's whole glow, made from the rings)
+  const live=rip.some(r=>now>=r.t);if(!live){if(twOn){twOn=false;splash.style.filter='';twMap.setAttribute('scale','0');}return;}
+  if(now-_twAt<33)return;_twAt=now;const b=splash.getBoundingClientRect(),fx=-b.width*0.9,fy=-b.height*1.4,fw=b.width*2.8,fh=b.height*3.8,d=dmI.data;
+  for(const el of [tf,twImg])for(const[k,v]of[['x',fx],['y',fy],['width',fw],['height',fh]])el.setAttribute(k,v.toFixed(1));
+  for(let j=0;j<96;j++)for(let i=0;i<128;i++){const X=b.left+fx+(i+0.5)/128*fw,Y=b.top+fy+(j+0.5)/96*fh;let dx=0,dy=0;
+    for(const r of rip){const t=now-r.t;if(t<0)continue;const R=t*RIP_V,ex=X-r.x,ey=(Y-r.y)/0.55,dd=Math.hypot(ex,ey)||1,u=(dd-R)/RIP_W;if(u<-2.5||u>2.5)continue;const A=RIP_A*(r.big?1.6:r.sm?0.5:1)*(1-t/RIP_MS)*Math.exp(-u*u)*Math.sin((dd-R)/RIP_L*6.2832);dx+=A*ex/dd;dy+=A*ey/dd*0.55;}
+    const o=(j*128+i)*4;d[o]=128+Math.max(-127,Math.min(127,dx/(RIP_A*3)*127));d[o+1]=128+Math.max(-127,Math.min(127,dy/(RIP_A*3)*127));d[o+2]=128;d[o+3]=255;}
+  dmc.putImageData(dmI,0,0);twImg.setAttribute('href',DM.toDataURL());twMap.setAttribute('scale',(RIP_A*6).toFixed(1));if(!twOn){twOn=true;splash.style.filter='url(#tw)';}}
+(function tick(){ requestAnimationFrame(tick); discTick(); water(performance.now()); })();
 </script>
 </body>
 </html>

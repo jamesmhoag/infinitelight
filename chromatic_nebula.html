@@ -1,4 +1,5 @@
 <meta charset="utf-8"><meta name="darkreader-lock"><!-- the game draws its own dark scheme (and Invert); a dark-mode extension restyling it greys out the Guide demos -->
+<script>try{if(window.top===window&&Date.now()-(+sessionStorage.getItem("il_load")||0)<15000)document.documentElement.classList.add("il-arrive")}catch(e){}</script><style>html.il-arrive,html.il-arrive body{background:#000!important}html.il-arrive body>*:not(#ilLoad){visibility:hidden!important}</style><!-- opened from a page that was loading: nothing but the loading screen shows from the first paint (content.js lifts it) -->
 <style>
 *{margin:0;padding:0;box-sizing:border-box;}
 #wrap{position:relative;width:100%;height:100vh;background:#000;overflow:hidden;cursor:none;user-select:none;}
@@ -10942,6 +10943,7 @@ function _textI(c,t,x,y,stroke){
 }
 function fillTextI(c,t,x,y){_textI(c,t,x,y,false);}
 function strokeTextI(c,t,x,y){_textI(c,t,x,y,true);}
+window.ilHint=(a,b)=>flashSaveStatus(a+' · '+b); // a menu button's bracketed context, in the feed (content.js parenHints)
 function setFeed(n,d,color){
   if(n===_feedN&&d===_feedD&&color===_feedC)return;
   _feedN=n;_feedD=d;_feedC=color;
@@ -12932,7 +12934,10 @@ function guideCSS(){
 .mtg.cb .cq{font-size:54px;color:var(--rc);text-shadow:0 0 14px rgba(255,140,230,.55),0 0 3px #000}.ev-un.dt{font-size:14px;color:#f0e6ff}
 .mtg .tx p.fx{font:11.5px/1.4 ui-monospace,Menlo,Consolas,monospace;background:#0000000f;border-left:3px solid var(--rc);padding:3px 7px;border-radius:2px;color:#1d2230}
 .ev-hand{display:flex;gap:6px;justify-content:center;flex-wrap:wrap;max-width:92vw}.ev-hand .mtg.sm{width:96px;opacity:.8;transition:transform .15s,opacity .15s}.ev-hand .mtg.sm:hover{opacity:1;transform:translateY(-4px)}.ev-hand .mtg.sm .tx,.ev-hand .mtg.sm .ty{display:none}.ev-hand .mtg.sm .art{height:54px}.ev-hand .mtg.sm .nm{font-size:10px}
-#evOk{padding:6px 26px;font-size:13px}
+#evOk{padding:6px 18px;font-size:13px;position:absolute;left:100%;top:0;margin-left:12px;white-space:nowrap} /* (in the free space beside the card, not under it) */
+#evOverlay{padding:58px 0 112px;box-sizing:border-box} /* a card fits between the bar along the top and the dock and feed along the bottom: never over them */
+.ev-box{position:relative;overflow:visible!important;max-height:100%;min-height:0}.ev-box>.mtg{display:flex;flex-direction:column;max-height:calc(100vh - 210px);min-height:0}.ev-box>.mtg .art{flex:0 1 auto;min-height:70px}.ev-box>.mtg .tx{flex:1 1 auto;min-height:0;overflow:auto} /* (its text scrolls inside it, the card never longer) */
+@media (max-width:640px){#evOk{position:static;margin:0}}
 .rl-cards{display:flex;flex-wrap:wrap;gap:12px;align-items:flex-start}.rl-sec{margin:16px 0 8px;font-size:15px}.mtg.sm{cursor:pointer}.mtg.sm .tx p{margin:2px 0}
 .ev-box .mtg.full{width:min(440px,92vw)}.mtg.full .art{height:190px}.mtg .art-live{width:100%;height:100%}.mtg.full .tx{max-height:none}.mtg .tx .rl-live{display:block;min-width:0;width:100%;height:170px;min-height:0;margin:6px 0}
 .mtg .art img.sign{max-width:86%;max-height:86%;object-fit:contain}.mtg .art img.sign.hid{filter:brightness(0) drop-shadow(0 0 1px rgba(210,210,220,.75))}.mtg .tx .si{display:flex;justify-content:space-between;gap:8px}.mtg .tx .si b{font-weight:400}.ctabs{display:flex;gap:4px;flex-wrap:wrap;margin:4px 0}.ctabs span{border:1px solid #0004;border-radius:4px;padding:0 6px;font-size:11px;cursor:pointer!important;opacity:.6}.ctabs span.on{opacity:1;background:#0001;border-color:#000a}
@@ -13409,7 +13414,7 @@ function openGameMenu(){
 <div class="gl">${txt('menu.together')}</div><button id="gmInvite">${txt('menu.invite')}</button><div id="gmLink" style="display:none;font-size:11px;line-height:1.4;word-break:break-all"></div>
 <div class="gl">${txt('menu.leave')}</div>${HUB?'<button id="gmMap">'+txt('menu.tomap')+'</button>':''}<button id="gmMain">${txt(HUB?'menu.tomain.save':'menu.tomain')}</button>
 <div class="gl" style="text-transform:none;letter-spacing:0">${txt('menu.tilde')}</div></div>`;
-    wrap.appendChild(m);
+    wrap.appendChild(m);parenHints(m);
     for(const t of ['mousedown','mouseup','dblclick','contextmenu'])m.addEventListener(t,e=>{e.stopPropagation();if(t==='contextmenu')e.preventDefault();});
     m.addEventListener('wheel',e=>e.stopPropagation(),{passive:true});
     const on=(id,f)=>m.querySelector('#'+id).addEventListener('click',()=>{f();syncGameMenu();});
