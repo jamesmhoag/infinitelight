@@ -32,7 +32,7 @@ body.scene-calm #turn-label{display:none!important} /* a fortune's lake: just it
 body.scene .hbtn,body.scene:not(.scene-shops) #shops,body.scene #hdock,body.scene #legend,body.scene #bottom-bar,body.scene body.scene #capture-hint,body.scene .x-none{display:none!important} /* the map as a 3D scene: the plane (drawn in 2D, then laid in the scene as its ground) and the ducks on it */
 /* the surface (chromatic_nebula.html): hidden with visibility, not display, so it keeps its size for the hex previews */
 #neb{position:fixed;inset:0;width:100%;height:100%;border:0;z-index:50;visibility:hidden;pointer-events:none;background:#000}
-#neb.show{visibility:visible;pointer-events:auto;animation:nebIn .45s ease-out}@keyframes nebIn{from{opacity:0}to{opacity:1}} /* (fades in over the map) */
+#neb.see{background:transparent}#neb.show{visibility:visible;pointer-events:auto;animation:nebIn .45s ease-out}@keyframes nebIn{from{opacity:0}to{opacity:1}} /* (fades in over the map) */
 #turn-label{position:absolute;top:8px;left:50%;transform:translateX(-50%);background:rgba(0,0,0,.55);padding:2px 10px 3px;border-radius:3px;font-family:'Orbitron',sans-serif;font-size:16px;white-space:nowrap;color:rgba(255,255,255,0.7);pointer-events:none;transition:color 0.4s,text-shadow 0.4s;letter-spacing:2px;z-index:10}
 #rest-btn{position:absolute;top:38px;left:50%;transform:translateX(-50%);display:none;font:12px/1.5 system-ui,'Inter',sans-serif;letter-spacing:1.2px;padding:3px 18px;background:#000;border:1px solid #fff;color:#fff;border-radius:0;cursor:pointer;z-index:20}#rest-btn:hover{background:#fff;color:#000}
 #rest-btn:hover{background:rgba(150,160,255,0.28)}#rest-btn.on{display:block} /* at Midnight: end the day when you are ready (under the time of day; ~ keeps it) */
@@ -271,25 +271,28 @@ function camView(){const o=(X,Y)=>{const[wx,wy]=s2wp(X,Y);return[wx-camX,wy-camY
 function camFit(b){const[lx,ty,rx,by]=camView(),z=Math.max(T.mapZoomMin||0.55,Math.min(T.mapZoomMax||1.8,viewZoom*Math.min((rx-lx)/(b[2]-b[0]),(by-ty)/(b[3]-b[1])))),k=viewZoom/z; // the zoom that just fits b, and the camera then (in its middle)
   return{z,x:(b[0]+b[2])/2-(lx+rx)/2*k,y:(b[1]+b[3])/2-(ty+by)/2*k};}
 function camZoomTo(z){viewZoom=z;const E=1.3/Math.min(1,z);if(Math.abs(E-_E)>0.12)mapResize();else camUpdate();}
-let camTween=null,camTiltOv=null,dive=null; // dive: going into a surface (dir 1) or coming out of it (−1)
+let camTween=null,camTiltOv=null,dive=null,statusCam=null; // statusCam: Status is open (its menu's width w, the zoom z it goes to, and your view to go back to) // dive: going into a surface (dir 1) or coming out of it (−1)
 function diveStart(key,dir,done,back){const c=cells[key];if(!c||!cam){if(done)done();return null;}const[wx,wy]=a2w(c.q,c.r),k=proj(...w2s(wx,wy))[2]||1,zFit=viewZoom*Math.min(SW,SH)*0.92/(2*HEX*k); // the zoom where the hex fills the frame
   dive={t0:performance.now(),ms:T.mapEnterMs||1800,x:wx,y:wy,a:back||{x:camX,y:camY,z:viewZoom,t:T.mapTilt!=null?T.mapTilt:32},zFit:back&&back.zFit||zFit,dir,done};dive.a.zFit=dive.zFit;return dive.a;}
 function diveStep(){ // over the hex, waiting for the buoy to be under; then turning to look straight down with the hex filling the frame; then down into it (coming out: the same, backwards)
   const D=dive,u=Math.min(1,(performance.now()-D.t0)/D.ms),U=D.dir>0?u:1-u,e=t=>{t=Math.max(0,Math.min(1,t));return t*t*(3-2*t);},p1=e(U/0.35),p2=e((U-0.4)/0.3),p3=e((U-0.72)/0.28),A=D.a;
   camX=camTX=A.x+(D.x-A.x)*p1;camY=camTY=A.y+(D.y-A.y)*p1;camTiltOv=A.t*(1-p2);const z=A.z+(D.zFit-A.z)*p2;camZoomTo(z*(1+1.6*p3));
   if(u>=1){const d=D.done;dive=null;if(D.dir<0){camTiltOv=null;mapResize();}if(d)d();}} // the day's end: one smooth move from where the camera is to where the next day starts (its middle and zoom)
+function camSees(wx,wy){if(!cam)return false;const[X,Y]=w2sc(wx,wy),m=Math.min(SW,SH)*0.08;return X>m&&X<SW-m&&Y>m&&Y<SH-m;} // a point well inside the screen
 function camTweenTo(keys,ms){const b=camBounds(keys);if(!b||SCENE)return;const f=camFit(b);camTween={t0:performance.now(),dur:ms,a:{x:camX,y:camY,z:viewZoom},b:f};}
 function camFrame(){ // the camera is held on the spill: at its extent (a rectangle round its hexes, plus the lake margin, room for a bottle or a duck to swim in) it stops dead; a spill smaller than the view sits in its middle
   if(SCENE||!cam||!SW)return;
   if(dive){diveStep();return;}
+  if(statusCam){const C=statusCam;if(Math.abs(C.z-viewZoom)>1e-3)camZoomTo(viewZoom+(C.z-viewZoom)*0.08);const[wx,wy]=s2wp(Math.max(80,(SW-C.w)/2),SH*0.55);camTX=camX+(buoy.x-wx);camTY=camY+(buoy.y-wy);return;} /* (no edge: it is framing the buoy) */
   if(camTween){const t=Math.min(1,(performance.now()-camTween.t0)/camTween.dur),e=t*t*(3-2*t),A=camTween.a,B=camTween.b;camX=camTX=A.x+(B.x-A.x)*e;camY=camTY=A.y+(B.y-A.y)*e;camZoomTo(A.z+(B.z-A.z)*e);if(t>=1){camTween=null;mapResize();}return;}
   const b=camBounds(Object.keys(cells));if(!b)return;const f=camFit(b);zoomFloor=f.z;
   if(zoomAuto||viewZoom<f.z-1e-3){const d=f.z-viewZoom;if(Math.abs(d)>2e-3){camZoomTo(viewZoom+(Math.abs(d)<0.01?d:d*0.12));_zoomSettle=1;}else if(_zoomSettle){_zoomSettle=0;mapResize();}} // its zoom follows the spill (at most out to it; held there until you zoom in)
   const[lx,ty,rx,by]=camView(),cx=v=>b[2]-b[0]<=rx-lx?(b[0]+b[2])/2-(lx+rx)/2:Math.max(b[0]-lx,Math.min(b[2]-rx,v)),cy=v=>b[3]-b[1]<=by-ty?(b[1]+b[3])/2-(ty+by)/2:Math.max(b[1]-ty,Math.min(b[3]-by,v));
   camTX=cx(camTX);camTY=cy(camTY);camX=cx(camX);camY=cy(camY);} // (a hard edge: the camera itself, not only where it is heading)
 let zoomAuto=true,zoomFloor=0,_zoomSettle=0; // the camera's zoom follows the spill until you zoom in; zooming back out to it picks it up again
-function focusCam(a){if(_mpFor)return; // (a friend's move: the host's view stays)
-  if(a)buoy.follow=true;const[wx,wy]=a2w(pQ,pR);camTX=wx;camTY=wy;if(!a){camX=camTX;camY=camTY;}}
+function focusCam(a,move){if(_mpFor)return; // (a friend's move: the host's view stays)
+  const[wx,wy]=a2w(pQ,pR);if(move&&camSees(wx,wy)){buoy.follow=false;return;} /* a move to a hex you can see: the camera stays where you put it */
+  if(a)buoy.follow=true;camTX=wx;camTY=wy;if(!a){camX=camTX;camY=camTY;}}
 function initGame(){ // a new map: score and depth start over; items, resources and discoveries live in the surface's save and are kept
   neb({cmd:'day',day:1,newRun:true});hubPop=[null,null];score=0;depth=0;clock=3;_sunH=3;_sun={from:3,to:3,t0:0};day=1;dayLog=[];dayCnt={b:0,d:0};pendingEnd=null;newMap();
   showTurn();mapResize();focusCam(false);updateHint();saveMap();
@@ -382,7 +385,7 @@ function doMove(tq,tr){
   const tc=cells[K(tq,tr)];
   if(tc&&tc.isVoid&&voidOpen&&tq===0&&tr===0){const ok=cells[K(pQ,pR)];if(ok)ok.isP=false;descendDepth();return;}
   const ok=cells[K(pQ,pR)];if(ok)ok.isP=false;
-  pQ=tq;pR=tr;tc.isP=true;buoyGo('sail');focusCam(true);
+  pQ=tq;pR=tr;tc.isP=true;buoyGo('sail');focusCam(true,1);
   advanceTurn();if(!MP.on&&runBad(run,'slowmove')&&phase!=='collapse'&&phase!=='gameover')advanceTurn();if(phase==='collapse'){updateHint();saveMap();return;}if(phase!=='gameover')phase='move';
   if(phase==='move'&&!tired()&&!getMoves().length){phase='gameover';gameOverReason=txt('map.go.nomoves');}
   updateHint();saveMap();
@@ -448,7 +451,7 @@ function stringMove(q,r){ // String: straight to any open hex, 1 per hex of dist
   const c=cells[K(q,r)];if(!c||c.cap||c.isVoid||(q===pQ&&r===pR))return;const n=dist(pQ,pR,q,r);
   if(riftBetween(pQ,pR,q,r)){feed(txt('map.string'),txt('map.rift_in_the_way'));return;}
   if((inv.dial||0)<n){feed(txt('map.string'),txt('map.that_is_away_you',n,inv.dial||0));return;}
-  spend('dial',n);const ok=cells[K(pQ,pR)];if(ok)ok.isP=false;dropSession();pQ=q;pR=r;c.isP=true;buoyGo('fire');focusCam(true);phase='move';const dim=runBad(run,'slowmove');if(dim)advanceTurn(); // a dim fortune: a String takes a time of day
+  spend('dial',n);const ok=cells[K(pQ,pR)];if(ok)ok.isP=false;dropSession();pQ=q;pR=r;c.isP=true;buoyGo('fire');focusCam(true,1);phase='move';const dim=runBad(run,'slowmove');if(dim)advanceTurn(); // a dim fortune: a String takes a time of day
   if(phase==='collapse'){updateHint();saveMap();return;}feed(txt('map.string'),txt('map.hex',n,(n>1?txt('map.es'):''),(dim?txt('map.a_time_of_day'):txt('map.no_time_passed'))));updateHint();saveMap();}
 const WEAVE_KINDS={3:['prism'],4:['gate','knot'],5:['key','lens']}; // (KIND_NAME: shared.js)
 const weaveKinds=n=>runBonus(run,'glasses')?['lens']:WEAVE_KINDS[n].filter(k=>!(k==='key'&&run.keysGone)); // Broken Glasses: only Lens; Keys lost: no Key
@@ -551,10 +554,10 @@ function sceneInit(){
   const gl=sc.getContext('webgl',{alpha:false,antialias:true,premultipliedAlpha:true});if(!gl)return null;
   const sh=(t,src)=>{const o=gl.createShader(t);gl.shaderSource(o,src);gl.compileShader(o);return o;},pr=gl.createProgram();
   gl.attachShader(pr,sh(gl.VERTEX_SHADER,'attribute vec2 aP;uniform mat4 uPV;uniform vec2 uS;varying vec2 vT,vP;void main(){vT=aP;vP=aP*uS;gl_Position=uPV*vec4((aP-0.5)*uS,0.0,1.0);}'));
-  gl.attachShader(pr,sh(gl.FRAGMENT_SHADER,'#ifdef GL_FRAGMENT_PRECISION_HIGH\nprecision highp float;\n#else\nprecision mediump float;\n#endif\nvarying vec2 vT,vP;uniform sampler2D uT;uniform vec2 uSp,uSr;uniform float uSa,uOn;void main(){vec4 c=texture2D(uT,vT);vec2 p=vP-uSp;float ca=cos(uSa),sa=sin(uSa);vec2 q=vec2(dot(p,vec2(ca,sa)),dot(p,vec2(-sa,ca)))/max(uSr,vec2(1.0));float d=length(q),m=uOn*(1.0-smoothstep(0.9,1.0,d)),w=smoothstep(0.72,0.95,min(c.r,min(c.g,c.b)));vec3 l=c.rgb*(1.0+1.7*m*(1.0-w));l=mix(l,vec3(1.0),m*w*0.35*(1.0-d));gl_FragColor=vec4(min(l,vec3(1.0)),1.0);}'));gl.linkProgram(pr);if(!gl.getProgramParameter(pr,gl.LINK_STATUS)){console.error('Surface Map ground shader:',gl.getProgramInfoLog(pr));return null;} /* (a uniform used by both shaders must have the same precision in each: the map position comes over as a varying instead) */
+  gl.attachShader(pr,sh(gl.FRAGMENT_SHADER,'#ifdef GL_FRAGMENT_PRECISION_HIGH\nprecision highp float;\n#else\nprecision mediump float;\n#endif\nvarying vec2 vT,vP;uniform sampler2D uT;uniform vec2 uSp,uSr,uCp;uniform float uSa,uOn,uCr,uCa;void main(){vec4 c=texture2D(uT,vT);vec2 p=vP-uSp;float ca=cos(uSa),sa=sin(uSa);vec2 q=vec2(dot(p,vec2(ca,sa)),dot(p,vec2(-sa,ca)))/max(uSr,vec2(1.0));float d=length(q),m=uOn*(1.0-smoothstep(0.9,1.0,d)),dc=length(vP-uCp)/max(uCr,1.0),mc=uCa*(1.0-smoothstep(0.0,1.0,dc)),w=smoothstep(0.72,0.95,min(c.r,min(c.g,c.b)));vec3 l=c.rgb*(1.0+(1.7*m+0.9*mc)*(1.0-w));l=mix(l,vec3(1.0),(m*0.35*(1.0-d)+mc*0.3*(1.0-dc))*w);gl_FragColor=vec4(min(l,vec3(1.0)),1.0);}'));gl.linkProgram(pr);if(!gl.getProgramParameter(pr,gl.LINK_STATUS)){console.error('Surface Map ground shader:',gl.getProgramInfoLog(pr));return null;} /* (a uniform used by both shaders must have the same precision in each: the map position comes over as a varying instead) */
   const buf=gl.createBuffer();gl.bindBuffer(gl.ARRAY_BUFFER,buf);gl.bufferData(gl.ARRAY_BUFFER,new Float32Array([0,0,1,0,0,1,1,1]),gl.STATIC_DRAW);
   const tex=gl.createTexture();gl.bindTexture(gl.TEXTURE_2D,tex);for(const [p,v] of [[gl.TEXTURE_MIN_FILTER,gl.LINEAR],[gl.TEXTURE_MAG_FILTER,gl.LINEAR],[gl.TEXTURE_WRAP_S,gl.CLAMP_TO_EDGE],[gl.TEXTURE_WRAP_T,gl.CLAMP_TO_EDGE]])gl.texParameteri(gl.TEXTURE_2D,p,v);
-  return{gl,pr,buf,tex,aP:gl.getAttribLocation(pr,'aP'),uPV:gl.getUniformLocation(pr,'uPV'),uS:gl.getUniformLocation(pr,'uS'),uT:gl.getUniformLocation(pr,'uT'),uSp:gl.getUniformLocation(pr,'uSp'),uSr:gl.getUniformLocation(pr,'uSr'),uSa:gl.getUniformLocation(pr,'uSa'),uOn:gl.getUniformLocation(pr,'uOn'),duck:duckCtx(gl)};}
+  return{gl,pr,buf,tex,aP:gl.getAttribLocation(pr,'aP'),uPV:gl.getUniformLocation(pr,'uPV'),uS:gl.getUniformLocation(pr,'uS'),uT:gl.getUniformLocation(pr,'uT'),uSp:gl.getUniformLocation(pr,'uSp'),uSr:gl.getUniformLocation(pr,'uSr'),uSa:gl.getUniformLocation(pr,'uSa'),uOn:gl.getUniformLocation(pr,'uOn'),uCp:gl.getUniformLocation(pr,'uCp'),uCr:gl.getUniformLocation(pr,'uCr'),uCa:gl.getUniformLocation(pr,'uCa'),duck:duckCtx(gl)};}
 function bottleOpts(d,now,side,alpha){ // a bottle floating upright, leaning a little and rocking, about half under the water (side 1: what shows above it; −1: its reflection)
   const[px,py]=w2s(d.x,d.y),[X,Y,k]=proj(px,py),f=duckFace(d,now),t=0.3+0.1*Math.sin(now/900+d.ph),ct=Math.cos(t),st=Math.sin(t),z=side,size=d._s*0.8,
     ax=[f[0]*st,f[1]*st,ct*z],bx=[-f[0]*ct,-f[1]*ct,st*z],sd=[-f[1],f[0],0],h=size*(0.03*Math.sin(now/650+d.ph)-(d._sink||0)*1.6); // (its length up, leaning along its heading)
@@ -566,7 +569,8 @@ function sceneRender(now){
   gl.useProgram(G3.pr);gl.disable(gl.BLEND);gl.enable(gl.DEPTH_TEST);gl.depthFunc(gl.LEQUAL);
   gl.activeTexture(gl.TEXTURE0);gl.bindTexture(gl.TEXTURE_2D,G3.tex);gl.pixelStorei(gl.UNPACK_PREMULTIPLY_ALPHA_WEBGL,false);gl.texImage2D(gl.TEXTURE_2D,0,gl.RGBA,gl.RGBA,gl.UNSIGNED_BYTE,mc);gl.uniform1i(G3.uT,0);
   gl.bindBuffer(gl.ARRAY_BUFFER,G3.buf);gl.enableVertexAttribArray(G3.aP);gl.vertexAttribPointer(G3.aP,2,gl.FLOAT,false,0,0);for(let i=0;i<3;i++)gl.disableVertexAttribArray(i+1); // the ground (its texture: y runs down, as the plane's)
-  gl.uniformMatrix4fv(G3.uPV,false,cam.pv);gl.uniform2f(G3.uS,MW,MH);{const S=buoy.spotAt,on=!SCENE&&S&&!buoy.dunk&&!buoy.dip&&currentView!=='level';gl.uniform1f(G3.uOn,on?1:0);if(S){gl.uniform2f(G3.uSp,S.x,S.y);gl.uniform2f(G3.uSr,S.ma,S.mi);gl.uniform1f(G3.uSa,S.a);}} // the buoy's light, lighting the ground itself: colours brighten (black stays black), white takes a sheen
+  gl.uniformMatrix4fv(G3.uPV,false,cam.pv);gl.uniform2f(G3.uS,MW,MH);{const S=buoy.spotAt,on=!SCENE&&S&&!buoy.dunk&&!buoy.dip&&currentView!=='level';gl.uniform1f(G3.uOn,on?1:0);if(S){gl.uniform2f(G3.uSp,S.x,S.y);gl.uniform2f(G3.uSr,S.ma,S.mi);gl.uniform1f(G3.uSa,S.a);}}
+  {const on=!SCENE&&currentView==='map'&&mX>=0&&!menuOpen&&!shopUI&&overScene();gl.uniform1f(G3.uCa,on?1.1:0);if(on){const[px,py]=unproj(mX,mY),k=proj(px,py)[2]||1;gl.uniform2f(G3.uCp,px,py);gl.uniform1f(G3.uCr,56/k);}} // the cursor's own light on the ground, as the buoy's: colours brighten, white takes a sheen // the buoy's light, lighting the ground itself: colours brighten (black stays black), white takes a sheen
   gl.drawArrays(gl.TRIANGLE_STRIP,0,4);
   if(!G3.duck)return;let envd=false;
   {if(clock!==_sun.to%24&&!(clock===24&&_sun.to%24===0)){let to=clock;const fr=_sunH;if(to<fr&&fr-to>12)to+=24;else if(to>fr&&to-fr>12)to-=24;_sun={from:fr,to,t0:now};} // a new hour: the light moves to it (backwards for the Clock smith)
@@ -705,6 +709,10 @@ function mapRender(){
     const sp=glowSprite(bl,ba),hs=sp.width/MK/2;mctx.save();mctx.globalCompositeOperation='screen';for(const[x,y,,,,p]of brightOnes){mctx.globalAlpha=p;mctx.drawImage(sp,x-hs,y-hs,hs*2,hs*2);}mctx.restore(); // the blurred glow, drawn once into a sprite
     for(const[x,y,v,st,sw]of brightOnes){if(st!=='#fff'){hexPath(x,y,HEX*0.92);mctx.strokeStyle=st;mctx.lineWidth=sw;mctx.stroke();} // a soft white core (no hard edge); only the player / merge outline stays crisp
 }}
+  // Shops reflected in the ground, upside down under their base: 'lighten' shows them only where it is dark (the darkness seeping through the bright under them), the bright stays as it is
+  if(!SCENE&&cam){mctx.save();mctx.globalCompositeOperation='lighten';mctx.globalAlpha=T.mapShopReflect!=null?T.mapShopReflect:0.42;const ct=Math.max(0.2,Math.cos(cam.th));
+    for(const key in shopEls){const el=shopEls[key],sh=el._s,cv=el._cv;if(!sh||!cv||!cv._bw)continue;const[px,py]=w2s(sh.wx,sh.wy),sx=HEX*(T.mapStreetSize||0.75)/cv._bw,sy=sx/ct; /* (its screen height again, on a plane seen at a slant) */
+      if(px<-HEX*3||px>MW+HEX*3||py<-HEX*3||py>MH+HEX*3)continue;mctx.setTransform(MK*sx,0,0,-MK*sy,MK*px,MK*py);mctx.drawImage(cv,-cv._ax,-cv._ay);}mctx.restore();}
   // The source: a big white point at the centre, glowing over the surfaces and bleeding into the first ring. When a day ends its rings fall into it one by
   // one ('fall': a ring of light closing in, faster as it goes), it flashes ('flash'), and the spill bursts back out to its rings ('burst')
   if(Number.isFinite(MW)){const[cx,cy]=w2s(...a2w(0,0)),g=T.mapSourceGlow!=null?T.mapSourceGlow:1,pul=0.5+0.5*Math.sin(now/900),fx=burstFx,ft=fx?(now-fx.t0)/(fx.dur||1600):1;
@@ -1078,7 +1086,9 @@ window.addEventListener('message',e=>{
   }
   if(m.type==='ready'||m.type==='state');
   else if(m.type==='preview'){if(!m.img)prevPending.delete(m.key);hubLog('preview '+m.key+(m.ms!=null?' built in '+m.ms.toFixed(0)+' ms':'')+(m.img?'':' (skipped)'));if(m.img){IDB.put('pv:'+m.sig,m.img).catch(()=>{});setPrev(m.key,m.sig,m.img);}}
-  else if(m.type==='overlayDone'){if(currentView==='overlay'){currentView='map';showNeb(false);if(shopUI)renderShop();evPump();}}
+  else if(m.type==='coll'){nebEl.classList.add('see');if(!statusCam)statusCam={w:m.w,z:Math.min((T.mapZoomMax||1.8)*2,viewZoom*1.8),back:{x:camTX,y:camTY,z:viewZoom,follow:buoy.follow,auto:zoomAuto}};else statusCam.w=m.w;} /* Status: the map shows to its left, framing your buoy */
+  else if(m.type==='overlayDone'){nebEl.classList.remove('see');if(statusCam){const B=statusCam.back;statusCam=null;camTween={t0:performance.now(),dur:800,a:{x:camX,y:camY,z:viewZoom},b:{x:B.x,y:B.y,z:B.z}};buoy.follow=B.follow;zoomAuto=B.auto;} /* and back to your own view */
+    if(currentView==='overlay'){currentView='map';showNeb(false);if(shopUI)renderShop();evPump();}}
   else if(m.type==='buoy')buoyLoad(); // its name or colour changed (Status & collections → Buoy)
   else if(m.type==='cleared'){if(MP.role==='guest')mpSend('cleared',{key:m.key,kind:m.kind,tally:m.tally,ang:m.ang});else if(m.kind==='rift')riftCell(m.key,m.ang);else completeCaptureForCell(m.key,m.kind,m.tally);}
   else if(m.type==='frame'){if(MP.on)netOut({t:'frame',url:m.url});} // my surface, for everyone watching

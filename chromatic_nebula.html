@@ -30,6 +30,7 @@ button:hover{background:rgba(255,255,255,0.15);}
 #touch-info{position:static;font:12px monospace;pointer-events:auto;cursor:pointer;text-align:center;width:0;min-width:100%;max-width:100%;box-sizing:border-box;height:28px;color:#fff;background:rgba(0,0,0,0.6);padding:3px 14px;border-radius:0;display:flex;flex-direction:column;justify-content:center;overflow:hidden;}
 #touch-info .fn{font-size:12px;line-height:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
 #touch-info .fd{font-size:9px;line-height:11px;opacity:0.62;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+#wrap.hub-ov>*:not(#rulesOverlay):not(#evOverlay){visibility:hidden!important} /* the map's Guide, cards and Status show over a bare stage (from the first one: this was only set once the pause menu had been opened) */
 #wrap.ui-hidden #hud,#wrap.ui-hidden #stats,#wrap.ui-hidden #statsTools,#wrap.ui-hidden #tunePanel,#wrap.ui-hidden #modesPanel{display:none!important;}
 #tunePanel{position:absolute;top:calc(36px + var(--hud-dy,0px));left:10px;width:312px;max-height:calc(100vh - 50px - var(--dock-h,0px));overflow-y:auto;overflow-x:hidden;scrollbar-gutter:stable;background:rgba(0,0,0,0.88);border:1px solid rgba(255,255,255,0.12);border-radius:6px;z-index:20;display:none;scrollbar-width:thin;scrollbar-color:rgba(255,255,255,0.2) transparent;box-sizing:border-box;}
 #tunePanel::-webkit-scrollbar{width:4px;}
@@ -12891,7 +12892,7 @@ function guideCSS(){
   if(document.getElementById('guideCss'))return;const st=document.createElement('style');st.id='guideCss';
   st.textContent=`
 #rulesOverlay{position:absolute;inset:2% 4%;z-index:60;display:flex;flex-direction:column;background:rgba(0,0,0,.96);color:#fff;border:1px solid #fff;border-radius:0;font:13px/1.5 system-ui,'Inter',sans-serif;letter-spacing:.4px;box-shadow:0 10px 50px rgba(0,0,0,.6);overflow:hidden} /* as the main and shop menus: black, a white line, plain type */
-#rulesOverlay.coll{left:50%;right:auto;transform:translateX(-50%);max-width:96%}#rulesOverlay.coll .bk{max-width:100%}
+#rulesOverlay.coll{left:auto;right:2%;max-width:96%}html.see,html.see body,html.see #wrap{background:transparent!important}#rulesOverlay.coll .bk{max-width:100%}
 #rulesOverlay.inv{background:rgba(255,255,255,.97);color:#000;border-color:#000}
 .mtg.sm.sv{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;text-align:center}.mtg.sm.sv .sv-i{font-size:30px;line-height:1}.mtg.sm.sv span{opacity:.7} /* a souvenir kept */
 #rlHead{display:flex;align-items:center;gap:10px;padding:8px 14px;border-bottom:1px solid rgba(128,128,128,.3);flex-wrap:wrap}
@@ -13022,9 +13023,10 @@ function openRules(mode,tab){mode=mode==='coll'?'coll':'guide';const tabs=mode==
   ov.style.display='flex';rulesHead();rulesRender();
 }
 function rulesHead(){const ov=document.getElementById('rulesOverlay');if(!ov)return;ov.querySelector('#rlHead h2').textContent=txt(_rulesMode==='coll'?'coll.title':'guide.title');ov.querySelector('#rlTabs').innerHTML=(_rulesMode==='coll'?COLL_TABS:RULE_TABS).map(t=>`<button data-t="${t[0]}">${t[1]}</button>`).join('');
-  ov.classList.toggle('coll',_rulesMode==='coll');ov.style.width='';if(_rulesMode==='coll'){const row=el=>[...el.children].reduce((a,c)=>a+c.getBoundingClientRect().width+12,0);ov.style.width=Math.ceil(Math.max(row(ov.querySelector('#rlHead')),row(ov.querySelector('#rlTabs')))+60)+'px';}} // Status & collections: only as wide as its title, buttons and tabs (and a margin); its pages fit that // the menu's title and tabs: the Guide's, or Status and your collections'
+  ov.classList.toggle('coll',_rulesMode==='coll');ov.style.width='';if(_rulesMode==='coll'){const row=el=>[...el.children].reduce((a,c)=>a+c.getBoundingClientRect().width+12,0);ov.style.width=Math.ceil(Math.max(row(ov.querySelector('#rlHead')),row(ov.querySelector('#rlTabs')))+60)+'px';}
+  document.documentElement.classList.toggle('see',HUB&&_rulesMode==='coll');if(HUB&&_rulesMode==='coll')hubPost({type:'coll',w:ov.getBoundingClientRect().width+innerWidth*0.02});} // Status & collections: only as wide as its title, buttons and tabs (and a margin); its pages fit that // the menu's title and tabs: the Guide's, or Status and your collections'
 function closeRules(){
-  if(!_rulesOpen)return;_rulesOpen=false;window._rulesOpen=false;_rulesLast[_rulesMode]=_rulesTab;wrap.classList.remove('rules-open');
+  if(!_rulesOpen)return;_rulesOpen=false;window._rulesOpen=false;_rulesLast[_rulesMode]=_rulesTab;wrap.classList.remove('rules-open');document.documentElement.classList.remove('see');
   const ov=document.getElementById('rulesOverlay');if(ov){ov.style.display='none';ov.querySelectorAll('iframe').forEach(f=>f.remove());}
   if(!_rulesWasPaused&&isPaused)togglePause();
   hubOverlayCheck();
@@ -13390,7 +13392,6 @@ function openGameMenu(){
   let m=document.getElementById('gameMenu');
   if(!m){
     const st=document.createElement('style');st.textContent=`#gameMenu{position:absolute;inset:0;z-index:55;display:none;align-items:center;justify-content:center;background:rgba(0,0,0,.55)}
-#wrap.hub-ov>*:not(#rulesOverlay):not(#evOverlay){visibility:hidden!important}
 #wrap.rules-open #gameMenu{display:none!important}
 
 #gameMenu .gm{width:300px;background:#000;border:1px solid #fff;padding:16px 22px 14px;color:#fff;font:12px/1.5 system-ui,'Inter',sans-serif;letter-spacing:.6px;display:flex;flex-direction:column;gap:1px} /* as a shop's list on the map */
