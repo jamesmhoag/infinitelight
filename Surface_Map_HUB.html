@@ -551,10 +551,10 @@ function sceneInit(){
   const gl=sc.getContext('webgl',{alpha:false,antialias:true,premultipliedAlpha:true});if(!gl)return null;
   const sh=(t,src)=>{const o=gl.createShader(t);gl.shaderSource(o,src);gl.compileShader(o);return o;},pr=gl.createProgram();
   gl.attachShader(pr,sh(gl.VERTEX_SHADER,'attribute vec2 aP;uniform mat4 uPV;uniform vec2 uS;varying vec2 vT;void main(){vT=aP;gl_Position=uPV*vec4((aP-0.5)*uS,0.0,1.0);}'));
-  gl.attachShader(pr,sh(gl.FRAGMENT_SHADER,'precision mediump float;varying vec2 vT;uniform sampler2D uT;void main(){gl_FragColor=texture2D(uT,vT);}'));gl.linkProgram(pr);
+  gl.attachShader(pr,sh(gl.FRAGMENT_SHADER,'precision mediump float;varying vec2 vT;uniform sampler2D uT;uniform vec2 uS,uSp,uSr;uniform float uSa,uOn;void main(){vec4 c=texture2D(uT,vT);vec2 p=vT*uS-uSp;float ca=cos(uSa),sa=sin(uSa);vec2 q=vec2(dot(p,vec2(ca,sa)),dot(p,vec2(-sa,ca)))/max(uSr,vec2(1.0));float d=length(q),m=uOn*(1.0-smoothstep(0.9,1.0,d)),w=smoothstep(0.72,0.95,min(c.r,min(c.g,c.b)));vec3 l=c.rgb*(1.0+1.7*m*(1.0-w));l=mix(l,vec3(1.0),m*w*0.35*(1.0-d));gl_FragColor=vec4(min(l,vec3(1.0)),1.0);}'));gl.linkProgram(pr);
   const buf=gl.createBuffer();gl.bindBuffer(gl.ARRAY_BUFFER,buf);gl.bufferData(gl.ARRAY_BUFFER,new Float32Array([0,0,1,0,0,1,1,1]),gl.STATIC_DRAW);
   const tex=gl.createTexture();gl.bindTexture(gl.TEXTURE_2D,tex);for(const [p,v] of [[gl.TEXTURE_MIN_FILTER,gl.LINEAR],[gl.TEXTURE_MAG_FILTER,gl.LINEAR],[gl.TEXTURE_WRAP_S,gl.CLAMP_TO_EDGE],[gl.TEXTURE_WRAP_T,gl.CLAMP_TO_EDGE]])gl.texParameteri(gl.TEXTURE_2D,p,v);
-  return{gl,pr,buf,tex,aP:gl.getAttribLocation(pr,'aP'),uPV:gl.getUniformLocation(pr,'uPV'),uS:gl.getUniformLocation(pr,'uS'),uT:gl.getUniformLocation(pr,'uT'),duck:duckCtx(gl)};}
+  return{gl,pr,buf,tex,aP:gl.getAttribLocation(pr,'aP'),uPV:gl.getUniformLocation(pr,'uPV'),uS:gl.getUniformLocation(pr,'uS'),uT:gl.getUniformLocation(pr,'uT'),uSp:gl.getUniformLocation(pr,'uSp'),uSr:gl.getUniformLocation(pr,'uSr'),uSa:gl.getUniformLocation(pr,'uSa'),uOn:gl.getUniformLocation(pr,'uOn'),duck:duckCtx(gl)};}
 function bottleOpts(d,now,side,alpha){ // a bottle floating upright, leaning a little and rocking, about half under the water (side 1: what shows above it; −1: its reflection)
   const[px,py]=w2s(d.x,d.y),[X,Y,k]=proj(px,py),f=duckFace(d,now),t=0.3+0.1*Math.sin(now/900+d.ph),ct=Math.cos(t),st=Math.sin(t),z=side,size=d._s*0.8,
     ax=[f[0]*st,f[1]*st,ct*z],bx=[-f[0]*ct,-f[1]*ct,st*z],sd=[-f[1],f[0],0],h=size*(0.03*Math.sin(now/650+d.ph)-(d._sink||0)*1.6); // (its length up, leaning along its heading)
@@ -566,7 +566,8 @@ function sceneRender(now){
   gl.useProgram(G3.pr);gl.disable(gl.BLEND);gl.enable(gl.DEPTH_TEST);gl.depthFunc(gl.LEQUAL);
   gl.activeTexture(gl.TEXTURE0);gl.bindTexture(gl.TEXTURE_2D,G3.tex);gl.pixelStorei(gl.UNPACK_PREMULTIPLY_ALPHA_WEBGL,false);gl.texImage2D(gl.TEXTURE_2D,0,gl.RGBA,gl.RGBA,gl.UNSIGNED_BYTE,mc);gl.uniform1i(G3.uT,0);
   gl.bindBuffer(gl.ARRAY_BUFFER,G3.buf);gl.enableVertexAttribArray(G3.aP);gl.vertexAttribPointer(G3.aP,2,gl.FLOAT,false,0,0);for(let i=0;i<3;i++)gl.disableVertexAttribArray(i+1); // the ground (its texture: y runs down, as the plane's)
-  gl.uniformMatrix4fv(G3.uPV,false,cam.pv);gl.uniform2f(G3.uS,MW,MH);gl.drawArrays(gl.TRIANGLE_STRIP,0,4);
+  gl.uniformMatrix4fv(G3.uPV,false,cam.pv);gl.uniform2f(G3.uS,MW,MH);{const S=buoy.spotAt,on=!SCENE&&S&&!buoy.dunk&&!buoy.dip&&currentView!=='level';gl.uniform1f(G3.uOn,on?1:0);if(S){gl.uniform2f(G3.uSp,S.x,S.y);gl.uniform2f(G3.uSr,S.ma,S.mi);gl.uniform1f(G3.uSa,S.a);}} // the buoy's light, lighting the ground itself: colours brighten (black stays black), white takes a sheen
+  gl.drawArrays(gl.TRIANGLE_STRIP,0,4);
   if(!G3.duck)return;let envd=false;
   {if(clock!==_sun.to%24&&!(clock===24&&_sun.to%24===0)){let to=clock;const fr=_sunH;if(to<fr&&fr-to>12)to+=24;else if(to>fr&&to-fr>12)to-=24;_sun={from:fr,to,t0:now};} // a new hour: the light moves to it (backwards for the Clock smith)
     const u=Math.min(1,(now-_sun.t0)/(T.mapSunMs||4500));_sunH=_sun.from+(_sun.to-_sun.from)*u*u*(3-2*u); // a slow shift of the light, over Light shift ms
@@ -933,7 +934,7 @@ function buoyPlane(now){ // on the plane, under it: its spot light, its ripples,
   if(Math.abs(da)<=rate){S.a=ta;if(!aim)S.cyc=S.a+6.2832*dms/(T.mapSpotMs||30000);}else S.a+=Math.sign(da)*rate;if(aim)S.cyc=S.a; // the cycle carries on from wherever the light is (not from where it would have been)
   S.d+=Math.max(-lr,Math.min(lr,td-S.d));
   const px=bx+Math.cos(S.a)*S.d,py=by+Math.sin(S.a)*S.d,h=buoyFrame(now).lamp[2],Rs=HEX*0.36,ma=Rs*Math.min(2.2,Math.sqrt(1+(S.d/Math.max(1,h))**2)); // the spot: where the lantern's cone meets the surface, stretched away from it (it comes in at a slant)
-  buoy.spotAt={x:px,y:py,a:S.a,ma,mi:Rs};if(buoy.dunk||buoy.dip)return;c.save();c.globalCompositeOperation='screen';c.beginPath();c.ellipse(px,py,ma,Rs,S.a,0,6.2832);c.fillStyle='rgba(255,244,214,0.32)';c.fill();c.restore(); // crisp, no glow, no edge line
+  buoy.spotAt={x:px,y:py,a:S.a,ma,mi:Rs}; // (lit by the ground's own shader: sceneRender)
   if(now>buoy.ripAt){buoy.ripAt=now+2200+Math.random()*900;ripples.push({x:buoy.x,y:buoy.y,t:now,dk:onWhite(buoy.x,buoy.y)});} // it ripples the surface it floats in
   if(buoy.mv&&!buoy.mv.fire){const ink=onWhite(buoy.x,buoy.y)?[20,24,32]:sunInk();drawWakeShape(c,bx,by,Math.cos(buoy.hd),Math.sin(buoy.hd),HEX*0.4,0.7,0.4,ink,ink);if(now-(buoy.lastRip||0)>180){buoy.lastRip=now;ripples.push({x:buoy.x,y:buoy.y,t:now,dk:onWhite(buoy.x,buoy.y)});}}
   if(buoy.trail){const t=(now-buoy.trail.t0)/700;if(t>=1)buoy.trail=null;else{const[ax,ay]=w2s(buoy.trail.x0,buoy.trail.y0);c.save();c.globalCompositeOperation='screen';c.lineCap='round';c.strokeStyle=`rgba(255,250,235,${(0.8*(1-t)).toFixed(3)})`;c.lineWidth=HEX*0.12*(1-t)+1;c.filter=`blur(${(HEX*0.04).toFixed(1)}px)`;c.beginPath();c.moveTo(ax,ay);c.lineTo(bx,by);c.stroke();c.restore();}}} // a String's shot: a streak, like a Point fired
@@ -1219,6 +1220,7 @@ function shopTick(){if(SCENE&&!document.body.classList.contains('scene-shops'))r
       let h=7;for(const ch of s.key)h=(h*31+ch.charCodeAt(0))>>>0;el._fl=`neon${h%4} ${(2.5+(h>>4)%60/10).toFixed(1)}s ${-((h>>10)%50)/10}s infinite`;} // its own flicker: which, how fast, where in it
     if(el._cv!==cv){el._cv=cv;const d=document.createElement('canvas');d.width=cv.width;d.height=cv.height;d.getContext('2d').drawImage(cv,0,0);d.style.animation=s.lit?el._fl:'none';el.innerHTML='';el.appendChild(d);}el.classList.toggle('lit',s.lit);el._s=s; // (its own copy: two pop-ups can share a sprite)
     const[X,Y,k]=proj(...w2s(s.wx,s.wy)),sc_=HEX*(T.mapStreetSize||0.75)*k/cv._bw; // every shop at main street's scale: the set keeps its own sizes
+    {const S=buoy.spotAt,lit=!!(S&&!buoy.dunk&&!buoy.dip&&Math.hypot(...w2s(s.wx,s.wy).map((v,i)=>v-(i?S.y:S.x)))<S.ma*1.15),f=lit?'brightness(1.45)':'';if(el._lf!==f){el._lf=f;el.style.filter=f;}} // in the buoy's light: lit up
     const tf=`translate(${(X-cv._ax*sc_).toFixed(1)}px,${(Y-cv._ay*sc_).toFixed(1)}px) scale(${sc_.toFixed(4)})`;if(el._tf!==tf){el._tf=tf;el.style.transform=tf;el.style.zIndex=Math.round(Y);}} // (only when it moved)
   for(const k in shopEls)if(!seen.has(k)){shopEls[k].remove();delete shopEls[k];}}
 function shopInfo(key){const el=shopEls[key],s=el&&el._s;if(!s)return['',''];const S=SHOPS[s.id];
