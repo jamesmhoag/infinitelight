@@ -219,7 +219,8 @@ map.stat.gameover, · game over: {reason},Surface Map,reason = $0 — why the ga
 map.shop.open,Open · {hours} · click to shop,Surface Map,hours = $0 — the shop's opening hours
 map.shop.closed,Closed · {hours},Surface Map,hours = $0 — the shop's opening hours
 map.shop.popup,{shop} · pop-up,Surface Map,shop = $0 — the shop's name
-map.shop.popupinfo,Rank {rank} · {hours} · open while its bright clear lasts · click to shop,Surface Map,rank = $0 — the pop-up's rank; hours = $1 — its hours
+map.shop.popupinfo,Rank {rank} · {hours} · open while its bright clear lasts · click to shop,Surface Map,"rank = $0 — the pop-up's rank
+hours = $1 — its hours"
 map.gift.yes,Yes,Surface Map,
 map.gift.yessub,(enter the GIFT SHOP),Surface Map,
 map.gift.no,No,Surface Map,
