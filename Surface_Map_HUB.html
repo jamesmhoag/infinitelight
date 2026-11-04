@@ -74,7 +74,7 @@ body.scene .hbtn,body.scene:not(.scene-shops) #shops,body.scene #hdock,body.scen
 #mModes,#tuneP{position:absolute;top:46px;z-index:25;display:none;background:rgba(0,0,0,0.86);border:1px solid rgba(255,255,255,0.14);border-radius:6px;font:11px 'Share Tech Mono',monospace;color:#ddd}
 #mModes{left:182px;padding:5px;flex-direction:column;gap:3px}#mModes.show,#tuneP.show{display:flex}#mModes button{text-align:left}
 #mModes button,#tuneP button{font:11px 'Share Tech Mono',monospace;padding:4px 9px;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.14);color:#ccc;border-radius:3px}
-#mModes .ttl{font-size:10px;letter-spacing:1px;color:#888;margin:4px 2px 0;text-transform:uppercase;border-top:1px solid rgba(255,255,255,0.1);padding-top:5px}#mModes button.on,#tuneP button.on{background:rgba(255,220,120,0.22);border-color:rgba(255,220,120,0.7);color:#fff}
+#mModes .ttl{font-size:10px;letter-spacing:1px;color:#888;margin:4px 2px 0;text-transform:uppercase;border-top:1px solid rgba(255,255,255,0.1);padding-top:5px}#testPick{position:fixed;z-index:60;display:none;flex-direction:column;gap:3px;padding:6px;max-height:80vh;overflow:auto;background:rgba(0,0,0,0.9);border:1px solid rgba(255,255,255,0.18);border-radius:6px;font:11px 'Share Tech Mono',monospace;color:#ddd}#testPick .tt{color:#888;text-transform:uppercase;letter-spacing:1px;font-size:10px;margin:3px 2px 1px}#testPick button{font:11px 'Share Tech Mono',monospace;padding:4px 9px;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.14);color:#ccc;border-radius:3px;text-align:left}#testPick .tr{display:flex;gap:3px;align-items:center}#testPick .tr span{flex:1;padding-right:8px;white-space:nowrap}#testPick .tr button{padding:3px 8px;text-align:center}#mModes button.on,#tuneP button.on{background:rgba(255,220,120,0.22);border-color:rgba(255,220,120,0.7);color:#fff}
 #tuneP{left:16px;width:330px;max-height:calc(100vh - 140px);flex-direction:column;overflow:hidden}
 #tuneP .tabs{display:flex;flex-wrap:wrap;gap:3px;padding:6px}#tuneP .tabs button{flex:1 1 auto;white-space:nowrap}#tuneP input[type=search]{margin:0 6px 6px;font:11px monospace;background:#111;color:#eee;border:1px solid #333;padding:3px 5px}
 #tuneP .rows{overflow:auto;padding:0 8px 8px}#tuneP .sec{opacity:.55;margin:8px 0 3px;text-transform:uppercase;letter-spacing:1px;font-size:10px}
@@ -133,7 +133,7 @@ body.shop-open #hdock{z-index:59}#hinv .slot.wal::before{border-color:rgba(255,2
   <button class="hbtn" id="menu-btn" onclick="toggleMenu()" data-tx="map.ui.menu_esc"></button>
   <button class="hbtn" id="modes-btn" data-disc="hud_modes" onclick="togglePanel('mModes')" data-tx="map.ui.modes"></button>
   <button class="hbtn" id="tune-btn" data-disc="hud_tune" onclick="togglePanel('tuneP')" data-tx="map.ui.tune"></button>
-  <div id="mModes"><button id="mdTel" data-disc="mode_telemetry" onclick="setMapMode('tel')" data-tx="map.ui.telemetry_hex_values"></button><button id="mdStats" onclick="setMapMode('stats')" data-tx="map.ui.stats_frames_hexes"></button><button onclick="downloadHubLog()" data-tx="map.ui.performance_log"></button><div class="ttl" data-tx="test.title"></div><button data-test="free" onclick="testFree();renderShop()"></button><button onclick="neb({cmd:'test',f:'discAll'})" data-tx="test.discover_all"></button><button onclick="neb({cmd:'test',f:'testFill'})" data-tx="test.fill"></button></div>
+  <div id="mModes"><button id="mdTel" data-disc="mode_telemetry" onclick="setMapMode('tel')" data-tx="map.ui.telemetry_hex_values"></button><button id="mdStats" onclick="setMapMode('stats')" data-tx="map.ui.stats_frames_hexes"></button><button onclick="downloadHubLog()" data-tx="map.ui.performance_log"></button><div class="ttl"></div><button data-test="mode" onclick="testMode()"></button><button class="test-only" id="mdTool" onclick="armItem('test');togglePanel()" data-tx="test.tool"></button><button class="test-only" data-test="free" onclick="testFree();renderShop()"></button><button class="test-only" onclick="neb({cmd:'test',f:'discAll'});neb({cmd:'test',f:'unlockAll'})" data-tx="test.discover_all"></button><button class="test-only" onclick="neb({cmd:'test',f:'testFill'})" data-tx="test.fill"></button></div>
   <div id="tuneP"><div class="tabs"></div><input type="search" data-tp="map.ui.filter_settings"><div class="rows"></div></div>
   <div id="hstats"></div>
   <button class="hbtn" id="restart-btn" data-disc="hub_restart" onclick="if(confirm(txt('map.confirm.newmap')))initGame()" data-tx="map.ui.new_map"></button>
@@ -400,6 +400,7 @@ function updateHint(){ // the feed's resting line: what you can do now
   else if(armed==='weave'){a=txt('map.weave_click_bright_hexes');b=(weaveSel.length?txt('map.chosen',weaveSel.length):txt('map.right_click_esc_or'));}
   else if(armed==='dial'){a=txt('map.string_click_any_open');b=txt('map.1_string_per_hex');}
   else if(armed==='leash'){a=txt('map.spindle_click_a_cleared');b=txt('map.a_great_dark_remnant');}
+  else if(armed==='test'){a=txt('test.tool_hint');b=txt('map.right_click_esc_or');}
   else if(c&&!c.cap&&!c.isVoid&&phase==='move'){a=(c.v<=0?txt('map.no_value_here_nothing'):txt('map.space_click_to',(nebulaCellKey===K(pQ,pR)?txt('map.continue_this_surface'):txt('map.enter_this_surface')),c.v.toFixed(2)));b=txt('map.day_or_move',clockStr(),day);if(tired()){a=txt('map.too_tired_to_move');b=txt('map.rest_under_midnight_to_2',(c.v>0?txt('map.or_this_surface',(nebulaCellKey===K(pQ,pR)?txt('map.continue'):txt('map.enter')),c.v.toFixed(2)):''));}}
   hintLine=[a,b];}
 function feed(t,d){feedPop(); // (a message: the feed shows it, even when it is put away)
@@ -418,6 +419,7 @@ const ITEM_NOTE={leash:txt('map.unwinds_a_cleared_hex'),dial:txt('map.goes_strai
   knot:txt('map.used_on_a_surface_2'),gate:txt('map.used_on_a_surface_3'),
   key:txt('map.used_on_a_surface_4'),lens:txt('map.used_on_a_surface_5')};
 function itemInfo(k,c){ // an item in the dock: what it does; in hand over a hex, what it would do there (and what it costs)
+  if(k==='test')return[txt('test.tool'),txt('test.tool_hint')]; // the test tool in hand
   const n=inv[k]||0,nm=KIND_NAME[k]||k;if(!ITEM_NOTE[k])return[curName(k),txt('map.you_have',fmtN(shopWallet(k)))];
   if(!c)return[nm+' × '+n+((armed===k?txt('map.in_hand'):(DOCK_ITEMS.includes(k)?txt('map.click_to_take_it'):txt('map.earned_on_the_map')))),ITEM_NOTE[k]];
   const ck=K(c.q,c.r),g=c.mergeId!=null?mergeGroups.find(x=>x.id===c.mergeId):null,have=(m,u)=>m+(n<u?txt('map.item.youhave',n):'');
@@ -427,7 +429,7 @@ function itemInfo(k,c){ // an item in the dock: what it does; in hand over a hex
   return[nm,ITEM_NOTE[k]];}
 // ── Items on the map: Spindle unwinds a clear; String moves without time; Weave joins bright hexes into constellations ──
 const isBright=k=>{const c=cells[k];return!!(c&&c.cap&&c.kind!=='dark');};
-function itemOK(k){const c=cells[k];if(!c)return false; // what the armed item can act on: a Spindle a clear (or a hex not yet full), a String an open hex it has a straight line to, a Weave a bright clear
+function itemOK(k){const c=cells[k];if(!c)return false;if(armed==='test')return true; // what the armed item can act on: a Spindle a clear (or a hex not yet full), a String an open hex it has a straight line to, a Weave a bright clear
   return armed==='leash'?!!(c.cap||(!c.isVoid&&c.v<1)):armed==='dial'?!c.cap&&!c.isVoid&&k!==K(pQ,pR)&&!riftBetween(pQ,pR,c.q,c.r):isBright(k);}
 function hexLine(q0,r0,q1,r1){const n=dist(q0,r0,q1,r1),out=[];for(let i=0;i<=n;i++){const t=n?i/n:0,x=q0+(q1-q0)*t+1e-6,z=r0+(r1-r0)*t+1e-6,y=-x-z;let rx=Math.round(x),rz=Math.round(z),ry=Math.round(y);const dx=Math.abs(rx-x),dy=Math.abs(ry-y),dz=Math.abs(rz-z);
   if(dx>dy&&dx>dz)rx=-ry-rz;else if(dy<=dz)rz=-rx-ry;out.push([rx,rz]);}return out;} // the hexes a straight line from one hex to another passes over
@@ -782,6 +784,7 @@ sc.addEventListener('click',e=>{
   if(currentView!=='map')return;
   if(phase==='gameover'||phase==='ended'||phase==='collapse')return;
   const[q,r]=evA(e),k0=K(q,r),c0=cells[k0];{const[wx,wy]=s2wp(e.clientX,e.clientY),now=performance.now();ripples.push({x:wx,y:wy,t:now,dk:onWhite(wx,wy),sm:1});} // a click: a little ripple
+  if(armed==='test'){if(c0)testPick(k0,e.clientX,e.clientY);return;} // the test tool: on any hex
   if(c0&&!(armed?itemOK(k0):(q===pQ&&r===pR||(!tired()&&getMoves().some(m=>m.q===q&&m.r===r))))&&!(armed==='weave')){hexTap(k0);return;} // nothing it could do there: the hex rings like tapped glass, and the feed says why
   if(MP.on&&!mpMine()&&!(armed==='weave')){feed(txt('mp.title'),txt('mp.not_your_turn',(mpP(mpTurn())||{}).name||''));return;} // playing together: on your turn
   if(MP.role==='guest'&&armed!=='weave'){mpSend('click',{q,r,armed});if(armed==='dial')armed=null;return;} // a friend: the host plays it
@@ -1086,6 +1089,8 @@ window.addEventListener('message',e=>{
   }
   if(m.type==='ready'||m.type==='state');
   else if(m.type==='preview'){if(!m.img)prevPending.delete(m.key);hubLog('preview '+m.key+(m.ms!=null?' built in '+m.ms.toFixed(0)+' ms':'')+(m.img?'':' (skipped)'));if(m.img){IDB.put('pv:'+m.sig,m.img).catch(()=>{});setPrev(m.key,m.sig,m.img);}}
+  else if(m.type==='testRestored')testRestored();
+  else if(m.type==='testMode')testMode();
   else if(m.type==='coll'){nebEl.classList.add('see');if(!statusCam)statusCam={w:m.w,z:Math.min((T.mapZoomMax||1.8)*2,viewZoom*1.8),back:{x:camTX,y:camTY,z:viewZoom,follow:buoy.follow,auto:zoomAuto}};else statusCam.w=m.w;} /* Status: the map shows to its left, framing your buoy */
   else if(m.type==='overlayDone'){nebEl.classList.remove('see');if(statusCam){const B=statusCam.back;statusCam=null;camTween={t0:performance.now(),dur:800,a:{x:camX,y:camY,z:viewZoom},b:{x:B.x,y:B.y,z:B.z}};buoy.follow=B.follow;zoomAuto=B.auto;} /* and back to your own view */
     if(currentView==='overlay'){currentView='map';showNeb(false);if(shopUI)renderShop();evPump();}}
@@ -1136,6 +1141,30 @@ function buildTuneP(){const p=document.getElementById('tuneP'),tabs=[...new Set(
   for(const d of tuneDefs){if(d.tab!==tuneTabM)continue;if(d.sec){sec=d;continue;}if(q&&!((d.label||'')+' '+d.key+' '+(d.tip||'')).toLowerCase().includes(q))continue;if(sec){out.push(sec);sec=null;}out.push(d);}
   tuneRows(p.querySelector('.rows'),out);}
 document.querySelector('#tuneP input[type=search]').addEventListener('input',e=>{tuneQ=e.target.value;buildTuneP();});
+// ── Test mode (shared.js TEST): on snapshots the map (and the surface its save), then turns on free purchases, every discovery and unlock, full items; off puts both back and reloads ──
+const TEST_MAP='il_test_snap_map';
+function testMode(){if(TEST.get('mode')){neb({cmd:'test',f:'testOff'});return;} /* (the surface puts its save back, then says so: testRestored) */
+  saveMap();try{if(localStorage.getItem(TEST_MAP)==null)localStorage.setItem(TEST_MAP,localStorage.getItem(MAP_KEY)||'');}catch(e){feed(txt('test.title'),txt('test.nosnap'));return;}
+  neb({cmd:'test',f:'testOn'});TEST.set('mode',1);TEST.set('free',1);testSync();feed(txt('test.mode_on'),txt('test.on_info'));}
+function testRestored(){let s=null;try{s=localStorage.getItem(TEST_MAP);localStorage.removeItem(TEST_MAP);if(s)localStorage.setItem(MAP_KEY,s);else if(s==='')localStorage.removeItem(MAP_KEY);}catch(e){}if(armed==='test')armed=null;loading('leave',true);setTimeout(()=>location.reload(),300);}
+function testPick(k,X,Y){ // the test tool on a hex: make it any clear, or particles again (at the value shared out now); on a bright one (or the source: main street) any shop at any rank
+  const c=cells[k];if(!c)return;let el=document.getElementById('testPick');if(!el){el=document.createElement('div');el.id='testPick';document.body.appendChild(el);el.addEventListener('click',e=>{const b=e.target.closest('button');if(!b)return;e.stopPropagation();const d=b.dataset;el.style.display='none';if(d.kind)testHex(el._k,d.kind);else if(d.shop)testShop(el._k,d.shop,+d.rank);});}
+  const src=c.q===0&&c.r===0,br=isBright(k),row=id=>`<div class="tr"><span>${SHOPS[id].n}</span>${[1,2,3].map(r=>`<button data-shop="${id}" data-rank="${r}">${r}</button>`).join('')}</div>`;
+  el._k=k;el.innerHTML=`<div class="tt">${txt('test.hex_title',c.q,c.r)}</div>`+(src?'':['bright','dark','rift','particles'].map(t=>`<button data-kind="${t}">${txt('test.to_'+t)}</button>`).join(''))+
+    (src||br?`<div class="tt">${txt(src?'test.shop_street':'test.shop_here')}</div>`+Object.keys(SHOPS).filter(id=>!SHOPS[id].street).map(row).join(''):'');
+  el.style.display='flex';const w=el.offsetWidth,h=el.offsetHeight;el.style.left=Math.max(8,Math.min(innerWidth-w-8,X+12))+'px';el.style.top=Math.max(8,Math.min(innerHeight-h-8,Y-h/2))+'px';}
+document.addEventListener('pointerdown',e=>{const el=document.getElementById('testPick');if(el&&el.style.display!=='none'&&!e.target.closest('#testPick'))el.style.display='none';},true);
+function testUnset(k){ // back to an open surface (no clear, no Rift, no shop)
+  const c=cells[k];if(!c)return;if(c.rift){delete c.rift;c.isVoid=false;}
+  if(c.cap){const g=c.mergeId!=null?mergeGroups.find(x=>x.id===c.mergeId):null;if(g){mergeGroups=mergeGroups.filter(x=>x!==g);for(const gk of g.cells)if(cells[gk])cells[gk].mergeId=null;}
+    score=Math.round((score-c.capVal)*100)/100;clearFx[k]={t0:performance.now(),un:true,dk:c.kind==='dark'};captureOrder=captureOrder.map(e=>({keys:e.keys.filter(x=>x!==k),mergeId:e.mergeId})).filter(e=>e.keys.length);}
+  Object.assign(c,{cap:false,capVal:0,v:0});for(const f of ['kind','shop','tally','missed','full','drain','unw'])delete c[f];if(nebulaCellKey===k)dropSession();}
+function testHex(k,kind){const c=cells[k];if(!c)return;const ph=phase;testUnset(k);checkConstellations();recomputeLocked();redistribute();checkVoidAccess();
+  if(kind==='rift')riftCell(k,Math.random()*Math.PI);else if(kind!=='particles'){completeCaptureForCell(k,kind,{});if(clearFx[k])clearFx[k].t0=performance.now();}
+  if(ph==='move'&&phase==='captured')phase='move';feed(txt('test.title'),txt('test.hex_done',c.q,c.r,txt('test.to_'+kind)));updateHint();saveMap();}
+function testShop(k,id,rank){const c=cells[k];if(!c)return;if(!(c.q===0&&c.r===0)&&!isBright(k))testHex(k,'bright'); /* (a shop stands on a bright clear) */
+  const hs=hubPop.findIndex(x=>x&&x.id===id);if(hs>=0)hubPop[hs]=null;for(const j in cells)if(cells[j].shop&&cells[j].shop.id===id)delete cells[j].shop; /* one of each: the old one goes */
+  if(c.q===0&&c.r===0){popMissed.push({id,rank});popMissedIn();}else cells[k].shop={id,rank,rise:k,at:Date.now()};feed(txt('test.title'),txt('test.shop_done',SHOPS[id].n,rank));updateHint();saveMap();}
 // ── Modes: Telemetry (each hex's value, coverage and state on the ground) and Stats (frames and the hex grid); remembered in this browser ──
 let mapMode={tel:0,stats:0};try{Object.assign(mapMode,JSON.parse(localStorage.getItem('il_map_modes')||'{}'));}catch(e){}
 function togglePanel(id){for(const o of ['mModes','tuneP'])document.getElementById(o).classList.toggle('show',o===id&&!document.getElementById(o).classList.contains('show'));}
