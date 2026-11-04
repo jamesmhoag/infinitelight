@@ -775,8 +775,10 @@ let drag=null; // a left-button drag pans the map
 function panCam(dx,dy){if(dive||camTween)return;buoy.follow=false; // (you took the view; a scene's own camera move cannot be taken)
   const x=camTX+dx,y=camTY+dy;camX+=x-camTX;camY+=y-camTY;camTX=x;camTY=y;camFrame();} // (camFrame keeps the view on the spill)
 sc.addEventListener('mousedown',e=>{if(e.button===0&&currentView==='map')drag={x:e.clientX,y:e.clientY,moved:false};});
-document.addEventListener('mousemove',e=>{if(!drag)return;if(!(e.buttons&1)){drag=null;return;}if(!drag.moved&&Math.hypot(e.clientX-drag.x,e.clientY-drag.y)<6)return;drag.moved=true;swipeMark(e.clientX,e.clientY);const a=s2wp(drag.x,drag.y),b=s2wp(e.clientX,e.clientY);panCam(a[0]-b[0],a[1]-b[1]);drag.x=e.clientX;drag.y=e.clientY;});
-document.addEventListener('mouseup',()=>{if(drag&&!drag.moved)drag=null;}); // (a drag's own click is swallowed below)
+document.addEventListener('mousemove',e=>{if(!drag)return;if(!(e.buttons&1)){duckLetGo();drag=null;return;}if(!drag.moved&&Math.hypot(e.clientX-drag.x,e.clientY-drag.y)<6)return;drag.moved=true;swipeMark(e.clientX,e.clientY);
+  if(!drag.carry&&!SCENE){const du=duckUnder(e.clientX,e.clientY)||duckUnder(drag.x,drag.y);if(du&&!du.parade&&!du.pd&&!du.gone&&!du.seek){drag.carry=du;du.held=1;du.riseAt=0;ripples.push({x:du.x,y:du.y,t:performance.now(),dk:onWhite(du.x,du.y),big:1});if(!du.bottle)neb({cmd:'quack',type:du.type,v:0.6});}} // a drag or a wipe over a duck or bottle pushes it under and carries it
+  if(drag.carry){const[wx,wy]=s2wp(e.clientX,e.clientY);drag.carry.x=wx;drag.carry.y=wy;drag.x=e.clientX;drag.y=e.clientY;return;}const a=s2wp(drag.x,drag.y),b=s2wp(e.clientX,e.clientY);panCam(a[0]-b[0],a[1]-b[1]);drag.x=e.clientX;drag.y=e.clientY;});
+document.addEventListener('mouseup',()=>{duckLetGo();if(drag&&!drag.moved)drag=null;}); // (a drag's own click is swallowed below)
 sc.addEventListener('click',e=>{
   if(drag&&drag.moved){drag=null;return;} // the end of a drag, not a click
   if(currentView!=='map')return;
@@ -796,7 +798,7 @@ function mapClick(q,r){const k=K(q,r); // a click on a hex (yours, or a friend's
   const moves=getMoves();if(moves.find(m=>m.q===q&&m.r===r))doMove(q,r); // (at Midnight it only says you are too tired)
 }
 sc.addEventListener('mouseleave',()=>{hQ=null;hR=null;});
-sc.addEventListener('dblclick',e=>{if(currentView!=='map')return;const[wx,wy]=s2wp(e.clientX,e.clientY),now=performance.now();for(let i=0;i<3;i++)ripples.push({x:wx,y:wy,t:now+i*120,dk:onWhite(wx,wy),big:1});splashes.push({x:wx,y:wy,t:now,n:9,a:Math.random()*6.28});}); // a double click: a splash
+sc.addEventListener('dblclick',e=>{if(currentView!=='map')return;{const du=duckUnder(e.clientX,e.clientY);if(du&&!du.held&&!du.seek){if(!du.dunk)du.dunk=performance.now();du.hop=1;}} /* a double dab on a duck (or an opened bottle): it goes under, then pops up high */const[wx,wy]=s2wp(e.clientX,e.clientY),now=performance.now();for(let i=0;i<3;i++)ripples.push({x:wx,y:wy,t:now+i*120,dk:onWhite(wx,wy),big:1});splashes.push({x:wx,y:wy,t:now,n:9,a:Math.random()*6.28});}); // a double click: a splash
 let swipeWake=[],splashes=[],hexTaps=[],_swAt=0,_swP=null;
 function swipeMark(X,Y){const now=performance.now();if(now-_swAt<55)return;_swAt=now;const[wx,wy]=s2wp(X,Y),dk=onWhite(wx,wy);ripples.push({x:wx,y:wy,t:now,dk,sm:1}); // a click-swipe over the map: ripples behind it, and a wake
   if(_swP&&now-_swP.t<300){const dx=wx-_swP.x,dy=wy-_swP.y,l=Math.hypot(dx,dy);if(l>1)swipeWake.push({x:wx,y:wy,fx:dx/l,fy:dy/l,sp:Math.min(1,l/(HEX*0.4)),t:now,dk});}_swP={x:wx,y:wy,t:now};}
@@ -871,8 +873,11 @@ function paradeStep(now,dt){
   const sg=Math.random()<0.5?1:-1,th=Math.random()*6.2832,order=paradeOrder(axis,ids);parade={R,th,sg,s:0,v:0.9,path:2*Math.PI*R,axis,n:order.length,names:order.map(k=>DUCK_TYPES[k].name)};let off=0,prev=0,i0=1;
   for(const id of order){const t=DUCK_TYPES[id],sz=(t.scale||1)*HEX*0.62;off+=prev?(prev+sz)*0.62:0;prev=sz;pond.push({type:id,x:R*Math.cos(th),y:R*Math.sin(th),hd:th+sg*Math.PI/2,sp:0,pk:axis,pn:i0++,cur:0,next:1e15,born:now,seen:true,lastRip:0,ph:Math.random()*6.28,parade:{off}});}
   feed(txt('map.parade'),txt('map.parade_d',axis));}
+function shopUnder(wx,wy){const R=HEX*(T.mapStreetSize||0.75)*0.42;return shopList().find(s=>Math.hypot(wx-s.wx,wy-s.wy)<R*(s.rank>1?1.35:1))||null;} // the shop standing on this spot of the ground (its footprint, not its picture)
+function duckBlocked(wx,wy){const[q,r]=p2a(...w2s(wx,wy)),c=cells[K(q,r)];return!!(c&&c.rift)||!!shopUnder(wx,wy);} // what a duck cannot wade through: a Rift, or a shop
+function duckLetGo(){const d=drag&&drag.carry;if(!d)return;drag.carry=null;d.held=0;const now=performance.now();if(shopUnder(d.x,d.y))d.seek=1;else d.riseAt=now;ripples.push({x:d.x,y:d.y,t:now,dk:onWhite(d.x,d.y),big:1});} // carried and let go: up it comes there (not under a shop: it slides out from under it first)
 function pondBump(dt){ // ducks and bottles bump into each other like points on a surface: pushed apart, each turned off the other
-  for(let i=0;i<pond.length;i++){const a=pond[i];if(!a._s||a.parade)continue;for(let j=i+1;j<pond.length;j++){const b=pond[j];if(!b._s||b.parade)continue;const dx=b.x-a.x,dy=b.y-a.y,d=Math.hypot(dx,dy)||0.01,R=(a._s+b._s)*0.5;if(d>=R)continue;
+  for(let i=0;i<pond.length;i++){const a=pond[i];if(!a._s||a.parade||a.held)continue;for(let j=i+1;j<pond.length;j++){const b=pond[j];if(!b._s||b.parade||b.held)continue;const dx=b.x-a.x,dy=b.y-a.y,d=Math.hypot(dx,dy)||0.01,R=(a._s+b._s)*0.5;if(d>=R)continue;
     const nx=dx/d,ny=dy/d,o=(R-d)/2;a.x-=nx*o;a.y-=ny*o;b.x+=nx*o;b.y+=ny*o;const ref=(h,mx,my)=>{const vx=Math.cos(h),vy=Math.sin(h),dp=vx*mx+vy*my;return dp>0?Math.atan2(vy-2*dp*my,vx-2*dp*mx):h;};a.hd=ref(a.hd,nx,ny);b.hd=ref(b.hd,-nx,-ny);if(!a.leave)a.next=performance.now()+1500;if(!b.leave)b.next=performance.now()+1500;}}}
 function duckRoster(){ // which ducks may swim: one of each type you own; several of one type only when that is the only type you own
   const own=Object.keys(duckLog).filter(k=>duckLog[k]>0);if(own.length===1)return Array(Math.min(12,duckLog[own[0]])).fill(own[0]);return own;}
@@ -978,6 +983,9 @@ function pondStep(now){
   const cw=mX>=0&&!menuOpen&&!shopUI&&overScene()?s2wp(mX,mY):null;let cv=0,ca=0; // the cursor on the water, and how fast it moves (world px per ms)
   if(cw&&_cwPrev&&now>_cwPrev.t){const dx=cw[0]-_cwPrev.x,dy=cw[1]-_cwPrev.y;cv=Math.hypot(dx,dy)/(now-_cwPrev.t);ca=Math.atan2(dy,dx);}_cwPrev=cw?{x:cw[0],y:cw[1],t:now}:null;_cvLast=cv/(T.mapDuckBumpV||0.35);
   pond=pond.filter(d=>{
+    if(d.held||d.seek){const t=d.bottle?{scale:1.4}:DUCK_TYPES[d.type]||{};d._s=HEX*0.62*(t.scale||1)/(t.head?1.25:1);d._sink=1;d.sp=0;d.dunk=0;d.spin=null; // carried under the water (it goes where the cursor does), or let go under a shop: it slides on out from under it, then comes up
+      if(d.seek){const s=shopUnder(d.x,d.y);if(s){let dx=d.x-s.wx,dy=d.y-s.wy,l=Math.hypot(dx,dy);if(l<1e-3){dx=d.x||1;dy=d.y;l=Math.hypot(dx,dy)||1;}d.x+=dx/l*2.2*dt;d.y+=dy/l*2.2*dt;}else{d.seek=0;d.riseAt=now;}} /* (away from that shop) */
+      if(now-d.lastRip>160){d.lastRip=now;ripples.push({x:d.x,y:d.y,t:now,dk:onWhite(d.x,d.y),sm:1});}return true;}
     const cd=cw&&d._s?Math.hypot(cw[0]-d.x,cw[1]-d.y):1e9;if(cd>(d._s||0)*1.05)d.touch=0; // a touch counts once, until the cursor has come fully off it
     if(!d.touch&&!d.dunk&&cd<d._s*0.8){d.touch=1;const vf=T.mapDuckBumpV!=null?T.mapDuckBumpV:0.35,f=cv/vf,rx=d.x-cw[0],ry=d.y-cw[1],sg=Math.sign(Math.cos(ca)*ry-Math.sin(ca)*rx)||(Math.random()<0.5?-1:1); // f: the cursor's speed (1 = a hit); sg: which way it was brushed past
       if(cv<vf)d.spin={t0:now,dur:900+900*f,rate:sg*Math.max(0.03,0.4*f)}; // a slow touch: it spins where it is, faster and longer the faster the brush
@@ -985,9 +993,9 @@ function pondStep(now){
       if(!d.bottle)neb({cmd:'quack',type:d.type,v:Math.min(1,cv/vf/3)});}
     const sp_=d.spin&&now-d.spin.t0<d.spin.dur?d.spin:null;if(sp_)d.hd+=sp_.rate*dt*(1-(now-sp_.t0)/sp_.dur);else d.spin=null;
     const dk=d.dunk?(now-d.dunk)/(T.mapDuckDunkMs||1300):1;let sink=0; // a dunk: it goes down into the water (what is under it is hidden by the waterline), stays under a moment, then bobs back up
-    if(dk>=1)d.dunk=0;else if(dk<0.3){const u=dk/0.3;sink=u*u;}else if(dk<0.55)sink=1;else{if(!d._up){d._up=1;ripples.push({x:d.x,y:d.y,t:now,dk:onWhite(d.x,d.y),big:1});}const u=(dk-0.55)/0.45;sink=-(2.7*Math.pow(u-1,3)+1.7*Math.pow(u-1,2));} // (up with a little bob past its floating height)
-    if(d.splash&&now-d.born<700)sink=Math.max(sink,1-(now-d.born)/700);d._sink=sink; // a splash: it comes up out of the water
-    if(!d.dunk)d._up=0;
+    if(dk>=1)d.dunk=0;else if(dk<0.3){const u=dk/0.3;sink=u*u;}else if(dk<0.55)sink=1;else{if(!d._up){d._up=1;ripples.push({x:d.x,y:d.y,t:now,dk:onWhite(d.x,d.y),big:1});}const u=(dk-0.55)/0.45;sink=-(2.7*Math.pow(u-1,3)+1.7*Math.pow(u-1,2))*(d.hop?3:1);} // (a double dab: it pops up well out of the water for a moment) // (up with a little bob past its floating height)
+    if(d.splash&&now-d.born<700)sink=Math.max(sink,1-(now-d.born)/700);if(d.riseAt&&now-d.riseAt<700)sink=Math.max(sink,1-(now-d.riseAt)/700);d._sink=sink; // a splash, or let go: it comes up out of the water
+    if(!d.dunk){d._up=0;d.hop=0;}
     if(d.pd)return pday?pdStep(d,now,dt):false;
     if(d.parade&&parade){const s=parade.s-d.parade.off,th=parade.th+parade.sg*s/parade.R,dir=th+parade.sg*Math.PI/2;d.x=parade.R*Math.cos(th);d.y=parade.R*Math.sin(th);if(!sp_)d.hd+=Math.atan2(Math.sin(dir-d.hd),Math.cos(dir-d.hd))*0.12*dt; // in the parade: always on, along its line (a touch spins it, a click dunks it, it never leaves the line)
       if(now-d.lastRip>380){d.lastRip=now;ripples.push({x:d.x,y:d.y,t:now,dk:onWhite(d.x,d.y)});}const t=DUCK_TYPES[d.type]||{};d._s=HEX*0.62*(t.scale||1)/(t.head?1.25:1);return s<parade.path;}
@@ -995,7 +1003,9 @@ function pondStep(now){
     if(d.leave){const out=Math.atan2(d.y,d.x);d.hd+=Math.atan2(Math.sin(out-d.hd),Math.cos(out-d.hd))*0.08*dt;d.cur=0;d.dash=now+500;d.next=now+1e9;}
     if(now>d.next){d.next=now+1800+Math.random()*3000;d.cur=Math.random()<0.1?(Math.random()<0.5?-1:1)*0.03:(Math.random()-0.5)*0.006;d.dash=Math.random()<0.18?now+1200+Math.random()*1200:0;} // now and then a dash // mostly a gentle curve on its way across; now and then a doughnut
     const paddle=d.bottle?0.12+(d.kick||0)*0.6:(d.dash>now?1.5:0.38+0.28*Math.max(0,Math.sin(now/260+d.ph)))+(d.kick||0),go=(d.splash&&now-d.born<900)||sp_||d.dunk?0:paddle;d.sp+=(go-d.sp)*(d.kick?0.2:0.05)*dt; // spinning or under water: it stops
-    if(!isWater(d.x,d.y)){const l=Math.hypot(d.x,d.y)||1;d.x+=d.x/l*1.6*dt;d.y+=d.y/l*1.6*dt;const out=Math.atan2(d.y,d.x);d.hd+=Math.atan2(Math.sin(out-d.hd),Math.cos(out-d.hd))*0.08*dt;} // the growing spill pushes it out
+    if(!isWater(d.x,d.y)){const out=Math.atan2(d.y,d.x);let go=null;for(const o of [0,0.6,-0.6,1.2,-1.2,1.8,-1.8]){const a=out+o;if(!duckBlocked(d.x+Math.cos(a)*d._s*0.9,d.y+Math.sin(a)*d._s*0.9)){go=a;break;}} // on the spill: it wades off (outwards, round a shop or a Rift in its way)
+      d.sp=0;if(go!=null){d.x+=Math.cos(go)*0.8*dt;d.y+=Math.sin(go)*0.8*dt;d.hd+=Math.atan2(Math.sin(go-d.hd),Math.cos(go-d.hd))*0.1*dt;d.stuck=0;if(now-d.lastRip>500){d.lastRip=now;ripples.push({x:d.x,y:d.y,t:now,dk:onWhite(d.x,d.y),sm:1});}}
+      else{if(!d.stuck)d.stuck=now;if(now-d.stuck>(T.mapDuckTrapMs||6000)&&!d.dunk){d.dunk=now;d.gone=1;}}} // (trapped long enough: it sinks under and is gone)
     else{const ax=d.x+Math.cos(d.hd)*HEX*1.4,ay=d.y+Math.sin(d.hd)*HEX*1.4;if(!isWater(ax,ay)){const out=Math.atan2(d.y,d.x);if(!(now<d.veerT))d.veer=Math.sin(d.hd-out)>0?1:-1;d.veerT=now+1200;const tan=out+d.veer*1.2;d.hd+=Math.atan2(Math.sin(tan-d.hd),Math.cos(tan-d.hd))*0.06*dt;} // the shore ahead: it veers along it
       else d.hd+=d.cur*dt;}
     d.x+=Math.cos(d.hd)*d.sp*dt;d.y+=Math.sin(d.hd)*d.sp*dt;
