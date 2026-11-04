@@ -90,14 +90,14 @@ function buoyCanModel(){ // the buoy's can light: a short metal can, its lit len
   _duckModels.set(type,{g:K.geo(0.2),nomk:1,mat:13,c1:[1,1,1],c2:[1,1,1],img:tx});return type;}
 // ── A shop: its building as a 3D model the duck renderer draws (material 13, painted): walls with window and door openings, the lit room
 // behind them, frames and a roof edge, scaffolding on the roof and the sign mounted on it. One texture holds its colours, the room and the sign. ──
-function shopModel(id,bk,lit,fl,si,open){ // si: the sign's loaded image; open: its doors stand open (its menu is open) → the model's type, for drawDuck3D
-  const type='shop:'+id+':'+bk+(lit?1:0)+(fl?1:0)+(open?'o':'');if(_duckModels.has(type))return type;const B=SHOP_BLD[bk],S=SHOPS[id],A=512,tx=document.createElement('canvas');tx.width=tx.height=A;const c=tx.getContext('2d');
+function shopModel(id,bk,lit,fl,si,open,soon){ // si: the sign's loaded image; open: its doors stand open (its menu is open); soon: Coming soon (closed, its sign saying so, lit) → the model's type, for drawDuck3D
+  const type='shop:'+id+':'+bk+(lit?1:0)+(fl?1:0)+(open?'o':'')+(soon?'s':'');if(_duckModels.has(type))return type;const B=SHOP_BLD[bk],S=SHOPS[id],A=512,tx=document.createElement('canvas');tx.width=tx.height=A;const c=tx.getContext('2d');
   const mx=(a,b,t)=>{const h=v=>[1,3,5].map(i=>parseInt(v.slice(i,i+2),16)),A=h(a),Bb=h(b);return'rgb('+A.map((v,i)=>Math.round(v+(Bb[i]-v)*t)).join(',')+')';}; // two #rrggbb colours mixed
   [B.wall,B.roof,B.line,'#3a3a40','#4a4a50',...(lit?[mx(S.col,'#fff6e8',0.55),mx(S.col,'#000000',0.5),'#6b5440',S.col,mx(S.col,'#ffffff',0.45),'#fff6e0']:['#2c2c33','#1e1e24','#2a2420','#34343b','#3a3a41','#3a3a40'])]
     .forEach((col,i)=>{c.fillStyle=col;c.fillRect(i*32,0,32,32);}); // flat colours: walls, roof, frames and trim, scaffolding, the window reveals; inside: the room's walls, its floor, the counter and shelves, two of goods, the lamp (the shop's colour when open, dark when closed)
   if(lit){c.save();c.font='bold 66px system-ui,sans-serif';c.textAlign='center';c.textBaseline='middle';c.lineJoin='round';c.strokeStyle='#ff2d5a';c.lineWidth=10;c.beginPath();c.roundRect?c.roundRect(10,72,236,80,18):c.rect(10,72,236,80);c.stroke(); // an OPEN sign (neon tubes: its letters and its border; the rest is cut away)
     c.lineWidth=7;c.strokeText(txt('shop.open.sign'),128,113);c.fillStyle='#ff6f8f';c.fillText(txt('shop.open.sign'),128,113);c.restore();}
-  const iw=si.naturalWidth||1,ih=si.naturalHeight||1,r=Math.min(500/iw,248/ih),sw=iw*r,sh=ih*r,sx=(A-sw)/2,sy=256+(256-sh)/2;if(!lit)c.filter='brightness(0.32) saturate(0.4)';c.drawImage(si,sx,sy,sw,sh);c.filter='none';c.save();c.globalCompositeOperation='lighten';c.fillStyle=lit?'#2a2b33':'#1c1d23';c.fillRect(sx,sy,sw,sh);c.restore(); // the sign (dim when closed); its black a dark grey, so it catches the light of the day (and its own, when lit)
+  const iw=si.naturalWidth||si.width||1,ih=si.naturalHeight||si.height||1,r=Math.min(500/iw,248/ih),sw=iw*r,sh=ih*r,sx=(A-sw)/2,sy=256+(256-sh)/2;if(!lit&&!soon)c.filter='brightness(0.32) saturate(0.4)';c.drawImage(si,sx,sy,sw,sh);c.filter='none';c.save();c.globalCompositeOperation='lighten';c.fillStyle=lit?'#2a2b33':'#1c1d23';c.fillRect(sx,sy,sw,sh);c.restore(); // the sign (dim when closed); its black a dark grey, so it catches the light of the day (and its own, when lit)
   const K=meshKit(A,fl),{pos,nrm,uv,idx,sw_,quad,box,beam}=K,W=B.w,H=B.h,D=B.d,z0=D/2;
   const L=-W/2,WN=B.win.map(([a,b,e,f])=>[L+a,b,L+e,f]),xs=[...new Set([L,W/2,...WN.flatMap(w=>[w[0],w[2]])])].sort((a,b)=>a-b),ys=[...new Set([0,H,...WN.flatMap(w=>[w[1],w[3]])])].sort((a,b)=>a-b),U0=sw_(0);
   for(let i=0;i<xs.length-1;i++)for(let j=0;j<ys.length-1;j++){const cx=(xs[i]+xs[i+1])/2,cy=(ys[j]+ys[j+1])/2;if(WN.some(w=>cx>w[0]&&cx<w[2]&&cy>w[1]&&cy<w[3]))continue; // the front wall, round its openings
@@ -130,7 +130,7 @@ function shopModel(id,bk,lit,fl,si,open){ // si: the sign's loaded image; open: 
   const aspect=sw/sh,sW=Math.min(W*0.9,W*0.72*aspect)*1.4,sH=sW/aspect,yb=top+B.ph,zs=z0-3; // the sign, mounted on the scaffolding at the roof's front
   for(const[a,b]of B.posts){const xa=L+a,xb=L+b,xm=(xa+xb)/2,yt=yb+sH*0.55;beam([xa,top,zs-1.2],[xa,yt,zs-1.2],1.1,3);beam([xb,top,zs-1.2],[xb,yt,zs-1.2],1.1,3); // two uprights, a V between them, struts back to the roof
     beam([xa,yb-0.2,zs-1.2],[xm,top,zs-1.2],0.8,3);beam([xb,yb-0.2,zs-1.2],[xm,top,zs-1.2],0.8,3);beam([xa,yt-1,zs-1.2],[xa,top,zs-8],0.8,3);beam([xb,yt-1,zs-1.2],[xb,top,zs-8],0.8,3);}
-  {const su=[[sx/A,(sy+sh)/A],[(sx+sw)/A,(sy+sh)/A],[(sx+sw)/A,sy/A],[sx/A,sy/A]];quad([[-sW/2,yb,zs],[sW/2,yb,zs],[sW/2,yb+sH,zs],[-sW/2,yb+sH,zs]],[0,0,1],su,lit?1:0,1);
+  {const su=[[sx/A,(sy+sh)/A],[(sx+sw)/A,(sy+sh)/A],[(sx+sw)/A,sy/A],[sx/A,sy/A]];quad([[-sW/2,yb,zs],[sW/2,yb,zs],[sW/2,yb+sH,zs],[-sW/2,yb+sH,zs]],[0,0,1],su,lit||soon?1:0,1);
     quad([[sW/2,yb,zs-0.7],[-sW/2,yb,zs-0.7],[-sW/2,yb+sH,zs-0.7],[sW/2,yb+sH,zs-0.7]],[0,0,-1],[su[0],su[1],su[2],su[3]],2,1);} // its face, and its back (the board's shape)
   const cy=(yb+sH)/2;let Rm=0;for(let i=1;i<pos.length;i+=3){pos[i]-=cy;Rm=Math.max(Rm,Math.hypot(pos[i-1],pos[i],pos[i+1]));} // centred (for the renderer's square); its foot is at y −cy
   _duckModels.set(type,{g:{pos:new Float32Array(pos),nrm:new Float32Array(nrm),uv:new Float32Array(uv),idx:new Uint16Array(idx),R:Rm,foot:-cy},nomk:1,mat:13,c1:[1,1,1],c2:[1,1,1],img:tx});
@@ -441,7 +441,7 @@ function cursorStain(cx,now,w,dark,toXY){ // drawn over a finished scene, but on
   cx.drawImage(_stainCv[0],0,0,cw,ch,x0,y0,cw,ch);cx.restore();}
 // ═════════════════════════ SHOPS (sold on the Surface Map; the surface, which keeps the purse, settles every purchase) ═════════════════════════
 // SHOPS: main street ones (street) stand round the source at angle a° (0 = right, 90 = in front, −90 = behind it; flip: its door on the other side), always there, lit only while open: hours are [open, close) on the map's clock (3 Twilight … 24 Midnight;
-// 0–27 = 24 hours). Pop-ups open on a bright clear whose surface collected at least T.mapShop<Cur>1/2/3 of their collectable (cur, also what they
+// 0–27 = 24 hours; both ends open: close is the last time of day it is open). Pop-ups open on a bright clear whose surface collected at least T.mapShop<Cur>1/2/3 of their collectable (cur, also what they
 // mostly charge in) — rank 1..3, the size of the store (SHOP_RANK_BLD); at: those thresholds' defaults. col: the colour its glass is lit with.
 // SHOP_BLD: each building as a 3D model (shopModel), in the units of its old drawings: w × h × d the walls, win its window and door openings
 // [x0, y0, x1, y1] (from its front's bottom left), bar the frames across them, posts the sign's scaffolding (pairs of uprights, braced, ph tall above the roof),
@@ -459,6 +459,9 @@ const SHOPS={};for(const r of csvRead('shops'))SHOPS[r.id]={n:r.name,tag:r.tag,a
 // up (an upgrade, once: its effect is still to come)
 const SHOP_ITEMS=csvRead('shop_items').map(r=>[r.id,r.shop,r.name,cellV(r.cost),r.currency,cellV(r.rank),cvJ(r.effect)||{},r.requires,cellV(r.discover_dim),r.note]).map(([id,shop,n,cost,cur,r,fx,req,dc,note])=>({id,shop,n,cost,cur:cur||SHOPS[shop].cur||'bright',r,fx,req:req||null,dc:dc||0,note:note||''}));
 const shopItem=id=>SHOP_ITEMS.find(i=>i.id===id);
+const _soonSign={};function soonSign(id){if(_soonSign[id])return _soonSign[id];const c=document.createElement('canvas');c.width=600;c.height=300;const g=c.getContext('2d'),S=SHOPS[id]; // a Coming soon sign: big and white on dark, the shop's name under it in its colour
+  g.fillStyle='#0d0e12';g.fillRect(0,0,600,300);g.strokeStyle='#ffffff';g.lineWidth=10;g.strokeRect(14,14,572,272);g.textAlign='center';g.textBaseline='middle';g.fillStyle='#ffffff';let F=104;g.font='bold '+F+'px system-ui,sans-serif';while(F>30&&g.measureText(txt('shop.soon.sign')).width>520){F-=4;g.font='bold '+F+'px system-ui,sans-serif';}g.fillText(txt('shop.soon.sign'),300,118);
+  g.fillStyle=S.col||'#ffe9a8';let f=52;g.font='bold '+f+'px system-ui,sans-serif';while(f>20&&g.measureText(S.n).width>540){f-=4;g.font='bold '+f+'px system-ui,sans-serif';}g.fillText(S.n,300,222);return _soonSign[id]=c;}
 const shopOnce=it=>!!(it.fx.cap||it.fx.up||it.fx.disc||it.fx.perm); // bought once and kept (as the discovery 'up:<id>'); the rest can be bought again
 const CLOCK_HOURS=[3,6,9,12,15,18,21,24],CLOCK_MULT=[1,2,3,5,8,13,21,34,55]; // the Clock smith: each time of day away from now costs more (×2 next to it, then ×3, ×5, ×8…)
 const XACT={dim:{buy:9,sell:8.5,up:1.5,down:3.5},magnetic:{buy:0.1,sell:0.085,up:0.015,down:0.035},neutron:{buy:0.1,sell:0.085,up:0.015,down:0.035},pulsing:{buy:0.1,sell:0.085,up:0.015,down:0.035}}; // XACT change: how many of each for one Bright; sold back at sell / buy of what it cost (a little less); a fortune moves the sell rate, a wonder both (×1.1 / ×0.9)
@@ -481,7 +484,7 @@ function testSync(){const on=!!TEST.get('mode');document.querySelectorAll('[data
 const shopPrice=(it,run)=>TEST.get('free')?0:it.fx.charm?it.cost*(runBonus(run,'xdown')?1:Math.pow(10,(run&&run.charm)||0)):typeof it.fx.clock==='number'?it.cost*CLOCK_MULT[Math.abs(CLOCK_HOURS.indexOf(it.fx.clock)-Math.max(0,CLOCK_HOURS.indexOf((run&&run.clock)||3)))]:it.cost; // a Luck Charm: ×10 each one bought today; a time of day: by how far it is
 const shopTK=cur=>'mapShop'+cur[0].toUpperCase()+cur.slice(1); // a pop-up's threshold tuners: <this>1..3
 function shopCap(kind,has){let m=0;for(const it of SHOP_ITEMS)if(it.fx.cap&&it.fx.cap[kind]!=null&&has('up:'+it.id))m=Math.max(m,it.fx.cap[kind]);return m;} // the purse cap bought for a kind (0: none)
-function shopIsOpen(id,clock,run){const S=SHOPS[id],hol=S.street&&runBad(run,'holiday');return S.open==null||(clock>=S.open&&clock<S.close-(hol?3:0));} // its hours (a shop without any: always open; the exotic shops: content/shops.csv); a holiday (a bad fortune): every main street shop closes a time of day early
+function shopIsOpen(id,clock,run){const S=SHOPS[id],hol=S.street&&runBad(run,'holiday');return S.open==null||(clock>=S.open&&clock<=S.close-(hol?3:0));} // its hours: open and close are the first and the last time of day it is open (a shop without any: always open; content/shops.csv); a holiday (a bad fortune): every main street shop closes a time of day early
 const SHOP_TIER=id=>id==='duck'?0:id==='dim'?3:id==='bright'?2:1; // which pop-up a bright clear opens first: the Duck Shop, then the best-ranked exotic one (a tie: at random), then BRiGHT IDEAS, then Dim's
 // ── The run's state (kept by the surface, in the save): today's fortune and daily bonus, Luck Charms bought today, the cards drawn and waiting, the Keys lost ──
 const KIND_NAME={};for(const k of ['prism','gate','knot','key','lens','leash','dial','weave','bright','dim','neutron','magnetic','pulsing'])KIND_NAME[k]=txt('kind.'+k); // (content/strings.csv)
