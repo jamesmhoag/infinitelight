@@ -164,7 +164,7 @@ body.shop-open #hdock{z-index:59}#hinv .slot.wal::before{border-color:rgba(255,2
 <div id="veil"></div>
 <div id="bfx"></div>
 <iframe id="neb" data-tt="map.ui.surface"></iframe>
-<script src="content.js?v=20261104f"></script><script src="shared.js?v=20261104f"></script>
+<script src="content.js?v=20261104g"></script><script src="shared.js?v=20261104g"></script>
 <script>
 // ╔══════════════════════════════════════════════════════════════════════════════╗
 // ║  MAP ENGINE                                                                 ║
@@ -183,7 +183,7 @@ let clock=3,day=1,pool=6,fresh=true,burstFx=null,dayLog=[],dayCnt={b:0,d:0},pend
 // // clock: the hour (3 = Twilight … 24 = Midnight, the day's last turn); day: your attempts; pool: what the source put out at its last burst; fresh: no ring added yet since it
 let constel=[],armed=null,weaveSel=[],weaveAsk=null,clearFx={},mergeFx=[],feedMsg={t:'',d:'',at:-1e9}; // constellations {keys,type}; the armed map item; a Weave being drawn; animations; the final count
 const STEP_H=3; // the day: eight turns of three hours
-const CACHE_V='20261104f'; // the build: bump with shared.js's
+const CACHE_V='20261104g'; // the build: bump with shared.js's
 const SCENE=new URLSearchParams(location.search).get('scene'); // a Guide / event demo: the map plays a scripted moment (no surface behind it)
 let phase='move',turnTimer=0,mergeTimer=0;
 let gameOverReason='';
@@ -272,10 +272,17 @@ function camView(){const o=(X,Y)=>{const[wx,wy]=s2wp(X,Y);return[wx-camX,wy-camY
 function camFit(b){const[lx,ty,rx,by]=camView(),z=Math.max(T.mapZoomMin||0.55,Math.min(T.mapZoomMax||1.8,viewZoom*Math.min((rx-lx)/(b[2]-b[0]),(by-ty)/(b[3]-b[1])))),k=viewZoom/z; // the zoom that just fits b, and the camera then (in its middle)
   return{z,x:(b[0]+b[2])/2-(lx+rx)/2*k,y:(b[1]+b[3])/2-(ty+by)/2*k};}
 function camZoomTo(z){viewZoom=z;const E=1.3/Math.min(1,z);if(Math.abs(E-_E)>0.12)mapResize();else camUpdate();}
-let camTween=null; // the day's end: one smooth move from where the camera is to where the next day starts (its middle and zoom)
+let camTween=null,camTiltOv=null,dive=null; // dive: going into a surface (dir 1) or coming out of it (−1)
+function diveStart(key,dir,done,back){const c=cells[key];if(!c||!cam){if(done)done();return null;}const[wx,wy]=a2w(c.q,c.r),k=proj(...w2s(wx,wy))[2]||1,zFit=viewZoom*Math.min(SW,SH)*0.92/(2*HEX*k); // the zoom where the hex fills the frame
+  dive={t0:performance.now(),ms:T.mapEnterMs||1800,x:wx,y:wy,a:back||{x:camX,y:camY,z:viewZoom,t:T.mapTilt!=null?T.mapTilt:32},zFit:back&&back.zFit||zFit,dir,done};dive.a.zFit=dive.zFit;return dive.a;}
+function diveStep(){ // over the hex, waiting for the buoy to be under; then turning to look straight down with the hex filling the frame; then down into it (coming out: the same, backwards)
+  const D=dive,u=Math.min(1,(performance.now()-D.t0)/D.ms),U=D.dir>0?u:1-u,e=t=>{t=Math.max(0,Math.min(1,t));return t*t*(3-2*t);},p1=e(U/0.35),p2=e((U-0.4)/0.3),p3=e((U-0.72)/0.28),A=D.a;
+  camX=camTX=A.x+(D.x-A.x)*p1;camY=camTY=A.y+(D.y-A.y)*p1;camTiltOv=A.t*(1-p2);const z=A.z+(D.zFit-A.z)*p2;camZoomTo(z*(1+1.6*p3));
+  if(u>=1){const d=D.done;dive=null;if(D.dir<0){camTiltOv=null;mapResize();}if(d)d();}} // the day's end: one smooth move from where the camera is to where the next day starts (its middle and zoom)
 function camTweenTo(keys,ms){const b=camBounds(keys);if(!b||SCENE)return;const f=camFit(b);camTween={t0:performance.now(),dur:ms,a:{x:camX,y:camY,z:viewZoom},b:f};}
 function camFrame(){ // the camera is held on the spill: at its extent (a rectangle round its hexes, plus the lake margin, room for a bottle or a duck to swim in) it stops dead; a spill smaller than the view sits in its middle
   if(SCENE||!cam||!SW)return;
+  if(dive){diveStep();return;}
   if(camTween){const t=Math.min(1,(performance.now()-camTween.t0)/camTween.dur),e=t*t*(3-2*t),A=camTween.a,B=camTween.b;camX=camTX=A.x+(B.x-A.x)*e;camY=camTY=A.y+(B.y-A.y)*e;camZoomTo(A.z+(B.z-A.z)*e);if(t>=1){camTween=null;mapResize();}return;}
   const b=camBounds(Object.keys(cells));if(!b)return;const f=camFit(b);zoomFloor=f.z;
   if(zoomAuto||viewZoom<f.z-1e-3){const d=f.z-viewZoom;if(Math.abs(d)>2e-3){camZoomTo(viewZoom+(Math.abs(d)<0.01?d:d*0.12));_zoomSettle=1;}else if(_zoomSettle){_zoomSettle=0;mapResize();}} // its zoom follows the spill (at most out to it; held there until you zoom in)
@@ -283,7 +290,7 @@ function camFrame(){ // the camera is held on the spill: at its extent (a rectan
   camTX=cx(camTX);camTY=cy(camTY);camX=cx(camX);camY=cy(camY);} // (a hard edge: the camera itself, not only where it is heading)
 let zoomAuto=true,zoomFloor=0,_zoomSettle=0; // the camera's zoom follows the spill until you zoom in; zooming back out to it picks it up again
 function focusCam(a){if(_mpFor)return; // (a friend's move: the host's view stays)
-  const[wx,wy]=a2w(pQ,pR);camTX=wx;camTY=wy;if(!a){camX=camTX;camY=camTY;}}
+  if(a)buoy.follow=true;const[wx,wy]=a2w(pQ,pR);camTX=wx;camTY=wy;if(!a){camX=camTX;camY=camTY;}}
 function initGame(){ // a new map: score and depth start over; items, resources and discoveries live in the surface's save and are kept
   neb({cmd:'day',day:1,newRun:true});hubPop=[null,null];score=0;depth=0;clock=3;_sunH=3;_sun={from:3,to:3,t0:0};day=1;dayLog=[];dayCnt={b:0,d:0};pendingEnd=null;newMap();
   showTurn();mapResize();focusCam(false);updateHint();saveMap();
@@ -294,9 +301,9 @@ function advanceTurn(){ // time moves on (a move) by one time of day; the spill 
   if(clock>24){clock=24;endDay('midnight',0);return;} // after Midnight: the day ends (the new day starts once it has all fallen in)
   if(fresh)fresh=false;else{turn++;addRing(turn);}redistribute();decayCycle();showTurn();}
 const canRest=()=>(MP.on?mpMine():tired())&&currentView==='map'&&!menuOpen&&!shopUI&&phase!=='collapse'&&phase!=='ended'&&phase!=='gameover'; // Midnight, on the map: the day can be ended (Rest is the only way: no moves at Midnight)
-function rest(){if(!canRest())return;if(MP.role==='guest'){mpSend('rest');return;}advanceTurn();updateHint();saveMap();} // Rest: the day ends at Midnight without a move, after any last thing (a shop, an item) you wanted to do
+function rest(){if(!canRest())return;if(tired()){buoy.dunk={t0:performance.now(),d:1,ms:900};buoy.rested=true;}if(MP.role==='guest'){mpSend('rest');return;}advanceTurn();updateHint();saveMap();} // (at Midnight it sinks to sleep, and bobs up in the morning) // Rest: the day ends at Midnight without a move, after any last thing (a shop, an item) you wanted to do
 const clockStr=()=>TIMES[clock]||TIMES[Math.max(3,Math.floor(clock/3)*3)]||TIMES[3];
-function showTurn(){neb({cmd:'clock',clock,day}); // (the surface's run: a Daily Wonder ends at its time)
+function showTurn(){neb({cmd:'clock',clock,day});if(buoy.rested&&clock<24){buoy.rested=false;buoy.dunk={t0:performance.now()+400,d:-1,ms:900};} // morning: up again // (the surface's run: a Daily Wonder ends at its time)
   const el=document.getElementById('turn-label');el.textContent=txt('map.day',clockStr(),day);el.classList.add('show');clearTimeout(turnTimer);turnTimer=setTimeout(()=>el.classList.remove('show'),1200);} // (always shown; it glows when the time changes)
 
 function getMoves(){
@@ -510,7 +517,7 @@ const m4={mul:(a,b)=>{const r=new Float32Array(16);for(let c=0;c<4;c++)for(let k
   tx:(m,v)=>{const o=[0,0,0,0];for(let i=0;i<4;i++)o[i]=m[i]*v[0]+m[4+i]*v[1]+m[8+i]*v[2]+m[12+i]*v[3];return o;}};
 let cam=null;
 function camUpdate(){ // view = translate(0,0,−P)·rotateX(tilt)·scale(z,−z,z) (the flip: the plane's y runs down, the screen's up): the top of the map leans away, as a table seen from in front
-  const th=(T.mapTilt!=null?T.mapTilt:32)*Math.PI/180,P=T.mapPersp||1400,z=viewZoom,c=Math.cos(th),s_=Math.sin(th),f=P/(SH/2),A=SW/SH,n=P*0.05,fa=P*30;
+  const th=(camTiltOv!=null?camTiltOv:(T.mapTilt!=null?T.mapTilt:32))*Math.PI/180,P=T.mapPersp||1400,z=viewZoom,c=Math.cos(th),s_=Math.sin(th),f=P/(SH/2),A=SW/SH,n=P*0.05,fa=P*30;
   const view=new Float32Array([z,0,0,0, 0,-z*c,z*s_,0, 0,z*s_,z*c,0, 0,0,-P,1]),proj=new Float32Array([f/A,0,0,0, 0,f,0,0, 0,0,(fa+n)/(n-fa),-1, 0,0,2*fa*n/(n-fa),0]);
   const pv=m4.mul(proj,view);cam={th,P,view,proj,pv,ipv:m4.inv(pv),viewRot:new Float32Array([1,0,0, 0,-c,s_, 0,s_,c])};W=SW;H=SH;}
 function proj(x,y){const p=m4.tx(cam.pv,[x-MW/2,y-MH/2,0,1]),q=m4.tx(cam.pv,[x-MW/2+1,y-MH/2,0,1]),X=(p[0]/p[3]+1)/2*SW,Y=(1-p[1]/p[3])/2*SH;return[X,Y,Math.abs((q[0]/q[3]+1)/2*SW-X)];} // → screen x, y and px per plane px
@@ -519,7 +526,7 @@ function unproj(X,Y){const nx=X/SW*2-1,ny=1-Y/SH*2,a=m4.tx(cam.ipv,[nx,ny,-1,1])
 function mapResize(){hubLog('resize / zoom');SW=innerWidth;SH=innerHeight;const E=1.3/Math.min(1,Math.max(0.2,viewZoom));_E=E;MW=Math.round(SW*E);MH=Math.round(SH*E); // the plane only as big as this zoom needs (a smaller canvas is a faster frame)
   MK=Math.max(0.5,Math.min(viewZoom*(window.devicePixelRatio||1),Math.sqrt((T.mapPlanePx||2.5e6)/(MW*MH)))); // as sharp as this zoom shows it (a plane px is about viewZoom screen px), within a pixel budget: the plane is uploaded to the GPU every frame
   mc.width=Math.round(MW*MK);mc.height=Math.round(MH*MK);const dp=window.devicePixelRatio||1;sc.width=Math.round(SW*dp);sc.height=Math.round(SH*dp);camUpdate();}
-function zoomUser(f){zoomView(f);zoomAuto=viewZoom<=zoomFloor*1.02;} // the wheel / + −: off the spill's own zoom once you zoom in
+function zoomUser(f){if(dive||camTween)return;buoy.follow=false;zoomView(f);zoomAuto=viewZoom<=zoomFloor*1.02;} // the wheel / + −: off the spill's own zoom once you zoom in
 function zoomView(f){const z=Math.max(zoomFloor||T.mapZoomMin||0.55,Math.min(T.mapZoomMax||1.8,viewZoom*f));if(z===viewZoom)return;viewZoom=z;const E=1.3/Math.min(1,z);if(Math.abs(E-_E)>0.12||z>1)mapResize();else camUpdate();}
 // ── drawing the scene: the plane (mc, uploaded as a texture) as the ground, then the ducks on it, in true 3D with the same camera
 let G3=null,_sunH=3,_sun={from:3,to:3,t0:0}; // _sunH: the hour the ducks are lit for, moving to the clock (_sun)
@@ -668,7 +675,7 @@ function mapRender(){
     if(!d3.has(k)&&!fuse){hexPath(sx,sy,s);mctx.strokeStyle=stroke;mctx.lineWidth=sw;mctx.stroke();}
     if(tgt&&tgt(k)){mctx.save();mctx.setLineDash([HEX*0.12,HEX*0.08]);mctx.lineDashOffset=-now/40;hexPath(sx,sy,s*0.84);mctx.strokeStyle=armed==='weave'&&weaveSel.includes(k)?'rgba(255,220,120,0.95)':'rgba(255,220,120,0.55)';mctx.lineWidth=k===hoverKey?2.5:1.5;mctx.stroke();mctx.restore();}
     if(c.locked){const d=3.5;mctx.beginPath();mctx.moveTo(sx,sy-HEX*0.28-d);mctx.lineTo(sx+d,sy-HEX*0.28);mctx.lineTo(sx,sy-HEX*0.28+d);mctx.lineTo(sx-d,sy-HEX*0.28);mctx.closePath();mctx.fillStyle='rgba(220,185,50,0.6)';mctx.fill();}
-    if(k===nebulaCellKey){mctx.font=`${Math.max(8,HEX*0.24)}px 'Share Tech Mono',monospace`;mctx.textAlign='center';mctx.textBaseline='middle';mctx.fillStyle='rgba(0,230,230,0.85)';mctx.fillText('❚❚ saved',sx,sy-HEX*0.5);}
+    if(k===nebulaCellKey&&!dive&&currentView==='map'){mctx.font=`${Math.max(8,HEX*0.24)}px 'Share Tech Mono',monospace`;mctx.textAlign='center';mctx.textBaseline='middle';mctx.fillStyle='rgba(0,230,230,0.85)';mctx.fillText('❚❚ saved',sx,sy-HEX*0.5);}
     if(c.isVoid){if(c.q===0&&c.r===0&&voidOpen){mctx.font=`${HEX*0.45}px 'Orbitron',sans-serif`;mctx.textAlign='center';mctx.textBaseline='middle';mctx.fillStyle='rgba(180,140,255,0.5)';mctx.fillText('▽',sx,sy+1);}else if(c.q===0&&c.r===0){mctx.beginPath();mctx.arc(sx,sy,3,0,Math.PI*2);mctx.fillStyle='rgba(255,255,255,0.06)';mctx.fill();}else{const m=4;mctx.strokeStyle='rgba(255,255,255,0.08)';mctx.lineWidth=1;mctx.beginPath();mctx.moveTo(sx-m,sy-m);mctx.lineTo(sx+m,sy+m);mctx.stroke();mctx.beginPath();mctx.moveTo(sx+m,sy-m);mctx.lineTo(sx-m,sy+m);mctx.stroke();}}
     if(bright)brightOnes.push([sx,sy,c.capVal,fuse?'#fff':stroke,sw,cp]); // (a merge's outline is the merge's own) // drawn after the bleed below
   }
@@ -739,7 +746,8 @@ document.addEventListener('mousemove',e=>{mX=e.clientX;mY=e.clientY;},true);docu
 window.addEventListener('wheel',e=>{if(currentView!=='map'||menuOpen||shopUI||(e.target.closest&&e.target.closest('#tuneP,#mModes')))return;e.preventDefault();zoomUser(Math.exp(-e.deltaY*0.0015));},{passive:false});
 sc.addEventListener('contextmenu',e=>{e.preventDefault();if(currentView!=='map')return;if(armed){armed=null;weaveSel=[];weaveAsk=null;updateHint();syncDock();}else focusCam(true);}); // right-click puts a selected item down, else takes the view back to your hex
 let drag=null; // a left-button drag pans the map
-function panCam(dx,dy){const x=camTX+dx,y=camTY+dy;camX+=x-camTX;camY+=y-camTY;camTX=x;camTY=y;camFrame();} // (camFrame keeps the view on the spill)
+function panCam(dx,dy){if(dive||camTween)return;buoy.follow=false; // (you took the view; a scene's own camera move cannot be taken)
+  const x=camTX+dx,y=camTY+dy;camX+=x-camTX;camY+=y-camTY;camTX=x;camTY=y;camFrame();} // (camFrame keeps the view on the spill)
 sc.addEventListener('mousedown',e=>{if(e.button===0&&currentView==='map')drag={x:e.clientX,y:e.clientY,moved:false};});
 document.addEventListener('mousemove',e=>{if(!drag)return;if(!(e.buttons&1)){drag=null;return;}if(!drag.moved&&Math.hypot(e.clientX-drag.x,e.clientY-drag.y)<6)return;drag.moved=true;swipeMark(e.clientX,e.clientY);const a=s2wp(drag.x,drag.y),b=s2wp(e.clientX,e.clientY);panCam(a[0]-b[0],a[1]-b[1]);drag.x=e.clientX;drag.y=e.clientY;});
 document.addEventListener('mouseup',()=>{if(drag&&!drag.moved)drag=null;}); // (a drag's own click is swallowed below)
@@ -774,7 +782,7 @@ function clickFx(c,now){ // on the plane: the swipe's wake, splashes, tapped hex
   hexTaps=hexTaps.filter(t=>now-t.t<300);for(const t of hexTaps){const c2=cells[t.k];if(!c2)continue;const u=(now-t.t)/300,[X,Y]=w2s(...a2w(c2.q,c2.r));hexPath(X,Y,HEX*0.92);c.fillStyle=`rgba(255,255,255,${(0.22*(1-u)).toFixed(3)})`;c.fill();c.strokeStyle=`rgba(255,255,255,${(0.6*(1-u)).toFixed(3)})`;c.lineWidth=1.5;c.stroke();}}
 document.addEventListener('click',e=>{ // a lake duck clicked (even under a read-out like the legend): dunked, it comes back up — and the click goes no further
   if(drag&&drag.moved)return;if(currentView!=='map'||menuOpen||shopUI||!(e.target===sc||(e.target.closest&&!e.target.closest('button,.slot,.shop,input,select,#hdock,#tuneP,#mModes,#shop,#menu,#day-report,#letter,#nameAsk'))))return;
-  if(!SCENE&&buoyHit(e.clientX,e.clientY)){e.stopPropagation();openCollections('status');return;} // your buoy: Status and your collections
+  if(!SCENE&&buoyHit(e.clientX,e.clientY)){e.stopPropagation();buoy.dip=performance.now();setTimeout(()=>openCollections('status'),300);return;} // a quick dip (its light up), then Status // your buoy: Status and your collections
   const du=duckUnder(e.clientX,e.clientY);if(!du||du.dunk)return;e.stopPropagation();if(du.bottle&&!du.empty){openBottle(du);return;}
   du.dunk=performance.now();ripples.push({x:du.x,y:du.y,t:du.dunk,dk:onWhite(du.x,du.y),big:1});neb({cmd:'quack',type:du.type,v:1});},true);
 document.addEventListener('keydown',e=>{
@@ -866,8 +874,9 @@ function askName(){const el=document.getElementById('nameAsk'),i=el.querySelecto
   b.onclick=go;i.onkeydown=e=>{if(e.key==='Enter'){e.preventDefault();go();}e.stopPropagation();};el.classList.add('show');setTimeout(()=>i.focus(),50);}
 function buoyGo(mode){if(_mpFor){(MP.ob[_mpFor]=MP.ob[_mpFor]||{}).go=mode;return;}buoy.go=mode;} // the next move of yours is a sail ('sail') or a String's shot ('fire')
 function mpBuoys(dt){if(!MP.on)return;for(const P of MP.players){if(P.id===MP.me)continue;const[tx,ty]=a2w(P.q,P.r),b=MP.ob[P.id]=MP.ob[P.id]||{};if(b.x==null){b.x=tx;b.y=ty;b.yaw=Math.random()*6.28;b.spin=0;b.ph=Math.random()*6.28;} // everyone else's buoy: sails to their hex, turns slowly
-  const k=Math.min(1,0.05*dt);b.x+=(tx-b.x)*k;b.y+=(ty-b.y)*k;b.yaw+=0.004*dt;}}
-function buoyStep(now,dt){mpBuoys(dt);if(buoy.dunk&&buoy.dunk.d<0&&now-buoy.dunk.t0>buoy.dunk.ms)buoy.dunk=null;const[tx,ty]=a2w(pQ,pR);if(!playerName&&currentView==='map'&&!shopUI&&!menuOpen&&!document.getElementById('nameAsk').classList.contains('show'))askName(); // no name yet (a new game): asked once the map is in view
+  const k=Math.min(1,0.05*dt);b.x+=(tx-b.x)*k;b.y+=(ty-b.y)*k;b.yaw+=0.004*dt;if(b.dunk&&b.dunk.d<0&&performance.now()-b.dunk.t0>b.dunk.ms)b.dunk=null;}}
+function buoyStep(now,dt){mpBuoys(dt);if(buoy.dunk&&buoy.dunk.d<0&&now-buoy.dunk.t0>buoy.dunk.ms)buoy.dunk=null;if(buoy.dip&&now-buoy.dip>450)buoy.dip=0;
+  if(buoy.follow&&buoy.mv&&!dive){camTX=buoy.x;camTY=buoy.y;}else if(!buoy.mv)buoy.follow=false; /* the camera goes with it to its new hex (unless you take the view) */const[tx,ty]=a2w(pQ,pR);if(!playerName&&currentView==='map'&&!shopUI&&!menuOpen&&!document.getElementById('nameAsk').classList.contains('show'))askName(); // no name yet (a new game): asked once the map is in view
 
   if(buoy.mv&&now>=buoy.mv.t0+buoy.mv.dur){buoy.x=buoy.mv.x1;buoy.y=buoy.mv.y1;buoy.mv=null;}
   if(!buoy.mv&&(Math.abs(tx-buoy.x)>0.5||Math.abs(ty-buoy.y)>0.5)){const d=Math.hypot(tx-buoy.x,ty-buoy.y);
@@ -879,12 +888,14 @@ function buoyScreen(z){if(!cam)return[-1e4,-1e4];const p=m4.tx(cam.pv,[buoy.x-ca
 function buoyHit(X,Y){const[x,y]=buoyScreen(0.9),k=proj(...w2s(buoy.x,buoy.y))[2]||1;return Math.hypot(X-x,Y-y)<HEX*0.42*k;}
 function buoyPlane(now){ // on the plane, under it: its spot light, its ripples, the wake of a sail and the streak of a shot
   const c=mctx,[bx,by]=w2s(buoy.x,buoy.y),S=buoy.spot;
-  let ta=now/(T.mapSpotMs||16000)*6.2832,td=HEX*1.732;const hk=hQ!==null?K(hQ,hR):null,hc=hk&&cells[hk]; // (clockwise on screen: the plane's y runs down)
+  const dms=Math.min(60,now-(S.t||now));S.t=now;S.cyc=(S.cyc==null?S.a:S.cyc);let ta=S.cyc,td=HEX*1.732;const hk=hQ!==null?K(hQ,hR):null,hc=hk&&cells[hk]; // (clockwise on screen: the plane's y runs down)
   const aim=!!(hc&&hk!==K(pQ,pR)&&(armed?itemOK(hk):getMoves().some(m=>K(m.q,m.r)===hk)));
   if(aim){const[hx,hy]=a2w(hQ,hR);ta=Math.atan2(hy-buoy.y,hx-buoy.x);td=Math.hypot(hx-buoy.x,hy-buoy.y);} // pointing at a hex it could go to (or use an item on): the light swings onto it
-  const da=Math.atan2(Math.sin(ta-S.a),Math.cos(ta-S.a));S.a+=da*(aim?0.12:0.05);S.d+=(td-S.d)*0.08;if(!aim&&Math.abs(da)<0.02)S.a=ta;
+  const da=Math.atan2(Math.sin(ta-S.a),Math.cos(ta-S.a)),rate=(T.mapSpotTurn!=null?T.mapSpotTurn:1.6)/1000*dms,lr=HEX*3/1000*dms; // it swings at one steady rate (the short way round), whatever the distance
+  if(Math.abs(da)<=rate){S.a=ta;if(!aim)S.cyc=S.a+6.2832*dms/(T.mapSpotMs||30000);}else S.a+=Math.sign(da)*rate;if(aim)S.cyc=S.a; // the cycle carries on from wherever the light is (not from where it would have been)
+  S.d+=Math.max(-lr,Math.min(lr,td-S.d));
   const px=bx+Math.cos(S.a)*S.d,py=by+Math.sin(S.a)*S.d,h=buoyFrame(now).lamp[2],Rs=HEX*0.36,ma=Rs*Math.min(2.2,Math.sqrt(1+(S.d/Math.max(1,h))**2)); // the spot: where the lantern's cone meets the surface, stretched away from it (it comes in at a slant)
-  buoy.spotAt={x:px,y:py,a:S.a,ma,mi:Rs};c.save();c.globalCompositeOperation='screen';c.beginPath();c.ellipse(px,py,ma,Rs,S.a,0,6.2832);c.fillStyle='rgba(255,244,214,0.32)';c.fill();c.restore(); // crisp, no glow, no edge line
+  buoy.spotAt={x:px,y:py,a:S.a,ma,mi:Rs};if(buoy.dunk||buoy.dip)return;c.save();c.globalCompositeOperation='screen';c.beginPath();c.ellipse(px,py,ma,Rs,S.a,0,6.2832);c.fillStyle='rgba(255,244,214,0.32)';c.fill();c.restore(); // crisp, no glow, no edge line
   if(now>buoy.ripAt){buoy.ripAt=now+2200+Math.random()*900;ripples.push({x:buoy.x,y:buoy.y,t:now,dk:onWhite(buoy.x,buoy.y)});} // it ripples the surface it floats in
   if(buoy.mv&&!buoy.mv.fire){const ink=onWhite(buoy.x,buoy.y)?[20,24,32]:sunInk();drawWakeShape(c,bx,by,Math.cos(buoy.hd),Math.sin(buoy.hd),HEX*0.4,0.7,0.4,ink,ink);if(now-(buoy.lastRip||0)>180){buoy.lastRip=now;ripples.push({x:buoy.x,y:buoy.y,t:now,dk:onWhite(buoy.x,buoy.y)});}}
   if(buoy.trail){const t=(now-buoy.trail.t0)/700;if(t>=1)buoy.trail=null;else{const[ax,ay]=w2s(buoy.trail.x0,buoy.trail.y0);c.save();c.globalCompositeOperation='screen';c.lineCap='round';c.strokeStyle=`rgba(255,250,235,${(0.8*(1-t)).toFixed(3)})`;c.lineWidth=HEX*0.12*(1-t)+1;c.filter=`blur(${(HEX*0.04).toFixed(1)}px)`;c.beginPath();c.moveTo(ax,ay);c.lineTo(bx,by);c.stroke();c.restore();}}} // a String's shot: a streak, like a Point fired
@@ -894,17 +905,17 @@ function buoyDraw(now,mirror){drawDuckScene(G3.duck,buoyModel(playerName,buoySou
 function buoyFrame(now,b){b=b||buoy; // how it floats now: its turn, a slow rocking sway (its up tipped, about an axis that wanders round), its bob; and where its lantern is
   const size=HEX*BUOY_SIZE,f=[Math.cos(b.yaw),Math.sin(b.yaw)],ph=b.ph||0,sw=(T.mapBuoySway!=null?T.mapBuoySway:0.09)*(Math.sin(now/1300+ph)+0.35*Math.sin(now/610+1.7+ph))+Math.min(0.12,(b.spin||0)*1.5),ua=now/3700+ph,u=[Math.cos(ua),Math.sin(ua),0],cs=Math.cos(sw),sn=Math.sin(sw);
   const tip=v=>{const d=u[0]*v[0]+u[1]*v[1]+u[2]*v[2],x=[u[1]*v[2]-u[2]*v[1],u[2]*v[0]-u[0]*v[2],u[0]*v[1]-u[1]*v[0]];return v.map((c,i)=>c*cs+x[i]*sn+u[i]*d*(1-cs));};
-  const X=tip([f[0],f[1],0]),Y=tip([0,0,1]),Z=tip([-f[1],f[0],0]),dk=b.dunk?Math.min(1,(now-b.dunk.t0)/(b.dunk.ms||700)):0,sink=b.dunk?(b.dunk.d>0?dk*dk:1-dk):0,bob=size*(0.1*Math.sin(now/1100+ph)+0.035*Math.sin(now/530+0.8+ph)-2.6*sink),[px,py]=w2s(b.x,b.y),h=BUOY_LAMP*size;
+  const X=tip([f[0],f[1],0]),Y=tip([0,0,1]),Z=tip([-f[1],f[0],0]),dk=b.dunk?Math.max(0,Math.min(1,(now-b.dunk.t0)/(b.dunk.ms||700))):0,dp=b.dip?Math.min(1,(now-b.dip)/450):1,sink=(b.dunk?(b.dunk.d>0?dk*dk:1-dk):0)+(dp<1?0.35*Math.sin(Math.PI*dp):0),bob=size*(0.1*Math.sin(now/1100+ph)+0.035*Math.sin(now/530+0.8+ph)-2.6*sink),[px,py]=w2s(b.x,b.y),h=BUOY_LAMP*size;
   return{X,Y,Z,size,bob,px,py,lamp:[px-MW/2+Y[0]*h,py-MH/2+Y[1]*h,bob+Y[2]*h]};}
 function buoyOpts(now,mirror,bo){const F=buoyFrame(now,bo),[X,Y,k]=proj(F.px,F.py),m=mirror?-1:1,{X:a,Y:b,Z:c}=F; // (mirrored: its reflection, under the surface)
   return{rot:new Float32Array([a[0],a[1],a[2]*m, b[0],b[1],b[2]*m, c[0],c[1],c[2]*m]),size:F.size,pos:[F.px-MW/2,F.py-MH/2,F.bob*m],view:cam.view,proj:cam.proj,viewRot:cam.viewRot,env:{x:X,y:Y,lights:[]},px:F.size*k,clip:m,mirror,alpha:mirror?(T.mapDuckRefl!=null?T.mapDuckRefl:0.4):1};}
-function buoyCanDir(now){const S=buoy.spotAt,F=buoyFrame(now);if(!S)return null;const L=F.lamp,d=[S.x-MW/2-L[0],S.y-MH/2-L[1],-L[2]],l=Math.hypot(...d)||1;return{L,d:d.map(v=>v/l),F};} // from the can light to its spot
-function buoyCan(now,mirror){const A=buoyCanDir(now);if(!A||!cam)return null;const{L,d,F}=A,m=mirror?-1:1,up=Math.abs(d[2])>0.98?[1,0,0]:[0,0,1],cr=(a,b)=>[a[1]*b[2]-a[2]*b[1],a[2]*b[0]-a[0]*b[2],a[0]*b[1]-a[1]*b[0]],nz=v=>{const k=Math.hypot(...v)||1;return v.map(x=>x/k);},X=nz(cr(d,up)),Z=cr(X,d),[sx,sy,k]=proj(L[0]+MW/2,L[1]+MH/2);
+function buoyCanDir(now){const S=buoy.spotAt,F=buoyFrame(now);if(!S)return null;const L=F.lamp;if(buoy.dunk||buoy.dip)return{L,d:[F.Y[0],F.Y[1],F.Y[2]],F,up:1}; /* sinking, rising or dipping: it points straight up */const d=[S.x-MW/2-L[0],S.y-MH/2-L[1],-L[2]],l=Math.hypot(...d)||1;return{L,d:d.map(v=>v/l),F};} // from the can light to its spot
+function buoyCan(now,mirror){const A=buoyCanDir(now);if(!A||!cam)return null;const{L,d,F}=A,m=mirror?-1:1,up=Math.abs(d[2])>0.98?[1,0,0]:[0,0,1],cr=(a,b)=>[a[1]*b[2]-a[2]*b[1],a[2]*b[0]-a[0]*b[2],a[0]*b[1]-a[1]*b[0]],nz=v=>{const k=Math.hypot(...v)||1;return v.map(x=>x/k);},X=nz(cr(d,up)),Z=cr(d,X),[sx,sy,k]=proj(L[0]+MW/2,L[1]+MH/2);
   return{rot:new Float32Array([X[0],X[1],X[2]*m, d[0],d[1],d[2]*m, Z[0],Z[1],Z[2]*m]),size:F.size,pos:[L[0],L[1],L[2]*m],view:cam.view,proj:cam.proj,viewRot:cam.viewRot,env:{x:sx,y:sy,lights:[]},px:F.size*k,clip:m,mirror,alpha:mirror?(T.mapDuckRefl!=null?T.mapDuckRefl:0.4):1};}
 const beamCv=document.getElementById('beam'),beamCx=beamCv.getContext('2d');
 function buoyBeam(now){ // the lantern's light, in 3D: a cone from the lantern down to its spot on the surface (drawn over the scene, crisp, faint)
   const dp=window.devicePixelRatio||1;if(beamCv.width!==Math.round(innerWidth*dp)){beamCv.width=Math.round(innerWidth*dp);beamCv.height=Math.round(innerHeight*dp);}
-  beamCx.setTransform(dp,0,0,dp,0,0);beamCx.clearRect(0,0,innerWidth,innerHeight);const S=buoy.spotAt;if(SCENE||!cam||!S||currentView!=='map'||buoy.dunk)return;
+  beamCx.setTransform(dp,0,0,dp,0,0);beamCx.clearRect(0,0,innerWidth,innerHeight);const S=buoy.spotAt;if(SCENE||!cam||!S||currentView!=='map'||buoy.dunk||buoy.dip)return; // (pointing up, or under: off)
   const sp=v=>{const p=m4.tx(cam.pv,[v[0],v[1],v[2],1]);return[(p[0]/p[3]+1)/2*SW,(1-p[1]/p[3])/2*SH];},CD=buoyCanDir(now),A=sp(CD?CD.L.map((v,i)=>v+CD.d[i]*0.14*CD.F.size):buoyFrame(now).lamp),P=[A],ca=Math.cos(S.a),sa=Math.sin(S.a);
   for(let i=0;i<32;i++){const t=i/32*6.2832,ex=Math.cos(t)*S.ma,ey=Math.sin(t)*S.mi;P.push(sp([S.x+ex*ca-ey*sa-MW/2,S.y+ex*sa+ey*ca-MH/2,0]));}
   P.sort((p,q)=>p[0]-q[0]||p[1]-q[1]);const cr=(o,a,b)=>(a[0]-o[0])*(b[1]-o[1])-(a[1]-o[1])*(b[0]-o[0]),lo=[],hi=[];for(const p of P){while(lo.length>1&&cr(lo[lo.length-2],lo[lo.length-1],p)<=0)lo.pop();lo.push(p);}for(let i=P.length-1;i>=0;i--){const p=P[i];while(hi.length>1&&cr(hi[hi.length-2],hi[hi.length-1],p)<=0)hi.pop();hi.push(p);}
@@ -983,14 +994,13 @@ function enterNebula(cellKey){
   const c=cells[cellKey];
   loading('boot',false);const now=performance.now(),boot=!cam||SCENE||/[?&]resume=1/.test(location.search)&&!_enter; // (straight in when the map was never drawn: the clean load)
   if(boot){currentView='level';loading('level',true);setTimeout(()=>loading('level',false),12000);showNeb(true);} // (the surface says when it is drawn: 'levelReady')
-  else{const[wx,wy]=a2w(c.q,c.r),ms=T.mapEnterMs||900;currentView='entering';_enter={key:cellKey,ready:false,back:{x:camX,y:camY,z:viewZoom}}; // your buoy is dunked the whole way and the camera goes down into the hex's picture, then the surface fades in
-    camTween={t0:now,dur:ms,a:{x:camX,y:camY,z:viewZoom},b:{x:wx,y:wy,z:Math.max(viewZoom,T.mapZoomMax||1.8)*2.8}};buoy.dunk={t0:now,d:1,ms:ms*0.8};ripples.push({x:buoy.x,y:buoy.y,t:now,dk:onWhite(buoy.x,buoy.y),big:1});startMapLoop();
-    setTimeout(()=>{if(currentView!=='entering')return;currentView='level';if(!_enter.ready){loading('level',true);setTimeout(()=>loading('level',false),12000);}showNeb(true);},ms);} // (not drawn yet: the clean loading screen until it is)
+  else{const ms=T.mapEnterMs||1800;currentView='entering';_enter={key:cellKey,ready:false,back:null};buoy.dunk={t0:now,d:1,ms:ms*0.33};ripples.push({x:buoy.x,y:buoy.y,t:now,dk:onWhite(buoy.x,buoy.y),big:1});startMapLoop(); // your buoy is dunked the whole way while the camera comes over the hex, turns to look straight down on it and goes down into it; then the surface fades in
+    _enter.back=diveStart(cellKey,1,()=>{if(currentView!=='entering')return;currentView='level';if(!_enter.ready){loading('level',true);setTimeout(()=>loading('level',false),12000);}showNeb(true);});} // (not drawn yet: the clean loading screen until it is)
   const resume=nebulaCellKey===cellKey;nebulaCellKey=cellKey;saveMap();
   neb({cmd:'level',key:cellKey,seed:cellSeed(c),cov:cellCov(c),q:c.q,r:c.r,white:c.unw==='bright',label:`(${c.q},${c.r}) · value ${c.v.toFixed(2)}`,resume,clock}); // clock: the hour its ducks are lit for
 }
 let _enter=null; // going into a surface (the dunk and the camera's move), and how to come back out
-function exitNebula(){if(_enter&&cam){const now=performance.now();camTween={t0:now,dur:700,a:{x:camX,y:camY,z:viewZoom},b:_enter.back};buoy.dunk={t0:now,d:-1,ms:700};}_enter=null; // back out: the camera rises, the buoy bobs up
+function exitNebula(){if(_enter&&_enter.back&&cam){const now=performance.now(),ms=T.mapEnterMs||1800;diveStart(_enter.key,-1,null,_enter.back);buoy.dunk={t0:now+ms*0.62,d:-1,ms:ms*0.33};}_enter=null; // back out: the same, backwards (the buoy bobs up at the end)
   if(MP.on&&MP.surf&&MP.surf.owner===MP.me){netOut({t:'surf',owner:MP.me,on:false});MP.surf=null;neb({cmd:'remoteClear'});neb({cmd:'mpShare',on:false});}
   currentView='map';_loadAt=performance.now();loading('back',true);const t=performance.now();for(const k in clearFx)if(clearFx[k].t0==null)clearFx[k].t0=t+250;showNeb(false);mapResize();pondSpawn();startMapLoop();updateHint();evPump();}
 let evQ=[];
@@ -1271,7 +1281,9 @@ function netGuestOn(m){if(!m||!m.t)return; // a friend: the host's word (or anot
   if(m.t==='enter'){const c=cells[m.key];if(c)enterNebula(m.key);return;}
   mpCommon(m);}
 function mpCommon(m){ // either side: a surface being shared, its frames, a pointer on it, what someone collected in it
-  if(m.t==='surf'){if(m.on&&m.owner!==MP.me)mpView(m.owner,m.key);else if(!m.on&&MP.surf&&MP.surf.owner===m.owner)mpView(null);if(MP.role==='host')MP.surf=m.on?{owner:m.owner,key:m.key}:null;return;}
+  if(m.t==='surf'){const now=performance.now(),ob=MP.ob[m.owner],ms=T.mapEnterMs||1800; // everyone sees it go in: their buoy dunked, their own view diving after it (and coming back out)
+    if(m.on&&m.owner!==MP.me){if(ob)ob.dunk={t0:now,d:1,ms:ms*0.33};const back=currentView==='map'?diveStart(m.key,1,()=>mpView(m.owner,m.key)):null;MP._vBack=back?{key:m.key,back}:null;if(!back)mpView(m.owner,m.key);}
+    else if(!m.on&&MP.surf&&MP.surf.owner===m.owner){mpView(null);if(MP._vBack){diveStart(MP._vBack.key,-1,null,MP._vBack.back);MP._vBack=null;}if(ob)ob.dunk={t0:now+ms*0.62,d:-1,ms:ms*0.33};}if(MP.role==='host')MP.surf=m.on?{owner:m.owner,key:m.key}:null;return;}
   if(m.t==='frame'){if(MP.surf&&MP.surf.owner===m.from){const im=document.querySelector('#mpView img');if(im)im.src=m.url;}return;}
   if(m.t==='ptr'){if(currentView!=='level')return;const P=mpP(m.from),k=nebulaCellKey&&cells[nebulaCellKey],can=!!(P&&k&&P.q===k.q&&P.r===k.r);neb({cmd:'remote',pid:m.from,name:P?P.name:'',col:P?P.col:'#fc0',can,m:m.p});return;} // on the same hex: they play it with you
   if(m.t==='spend'){spend(m.kind,m.n);mpViewItems();return;}
