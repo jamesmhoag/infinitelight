@@ -2020,7 +2020,7 @@ const INV_STORAGE_KEY='chromaticNebulaInventory_v1';
 let gateFx=null,keyFx=null; // the Gate's rewind transition / the Key's insert-twist-collapse animation (real-time, see draw())
 let keyShapes=[];        // one entry per Key in the purse, oldest first — each remembers the Pattern that formed it
 let inventory={bright:0,dim:0,neutron:0,magnetic:0,pulsing:0,dial:0,leash:0,prism:0,gate:0,knot:0,key:0,lens:0,weave:0};
-let invDisabled=new Set(),invDisableMode=false,discSeen=new Set();
+let invDisabled=new Set(),invDisableMode=false,discSeen=new Set(),shopLog={}; // shopLog: what you have bought, item → how many (Collections → Shops)
 let ducks=[],duckLog={},duckLuck={d:0,e:0},runState=runFresh(); // rubber ducks on this surface / the duck collection (type → count, saved with the inventory) / failed tries since the last duck (d) and the last exotic (e): each adds T.duckLuckStep to its chance (saved, so it carries across surfaces and days)
 let invFlash={kind:null,at:0};   // last slot that gained an item (its icon pulses)
 let earnFx=[],constellationFx=[]; // real-time visual effects (see drawEarnFx / drawConstellationFx)
@@ -2030,7 +2030,7 @@ let earnFx=[],constellationFx=[]; // real-time visual effects (see drawEarnFx / 
     if(raw){const saved=JSON.parse(raw);for(const k of INV_KINDS)if(typeof saved[k]==='number')inventory[k]=saved[k];
     if(Array.isArray(saved.disabled))invDisabled=new Set(saved.disabled);
     if(Array.isArray(saved.discovered))discSeen=new Set(saved.discovered);
-    if(saved.ducks&&typeof saved.ducks==='object')duckLog=saved.ducks;
+    if(saved.ducks&&typeof saved.ducks==='object')duckLog=saved.ducks;if(saved.buys&&typeof saved.buys==='object')shopLog=saved.buys;
     if(saved.luck)duckLuck=Object.assign({d:0,e:0},saved.luck);
     if(saved.run)runState=Object.assign(runFresh(),saved.run);
       if(typeof saved.notch==='number')inventory.knot=Math.min(invMaxFor('knot'),inventory.knot+saved.notch);
@@ -2054,9 +2054,10 @@ function cycleKeyRing(){if(keyShapes.length>1)keyShapes.push(keyShapes.shift());
 // merged in — discoveries are a union and duck counts the larger — so one copy can never write away what another found. It is backed up in
 // IndexedDB too, so a full or cleared localStorage loses nothing.
 let _discReset=false;
-function invPayload(){return Object.assign({},inventory,{disabled:[...invDisabled],discovered:[...discSeen],ducks:duckLog,luck:duckLuck,run:runState,at:Date.now()});}
+function invPayload(){return Object.assign({},inventory,{disabled:[...invDisabled],discovered:[...discSeen],buys:shopLog,ducks:duckLog,luck:duckLuck,run:runState,at:Date.now()});}
 function invMerge(saved){if(!saved)return false;let ch=false;const rk=_discReset==='all'||_discReset==='ducks'; // _discReset: true (discoveries reset), 'ducks' (ducks spent in a shop), 'all' (the Gift Shop wipe): what this save must not merge back
   if((_discReset!==true&&_discReset!=='all')&&Array.isArray(saved.discovered))for(const d of saved.discovered)if(!discSeen.has(d)){discSeen.add(d);ch=true;}
+  if(_discReset!=='all'&&saved.buys&&typeof saved.buys==='object')for(const k in saved.buys){const n=saved.buys[k]|0;if(n>(shopLog[k]||0)){shopLog[k]=n;ch=true;}}
   if(!rk&&saved.ducks&&typeof saved.ducks==='object')for(const k in saved.ducks){const n=saved.ducks[k]|0;if(n>(duckLog[k]||0)){duckLog[k]=n;ch=true;}} // (a Gift Shop wipe: nothing is merged back)
   return ch;}
 function saveInventory(){
@@ -4468,7 +4469,7 @@ const TEST_SNAP='il_test_snap_inv';
 function testOn(){try{if(!localStorage.getItem(TEST_SNAP))localStorage.setItem(TEST_SNAP,JSON.stringify(Object.assign(invPayload(),{keyShapes})));}catch(e){} /* (once: the save as it was before testing) */
   TEST.set('mode',1);TEST.set('free',1);discAll();unlockAll();testFill();testSync();}
 function testOff(){let s=null;try{s=JSON.parse(localStorage.getItem(TEST_SNAP)||'null');}catch(e){}TEST.set('mode',0);TEST.set('free',0);
-  if(s){for(const k of INV_KINDS)inventory[k]=typeof s[k]==='number'?s[k]:0;invDisabled=new Set(s.disabled||[]);discSeen=new Set(s.discovered||[]);duckLog=s.ducks||{};duckLuck=Object.assign({d:0,e:0},s.luck||{});runState=Object.assign(runFresh(),s.run||{});keyShapes=s.keyShapes||[];
+  if(s){for(const k of INV_KINDS)inventory[k]=typeof s[k]==='number'?s[k]:0;invDisabled=new Set(s.disabled||[]);discSeen=new Set(s.discovered||[]);duckLog=s.ducks||{};duckLuck=Object.assign({d:0,e:0},s.luck||{});runState=Object.assign(runFresh(),s.run||{});keyShapes=s.keyShapes||[];shopLog=s.buys||{};
     _discReset='all';saveInventory();} /* (nothing merged back: the save is exactly as it was) */
   try{localStorage.removeItem(TEST_SNAP);}catch(e){}applyDisc();updateInventoryUI();testSync();if(HUB)hubPost({type:'testRestored'});else location.reload();}
 function testMode(){if(HUB){hubPost({type:'testMode'});return;}if(TEST.get('mode'))testOff();else testOn();} // (on the map, the map runs it: its own save is snapshotted too)
@@ -12663,10 +12664,10 @@ function sceneBoot(name,TT){
 
 // ═════════════════════════ RULES MENU ═════════════════════════
 // A tabbed, plain-language guide. Every entry has a small live rendering (it follows the Invert setting) and the Encyclopedia tab lists every entry.
-let _rulesOpen=false,_rulesWasPaused=false,_rulesTab='disc',_rulesFilter='',_rulesMode='guide',_rulesLast={guide:'disc',coll:'status'};
+let _rulesOpen=false,_rulesWasPaused=false,_rulesTab='disc',_rulesFilter='',_rulesMode='guide',_rulesLast={guide:'disc',coll:'buoy'};
 window._rulesOpen=false;
 const RULE_TABS=['disc','map','items','shapes','surf','shops','ducks','book'].map(k=>[k,txt('guide.tab.'+k)]); // (their names: content/strings.csv)
-const COLL_TABS=['status','buoy','coll','notes','souv'].map(k=>[k,txt('coll.tab.'+k)]); // Status and your collections (your buoy, or its slot in the inventory): the same menu as the Guide, its own tabs
+const COLL_TABS=['buoy','coll','mshops','notes','souv'].map(k=>[k,txt('coll.tab.'+k)]); // Status and your collections (your buoy, or its slot in the inventory): the same menu as the Guide, its own tabs
 // where an entry's own section (RULES[i][1]) shows: How to play / How to clean up are Discoveries; particles, points and remnants are the Taxonomy
 const RULE_HOME={start:['disc','How to play'],touch:['disc','How to clean up'],things:['map','Taxonomy'],bright:['map','Taxonomy'],rem:['map','Taxonomy'],items:['items','Items'],shapes:['shapes','Shapes'],surf:['surf','Surface Map'],shops:['shops','Shops'],ducks:['ducks','Ducks']};
 // [id, tab, name, picture, one-line summary, [[label,text],…]]
@@ -12984,19 +12985,20 @@ function rulesRender(){
 <p class="rl-note">Letters from the bottles that float onto the lake: ${n} of ${LETTERS.length} found. Open a bottle on the Surface Map to find another.</p>`+
       (n?`<div class="bk">${pg(0)}${pg(1)}</div><div class="bk-nav"><button id="bkP"${sp?'':' disabled'}>‹ Back</button><span>${sp*2+1}–${Math.min(n,sp*2+2)} of ${n}</span><button id="bkN"${sp*2+2<n?'':' disabled'}>Next ›</button></div>`:'<div class="bk"><div class="bk-p"><div class="bk-t">No letters yet.</div></div><div class="bk-p"></div></div>');
     const bp=document.getElementById('bkP'),bn=document.getElementById('bkN');if(bp)bp.onclick=()=>{_bookPg--;rulesRender();};if(bn)bn.onclick=()=>{_bookPg++;rulesRender();};
-  } else if(_rulesTab==='status'){
-    body.innerHTML='<style>.stt{border-collapse:collapse;font-size:13px;margin:4px 0 10px;color:inherit}.stt td{padding:2px 12px 2px 0;vertical-align:top;color:inherit!important;opacity:1}.stt td:first-child{opacity:.65;white-space:nowrap}.stg{font-weight:600;margin-top:8px}.stu{font-size:13px;opacity:.85}</style><p class="rl-note">Your wallet and its caps, today\'s fortune and wonder, duck luck, and the upgrades you have bought for good.</p>'+statusHTML(statusData());
   } else if(_rulesTab==='disc'){ // how to play, how to clean up, and what has happened: everything here is discovered, then reviewed as a card
     body.innerHTML='<p class="rl-note">Everything you have discovered, as cards: how to play, how to clean up, and the events you have witnessed. Click a card to see it whole; face-down cards are still to come.</p>'+
       sec('How to play',cards(RULES.filter(e=>e[1]==='start')))+sec('How to clean up',cards(RULES.filter(e=>e[1]==='touch')))+
       sec('Events','<div class="ev-grid">'+EVENTS.map(ev=>evSeen(ev.id)?cardHTML(ev,true):ev.id.slice(0,5)==='shop_'?shopBackHTML(ev.id.slice(5)):'<div class="mtg sm back">?</div>').join('')+'</div>');
   } else if(_rulesTab==='shops'){
     body.innerHTML='<p class="rl-note">Main street round the source, and the pop-ups a cleared surface can open. A shop is discovered the first time it opens; until then only the shape of its sign shows.</p>'+sec('How shops work',cards(RULES.filter(e=>e[1]==='shops')))+sec('The shops','<div class="rl-cards">'+Object.keys(SHOPS).map(k=>shopCardHTML(k,true)).join('')+'</div>');
-  } else if(_rulesTab==='coll'){body.innerHTML='';body.insertAdjacentHTML('beforeend',duckCollectionHTML());const sw=document.getElementById('pondSw');if(sw)sw.onclick=()=>{_pondMode=_pondMode==='pond'?'space':'pond';try{localStorage.setItem('il_pondmode',_pondMode);}catch(e){}rulesRender();};
+  } else if(_rulesTab==='coll'){body.innerHTML='';body.insertAdjacentHTML('beforeend',duckCollectionHTML());const sw=document.getElementById('pondSw');if(sw)sw.onclick=e=>{const m=e.target.dataset&&e.target.dataset.pm;if(!m)return;_pondMode=m;try{localStorage.setItem('il_pondmode',_pondMode);}catch(e){}rulesRender();};
   } else if(_rulesTab==='buoy'){let nm='',cl=BUOY_COLS[0];try{nm=localStorage.getItem('il_name_v1')||'';cl=localStorage.getItem('il_buoycol_v1')||cl;}catch(e){} // your buoy: its name and its colour (the map's own keys)
-    body.innerHTML=`<p class="rl-note">${txt('coll.buoy.note')}</p><p><input id="byName" maxlength="20" value="${gEsc(nm)}" style="background:transparent;color:inherit;border:1px solid currentColor;padding:4px 8px;font:inherit;width:240px"></p><div class="ncols" style="display:flex;flex-wrap:wrap;gap:6px;max-width:420px">${BUOY_COLS.map(c=>`<span data-c="${c}" style="width:26px;height:26px;cursor:pointer;background:${c};border:1px solid rgba(128,128,128,.6);box-sizing:border-box;${c===cl?'outline:2px solid currentColor;outline-offset:2px':''}"></span>`).join('')}</div>`;
+    body.innerHTML=`<canvas id="buoyView" style="position:relative;left:auto;top:auto;display:block;width:100%;height:300px;border-radius:10px;touch-action:none;cursor:grab"></canvas><p class="rl-note">${txt('coll.buoy.view')}</p><p class="rl-note">${txt('coll.buoy.note')}</p><p><input id="byName" maxlength="20" value="${gEsc(nm)}" style="background:transparent;color:inherit;border:1px solid currentColor;padding:4px 8px;font:inherit;width:240px"></p><div class="ncols" style="display:flex;flex-wrap:wrap;gap:6px;max-width:420px">${BUOY_COLS.map(c=>`<span data-c="${c}" style="width:26px;height:26px;cursor:pointer;background:${c};border:1px solid rgba(128,128,128,.6);box-sizing:border-box;${c===cl?'outline:2px solid currentColor;outline-offset:2px':''}"></span>`).join('')}</div>`+STATUS_CSS+`<div class="stg" style="font-size:15px;margin-top:16px">${txt('coll.tab.status')}</div>`+statusHTML(statusData(),1);buoyViewMount();
     const save=(k,v)=>{try{localStorage.setItem(k,v);}catch(e){}hubPost({type:'buoy'});};document.getElementById('byName').onchange=e=>{const v=e.target.value.trim().slice(0,20);if(v)save('il_name_v1',v);};
     body.querySelector('.ncols').onclick=e=>{const c=e.target.dataset&&e.target.dataset.c;if(c){save('il_buoycol_v1',c);rulesRender();}};
+  } else if(_rulesTab==='mshops'){const f=n=>(+n).toLocaleString('en-US'),bought=k=>SHOP_ITEMS.filter(i=>i.shop===k).reduce((a,i)=>a+(shopLog[i.id]||0),0); // the shops you know: click one to look at its building and what you bought there
+    body.innerHTML=`<p class="rl-note">${txt('coll.shops.note')}</p><div class="rl-cards">`+Object.keys(SHOPS).map(k=>evSeen('shop_'+k)?`<div class="mtg sm sv shv" data-shopv="${k}"><img class="sign" src="shops/sign_${k}.svg" alt=""><b>${gEsc(SHOPS[k].n)}</b><span>${txt('coll.shops.bought',f(bought(k)))}</span></div>`:'<div class="mtg sm back">?</div>').join('')+'</div>';
+    body.querySelectorAll('[data-shopv]').forEach(el=>el.onclick=e=>{e.stopPropagation();openShopViewer(el.dataset.shopv);});
   } else if(_rulesTab==='souv'){const sv=souvenirs(),L=SHOP_ITEMS.filter(i=>i.fx.souv); // the Gift Shop's souvenirs: kept through every new start, and hung on your buoy
     body.innerHTML=`<p class="rl-note">${txt('coll.souv.note')}</p><div class="rl-cards">`+L.map(i=>(sv[i.id]||0)>0?`<div class="mtg sm sv"><div class="sv-i">${BUOY_SOUV_ICO[i.id]||'★'}</div><b>${gEsc(i.n)}</b><span>× ${sv[i.id]}</span></div>`:'<div class="mtg sm back">?</div>').join('')+'</div>'+(L.some(i=>sv[i.id]>0)?'':`<p class="rl-note">${txt('coll.souv.none')}</p>`);
   } else if(_rulesTab==='book'){const f=_rulesFilter.trim().toLowerCase(),list=RULES.slice().sort((a,b)=>a[2].localeCompare(b[2])).filter(e=>!f||(e[2]+' '+e[4]+' '+e[5].map(r=>r[1]).join(' ')).toLowerCase().includes(f));
@@ -13007,10 +13009,10 @@ function rulesRender(){
   applyDisc();cardSize(ov);
   if(!_rulesLoop)_rulesLoop=requestAnimationFrame(rulesTick);body.scrollTop=0;
 }
-function rulesTick(now){if(!_rulesOpen){_rulesLoop=0;return;}if(_rulesTab==='map')mapDraw(now);if(_rulesTab==='coll')duckPondDraw(now);_rulesLoop=requestAnimationFrame(rulesTick);}
+function rulesTick(now){if(!_rulesOpen){_rulesLoop=0;return;}if(_rulesTab==='map')mapDraw(now);if(_rulesTab==='coll')duckPondDraw(now);if(_rulesTab==='buoy')buoyViewDraw(now);_rulesLoop=requestAnimationFrame(rulesTick);}
 const RULE_BLURB={surf:'The Surface Map: the hexes round the source, the day, the lake and how to look around.',start:'Welcome! Tap a card to open it. Tap again to close it.',touch:'Particles are spilled on the surface. These are the ways to shine them off and clean up the spill.',things:'The glowing bits everything starts as. Each colour does a different job.',bright:'The big, bright and dark things that grow from points.',rem:'What is left behind. Click them to collect.',items:'Things you can hold and use. Each costs 1 per use unless it says so.',shapes:'Walls, boxes and loops you can build.'};
 function openCollections(tab){openRules('coll',tab);} // Status, ducks, letters and souvenirs
-function openRules(mode,tab){mode=mode==='coll'?'coll':'guide';const tabs=mode==='coll'?COLL_TABS:RULE_TABS;
+function openRules(mode,tab){mode=mode==='coll'?'coll':'guide';if(tab==='status')tab='buoy'; /* (Status is on the Buoy page) */const tabs=mode==='coll'?COLL_TABS:RULE_TABS;
   if(_rulesOpen&&_rulesMode===mode&&!tab)return;_rulesLast[_rulesMode]=_rulesTab;_rulesMode=mode;_rulesTab=tab&&tabs.some(t=>t[0]===tab)?tab:tabs.some(t=>t[0]===_rulesLast[mode])?_rulesLast[mode]:tabs[0][0];
   if(_rulesOpen){rulesHead();rulesRender();return;}_rulesOpen=true;window._rulesOpen=true;guideCSS();wrap.classList.add('rules-open');_rulesWasPaused=isPaused;if(!isPaused)togglePause();
   let ov=document.getElementById('rulesOverlay');
@@ -13309,7 +13311,7 @@ function shopBuy(id,arg){
   if(fx.duck){const ax=fx.duck==='exotic'?(axis==='Classic'?null:axis):fx.duck,pk=a=>a[Math.floor(Math.random()*a.length)];
     const t=fx.duck==='pick'?arg:fx.duck==='roll'?rollDuckType():pk(DUCK_IDS.filter(k=>k!=='classic'&&(ax?DUCK_TYPES[k].axis===ax:!DUCK_TYPES[k].rare)));
     duckLog[t]=(duckLog[t]||0)+1;got='\u{1F986} '+DUCK_TYPES[t].name;}
-  if(fx.disc)discSeen.add(fx.disc);if(shopOnce(it))discSeen.add('up:'+id);
+  if(fx.disc)discSeen.add(fx.disc);if(shopOnce(it))discSeen.add('up:'+id);shopLog[id]=(shopLog[id]||0)+1;
   saveInventory();updateInventoryUI();applyDisc();return{ok:1,msg:got,draw};}
 function secretCards(){const c=[...EVENTS.filter(e=>!evSeen(e.id)).map(e=>({id:'ev:'+e.id,ev:e.id,n:e.name})),...RULES.filter(e=>!discHas('g_'+e[0])&&evOk(RULE_EV[e[0]])).map(e=>({id:'g_'+e[0],rule:e[0],n:e[2]}))];return c.sort(()=>Math.random()-0.5).slice(0,3);} // what a Card of Secrets can turn up: events not yet witnessed, and Guide entries not yet found that the Guide would show
 function shopPick(i){const d=runState.draw,c=d&&d.cards[i];if(!c)return{ok:0,text:'Nothing to pick'};runState.draw=null;let title,text; // a card turned over: what it gives
@@ -13556,10 +13558,10 @@ function drawDucks(c,now){
 const DUCK_ICON_Q=quatTurn(quatTurn([0,0,0,1],0,Math.PI*0.3,0),0.25,0,0);
 function duckCollectionHTML(){
   const got=DUCK_IDS.filter(k=>duckLog[k]>0),total=got.reduce((s,k)=>s+duckLog[k],0);
-  return '<h3 style="margin:14px 0 6px">Collection · '+total+' duck'+(total===1?'':'s')+' · '+got.length+' of '+DUCK_IDS.length+' types</h3>'+(got.length?`<p class="rl-note">${txt(_pondMode==='pond'?'coll.pond.note':'coll.space.note')} <button id="pondSw" class="gbtn sub">${txt(_pondMode==='pond'?'coll.to_space':'coll.to_pond')}</button></p><canvas id="duckPond" style="position:relative;left:auto;top:auto;display:block;width:100%;height:240px;border-radius:10px;touch-action:none;cursor:pointer"></canvas>`:'<p class="rl-note">No ducks yet. Some Dark Remnants come out as ducks.</p>');}
+  return '<h3 style="margin:14px 0 6px">Collection · '+total+' duck'+(total===1?'':'s')+' · '+got.length+' of '+DUCK_IDS.length+' types</h3>'+(got.length?`<p class="rl-note">${txt('coll.'+_pondMode+'.note')} <span id="pondSw">${['gallery','lake','space'].map(m=>`<button class="gbtn sub" data-pm="${m}"${m===_pondMode?' style="text-decoration:underline"':''}>${txt('coll.mode.'+m)}</button>`).join(' ')}</span></p><canvas id="duckPond" style="position:relative;left:auto;top:auto;display:block;width:100%;height:240px;border-radius:10px;touch-action:none;cursor:pointer"></canvas>`:'<p class="rl-note">No ducks yet. Some Dark Remnants come out as ducks.</p>');}
 // The pond (Guide → Ducks): one of each collected type, sized by its own scale so sizes compare. A swipe across a duck spins it by the swipe's
 // direction and speed (it keeps turning and slows); a click opens it in the viewer. Drawn from rulesTick while the Ducks tab is open.
-let duckPond=null,_pondMode='pond';try{_pondMode=localStorage.getItem('il_pondmode')||'pond';}catch(e){} // the collection floats on a pond, or in space (white in Invert)
+let duckPond=null,_pondMode='gallery';try{_pondMode=localStorage.getItem('il_pondmode')||'gallery';}catch(e){}if(_pondMode==='pond')_pondMode='gallery';if(!['gallery','lake','space'].includes(_pondMode))_pondMode='gallery'; // the collection as a gallery on the water, on a pond of its own (each in its own pen: it bobs, toddles and spins where it is), or in space (white in Invert)
 function duckPondMount(){
   duckPond=null;const cv=document.getElementById('duckPond');if(!cv)return;const got=DUCK_IDS.filter(k=>duckLog[k]>0);if(!got.length)return;
   const Wc=cv.clientWidth||600,sc=k=>DUCK_TYPES[k].scale||1,fp=k=>1.55*sc(k)*(DUCK_TYPES[k].head?1.2:1);let base=70,rows,rh;
@@ -13567,31 +13569,37 @@ function duckPondMount(){
     rh=rows.map(r=>Math.max(...r.map(fp))*base*0.85);if(rh.reduce((a,b)=>a+b,0)<=380)break;}
   const Hc=Math.ceil(rh.reduce((a,b)=>a+b,0)+16),dpr=Math.min(2,window.devicePixelRatio||1);cv.style.height=Hc+'px';cv.width=Math.round(Wc*dpr);cv.height=Math.round(Hc*dpr);
   const P=duckPond={cv,c:cv.getContext('2d'),dpr,list:[],hov:null,last:null,down:null,W:Wc,H:Hc,stars:Array.from({length:Math.round(Wc*Hc/900)},()=>[Math.random()*Wc,Math.random()*Hc,Math.random()])};let y=8;
-  rows.forEach((r,ri)=>{let x=(Wc-r.reduce((a,k)=>a+fp(k)*base,0))/2;for(const k of r){const f=fp(k)*base;P.list.push({k,x:x+f/2,y:y+rh[ri]/2,h:sc(k)*base,q:DUCK_ICON_Q.slice(),wx:0,wy:0,yaw:0,ph:Math.random()*6});x+=f;}y+=rh[ri];});
+  rows.forEach((r,ri)=>{let x=(Wc-r.reduce((a,k)=>a+fp(k)*base,0))/2;for(const k of r){const f=fp(k)*base;P.list.push({k,x:x+f/2,y:y+rh[ri]/2,h:sc(k)*base,cw:f,ch:rh[ri],q:DUCK_ICON_Q.slice(),wx:0,wy:0,yaw:0,ph:Math.random()*6,dunk:0,hop:0,tod:0});x+=f;}y+=rh[ri];});
   const at=e=>{const b=cv.getBoundingClientRect();return[e.clientX-b.left,e.clientY-b.top];},hit=(x,y)=>{let best=null,bd=1e9;for(const d of P.list){const r=Math.hypot(x-d.x,y-d.y);if(r<d.h*0.8&&r<bd){bd=r;best=d;}}return best;};
   cv.addEventListener('pointerdown',e=>{const p=at(e);P.down={p,t:performance.now()};P.last=p;});
   cv.addEventListener('pointermove',e=>{const p=at(e);P.hov=hit(p[0],p[1]);
     if(P.last){const dx=p[0]-P.last[0],dy=p[1]-P.last[1];for(const d of P.list)if(Math.hypot(p[0]-d.x,p[1]-d.y)<d.h*0.8){const k=0.006/Math.max(0.5,d.h/40);d.wy=Math.max(-0.5,Math.min(0.5,d.wy+dx*k));d.wx=Math.max(-0.5,Math.min(0.5,d.wx+dy*k));}}P.last=p;}); // a swipe across a duck spins it, as the viewer's drag turns it
   cv.addEventListener('pointerleave',()=>{P.last=null;P.hov=null;});
-  cv.addEventListener('pointerup',e=>{const p=at(e),D=P.down;P.down=null;if(D&&Math.hypot(p[0]-D.p[0],p[1]-D.p[1])<6&&performance.now()-D.t<450){const d=hit(p[0],p[1]);if(d)openDuckViewer(d.k);}});}
+  cv.addEventListener('pointerup',e=>{const p=at(e),D=P.down;P.down=null;if(D&&Math.hypot(p[0]-D.p[0],p[1]-D.p[1])<6&&performance.now()-D.t<450){const d=hit(p[0],p[1]);if(!d)return;if(_pondMode==='lake'){if(!d.dunk)d.dunk=performance.now();}else openDuckViewer(d.k);}}); // (on the pond a click dunks it; elsewhere it opens it up close)
+  cv.addEventListener('dblclick',e=>{if(_pondMode!=='lake')return;const p=at(e),d=hit(p[0],p[1]);if(d){if(!d.dunk)d.dunk=performance.now();d.hop=1;}});} // a double click: under, up high, and it toddles as it settles
 function duckPondDraw(now){
-  const P=duckPond;if(!P||!P.cv.isConnected){duckPond=null;return;}const c=P.c,k=P.dpr,inv=!!invertMode,pd=_pondMode==='pond';let envd=false;
-  let bg;if(pd){bg=c.createLinearGradient(0,0,0,P.H*k);bg.addColorStop(0,inv?'#ffffff':'#173149');bg.addColorStop(1,inv?'#dfe4e8':'#07121d');}else bg=inv?'#f6f6f2':'#05060b';
+  const P=duckPond;if(!P||!P.cv.isConnected){duckPond=null;return;}const c=P.c,k=P.dpr,inv=!!invertMode,pd=_pondMode!=='space',lake=_pondMode==='lake';let envd=false;
+  let bg;if(lake){bg=c.createLinearGradient(0,0,0,P.H*k);bg.addColorStop(0,inv?'#eef3f4':'#0b2433');bg.addColorStop(1,inv?'#d6dee2':'#04101a');}else if(pd){bg=c.createLinearGradient(0,0,0,P.H*k);bg.addColorStop(0,inv?'#ffffff':'#173149');bg.addColorStop(1,inv?'#dfe4e8':'#07121d');}else bg=inv?'#f6f6f2':'#05060b';
   c.fillStyle=bg;c.fillRect(0,0,P.cv.width,P.cv.height);
+  if(lake){c.strokeStyle=inv?'rgba(40,60,70,0.22)':'rgba(170,210,235,0.16)';c.lineWidth=k;c.setLineDash([4*k,5*k]);for(const d of P.list){c.beginPath();c.roundRect?c.roundRect((d.x-d.cw/2+3)*k,(d.y-d.ch/2+3)*k,(d.cw-6)*k,(d.ch-6)*k,8*k):c.rect((d.x-d.cw/2+3)*k,(d.y-d.ch/2+3)*k,(d.cw-6)*k,(d.ch-6)*k);c.stroke();}c.setLineDash([]);} // each in its own pen on the pond
   if(!pd)for(const[x,y,b]of P.stars){c.fillStyle=inv?`rgba(20,22,30,${0.15+0.5*b})`:`rgba(255,255,255,${0.2+0.6*b*(0.7+0.3*Math.sin(now/700+x))})`;c.fillRect(x*k,y*k,(0.6+b)*k,(0.6+b)*k);} // space: its stars (dark specks on white)
   for(const d of P.list){d.wx*=0.985;d.wy*=0.985;const v=DUCK_TYPES[d.k],refl=v.mat==='metal'||v.mat==='gold'||v.mat==='glass';let x,y;
-    if(pd){d.wx=0;d.yaw+=d.wy+0.0015*Math.sin(now/4000+d.ph);d.q=quatTurn(DUCK_ICON_Q,0,d.yaw,0);x=d.x*k;y=(d.y+Math.sin(now/900+d.ph)*d.h*0.03)*k;} // on the pond: upright, each in its place, turning only about its up (a swipe spins it round)
+    if(lake){d.wx=0;const dk=d.dunk?(now-d.dunk)/1300:1;let sink=0;if(dk>=1){if(d.dunk&&d.hop)d.tod=now;if(d.dunk&&!d.hop)d.tod=now-300;d.dunk=0;d.hop=0;}else if(dk<0.3)sink=(dk/0.3)**2;else if(dk<0.55)sink=1;else{const u=(dk-0.55)/0.45;sink=-(2.7*Math.pow(u-1,3)+1.7*Math.pow(u-1,2))*(d.hop?3:1);} // dunked, as on the map's lake (a double click: up high)
+      const td=d.tod?now-d.tod:1e9,tod=td<2400?Math.exp(-td/650)*Math.sin(td/80):0;d.yaw+=d.wy+0.003*Math.sin(now/2600+d.ph);d.wy*=0.985; // it spins where it is (a swipe spins it); it toddles from side to side as it settles
+      d.q=quatTurn(quatTurn(quatTurn([0,0,0,1],0,d.yaw+0.35*tod,0),0.5,0,0),0,0,0.07*Math.sin(now/1300+d.ph)+0.3*tod);x=(d.x+Math.sin(now/1700+d.ph)*d.h*0.06)*k;y=(d.y+Math.sin(now/900+d.ph)*d.h*0.03+sink*d.h*0.8)*k;} // seen from above at a slant, as on the map; it bobs and drifts a little in its pen
+    else if(pd){d.wx=0;d.yaw+=d.wy+0.0015*Math.sin(now/4000+d.ph);d.q=quatTurn(DUCK_ICON_Q,0,d.yaw,0);x=d.x*k;y=(d.y+Math.sin(now/900+d.ph)*d.h*0.03)*k;} // the gallery: upright, each in its place, turning only about its up (a swipe spins it round)
     else{d.q=quatTurn(d.q,d.wx+0.0012*Math.sin(d.ph),d.wy+0.0016,0);x=(d.x+Math.sin(now/3100+d.ph)*d.h*0.12)*k;y=(d.y+Math.cos(now/2700+d.ph*1.3)*d.h*0.1)*k;} // in space: tumbling slowly, drifting round its place
     if(pd){const wl=y+d.h*k*0.22,t=(now/2400+d.ph)%1;c.strokeStyle=inv?`rgba(40,50,60,${0.35*(1-t)})`:`rgba(200,225,255,${0.35*(1-t)})`;c.lineWidth=k;c.beginPath();c.ellipse(x,wl,d.h*k*(0.6+0.5*t),d.h*k*(0.12+0.1*t),0,0,6.2832);c.stroke();} // its ripple
     if(refl&&!envd){duckEnvUpdate(canvas,now);envd=true;}duckGlow(c,d.k,x,y,d.h*k,now,d.ph,d.q);drawDuck3D(c,d.k,d.q,[[x,y]],d.h*k,1,0,refl?{x:W/2,y:H/2,lights:[]}:null);
     if(pd){const wl=y+d.h*k*0.22;c.save();c.globalAlpha=0.62;c.fillStyle=bg;c.fillRect(x-d.h*k,wl,d.h*k*2,d.h*k*0.8);c.restore();}} // under the waterline: the pond over it (it floats half in)
   const h=P.hov;if(h){const v=DUCK_TYPES[h.k];c.font=(12*k)+'px system-ui,sans-serif';c.textAlign='center';c.fillStyle=inv?'rgba(20,20,24,0.9)':'rgba(240,240,240,0.9)';c.fillText(duckStar(v)+v.name+' × '+duckLog[h.k],h.x*k,Math.max(14*k,(h.y-h.h*0.7)*k));}}
 function drawDuckIcon(c,S,type){const k=DUCK_TYPES[type]?type:'classic';drawDuck3D(c,k,DUCK_ICON_Q,[[S/2,S/2]],S*0.8/(DUCK_TYPES[k].head?1.25:1),1);}
-function openDuckViewer(type){
-  if(document.getElementById('duckView')||!DUCK_TYPES[type])return;const v=DUCK_TYPES[type],dpr=Math.min(2,window.devicePixelRatio||1),SZ=Math.max(200,Math.min(560,innerWidth-40,innerHeight-110)),N=Math.round(SZ*dpr);
+const STATUS_CSS='<style>.stt{border-collapse:collapse;font-size:13px;margin:4px 0 10px;color:inherit}.stt td{padding:2px 12px 2px 0;vertical-align:top;color:inherit!important;opacity:1}.stt td:first-child{opacity:.65;white-space:nowrap}.stg{font-weight:600;margin-top:8px}.stu{font-size:13px;opacity:.85}</style>';
+function openModelViewer(o){ // a model up close (a duck, a shop): drag to turn, wheel or pinch to zoom, double-click to reset, Esc to close. o.head: its title; o.foot: what shows under it (o.wire hooks it up); o.draw(c,q,zoom,N,now)
+  if(document.getElementById('duckView'))return;const dpr=Math.min(2,window.devicePixelRatio||1),SZ=Math.max(200,Math.min(560,innerWidth-40,innerHeight-(o.foot?240:110))),N=Math.round(SZ*dpr),q0=(o.q0||DUCK_ICON_Q).slice();
   const ov=document.createElement('div');ov.id='duckView';ov.style.cssText='position:fixed;inset:0;z-index:100000;background:rgba(0,0,0,0.8);display:flex;flex-direction:column;align-items:center;justify-content:center;font:13px system-ui,sans-serif;color:#eee;touch-action:none';
-  ov.innerHTML='<div style="margin-bottom:6px;text-align:center"><b>'+duckStar(v)+gEsc(v.name)+'</b> × '+(duckLog[type]||0)+'<br><span style="opacity:.7">'+(v.scale?'×'+v.scale+' the size of the classic duck (the faint outline) · ':'')+'drag to turn · wheel or pinch to zoom · double-click to reset · Esc to close</span></div><canvas width="'+N+'" height="'+N+'" style="position:relative;left:auto;top:auto;display:block;width:'+SZ+'px;height:'+SZ+'px;cursor:grab;border-radius:10px;background:radial-gradient(#2a2a33,#0d0d12)"></canvas>';
-  document.body.appendChild(ov);const cv=ov.querySelector('canvas'),c=cv.getContext('2d'),ptr=new Map();let q=DUCK_ICON_Q.slice(),zoom=1,auto=true,run=true,pd=0;
+  ov.innerHTML='<div style="margin-bottom:6px;text-align:center">'+o.head+'<br><span style="opacity:.7">'+(o.sub?o.sub+' · ':'')+txt('viewer.how')+'</span></div><canvas width="'+N+'" height="'+N+'" style="position:relative;left:auto;top:auto;display:block;width:'+SZ+'px;height:'+SZ+'px;cursor:grab;border-radius:10px;background:radial-gradient(#2a2a33,#0d0d12)"></canvas>'+(o.foot||'');
+  document.body.appendChild(ov);const cv=ov.querySelector('canvas'),c=cv.getContext('2d'),ptr=new Map();let q=q0.slice(),zoom=1,auto=true,run=true,pd=0;
   const close=()=>{run=false;ov.remove();document.removeEventListener('keydown',key,true);};
   const key=e=>{if(e.key==='Escape'){close();e.stopPropagation();e.preventDefault();}};document.addEventListener('keydown',key,true);
   ov.addEventListener('pointerdown',e=>{if(e.target===ov){close();return;}if(e.target!==cv)return;cv.setPointerCapture(e.pointerId);ptr.set(e.pointerId,[e.clientX,e.clientY]);auto=false;
@@ -13601,10 +13609,43 @@ function openDuckViewer(type){
     ptr.set(e.pointerId,[e.clientX,e.clientY]);if(ptr.size===2){const [a,b]=[...ptr.values()],nd=Math.hypot(a[0]-b[0],a[1]-b[1]);if(pd>0)zoom=Math.max(0.4,Math.min(4,zoom*nd/pd));pd=nd;}});
   const up=e=>{ptr.delete(e.pointerId);pd=0;};cv.addEventListener('pointerup',up);cv.addEventListener('pointercancel',up);
   cv.addEventListener('wheel',e=>{e.preventDefault();zoom=Math.max(0.4,Math.min(4,zoom*Math.exp(-e.deltaY*0.0015)));},{passive:false});
-  cv.addEventListener('dblclick',()=>{q=DUCK_ICON_Q.slice();zoom=1;auto=true;});
-  const fr=()=>{if(!run)return;const now=performance.now();if(auto)q=quatTurn(q,0,0.008,0);c.clearRect(0,0,N,N);const sc=v.scale||1,h=N*0.62*zoom*Math.min(1,sc)/(v.head?1.25:1);
-    if(sc!==1)drawDuck3D(c,'classic',q,[[N/2,N/2]],h/sc,0.2,N); // the classic duck at the same turn and zoom, for scale
-    duckGlow(c,type,N/2,N/2,h,now,0,q);duckEnvUpdate(canvas,now);drawDuck3D(c,type,q,[[N/2,N/2]],h,1,N,{x:W/2,y:H/2,lights:[]});requestAnimationFrame(fr);};fr();}
+  cv.addEventListener('dblclick',()=>{q=q0.slice();zoom=1;auto=true;});if(o.wire)o.wire(ov);
+  const fr=()=>{if(!run)return;const now=performance.now();if(auto)q=quatTurn(q,0,0.008,0);c.clearRect(0,0,N,N);o.draw(c,q,zoom,N,now);requestAnimationFrame(fr);};fr();}
+function openDuckViewer(type){const v=DUCK_TYPES[type];if(!v)return;
+  openModelViewer({head:'<b>'+duckStar(v)+gEsc(v.name)+'</b> × '+(duckLog[type]||0),sub:v.scale?'×'+v.scale+' the size of the classic duck (the faint outline)':'',
+    draw:(c,q,zoom,N,now)=>{const sc=v.scale||1,h=N*0.62*zoom*Math.min(1,sc)/(v.head?1.25:1);
+      if(sc!==1)drawDuck3D(c,'classic',q,[[N/2,N/2]],h/sc,0.2,N); // the classic duck at the same turn and zoom, for scale
+      duckGlow(c,type,N/2,N/2,h,now,0,q);duckEnvUpdate(canvas,now);drawDuck3D(c,type,q,[[N/2,N/2]],h,1,N,{x:W/2,y:H/2,lights:[]});}});}
+const viewSun=()=>duckSun(runState.clock||12); // (the time of day on the map, not the surface's own light while it sleeps)
+function openShopViewer(k){ // a shop you know, up close: its building in the map's light now, open or closed (and a pop-up at each rank), and what you have bought there
+  const S=SHOPS[k];if(!S)return;const si=new Image();si.src='shops/sign_'+k+'.svg';let lit=shopIsOpen(k,runState.clock||12,runState),rank=3;const f=n=>(+n).toLocaleString('en-US');
+  const its=SHOP_ITEMS.filter(i=>i.shop===k&&(shopLog[i.id]||discSeen.has('up:'+i.id))),hist=its.length?its.map(i=>`<div style="display:flex;justify-content:space-between;gap:18px"><span>${gEsc(i.n)}</span><b style="font-weight:400">${shopOnce(i)&&discSeen.has('up:'+i.id)?txt('shopv.owned'):'× '+f(shopLog[i.id]||0)}</b></div>`).join(''):`<div style="opacity:.7">${txt('shopv.none')}</div>`;
+  const btn=(a,l,on)=>`<button data-a="${a}" style="font:12px system-ui;padding:3px 10px;background:${on?'#fff':'transparent'};color:${on?'#000':'#eee'};border:1px solid #ccc;border-radius:3px;cursor:pointer">${l}</button>`;
+  const ctl=()=>btn('lit',txt(lit?'shopv.open':'shopv.closed'),lit)+(S.street?'':[1,2,3].map(r=>btn('r'+r,txt('shopv.rank',r),rank===r)).join(''));
+  openModelViewer({head:'<b>'+gEsc(S.n)+'</b>',sub:txt(S.street?'shopv.street':'shopv.popup'),q0:quatTurn(quatTurn([0,0,0,1],0,-0.35,0),0.32,0,0),
+    foot:`<div id="shvCtl" style="display:flex;gap:6px;margin-top:8px">${ctl()}</div><div style="margin-top:10px;min-width:260px;max-width:420px;max-height:150px;overflow:auto"><div style="opacity:.7;margin-bottom:3px">${txt('shopv.history')}</div>${hist}</div>`,
+    wire:ov=>{const box=ov.querySelector('#shvCtl');box.onclick=e=>{const a=e.target.dataset&&e.target.dataset.a;if(!a)return;if(a==='lit')lit=!lit;else rank=+a.slice(1);box.innerHTML=ctl();};},
+    draw:(c,q,zoom,N,now)=>{if(!si.complete||!si.naturalWidth)return;const bk=S.street?(S.bk||'s'):SHOP_RANK_BLD[rank-1],fl=bk===(S.bk||'s')&&S.flip,sun=DUCK_SUN;DUCK_SUN=viewSun();
+      const type=shopModel(k,bk,lit,fl,si,false),Mo=duckModel(type),h=N*0.44*zoom/Mo.g.R;Mo.emk=shopGlowK();drawDuck3D(c,type,q,[[N/2,N/2]],h,1,N);
+      duckEnvUpdate(canvas,now);drawDuck3D(c,type+'|glass',q,[[N/2,N/2]],h,lit?0.6+0.7*(1-Mo.emk):1,N,{x:W/2,y:H/2,lights:[]});Mo.emk=1;DUCK_SUN=sun;}});}
+// Your buoy on the Buoy page: big, on the water. Drag across it to turn it and rock it, click to dunk it, the wheel zooms; it bobs and turns slowly by itself
+let buoyV=null;
+function buoyViewMount(){buoyV=null;const cv=document.getElementById('buoyView');if(!cv)return;const W0=cv.clientWidth||600,H0=300,dpr=Math.min(2,window.devicePixelRatio||1);cv.width=Math.round(W0*dpr);cv.height=Math.round(H0*dpr);
+  const V=buoyV={cv,c:cv.getContext('2d'),dpr,W:W0,H:H0,yaw:0.6,wy:0,rock:0,wr:0,dunk:0,zoom:1,last:null,down:null},at=e=>{const b=cv.getBoundingClientRect();return[e.clientX-b.left,e.clientY-b.top];};
+  cv.addEventListener('pointerdown',e=>{cv.setPointerCapture(e.pointerId);V.down={p:at(e),t:performance.now()};V.last=V.down.p;});
+  cv.addEventListener('pointermove',e=>{if(!V.last)return;const p=at(e);V.wy+=(p[0]-V.last[0])*0.0012;V.wr+=(p[1]-V.last[1])*0.0016;V.last=p;});
+  cv.addEventListener('pointerup',e=>{const p=at(e),D=V.down;V.last=V.down=null;if(D&&Math.hypot(p[0]-D.p[0],p[1]-D.p[1])<6&&performance.now()-D.t<400&&!V.dunk)V.dunk=performance.now();});
+  cv.addEventListener('wheel',e=>{e.preventDefault();V.zoom=Math.max(0.6,Math.min(2.4,V.zoom*Math.exp(-e.deltaY*0.0015)));},{passive:false});}
+function buoyViewDraw(now){const V=buoyV;if(!V||!V.cv.isConnected){buoyV=null;return;}const c=V.c,k=V.dpr,inv=!!invertMode,sun=DUCK_SUN;DUCK_SUN=viewSun();
+  let nm='',cl=BUOY_COLS[0];try{nm=localStorage.getItem('il_name_v1')||'';cl=localStorage.getItem('il_buoycol_v1')||cl;}catch(e){}const sv=souvenirs(),type=buoyModel(nm,SHOP_ITEMS.filter(i=>i.fx.souv&&(sv[i.id]||0)>0).map(i=>i.id),cl);
+  V.yaw+=0.003+V.wy;V.wy*=0.97;V.wr+=-V.rock*0.03;V.wr*=0.93;V.rock+=V.wr;V.rock=Math.max(-0.7,Math.min(0.7,V.rock)); // (a turn that slows; a rock that springs back)
+  const dk=V.dunk?(now-V.dunk)/1400:1;let sink=0;if(dk>=1)V.dunk=0;else if(dk<0.3)sink=(dk/0.3)**2;else if(dk<0.5)sink=1;else{const u=(dk-0.5)/0.5;sink=1-u-0.5*Math.sin(u*Math.PI)*u;} // a dunk: under, then up with a bob past its float
+  const bg=c.createLinearGradient(0,0,0,V.H*k);bg.addColorStop(0,inv?'#ffffff':'#173149');bg.addColorStop(1,inv?'#dfe4e8':'#07121d');c.fillStyle=bg;c.fillRect(0,0,V.cv.width,V.cv.height);
+  const h=V.H*k*0.25*V.zoom,q=quatTurn(quatTurn(quatTurn([0,0,0,1],0,V.yaw,0),0.22,0,0),0,0,V.rock+0.06*Math.sin(now/1300)),m=quatMat(q),x=V.W/2*k,wl=V.H*k*0.74,base=wl+0.22*h*m[4]+h*(0.05*Math.sin(now/1100)+sink*0.9);
+  const at=y=>[x+m[3]*y*h,base-m[4]*y*h]; // a point up its mast, on the screen
+  for(let i=0;i<3;i++){const t=((now/2600+i/3)%1),r=h*(0.7+1.6*t);c.strokeStyle=inv?`rgba(40,50,60,${0.3*(1-t)})`:`rgba(200,225,255,${0.3*(1-t)})`;c.lineWidth=k;c.beginPath();c.ellipse(x,wl,r,r*0.22,0,0,6.2832);c.stroke();} // its rings on the water
+  drawDuck3D(c,type,q,[at(0)],h,1,0,{x:W/2,y:H/2,lights:[]});drawDuck3D(c,buoyCanModel(),q,[at(BUOY_LAMP)],h,1,0,{x:W/2,y:H/2,lights:[]}); // the buoy, and its can light pointing up
+  c.save();c.globalAlpha=0.6;c.fillStyle=bg;c.fillRect(0,wl,V.cv.width,V.cv.height-wl);c.restore();DUCK_SUN=sun;} // under the waterline: the water over it
 SCENES.duck={dur:6500,setup(S){S.ps=[];S.ring(6,30,60,(x,y,i)=>S.ps.push(S.pig(x,y,i,10)));},
   tick(S,t,now){if(!S.fired&&t>700){S.fired=1;S.d=spawnDuck(S.W/2,S.H/2,now,DUCK_IDS[(S.n-1)%DUCK_IDS.length]);S.d.vx=S.d.vy=0;}
     if(S.d&&!S.shot&&t>1700){S.shot=1;for(const p of S.ps){const dx=S.d.x-p.x,dy=S.d.y-p.y,l=Math.hypot(dx,dy)||1;p.vx=dx/l*1.6;p.vy=dy/l*1.6;}}}}; // pigments thrown at it bounce off; it squeaks and tumbles

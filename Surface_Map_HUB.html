@@ -571,7 +571,7 @@ function bottleOpts(d,now,side,alpha){ // a bottle floating upright, leaning a l
   const[px,py]=w2s(d.x,d.y),[X,Y,k]=proj(px,py),f=duckFace(d,now),t=0.3+0.1*Math.sin(now/900+d.ph),ct=Math.cos(t),st=Math.sin(t),z=side,size=d._s*0.8,
     ax=[f[0]*st,f[1]*st,ct*z],bx=[-f[0]*ct,-f[1]*ct,st*z],sd=[-f[1],f[0],0],h=size*(0.03*Math.sin(now/650+d.ph)-(d._sink||0)*1.6); // (its length up, leaning along its heading)
   return{rot:new Float32Array([...ax,...bx,...sd]),size,pos:[px-MW/2,py-MH/2,side*h],view:cam.view,proj:cam.proj,viewRot:cam.viewRot,env:{x:X,y:Y,lights:side>0?curLights(X,Y):[]},px:size*k,alpha,mirror:side<0,clip:side};}
-function duckFace(d,now){const a=d.hd+((DUCK_TYPES[d.type]||{}).mat==='paper'?now/900+d.ph:0);return[Math.cos(a),Math.sin(a),0];} // which way a lake duck faces (a Paper one keeps turning, to show its thinness)
+function duckFace(d,now){const td=d.tod?now-d.tod:1e9,a=d.hd+((DUCK_TYPES[d.type]||{}).mat==='paper'?now/900+d.ph:0)+(td<2400?0.45*Math.exp(-td/650)*Math.sin(td/80):0); /* (toddling from side to side as it settles after a hop) */return[Math.cos(a),Math.sin(a),0];} // which way a lake duck faces (a Paper one keeps turning, to show its thinness)
 function sceneRender(now){
   if(!G3)G3=sceneInit();if(!G3||!cam)return;const gl=G3.gl;
   gl.viewport(0,0,sc.width,sc.height);gl.clearColor(5/255,6/255,8/255,1);gl.clearDepth(1);gl.clear(gl.COLOR_BUFFER_BIT|gl.DEPTH_BUFFER_BIT);
@@ -1004,7 +1004,7 @@ function pondStep(now){
     const dk=d.dunk?(now-d.dunk)/(T.mapDuckDunkMs||1300):1;let sink=0; // a dunk: it goes down into the water (what is under it is hidden by the waterline), stays under a moment, then bobs back up
     if(dk>=1)d.dunk=0;else if(dk<0.3){const u=dk/0.3;sink=u*u;}else if(dk<0.55)sink=1;else{if(!d._up){d._up=1;ripples.push({x:d.x,y:d.y,t:now,dk:onWhite(d.x,d.y),big:1});}const u=(dk-0.55)/0.45;sink=-(2.7*Math.pow(u-1,3)+1.7*Math.pow(u-1,2))*(d.hop?3:1);} // (a double dab: it pops up well out of the water for a moment) // (up with a little bob past its floating height)
     if(d.splash&&now-d.born<700)sink=Math.max(sink,1-(now-d.born)/700);if(d.riseAt&&now-d.riseAt<700)sink=Math.max(sink,1-(now-d.riseAt)/700);d._sink=sink; // a splash, or let go: it comes up out of the water
-    if(!d.dunk){d._up=0;d.hop=0;}
+    if(!d.dunk){if(d.hop)d.tod=now;d._up=0;d.hop=0;} // (up high and down again: it toddles as it settles)
     if(d.pd)return pday?pdStep(d,now,dt):false;
     if(d.parade&&parade){const s=parade.s-d.parade.off,th=parade.th+parade.sg*s/parade.R,dir=th+parade.sg*Math.PI/2;d.x=parade.R*Math.cos(th);d.y=parade.R*Math.sin(th);if(!sp_)d.hd+=Math.atan2(Math.sin(dir-d.hd),Math.cos(dir-d.hd))*0.12*dt; // in the parade: always on, along its line (a touch spins it, a click dunks it, it never leaves the line)
       if(now-d.lastRip>380){d.lastRip=now;ripples.push({x:d.x,y:d.y,t:now,dk:onWhite(d.x,d.y)});}const t=DUCK_TYPES[d.type]||{};d._s=HEX*0.62*(t.scale||1)/(t.head?1.25:1);return s<parade.path;}
@@ -1258,7 +1258,7 @@ function shopSprite(id,bk,lit,yaw,open,L,mir,soon){ // L: the buoy's light on it
   const type=shopModel(id,bk,lit,fl,si,open,soon),M=duckModel(type),Q=4*(bk==='m'||bk==='l'||bk==='t'?(T.mapShopUpScale||1.7):1), // (a bigger rank's two-storey store drawn larger, so its door is the size of main street's)
     q=quatTurn(quatTurn([0,0,0,1],0,yw*Math.PI/180,0),(mir?-pt:pt)*Math.PI/180,0,0),N=Math.ceil(2*M.g.R*Q)+8,pad=Math.ceil(30*gw)+8;
   const cv=document.createElement('canvas');cv.width=cv.height=N+pad*2;const c=cv.getContext('2d'),lt=E=>({x:E.x,y:E.y,lights:L?L.ls.map(l=>[E.x+Math.cos(l.a)*100,E.y-Math.sin(l.a)*100,255,244,222,l.s,140]):[]}); /* the buoy's can light, as a light in the scene: on its walls, and glinting on its glass */
-  const day=(DUCK_SUN.c[0]+DUCK_SUN.c[1]+DUCK_SUN.c[2])/3,emk=soon?1:Math.max(0.45,Math.min(1,1-(day-0.64)/0.36*0.55));M.emk=emk; /* its sign and lit room: full at night, about half at noon */
+  const emk=soon?1:shopGlowK();M.emk=emk; /* its sign and lit room: full at night, about half at noon */
   drawDuck3D(c,type,q,[[cv.width/2,cv.height/2]],Q,1,2048,lt({x:cv.width/2,y:cv.height/2}));
   {const sun=DUCK_SUN.c;duckEnvUpdate(shopEnv(),performance.now());DUCK_SUN.c=sun.map(v=>v+(1-v)*0.75); // its glass: reflecting the street round the source (faint while the lights are on inside), barely tinted by the time of day
     drawDuck3D(c,type+'|glass',q,[[cv.width/2,cv.height/2]],Q,lit?0.6+0.7*(1-emk):1,2048,lt({x:W/2,y:H/2})); /* (by day the street shows in it over the dimmer room) */DUCK_SUN.c=sun;}
