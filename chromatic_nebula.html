@@ -119,7 +119,7 @@ button:hover{background:rgba(255,255,255,0.15);}
   <div id="dock" class="bottom"><div id="inventoryPanel"></div><div id="touch-info"></div></div>
   <canvas id="cur"></canvas>
 </div>
-<script src="content.js?v=20261105k"></script><script src="shared.js?v=20261105k"></script>
+<script src="content.js?v=20261105l"></script><script src="shared.js?v=20261105l"></script>
 <script>
 txtApply(); // the page's own labels (content/strings.csv)
 const _SRC=document.documentElement.outerHTML; // kept so the Encyclopedia can run live scenes as embedded copies of the game
@@ -489,15 +489,17 @@ function buildTunePanel(){
 }
 const fmt=tuneFmt; // (shared.js)
 let tuneOpen=false;
+function toggleBuild(){const el=document.getElementById('buildBar'),b=document.getElementById('bdHud');if(!el||!b)return;const open=!el.classList.contains('open');el.classList.toggle('open',open);b.textContent=txt(open?'build.menu_2':'build.menu');if(open){if(tuneOpen)toggleTune();if(modesOpen)toggleModes();}} // Build mode's menu: one of the three (Build, Modes, Tune) open at a time
+function closeBuild(){const el=document.getElementById('buildBar');if(el&&el.classList.contains('open'))toggleBuild();}
 function toggleTune(){
-  tuneOpen=!tuneOpen;
+  tuneOpen=!tuneOpen;if(tuneOpen)closeBuild();
   document.getElementById('tunePanel').style.display=tuneOpen?'block':'none';
   document.getElementById('tunebtn').textContent=(tuneOpen?txt('surf.tune'):txt('surf.tune_2'));
   if(tuneOpen&&modesOpen){modesOpen=false;document.getElementById('modesPanel').style.display='none';document.getElementById('modesbtn').textContent=txt('surf.modes');}
 }
 let modesOpen=false;
 function toggleModes(){
-  modesOpen=!modesOpen;
+  modesOpen=!modesOpen;if(modesOpen)closeBuild();
   testSync();
   document.getElementById('modesPanel').style.display=modesOpen?'block':'none';
   document.getElementById('modesbtn').textContent=(modesOpen?txt('surf.modes_2'):txt('surf.modes'));
@@ -4326,7 +4328,9 @@ function gateDefaultCursor(){return gateStates.length;} // arming defaults to th
 // The Create item: infinite, only present while the "Create item" mode is on. While it is armed the create tool is live
 // (middle-click steps the type, wheel the colour/kind); putting it away (click again / right-click) returns the normal cursor.
 let createItemMode=false; // (on in Build mode only)
-function createActive(){return !!(armedInvItem&&armedInvItem.kind==='create');}
+function createActive(){return !!(armedInvItem&&(armedInvItem.kind==='create'||armedInvItem.kind==='entangle'));} // Create, or Entanglement: the tools for what is already there (they share the type list, each its own part of it)
+const POST_CATS=new Set(['inertia','prefab','duplicate','remove']),toolHas=(kind,cat)=>cat!=='standard'&&(kind==='entangle')===POST_CATS.has(cat); // Entanglement: the Inertializer, Prefab, Duplicate (Copy, Move, Repurpose) and Remove; Create: the rest
+const _toolType={};
 function armInventoryItem(kind){
   if(kind==='cache-disable'){invDisableMode=!invDisableMode;updateInventoryUI();flashSaveStatus((invDisableMode?txt('surf.disable_mode_click_an'):txt('surf.disable_mode_off')));return;}
   if(invDisableMode&&INV_KINDS.includes(kind)){if(invDisabled.has(kind))invDisabled.delete(kind);else{invDisabled.add(kind);if(armedInvItem&&armedInvItem.kind===kind)armedInvItem=null;if(conMode&&conKind===kind)setConMode(false);}saveInventory();updateInventoryUI();return;}
@@ -4342,10 +4346,10 @@ function armInventoryItem(kind){
   }
   if(conMode)setConMode(false); // picking any other item leaves Pattern mode (it doesn't just get ignored)
   whiteChain.length=0; // choosing an item abandons an unfinished Pattern (nothing is left dimmed or waiting)
-  if(kind==='create'){
+  if(kind==='create'||kind==='entangle'){
     if(!createItemMode)return;
-    if(createActive())armedInvItem=null;
-    else{armedInvItem={kind:'create',effect:0};whiteChain.length=0;resetDupState();if(currentType().cat==='standard')typeIdx=0;playItemSelectSound();}
+    if(armedInvItem&&armedInvItem.kind===kind)armedInvItem=null;
+    else{if(createActive())_toolType[armedInvItem.kind]=typeIdx;armedInvItem={kind,effect:0};whiteChain.length=0;resetDupState();if(_toolType[kind]!=null)typeIdx=_toolType[kind];if(!toolHas(kind,currentType().cat))typeIdx=CREATE_TYPES.findIndex(t=>toolHas(kind,t.cat));playItemSelectSound();} // (each tool comes back to the type it was on)
     updateInventoryUI();return;
   }
   if(inventory[kind]<=0)return;
@@ -4379,10 +4383,10 @@ function adjustArmedItemEffect(delta){
   updateInventoryUI();
 }
 const ICO_REV={'\uE001':'dim','\uE002':'bright','\uE003':'magnetic','\uE004':'pulsing','\uE005':'neutron','\uE006':'dial','\uE007':'leash','\uE008':'prism','\uE009':'gate','\uE00A':'knot','\uE00B':'key','\uE00C':'lens'};
-const INV_ICON={create:'✚',dim:'\uE001',bright:'\uE002',magnetic:'\uE003',pulsing:'\uE004',neutron:'\uE005',dial:'\uE006',leash:'\uE007',prism:'\uE008',gate:'\uE009',knot:'\uE00A',key:'\uE00B',lens:'\uE00C'};
-const INV_LABEL={create:txt('surf.create'),bright:txt('surf.balance'),dim:txt('surf.depth'),neutron:txt('surf.dynamism'),magnetic:txt('surf.harmony'),pulsing:txt('surf.rhythm'),dial:txt('surf.string'),leash:txt('surf.spindle'),prism:txt('surf.prism'),gate:txt('surf.gate'),knot:txt('surf.knot'),key:txt('surf.key'),lens:txt('surf.lens')};
+const INV_ICON={create:'✚',entangle:'⧉',dim:'\uE001',bright:'\uE002',magnetic:'\uE003',pulsing:'\uE004',neutron:'\uE005',dial:'\uE006',leash:'\uE007',prism:'\uE008',gate:'\uE009',knot:'\uE00A',key:'\uE00B',lens:'\uE00C'};
+const INV_LABEL={create:txt('surf.create'),entangle:txt('surf.entangle'),bright:txt('surf.balance'),dim:txt('surf.depth'),neutron:txt('surf.dynamism'),magnetic:txt('surf.harmony'),pulsing:txt('surf.rhythm'),dial:txt('surf.string'),leash:txt('surf.spindle'),prism:txt('surf.prism'),gate:txt('surf.gate'),knot:txt('surf.knot'),key:txt('surf.key'),lens:txt('surf.lens')};
 const INV_DESC={
-  create:txt('surf.places_particles_points_and'),
+  create:txt('surf.places_particles_points_and'),entangle:txt('surf.entangle_desc'),
   neutron:txt('surf.click_swipe_double_click'),
   dim:txt('surf.click_a_dim_remnant'),
   bright:txt('surf.click_a_bright_remnant'),
@@ -4511,10 +4515,7 @@ function updateInventoryUI(){
     <div class="slot cache" data-kind="cache-fill" data-arm="1"><div class="ic">⤒</div><div class="cnt">fill</div></div>`)+`<div class="slot cache${invDisableMode?' armed':''}" data-kind="cache-disable" data-arm="1"><div class="ic">⦸</div><div class="cnt">off</div></div>`;
   }
   if(createItemMode){
-    html+=`<div class="slot create${createActive()?' armed':''}" data-kind="create" data-arm="1">
-      <div class="ic">${INV_ICON.create}</div>
-      <div class="cnt">∞</div>
-    </div>`;
+    for(const k of ['create','entangle'])html+=`<div class="slot create${armedInvItem&&armedInvItem.kind===k?' armed':''}" data-kind="${k}" data-arm="1"><div class="ic">${INV_ICON[k]}</div><div class="cnt">∞</div></div>`; // Create, then Entanglement (the tools for what is there)
   }
   el.innerHTML=html;applyDisc();
 }
@@ -8116,7 +8117,7 @@ function currentCreateColor(){
 function cycleCreateType(){
   if(!createActive())return; // middle-click only steps types while the Create item is armed (Standard = item put away)
   resetDupState();
-  do{typeIdx=(typeIdx+1)%CREATE_TYPES.length;}while(CREATE_TYPES[typeIdx].cat==='standard');
+  const k=armedInvItem.kind;let n=CREATE_TYPES.length;do{typeIdx=(typeIdx+1)%CREATE_TYPES.length;}while(!toolHas(k,CREATE_TYPES[typeIdx].cat)&&--n>0);_toolType[k]=typeIdx; // (only the armed tool's own types)
 }
 // Middle-click's OTHER job: outside Create mode, step through the standard inventory itself (Bright/Dim/Neutron/
 // Magnetic/Pulsing/String/Spindle/Prism/Gate/Knot/Key) — Create is its own secondary inventory you switch INTO (via its
@@ -9235,13 +9236,13 @@ wrap.addEventListener('contextmenu',e=>{
     // An item with an undoable "progress" step gets that undone first; only a second right-click deactivates it outright.
     if(armedInvItem.kind==='dial'&&dialLoaded.length){dialLoaded=[];cursorRClickAt=performance.now();return;} // right-click unloads the String
     if(armedInvItem.kind==='gate'&&gateCursor!==gateDefaultCursor()){gateCursor=gateDefaultCursor();cursorRClickAt=performance.now();return;}
-    if(armedInvItem.kind==='create'&&currentType().cat==='duplicate'){
+    if(createActive()&&currentType().cat==='duplicate'){
       // Same undo-then-cancel pattern as Gate: stamping -> back to picking (to copy something else) on the first
       // right-click; picking -> the tool is put away entirely on the next one.
       if(dupTemplate||dupPicking.length||dupShape||repRef){resetDupState();cursorRClickAt=performance.now();return;}
     }
-    if(armedInvItem.kind==='create'&&currentType().cat==='prefab'&&(preSel.length||inertBox)){preSel=[];preTgt=-1;inertBox=null;buildBar();cursorRClickAt=performance.now();return;}
-    if(armedInvItem.kind==='create'&&currentType().cat==='inertia'&&(inertSel.length||inertBox||inertRot)){inertSel=[];inertBox=null;inertRot=0;cursorRClickAt=performance.now();return;}
+    if(createActive()&&currentType().cat==='prefab'&&(preSel.length||inertBox)){preSel=[];preTgt=-1;inertBox=null;buildBar();cursorRClickAt=performance.now();return;}
+    if(createActive()&&currentType().cat==='inertia'&&(inertSel.length||inertBox||inertRot)){inertSel=[];inertBox=null;inertRot=0;cursorRClickAt=performance.now();return;}
     armedInvItem=null;updateInventoryUI();return;
   }
   if(levelCleared){if(HUB){hubPost({type:'return'});hubIdle();return;}rebuild();return;}
@@ -10958,7 +10959,7 @@ function invHoverParts(kind,worst){
   if(kind==='cache-clear')return[txt('surf.clear_items'),txt('surf.removes_every_item_from')];
   if(kind==='cache-fill')return[txt('surf.fill_items'),txt('surf.fills_every_item_to')];
   if(kind==='cache-disable')return[txt('surf.disable_items'),txt('surf.toggle_then_click_items')];
-  if(kind==='create')return[INV_ICON.create+' '+INV_LABEL.create,INV_DESC.create+' · ∞ / ∞'];
+  if(kind==='create'||kind==='entangle')return[INV_ICON[kind]+' '+INV_LABEL[kind],INV_DESC[kind]+' · ∞ / ∞'];
   const cm=worst?'99 / 99':inventory[kind]+' / '+invMaxFor(kind);
   return[INV_ICON[kind]+' '+INV_LABEL[kind],INV_DESC[kind]+' · '+cm];
 }
@@ -10967,7 +10968,7 @@ function computeFeedWidth(){
   const N=['★ Point '+nm,'Pigment '+nm,'\uE003 magnetic remnant','click to shine · right-click to stop all shining','x'.repeat(70)];
   const D=['mass 999999 · energy 0.0000 · r=999/999px · v=0.00 · rot=0.000 · life 999.9m','placing → mass 999999 · energy 0.0000  ·  hovering → mass 999999 · energy 0.0000'];
   for(const k of INV_KINDS){const pr=invHoverParts(k,true);N.push(pr[0]);D.push(pr[1]);}
-  for(const k of ['create','cache-clear','cache-fill']){const pr=invHoverParts(k,true);N.push(pr[0]);D.push(pr[1]);}
+  for(const k of ['create','entangle','cache-clear','cache-fill']){const pr=invHoverParts(k,true);N.push(pr[0]);D.push(pr[1]);}
   const si=typeIdx,sv=variantIdxByType.slice();
   for(let ti=0;ti<CREATE_TYPES.length;ti++){typeIdx=ti;for(let vi=0;vi<CREATE_TYPES[ti].variants.length;vi++){variantIdxByType[ti]=vi;N.push(INV_ICON.create+' '+createLabel());}}
   typeIdx=si;variantIdxByType=sv;
@@ -11023,7 +11024,7 @@ function updateInfoAndStats(now,hoverObj){
       const hoverStr=`hovering → mass ${Math.round(hoverObj.mass)} · energy ${hi.energy.toFixed(4)}`;
       d=d?d+'  ·  '+hoverStr:hoverStr;
     }
-    setFeed(INV_ICON.create+' '+createLabel(),d,'rgba(255,255,255,0.92)');
+    setFeed(INV_ICON[armedInvItem&&armedInvItem.kind==='entangle'?'entangle':'create']+' '+createLabel(),d,'rgba(255,255,255,0.92)');
   } else if(armedInvItem&&armedInvItem.kind==='prism'&&hoverObj&&prismValidTarget(hoverObj)){
     // Prism, hovering a valid target: show both what it currently is AND the active-word it will become, e.g.
     // "Orbit → Attract" — not just its current state, which is all the generic info readout below shows.
@@ -12758,7 +12759,7 @@ function cardHTML(ev,mini){ // the one card format: name bar, art box, type line
   return `<div class="mtg${mini?' sm':''}" data-ev="${ev.id}" style="--rc:${TIER_COL[t]}"><div class="nm"><b>${gEsc(ev.name)}</b><span class="gem"></span></div><div class="art" data-scene="${ev.scene}">${mini?`<canvas class="rl-m" width="64" height="64" data-k="${ev.ico}"></canvas>`:''}</div><div class="ty"><span>${gEsc(ev.type.replace(/^Event — /,''))}</span><span>Tier ${TIER[t]}</span></div><div class="tx">${(mini?ev.facts().slice(0,1):ev.facts()).map(f=>`<p${ev.fx?' class="fx"':''}>${gEsc(f)}</p>`).join('')}${ev.flavor?`<p class="fl">${gEsc(ev.flavor)}</p>`:''}</div></div>`; // (small: its first line and its flavour; the rest when it is opened) (fx: the lines are changes to play, set apart from the flavour)
 }
 function mountScene(h,w,hh){if(!h||h.firstChild||document.querySelectorAll('.rl-live iframe,.mtg .art iframe').length>=5)return;const f=document.createElement('iframe'),nm=h.dataset.s||h.dataset.scene;f.style.cssText='border:0;max-width:100%;pointer-events:none;background:#000;border-radius:6px;'+(w?`width:${w}px;height:${hh}px`:'width:100%;height:100%');
-  if(nm.slice(0,4)==='hub:'){const[sn,dk]=nm.slice(4).split(':');f.src='Surface_Map_HUB.html?v=20261105k&scene='+sn+(sn==='shop'?'&k='+encodeURIComponent(dk||''):'')+'&T='+encodeURIComponent(JSON.stringify(mapSceneT()))+'&D='+encodeURIComponent(JSON.stringify(dk&&DUCK_TYPES[dk]?{[dk]:DUCK_TYPES[dk]}:Object.fromEntries(Object.entries(DUCK_TYPES).slice(0,4))));}else f.srcdoc=liveSrc(nm);h.appendChild(f);} // a Surface Map demo is played by the map itself
+  if(nm.slice(0,4)==='hub:'){const[sn,dk]=nm.slice(4).split(':');f.src='Surface_Map_HUB.html?v=20261105l&scene='+sn+(sn==='shop'?'&k='+encodeURIComponent(dk||''):'')+'&T='+encodeURIComponent(JSON.stringify(mapSceneT()))+'&D='+encodeURIComponent(JSON.stringify(dk&&DUCK_TYPES[dk]?{[dk]:DUCK_TYPES[dk]}:Object.fromEntries(Object.entries(DUCK_TYPES).slice(0,4))));}else f.srcdoc=liveSrc(nm);h.appendChild(f);} // a Surface Map demo is played by the map itself
 function mapSceneT(){const o={};for(const k in T)if(/^(map|bh|duck|wake|glass|metal|dimGlow|glowHalo|maxSpeed)/.test(k))o[k]=T[k];return o;} // what a map demo needs of the tuners
 function showCardHTML(html){ // a Guide card (an entry or a shop) opened over the Guide, where an event card shows
   guideCSS();_evOpen=true;_evReview=true;const ov=evOverlayEl();ov.innerHTML=`<div class="ev-box">${html}<button id="evOk">${txt('card.close')}</button></div>`;ov.style.display='flex';wrap.classList.add('ev-open');
@@ -13053,29 +13054,33 @@ const preTool=()=>createActive()&&currentType().cat==='prefab';
 const nearEdge=(x,y)=>x<PRE_EDGE||y<PRE_EDGE||x>W-PRE_EDGE||y>H-PRE_EDGE;
 function preShapeAt(mx,my){for(let i=fixedShapes.length-1;i>=0;i--){const sh=fixedShapes[i];if(!sh.pts||sh.pts.length<2)continue;for(const sg of shapeSegs(sh))if(segDist(mx,my,sg[0],sg[1]).d<=8)return sh;if(sh.glass&&inGlassShape(sh,mx,my))return sh;}return null;}
 const preHas=o=>preSel.findIndex(e=>e.obj===o);
+const dormIx=o=>{const gx=Math.floor((o.x-GRID_OX)/PIXEL_SIZE),gy=Math.floor((o.y-GRID_OY)/PIXEL_SY),ix=((gy%GH+GH)%GH)*GW+((gx%GW+GW)%GW);return dormant[ix]===o?ix:-1;}; // a nebula particle's place in the grid (−1: it is no longer there)
 function preClick(mx,my){const v=currentVariant();if(v==='place'){prePlace(mx,my);return;}
-  const h=hitTestAnyObjectForDup(mx,my),o=h&&!h.isDormant?h.obj:preShapeAt(mx,my),i=o?preHas(o):-1;
+  const h=hitTestAnyObjectForDup(mx,my),sh=preShapeAt(mx,my),o=h&&!(h.isDormant&&sh)?h.obj:sh,neb=!!(h&&h.isDormant&&o===h.obj),i=o?preHas(o):-1; // (the nebula too: its particles, which never move)
   if(v==='phaser'){preTgt=i;buildBar();flashSaveStatus(i>=0?txt('pre.phaser_part',i+1):txt('pre.phaser_whole'));return;} // the Phaser: one part (click it) or the whole prefab (click anywhere else)
   if(!o){flashSaveStatus(txt('pre.select_hint'));return;}
-  if(i>=0){preSel.splice(i,1);preTgt=-1;}else preSel.push({obj:o,shape:!!o.pts,ph:null});buildBar();}
+  if(i>=0){preSel.splice(i,1);preTgt=-1;}else preSel.push({obj:o,shape:!!o.pts,neb,ph:null});buildBar();}
 function preFinishBox(x1,y1){const b=inertBox;inertBox=null;if(!b)return;const xa=Math.min(b.x0,x1),xb=Math.max(b.x0,x1),ya=Math.min(b.y0,y1),yb=Math.max(b.y0,y1);
   for(const p of active)if(p.x>=xa&&p.x<=xb&&p.y>=ya&&p.y<=yb&&!p.dying&&!p.captured&&preHas(p)<0)preSel.push({obj:p,ph:null});
   for(const sh of fixedShapes){if(!sh.pts||preHas(sh)>=0)continue;const c=shapeCentroid(sh);if(c[0]>=xa&&c[0]<=xb&&c[1]>=ya&&c[1]<=yb)preSel.push({obj:sh,shape:true,ph:null});}
+  {const have=new Set(preSel.map(e=>e.obj));for(const p of dormant)if(p&&p.x>=xa&&p.x<=xb&&p.y>=ya&&p.y<=yb&&!have.has(p))preSel.push({obj:p,neb:true,ph:null});} // the nebula's particles in the box too
   flashSaveStatus(txt('pre.selected',preSel.length));buildBar();}
 function preCapture(){ // the selection as a prefab's parts: each its offset from their centre, its motion and its own phasing (if the Phaser set one)
-  const live=preSel.filter(e=>e.shape?fixedShapes.indexOf(e.obj)>=0:active.indexOf(e.obj)>=0);if(!live.length)return null;
+  const live=preSel.filter(e=>e.shape?fixedShapes.indexOf(e.obj)>=0:e.neb?dormIx(e.obj)>=0:active.indexOf(e.obj)>=0);if(!live.length)return null;
   const P=live.map(e=>e.shape?{x:shapeCentroid(e.obj)[0],y:shapeCentroid(e.obj)[1]}:e.obj),a=P[0];let cx=0,cy=0;for(const q of P){cx+=_wrapD(q.x-a.x,W);cy+=_wrapD(q.y-a.y,H);}cx=a.x+cx/P.length;cy=a.y+cy/P.length;
   return live.map((e,i)=>{const o=e.obj,dx=_wrapD(P[i].x-cx,W),dy=_wrapD(P[i].y-cy,H),ph=e.ph?Object.assign({},e.ph):null;
     if(e.shape){const sh=plainCopy(o),rel=q=>({x:q.x-P[i].x,y:q.y-P[i].y});sh.rel=o.pts.map(rel);if(o.holes)sh.holesRel=o.holes.map(h=>h.map(rel));delete sh.pts;delete sh.holes;return{shape:JSON.parse(JSON.stringify(sh)),dx,dy,vx:o.mvx||0,vy:o.mvy||0,ph};}
+    if(e.neb)return{s:snapshotForDup(o,true),dx,dy,vx:0,vy:0,ph,neb:1}; // (a nebula particle: it never moves)
     return{s:snapshotForDup(o,false),dx,dy,vx:o.vx||0,vy:o.vy||0,ph};});}
-const prePartR=c=>c.shape?Math.max(4,...c.shape.rel.map(q=>Math.hypot(q.x,q.y))):c.s.collapsed?(c.s.collapsedRadius||8):c.s.isRemnant?8:5; // how far a part reaches from its centre
+const prePartR=c=>c.shape?Math.max(4,...c.shape.rel.map(q=>Math.hypot(q.x,q.y))):c.neb||c.s.isDormant?PIXEL_SIZE*0.5:c.s.collapsed?(c.s.collapsedRadius||8):c.s.isRemnant?8:5; // how far a part reaches from its centre
 function prePartPlace(c,x,y){ // one part, real, at (x, y) (wrapped onto the surface), moving as it was
   x=((x%W)+W)%W;y=((y%H)+H)%H;
   if(c.shape){const sh=Object.assign({},c.shape,{id:++shapeSeq,pts:c.shape.rel.map(r=>({x:x+r.x,y:y+r.y})),holes:c.shape.holesRel?c.shape.holesRel.map(h=>h.map(r=>({x:x+r.x,y:y+r.y}))):undefined,broken:{},acc:0,lastSweep:0});delete sh.rel;delete sh.holesRel;fixedShapes.push(sh);rebuildGlassList();return{shape:sh};}
   const o=stampSnapshotAt(c.s,x,y);if(!o)return null;o.vx=c.vx||0;o.vy=c.vy||0;return{obj:o};}
 function phaseIn(parts,cx,cy,ph){const now=performance.now();phasing.push({t0:now,items:parts.map(c=>({c,ph:Object.assign({in:900,out:900,stay:0},ph,c.ph||{}),x:cx+c.dx,y:cy+c.dy,st:'in',t0:now,live:null}))});}
 function prePlace(mx,my){const P=buildLib.prefabs[prePick];if(!P){flashSaveStatus(txt('pre.pick_first'));return;}
-  if(nearEdge(mx,my)){edgePlace(P.parts,P,mx,my);return;}phaseIn(P.parts,mx,my,P.ph);}
+  if(nearEdge(mx,my)&&!preStill(P.parts)){edgePlace(P.parts,P,mx,my);return;}phaseIn(P.parts,mx,my,P.ph);}
+const preStill=parts=>parts.some(c=>c.neb||c.s&&c.s.isDormant); // a prefab with any of the nebula in it never drifts in: it phases in where it is put
 function partsBox(parts){let x0=1e9,y0=1e9,x1=-1e9,y1=-1e9;for(const c of parts){const r=prePartR(c);x0=Math.min(x0,c.dx-r);x1=Math.max(x1,c.dx+r);y0=Math.min(y0,c.dy-r);y1=Math.max(y1,c.dy+r);}return{x0,y0,x1,y1};}
 function edgeEnterT(b,cx,cy,vx,vy){ // frames until a box (b, about (cx, cy)) moving at (vx, vy) first overlaps the screen; null: never
   let lo=0,hi=Infinity;for(const[a0,a1,v,L]of[[cx+b.x0,cx+b.x1,vx,W],[cy+b.y0,cy+b.y1,vy,H]]){if(Math.abs(v)<1e-6){if(a1<0||a0>L)return null;continue;}let t0=(0-a1)/v,t1=(L-a0)/v;if(t0>t1)[t0,t1]=[t1,t0];lo=Math.max(lo,t0);hi=Math.min(hi,t1);}
@@ -13092,10 +13097,10 @@ const prefabLib=()=>Object.assign({},buildContent().prefabs,BUILD?buildLib.prefa
 const prefabAt=(P,h)=>P.from<=P.to?h>=P.from&&h<=P.to:h>=P.from||h<=P.to; // its times include hour h (from – to, across Midnight too)
 function prefabSpawn(h){if(h==null||!(Math.random()<(T.prefabChance!=null?T.prefabChance:0.35)))return null;
   const L=Object.values(prefabLib()).filter(P=>P.parts&&P.parts.length&&prefabAt(P,h));if(!L.length)return null;const P=L[(Math.random()*L.length)|0];
-  const mv=P.parts.some(c=>Math.hypot(c.vx||0,c.vy||0)>1e-6);
+  const mv=!preStill(P.parts)&&P.parts.some(c=>Math.hypot(c.vx||0,c.vy||0)>1e-6);
   if(mv&&Math.random()<0.5)for(let i=0;i<12;i++){const s=(Math.random()*4)|0,u=Math.random(),mx=s===0?2:s===1?W-2:u*W,my=s===2?2:s===3?H-2:u*H;if(edgePlace(P.parts,P,mx,my,true)){logEv('prefab '+P.name+' drifts in');return P;}} // drifting in, from wherever along an edge it would come on
   phaseIn(P.parts,Math.random()*W,Math.random()*H,P.ph);logEv('prefab '+P.name+' phases in');return P;}
-function preRemove(L){if(!L)return;if(L.obj){const i=active.indexOf(L.obj);if(i>=0){pressedIDs.delete(L.obj.id);active.splice(i,1);}}else if(L.shape){const i=fixedShapes.indexOf(L.shape);if(i>=0){fixedShapes.splice(i,1);rebuildGlassList();}}}
+function preRemove(L){if(!L)return;if(L.obj){const i=active.indexOf(L.obj);if(i>=0){pressedIDs.delete(L.obj.id);active.splice(i,1);}else{const j=dormIx(L.obj);if(j>=0)removeDormant(j,performance.now());}}else if(L.shape){const i=fixedShapes.indexOf(L.shape);if(i>=0){fixedShapes.splice(i,1);rebuildGlassList();}}}
 function prefabTick(now,dt){
   if(BUILD){const k=preTool()?currentVariant()+'|'+preSel.length:'';if(k!==_preBarK){_preBarK=k;buildBar();}} // (the bar's prefab row follows the tool)
   const ts=dt/16.67;
@@ -13123,14 +13128,14 @@ function prefabDraw(c,now){
     const sp=Math.hypot(E.vx,E.vy)||1,ax=cx+E.vx/sp*(Math.max(b.x1,b.y1)+16),ay=cy+E.vy/sp*(Math.max(b.x1,b.y1)+16);c.beginPath();c.moveTo(cx,cy);c.lineTo(ax,ay);c.stroke();c.restore();}
   if(!preTool())return;c.save(); // Prefab: the parts selected (the Phaser's target in orange), and the box being dragged
   preSel.forEach((e,i)=>{const o=e.obj;c.strokeStyle=i===preTgt?'rgba(255,150,40,0.95)':'rgba(255,214,60,0.9)';c.lineWidth=i===preTgt?2.2:1.3;c.setLineDash([4,3]);
-    if(e.shape){if(fixedShapes.indexOf(o)<0)return;const P=new Path2D();o.pts.forEach((q,j)=>P[j?'lineTo':'moveTo'](q.x,q.y));if(o.closed)P.closePath();c.stroke(P);}else{if(active.indexOf(o)<0)return;c.beginPath();c.arc(o.x,o.y,Math.max(6,placedRadius(o)+4),0,6.2832);c.stroke();}});
+    if(e.shape){if(fixedShapes.indexOf(o)<0)return;const P=new Path2D();o.pts.forEach((q,j)=>P[j?'lineTo':'moveTo'](q.x,q.y));if(o.closed)P.closePath();c.stroke(P);}else if(e.neb){if(dormIx(o)<0)return;c.beginPath();c.arc(o.x,o.y,PIXEL_SIZE*0.7,0,6.2832);c.stroke();}else{if(active.indexOf(o)<0)return;c.beginPath();c.arc(o.x,o.y,Math.max(6,placedRadius(o)+4),0,6.2832);c.stroke();}});
   c.setLineDash([]);if(inertBox&&mouseDown&&dragMode){const x=Math.min(inertBox.x0,mouse.x),y=Math.min(inertBox.y0,mouse.y);c.fillStyle='rgba(255,214,60,0.08)';c.fillRect(x,y,Math.abs(mouse.x-inertBox.x0),Math.abs(mouse.y-inertBox.y0));c.strokeStyle='rgba(255,214,60,0.9)';c.setLineDash([5,4]);c.strokeRect(x,y,Math.abs(mouse.x-inertBox.x0),Math.abs(mouse.y-inertBox.y0));}
   c.restore();}
 function preBarHTML(esc){if(!preTool())return'';const v=currentVariant(),tm=sel=>Object.keys(TIMES).map(h=>`<option value="${h}"${+h===sel?' selected':''}>${TIMES[h]}</option>`).join('');
-  if(v==='place'){const ns=Object.keys(buildLib.prefabs).sort();return`<div class="bdRow"><b>${txt('pre.title')}</b>${txt('pre.place')} <select id="bpPick"><option value="">—</option>${ns.map(n=>`<option value="${esc(n)}"${n===prePick?' selected':''}>${esc(n)} (${TIMES[buildLib.prefabs[n].from]}–${TIMES[buildLib.prefabs[n].to]})</option>`).join('')}</select> <span>${txt('pre.place_hint')}</span><button id="bpDel">${txt('pre.delete')}</button></div>`;}
+  if(v==='place'){const ns=Object.keys(buildLib.prefabs).sort();return`<div class="bdRow"><b>${txt('pre.title')}</b><span>${txt('pre.place')}</span><select id="bpPick"><option value="">—</option>${ns.map(n=>`<option value="${esc(n)}"${n===prePick?' selected':''}>${esc(n)} (${TIMES[buildLib.prefabs[n].from]}–${TIMES[buildLib.prefabs[n].to]})</option>`).join('')}</select> <span>${txt('pre.place_hint')}</span><button id="bpDel">${txt('pre.delete')}</button></div>`;}
   const t=preTgt>=0&&preSel[preTgt],ph=t?Object.assign({},preDraft.ph,t.ph||{}):preDraft.ph;
-  return`<div class="bdRow"><b>${txt('pre.title')}</b>${txt('pre.parts',preSel.length)} <input id="bpName" maxlength="40" placeholder="${esc(txt('pre.name'))}" value="${esc(preDraft.name)}"> ${txt('pre.from')} <select id="bpFrom">${tm(preDraft.from)}</select> ${txt('pre.to')} <select id="bpTo">${tm(preDraft.to)}</select>
- · ${txt(t?'pre.phase_part':'pre.phase_whole',preTgt+1)} ${txt('pre.in')} <input id="bpIn" type="number" min="0" step="100" value="${ph.in}"> ${txt('pre.out')} <input id="bpOut" type="number" min="0" step="100" value="${ph.out}"> ${txt('pre.stay')} <input id="bpStay" type="number" min="0" step="500" value="${ph.stay}"> ms${t&&t.ph?` <button id="bpClr">${txt('pre.clear_part')}</button>`:''} <button id="bpSave">${txt('pre.save')}</button></div>`;}
+  return`<div class="bdRow"><b>${txt('pre.title')}</b><span>${txt('pre.parts',preSel.length)}</span><input id="bpName" maxlength="40" placeholder="${esc(txt('pre.name'))}" value="${esc(preDraft.name)}"><label>${txt('pre.from')} <select id="bpFrom">${tm(preDraft.from)}</select></label><label>${txt('pre.to')} <select id="bpTo">${tm(preDraft.to)}</select></label>
+<span>${txt(t?'pre.phase_part':'pre.phase_whole',preTgt+1)} (ms)</span><label>${txt('pre.in')} <input id="bpIn" type="number" min="0" step="100" value="${ph.in}"></label><label>${txt('pre.out')} <input id="bpOut" type="number" min="0" step="100" value="${ph.out}"></label><label>${txt('pre.stay')} <input id="bpStay" type="number" min="0" step="500" value="${ph.stay}"></label>${t&&t.ph?`<button id="bpClr">${txt('pre.clear_part')}</button>`:''}<button id="bpSave">${txt('pre.save')}</button></div>`;}
 function preBarWire($){if(!preTool())return;
   if($('bpPick')){$('bpPick').onchange=e=>{prePick=e.target.value;};$('bpDel').onclick=async()=>{if(!buildLib.prefabs[prePick])return;if(!confirm(txt('build.delete_ask',prePick)))return;delete buildLib.prefabs[prePick];prePick='';await buildKeep();buildBar();};return;}
   const t=preTgt>=0&&preSel[preTgt],num=id=>Math.max(0,+$(id).value||0);
@@ -13161,17 +13166,18 @@ function buildPack(list){if(!list.length)return{tpl:{},rows:[]};const r=v=>typeo
 const buildUnpack=p=>Array.isArray(p)?p:(p.rows||[]).map(d=>{const o=Object.assign({},p.tpl,d);for(const k in d)if(d[k]===null)delete o[k];return o;});
 function buildApply(L){restoreSession(Object.assign({},L.data,{dormant:buildUnpack(L.data.dormant)}));buildDarks=(L.darks||[]).map(d=>Object.assign({},d));edgeQ=JSON.parse(JSON.stringify(L.edge||[]));phasing=[];if((L.kind==='bright')!==!!invertMode)toggleInvertMode();updateInventoryUI();} // a level back on the surface, exactly as it was saved
 function buildStart(){createItemMode=true;itemCacheMode=true;document.body.classList.add('build');wrap.classList.remove('ui-hidden'); /* (the surface's own panels, as on any surface: every tuner, the modes, the stats and the log) */
-  {const hud=document.getElementById('hud'),b=document.createElement('button');b.id='bdHud';b.textContent=txt('build.menu');b.onclick=()=>{const el=document.getElementById('buildBar');if(el){el.classList.toggle('open');b.classList.toggle('on',el.classList.contains('open'));}};hud.insertBefore(b,hud.firstChild);} /* the Build menu: a button at the top left, opening its menu under it */buildLoadLib().then(buildBar);updateInventoryUI();flashSaveStatus(txt('build.welcome'));}
-function buildBar(){let el=document.getElementById('buildBar');if(!el){el=document.createElement('div');el.id='buildBar';document.body.appendChild(el);
-    const st=document.createElement('style');st.textContent=`#buildBar{position:fixed;top:44px;left:10px;z-index:9000;display:none;align-items:center;gap:6px;flex-wrap:wrap;justify-content:flex-start;max-width:min(620px,94vw);background:rgba(0,0,0,.9);border:1px solid #fff;padding:6px 10px;color:#fff;font:12px/1.4 system-ui,'Inter',sans-serif;letter-spacing:.6px}
-#buildBar b{font-weight:700;letter-spacing:1.6px;margin-right:4px}#buildBar input,#buildBar select{background:#000;color:#fff;border:1px solid rgba(255,255,255,.5);font:inherit;padding:2px 6px}#buildBar input{width:150px}
-#buildBar button{background:none;color:#fff;border:1px solid rgba(255,255,255,.35);font:inherit;letter-spacing:inherit;cursor:pointer;padding:2px 8px}#buildBar button:hover{background:rgba(255,255,255,.14)}#buildBar.open{display:flex}#bdHud.on{background:#fff;color:#000}#buildBar button.on{background:#fff;color:#000}#buildBar .bdRow{flex-basis:100%;display:flex;align-items:center;gap:6px;flex-wrap:wrap;justify-content:center;border-top:1px solid rgba(255,255,255,.25);padding-top:5px;margin-top:2px}#buildBar .bdRow input[type=number]{width:64px}#buildBar .bdRow span{opacity:.7}`;document.head.appendChild(st);
+  {const hud=document.getElementById('hud'),b=document.createElement('button');b.id='bdHud';b.textContent=txt('build.menu');b.onclick=toggleBuild;hud.insertBefore(b,hud.firstChild);} /* the Build menu: a button at the top left like Modes and Tune, its menu under it as theirs are */buildLoadLib().then(buildBar);updateInventoryUI();flashSaveStatus(txt('build.welcome'));}
+function buildBar(){let el=document.getElementById('buildBar');if(!el){el=document.createElement('div');el.id='buildBar';(document.getElementById('wrap')||document.body).appendChild(el);
+    const st=document.createElement('style');st.textContent=`#buildBar{position:absolute;top:calc(36px + var(--hud-dy,0px));left:10px;width:220px;max-height:calc(100vh - 50px - var(--dock-h,0px));overflow-y:auto;box-sizing:border-box;background:rgba(0,0,0,0.88);border:1px solid rgba(255,255,255,0.12);border-radius:6px;z-index:20;display:none;padding:6px;color:#fff;font:11px/1.4 monospace} /* as the Modes and Tune panels: under its button, one column */
+#buildBar.open{display:block}#buildBar button{display:block;width:100%;margin:3px 0;text-align:left}#buildBar button.on{background:rgba(255,255,255,0.22);border-color:rgba(255,255,255,0.5)}
+#buildBar b{display:block;font:9px/1 monospace;color:rgba(255,255,255,0.35);text-transform:uppercase;letter-spacing:1px;margin:6px 0 3px}#buildBar input,#buildBar select{display:block;width:100%;box-sizing:border-box;margin:3px 0;background:rgba(0,0,0,0.7);color:#fff;border:0.5px solid rgba(255,255,255,0.2);border-radius:5px;font:11px monospace;padding:3px 6px}
+#buildBar .bdRow{border-top:1px solid rgba(255,255,255,0.06);margin-top:6px;padding-top:2px}#buildBar .bdRow span{display:block;opacity:.6;margin:2px 0}#buildBar .bdRow label{display:flex;align-items:center;justify-content:space-between;gap:6px;margin:3px 0}#buildBar .bdRow label input,#buildBar .bdRow label select{width:auto;max-width:110px;margin:0}`;document.head.appendChild(st);
     for(const ev of['mousedown','mouseup','click','wheel','contextmenu'])el.addEventListener(ev,e=>e.stopPropagation());el.addEventListener('keydown',e=>e.stopPropagation());}
   const names=Object.keys(buildLib.levels).sort(),esc=v=>String(v).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
   el.innerHTML=`<b>${txt('build.title')}</b><input id="bdName" maxlength="40" placeholder="${esc(txt('build.name'))}" value="${esc(buildName)}"><button id="bdSave">${txt('build.save')}</button>
 <select id="bdLoad"><option value="">${txt('build.load')}</option>${names.map(n=>`<option value="${esc(n)}">${esc(n)}${buildLib.levels[n].kind==='bright'?' ○':' ●'}</option>`).join('')}</select>
 <button id="bdNew">${txt('build.new')}</button><button id="bdBlank">${txt('build.blank')}</button><button id="bdTest"${buildTest?' class="on"':''}>${txt(buildTest?'build.back':'build.test')}</button><select id="bdTime" title="${esc(txt('build.test_time_tip'))}"><option value="0">${txt('build.test_no_time')}</option>${Object.keys(TIMES).map(h=>`<option value="${h}"${+h===buildTime?' selected':''}>${TIMES[h]}</option>`).join('')}</select>
-<button id="bdDel">${txt('build.delete')}</button><button id="bdExport">${txt('build.export')}</button><button id="bdQuit">${txt('build.quit')}</button>${preBarHTML(esc)}`;
+<button id="bdDel">${txt('build.delete')}</button><button id="bdExport">${txt('build.export')}</button>${preBarHTML(esc)}`;
   const $=id=>document.getElementById(id),nm=()=>$('bdName').value.trim();$('bdName').oninput=()=>{buildName=$('bdName').value;};
   $('bdSave').onclick=async()=>{const n=nm();if(!n){flashSaveStatus(txt('build.need_name'));return;}if(buildTest){flashSaveStatus(txt('build.not_while_testing'));return;}buildLib.levels[n]=Object.assign({name:n},buildLevelData());if(await buildKeep())flashSaveStatus(txt('build.saved',n));buildName=n;buildBar();};
   $('bdLoad').onchange=e=>{const n=e.target.value;if(!n||!buildLib.levels[n])return;if(buildTest)buildBack();buildApply(buildLib.levels[n]);buildName=n;flashSaveStatus(txt('build.loaded',n));buildBar();};
@@ -13181,7 +13187,7 @@ function buildBar(){let el=document.getElementById('buildBar');if(!el){el=docume
   $('bdTest').onclick=()=>{if(buildTest)buildBack();else buildPlay();buildBar();};
   $('bdDel').onclick=async()=>{const n=nm();if(!buildLib.levels[n]){flashSaveStatus(txt('build.no_such',n));return;}if(!confirm(txt('build.delete_ask',n)))return;delete buildLib.levels[n];if(await buildKeep())flashSaveStatus(txt('build.deleted',n));buildBar();};
   $('bdExport').onclick=()=>{saveFile('levels.json',JSON.stringify(buildLib));flashSaveStatus(txt('build.exported',Object.keys(buildLib.levels).length,Object.keys(buildLib.prefabs).length));};
-  $('bdQuit').onclick=()=>{loading('leave',true);setTimeout(()=>{location.href='TitleSplash.html';},300);};preBarWire($);}
+  preBarWire($);}
 function buildPlay(){buildTest=buildLevelData();const P=buildTime?prefabSpawn(buildTime):null;const d=buildDarks[0];if(d){const t=buildDarks.slice();buildDarks=[];triggerBlackRemnant(d.x,d.y,performance.now(),d.mass||T.massScaleMax*T.blackMult,d.energy||T.collEnergy,true);buildDarks=t;} // (true: placed, so never a duck) // Test: the surface played as it would be (a Dark Remnant placed starts; a Rift can form; it can be cleared)
   if(isPaused)togglePause();flashSaveStatus(buildTime?(P?txt('build.test_prefab',P.name,TIMES[buildTime]):txt('build.test_none',TIMES[buildTime])):txt('build.testing'));} // (at a time of day: which prefab, if any, appeared)
 function buildBack(){const L=buildTest;buildTest=null;if(L)buildApply(L);levelCleared=false;clearInfo=null;flashSaveStatus(txt('build.back_to_build'));} // back to the surface as it was before the test
