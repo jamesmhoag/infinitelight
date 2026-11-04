@@ -162,7 +162,7 @@ function duckCtx(gl){
     'void main(){vec3 P=aP,N=aN;if(uFl>0.0){P.z*=uFl;N=vec3(0.0,0.0,aN.z>=0.0?1.0:-1.0);}'+ // Paper: pressed flat to a thin card, each face the side view as drawn
     'vM=N;vU=aU;vH=0.0;if(uSc>0.5){vec3 w=uPos+uR*P*uMS;vH=w.z;vec4 v=uV*vec4(w,1.0);vP=v.xyz;vN=uVR*(uR*N);gl_Position=uPj*v;}'+
     'else{vec3 p=uR*P;vP=p;vN=uR*N;gl_Position=vec4(p.xy*uK.x,-p.z*uK.y,1.0);}}'));
-  gl.attachShader(pr,sh(gl.FRAGMENT_SHADER,(dd?'#extension GL_OES_standard_derivatives : enable\n':'')+'precision mediump float;varying vec3 vN;varying vec3 vM;varying vec4 vU;varying vec3 vP;varying float vH;uniform float uCl;uniform float uNk;uniform float uBp;uniform sampler2D uImg;uniform float uEo;uniform float uEW;'+
+  gl.attachShader(pr,sh(gl.FRAGMENT_SHADER,(dd?'#extension GL_OES_standard_derivatives : enable\n':'')+'precision mediump float;varying vec3 vN;varying vec3 vM;varying vec4 vU;varying vec3 vP;varying float vH;uniform float uCl;uniform float uNk;uniform float uBp;uniform sampler2D uImg;uniform float uEo;uniform float uEm;uniform float uEW;'+
     'uniform vec3 uC1;uniform vec3 uC2;uniform float uM;uniform float uGl;uniform float uTr;uniform float uA;uniform sampler2D uTex;uniform vec4 uTS;'+
     'uniform sampler2D uEnv;uniform vec3 uEP;uniform float uEA;uniform vec4 uLd[6];uniform vec3 uLc[6];uniform vec3 uDim;uniform float uAA;uniform vec3 uSunL;uniform vec3 uSunC;'+
     'vec3 hue(float h){return clamp(abs(mod(h*6.0+vec3(0.0,4.0,2.0),6.0)-3.0)-1.0,0.0,1.0);}'+
@@ -188,7 +188,7 @@ function duckCtx(gl){
     'for(int i=0;i<6;i++){if(uLd[i].w>0.0)gs+=uLc[i]*uLd[i].w*pow(max(0.0,dot(n,normalize(normalize(uLd[i].xyz)+V))),90.0);}}'+ // (empty light slots are skipped: normalize(0) is NaN)
     'vec3 col;float a=1.0;bool em=m==13.0&&((vU.z>0.5&&vU.z<1.5)||vU.z>2.5);if(uEo>0.5&&!em){gl_FragColor=vec4(0.0);return;}'+ // em: what glows on a painted model (uEo: draw only that — a shop's neon glow is blurred from it)
     'if(m==1.0){col=c*(0.62+0.32*g)*(0.35+0.75*dif)+pow(nh,12.0)*0.12*uGl;}'+
-    'else if(m==13.0){vec4 t=texture2D(uImg,vU.xy);if(t.a<0.5)discard;col=vU.z>2.5?t.rgb*(0.5+0.3*max(0.0,n.y)+0.3*max(0.0,n.z)):vU.z>1.5?vec3(0.13,0.13,0.15)*(0.45+0.6*dif):vU.z>0.5?t.rgb+t.rgb*lt*0.4:t.rgb*(0.3+0.8*dif+lt)+pow(nh,30.0)*0.04;}'+ // Painted (a shop): its texture (uv in vU.xy), lit by the sun; vU.z 1 = glowing (an open shop\'s sign and lamp), 2 = the back of a sign, 3 = inside an open shop (lit by its lamp)
+    'else if(m==13.0){vec4 t=texture2D(uImg,vU.xy);if(t.a<0.5)discard;col=vU.z>2.5?t.rgb*(0.5+0.3*max(0.0,n.y)+0.3*max(0.0,n.z))*uEm:vU.z>1.5?vec3(0.13,0.13,0.15)*(0.45+0.6*dif):vU.z>0.5?t.rgb*uEm+t.rgb*lt*0.4:t.rgb*(0.3+0.8*dif+lt)+pow(nh,30.0)*0.04;}'+ // Painted (a shop): its texture (uv in vU.xy), lit by the sun; vU.z 1 = glowing (an open shop\'s sign and lamp), 2 = the back of a sign, 3 = inside an open shop (lit by its lamp)
     'else if(m==3.0){float sp=(pow(nh,80.0)*1.6+rim*0.6)*uGl;col=c*(0.7*(0.55+0.5*dif)+0.25*edg)+sp+env*uEA*(0.3+0.7*edg)+gs;a=min(1.0,0.42+0.55*pow(edg,1.5)+sp/1.2+ln*0.6);}'+
     'else if(m==2.0||m==7.0){float au=m==7.0?1.0:0.0;vec3 r=reflect(-V,n);float el=dot(env,vec3(0.3,0.59,0.11)),hz=smoothstep(-0.2,0.25,r.y),fr=pow(edg,2.0);'+ // Metal and Gold: a chrome-style horizon split and the scene's brightness drive a dark → metal → bright ramp, so both read as polished metal
     'float s=0.02+0.42*dif*hz+0.3*hz+1.1*el*uEA+0.35*fr*hz;vec3 g0=mix(c*0.07,vec3(0.13,0.06,0.01),au),g2=mix(vec3(1.0),vec3(1.0,0.95,0.7),au),gt=mix(vec3(1.0),vec3(1.0,0.82,0.42),au);'+ // steel: near-black → silver → white; gold: dark bronze → gold → pale gold
@@ -206,7 +206,7 @@ function duckCtx(gl){
     'a*=uA;gl_FragColor=vec4(min(col,vec3(1.0))*a,a);}'));
   gl.linkProgram(pr);if(!gl.getProgramParameter(pr,gl.LINK_STATUS)){console.error(gl.getProgramInfoLog(pr));return null;}
   const at={},un={};for(const k of ['aP','aN','aU'])at[k]=gl.getAttribLocation(pr,k);
-  for(const k of ['uEW','uImg','uEo','uNk','uCl','uFl','uR','uK','uC1','uC2','uM','uGl','uTr','uA','uTex','uTS','uEnv','uEP','uEA','uLd','uLc','uDim','uAA','uBp','uSc','uV','uPj','uVR','uPos','uMS','uSunL','uSunC'])un[k]=gl.getUniformLocation(pr,k);
+  for(const k of ['uEW','uImg','uEo','uEm','uNk','uCl','uFl','uR','uK','uC1','uC2','uM','uGl','uTr','uA','uTex','uTS','uEnv','uEP','uEA','uLd','uLc','uDim','uAA','uBp','uSc','uV','uPj','uVR','uPos','uMS','uSunL','uSunC'])un[k]=gl.getUniformLocation(pr,k);
   const envT=gl.createTexture();gl.bindTexture(gl.TEXTURE_2D,envT);gl.texImage2D(gl.TEXTURE_2D,0,gl.RGBA,1,1,0,gl.RGBA,gl.UNSIGNED_BYTE,new Uint8Array([0,0,0,255]));
   for(const [p,v] of [[gl.TEXTURE_MIN_FILTER,gl.LINEAR],[gl.TEXTURE_MAG_FILTER,gl.LINEAR],[gl.TEXTURE_WRAP_S,gl.CLAMP_TO_EDGE],[gl.TEXTURE_WRAP_T,gl.CLAMP_TO_EDGE]])gl.texParameteri(gl.TEXTURE_2D,p,v);
   return{gl,pr,at,un,envT,envCv:document.createElement('canvas'),envAt:-1,bufs:new Map(),mtex:null,itex:new Map()};}
@@ -247,7 +247,7 @@ function duckBind(G,M,env,hpx){ // everything a duck draw shares: its mesh and m
   if(M.img){let t=G.itex.get(M.img);if(!t){t=gl.createTexture();gl.bindTexture(gl.TEXTURE_2D,t);gl.pixelStorei(gl.UNPACK_PREMULTIPLY_ALPHA_WEBGL,false);gl.texImage2D(gl.TEXTURE_2D,0,gl.RGBA,gl.RGBA,gl.UNSIGNED_BYTE,M.img);gl.generateMipmap(gl.TEXTURE_2D); // a painted model's texture (once per context)
       for(const [p,v] of [[gl.TEXTURE_MIN_FILTER,gl.LINEAR_MIPMAP_LINEAR],[gl.TEXTURE_MAG_FILTER,gl.LINEAR],[gl.TEXTURE_WRAP_S,gl.CLAMP_TO_EDGE],[gl.TEXTURE_WRAP_T,gl.CLAMP_TO_EDGE]])gl.texParameteri(gl.TEXTURE_2D,p,v);G.itex.set(M.img,t);}
     gl.activeTexture(gl.TEXTURE2);gl.bindTexture(gl.TEXTURE_2D,t);gl.uniform1i(u.uImg,2);}
-  gl.uniform1f(u.uEo,M.eo?1:0);gl.uniform1f(u.uEW,M.ew||0);
+  gl.uniform1f(u.uEo,M.eo?1:0);gl.uniform1f(u.uEm,M.emk!=null?M.emk:1);gl.uniform1f(u.uEW,M.ew||0);
   const refl=M.mat===2||M.mat===3||M.mat===7,ld=new Float32Array(24),lc=new Float32Array(18);
   if(refl&&env){gl.uniform3f(u.uEP,1-env.x/Math.max(1,W),env.y/Math.max(1,H),0.22);gl.uniform1f(u.uEA,M.mat===3?T.glassReflect:T.metalReflA);}
   else{gl.uniform3f(u.uEP,0.5,0.5,0.22);gl.uniform1f(u.uEA,refl?0.5:0);}
@@ -437,7 +437,7 @@ function cursorStain(cx,now,w,dark,toXY){ // drawn over a finished scene, but on
   s.setTransform(1,0,0,1,0,0);s.globalCompositeOperation='multiply';s.drawImage(_stainCv[1],0,0,cw,ch,0,0,cw,ch);s.drawImage(_stainCv[1],0,0,cw,ch,0,0,cw,ch); // (squared)
   cx.save();cx.setTransform(1,0,0,1,0,0);
   if(dark){s.globalCompositeOperation='difference';s.fillStyle='#fff';s.fillRect(0,0,cw,ch);cx.globalCompositeOperation='multiply';} // a light scene: the amount darkens it
-  else cx.globalCompositeOperation='screen';
+  else{const c=DUCK_SUN.c;s.globalCompositeOperation='multiply';s.fillStyle=`rgb(${c.map(v=>Math.round(Math.max(0,Math.min(1,v))*255)).join(',')})`;s.fillRect(0,0,cw,ch);cx.globalCompositeOperation='screen';} // (in the colour of the light at this time of day)
   cx.drawImage(_stainCv[0],0,0,cw,ch,x0,y0,cw,ch);cx.restore();}
 // ═════════════════════════ SHOPS (sold on the Surface Map; the surface, which keeps the purse, settles every purchase) ═════════════════════════
 // SHOPS: main street ones (street) stand round the source at angle a° (0 = right, 90 = in front, −90 = behind it; flip: its door on the other side), always there, lit only while open: hours are [open, close) on the map's clock (3 Twilight … 24 Midnight;
