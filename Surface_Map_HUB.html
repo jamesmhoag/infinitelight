@@ -163,7 +163,7 @@ body.shop-open #hdock{z-index:59}#hinv .slot.wal::before{border-color:rgba(255,2
 <div id="veil"></div>
 <div id="bfx"></div>
 <iframe id="neb" data-tt="map.ui.surface"></iframe>
-<script src="content.js?v=20261104s"></script><script src="shared.js?v=20261104s"></script>
+<script src="content.js?v=20261104t"></script><script src="shared.js?v=20261104t"></script>
 <script>
 // ╔══════════════════════════════════════════════════════════════════════════════╗
 // ║  MAP ENGINE                                                                 ║
@@ -182,7 +182,7 @@ let clock=3,day=1,pool=6,fresh=true,burstFx=null,dayLog=[],dayCnt={b:0,d:0},pend
 // // clock: the hour (3 = Twilight … 24 = Midnight, the day's last turn); day: your attempts; pool: what the source put out at its last burst; fresh: no ring added yet since it
 let constel=[],armed=null,weaveSel=[],weaveAsk=null,clearFx={},mergeFx=[],feedMsg={t:'',d:'',at:-1e9}; // constellations {keys,type}; the armed map item; a Weave being drawn; animations; the final count
 const STEP_H=3; // the day: eight turns of three hours
-const CACHE_V='20261104s'; // the build: bump with shared.js's
+const CACHE_V='20261104t'; // the build: bump with shared.js's
 const SCENE=new URLSearchParams(location.search).get('scene'); // a Guide / event demo: the map plays a scripted moment (no surface behind it)
 let phase='move',turnTimer=0,mergeTimer=0;
 let gameOverReason='';
@@ -712,9 +712,7 @@ function mapRender(){
     for(const[x,y,v,st,sw]of brightOnes){if(st!=='#fff'){hexPath(x,y,HEX*0.92);mctx.strokeStyle=st;mctx.lineWidth=sw;mctx.stroke();} // a soft white core (no hard edge); only the player / merge outline stays crisp
 }}
   // Shops reflected in the ground, upside down under their base: 'lighten' shows them only where it is dark (the darkness seeping through the bright under them), the bright stays as it is
-  if(!SCENE&&cam){mctx.save();mctx.globalCompositeOperation='lighten';mctx.globalAlpha=T.mapShopReflect!=null?T.mapShopReflect:0.42;const ct=Math.max(0.2,Math.cos(cam.th));
-    for(const key in shopEls){const el=shopEls[key],sh=el._s,cv=el._cv;if(!sh||!cv||!cv._bw||(sh.rise!=null&&sh.rise<1))continue;const[px,py]=w2s(sh.wx,sh.wy),sx=HEX*(T.mapStreetSize||0.75)/cv._bw,sy=sx/ct; /* (its screen height again, on a plane seen at a slant) */
-      if(px<-HEX*3||px>MW+HEX*3||py<-HEX*3||py>MH+HEX*3)continue;mctx.setTransform(MK*sx,0,0,-MK*sy,MK*px,MK*py);mctx.drawImage(cv,-cv._ax,-cv._ay);}mctx.restore();}
+  if(!SCENE&&cam)shopReflect();
   // The source: a big white point at the centre, glowing over the surfaces and bleeding into the first ring. When a day ends its rings fall into it one by
   // one ('fall': a ring of light closing in, faster as it goes), it flashes ('flash'), and the spill bursts back out to its rings ('burst')
   if(Number.isFinite(MW)){const[cx,cy]=w2s(...a2w(0,0)),g=T.mapSourceGlow!=null?T.mapSourceGlow:1,pul=0.5+0.5*Math.sin(now/900),fx=burstFx,ft=fx?(now-fx.t0)/(fx.dur||1600):1;
@@ -1232,21 +1230,22 @@ function shopEnv(){ // what a shop's glass reflects: the hexes round the source 
   const e=_shopEnv||(_shopEnv=document.createElement('canvas'));e.width=e.height=256;const g=e.getContext('2d'),[x,y]=w2s(0,0),R=HEX*6*MK;
   g.fillStyle='#202228';g.fillRect(0,0,256,256);try{g.drawImage(mc,x*MK-R/2,y*MK-R/2,R,R,0,0,256,256);}catch(err){}
   const sh=g.createLinearGradient(0,0,0,256);sh.addColorStop(0,'rgba(230,236,245,.45)');sh.addColorStop(0.45,'rgba(230,236,245,.08)');sh.addColorStop(1,'rgba(0,0,0,.25)');g.fillStyle=sh;g.fillRect(0,0,256,256);return e;}
-function shopSprite(id,bk,lit,yaw,open,L){ // L: the buoy's light on it ({k, x, y, s}: its way in on screen and strength, in steps), or none // the shop's 3D building (shared.js shopModel) drawn from a little above and turned by yaw (degrees), lit by the time of day: then the glow of its sign and
+function shopSprite(id,bk,lit,yaw,open,L,mir){ // L: the buoy's light on it ({k, x, y, s}: its way in on screen and strength, in steps), or none // the shop's 3D building (shared.js shopModel) drawn from a little above and turned by yaw (degrees), lit by the time of day: then the glow of its sign and
   // windows when open; at Q px per unit (as its drawings were at 4×), so a shop stays crisp however near the camera or the menu shows it. Redrawn when the light changes.
   const gw=T.mapShopGlow!=null?T.mapShopGlow:1,fl=bk===(SHOPS[id].bk||'s')&&SHOPS[id].flip,yw=Math.round(yaw||0),sun=DUCK_SUN.c.map(v=>Math.round(v*16)).concat(DUCK_SUN.d.map(v=>Math.round(v*8))).join(','),pt=T.mapShopPitch!=null?T.mapShopPitch:22,
-    base=id+bk+(lit?1:0)+(open?'o':'')+gw+'|'+yw+'|'+pt+'|'+(T.mapShopUpScale||1.7)+'|',key=base+sun+(L?'|L'+L.k:'');if(shopCv[key])return shopCv[key];
+    base=id+bk+(lit?1:0)+(open?'o':'')+gw+'|'+yw+'|'+pt+'|'+(T.mapShopUpScale||1.7)+'|',key=base+sun+(L?'|L'+L.k:'')+(mir?'|m':'');if(shopCv[key])return shopCv[key];
   const si=shopImg('sign_'+id);if(!si.complete||!si.naturalWidth||!_duckTex)return null;
   const type=shopModel(id,bk,lit,fl,si,open),M=duckModel(type),Q=4*(bk==='m'||bk==='l'||bk==='t'?(T.mapShopUpScale||1.7):1), // (a bigger rank's two-storey store drawn larger, so its door is the size of main street's)
-    q=quatTurn(quatTurn([0,0,0,1],0,yw*Math.PI/180,0),pt*Math.PI/180,0,0),N=Math.ceil(2*M.g.R*Q)+8,pad=Math.ceil(30*gw)+8;
+    q=quatTurn(quatTurn([0,0,0,1],0,yw*Math.PI/180,0),(mir?-pt:pt)*Math.PI/180,0,0),N=Math.ceil(2*M.g.R*Q)+8,pad=Math.ceil(30*gw)+8;
   const cv=document.createElement('canvas');cv.width=cv.height=N+pad*2;const c=cv.getContext('2d'),lt=E=>({x:E.x,y:E.y,lights:L?[[E.x+L.x*100,E.y-L.y*100,255,244,222,L.s,140]]:[]}); /* the buoy's can light, as a light in the scene: on its walls, and glinting on its glass */
+  const day=(DUCK_SUN.c[0]+DUCK_SUN.c[1]+DUCK_SUN.c[2])/3,emk=Math.max(0.45,Math.min(1,1-(day-0.64)/0.36*0.55));M.emk=emk; /* its sign and lit room: full at night, about half at noon */
   drawDuck3D(c,type,q,[[cv.width/2,cv.height/2]],Q,1,2048,lt({x:cv.width/2,y:cv.height/2}));
   {const sun=DUCK_SUN.c;duckEnvUpdate(shopEnv(),performance.now());DUCK_SUN.c=sun.map(v=>v+(1-v)*0.75); // its glass: reflecting the street round the source (faint while the lights are on inside), barely tinted by the time of day
-    drawDuck3D(c,type+'|glass',q,[[cv.width/2,cv.height/2]],Q,lit?0.6:1,2048,lt({x:W/2,y:H/2}));DUCK_SUN.c=sun;}
-  if(lit&&gw>0){const g=document.createElement('canvas');g.width=g.height=cv.width;M.eo=1;drawDuck3D(g.getContext('2d'),type,q,[[cv.width/2,cv.height/2]],Q,1,2048);M.eo=0; // the neon: what glows, blurred out over it
+    drawDuck3D(c,type+'|glass',q,[[cv.width/2,cv.height/2]],Q,lit?0.6+0.7*(1-emk):1,2048,lt({x:W/2,y:H/2})); /* (by day the street shows in it over the dimmer room) */DUCK_SUN.c=sun;}
+  if(lit&&gw>0){const g=document.createElement('canvas');g.width=g.height=cv.width;M.eo=1;drawDuck3D(g.getContext('2d'),type,q,[[cv.width/2,cv.height/2]],Q,emk,2048);M.eo=0; // the neon: what glows, blurred out over it
     c.save();c.globalCompositeOperation='lighter';for(const[b,a]of[[22,0.8],[7,0.55]]){c.filter='blur('+(b*gw).toFixed(1)+'px)';c.globalAlpha=Math.min(1,a*gw);c.drawImage(g,0,0);}c.restore();}
-  const m=quatMat(q),fy=M.g.foot;cv._ax=cv.width/2+m[3]*fy*Q;cv._ay=cv.height/2-m[4]*fy*Q;cv._bw=264; // its foot: where it stands on the map; _bw: the size every shop is scaled by (main street's old 66-unit drawing at 4×, so shops keep the size they had)
-  for(const k in shopCv)if(k.startsWith(base)&&k!==key)delete shopCv[k]; // (an older light's drawing)
+  M.emk=1;const m=quatMat(q),fy=M.g.foot;cv._ax=cv.width/2+m[3]*fy*Q;cv._ay=cv.height/2-m[4]*fy*Q;cv._bw=264; // its foot: where it stands on the map; _bw: the size every shop is scaled by (main street's old 66-unit drawing at 4×, so shops keep the size they had)
+  for(const k in shopCv)if(k.startsWith(base)&&k!==key&&k.endsWith('|m')===!!mir)delete shopCv[k]; // (an older light's drawing; its reflection's own kept beside it)
   return shopCv[key]=cv;}
 function streetYaw(a){ // a main street shop at a: its turn so its front edge (in front of the source; behind it, its back) lies along the source hex's edge facing it, as the camera sees it
   if(!cam)return 0;const s=(d)=>{const[x,y]=a2w(0,0),r=HEX,t=(a+d)*Math.PI/180;return proj(...w2s(x+r*Math.cos(t),y+r*Math.sin(t)));},p=s(-30),q=s(30),[L_,R_]=p[0]<q[0]?[p,q]:[q,p];
@@ -1259,6 +1258,17 @@ function shopList(){ // every shop on the map now: main street hugging the sourc
   hubPop.forEach((h,i)=>{if(!h)return;const a=HUB_SLOTS[i]*Math.PI/180,u=shopRise(h);out.push({key:'hub'+i,id:h.id,rank:h.rank,bk:SHOP_RANK_BLD[h.rank-1],wx:R*1.15*Math.cos(a),wy:R*1.15*Math.sin(a),rise:u,lit:u>=1&&shopIsOpen(h.id,clock,run)});}); // (a little further out than main street) // pop-ups from dark clears, in the source hex
   for(const k in cells){const c=cells[k];if(c.shop&&isBright(k)){const[wx,wy]=a2w(c.q,c.r),u=shopRise(c.shop);out.push({key:k,id:c.shop.id,rank:c.shop.rank,bk:SHOP_RANK_BLD[c.shop.rank-1],wx,wy,rise:u,lit:u>=1&&shopIsOpen(c.shop.id,clock,run)});}}
   return out;}
+let _rfl=null;
+function shopReflect(){ // shops mirrored in the ground under them: each its own drawing seen from below and turned over (so it turns as the building does), all drawn solid into one layer (nearer over farther: never see-through to each other), laid on the ground once with 'lighten' (it shows only where the ground is dark)
+  const ct=Math.max(0.2,Math.cos(cam.th)),L=[];let x0=1e9,y0=1e9,x1=-1e9,y1=-1e9;
+  for(const key in shopEls){const el=shopEls[key],sh=el._s;if(!sh||(sh.rise!=null&&sh.rise<1))continue;const cv=shopSprite(sh.id,sh.bk,sh.lit,sh.yaw,!!(shopUI&&shopUI.key===sh.key),shopLight(sh),1);if(!cv)continue;
+    const[px,py]=w2s(sh.wx,sh.wy),sx=HEX*(T.mapStreetSize||0.75)/cv._bw,sy=sx/ct; /* (its screen height again, on a plane seen at a slant) */
+    const a=[px-cv._ax*sx,py-(cv.height-cv._ay)*sy],b=[px+(cv.width-cv._ax)*sx,py+cv._ay*sy];if(b[0]<0||a[0]>MW||b[1]<0||a[1]>MH)continue;
+    x0=Math.min(x0,a[0]);y0=Math.min(y0,a[1]);x1=Math.max(x1,b[0]);y1=Math.max(y1,b[1]);L.push({cv,px,py,sx,sy});}
+  if(!L.length)return;x0=Math.max(0,x0);y0=Math.max(0,y0);x1=Math.min(MW,x1);y1=Math.min(MH,y1);const w=Math.ceil((x1-x0)*MK),h=Math.ceil((y1-y0)*MK);if(w<1||h<1)return;
+  if(!_rfl)_rfl=document.createElement('canvas');if(_rfl.width<w||_rfl.height<h){_rfl.width=Math.max(w,_rfl.width);_rfl.height=Math.max(h,_rfl.height);}const g=_rfl.getContext('2d');g.setTransform(1,0,0,1,0,0);g.clearRect(0,0,w,h);
+  L.sort((p,q)=>p.py-q.py);for(const r of L){g.setTransform(MK*r.sx,0,0,-MK*r.sy,MK*(r.px-x0),MK*(r.py-y0));g.drawImage(r.cv,-r.cv._ax,-r.cv._ay);}
+  mctx.save();mctx.setTransform(1,0,0,1,0,0);mctx.globalCompositeOperation='lighten';mctx.globalAlpha=T.mapShopReflect!=null?T.mapShopReflect:0.7;mctx.filter='brightness(1.6)';mctx.drawImage(_rfl,0,0,w,h,Math.round(x0*MK),Math.round(y0*MK),w,h);mctx.restore();} // (lifted a little: a closed, dark building still shows in the black)
 function shopLight(s){ // the buoy's can light on a shop in (or near) its spot: from where the lamp is, as strong as the spot is there (in steps, so its drawing is redrawn only when that changes)
   const S=buoy.spotAt;if(SCENE||!S||!cam||buoy.dunk||buoy.dip||currentView==='level')return null;const[px,py]=w2s(s.wx,s.wy),dx=px-S.x,dy=py-S.y,ca=Math.cos(S.a),sa=Math.sin(S.a),u=(dx*ca+dy*sa)/Math.max(1,S.ma),v=(-dx*sa+dy*ca)/Math.max(1,S.mi),d=Math.hypot(u,v);
   const st=Math.round(Math.max(0,Math.min(1,(1.5-d)/0.8))*4)/4;if(!st)return null;const[X,Y]=proj(px,py),[lx,ly]=buoyScreen(1.05),a=Math.round(Math.atan2(Y-ly,lx-X)/(Math.PI/12))*(Math.PI/12);

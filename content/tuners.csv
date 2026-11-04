@@ -581,7 +581,7 @@ mapShopUpScale,1.7,Big store scale,1,2.5,0.05,Surface Map — shops,map,,,,How m
 mapShopPitch,22,Shop view angle,0,60,1,Surface Map — shops,map,,,,Degrees: how far from straight ahead the 3D shops are seen from above (their roofs and sign scaffolding show more),
 mapShopRiseMs,1100,Shop rise time,200,4000,50,Surface Map — shops,map,,,,Milliseconds: how long a new pop-up takes to rise out of its bright clear (after the clear has played) before it turns on and opens,
 mapShopLight,1.4,Shop in the buoy light,0,4,0.05,Surface Map — shops,map,,,,How strongly the buoy's can light lights a shop in its spot (its walls and the glints on its glass),
-mapShopReflect,0.42,Shop reflections,0,1,0.02,Surface Map — shops,map,,,,How strongly shops show reflected in the dark ground under them,
+mapShopReflect,0.7,Shop reflections,0,1,0.02,Surface Map — shops,map,,,,How strongly shops show reflected in the dark ground under them,
 mapDockLingerMs,2500,Dock linger ms,0,10000,100,Surface Map — dock,map,,,,"With the dock reduced (its ▾ or ~): how long an item stays up after it is used, its count changes or the dock is toggled",
 mapPlanePx,2500000,Map plane pixels,500000,8000000,100000,Surface Map — performance,map,,,,"Most pixels the Surface Map's ground is drawn with (it is sent to the GPU every frame: fewer is faster, more is sharper)",
 mapIdleFps,8,Map fps when away,1,60,1,Surface Map — performance,map,,,,Frames a second the Surface Map draws while its window is not the one in use,
