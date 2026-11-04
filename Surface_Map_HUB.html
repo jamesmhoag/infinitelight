@@ -19,7 +19,7 @@ body{background:#050608;overflow:hidden;font-family:'Share Tech Mono',monospace;
 #hinv .slot::before{content:'';position:absolute;inset:0;border-radius:5px;background:rgba(8,10,16,.5);border:1px solid rgba(255,255,255,.18);transition:transform .28s ease,opacity .28s,background .15s} /* each button its own see-through backing */
 #hinv .slot>*{position:relative}#hinv .slot svg{filter:drop-shadow(0 0 2px #000) drop-shadow(0 0 4px #000)}#hinv .slot:hover::before{background:rgba(255,255,255,0.14)}
 #hinv .dmin{font-size:13px;cursor:pointer}#hinv .dmin>span{opacity:.6}#hinv .dmin:hover>span{opacity:1} /* the feed's ▾ / ▴: a button like the others */
-body.dock-min #hfeed{display:none} /* the dock's own hide (its ▾): the feed goes, and each item keeps out of the way until pointed at (~ leaves the dock as it is, but for the ▾) */
+body.dock-min:not(.feed-pop) #hfeed{display:none}body.dock-min #hinv .slot.dmin>*,body.dock-min #hinv .slot.dmin::before{transform:none!important;opacity:1!important} /* (its ▴ stays, to bring the feed back) */ /* the dock's own hide (its ▾): the feed goes, and each item keeps out of the way until pointed at (~ leaves the dock as it is, but for the ▾) */
 body.dock-min:not(.shop-open) #hinv .slot:not(.up):not(:hover)>*,body.dock-min:not(.shop-open) #hinv .slot:not(.up):not(:hover)::before{transform:translateY(130%);opacity:0} /* each item down out of the way until you point at its own place: then it comes up from below */
 body.ui-hidden #hinv .dmin{display:none}#hinv .slot.armed::before{background:rgba(255,220,120,0.28);border-color:rgba(255,220,120,0.8)}#hinv .slot.empty{opacity:0.4}
 #hinv .slot svg{width:18px;height:18px;color:#fff}#hinv .slot b{font-weight:400;margin-top:1px}#hinv .sep{width:6px}
@@ -129,7 +129,6 @@ body.shop-open #hdock{z-index:59}#hinv .slot.wal::before{border-color:rgba(255,2
   <div id="letter"><div class="lp"><div class="lt"></div><div class="lf"></div><div class="ln"></div></div></div>
   <div id="hdock"><div id="hinv"></div><div id="hfeed"><div class="fn"></div><div class="fd"></div></div></div>
   <div id="turn-label"></div><button id="rest-btn" onclick="rest()" data-tx="map.ui.rest"></button>
-  <div id="merge-flash"></div>
   <button class="hbtn" id="guide-btn" data-disc="hub_guide" onclick="openGuide()" data-tx="map.ui.guide"></button>
   <button class="hbtn" id="menu-btn" onclick="toggleMenu()" data-tx="map.ui.menu_esc"></button>
   <button class="hbtn" id="modes-btn" data-disc="hud_modes" onclick="togglePanel('mModes')" data-tx="map.ui.modes"></button>
@@ -164,7 +163,7 @@ body.shop-open #hdock{z-index:59}#hinv .slot.wal::before{border-color:rgba(255,2
 <div id="veil"></div>
 <div id="bfx"></div>
 <iframe id="neb" data-tt="map.ui.surface"></iframe>
-<script src="content.js?v=20261104i"></script><script src="shared.js?v=20261104i"></script>
+<script src="content.js?v=20261104j"></script><script src="shared.js?v=20261104j"></script>
 <script>
 // ╔══════════════════════════════════════════════════════════════════════════════╗
 // ║  MAP ENGINE                                                                 ║
@@ -183,7 +182,7 @@ let clock=3,day=1,pool=6,fresh=true,burstFx=null,dayLog=[],dayCnt={b:0,d:0},pend
 // // clock: the hour (3 = Twilight … 24 = Midnight, the day's last turn); day: your attempts; pool: what the source put out at its last burst; fresh: no ring added yet since it
 let constel=[],armed=null,weaveSel=[],weaveAsk=null,clearFx={},mergeFx=[],feedMsg={t:'',d:'',at:-1e9}; // constellations {keys,type}; the armed map item; a Weave being drawn; animations; the final count
 const STEP_H=3; // the day: eight turns of three hours
-const CACHE_V='20261104i'; // the build: bump with shared.js's
+const CACHE_V='20261104j'; // the build: bump with shared.js's
 const SCENE=new URLSearchParams(location.search).get('scene'); // a Guide / event demo: the map plays a scripted moment (no surface behind it)
 let phase='move',turnTimer=0,mergeTimer=0;
 let gameOverReason='';
@@ -254,7 +253,7 @@ function detectMerges(){
   if(totalRed>0){hubEvent('map_merge');turn-=totalRed;checkConstellations();if(turn<=0){phase='gameover';gameOverReason=txt('map.go.zero');return;}retractToTurn();redistribute();checkVoidAccess();}
 }
 function consolidateCaptures(mk,mid){const ks=new Set(mk);const tr=[];const ac=new Set();for(let i=0;i<captureOrder.length;i++){const e=captureOrder[i];if(e.keys.some(k=>ks.has(k))){tr.push(i);for(const k of e.keys)ac.add(k);}}for(const k of mk)ac.add(k);for(let i=tr.length-1;i>=0;i--)captureOrder.splice(tr[i],1);captureOrder.push({keys:[...ac],mergeId:mid});}
-function showMergeFlash(t){feed(t);const el=document.getElementById('merge-flash');el.textContent=t;el.classList.add('show');clearTimeout(mergeTimer);mergeTimer=setTimeout(()=>el.classList.remove('show'),1500);}
+function showMergeFlash(t){feed(t);} // (in the feed: nothing is said mid-screen)
 function checkVoidAccess(){const vc=cells[K(0,0)];if(!vc||!vc.isVoid){voidOpen=false;return;}const ns=neighbors(0,0);if(!ns.every(([q,r])=>{const c=cells[K(q,r)];return c&&c.cap;})){voidOpen=false;return;}const tri=new Set();for(const[q,r]of ns)for(const g of mergeGroups)if((g.type==='tri'||g.type==='dark3')&&g.cells.includes(K(q,r)))tri.add(g.id);voidOpen=tri.size>=3;}
 function newMap(){ // a new map, a descent and every midnight: the source at the centre bursts out (T.mapBurstRings rings at 1.00), the player beside it
   dropSession();cells={};totalCells=0;captureOrder=[];mergeGroups=[];mergeIdCounter=0;voidOpen=false;phase='move';gameOverReason='';prev={};constel=[];weaveSel=[];weaveAsk=null;armed=null;
@@ -400,7 +399,8 @@ function updateHint(){ // the feed's resting line: what you can do now
   else if(armed==='leash'){a=txt('map.spindle_click_a_cleared');b=txt('map.a_great_dark_remnant');}
   else if(c&&!c.cap&&!c.isVoid&&phase==='move'){a=(c.v<=0?txt('map.no_value_here_nothing'):txt('map.space_click_to',(nebulaCellKey===K(pQ,pR)?txt('map.continue_this_surface'):txt('map.enter_this_surface')),c.v.toFixed(2)));b=txt('map.day_or_move',clockStr(),day);if(tired()){a=txt('map.too_tired_to_move');b=txt('map.rest_under_midnight_to_2',(c.v>0?txt('map.or_this_surface',(nebulaCellKey===K(pQ,pR)?txt('map.continue'):txt('map.enter')),c.v.toFixed(2)):''));}}
   hintLine=[a,b];}
-function feed(t,d){if(_mpFor){netOut({t:'feed',ft:t,fd:d||''},_mpFor);return;} // (a friend's action: told to them)
+function feed(t,d){feedPop(); // (a message: the feed shows it, even when it is put away)
+  if(_mpFor){netOut({t:'feed',ft:t,fd:d||''},_mpFor);return;} // (a friend's action: told to them)
   feedMsg={t,d:d||'',at:performance.now()};} // a map message in the dock's feed (stays a few seconds)
 function hexInfo(c){ // what hovering a hex tells you
   if(!c)return null;const k=K(c.q,c.r),g=c.mergeId!=null?mergeGroups.find(x=>x.id===c.mergeId):null,cn=constel.filter(x=>x.keys.includes(k));
@@ -1043,7 +1043,9 @@ function exitNebula(){riftFxStart(performance.now()+500); // (a Rift made in the
   currentView='map';_loadAt=performance.now();loading('back',true);const t=performance.now();for(const k in clearFx)if(clearFx[k].t0==null)clearFx[k].t0=t+250;showNeb(false);mapResize();pondSpawn();startMapLoop();updateHint();evPump();}
 let evQ=[];
 const evAsked=new Set(); // (asked for once a session: the surface's reply may take a moment to say it is seen)
-function hubEvent(id){if(SCENE)return;if(disc.has('ev:'+id)||evQ.includes(id)||evAsked.has(id))return;evAsked.add(id);evQ.push(id);evPump();}
+const MAP_EV={};for(const r of csvRead('events'))MAP_EV[r.id]=r;
+function hubEvent(id){if(SCENE)return;if(disc.has('ev:'+id)||evAsked.has(id))return;evAsked.add(id); // something seen for the first time on the map: said in the feed (one place for every message: no card over the map), and discovered (its card is in the Guide)
+  const r=MAP_EV[id];if(r)feed(r.name,tpl(String(r.facts||'').split('\n')[0]));disc.add('ev:'+id);neb({cmd:'discover',id:'ev:'+id});}
 function evPump(){if(currentView==='overlay'&&evQ.length&&nebReady){neb({cmd:'event',ids:evQ.splice(0)});return;} // joins the hand already showing
   if(currentView!=='map'||menuOpen||shopUI||letter||!nebReady||!evQ.length)return;const ids=evQ.splice(0).filter(i=>!disc.has('ev:'+i));if(!ids.length)return;currentView='overlay';showNeb(true);neb({cmd:'event',ids});} // together, as one hand
 function openGuide(){if(!nebReady||currentView!=='map')return;currentView='overlay';showNeb(true);neb({cmd:'guide'});}
@@ -1390,7 +1392,9 @@ let dockMin=false;try{dockMin=!!localStorage.getItem('il_dockmin');}catch(e){}do
 const dockUp={},dockSeen={}; // when each slot was last used or changed: in the reduced dock it stays up a while after (Dock linger ms)
 function dockLinger(now){const ms=T.mapDockLingerMs!=null?T.mapDockLingerMs:2500;for(const el of document.querySelectorAll('#hinv .slot')){const k=el.dataset.k;el.classList.toggle('up',armed===k||now-(dockUp[k]||-1e9)<ms);const f=dockFx[k],on=f&&now-f.at<1400;el.classList.toggle('gain',!!(on&&f.up));el.classList.toggle('spend',!!(on&&!f.up));}}
 function duckUnder(X,Y){let best=null,bd=1e9;for(const d of pond){if(!d._s)continue;const[px,py]=w2s(d.x,d.y),[sx,sy,k]=proj(px,py),r=d._s*k*0.9,dd=Math.hypot(X-sx,Y-sy);if(dd<r&&dd<bd){bd=dd;best=d;}}return best;}
-function feedTick(now){ // the feed: a recent message, else what the cursor is over (a duck, a hex), else what you can do now
+function feedPop(){if(!dockMin)return;document.body.classList.add('feed-pop');clearTimeout(feedPop._t);feedPop._t=setTimeout(()=>{feedPop._t=0;if(!feedPop.hold)document.body.classList.remove('feed-pop');},3800);}
+function feedTick(now){{const dk=document.getElementById('hdock'),r=dk&&dk.getBoundingClientRect(),inF=dockMin&&r&&mX>=r.left&&mX<=r.right&&mY>=r.top-10&&mY<=innerHeight;feedPop.hold=inF;if(inF)document.body.classList.add('feed-pop');else if(dockMin&&!feedPop._t)document.body.classList.remove('feed-pop');} // (put away: pointing into its place below the items brings it up while you are there)
+   // the feed: a recent message, else what the cursor is over (a duck, a hex), else what you can do now
   dockLinger(now);if(weaveAsk)return;const fd=document.getElementById('hfeed');if(!fd)return;const fn=fd.querySelector('.fn'),fdd=fd.querySelector('.fd');if(!fn)return;
   let a,b;const over=currentView==='map'&&!menuOpen?ptOver:null,onMap=over===sc;
   const du=onMap?duckUnder(mX,mY):null,hc=onMap&&hQ!==null?cells[K(hQ,hR)]:null;
