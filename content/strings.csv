@@ -843,10 +843,29 @@ value.string_seconds,runT('flockSecondsPerLeash'),values (shared: any text can u
 value.weave_seconds,runT('weaveSeconds'),values (shared: any text can use {weave_seconds}),seconds a Weave needs (today)
 value.letters_total,LETTERS.length,values (shared: any text can use {letters_total}),letters there are
 value.rift_mass,Math.round(runT('riftMass')).toLocaleString(),values (shared: any text can use {rift_mass}),mass in one place that tears a Rift (today)
-test.title,Testing,Modes menu,
+test.title,Test mode,Modes menu,
+test.mode_off,Test mode: OFF,Modes menu,
+test.mode_on,Test mode: ON,Modes menu,
+test.on_info,"Free purchases, everything discovered and unlocked, every item full. Turning it off puts your save back as it was",Surface Map feed,
+test.nosnap,Could not keep a copy of your save (storage full): test mode stays off,Surface Map feed,
+test.tool,Test tool,Modes menu,
+test.tool_hint,"Test tool: click a hex to make it any clear, or particles again; a bright one or the source for a shop",Surface Map hint,
+test.hex_title,"Hex ({q},{r})",Test tool,"q = $0 — its q
+r = $1 — its r"
+test.to_bright,Bright clear,Test tool,
+test.to_dark,Dark clear,Test tool,
+test.to_rift,Rift,Test tool,
+test.to_particles,Particles again,Test tool,
+test.shop_here,A shop here (rank),Test tool,
+test.shop_street,On main street (rank),Test tool,
+test.hex_done,"({q},{r}): {what}",Surface Map feed,"q = $0 — its q
+r = $1 — its r
+what = $2 — what it is now"
+test.shop_done,"{shop}, rank {rank}",Surface Map feed,"shop = $0 — the shop
+rank = $1 — its rank"
 test.free_off,Free purchases: OFF,Modes menu,
 test.free_on,Free purchases: ON,Modes menu,
-test.discover_all,Discover everything,Modes menu,
+test.discover_all,Discover and unlock everything,Modes menu,
 test.fill,Fill every item,Modes menu,
 test.clear_bright,Clear: bright,Modes menu,
 test.clear_dark,Clear: dark,Modes menu,

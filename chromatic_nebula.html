@@ -105,13 +105,13 @@ button:hover{background:rgba(255,255,255,0.15);}
     <button onclick="document.getElementById('importMapFile').click()" data-tx="surf.ui.load_map"></button>
     <input type="file" id="importMapFile" accept="application/json" style="display:none" onchange="loadMapFile(this)">
     <button onclick="resetDiscoveries()" data-tx="surf.ui.reset_discoveries"></button>
-    <div class="div"></div><div class="ttl" data-tx="test.title"></div>
-    <button data-test="free" onclick="testFree()"></button>
-    <button onclick="discAll()" data-tx="test.discover_all"></button>
-    <button onclick="testFill()" data-tx="test.fill"></button>
-    <button onclick="testClear('bright')" data-tx="test.clear_bright"></button>
-    <button onclick="testClear('dark')" data-tx="test.clear_dark"></button>
-    <button onclick="testClear('rift')" data-tx="test.clear_rift"></button>
+    <div class="div"></div><button data-test="mode" onclick="testMode()"></button>
+    <button class="test-only" data-test="free" onclick="testFree()"></button>
+    <button class="test-only" onclick="discAll();unlockAll()" data-tx="test.discover_all"></button>
+    <button class="test-only" onclick="testFill()" data-tx="test.fill"></button>
+    <button class="test-only" onclick="testClear('bright')" data-tx="test.clear_bright"></button>
+    <button class="test-only" onclick="testClear('dark')" data-tx="test.clear_dark"></button>
+    <button class="test-only" onclick="testClear('rift')" data-tx="test.clear_rift"></button>
   </div>
   <div id="tunePanel"></div>
   <div id="stats"></div>
@@ -120,7 +120,7 @@ button:hover{background:rgba(255,255,255,0.15);}
   <div id="dock" class="bottom"><div id="inventoryPanel"></div><div id="touch-info"></div></div>
   <canvas id="cur"></canvas>
 </div>
-<script src="content.js?v=20261104r"></script><script src="shared.js?v=20261104r"></script>
+<script src="content.js?v=20261104s"></script><script src="shared.js?v=20261104s"></script>
 <script>
 txtApply(); // the page's own labels (content/strings.csv)
 const _SRC=document.documentElement.outerHTML; // kept so the Encyclopedia can run live scenes as embedded copies of the game
@@ -4471,12 +4471,21 @@ window.resetDiscoveries=resetDiscoveries;
 function discAll(){for(const d of DISC_ALL)discSeen.add(d[0]);for(const k in T)if(k.slice(0,3)==='dc_'){const id=k.slice(3);if(id.slice(0,4)==='obj_'){discSeen.add('of_'+id.slice(4));discSeen.add('ot_'+id.slice(4));}else discSeen.add(id);}
   for(const e of EVENTS)discSeen.add('ev:'+e.id);for(const r of RULES)discSeen.add('g_'+r[0]);for(const n in MAP_NODES)discSeen.add('mapn_'+n);for(const e of MAP_EDGES)discSeen.add('map_'+e.id);
   saveInventory();applyDisc();if(window._rulesOpen)rulesRemount();if(HUB)hubState();flashSaveStatus(txt('test.discovered_all'));}
+function unlockAll(){for(const it of SHOP_ITEMS){if(shopOnce(it))discSeen.add('up:'+it.id);if(it.fx.disc)discSeen.add(it.fx.disc);}for(const t of DUCK_IDS)duckLog[t]=Math.max(duckLog[t]||0,1);saveInventory();applyDisc();updateInventoryUI();if(HUB)hubState();} // every upgrade owned (so its mechanics run), and one of every duck (every parade set)
+const TEST_SNAP='il_test_snap_inv';
+function testOn(){try{if(!localStorage.getItem(TEST_SNAP))localStorage.setItem(TEST_SNAP,JSON.stringify(Object.assign(invPayload(),{keyShapes})));}catch(e){} /* (once: the save as it was before testing) */
+  TEST.set('mode',1);TEST.set('free',1);discAll();unlockAll();testFill();testSync();}
+function testOff(){let s=null;try{s=JSON.parse(localStorage.getItem(TEST_SNAP)||'null');}catch(e){}TEST.set('mode',0);TEST.set('free',0);
+  if(s){for(const k of INV_KINDS)inventory[k]=typeof s[k]==='number'?s[k]:0;invDisabled=new Set(s.disabled||[]);discSeen=new Set(s.discovered||[]);duckLog=s.ducks||{};duckLuck=Object.assign({d:0,e:0},s.luck||{});runState=Object.assign(runFresh(),s.run||{});keyShapes=s.keyShapes||[];
+    _discReset='all';saveInventory();} /* (nothing merged back: the save is exactly as it was) */
+  try{localStorage.removeItem(TEST_SNAP);}catch(e){}applyDisc();updateInventoryUI();testSync();if(HUB)hubPost({type:'testRestored'});else location.reload();}
+function testMode(){if(HUB){hubPost({type:'testMode'});return;}if(TEST.get('mode'))testOff();else testOn();} // (on the map, the map runs it: its own save is snapshotted too)
 function testFill(){for(const k in inventory)inventory[k]=Math.max(inventory[k]||0,invMaxFor(k));saveInventory();updateInventoryUI();if(HUB)hubState();flashSaveStatus(txt('test.filled'));}
 function testClear(kind){if(levelCleared)return;const now=performance.now();simulationStarted=true;
   if(kind==='bright'){const keep=[];_dormantInstant=true;for(let i=0;i<dormant.length;i++){const p=dormant[i];if(!p)continue;if(keep.length<12&&Math.random()<0.02)keep.push([p.x,p.y]);removeDormant(i,now);}_dormantInstant=false; /* every particle goes; a few bright remnants are left where some were, and the clear is the usual one */
     for(let i=active.length-1;i>=0;i--)if(!active[i].isRemnant){pressedIDs.delete(active[i].id);active.splice(i,1);}for(const q of keep)createRemnantAt(q[0],q[1],'white');return;}
   if(blackHole)return;triggerBlackRemnant(W/2,H/2,now,T.massScaleMax*T.blackMult,T.collEnergy,true,kind==='rift');} /* dark / rift: one placed at the centre (never a duck), and it clears as it always does */
-window.discAll=discAll;window.testFill=testFill;window.testClear=testClear;window.testFree=testFree;testSync();
+window.discAll=discAll;window.testFill=testFill;window.testClear=testClear;window.testFree=testFree;window.testMode=testMode;window.unlockAll=unlockAll;testSync();
 for(const ev of ['mousedown','mouseup','click','dblclick','contextmenu','wheel'])document.addEventListener(ev,e=>{const el=e.target.closest&&e.target.closest('.disc-lock');if(el){e.stopPropagation();e.preventDefault();}},true); // an undiscovered element cannot be used
 function updateInventoryUI(){
   if(runState.bonus&&runState.bonus.id==='inf')inventory[runState.bonus.item]=invMaxFor(runState.bonus.item); // an Endless … day: never runs out
@@ -12757,7 +12766,7 @@ function cardHTML(ev,mini){ // the one card format: name bar, art box, type line
   return `<div class="mtg${mini?' sm':''}" data-ev="${ev.id}" style="--rc:${TIER_COL[t]}"><div class="nm"><b>${gEsc(ev.name)}</b><span class="gem"></span></div><div class="art" data-scene="${ev.scene}">${mini?`<canvas class="rl-m" width="64" height="64" data-k="${ev.ico}"></canvas>`:''}</div><div class="ty"><span>${gEsc(ev.type.replace(/^Event — /,''))}</span><span>Tier ${TIER[t]}</span></div><div class="tx">${(mini?ev.facts().slice(0,1):ev.facts()).map(f=>`<p${ev.fx?' class="fx"':''}>${gEsc(f)}</p>`).join('')}${ev.flavor?`<p class="fl">${gEsc(ev.flavor)}</p>`:''}</div></div>`; // (small: its first line and its flavour; the rest when it is opened) (fx: the lines are changes to play, set apart from the flavour)
 }
 function mountScene(h,w,hh){if(!h||h.firstChild||document.querySelectorAll('.rl-live iframe,.mtg .art iframe').length>=5)return;const f=document.createElement('iframe'),nm=h.dataset.s||h.dataset.scene;f.style.cssText='border:0;max-width:100%;pointer-events:none;background:#000;border-radius:6px;'+(w?`width:${w}px;height:${hh}px`:'width:100%;height:100%');
-  if(nm.slice(0,4)==='hub:'){const[sn,dk]=nm.slice(4).split(':');f.src='Surface_Map_HUB.html?v=20261104r&scene='+sn+'&T='+encodeURIComponent(JSON.stringify(mapSceneT()))+'&D='+encodeURIComponent(JSON.stringify(dk&&DUCK_TYPES[dk]?{[dk]:DUCK_TYPES[dk]}:Object.fromEntries(Object.entries(DUCK_TYPES).slice(0,4))));}else f.srcdoc=liveSrc(nm);h.appendChild(f);} // a Surface Map demo is played by the map itself
+  if(nm.slice(0,4)==='hub:'){const[sn,dk]=nm.slice(4).split(':');f.src='Surface_Map_HUB.html?v=20261104s&scene='+sn+'&T='+encodeURIComponent(JSON.stringify(mapSceneT()))+'&D='+encodeURIComponent(JSON.stringify(dk&&DUCK_TYPES[dk]?{[dk]:DUCK_TYPES[dk]}:Object.fromEntries(Object.entries(DUCK_TYPES).slice(0,4))));}else f.srcdoc=liveSrc(nm);h.appendChild(f);} // a Surface Map demo is played by the map itself
 function mapSceneT(){const o={};for(const k in T)if(/^(map|bh|duck|wake|glass|metal|dimGlow|glowHalo|maxSpeed)/.test(k))o[k]=T[k];return o;} // what a map demo needs of the tuners
 function showCardHTML(html){ // a Guide card (an entry or a shop) opened over the Guide, where an event card shows
   guideCSS();_evOpen=true;_evReview=true;const ov=evOverlayEl();ov.innerHTML=`<div class="ev-box">${html}<button id="evOk">${txt('card.close')}</button></div>`;ov.style.display='flex';wrap.classList.add('ev-open');
@@ -13267,7 +13276,7 @@ window.addEventListener('message',e=>{
   else if(m.cmd==='giveDuck'){if(DUCK_TYPES[m.type]){duckLog[m.type]=(duckLog[m.type]||0)+1;saveInventory();hubState();}} // a duck from a bottle on the lake
   else if(m.cmd==='ui')wrap.classList.toggle('ui-hidden',!!m.hidden); // ~ on the map: one hide / show for both
   else if(m.cmd==='tune'){applyLoadedConfig(m.T,true);debounceSave();}
-  else if(m.cmd==='test'&&['discAll','testFill'].includes(m.f)){window[m.f]();}
+  else if(m.cmd==='test'&&['discAll','testFill','unlockAll','testOn','testOff'].includes(m.f)){window[m.f]();}
   else if(m.cmd==='discover'){discSeen.add(m.id);saveInventory();hubState();}
   else if(m.cmd==='spend'){inventory[m.kind]=Math.max(0,(inventory[m.kind]||0)-(m.n||1));saveInventory();updateInventoryUI();hubState();} // the map used an item (Spindle, String, Weave)
   else if(m.cmd==='award'){addInventory(m.kind,m.n||1);hubState();} // a map constellation paid out
