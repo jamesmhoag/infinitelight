@@ -219,7 +219,7 @@ map.stat.gameover, · game over: {reason},Surface Map,reason = $0 — why the ga
 map.shop.open,Open · {hours} · click to shop,Surface Map,hours = $0 — the shop's opening hours
 map.shop.closed,Closed · {hours},Surface Map,hours = $0 — the shop's opening hours
 map.shop.popup,{shop} · pop-up,Surface Map,shop = $0 — the shop's name
-map.shop.popupinfo,Rank {rank} · open while its bright clear lasts · click to shop,Surface Map,rank = $0 — the pop-up's rank
+map.shop.popupinfo,Rank {rank} · {hours} · open while its bright clear lasts · click to shop,Surface Map,rank = $0 — the pop-up's rank; hours = $1 — its hours
 map.gift.yes,Yes,Surface Map,
 map.gift.yessub,(enter the GIFT SHOP),Surface Map,
 map.gift.no,No,Surface Map,
@@ -852,3 +852,6 @@ test.clear_dark,Clear: dark,Modes menu,
 test.clear_rift,Clear: rift,Modes menu,
 test.discovered_all,Everything is discovered,Modes menu,
 test.filled,Every item is full,Modes menu,
+map.shop.missed,Missed: {names},Surface Map feed,names = $0 — the shops
+map.shop.missed_info,"Closed at this time of day, so they could not pop up here: they open on main street tomorrow",Surface Map feed,
+map.shop.missed_here,"Rank {rank}, on main street: missed yesterday",Surface Map feed,rank = $0 — its rank
