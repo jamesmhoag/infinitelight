@@ -93,7 +93,7 @@ function buoyCanModel(){ // the buoy's can light: a short metal can, its lit len
 function shopModel(id,bk,lit,fl,si,open,soon){ // si: the sign's loaded image; open: its doors stand open (its menu is open); soon: Coming soon (closed, its sign saying so, lit) → the model's type, for drawDuck3D
   const type='shop:'+id+':'+bk+(lit?1:0)+(fl?1:0)+(open?'o':'')+(soon?'s':'');if(_duckModels.has(type))return type;const B=SHOP_BLD[bk],S=SHOPS[id],A=512,tx=document.createElement('canvas');tx.width=tx.height=A;const c=tx.getContext('2d');
   const mx=(a,b,t)=>{const h=v=>[1,3,5].map(i=>parseInt(v.slice(i,i+2),16)),A=h(a),Bb=h(b);return'rgb('+A.map((v,i)=>Math.round(v+(Bb[i]-v)*t)).join(',')+')';}; // two #rrggbb colours mixed
-  [B.wall,B.roof,B.line,'#3a3a40','#4a4a50',...(lit?[mx(S.col,'#fff6e8',0.55),mx(S.col,'#000000',0.5),'#6b5440',S.col,mx(S.col,'#ffffff',0.45),'#fff6e0']:['#2c2c33','#1e1e24','#2a2420','#34343b','#3a3a41','#3a3a40'])]
+  [B.wall,B.roof,B.line,'#3a3a40','#4a4a50',...(lit?[mx(S.col,'#fff6e8',0.84),mx(S.col,'#2a2420',0.8),'#6b5440',S.col,mx(S.col,'#ffffff',0.45),'#fff6e0']:['#2c2c33','#1e1e24','#2a2420','#34343b','#3a3a41','#3a3a40'])]
     .forEach((col,i)=>{c.fillStyle=col;c.fillRect(i*32,0,32,32);}); // flat colours: walls, roof, frames and trim, scaffolding, the window reveals; inside: the room's walls, its floor, the counter and shelves, two of goods, the lamp (the shop's colour when open, dark when closed)
   if(lit){c.save();c.font='bold 66px system-ui,sans-serif';c.textAlign='center';c.textBaseline='middle';c.lineJoin='round';c.strokeStyle='#ff2d5a';c.lineWidth=10;c.beginPath();c.roundRect?c.roundRect(10,72,236,80,18):c.rect(10,72,236,80);c.stroke(); // an OPEN sign (neon tubes: its letters and its border; the rest is cut away)
     c.lineWidth=7;c.strokeText(txt('shop.open.sign'),128,113);c.fillStyle='#ff6f8f';c.fillText(txt('shop.open.sign'),128,113);c.restore();}
@@ -113,18 +113,21 @@ function shopModel(id,bk,lit,fl,si,open,soon){ // si: the sign's loaded image; o
       beam([h,0.4,zc],[fx,0.4,fz],0.8,2);beam([h,t-0.4,zc],[fx,t-0.4,fz],0.8,2);beam([h,0,zc],[h,t,zc],0.8,2);beam([fx,0,fz],[fx,t,fz],0.8,2);for(const y of d.rails)beam([h,y,zc],[fx,y,fz],0.8,2);if(!open)panes.push([Math.min(h,fx)+0.4,0.8,Math.max(h,fx)-0.4,t-0.8,zc]);}
   }
   for(const[x0,y0,x1,y1]of WN)if(y0>0){panes.push([x0+0.35,y0+0.35,x1-0.35,y1-0.35,z0-0.2]); // the glass of each window, and drapes in the shop's colour behind it
-    const bxF=(a,b,e,f,g,h,i)=>{const n=pos.length/3;box(a,b,e,f,g,h,i);for(let k=n;k<pos.length/3;k++)uv[k*4+2]=F;};bxF(x0+0.2,y1-2.4,z0-1.8,x1-0.2,y1-0.2,z0-1.2,8);bxF(x0+0.2,y0+0.3,z0-1.8,x0+1.8,y1-2.4,z0-1.3,8);bxF(x1-1.8,y0+0.3,z0-1.8,x1-0.2,y1-2.4,z0-1.3,8);}
+    const bxF=(a,b,e,f,g,h,i)=>{const n=pos.length/3;box(a,b,e,f,g,h,i);for(let k=n;k<pos.length/3;k++)uv[k*4+2]=F;};const dw=Math.min(1.2,(x1-x0)*0.11),dv=Math.min(1.6,(y1-y0)*0.16);bxF(x0+0.2,y1-dv,z0-1.8,x1-0.2,y1-0.2,z0-1.2,8);bxF(x0+0.2,y0+0.3,z0-1.8,x0+0.2+dw,y1-dv,z0-1.3,8);bxF(x1-0.2-dw,y0+0.3,z0-1.8,x1-0.2,y1-dv,z0-1.3,8);} /* (drapes drawn back to the sides and a short valance: the room shows through the glass) */
   for(const d of DR){const[x0,,x1,y1]=d.w,n=pos.length/3;box(x0+0.2,y1-2.2,z0-1.8,x1-0.2,y1-0.2,z0-1.2,8);for(let k=n;k<pos.length/3;k++)uv[k*4+2]=F;} // a valance over each door
   if(lit){const g=WN.find(w=>w[1]>0&&w[1]<14);if(g){const[x0,y0,x1]=g,ww=Math.min(15,(x1-x0)*0.7),hh=ww*80/236,cx=(x0+x1)/2,X=v=>fl?-v:v,a=X(cx-ww/2),b=X(cx+ww/2),yb=y0+1.2; // the OPEN sign, in a ground floor window
     quad([[a,yb,z0-1],[b,yb,z0-1],[b,yb+hh,z0-1],[a,yb+hh,z0-1]],[0,0,1],[[10/A,152/A],[246/A,152/A],[246/A,72/A],[10/A,72/A]],1,1);}}
-  {const F=lit?3:0,x0=L+1.2,x1=W/2-1.2,y1=H-1.2,zb=-z0+1.2,RW=sw_(5),RF=sw_(6),bx=(a,b,e,f,g,h,i,fl_)=>{const n=pos.length/3;box(a,b,e,f,g,h,i);for(let k=n;k<pos.length/3;k++)uv[k*4+2]=fl_;}; // the room inside, seen through the openings: lit by its lamp when open (F 3)
-    for(const[P,n,U]of[[[[x0,0,zb],[x1,0,zb],[x1,y1,zb],[x0,y1,zb]],[0,0,1],RW],[[[x0,0,zr],[x1,0,zr],[x1,0,zb],[x0,0,zb]],[0,1,0],RF],[[[x0,y1,zb],[x1,y1,zb],[x1,y1,zr],[x0,y1,zr]],[0,-1,0],RW],
-      [[[x0,0,zr],[x0,0,zb],[x0,y1,zb],[x0,y1,zr]],[1,0,0],RW],[[[x1,0,zb],[x1,0,zr],[x1,y1,zr],[x1,y1,zb]],[-1,0,0],RW]])quad(P,n,U,F); // back wall, floor, ceiling, sides (facing in)
-    const sh=Math.max(2,Math.floor((y1-4)/5.5));for(let k=0;k<sh;k++){const y=4+k*5.5;bx(x0+1.5,y,zb,x1-1.5,y+0.6,zb+3,7,F); // shelves on the back wall, goods on them
-      for(let x=x0+2.2,i=k;x<x1-3.5;x+=3.4,i++)bx(x,y+0.6,zb+0.6,x+2.2,y+2.2+(i%3)*0.6,zb+2.4,i%2?9:8,F);}
-    const dc=DR.length?(DR[0].w[0]+DR[0].w[2])/2:0,rgt=dc<=0,ca=rgt?x1-5:x0+1.2,cb=ca+3.8,cz0=zb+3.5,cz1=zr-3.5,fz=rgt?ca:cb; // the counter: along the side away from the door, running back into the shop
-    bx(ca,0,cz0,cb,5,cz1,7,F);bx(rgt?ca-0.35:cb-0.05,0.3,cz0+0.3,rgt?ca+0.05:cb+0.35,4.7,cz1-0.3,8,F);bx(ca-0.4,5,cz0-0.4,cb+0.4,5.7,cz1+0.4,9,F);bx((ca+cb)/2-1.2,5.7,cz1-4,(ca+cb)/2+1.2,7.2,cz1-2,7,F); // its body, its front in the shop's colour, its top, a till on it
-    bx(-2.2,y1-1.1,(zr+zb)/2-1.4,2.2,y1,(zr+zb)/2+1.4,10,lit?1:0);} // the lamp
+  {const F=lit?3:0,x0=L+1.2,x1=W/2-1.2,y1=H-1.2,zb=-z0+1.2,RW=sw_(5),RF=sw_(6),bx=(a,b,e,f,g,h,i,fl_)=>{const n=pos.length/3;box(a,b,e,f,g,h,i);for(let k=n;k<pos.length/3;k++)uv[k*4+2]=fl_;}; // the rooms inside, seen through the openings: lit by their lamps when open (F 3)
+    const br=[];for(const w of WN)if(w[1]>=12){const lo=Math.max(0,...WN.filter(v=>v[3]<=w[1]+0.01).map(v=>v[3])),b=(lo+w[1])/2;if(lo>0&&!WN.some(v=>v[1]<b-0.01&&v[3]>b+0.01)&&!br.some(x=>Math.abs(x-b)<1))br.push(b);} // a storey's floor: between one row of windows and the next (where nothing spans it)
+    br.sort((a,b)=>a-b);const LV=[0,...br].map((y,i)=>[i?y+0.6:0,i<br.length?br[i]-0.6:y1]),dc=DR.length?(DR[0].w[0]+DR[0].w[2])/2:0;
+    for(const y of br)bx(x0,y-0.6,zb,x1,y+0.6,zr,1,F); // the floor between two storeys
+    for(const[ya,yt]of LV){for(const[P,n,U]of[[[[x0,ya,zb],[x1,ya,zb],[x1,yt,zb],[x0,yt,zb]],[0,0,1],RW],[[[x0,ya,zr],[x1,ya,zr],[x1,ya,zb],[x0,ya,zb]],[0,1,0],RF],[[[x0,yt,zb],[x1,yt,zb],[x1,yt,zr],[x0,yt,zr]],[0,-1,0],RW],
+        [[[x0,ya,zr],[x0,ya,zb],[x0,yt,zb],[x0,yt,zr]],[1,0,0],RW],[[[x1,ya,zb],[x1,ya,zr],[x1,yt,zr],[x1,yt,zb]],[-1,0,0],RW]])quad(P,n,U,F); // its back wall, floor, ceiling and sides (facing in)
+      const sh=Math.max(1,Math.floor((yt-ya-4)/5.5));for(let k=0;k<sh;k++){const y=ya+(ya?2.5:4)+k*5.5;if(y>yt-2.6)break;bx(x0+1.5,y,zb,x1-1.5,y+0.6,zb+3,7,F); // shelves on the back wall, goods on them
+        for(let x=x0+2.2,i=k+(ya?1:0);x<x1-3.5;x+=3.4,i++)bx(x,y+0.6,zb+0.6,x+2.2,y+2.2+(i%3)*0.6,zb+2.4,i%2?9:8,F);}
+      bx(-2.2,yt-1.1,(zr+zb)/2-1.4,2.2,yt,(zr+zb)/2+1.4,10,lit?1:0);} // its lamp
+    const rgt=dc<=0,ca=rgt?x1-5:x0+1.2,cb=ca+3.8,cz0=zb+3.5,cz1=zr-3.5; // the counter, downstairs: along the side away from the door, running back into the shop
+    bx(ca,0,cz0,cb,5,cz1,7,F);bx(rgt?ca-0.35:cb-0.05,0.3,cz0+0.3,rgt?ca+0.05:cb+0.35,4.7,cz1-0.3,8,F);bx(ca-0.4,5,cz0-0.4,cb+0.4,5.7,cz1+0.4,9,F);bx((ca+cb)/2-1.2,5.7,cz1-4,(ca+cb)/2+1.2,7.2,cz1-2,7,F);}
   const U1=sw_(1);quad([[W/2,0,z0],[W/2,0,-z0],[W/2,H,-z0],[W/2,H,z0]],[1,0,0],U0);quad([[L,0,-z0],[L,0,z0],[L,H,z0],[L,H,-z0]],[-1,0,0],U0);quad([[W/2,0,-z0],[L,0,-z0],[L,H,-z0],[W/2,H,-z0]],[0,0,-1],U0); // the sides and back
   const ov=1.4,rt=1.6,top=H+rt;box(L-ov,H,-z0-ov,W/2+ov,top,z0+ov,2);quad([[L-ov+0.3,top+0.02,z0+ov-0.3],[W/2+ov-0.3,top+0.02,z0+ov-0.3],[W/2+ov-0.3,top+0.02,-z0-ov+0.3],[L-ov+0.3,top+0.02,-z0-ov+0.3]],[0,1,0],U1); // the roof: its edge in the outline colour, its top
   const aspect=sw/sh,sW=Math.min(W*0.9,W*0.72*aspect)*1.4,sH=sW/aspect,yb=top+B.ph,zs=z0-3; // the sign, mounted on the scaffolding at the roof's front
@@ -135,7 +138,7 @@ function shopModel(id,bk,lit,fl,si,open,soon){ // si: the sign's loaded image; o
   const cy=(yb+sH)/2;let Rm=0;for(let i=1;i<pos.length;i+=3){pos[i]-=cy;Rm=Math.max(Rm,Math.hypot(pos[i-1],pos[i],pos[i+1]));} // centred (for the renderer's square); its foot is at y −cy
   _duckModels.set(type,{g:{pos:new Float32Array(pos),nrm:new Float32Array(nrm),uv:new Float32Array(uv),idx:new Uint16Array(idx),R:Rm,foot:-cy},nomk:1,mat:13,c1:[1,1,1],c2:[1,1,1],img:tx});
   pos.length=nrm.length=uv.length=idx.length=0;for(const[a,b,e,f,z]of panes)quad([[a,b-cy,z],[e,b-cy,z],[e,f-cy,z],[a,f-cy,z]],[0,0,1],sw_(0)); // its glass, apart: drawn as glass (it reflects what is round it), after the building
-  const gc=[0.84,0.92,0.95];_duckModels.set(type+'|glass',{g:{pos:new Float32Array(pos),nrm:new Float32Array(nrm),uv:new Float32Array(uv),idx:new Uint16Array(idx),R:Rm},nomk:1,mat:3,c1:gc,c2:gc,ew:1/(W*1.6)});return type;} // (ew: across the building, its glass reflects a stretch of the street, scaled to its small windows)
+  const gc=[0.84,0.92,0.95];_duckModels.set(type+'|glass',{g:{pos:new Float32Array(pos),nrm:new Float32Array(nrm),uv:new Float32Array(uv),idx:new Uint16Array(idx),R:Rm},nomk:1,mat:3,gc:1,c1:gc,c2:gc,ew:1/(W*1.6)});return type;} // (ew: across the building, its glass reflects a stretch of the street, scaled to its small windows)
 function duckGeo(shape){return _duckModels.get('geo|'+shape)||null;} // decoded once at load (duckLoad)
 async function duckLoad(){ // the two baked meshes and the markings texture: decompressed and decoded once, at load
   const D=DUCK_MESH;if(!D.nv)return;
@@ -162,7 +165,7 @@ function duckCtx(gl){
     'void main(){vec3 P=aP,N=aN;if(uFl>0.0){P.z*=uFl;N=vec3(0.0,0.0,aN.z>=0.0?1.0:-1.0);}'+ // Paper: pressed flat to a thin card, each face the side view as drawn
     'vM=N;vU=aU;vH=0.0;if(uSc>0.5){vec3 w=uPos+uR*P*uMS;vH=w.z;vec4 v=uV*vec4(w,1.0);vP=v.xyz;vN=uVR*(uR*N);gl_Position=uPj*v;}'+
     'else{vec3 p=uR*P;vP=p;vN=uR*N;gl_Position=vec4(p.xy*uK.x,-p.z*uK.y,1.0);}}'));
-  gl.attachShader(pr,sh(gl.FRAGMENT_SHADER,(dd?'#extension GL_OES_standard_derivatives : enable\n':'')+'precision mediump float;varying vec3 vN;varying vec3 vM;varying vec4 vU;varying vec3 vP;varying float vH;uniform float uCl;uniform float uNk;uniform float uBp;uniform sampler2D uImg;uniform float uEo;uniform float uEm;uniform float uEW;'+
+  gl.attachShader(pr,sh(gl.FRAGMENT_SHADER,(dd?'#extension GL_OES_standard_derivatives : enable\n':'')+'precision mediump float;varying vec3 vN;varying vec3 vM;varying vec4 vU;varying vec3 vP;varying float vH;uniform float uCl;uniform float uNk;uniform float uBp;uniform sampler2D uImg;uniform float uEo;uniform float uEm;uniform float uGc;uniform float uEW;'+
     'uniform vec3 uC1;uniform vec3 uC2;uniform float uM;uniform float uGl;uniform float uTr;uniform float uA;uniform sampler2D uTex;uniform vec4 uTS;'+
     'uniform sampler2D uEnv;uniform vec3 uEP;uniform float uEA;uniform vec4 uLd[6];uniform vec3 uLc[6];uniform vec3 uDim;uniform float uAA;uniform vec3 uSunL;uniform vec3 uSunC;'+
     'vec3 hue(float h){return clamp(abs(mod(h*6.0+vec3(0.0,4.0,2.0),6.0)-3.0)-1.0,0.0,1.0);}'+
@@ -189,6 +192,7 @@ function duckCtx(gl){
     'vec3 col;float a=1.0;bool em=m==13.0&&((vU.z>0.5&&vU.z<1.5)||vU.z>2.5);if(uEo>0.5&&!em){gl_FragColor=vec4(0.0);return;}'+ // em: what glows on a painted model (uEo: draw only that — a shop's neon glow is blurred from it)
     'if(m==1.0){col=c*(0.62+0.32*g)*(0.35+0.75*dif)+pow(nh,12.0)*0.12*uGl;}'+
     'else if(m==13.0){vec4 t=texture2D(uImg,vU.xy);if(t.a<0.5)discard;col=vU.z>2.5?t.rgb*(0.5+0.3*max(0.0,n.y)+0.3*max(0.0,n.z))*uEm:vU.z>1.5?vec3(0.13,0.13,0.15)*(0.45+0.6*dif):vU.z>0.5?t.rgb*uEm+t.rgb*lt*0.4:t.rgb*(0.3+0.8*dif+lt)+pow(nh,30.0)*0.04;}'+ // Painted (a shop): its texture (uv in vU.xy), lit by the sun; vU.z 1 = glowing (an open shop\'s sign and lamp), 2 = the back of a sign, 3 = inside an open shop (lit by its lamp)
+    'else if(m==3.0&&uGc>0.5){float fr=0.04+0.96*pow(edg,3.0),sp=(pow(nh,90.0)*2.0)*uGl;vec3 R=env*uEA*(0.22+0.78*fr)+sp+gs;float ga=0.05+0.3*fr;gl_FragColor=vec4(min(R+c*0.06,vec3(1.0))*uA,min(1.0,ga+sp*0.5)*uA);return;}'+ // clear glass (a shop window): nearly see-through, the room behind shows; what it reflects (Fresnel: more at a slant) and its glints are added over it
     'else if(m==3.0){float sp=(pow(nh,80.0)*1.6+rim*0.6)*uGl;col=c*(0.7*(0.55+0.5*dif)+0.25*edg)+sp+env*uEA*(0.3+0.7*edg)+gs;a=min(1.0,0.42+0.55*pow(edg,1.5)+sp/1.2+ln*0.6);}'+
     'else if(m==2.0||m==7.0){float au=m==7.0?1.0:0.0;vec3 r=reflect(-V,n);float el=dot(env,vec3(0.3,0.59,0.11)),hz=smoothstep(-0.2,0.25,r.y),fr=pow(edg,2.0);'+ // Metal and Gold: a chrome-style horizon split and the scene's brightness drive a dark → metal → bright ramp, so both read as polished metal
     'float s=0.02+0.42*dif*hz+0.3*hz+1.1*el*uEA+0.35*fr*hz;vec3 g0=mix(c*0.07,vec3(0.13,0.06,0.01),au),g2=mix(vec3(1.0),vec3(1.0,0.95,0.7),au),gt=mix(vec3(1.0),vec3(1.0,0.82,0.42),au);'+ // steel: near-black → silver → white; gold: dark bronze → gold → pale gold
@@ -206,7 +210,7 @@ function duckCtx(gl){
     'a*=uA;gl_FragColor=vec4(min(col,vec3(1.0))*a,a);}'));
   gl.linkProgram(pr);if(!gl.getProgramParameter(pr,gl.LINK_STATUS)){console.error(gl.getProgramInfoLog(pr));return null;}
   const at={},un={};for(const k of ['aP','aN','aU'])at[k]=gl.getAttribLocation(pr,k);
-  for(const k of ['uEW','uImg','uEo','uEm','uNk','uCl','uFl','uR','uK','uC1','uC2','uM','uGl','uTr','uA','uTex','uTS','uEnv','uEP','uEA','uLd','uLc','uDim','uAA','uBp','uSc','uV','uPj','uVR','uPos','uMS','uSunL','uSunC'])un[k]=gl.getUniformLocation(pr,k);
+  for(const k of ['uEW','uImg','uEo','uEm','uGc','uNk','uCl','uFl','uR','uK','uC1','uC2','uM','uGl','uTr','uA','uTex','uTS','uEnv','uEP','uEA','uLd','uLc','uDim','uAA','uBp','uSc','uV','uPj','uVR','uPos','uMS','uSunL','uSunC'])un[k]=gl.getUniformLocation(pr,k);
   const envT=gl.createTexture();gl.bindTexture(gl.TEXTURE_2D,envT);gl.texImage2D(gl.TEXTURE_2D,0,gl.RGBA,1,1,0,gl.RGBA,gl.UNSIGNED_BYTE,new Uint8Array([0,0,0,255]));
   for(const [p,v] of [[gl.TEXTURE_MIN_FILTER,gl.LINEAR],[gl.TEXTURE_MAG_FILTER,gl.LINEAR],[gl.TEXTURE_WRAP_S,gl.CLAMP_TO_EDGE],[gl.TEXTURE_WRAP_T,gl.CLAMP_TO_EDGE]])gl.texParameteri(gl.TEXTURE_2D,p,v);
   return{gl,pr,at,un,envT,envCv:document.createElement('canvas'),envAt:-1,bufs:new Map(),mtex:null,itex:new Map()};}
@@ -247,7 +251,7 @@ function duckBind(G,M,env,hpx){ // everything a duck draw shares: its mesh and m
   if(M.img){let t=G.itex.get(M.img);if(!t){t=gl.createTexture();gl.bindTexture(gl.TEXTURE_2D,t);gl.pixelStorei(gl.UNPACK_PREMULTIPLY_ALPHA_WEBGL,false);gl.texImage2D(gl.TEXTURE_2D,0,gl.RGBA,gl.RGBA,gl.UNSIGNED_BYTE,M.img);gl.generateMipmap(gl.TEXTURE_2D); // a painted model's texture (once per context)
       for(const [p,v] of [[gl.TEXTURE_MIN_FILTER,gl.LINEAR_MIPMAP_LINEAR],[gl.TEXTURE_MAG_FILTER,gl.LINEAR],[gl.TEXTURE_WRAP_S,gl.CLAMP_TO_EDGE],[gl.TEXTURE_WRAP_T,gl.CLAMP_TO_EDGE]])gl.texParameteri(gl.TEXTURE_2D,p,v);G.itex.set(M.img,t);}
     gl.activeTexture(gl.TEXTURE2);gl.bindTexture(gl.TEXTURE_2D,t);gl.uniform1i(u.uImg,2);}
-  gl.uniform1f(u.uEo,M.eo?1:0);gl.uniform1f(u.uEm,M.emk!=null?M.emk:1);gl.uniform1f(u.uEW,M.ew||0);
+  gl.uniform1f(u.uEo,M.eo?1:0);gl.uniform1f(u.uEm,M.emk!=null?M.emk:1);gl.uniform1f(u.uGc,M.gc?1:0);gl.uniform1f(u.uEW,M.ew||0);
   const refl=M.mat===2||M.mat===3||M.mat===7,ld=new Float32Array(24),lc=new Float32Array(18);
   if(refl&&env){gl.uniform3f(u.uEP,1-env.x/Math.max(1,W),env.y/Math.max(1,H),0.22);gl.uniform1f(u.uEA,M.mat===3?T.glassReflect:T.metalReflA);}
   else{gl.uniform3f(u.uEP,0.5,0.5,0.22);gl.uniform1f(u.uEA,refl?0.5:0);}
@@ -449,7 +453,7 @@ function cursorStain(cx,now,w,dark,toXY){ // drawn over a finished scene, but on
 const SHOP_BLD={s:{w:58,h:30,d:24,win:[[4,0,24,22],[28,9,54,22]],bar:[[4,10,24,11]],posts:[[12,19],[39,46]],ph:6,wall:'#7f7f7f',roof:'#8a8a8a',line:'#595959'},
   m:{w:64,h:28,d:26,win:[[3,15,20,23],[22,15,35,23],[37,15,61,23],[7,3,20,11],[22,0,32,12],[34,3,57,11]],bar:[[26.6,0,27.4,12]],posts:[[8,11],[24,27],[37,40],[53,56]],ph:4,wall:'#adadad',roof:'#b8b8b8',line:'#595959'}};
 SHOP_BLD.d=Object.assign({},SHOP_BLD.s,{wall:'#0b0b0d',roof:'#141418',line:'#7f7f7f'});SHOP_BLD.l=Object.assign({},SHOP_BLD.m,{ph:11}); // the Gift Shop's dark one; rank 3: the wide two-storey store with tall scaffolding
-SHOP_BLD.t={w:34,h:40,d:20,win:[[4,28,15,36],[19,28,30,36],[4,16,15,24],[19,16,30,24],[4,0,14,13],[18,3,30,11]],bar:[[4,6.5,14,7.3]],posts:[[6,10],[24,28]],ph:5,wall:'#8c8c8c',roof:'#989898',line:'#595959'}; // rank 2: the tall one (three storeys, narrow)
+SHOP_BLD.t={w:34,h:30,d:20,win:[[3,16,12,25],[13.5,16,20.5,25],[22,16,31,25],[6,0,16,13],[19,7,29,13]],bar:[[10.6,0,11.4,13]],posts:[[6,10],[24,28]],ph:5,wall:'#8c8c8c',roof:'#989898',line:'#595959'}; // rank 2: the tall one (narrow, two storeys: three windows above, a double door and a window below, as its design)
 const SHOP_RANK_BLD=['s','t','l']; // a pop-up's store by rank: small, tall, wide and two-storey (the biggest)
 const HUB_SLOTS=[180,0]; // (the hex's flat side edges; main street takes its four slanted ones) // two more spots in the source hex (angles, as main street's): a pop-up earned on a dark clear opens there
 const SHOPS={};for(const r of csvRead('shops'))SHOPS[r.id]={n:r.name,tag:r.tag,about:r.about,street:cu(r.street),open:cu(r.open),close:cu(r.close),col:r.col,a:cu(r.angle),bk:cu(r.building),flip:cu(r.flip),cur:cu(r.currency),at:r.rank1===''?undefined:[cellV(r.rank1),cellV(r.rank2),cellV(r.rank3)]}; // content/shops.csv
