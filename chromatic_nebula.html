@@ -119,7 +119,7 @@ button:hover{background:rgba(255,255,255,0.15);}
   <div id="dock" class="bottom"><div id="inventoryPanel"></div><div id="touch-info"></div></div>
   <canvas id="cur"></canvas>
 </div>
-<script src="content.js?v=20261105h"></script><script src="shared.js?v=20261105h"></script>
+<script src="content.js?v=20261105i"></script><script src="shared.js?v=20261105i"></script>
 <script>
 txtApply(); // the page's own labels (content/strings.csv)
 const _SRC=document.documentElement.outerHTML; // kept so the Encyclopedia can run live scenes as embedded copies of the game
@@ -604,7 +604,6 @@ let pointsCanvas=null,pointsCtx=null;
 const observer=new IntersectionObserver(e=>{visible=e[0].isIntersecting;if(visible&&!rafId&&!hubAsleep)rafId=requestAnimationFrame(loop);},{threshold:0.01});
 observer.observe(wrap);
 const pressedIDs=new Set();
-const EFFECT_NAMES=['THROW','FLING','ORBIT','WHIRL','CATCH','SNARE'];  // Push out · Fling out · Orbit · Pull in · Attract · Brake
 const COLOR_NAMES=EFFECT_NAMES;
 // The six effect colours, in effect order. Opposites are 3 apart (THROW/WHIRL, FLING/CATCH, ORBIT/SNARE) — their hues sit ~180° apart.
 
@@ -10943,7 +10942,7 @@ function _textI(c,t,x,y,stroke){
 }
 function fillTextI(c,t,x,y){_textI(c,t,x,y,false);}
 function strokeTextI(c,t,x,y){_textI(c,t,x,y,true);}
-window.ilHint=(a,b)=>flashSaveStatus(a+' · '+b); // a menu button's bracketed context, in the feed (content.js parenHints)
+window.ilHint=(a,b)=>HUB?hubPost({type:'hint',a,b}):flashSaveStatus(a+' · '+b); // a menu button's bracketed context, in the feed (content.js parenHints)
 function setFeed(n,d,color){
   if(n===_feedN&&d===_feedD&&color===_feedC)return;
   _feedN=n;_feedD=d;_feedC=color;
@@ -12759,7 +12758,7 @@ function cardHTML(ev,mini){ // the one card format: name bar, art box, type line
   return `<div class="mtg${mini?' sm':''}" data-ev="${ev.id}" style="--rc:${TIER_COL[t]}"><div class="nm"><b>${gEsc(ev.name)}</b><span class="gem"></span></div><div class="art" data-scene="${ev.scene}">${mini?`<canvas class="rl-m" width="64" height="64" data-k="${ev.ico}"></canvas>`:''}</div><div class="ty"><span>${gEsc(ev.type.replace(/^Event — /,''))}</span><span>Tier ${TIER[t]}</span></div><div class="tx">${(mini?ev.facts().slice(0,1):ev.facts()).map(f=>`<p${ev.fx?' class="fx"':''}>${gEsc(f)}</p>`).join('')}${ev.flavor?`<p class="fl">${gEsc(ev.flavor)}</p>`:''}</div></div>`; // (small: its first line and its flavour; the rest when it is opened) (fx: the lines are changes to play, set apart from the flavour)
 }
 function mountScene(h,w,hh){if(!h||h.firstChild||document.querySelectorAll('.rl-live iframe,.mtg .art iframe').length>=5)return;const f=document.createElement('iframe'),nm=h.dataset.s||h.dataset.scene;f.style.cssText='border:0;max-width:100%;pointer-events:none;background:#000;border-radius:6px;'+(w?`width:${w}px;height:${hh}px`:'width:100%;height:100%');
-  if(nm.slice(0,4)==='hub:'){const[sn,dk]=nm.slice(4).split(':');f.src='Surface_Map_HUB.html?v=20261105h&scene='+sn+(sn==='shop'?'&k='+encodeURIComponent(dk||''):'')+'&T='+encodeURIComponent(JSON.stringify(mapSceneT()))+'&D='+encodeURIComponent(JSON.stringify(dk&&DUCK_TYPES[dk]?{[dk]:DUCK_TYPES[dk]}:Object.fromEntries(Object.entries(DUCK_TYPES).slice(0,4))));}else f.srcdoc=liveSrc(nm);h.appendChild(f);} // a Surface Map demo is played by the map itself
+  if(nm.slice(0,4)==='hub:'){const[sn,dk]=nm.slice(4).split(':');f.src='Surface_Map_HUB.html?v=20261105i&scene='+sn+(sn==='shop'?'&k='+encodeURIComponent(dk||''):'')+'&T='+encodeURIComponent(JSON.stringify(mapSceneT()))+'&D='+encodeURIComponent(JSON.stringify(dk&&DUCK_TYPES[dk]?{[dk]:DUCK_TYPES[dk]}:Object.fromEntries(Object.entries(DUCK_TYPES).slice(0,4))));}else f.srcdoc=liveSrc(nm);h.appendChild(f);} // a Surface Map demo is played by the map itself
 function mapSceneT(){const o={};for(const k in T)if(/^(map|bh|duck|wake|glass|metal|dimGlow|glowHalo|maxSpeed)/.test(k))o[k]=T[k];return o;} // what a map demo needs of the tuners
 function showCardHTML(html){ // a Guide card (an entry or a shop) opened over the Guide, where an event card shows
   guideCSS();_evOpen=true;_evReview=true;const ov=evOverlayEl();ov.innerHTML=`<div class="ev-box">${html}<button id="evOk">${txt('card.close')}</button></div>`;ov.style.display='flex';wrap.classList.add('ev-open');
@@ -12996,7 +12995,7 @@ function rulesRender(){
     body.innerHTML=`<div class="byL"><div class="byV"><canvas id="buoyView"></canvas></div><div class="byR"><p><input id="byName" maxlength="20" value="${gEsc(nm)}" style="background:transparent;color:inherit;border:1px solid currentColor;padding:4px 8px;font:inherit;width:100%;box-sizing:border-box"></p><div class="ncols" style="display:flex;flex-wrap:wrap;gap:6px">${BUOY_COLS.map(c=>`<span data-c="${c}" style="width:26px;height:26px;cursor:pointer;background:${c};border:1px solid rgba(128,128,128,.6);box-sizing:border-box;${c===cl?'outline:2px solid currentColor;outline-offset:2px':''}"></span>`).join('')}</div>`+STATUS_CSS+`<div class="stg" style="font-size:15px;margin-top:16px">${txt('coll.tab.status')} <span id="bySub">${['now','hist'].map(t=>`<button class="gbtn sub" data-s="${t}"${t===_buoySub?' style="text-decoration:underline"':''}>${txt('coll.buoy.'+t)}</button>`).join(' ')}</span></div>`+(_buoySub==='now'?statusHTML(statusData(),1):buoyHistHTML())+`</div></div>`;buoyViewMount();body.querySelector('.byR').scrollTop=sy;
     body.querySelector('#bySub').onclick=e=>{const t=e.target.dataset&&e.target.dataset.s;if(t){_buoySub=t;rulesRender();}};
     const save=(k,v)=>{try{localStorage.setItem(k,v);}catch(e){}hubPost({type:'buoy'});};document.getElementById('byName').onchange=e=>{const v=e.target.value.trim().slice(0,20);if(v)save('il_name_v1',v);};
-    body.querySelector('.ncols').onclick=e=>{const c=e.target.dataset&&e.target.dataset.c;if(c){save('il_buoycol_v1',c);rulesRender();}};
+    body.querySelector('.ncols').onpointerover=e=>{const h=buoyColHint(e.target.dataset&&e.target.dataset.c);if(h)window.ilHint(h[0],h[1]);};body.querySelector('.ncols').onclick=e=>{const c=e.target.dataset&&e.target.dataset.c;if(c){save('il_buoycol_v1',c);rulesRender();}};
   } else if(_rulesTab==='mshops'){const f=n=>(+n).toLocaleString('en-US'),bought=k=>SHOP_ITEMS.filter(i=>i.shop===k).reduce((a,i)=>a+(shopLog[i.id]||0),0); // the shops you know: click one to look at its building and what you bought there
     body.innerHTML=`<p class="rl-note">${txt('coll.shops.note')}</p><div class="rl-cards">`+Object.keys(SHOPS).map(k=>evSeen('shop_'+k)?`<div class="mtg sm sv shv" data-shopv="${k}"><img class="sign" src="shops/sign_${k}.svg" alt=""><b>${gEsc(SHOPS[k].n)}</b><span>${txt('coll.shops.bought',f(bought(k)))}</span></div>`:'<div class="mtg sm back">?</div>').join('')+'</div>';
     body.querySelectorAll('[data-shopv]').forEach(el=>el.onclick=e=>{e.stopPropagation();openShopViewer(el.dataset.shopv);});
@@ -13627,23 +13626,26 @@ function buoyHistHTML(){ // Status → History: what you have bought, this run d
   const plays=H&&H.plays&&H.plays.length?'<div class="stu" style="max-height:260px;overflow:auto">'+H.plays.slice().reverse().map(p=>`<div style="margin:2px 0"><span style="opacity:.6">${txt('hist.when',p.day,TIMES[p.clock]||'')}</span> ${gEsc(p.t)}${p.d?` <span style="opacity:.75">— ${gEsc(p.d)}</span>`:''}</div>`).join('')+'</div>':`<div class="stu">${txt('hist.noplays')}</div>`;
   return sec('hist.shopping')+shop+sec('hist.run')+run+sec('hist.life')+life+sec('hist.plays')+plays;}
 function openShopViewer(k){ // a shop you know, up close: its building in the map's light now, open or closed (and a pop-up at each rank), and what you have bought there
-  const S=SHOPS[k];if(!S)return;const si=new Image();si.src='shops/sign_'+k+'.svg';let lit=shopIsOpen(k,runState.clock||12,runState),rank=3;const f=n=>(+n).toLocaleString('en-US');
+  const S=SHOPS[k];if(!S)return;let si=k==='clock'?clockSign(runState.clock||12):new Image();if(k!=='clock')si.src='shops/sign_'+k+'.svg';let lit=shopIsOpen(k,runState.clock||12,runState),rank=3;const f=n=>(+n).toLocaleString('en-US');
   const its=SHOP_ITEMS.filter(i=>i.shop===k&&(shopLog[i.id]||discSeen.has('up:'+i.id))),hist=its.length?its.map(i=>`<div style="display:flex;justify-content:space-between;gap:18px"><span>${gEsc(i.n)}</span><b style="font-weight:400">${shopOnce(i)&&discSeen.has('up:'+i.id)?txt('shopv.owned'):'× '+f(shopLog[i.id]||0)}</b></div>`).join(''):`<div style="opacity:.7">${txt('shopv.none')}</div>`;
   const btn=(a,l,on)=>`<button data-a="${a}" style="font:12px system-ui;padding:3px 10px;background:${on?'#fff':'transparent'};color:${on?'#000':'#eee'};border:1px solid #ccc;border-radius:3px;cursor:pointer">${l}</button>`;
   const ctl=()=>btn('lit',txt(lit?'shopv.open':'shopv.closed'),lit)+(S.street?'':[1,2,3].map(r=>btn('r'+r,txt('shopv.rank',r),rank===r)).join(''));
   openModelViewer({head:'<b>'+gEsc(S.n)+'</b>',sub:txt(S.street?'shopv.street':'shopv.popup'),q0:quatTurn(quatTurn([0,0,0,1],0,-0.35,0),0.32,0,0),
     foot:`<div id="shvCtl" style="display:flex;gap:6px;margin-top:8px">${ctl()}</div><div style="margin-top:10px;min-width:260px;max-width:420px;max-height:150px;overflow:auto"><div style="opacity:.7;margin-bottom:3px">${txt('shopv.history')}</div>${hist}</div>`,
     wire:ov=>{const box=ov.querySelector('#shvCtl');box.onclick=e=>{const a=e.target.dataset&&e.target.dataset.a;if(!a)return;if(a==='lit')lit=!lit;else rank=+a.slice(1);box.innerHTML=ctl();};},
-    draw:(c,q,zoom,N,now)=>{if(!si.complete||!si.naturalWidth)return;const bk=S.street?(S.bk||'s'):SHOP_RANK_BLD[rank-1],fl=bk===(S.bk||'s')&&S.flip,sun=DUCK_SUN;DUCK_SUN=viewSun();
-      const type=shopModel(k,bk,lit,fl,si,false),Mo=duckModel(type),h=N*0.44*zoom/Mo.g.R;Mo.emk=shopGlowK();drawDuck3D(c,type,q,[[N/2,N/2]],h,1,N);
+    draw:(c,q,zoom,N,now)=>{if(k==='clock')si=clockSign(runState.clock||12);if(!si.complete||!si.naturalWidth)return;const bk=S.street?(S.bk||'s'):SHOP_RANK_BLD[rank-1],fl=bk===(S.bk||'s')&&S.flip,sun=DUCK_SUN;DUCK_SUN=viewSun();
+      const type=shopModel(k,bk,lit,fl,si,false,false,k==='pulsing'?Math.floor(now/800)%6:undefined),Mo=duckModel(type),h=N*0.44*zoom/Mo.g.R;Mo.emk=shopGlowK();drawDuck3D(c,type,q,[[N/2,N/2]],h,1,N);
       duckEnvUpdate(canvas,now);drawDuck3D(c,type+'|glass',q,[[N/2,N/2]],h,lit?0.6+0.7*(1-Mo.emk):1,N,{x:W/2,y:H/2,lights:[]});Mo.emk=1;DUCK_SUN=sun;}});}
 // Your buoy on the Buoy page: big, on the water. Drag across it to turn it and rock it, click to dunk it, the wheel zooms; it bobs and turns slowly by itself
 let buoyV=null;
 function buoyViewMount(){buoyV=null;const cv=document.getElementById('buoyView');if(!cv)return;const dpr=Math.min(2,window.devicePixelRatio||1);
-  const V=buoyV={cv,c:cv.getContext('2d'),dpr,W:1,H:1,yaw:0.6,wy:0,rock:0,wr:0,dunk:0,zoom:1,last:null,down:null},at=e=>{const b=cv.getBoundingClientRect();return[e.clientX-b.left,e.clientY-b.top];};
-  cv.addEventListener('pointerdown',e=>{cv.setPointerCapture(e.pointerId);V.down={p:at(e),t:performance.now()};V.last=V.down.p;});
-  cv.addEventListener('pointermove',e=>{if(!V.last)return;const p=at(e);V.wy+=(p[0]-V.last[0])*0.0012;V.wr+=(p[1]-V.last[1])*0.0016;V.last=p;});
-  cv.addEventListener('pointerup',e=>{const p=at(e),D=V.down;V.last=V.down=null;if(D&&Math.hypot(p[0]-D.p[0],p[1]-D.p[1])<6&&performance.now()-D.t<400&&!V.dunk)V.dunk=performance.now();});
+  const V=buoyV={cv,c:cv.getContext('2d'),dpr,W:1,H:1,yaw:0.6,wy:0,rock:0,wr:0,dunk:0,zoom:1,last:null,down:null,spot:{a:0.6,d:0,cyc:0.6,t:0},tgt:null,hit:null,toW:null},at=e=>{const b=cv.getBoundingClientRect();return[e.clientX-b.left,e.clientY-b.top];};
+  const aim=p=>{if(V.toW)V.tgt=V.toW(p[0]*dpr,p[1]*dpr);}; // the spot sent to a point on the water (it goes there at its own pace, and stays)
+  cv.addEventListener('pointerdown',e=>{if(e.button!==0)return;cv.setPointerCapture(e.pointerId);const p=at(e);V.down={p,t:performance.now(),water:!(V.hit&&V.hit(p[0]*dpr,p[1]*dpr))};V.last=p;});
+  cv.addEventListener('pointermove',e=>{if(!V.last)return;const p=at(e);if(V.down&&V.down.water){if(Math.hypot(p[0]-V.down.p[0],p[1]-V.down.p[1])>6)aim(p);}else{V.wy+=(p[0]-V.last[0])*0.0012;V.wr+=(p[1]-V.last[1])*0.0016;}V.last=p;}); // drag the buoy: turn and rock it; drag the water: the spot follows
+  cv.addEventListener('pointerup',e=>{const p=at(e),D=V.down;V.last=V.down=null;if(D&&!D.water&&Math.hypot(p[0]-D.p[0],p[1]-D.p[1])<6&&performance.now()-D.t<400&&!V.dunk)V.dunk=performance.now();});
+  cv.addEventListener('dblclick',e=>{const p=at(e);if(!(V.hit&&V.hit(p[0]*dpr,p[1]*dpr)))aim(p);}); // a double click on the water: the spot goes there and holds
+  cv.addEventListener('contextmenu',e=>{e.preventDefault();V.tgt=null;}); // a right click: let it go (it sweeps round again)
   cv.addEventListener('wheel',e=>{e.preventDefault();V.zoom=Math.max(0.6,Math.min(2.4,V.zoom*Math.exp(-e.deltaY*0.0015)));},{passive:false});}
 function buoyViewDraw(now){const V=buoyV;if(!V||!V.cv.isConnected){buoyV=null;return;}const c=V.c,k=V.dpr,inv=!!invertMode,sun=DUCK_SUN,th=(T.mapTilt!=null?T.mapTilt:32)*Math.PI/180,ct=Math.cos(th),st=Math.sin(th);
   {const w=V.cv.clientWidth||600,hh=V.cv.clientHeight||400;if(w!==V.W||hh!==V.H){V.W=w;V.H=hh;V.cv.width=Math.round(w*k);V.cv.height=Math.round(hh*k);}} // (its column's size)
@@ -13658,7 +13660,17 @@ function buoyViewDraw(now){const V=buoyV;if(!V||!V.cv.isConnected){buoyV=null;re
   const q=quatTurn(quatTurn(quatTurn([0,0,0,1],0,V.yaw,0),Math.PI/2-th,0,0),0,0,V.rock+0.06*Math.sin(now/1300)),m=quatMat(q),base=wl+0.22*h*m[4]+h*(0.05*Math.sin(now/1100)+sink*0.9);
   const at=y=>[x+m[3]*y*h,base-m[4]*y*h]; // a point up its mast, on the screen
   for(let i=0;i<3;i++){const t=((now/2600+i/3)%1),r=h*(0.7+1.6*t);c.strokeStyle=inv?`rgba(40,50,60,${0.3*(1-t)})`:`rgba(200,225,255,${0.3*(1-t)})`;c.lineWidth=k;c.beginPath();c.ellipse(x,wl,r,r*ct,0,0,6.2832);c.stroke();} // its rings on the water (as flat as the map's)
-  drawDuck3D(c,type,q,[at(0)],h,1,0,{x:W/2,y:H/2,lights:[]});drawDuck3D(c,buoyCanModel(),q,[at(BUOY_LAMP)],h,1,0,{x:W/2,y:H/2,lights:[]}); // the buoy, and its can light pointing up
+  const S=V.spot,dms=Math.min(60,now-(S.t||now));S.t=now;if(!S.d)S.d=R*1.732;let ta=S.cyc,td=R*1.732; // its spot light, as on the map: sweeping clockwise round the hexes next to it, or on the point you sent it to
+  V.toW=(X,Y)=>[X-x,(Y-wl)/ct];V.hit=(X,Y)=>{const p=at(1);return Math.hypot(X-p[0],Y-p[1])<h*1.1;};
+  if(V.tgt){ta=Math.atan2(V.tgt[1],V.tgt[0]);td=Math.hypot(V.tgt[0],V.tgt[1]);}
+  {const da=Math.atan2(Math.sin(ta-S.a),Math.cos(ta-S.a)),rate=(T.mapSpotTurn!=null?T.mapSpotTurn:1.6)/1000*dms,lr=R*3/1000*dms;if(Math.abs(da)<=rate){S.a=ta;if(!V.tgt)S.cyc=S.a+6.2832*dms/(T.mapSpotMs||30000);}else S.a+=Math.sign(da)*rate;if(V.tgt)S.cyc=S.a;S.d+=Math.max(-lr,Math.min(lr,td-S.d));}
+  const on=!sink,px=Math.cos(S.a)*S.d,py=Math.sin(S.a)*S.d,lh=BUOY_LAMP*h,Rs=R*0.36,ma=Rs*Math.min(2.2,Math.sqrt(1+(S.d/lh)**2)),sX=x+px,sY=wl+py*ct; // (it comes in at a slant: stretched away from the buoy)
+  if(on){c.save();c.globalCompositeOperation=inv?'multiply':'lighter';c.translate(sX,sY);c.scale(1,ct);c.rotate(S.a);c.scale(ma/Rs,1);const g=c.createRadialGradient(0,0,0,0,0,Rs);g.addColorStop(0,inv?'rgba(120,110,90,.5)':'rgba(255,246,222,.55)');g.addColorStop(0.55,inv?'rgba(160,150,130,.25)':'rgba(255,246,222,.25)');g.addColorStop(1,'rgba(0,0,0,0)');c.fillStyle=g;c.beginPath();c.arc(0,0,Rs,0,6.2832);c.fill();c.restore();} // its spot on the water
+  const dv=on?[px,-py*ct-lh*st,py*st-lh*ct]:[0,st,ct],dl=Math.hypot(...dv)||1,d=dv.map(v=>v/dl),up=Math.abs(d[1])>0.98?[1,0,0]:[0,1,0],cr=(a,b)=>[a[1]*b[2]-a[2]*b[1],a[2]*b[0]-a[0]*b[2],a[0]*b[1]-a[1]*b[0]],nz=v=>{const l=Math.hypot(...v)||1;return v.map(u=>u/l);},X=nz(cr(d,up)),Z=cr(X,d); // its can turned to its spot (straight up while dunked)
+  drawDuck3D(c,type,q,[at(0)],h,1,0,{x:W/2,y:H/2,lights:[]});drawDuck3D(c,buoyCanModel(),[...X,...d,...Z],[at(BUOY_LAMP)],h,1,0,{x:W/2,y:H/2,lights:[]}); // the buoy, and its can light
+  if(on){const L=at(BUOY_LAMP),P=[L];for(let i=0;i<24;i++){const t=i/24*6.2832,ex=Math.cos(t)*ma,ey=Math.sin(t)*Rs,ca=Math.cos(S.a),sa=Math.sin(S.a);P.push([sX+ex*ca-ey*sa,sY+(ex*sa+ey*ca)*ct]);} // its beam: from the can to the spot, faint
+    P.sort((p,q)=>p[0]-q[0]||p[1]-q[1]);const cr2=(o,a,b)=>(a[0]-o[0])*(b[1]-o[1])-(a[1]-o[1])*(b[0]-o[0]),lo=[],hi=[];for(const p of P){while(lo.length>1&&cr2(lo[lo.length-2],lo[lo.length-1],p)<=0)lo.pop();lo.push(p);}for(let i=P.length-1;i>=0;i--){const p=P[i];while(hi.length>1&&cr2(hi[hi.length-2],hi[hi.length-1],p)<=0)hi.pop();hi.push(p);}
+    const Hh=lo.slice(0,-1).concat(hi.slice(0,-1)),g=c.createLinearGradient(L[0],L[1],sX,sY);g.addColorStop(0,inv?'rgba(90,80,60,.16)':'rgba(255,246,222,0.2)');g.addColorStop(1,inv?'rgba(90,80,60,.04)':'rgba(255,246,222,0.04)');c.beginPath();Hh.forEach((p,i)=>c[i?'lineTo':'moveTo'](p[0],p[1]));c.closePath();c.fillStyle=g;c.fill();}
   if(sink>0.05){c.save();c.globalAlpha=0.6*Math.min(1,sink*2);c.fillStyle=bg;c.beginPath();c.ellipse(x,wl,h*1.1,h*1.1*ct,0,0,6.2832);c.fill();c.restore();}DUCK_SUN=sun;} // dunked: the water over it
 SCENES.duck={dur:6500,setup(S){S.ps=[];S.ring(6,30,60,(x,y,i)=>S.ps.push(S.pig(x,y,i,10)));},
   tick(S,t,now){if(!S.fired&&t>700){S.fired=1;S.d=spawnDuck(S.W/2,S.H/2,now,DUCK_IDS[(S.n-1)%DUCK_IDS.length]);S.d.vx=S.d.vy=0;}
