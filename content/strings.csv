@@ -785,7 +785,6 @@ map.dangerift,Dangerift,Surface Map,
 map.dangerift_ate,The Rift ate {n} clear{s} beside it.,Surface Map,"n = $0 — how many
 s = $1 — “s” for more than one"
 coll.tab.buoy,Buoy,Status & collections,
-coll.buoy.note,"Your buoy's name (on its sign) and its colour. More looks, like the ducks', may come later.",Status & collections,
 map.name.colour,Its colour,Surface Map (a new game),
 title.newplayer,New player,the title screen,
 title.who,Continue as…,the title screen,
@@ -887,7 +886,6 @@ coll.mode.space,Space,Status & collections,
 coll.tab.mshops,Shops,Status & collections,
 coll.shops.note,"The shops you have found. Click one to look at its building up close (turn it, zoom, open or closed, a pop-up at each rank) and see what you have bought there.",Status & collections,
 coll.shops.bought,{n} bought,Status & collections,n = $0 — how many things bought there
-coll.buoy.view,"Your buoy, in the light of the map's time of day. Drag across it to turn it and rock it, click to dunk it, scroll to zoom.",Status & collections,
 viewer.how,drag to turn · wheel or pinch to zoom · double-click to reset · Esc to close,Status & collections,
 shopv.open,Open,Status & collections,
 shopv.closed,Closed,Status & collections,

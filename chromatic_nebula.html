@@ -33,9 +33,7 @@ button:hover{background:rgba(255,255,255,0.15);}
 #touch-info .fd{font-size:9px;line-height:11px;opacity:0.62;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
 #wrap.hub-ov>*:not(#rulesOverlay):not(#evOverlay){visibility:hidden!important} /* the map's Guide, cards and Status show over a bare stage (from the first one: this was only set once the pause menu had been opened) */
 #wrap.ui-hidden #hud,#wrap.ui-hidden #stats,#wrap.ui-hidden #statsTools,#wrap.ui-hidden #tunePanel,#wrap.ui-hidden #modesPanel{display:none!important;}
-#tunePanel{position:absolute;top:calc(36px + var(--hud-dy,0px));left:10px;width:312px;max-height:calc(100vh - 50px - var(--dock-h,0px));overflow-y:auto;overflow-x:hidden;scrollbar-gutter:stable;background:rgba(0,0,0,0.88);border:1px solid rgba(255,255,255,0.12);border-radius:6px;z-index:20;display:none;scrollbar-width:thin;scrollbar-color:rgba(255,255,255,0.2) transparent;box-sizing:border-box;}
-#tunePanel::-webkit-scrollbar{width:4px;}
-#tunePanel::-webkit-scrollbar-thumb{background:rgba(255,255,255,0.2);border-radius:2px;}
+#tunePanel{position:absolute;top:calc(36px + var(--hud-dy,0px));left:10px;width:312px;max-height:calc(100vh - 50px - var(--dock-h,0px));overflow-y:auto;overflow-x:hidden;scrollbar-gutter:stable;background:rgba(0,0,0,0.88);border:1px solid rgba(255,255,255,0.12);border-radius:6px;z-index:20;display:none;box-sizing:border-box;}
 #tunePanel .sec{padding:6px 10px 2px;font:9px/1 monospace;color:rgba(255,255,255,0.35);text-transform:uppercase;letter-spacing:1px;border-top:1px solid rgba(255,255,255,0.06);}
 #tunePanel .sec:first-child{border-top:none;}
 #tunePanel .row{display:flex;align-items:center;padding:2px 12px 2px 10px;gap:6px;box-sizing:border-box;}
@@ -12906,7 +12904,7 @@ function guideCSS(){
 #rlTabs{display:flex;gap:6px;flex-wrap:wrap;padding:6px 14px;border-bottom:1px solid rgba(128,128,128,.25)}
 #rlTabs button{background:none;color:inherit;border:1px solid rgba(128,128,128,.45);border-radius:0;padding:3px 11px;font:12px/1.5 system-ui,'Inter',sans-serif;letter-spacing:.6px;cursor:pointer;opacity:.7}#rlTabs button:hover{opacity:1}
 #rlTabs button.on{opacity:1;border-color:currentColor;background:rgba(128,128,128,.22);font-weight:600} /* the open tab, as a shop's open currency tab */
-#rlBody{flex:1 1 auto;overflow-y:auto;overflow-x:hidden;padding:10px 14px 20px;overflow-wrap:anywhere}
+#rlBody{flex:1 1 auto;overflow-y:auto;overflow-x:hidden;padding:10px 14px 20px;overflow-wrap:anywhere}#rlBody.by{overflow:hidden;padding-bottom:10px;min-height:0}.byL{display:flex;gap:16px;height:100%}#rlBody .byV{flex:2 1 0;min-width:0;position:relative}#rlBody #buoyView{position:absolute;left:0;top:0;width:100%;height:100%;display:block;touch-action:none;cursor:grab}.byR{flex:1 1 0;min-width:0;overflow-y:auto;padding:0 14px 20px 2px}.byR .stt td:first-child{white-space:normal}@media (max-width:720px){.byL{flex-direction:column}.byV{flex:0 0 55%}} /* the Buoy page (its right column clears its own scrollbar) */
 .rl-note{opacity:.75;margin:2px 0 10px}
 .rl-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:9px;align-items:start}
 .rl-c{border:1px solid rgba(128,128,128,.4);border-radius:0;background:transparent;overflow:hidden}.rl-c:hover{border-color:rgba(128,128,128,.8)}
@@ -12970,7 +12968,7 @@ function cardSize(ov){ // every small card the same size: its text box as tall a
 function rulesRemount(){document.querySelectorAll('#evOverlay .art-live,#evOverlay .rl-live,#mapInfo .art-live').forEach(h=>{if(!h.closest('.disc-lock')&&!h.classList.contains('disc-lock'))mountScene(h);});} // (an open card's demos, once discovered)
 function rulesRender(){
   const body=document.getElementById('rlBody');if(!body)return;guideCSS();
-  const ov=document.getElementById('rulesOverlay');ov.classList.toggle('inv',!!invertMode);
+  const ov=document.getElementById('rulesOverlay');ov.classList.toggle('inv',!!invertMode);body.classList.toggle('by',_rulesTab==='buoy');
   document.querySelectorAll('#rlTabs button').forEach(b=>b.classList.toggle('on',b.dataset.t===_rulesTab));
   const cards=l=>'<div class="rl-cards">'+l.map(e=>ruleCardHTML(e,true)).join('')+'</div>',sec=(h,b)=>`<h3 class="rl-sec">${h}</h3>`+b; // a page: a grid of small cards
   if(_rulesTab==='map'){
@@ -12994,7 +12992,8 @@ function rulesRender(){
     body.innerHTML='<p class="rl-note">Main street round the source, and the pop-ups a cleared surface can open. A shop is discovered the first time it opens; until then only the shape of its sign shows.</p>'+sec('How shops work',cards(RULES.filter(e=>e[1]==='shops')))+sec('The shops','<div class="rl-cards">'+Object.keys(SHOPS).map(k=>shopCardHTML(k,true)).join('')+'</div>');
   } else if(_rulesTab==='coll'){body.innerHTML='';body.insertAdjacentHTML('beforeend',duckCollectionHTML());const sw=document.getElementById('pondSw');if(sw)sw.onclick=e=>{const m=e.target.dataset&&e.target.dataset.pm;if(!m)return;_pondMode=m;try{localStorage.setItem('il_pondmode',_pondMode);}catch(e){}rulesRender();};
   } else if(_rulesTab==='buoy'){let nm='',cl=BUOY_COLS[0];try{nm=localStorage.getItem('il_name_v1')||'';cl=localStorage.getItem('il_buoycol_v1')||cl;}catch(e){} // your buoy: its name and its colour (the map's own keys)
-    body.innerHTML=`<canvas id="buoyView" style="position:relative;left:auto;top:auto;display:block;width:100%;height:300px;border-radius:10px;touch-action:none;cursor:grab"></canvas><p class="rl-note">${txt('coll.buoy.view')}</p><p class="rl-note">${txt('coll.buoy.note')}</p><p><input id="byName" maxlength="20" value="${gEsc(nm)}" style="background:transparent;color:inherit;border:1px solid currentColor;padding:4px 8px;font:inherit;width:240px"></p><div class="ncols" style="display:flex;flex-wrap:wrap;gap:6px;max-width:420px">${BUOY_COLS.map(c=>`<span data-c="${c}" style="width:26px;height:26px;cursor:pointer;background:${c};border:1px solid rgba(128,128,128,.6);box-sizing:border-box;${c===cl?'outline:2px solid currentColor;outline-offset:2px':''}"></span>`).join('')}</div>`+STATUS_CSS+`<div class="stg" style="font-size:15px;margin-top:16px">${txt('coll.tab.status')} <span id="bySub">${['now','hist'].map(t=>`<button class="gbtn sub" data-s="${t}"${t===_buoySub?' style="text-decoration:underline"':''}>${txt('coll.buoy.'+t)}</button>`).join(' ')}</span></div>`+(_buoySub==='now'?statusHTML(statusData(),1):buoyHistHTML());buoyViewMount();
+    const sy=(body.querySelector('.byR')||{}).scrollTop||0; // the page: your buoy big on the left, two thirds wide and tall; on the right its name, colour and status, in one column that scrolls
+    body.innerHTML=`<div class="byL"><div class="byV"><canvas id="buoyView"></canvas></div><div class="byR"><p><input id="byName" maxlength="20" value="${gEsc(nm)}" style="background:transparent;color:inherit;border:1px solid currentColor;padding:4px 8px;font:inherit;width:100%;box-sizing:border-box"></p><div class="ncols" style="display:flex;flex-wrap:wrap;gap:6px">${BUOY_COLS.map(c=>`<span data-c="${c}" style="width:26px;height:26px;cursor:pointer;background:${c};border:1px solid rgba(128,128,128,.6);box-sizing:border-box;${c===cl?'outline:2px solid currentColor;outline-offset:2px':''}"></span>`).join('')}</div>`+STATUS_CSS+`<div class="stg" style="font-size:15px;margin-top:16px">${txt('coll.tab.status')} <span id="bySub">${['now','hist'].map(t=>`<button class="gbtn sub" data-s="${t}"${t===_buoySub?' style="text-decoration:underline"':''}>${txt('coll.buoy.'+t)}</button>`).join(' ')}</span></div>`+(_buoySub==='now'?statusHTML(statusData(),1):buoyHistHTML())+`</div></div>`;buoyViewMount();body.querySelector('.byR').scrollTop=sy;
     body.querySelector('#bySub').onclick=e=>{const t=e.target.dataset&&e.target.dataset.s;if(t){_buoySub=t;rulesRender();}};
     const save=(k,v)=>{try{localStorage.setItem(k,v);}catch(e){}hubPost({type:'buoy'});};document.getElementById('byName').onchange=e=>{const v=e.target.value.trim().slice(0,20);if(v)save('il_name_v1',v);};
     body.querySelector('.ncols').onclick=e=>{const c=e.target.dataset&&e.target.dataset.c;if(c){save('il_buoycol_v1',c);rulesRender();}};
@@ -13640,22 +13639,27 @@ function openShopViewer(k){ // a shop you know, up close: its building in the ma
       duckEnvUpdate(canvas,now);drawDuck3D(c,type+'|glass',q,[[N/2,N/2]],h,lit?0.6+0.7*(1-Mo.emk):1,N,{x:W/2,y:H/2,lights:[]});Mo.emk=1;DUCK_SUN=sun;}});}
 // Your buoy on the Buoy page: big, on the water. Drag across it to turn it and rock it, click to dunk it, the wheel zooms; it bobs and turns slowly by itself
 let buoyV=null;
-function buoyViewMount(){buoyV=null;const cv=document.getElementById('buoyView');if(!cv)return;const W0=cv.clientWidth||600,H0=300,dpr=Math.min(2,window.devicePixelRatio||1);cv.width=Math.round(W0*dpr);cv.height=Math.round(H0*dpr);
-  const V=buoyV={cv,c:cv.getContext('2d'),dpr,W:W0,H:H0,yaw:0.6,wy:0,rock:0,wr:0,dunk:0,zoom:1,last:null,down:null},at=e=>{const b=cv.getBoundingClientRect();return[e.clientX-b.left,e.clientY-b.top];};
+function buoyViewMount(){buoyV=null;const cv=document.getElementById('buoyView');if(!cv)return;const dpr=Math.min(2,window.devicePixelRatio||1);
+  const V=buoyV={cv,c:cv.getContext('2d'),dpr,W:1,H:1,yaw:0.6,wy:0,rock:0,wr:0,dunk:0,zoom:1,last:null,down:null},at=e=>{const b=cv.getBoundingClientRect();return[e.clientX-b.left,e.clientY-b.top];};
   cv.addEventListener('pointerdown',e=>{cv.setPointerCapture(e.pointerId);V.down={p:at(e),t:performance.now()};V.last=V.down.p;});
   cv.addEventListener('pointermove',e=>{if(!V.last)return;const p=at(e);V.wy+=(p[0]-V.last[0])*0.0012;V.wr+=(p[1]-V.last[1])*0.0016;V.last=p;});
   cv.addEventListener('pointerup',e=>{const p=at(e),D=V.down;V.last=V.down=null;if(D&&Math.hypot(p[0]-D.p[0],p[1]-D.p[1])<6&&performance.now()-D.t<400&&!V.dunk)V.dunk=performance.now();});
   cv.addEventListener('wheel',e=>{e.preventDefault();V.zoom=Math.max(0.6,Math.min(2.4,V.zoom*Math.exp(-e.deltaY*0.0015)));},{passive:false});}
-function buoyViewDraw(now){const V=buoyV;if(!V||!V.cv.isConnected){buoyV=null;return;}const c=V.c,k=V.dpr,inv=!!invertMode,sun=DUCK_SUN;DUCK_SUN=viewSun();
+function buoyViewDraw(now){const V=buoyV;if(!V||!V.cv.isConnected){buoyV=null;return;}const c=V.c,k=V.dpr,inv=!!invertMode,sun=DUCK_SUN,th=(T.mapTilt!=null?T.mapTilt:32)*Math.PI/180,ct=Math.cos(th),st=Math.sin(th);
+  {const w=V.cv.clientWidth||600,hh=V.cv.clientHeight||400;if(w!==V.W||hh!==V.H){V.W=w;V.H=hh;V.cv.width=Math.round(w*k);V.cv.height=Math.round(hh*k);}} // (its column's size)
+  {const s=viewSun();DUCK_SUN={d:[s.d[0],s.d[1]*ct+s.d[2]*st,s.d[2]*ct-s.d[1]*st],c:s.c};} // the map's light now, from where its camera leans
   let nm='',cl=BUOY_COLS[0];try{nm=localStorage.getItem('il_name_v1')||'';cl=localStorage.getItem('il_buoycol_v1')||cl;}catch(e){}const sv=souvenirs(),type=buoyModel(nm,SHOP_ITEMS.filter(i=>i.fx.souv&&(sv[i.id]||0)>0).map(i=>i.id),cl);
   V.yaw+=0.003+V.wy;V.wy*=0.97;V.wr+=-V.rock*0.03;V.wr*=0.93;V.rock+=V.wr;V.rock=Math.max(-0.7,Math.min(0.7,V.rock)); // (a turn that slows; a rock that springs back)
   const dk=V.dunk?(now-V.dunk)/1400:1;let sink=0;if(dk>=1)V.dunk=0;else if(dk<0.3)sink=(dk/0.3)**2;else if(dk<0.5)sink=1;else{const u=(dk-0.5)/0.5;sink=1-u-0.5*Math.sin(u*Math.PI)*u;} // a dunk: under, then up with a bob past its float
-  const bg=c.createLinearGradient(0,0,0,V.H*k);bg.addColorStop(0,inv?'#ffffff':'#173149');bg.addColorStop(1,inv?'#dfe4e8':'#07121d');c.fillStyle=bg;c.fillRect(0,0,V.cv.width,V.cv.height);
-  const h=V.H*k*0.25*V.zoom,q=quatTurn(quatTurn(quatTurn([0,0,0,1],0,V.yaw,0),0.22,0,0),0,0,V.rock+0.06*Math.sin(now/1300)),m=quatMat(q),x=V.W/2*k,wl=V.H*k*0.74,base=wl+0.22*h*m[4]+h*(0.05*Math.sin(now/1100)+sink*0.9);
+  const bg=inv?'#ffffff':'#050608',h=Math.min(V.W*0.32,V.H*0.2)*k*V.zoom,x=V.W/2*k,wl=V.H*k*0.58,R=h*1.25;c.fillStyle=bg;c.fillRect(0,0,V.cv.width,V.cv.height); // the lake, as dark as the map's
+  {c.save();c.strokeStyle=inv?'rgba(0,0,0,.14)':'rgba(255,255,255,.09)';c.lineWidth=k;const hx=(cx,cy)=>{c.beginPath();for(let i=0;i<6;i++){const a=i*Math.PI/3+Math.PI/6;c[i?'lineTo':'moveTo'](x+(cx+Math.cos(a)*R*0.94)*1,wl+(cy+Math.sin(a)*R*0.94)*ct);}c.closePath();c.stroke();};
+    for(let j=-6;j<=6;j++)for(let i=-6;i<=6;i++){const cx=(i+j/2)*R*Math.sqrt(3),cy=j*R*1.5;if(Math.abs(cy*ct)<V.H*k&&Math.abs(cx)<V.W*k)hx(cx,cy);} // the hexes round it, at the map's tilt
+    const g=c.createRadialGradient(x,wl,0,x,wl,R*1.6);g.addColorStop(0,inv?'rgba(0,0,0,.06)':'rgba(255,246,222,.10)');g.addColorStop(1,'rgba(0,0,0,0)');c.fillStyle=g;c.fillRect(0,0,V.cv.width,V.cv.height);c.restore();} // (its own hex, faintly lit by its can)
+  const q=quatTurn(quatTurn(quatTurn([0,0,0,1],0,V.yaw,0),Math.PI/2-th,0,0),0,0,V.rock+0.06*Math.sin(now/1300)),m=quatMat(q),base=wl+0.22*h*m[4]+h*(0.05*Math.sin(now/1100)+sink*0.9);
   const at=y=>[x+m[3]*y*h,base-m[4]*y*h]; // a point up its mast, on the screen
-  for(let i=0;i<3;i++){const t=((now/2600+i/3)%1),r=h*(0.7+1.6*t);c.strokeStyle=inv?`rgba(40,50,60,${0.3*(1-t)})`:`rgba(200,225,255,${0.3*(1-t)})`;c.lineWidth=k;c.beginPath();c.ellipse(x,wl,r,r*0.22,0,0,6.2832);c.stroke();} // its rings on the water
+  for(let i=0;i<3;i++){const t=((now/2600+i/3)%1),r=h*(0.7+1.6*t);c.strokeStyle=inv?`rgba(40,50,60,${0.3*(1-t)})`:`rgba(200,225,255,${0.3*(1-t)})`;c.lineWidth=k;c.beginPath();c.ellipse(x,wl,r,r*ct,0,0,6.2832);c.stroke();} // its rings on the water (as flat as the map's)
   drawDuck3D(c,type,q,[at(0)],h,1,0,{x:W/2,y:H/2,lights:[]});drawDuck3D(c,buoyCanModel(),q,[at(BUOY_LAMP)],h,1,0,{x:W/2,y:H/2,lights:[]}); // the buoy, and its can light pointing up
-  c.save();c.globalAlpha=0.6;c.fillStyle=bg;c.fillRect(0,wl,V.cv.width,V.cv.height-wl);c.restore();DUCK_SUN=sun;} // under the waterline: the water over it
+  if(sink>0.05){c.save();c.globalAlpha=0.6*Math.min(1,sink*2);c.fillStyle=bg;c.beginPath();c.ellipse(x,wl,h*1.1,h*1.1*ct,0,0,6.2832);c.fill();c.restore();}DUCK_SUN=sun;} // dunked: the water over it
 SCENES.duck={dur:6500,setup(S){S.ps=[];S.ring(6,30,60,(x,y,i)=>S.ps.push(S.pig(x,y,i,10)));},
   tick(S,t,now){if(!S.fired&&t>700){S.fired=1;S.d=spawnDuck(S.W/2,S.H/2,now,DUCK_IDS[(S.n-1)%DUCK_IDS.length]);S.d.vx=S.d.vy=0;}
     if(S.d&&!S.shot&&t>1700){S.shot=1;for(const p of S.ps){const dx=S.d.x-p.x,dy=S.d.y-p.y,l=Math.hypot(dx,dy)||1;p.vx=dx/l*1.6;p.vy=dy/l*1.6;}}}}; // pigments thrown at it bounce off; it squeaks and tumbles
