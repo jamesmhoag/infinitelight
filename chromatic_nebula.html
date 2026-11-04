@@ -182,13 +182,14 @@ function jitterPos(gx,gy){
 // Same idea for energy: base +/- jitter on ONE scale (opacity units, stored energy = value/10), clamped to the
 // Energy min/max sliders. Every generated particle (initial world, nova refill, void reclaim, create tool) uses it,
 // and since display opacity is derived from energy (nebAlphaForEnergy), energy and opacity are the same number.
+let levelBoost=0; // the map's hex held more than a full surface's worth (its rings closed in on it): this share more mass and energy on every particle made
 function jitterParticleEnergy(){
-  let op=T.particleStartEnergy+(Math.random()*2-1)*T.particleEnergyJitter;
-  op=Math.min(T.opacMax,Math.max(T.opacMin,op));
+  let op=T.particleStartEnergy*(1+levelBoost)+(Math.random()*2-1)*T.particleEnergyJitter;
+  op=Math.min(Math.max(T.opacMax,Math.min(1,T.opacMax*(1+levelBoost))),Math.max(T.opacMin,op));
   return Math.max(0.0001,op/10);
 }
 function jitterParticleMass(){
-  const base=Math.round(T.particleStartMass);
+  const base=Math.round(T.particleStartMass*(1+levelBoost));
   const j=Math.round(T.particleMassJitter);
   if(j<=0)return Math.max(1,base);
   const delta=Math.round((Math.random()*2-1)*j);
@@ -13246,7 +13247,7 @@ function restoreSession(d){
 async function hubStartLevel(m){
   _shotGen++;hubWake();if(_menuOpen)closeGameMenu();
   let rec=null;if(m.resume){try{rec=await IDB.get('session');}catch(e){}}
-  hubLevel={key:m.key,seed:m.seed,cov:m.cov};if(m.clock!=null)DUCK_SUN=duckSun(m.clock);levelCoverage=m.cov;lvHex=m.q!=null?[m.q,m.r]:null; // (its ducks are lit by the map's time of day; its coverage is the hex's)
+  hubLevel={key:m.key,seed:m.seed,cov:m.cov};levelBoost=Math.max(0,+m.boost||0); /* a hex holding more than a full surface: its particles start that much heavier and brighter */if(m.clock!=null)DUCK_SUN=duckSun(m.clock);levelCoverage=m.cov;lvHex=m.q!=null?[m.q,m.r]:null; // (its ducks are lit by the map's time of day; its coverage is the hex's)
   if(rec&&rec.key===m.key&&rec.data){try{restoreSession(rec.data);flashSaveStatus(txt('surf.surface_continued_where_you',m.label));}catch(e){console.error(e);rec=null;}}
   if(!rec||rec.key!==m.key){if(m.white){if(!invertMode)toggleInvertMode();}else ensureDarkRemnantTheme();rebuild(m.seed);levelCoverage=m.cov;flashSaveStatus(txt('surf.surface',m.label));fireEvent('surface');prefabSpawn(m.clock);} // (a new surface: maybe a prefab for this time of day)
   hubLevel.key=m.key;if(isPaused)togglePause();
