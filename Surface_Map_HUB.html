@@ -177,7 +177,7 @@ let MW,MH,SW,SH,MK=1,viewZoom=1,_E=0; // MW×MH: the map plane's canvas (bigger 
 let HEX=34; // T.mapHexSize (tuned in the Esc menu / the surface's Tune menu)
 const DIRS=[[1,0],[1,-1],[0,-1],[-1,0],[-1,1],[0,1]];
 let camX=0,camY=0,camTX=0,camTY=0;
-let popMissed=[],hubPop=[null,null],cells={},turn=0,score=0,pQ=0,pR=0,totalCells=0; // turn: how many rings the spill has spread to (merges pull it back)
+let hubPop=[null,null],cells={},turn=0,score=0,pQ=0,pR=0,totalCells=0; // turn: how many rings the spill has spread to (merges pull it back)
 let clock=3,day=1,pool=6,fresh=true,burstFx=null,dayLog=[],dayCnt={b:0,d:0},pendingEnd=null; // dayLog: how each day ended {day,end,ring,b,d,win}; dayCnt: this day's bright / dark clears; pendingEnd: a day end still falling in
 // // clock: the hour (3 = Twilight … 24 = Midnight, the day's last turn); day: your attempts; pool: what the source put out at its last burst; fresh: no ring added yet since it
 let constel=[],armed=null,weaveSel=[],weaveAsk=null,clearFx={},mergeFx=[],feedMsg={t:'',d:'',at:-1e9}; // constellations {keys,type}; the armed map item; a Weave being drawn; animations; the final count
@@ -294,7 +294,7 @@ function focusCam(a,move){if(_mpFor)return; // (a friend's move: the host's view
   const[wx,wy]=a2w(pQ,pR);if(move&&camSees(wx,wy)){buoy.follow=false;return;} /* a move to a hex you can see: the camera stays where you put it */
   if(a)buoy.follow=true;camTX=wx;camTY=wy;if(!a){camX=camTX;camY=camTY;}}
 function initGame(){ // a new map: score and depth start over; items, resources and discoveries live in the surface's save and are kept
-  neb({cmd:'day',day:1,newRun:true});hubPop=[null,null];popMissed=[];score=0;depth=0;clock=3;_sunH=3;_sun={from:3,to:3,t0:0};day=1;dayLog=[];dayCnt={b:0,d:0};pendingEnd=null;newMap();
+  neb({cmd:'day',day:1,newRun:true});hubPop=[null,null];score=0;depth=0;clock=3;_sunH=3;_sun={from:3,to:3,t0:0};day=1;dayLog=[];dayCnt={b:0,d:0};pendingEnd=null;newMap();
   showTurn();mapResize();focusCam(false);updateHint();saveMap();
 }
 function advanceTurn(){ // time moves on (a move) by one time of day; the spill spreads a ring, except the first turn after a burst
@@ -503,7 +503,7 @@ function finishDay(){ // after the flash: the day goes into the log, the value i
   const e=pendingEnd;if(!e)return;pendingEnd=null;
   dayLog.push({day,end:e.how,ring:e.n,b:dayCnt.b,d:dayCnt.d,win:e.win});dayCnt={b:0,d:0};
   if(e.win){phase='ended';for(const k of Object.keys(cells))if(!cells[k].isVoid){delete cells[k];totalCells--;}updateHint();saveMap();if(SCENE)showMergeFlash(txt('map.full_collapse_the_run'));else showDayReport();return;}
-  clock=3;day++;neb({cmd:'day',day});popMissedIn();
+  clock=3;day++;neb({cmd:'day',day});popSoonOpen();
   if(e.how==='midnight'){newMap();feed(txt('map.day_ended_at_midnight',day-1),txt('map.bright_dark_a_new',dayLog[dayLog.length-1].b,dayLog[dayLog.length-1].d));}
   else{const n=e.n,ks=ring(n).map(([q,r])=>K(q,r));
     for(const k of Object.keys(cells)){const c=cells[k];if(!c.isVoid&&cellRing(c.q,c.r)>n){delete cells[k];totalCells--;}}
@@ -1030,21 +1030,21 @@ function pondStep(now){
 let mapHist={}; // the map at the start of each time of day, for the last day and a bit (the Clock smith's Yesterday)
 function mapHistKeep(){if(SCENE)return;const t=day*24+clock;if(!mapHist[t]){mapHist[t]=Object.assign(mpRec(),{pQ,pR});const ks=Object.keys(mapHist).map(Number).sort((a,b)=>a-b);while(ks.length>10)delete mapHist[ks.shift()];}}
 function timeTravel(w){ // the Clock smith: yesterday, this time (the map as it was then, you where you were), or tomorrow, this time (a clean map a day on, before any move, you beside main street)
-  const c=clock;if(w==='yesterday'){const d=mapHist[(day-1)*24+c];if(!d)return;({cells,turn,clock,day,pool,fresh,constel,dayLog,dayCnt,score,totalCells,phase,depth,gameOverReason,captureOrder,mergeGroups,mergeIdCounter,voidOpen}=JSON.parse(JSON.stringify(d)));hubPop=d.hubPop||[null,null];popMissed=d.popMissed||[];pQ=d.pQ;pR=d.pR;for(const k in cells)cells[k].isP=false;if(cells[K(pQ,pR)])cells[K(pQ,pR)].isP=true;}
-  else{day++;newMap();clock=c;popMissedIn();}
+  const c=clock;if(w==='yesterday'){const d=mapHist[(day-1)*24+c];if(!d)return;({cells,turn,clock,day,pool,fresh,constel,dayLog,dayCnt,score,totalCells,phase,depth,gameOverReason,captureOrder,mergeGroups,mergeIdCounter,voidOpen}=JSON.parse(JSON.stringify(d)));hubPop=d.hubPop||[null,null];pQ=d.pQ;pR=d.pR;for(const k in cells)cells[k].isP=false;if(cells[K(pQ,pR)])cells[K(pQ,pR)].isP=true;}
+  else{day++;newMap();clock=c;popSoonOpen();}
   neb({cmd:'day',day});pendingEnd=null;phase='move';showTurn();mapResize();focusCam(false);updateHint();saveMap();feed(txt('map.clock.title'),txt(w==='yesterday'?'map.clock.yesterday':'map.clock.tomorrow'));}
 function saveMap(){
   if(SCENE)return; // a demo never touches your map
   if(MP.on){if(MP.role==='guest')return;mpSync();} // (playing together: the host's map is everyone's; a friend's own map is left as it was)
   const out={};for(const k in cells){const c=Object.assign({},cells[k]);delete c._im;out[k]=c;}
-  const rec=()=>JSON.stringify({v:3,hist:mapHist,cells:out,turn,clock,day,pool,fresh,constel,dayLog,dayCnt,pendingEnd,score,pQ,pR,totalCells,phase,depth,gameOverReason,captureOrder,mergeGroups,mergeIdCounter,voidOpen,hubPop,popMissed,session:nebulaCellKey});
+  const rec=()=>JSON.stringify({v:3,hist:mapHist,cells:out,turn,clock,day,pool,fresh,constel,dayLog,dayCnt,pendingEnd,score,pQ,pR,totalCells,phase,depth,gameOverReason,captureOrder,mergeGroups,mergeIdCounter,voidOpen,hubPop,session:nebulaCellKey});
   try{localStorage.setItem(MAP_KEY,rec());}catch(e){for(const k in out)delete out[k].shot;try{localStorage.setItem(MAP_KEY,rec());}catch(x){}} // full: an unfinished hex's picture is the first thing to go
 }
 function loadMap(){
   let d=null;try{d=JSON.parse(localStorage.getItem(MAP_KEY)||'null');}catch(e){}
   if(!d||!d.cells)return false;
   if(d.v!==3)return false; // a map from before the times of day starts over
-  ({cells,turn,clock,day,pool,fresh,constel,dayLog,dayCnt,pendingEnd,score,pQ,pR,totalCells,phase,depth,gameOverReason,captureOrder,mergeGroups,mergeIdCounter,voidOpen}=d);mapHist=d.hist||{};nebulaCellKey=d.session||null;hubPop=d.hubPop||[null,null];popMissed=d.popMissed||[];_sunH=clock;_sun={from:clock,to:clock,t0:0};dayLog=dayLog||[];dayCnt=dayCnt||{b:0,d:0};
+  ({cells,turn,clock,day,pool,fresh,constel,dayLog,dayCnt,pendingEnd,score,pQ,pR,totalCells,phase,depth,gameOverReason,captureOrder,mergeGroups,mergeIdCounter,voidOpen}=d);mapHist=d.hist||{};nebulaCellKey=d.session||null;hubPop=d.hubPop||[null,null];_sunH=clock;_sun={from:clock,to:clock,t0:0};dayLog=dayLog||[];dayCnt=dayCnt||{b:0,d:0};
   if(pendingEnd)finishDay();else if(phase==='collapse')phase='move';else if(phase==='ended')showDayReport(); // a day left falling in finishes at once; a won run shows its report
   mapResize();focusCam(false);updateHint();return true;
 }
@@ -1172,7 +1172,7 @@ function testHex(k,kind){const c=cells[k];if(!c)return;const ph=phase;testUnset(
   if(ph==='move'&&phase==='captured')phase='move';feed(txt('test.title'),txt('test.hex_done',c.q,c.r,txt('test.to_'+kind)));updateHint();saveMap();}
 function testShop(k,id,rank){const c=cells[k];if(!c)return;if(!(c.q===0&&c.r===0)&&!isBright(k))testHex(k,'bright'); /* (a shop stands on a bright clear) */
   const hs=hubPop.findIndex(x=>x&&x.id===id);if(hs>=0)hubPop[hs]=null;for(const j in cells)if(cells[j].shop&&cells[j].shop.id===id)delete cells[j].shop; /* one of each: the old one goes */
-  if(c.q===0&&c.r===0){popMissed.push({id,rank});popMissedIn();}else cells[k].shop={id,rank,rise:k,at:Date.now()};feed(txt('test.title'),txt('test.shop_done',SHOPS[id].n,rank));updateHint();saveMap();}
+  if(c.q===0&&c.r===0)hubPut(id,rank);else cells[k].shop={id,rank,rise:k,at:Date.now()};feed(txt('test.title'),txt('test.shop_done',SHOPS[id].n,rank));updateHint();saveMap();}
 // ── Modes: Telemetry (each hex's value, coverage and state on the ground) and Stats (frames and the hex grid); remembered in this browser ──
 let mapMode={tel:0,stats:0};try{Object.assign(mapMode,JSON.parse(localStorage.getItem('il_map_modes')||'{}'));}catch(e){}
 function togglePanel(id){for(const o of ['mModes','tuneP'])document.getElementById(o).classList.toggle('show',o===id&&!document.getElementById(o).classList.contains('show'));}
@@ -1225,14 +1225,15 @@ function popupFor(tally,skip){ // the pop-up a cleared surface earns. Each shop 
   c.sort((a,b)=>a.tier-b.tier||b.rank-a.rank||a.z-b.z);const o=c.find(x=>x.open);return{p:o?{id:o.id,rank:o.rank,from:o.from}:null,closed:c.filter(x=>!x.open)};} // (only a shop open at this time of day can pop up: one closed now is missed, and comes to main street tomorrow)
 function popPlace(k){ // opens (or moves up) the pop-up hex k's surface earned: on its own bright hex, or for a Dark Remnant clear on the nearest open bright hex or free spot in the source hex
   const c=cells[k];if(!c||!c.cap||!c.tally)return false;const dark=!isBright(k);if(!dark&&c.shop)return false;const P=popupFor(c.tally,c.missed),p=P.p;
-  if(P.closed.length){c.missed=(c.missed||[]).concat(P.closed.map(x=>x.id));for(const x of P.closed){const o=popMissed.find(m=>m.id===x.id);if(o)o.rank=Math.max(o.rank,x.rank);else popMissed.push({id:x.id,rank:x.rank});}
-    feed(txt('map.shop.missed',P.closed.map(x=>SHOPS[x.id].n).join(', ')),txt('map.shop.missed_info'));} /* (this hex will not try them again: they open on main street tomorrow) */
+  if(P.closed.length){c.missed=(c.missed||[]).concat(P.closed.map(x=>x.id));for(const x of P.closed){const has=hubPop.find(h=>h&&h.id===x.id)||Object.values(cells).map(c=>c.shop).find(o=>o&&o.id===x.id);if(has&&!has.soon&&has.rank>=x.rank)continue;hubPut(x.id,Math.max(x.rank,has&&has.soon?has.rank:0),1,k);} /* (one of each: not when one already stands at that rank or better) */
+    feed(txt('map.shop.missed',P.closed.map(x=>SHOPS[x.id].n).join(', ')),txt('map.shop.missed_info'));} /* (this hex will not try them again: each is Coming soon on main street, open tomorrow) */
   if(!p)return false;let at=k;
   if(dark){const free=Object.keys(cells).filter(j=>isBright(j)&&!cells[j].shop).map(j=>[j,dist(cells[j].q,cells[j].r,c.q,c.r)]),hs=hubPop.findIndex(x=>!x);if(hs>=0)free.push(['hub'+hs,dist(0,0,c.q,c.r)]);if(!free.length)return false;at=free.sort((a,b)=>a[1]-b[1])[0][0];}
-  if(p.from===at)return false;shopTearDown(p.from);const o={id:p.id,rank:p.rank,rise:k,at:Date.now()};popMissed=popMissed.filter(m=>!(m.id===p.id&&m.rank<=p.rank)); /* (got after all: not missed) */if(at.slice(0,3)==='hub')hubPop[+at[3]]=o;else cells[at].shop=o;
+  if(p.from===at)return false;shopTearDown(p.from);const o={id:p.id,rank:p.rank,rise:k,at:Date.now()};{const i=hubPop.findIndex(h=>h&&h.soon&&h.id===p.id&&h.rank<=p.rank);if(i>=0)hubPop[i]=null;} /* (got after all: no longer coming) */if(at.slice(0,3)==='hub')hubPop[+at[3]]=o;else cells[at].shop=o;
   feed(((p.from?txt('map.a_pop_up_moved'):txt('map.a_pop_up_opened')))+SHOPS[p.id].n,txt('map.rank_click_it_to',p.rank,(at.slice(0,3)==='hub'?txt('map.in_the_source'):'')));return true;}
-function popMissedIn(){for(const m of popMissed){const has=hubPop.find(x=>x&&x.id===m.id)||Object.values(cells).find(c=>c.shop&&c.shop.id===m.id);if(has&&has.rank>=m.rank&&!hubPop.includes(has))continue; /* (one of each: one already standing at that rank or better on a bright hex) */let i=hubPop.findIndex(x=>x&&x.id===m.id);if(i<0)i=hubPop.findIndex(x=>!x);if(i<0)i=hubPop[0].at<=hubPop[1].at?0:1;
-    hubPop[i]={id:m.id,rank:m.rank,rise:'hub',at:Date.now()};feed(txt('map.a_pop_up_opened')+SHOPS[m.id].n,txt('map.shop.missed_here',m.rank));}popMissed=[];}
+function hubPut(id,rank,soon,rise){let i=hubPop.findIndex(x=>x&&x.id===id);if(i<0)i=hubPop.findIndex(x=>!x);if(i<0)i=(hubPop[0].at||0)<=(hubPop[1].at||0)?0:1; // a pop-up on main street (the source hex's two spots): in its own spot, an empty one, else the oldest one's (first in, first out, whatever its rank)
+  hubPop[i]={id,rank,soon:soon?1:0,rise:rise||'hub',at:Date.now()};}
+function popSoonOpen(){for(const h of hubPop)if(h&&h.soon){delete h.soon;feed(txt('map.a_pop_up_opened')+SHOPS[h.id].n,txt('map.shop.missed_here',h.rank));}} // a new day: each Coming soon opens (in its hours)
 function shopTearDown(fr){if(!fr)return;if(fr.slice(0,3)==='hub')hubPop[+fr[3]]=null;else if(cells[fr])delete cells[fr].shop;} // a shop moved up a rank: the old one goes (its hex may open another the next turn)
 function freedShops(){for(const k in cells)popPlace(k);} // each turn every cleared surface that earned a pop-up and has none open tries again (a hex a shop moved out of, a Dark Remnant clear that found no room, a holiday)
 let _shopEnv=null;
@@ -1240,15 +1241,15 @@ function shopEnv(){ // what a shop's glass reflects: the hexes round the source 
   const e=_shopEnv||(_shopEnv=document.createElement('canvas'));e.width=e.height=256;const g=e.getContext('2d'),[x,y]=w2s(0,0),R=HEX*6*MK;
   g.fillStyle='#202228';g.fillRect(0,0,256,256);try{g.drawImage(mc,x*MK-R/2,y*MK-R/2,R,R,0,0,256,256);}catch(err){}
   const sh=g.createLinearGradient(0,0,0,256);sh.addColorStop(0,'rgba(230,236,245,.45)');sh.addColorStop(0.45,'rgba(230,236,245,.08)');sh.addColorStop(1,'rgba(0,0,0,.25)');g.fillStyle=sh;g.fillRect(0,0,256,256);return e;}
-function shopSprite(id,bk,lit,yaw,open,L,mir){ // L: the buoy's light on it ({k, x, y, s}: its way in on screen and strength, in steps), or none // the shop's 3D building (shared.js shopModel) drawn from a little above and turned by yaw (degrees), lit by the time of day: then the glow of its sign and
+function shopSprite(id,bk,lit,yaw,open,L,mir,soon){ // L: the buoy's light on it ({k, x, y, s}: its way in on screen and strength, in steps), or none // the shop's 3D building (shared.js shopModel) drawn from a little above and turned by yaw (degrees), lit by the time of day: then the glow of its sign and
   // windows when open; at Q px per unit (as its drawings were at 4×), so a shop stays crisp however near the camera or the menu shows it. Redrawn when the light changes.
   const gw=T.mapShopGlow!=null?T.mapShopGlow:1,fl=bk===(SHOPS[id].bk||'s')&&SHOPS[id].flip,yw=Math.round(yaw||0),sun=DUCK_SUN.c.map(v=>Math.round(v*16)).concat(DUCK_SUN.d.map(v=>Math.round(v*8))).join(','),pt=T.mapShopPitch!=null?T.mapShopPitch:22,
-    base=id+bk+(lit?1:0)+(open?'o':'')+gw+'|'+yw+'|'+pt+'|'+(T.mapShopUpScale||1.7)+'|',key=base+sun+(L?'|L'+L.k:'')+(mir?'|m':'');if(shopCv[key])return shopCv[key];
-  const si=shopImg('sign_'+id);if(!si.complete||!si.naturalWidth||!_duckTex)return null;
-  const type=shopModel(id,bk,lit,fl,si,open),M=duckModel(type),Q=4*(bk==='m'||bk==='l'||bk==='t'?(T.mapShopUpScale||1.7):1), // (a bigger rank's two-storey store drawn larger, so its door is the size of main street's)
+    base=id+bk+(lit?1:0)+(open?'o':'')+(soon?'s':'')+gw+'|'+yw+'|'+pt+'|'+(T.mapShopUpScale||1.7)+'|',key=base+sun+(L?'|L'+L.k:'')+(mir?'|m':'');if(shopCv[key])return shopCv[key];
+  const si=soon?soonSign(id):shopImg('sign_'+id);if(!soon&&(!si.complete||!si.naturalWidth)||!_duckTex)return null;
+  const type=shopModel(id,bk,lit,fl,si,open,soon),M=duckModel(type),Q=4*(bk==='m'||bk==='l'||bk==='t'?(T.mapShopUpScale||1.7):1), // (a bigger rank's two-storey store drawn larger, so its door is the size of main street's)
     q=quatTurn(quatTurn([0,0,0,1],0,yw*Math.PI/180,0),(mir?-pt:pt)*Math.PI/180,0,0),N=Math.ceil(2*M.g.R*Q)+8,pad=Math.ceil(30*gw)+8;
   const cv=document.createElement('canvas');cv.width=cv.height=N+pad*2;const c=cv.getContext('2d'),lt=E=>({x:E.x,y:E.y,lights:L?[[E.x+L.x*100,E.y-L.y*100,255,244,222,L.s,140]]:[]}); /* the buoy's can light, as a light in the scene: on its walls, and glinting on its glass */
-  const day=(DUCK_SUN.c[0]+DUCK_SUN.c[1]+DUCK_SUN.c[2])/3,emk=Math.max(0.45,Math.min(1,1-(day-0.64)/0.36*0.55));M.emk=emk; /* its sign and lit room: full at night, about half at noon */
+  const day=(DUCK_SUN.c[0]+DUCK_SUN.c[1]+DUCK_SUN.c[2])/3,emk=soon?1:Math.max(0.45,Math.min(1,1-(day-0.64)/0.36*0.55));M.emk=emk; /* its sign and lit room: full at night, about half at noon */
   drawDuck3D(c,type,q,[[cv.width/2,cv.height/2]],Q,1,2048,lt({x:cv.width/2,y:cv.height/2}));
   {const sun=DUCK_SUN.c;duckEnvUpdate(shopEnv(),performance.now());DUCK_SUN.c=sun.map(v=>v+(1-v)*0.75); // its glass: reflecting the street round the source (faint while the lights are on inside), barely tinted by the time of day
     drawDuck3D(c,type+'|glass',q,[[cv.width/2,cv.height/2]],Q,lit?0.6+0.7*(1-emk):1,2048,lt({x:W/2,y:H/2})); /* (by day the street shows in it over the dimmer room) */DUCK_SUN.c=sun;}
@@ -1268,13 +1269,13 @@ function shopRise(o){ // a new pop-up: hidden while its hex's clear plays (clear
 function shopList(){ // every shop on the map now: main street hugging the source (two behind it, two in front), pop-ups on their bright clears
   const out=[],R=HEX*(T.mapStreetRing!=null?T.mapStreetRing:0.8);
   for(const id in SHOPS){const S=SHOPS[id],a=(S.a||0)*Math.PI/180;if(S.street)out.push({key:id,id,bk:S.bk||'s',wx:R*Math.cos(a),wy:R*Math.sin(a),yaw:streetYaw(S.a||0),lit:shopIsOpen(id,clock,run)});} // (turned so its front, or its back behind the source, runs along the source's edge)
-  hubPop.forEach((h,i)=>{if(!h)return;const a=HUB_SLOTS[i]*Math.PI/180,u=shopRise(h);out.push({key:'hub'+i,id:h.id,rank:h.rank,bk:SHOP_RANK_BLD[h.rank-1],wx:R*1.15*Math.cos(a),wy:R*1.15*Math.sin(a),rise:u,lit:u>=1&&shopIsOpen(h.id,clock,run)});}); // (a little further out than main street) // pop-ups from dark clears, in the source hex
+  hubPop.forEach((h,i)=>{if(!h)return;const a=HUB_SLOTS[i]*Math.PI/180,u=shopRise(h);out.push({key:'hub'+i,id:h.id,rank:h.rank,bk:SHOP_RANK_BLD[h.rank-1],wx:R*1.15*Math.cos(a),wy:R*1.15*Math.sin(a),rise:u,soon:!!h.soon,lit:u>=1&&!h.soon&&shopIsOpen(h.id,clock,run)});}); // (a little further out than main street) // pop-ups from dark clears, in the source hex
   for(const k in cells){const c=cells[k];if(c.shop&&isBright(k)){const[wx,wy]=popSpot(c.q,c.r),u=shopRise(c.shop);out.push({key:k,id:c.shop.id,rank:c.shop.rank,bk:SHOP_RANK_BLD[c.shop.rank-1],wx,wy,rise:u,lit:u>=1&&shopIsOpen(c.shop.id,clock,run)});}}
   return out;}
 let _rfl=null;
 function shopReflect(){ // shops mirrored in the ground under them: each its own drawing seen from below and turned over (so it turns as the building does), all drawn solid into one layer (nearer over farther: never see-through to each other), laid on the ground once with 'lighten' (it shows only where the ground is dark)
   const ct=Math.max(0.2,Math.cos(cam.th)),L=[];let x0=1e9,y0=1e9,x1=-1e9,y1=-1e9;
-  for(const key in shopEls){const el=shopEls[key],sh=el._s;if(!sh||(sh.rise!=null&&sh.rise<1))continue;const cv=shopSprite(sh.id,sh.bk,sh.lit,sh.yaw,!!(shopUI&&shopUI.key===sh.key),shopLight(sh),1);if(!cv)continue;
+  for(const key in shopEls){const el=shopEls[key],sh=el._s;if(!sh||(sh.rise!=null&&sh.rise<1))continue;const cv=shopSprite(sh.id,sh.bk,sh.lit,sh.yaw,!!(shopUI&&shopUI.key===sh.key),shopLight(sh),1,sh.soon);if(!cv)continue;
     const[px,py]=w2s(sh.wx,sh.wy),sx=HEX*(T.mapStreetSize||0.75)/cv._bw,sy=sx/ct; /* (its screen height again, on a plane seen at a slant) */
     const a=[px-cv._ax*sx,py-(cv.height-cv._ay)*sy],b=[px+(cv.width-cv._ax)*sx,py+cv._ay*sy];if(b[0]<0||a[0]>MW||b[1]<0||a[1]>MH)continue;
     x0=Math.min(x0,a[0]);y0=Math.min(y0,a[1]);x1=Math.max(x1,b[0]);y1=Math.max(y1,b[1]);L.push({cv,px,py,sx,sy});}
@@ -1289,7 +1290,7 @@ function shopLight(s){ // the buoy's can light on a shop in (or near) its spot: 
 function shopTick(){if(SCENE&&!document.body.classList.contains('scene-shops'))return;
   document.body.classList.toggle('thru',!!armed||voidOpen);const box=document.getElementById('shops'),seen=new Set();
   for(const s of shopList()){if(s.lit&&!disc.has('ev:shop_'+s.id))hubEvent('shop_'+s.id); // a shop is discovered the first time it opens
-    const cv=shopSprite(s.id,s.bk,s.lit,s.yaw,!!(shopUI&&shopUI.key===s.key),shopLight(s));if(!cv)continue;/* (its doors open while its menu is) */seen.add(s.key);let el=shopEls[s.key];
+    const cv=shopSprite(s.id,s.bk,s.lit,s.yaw,!!(shopUI&&shopUI.key===s.key),shopLight(s),0,s.soon);if(!cv)continue;/* (its doors open while its menu is) */seen.add(s.key);let el=shopEls[s.key];
     if(!el){el=shopEls[s.key]=document.createElement('div');el.className='shop';el.dataset.key=s.key;box.appendChild(el);
       let h=7;for(const ch of s.key)h=(h*31+ch.charCodeAt(0))>>>0;el._fl=`neon${h%4} ${(2.5+(h>>4)%60/10).toFixed(1)}s ${-((h>>10)%50)/10}s infinite`;} // its own flicker: which, how fast, where in it
     if(el._cv!==cv){el._cv=cv;const d=document.createElement('canvas');d.width=cv.width;d.height=cv.height;d.getContext('2d').drawImage(cv,0,0);d.style.animation=s.lit?el._fl:'none';el.innerHTML='';el.appendChild(d);el._rk=null;}el.classList.toggle('lit',s.lit);el._s=s; // (its own copy: two pop-ups can share a sprite)
@@ -1298,7 +1299,7 @@ function shopTick(){if(SCENE&&!document.body.classList.contains('scene-shops'))r
     const tf=`translate(${(X-cv._ax*sc_).toFixed(1)}px,${(Y-cv._ay*sc_).toFixed(1)}px) scale(${sc_.toFixed(4)})`;if(el._tf!==tf){el._tf=tf;el.style.transform=tf;el.style.zIndex=Math.round(Y);}} // (only when it moved)
   for(const k in shopEls)if(!seen.has(k)){shopEls[k].remove();delete shopEls[k];}}
 function shopInfo(key){const el=shopEls[key],s=el&&el._s;if(!s)return['',''];const S=SHOPS[s.id];
-  return S.street?[S.n,txt(s.lit?'map.shop.open':'map.shop.closed',shopHours(s.id))]:[txt('map.shop.popup',S.n),(s.lit||s.rise<1?txt('map.shop.popupinfo',s.rank,shopHours(s.id)):txt('map.shop.closed',shopHours(s.id)))];}
+  return s.soon?[txt('map.shop.soon',S.n),txt('map.shop.soon_info',s.rank,shopHours(s.id))]:S.street?[S.n,txt(s.lit?'map.shop.open':'map.shop.closed',shopHours(s.id))]:[txt('map.shop.popup',S.n),(s.lit||s.rise<1?txt('map.shop.popupinfo',s.rank,shopHours(s.id)):txt('map.shop.closed',shopHours(s.id)))];}
 let tapN=0,tapAt=0; // taps on closed glass in quick succession
 function shopTap(s){const now=performance.now();tapN=now-tapAt<900?tapN+1:1;tapAt=now;neb({cmd:'tap'}); // its sound, and a ring on the glass where it was tapped (as on a surface's glass)
   const lay=document.getElementById('bfx');if(lay&&mX>=0){const r=document.createElement('b');r.className='tap';r.style.left=mX+'px';r.style.top=mY+'px';lay.appendChild(r);setTimeout(()=>r.remove(),700);}
@@ -1420,11 +1421,11 @@ function mpCommon(m){ // either side: a surface being shared, its frames, a poin
 function mpSpot(){const taken=new Set(MP.players.map(p=>K(p.q,p.r)));const r1=ring(1).map(([q,r])=>K(q,r)).filter(k=>cells[k]&&!cells[k].isVoid&&!taken.has(k));return parseK(r1[0]||K(pQ,pR));} // a new player: a free hex beside the source
 function mpLeave(pid){const i=MP.order.indexOf(pid);if(i<0)return;const P=mpP(pid);MP.order.splice(i,1);MP.players=MP.players.filter(p=>p.id!==pid);if(i<MP.turnI)MP.turnI--;if(MP.turnI>=MP.order.length){MP.turnI=0;}
   for(const[k,c]of MP.conns)if(k===pid)MP.conns.delete(k);feed(txt('mp.title'),txt('mp.left',P?P.name:''));if(MP.surf&&MP.surf.owner===pid){MP.surf=null;netOut({t:'surf',owner:pid,on:false});mpView(null);}mpSync();}
-function mpRec(){const out={};for(const k in cells){const c=Object.assign({},cells[k]);delete c._im;delete c.shot;out[k]=c;}return{v:3,cells:out,turn,clock,day,pool,fresh,constel,dayLog,dayCnt,pendingEnd:null,score,totalCells,phase,depth,gameOverReason,captureOrder,mergeGroups,mergeIdCounter,voidOpen,hubPop,popMissed};}
+function mpRec(){const out={};for(const k in cells){const c=Object.assign({},cells[k]);delete c._im;delete c.shot;out[k]=c;}return{v:3,cells:out,turn,clock,day,pool,fresh,constel,dayLog,dayCnt,pendingEnd:null,score,totalCells,phase,depth,gameOverReason,captureOrder,mergeGroups,mergeIdCounter,voidOpen,hubPop};}
 function mpSync(){if(!MP.on||MP.role!=='host')return;const h=mpP('h');if(h){h.q=pQ;h.r=pR;h.name=playerName||h.name;h.col=buoyCol;}const now=performance.now(); // the host: everyone's view of the map (after every change: saveMap calls it)
   if(now-MP._st<60){clearTimeout(MP._stT);MP._stT=setTimeout(mpSync,70);return;}MP._st=now;netOut({t:'state',map:mpRec(),mp:{players:MP.players,order:MP.order,turnI:MP.turnI}});mpBar();}
 function mpApply(m){ // a friend: the map as the host has it (my own hex mine)
-  const d=m.map,dayWas=day,clockWas=clock;({cells,turn,clock,day,pool,fresh,constel,dayLog,dayCnt,score,totalCells,phase,depth,gameOverReason,captureOrder,mergeGroups,mergeIdCounter,voidOpen}=d);hubPop=d.hubPop||[null,null];popMissed=d.popMissed||[];
+  const d=m.map,dayWas=day,clockWas=clock;({cells,turn,clock,day,pool,fresh,constel,dayLog,dayCnt,score,totalCells,phase,depth,gameOverReason,captureOrder,mergeGroups,mergeIdCounter,voidOpen}=d);hubPop=d.hubPop||[null,null];
   Object.assign(MP,m.mp);const me=mpP(MP.me);for(const k in cells)cells[k].isP=false;if(me){pQ=me.q;pR=me.r;if(cells[K(pQ,pR)])cells[K(pQ,pR)].isP=true;}
   if(!MP._got){MP._got=true;_sunH=clock;_sun={from:clock,to:clock,t0:0};mapResize();focusCam(false);feed(txt('mp.title'),txt('mp.joined_you'));}
   if(day!==dayWas)neb({cmd:'day',day});if(clock!==clockWas||day!==dayWas)showTurn();updateHint();mpBar();}
@@ -1513,7 +1514,7 @@ function sceneField(){if(_sf)return _sf;const S=512,cv=document.createElement('c
   return _sf=cv;}
 const sceneCap=(k,kind)=>{const c=cells[k];if(!c||c.cap)return;c.cap=true;c.capVal=c.v;c.kind=kind;clearFx[k]={t0:performance.now()};}; // a clear, shown as it resolves
 const at=(ms,fn)=>sceneTimers.push(setTimeout(fn,ms));let sceneTimers=[];
-function sceneReset(rings){sceneTimers.forEach(clearTimeout);sceneTimers=[];hubPop=[null,null];popMissed=[];const br=T.mapBurstRings;T.mapBurstRings=rings||br||3;score=0;depth=0;clock=3;day=1;pendingEnd=null;newMap();T.mapBurstRings=br;clearFx={};mergeFx=[];
+function sceneReset(rings){sceneTimers.forEach(clearTimeout);sceneTimers=[];hubPop=[null,null];const br=T.mapBurstRings;T.mapBurstRings=rings||br||3;score=0;depth=0;clock=3;day=1;pendingEnd=null;newMap();T.mapBurstRings=br;clearFx={};mergeFx=[];
   const o=cells[K(pQ,pR)];if(o)o.isP=false;pQ=1;pR=-1;cells[K(1,-1)].isP=true;camX=camTX=0;camY=camTY=0;}
 const SCENES={
   map(){sceneReset();viewZoom=1;at(3000,()=>{camTX=camTY=0;});return 6000;}, // the source bursts out its rings (a new map each time round)

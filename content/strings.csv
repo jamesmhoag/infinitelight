@@ -873,5 +873,9 @@ test.clear_rift,Clear: rift,Modes menu,
 test.discovered_all,Everything is discovered,Modes menu,
 test.filled,Every item is full,Modes menu,
 map.shop.missed,Missed: {names},Surface Map feed,names = $0 — the shops
-map.shop.missed_info,"Closed at this time of day, so they could not pop up here: they open on main street tomorrow",Surface Map feed,
+map.shop.missed_info,"Closed at this time of day, so they could not pop up here: Coming soon on main street, open tomorrow",Surface Map feed,
 map.shop.missed_here,"Rank {rank}, on main street: missed yesterday",Surface Map feed,rank = $0 — its rank
+shop.soon.sign,COMING SOON,Shop sign,
+map.shop.soon,"Coming soon: {shop}",Surface Map feed,shop = $0 — the shop
+map.shop.soon_info,"Rank {rank} · opens here tomorrow · {hours}",Surface Map feed,"rank = $0 — its rank
+hours = $1 — its hours"
