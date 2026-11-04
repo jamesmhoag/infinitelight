@@ -570,6 +570,7 @@ mapDucks,5,Lake ducks,0,12,1,Surface Map — lake and bottles,map,,,,How many of
 mapDuckBumpV,0.35,Duck bump speed,0.02,3,0.01,Surface Map — lake and bottles,map,,,,"How fast the cursor must cross a lake duck (world px per ms) to send it puttering off; slower, it just spins where it is",
 mapDuckDunkMs,1300,Duck dunk ms,300,4000,50,Surface Map — lake and bottles,map,,,,How long a clicked lake duck stays dunked before it pops back up,
 mapDuckTrapMs,6000,Duck trapped ms,1000,30000,500,Surface Map — lake and bottles,map,,,,How long a duck on the spill can find no way off (shops and Rifts in its way) before it sinks under and is gone,
+mapRippleBend,4,Ripple bend,0,12,0.5,Surface Map — lake and bottles,map,,,,Pixels: how far a ring on the water bends the hexes under it as it passes (the title's water does the same to the title),
 mapDuckRefl,0.4,Duck reflection,0,1,0.05,Surface Map — lake and bottles,map,,,,How strongly each lake duck is mirrored in the surface beneath it on the Surface Map (0 = no reflection),
 mapSpotMs,30000,Buoy spot light lap ms,4000,60000,500,Surface Map — your buoy,map,,,,How long your buoy's spot light takes to circle the hexes next to it once (clockwise),
 mapSpotTurn,1.6,Buoy spot light swing rad/s,0.2,8,0.1,Surface Map — your buoy,map,,,,"How fast the spot light swings onto a hex you point at, and back (one steady rate, the short way round)",

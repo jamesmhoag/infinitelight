@@ -84,7 +84,7 @@ body.scene .hbtn,body.scene:not(.scene-shops) #shops,body.scene #hdock,body.scen
 body.ui-hidden .hbtn,body.ui-hidden #legend,body.ui-hidden #bottom-bar,body.ui-hidden #hstats,body.ui-hidden #mModes,body.ui-hidden #tuneP{display:none!important} /* ~: everything but the time of day, the inventory (reduced) and its feed */
 /* shops: upright on the plane (placed through the camera each frame); open ones glow like neon */
 #shops{position:absolute;inset:0;pointer-events:none;z-index:6;overflow:hidden}
-.shop{position:absolute;left:0;top:0;transform-origin:0 0;pointer-events:none;will-change:transform}.shop canvas.lay{position:absolute;left:0;top:0} /* a light on it: its fully lit drawing over it, as strong as the light is there */.shop.glint canvas{animation:glint .35s ease-out}@keyframes glint{0%{filter:brightness(1.9)}100%{filter:none}} /* (hit only where drawn: shopAt) a tap glints on the glass */.shop canvas{display:block;will-change:opacity} /* each its own layer: moving or flickering one repaints nothing */
+.shop{position:absolute;left:0;top:0;transform-origin:0 0;pointer-events:none;will-change:transform}.shop canvas.lay{position:absolute;left:0;top:0} /* a light on it: its fully lit drawing over it, as strong as the light is there */.shop canvas.tapf{position:absolute;left:0;top:0;opacity:0;pointer-events:none}.shop canvas.tapf.go{animation:tapf .3s ease-out}@keyframes tapf{0%{opacity:.42}100%{opacity:0}} /* (hit only where drawn: shopAt) a tap glints on the glass */.shop canvas{display:block;will-change:opacity} /* each its own layer: moving or flickering one repaints nothing */
 body.thru .shop{pointer-events:none} /* an armed map item, or the open source, reaches the hexes under them */
 .shop.lit canvas{animation:neon0 5s infinite} /* each shop gets its own flicker (one of these, its own pace and start: shopTick) */
 @keyframes neon0{0%,45%,51%,100%{opacity:1}48%{opacity:.78}50%{opacity:.97}53%{opacity:.9}} /* opacity, not a filter: the compositor runs it without repainting the shop */
@@ -134,7 +134,7 @@ body.shop-open #hdock{z-index:59}#hinv .slot.wal::before{border-color:rgba(255,2
   <button class="hbtn" id="menu-btn" onclick="toggleMenu()" data-tx="map.ui.menu_esc"></button>
   <button class="hbtn" id="modes-btn" data-disc="hud_modes" onclick="togglePanel('mModes')" data-tx="map.ui.modes"></button>
   <button class="hbtn" id="tune-btn" data-disc="hud_tune" onclick="togglePanel('tuneP')" data-tx="map.ui.tune"></button>
-  <div id="mModes"><button id="mdTel" data-disc="mode_telemetry" onclick="setMapMode('tel')" data-tx="map.ui.telemetry_hex_values"></button><button id="mdStats" onclick="setMapMode('stats')" data-tx="map.ui.stats_frames_hexes"></button><button onclick="downloadHubLog()" data-tx="map.ui.performance_log"></button><div class="ttl"></div><button data-test="mode" onclick="testMode()"></button><button class="test-only" id="mdTool" onclick="armItem('test');togglePanel()" data-tx="test.tool"></button><button class="test-only" data-test="free" onclick="testFree();renderShop()"></button><button class="test-only" onclick="neb({cmd:'test',f:'discAll'});neb({cmd:'test',f:'unlockAll'})" data-tx="test.discover_all"></button><button class="test-only" onclick="neb({cmd:'test',f:'testFill'})" data-tx="test.fill"></button></div>
+  <div id="mModes"><button id="mdTel" data-disc="mode_telemetry" onclick="setMapMode('tel')" data-tx="map.ui.telemetry_hex_values"></button><button id="mdStats" onclick="setMapMode('stats')" data-tx="map.ui.stats_frames_hexes"></button><button onclick="downloadHubLog()" data-tx="map.ui.performance_log"></button><div class="ttl"></div><button data-test="mode" onclick="testMode()"></button><button class="test-only" id="mdTool" onclick="armItem('test');togglePanel()" data-tx="test.tool"></button><button class="test-only" data-test="free" onclick="testFree();renderShop()"></button><button class="test-only" onclick="neb({cmd:'test',f:'discAll'});neb({cmd:'test',f:'unlockAll'})" data-tx="test.discover_all"></button><button class="test-only" onclick="neb({cmd:'test',f:'testFill'})" data-tx="test.fill"></button><button class="test-only" onclick="downloadRunLog()" data-tx="test.runlog"></button></div>
   <div id="tuneP"><div class="tabs"></div><input type="search" data-tp="map.ui.filter_settings"><div class="rows"></div></div>
   <div id="hstats"></div>
   <button class="hbtn" id="restart-btn" data-disc="hub_restart" onclick="if(confirm(txt('map.confirm.newmap')))initGame()" data-tx="map.ui.new_map"></button>
@@ -311,7 +311,7 @@ function advanceTurn(){ // time moves on (a move) by one time of day; the spill 
   if(fresh)fresh=false;else{turn++;addRing(turn);}redistribute();decayCycle();showTurn();}
 const canRest=()=>(MP.on?mpMine():tired())&&currentView==='map'&&!menuOpen&&!shopUI&&phase!=='collapse'&&phase!=='ended'&&phase!=='gameover'; // Midnight, on the map: the day can be ended (Rest is the only way: no moves at Midnight)
 function rest(){if(!canRest())return;if(tired()){buoy.dunk={t0:performance.now(),d:1,ms:900};buoy.rested=true;}if(MP.role==='guest'){mpSend('rest');return;}advanceTurn();updateHint();saveMap();} // (at Midnight it sinks to sleep, and bobs up in the morning) // Rest: the day ends at Midnight without a move, after any last thing (a shop, an item) you wanted to do
-const clockStr=()=>TIMES[clock]||TIMES[Math.max(3,Math.floor(clock/3)*3)]||TIMES[3];
+const clockStr=(h=clock)=>TIMES[h]||TIMES[Math.max(3,Math.floor(h/3)*3)]||TIMES[3];
 function showTurn(){neb({cmd:'clock',clock,day});mapHistKeep();if(buoy.rested&&clock<24){buoy.rested=false;buoy.dunk={t0:performance.now()+400,d:-1,ms:900};} // morning: up again // (the surface's run: a Daily Wonder ends at its time)
   const el=document.getElementById('turn-label');el.textContent=txt('map.day',clockStr(),day);el.classList.add('show');clearTimeout(turnTimer);turnTimer=setTimeout(()=>el.classList.remove('show'),1200);} // (always shown; it glows when the time changes)
 
@@ -387,11 +387,11 @@ function completeCaptureForCell(cellKey,kind,tally){
 }
 const tired=()=>clock===24&&!SCENE; // Midnight: no more moves (Rest ends the day)
 function doMove(tq,tr){
-  if(phase==='gameover'||phase==='collapse')return;if(tired()){feed(txt('map.too_tired_to_move'),txt('map.rest_under_midnight_to'));return;}
+  if(phase==='gameover'||phase==='collapse')return;if(tired()){feed(txt('map.too_tired_to_move'),txt('map.rest_under_midnight_to'),'no');return;}
   const tc=cells[K(tq,tr)];
   if(tc&&tc.isVoid&&voidOpen&&tq===0&&tr===0){const ok=cells[K(pQ,pR)];if(ok)ok.isP=false;descendDepth();return;}
   const ok=cells[K(pQ,pR)];if(ok)ok.isP=false;
-  pQ=tq;pR=tr;tc.isP=true;buoyGo('sail');focusCam(true,1);
+  playRec('⛵ '+tq+','+tr,'from '+pQ+','+pR+(tc.kind?' · '+tc.kind:''),'move');pQ=tq;pR=tr;tc.isP=true;buoyGo('sail');focusCam(true,1);
   advanceTurn();if(!MP.on&&runBad(run,'slowmove')&&phase!=='collapse'&&phase!=='gameover')advanceTurn();if(phase==='collapse'){updateHint();saveMap();return;}if(phase!=='gameover')phase='move';
   if(phase==='move'&&!tired()&&!getMoves().length){phase='gameover';gameOverReason=txt('map.go.nomoves');}
   updateHint();saveMap();
@@ -409,8 +409,10 @@ function updateHint(){ // the feed's resting line: what you can do now
   else if(armed==='test'){a=txt('test.tool_hint');b=txt('map.right_click_esc_or');}
   else if(c&&!c.cap&&!c.isVoid&&phase==='move'){a=(c.v<=0?txt('map.no_value_here_nothing'):txt('map.space_click_to',(nebulaCellKey===K(pQ,pR)?txt('map.continue_this_surface'):txt('map.enter_this_surface')),c.v.toFixed(2)));b=txt('map.day_or_move',clockStr(),day);if(tired()){a=txt('map.too_tired_to_move');b=txt('map.rest_under_midnight_to_2',(c.v>0?txt('map.or_this_surface',(nebulaCellKey===K(pQ,pR)?txt('map.continue'):txt('map.enter')),c.v.toFixed(2)):''));}}
   hintLine=[a,b];}
-window.ilHint=(a,b)=>feed(a,b); // a menu button's bracketed context, in the feed (content.js parenHints)
-function feed(t,d){feedPop();if(!SCENE&&t){const l=playLog[playLog.length-1];if(!l||l.t!==t||l.d!==(d||'')){playLog.push({day,clock,t:String(t),d:String(d||'')});if(playLog.length>160)playLog.shift();}} // (the run's play-by-play: Status → Buoy → History)
+window.ilHint=(a,b)=>feed(a,b,'hint'); // a menu button's bracketed context, in the feed (content.js parenHints)
+function playRec(t,d,nz){if(SCENE||!t)return;const l=playLog[playLog.length-1];if(l&&l.t===String(t)&&l.d===String(d||''))return; // the run's log: everything that happened, and where and when, for the record (and a replay); nz: noise (a tap, a no) — kept, but not in the play-by-play (Status → Buoy → History)
+  playLog.push({day,clock,t:String(t),d:String(d||''),at:Date.now(),q:pQ,r:pR,sc:Math.round(score),...(nz?{n:nz}:{})});if(playLog.length>1200)playLog.shift();}
+function feed(t,d,nz){feedPop();playRec(t,d,nz);
    // (a message: the feed shows it, even when it is put away)
   if(_mpFor){netOut({t:'feed',ft:t,fd:d||''},_mpFor);return;} // (a friend's action: told to them)
   feedMsg={t,d:d||'',at:performance.now()};} // a map message in the dock's feed (stays a few seconds)
@@ -446,11 +448,11 @@ function armItem(kind){if(phase==='ended'||phase==='collapse')return;armed=armed
 function spend(kind,n){if(_mpFor){netOut({t:'spend',kind,n},_mpFor);return;} // (a friend's: off their own)
   inv[kind]=Math.max(0,(inv[kind]||0)-n);neb({cmd:'spend',kind,n});syncDock();}
 function spindleFill(k){ // Spindle on an open hex below 1.00: wound up to 1.00, and held there (like a locked hex) until it is cleared
-  const c=cells[k];if(!c||c.cap||c.isVoid||c.v>=1)return;if((inv.leash||0)<1){feed(txt('map.spindle'),txt('map.you_have_none'));return;}
+  const c=cells[k];if(!c||c.cap||c.isVoid||c.v>=1)return;if((inv.leash||0)<1){feed(txt('map.spindle'),txt('map.you_have_none'),'no');return;}
   spend('leash',1);c.v=1;c.full=true;redistribute();feed(txt('map.spindle'),txt('map.surface_wound_up_to'));updateHint();saveMap();}
 function unclear(k){ // Spindle: a cleared hex back to an open surface (the value spreads over one more hex)
   const c=cells[k];if(!c||!c.cap)return;const g=c.mergeId!=null?mergeGroups.find(x=>x.id===c.mergeId):null,big=g&&g.type==='dark3',cost=big?3:1;
-  if((inv.leash||0)<cost){feed(txt('map.spindle'),txt('map.this_takes_you_have',cost,inv.leash||0));return;}
+  if((inv.leash||0)<cost){feed(txt('map.spindle'),txt('map.this_takes_you_have',cost,inv.leash||0),'no');return;}
   const ks=big?g.cells:[k];spend('leash',cost);
   if(g){mergeGroups=mergeGroups.filter(x=>x!==g);for(const gk of g.cells)if(cells[gk])cells[gk].mergeId=null;}
   for(const kk of ks){const q=cells[kk];if(!q)continue;score=Math.round((score-q.capVal)*100)/100;q.unw=q.kind==='dark'?'dark':'bright';q.cap=false;q.capVal=0;q.v=0;delete q.full;clearFx[kk]={t0:performance.now(),un:true,dk:q.kind==='dark'};delete q.kind;}
@@ -459,22 +461,22 @@ function unclear(k){ // Spindle: a cleared hex back to an open surface (the valu
   feed(txt('map.unwound'),(big?txt('map.the_great_dark_remnant'):txt('map.the_hex_is_a')));updateHint();saveMap();}
 function stringMove(q,r){ // String: straight to any open hex, 1 per hex of distance, no time
   const c=cells[K(q,r)];if(!c||c.cap||c.isVoid||(q===pQ&&r===pR))return;const n=dist(pQ,pR,q,r);
-  if(riftBetween(pQ,pR,q,r)){feed(txt('map.string'),txt('map.rift_in_the_way'));return;}
-  if((inv.dial||0)<n){feed(txt('map.string'),txt('map.that_is_away_you',n,inv.dial||0));return;}
+  if(riftBetween(pQ,pR,q,r)){feed(txt('map.string'),txt('map.rift_in_the_way'),'no');return;}
+  if((inv.dial||0)<n){feed(txt('map.string'),txt('map.that_is_away_you',n,inv.dial||0),'no');return;}
   spend('dial',n);const ok=cells[K(pQ,pR)];if(ok)ok.isP=false;dropSession();pQ=q;pR=r;c.isP=true;buoyGo('fire');focusCam(true,1);phase='move';const dim=runBad(run,'slowmove');if(dim)advanceTurn(); // a dim fortune: a String takes a time of day
   if(phase==='collapse'){updateHint();saveMap();return;}feed(txt('map.string'),txt('map.hex',n,(n>1?txt('map.es'):''),(dim?txt('map.a_time_of_day'):txt('map.no_time_passed'))));updateHint();saveMap();}
 const WEAVE_KINDS={3:['prism'],4:['gate','knot'],5:['key','lens']}; // (KIND_NAME: shared.js)
 const weaveKinds=n=>runBonus(run,'glasses')?['lens']:WEAVE_KINDS[n].filter(k=>!(k==='key'&&run.keysGone)); // Broken Glasses: only Lens; Keys lost: no Key
 function weaveClick(k){
-  if(!isBright(k)){feed(txt('map.weave'),txt('map.only_bright_hexes_can'));return;}
+  if(!isBright(k)){feed(txt('map.weave'),txt('map.only_bright_hexes_can'),'no');return;}
   if(weaveSel.length>=3&&k===weaveSel[0]){const kinds=weaveKinds(weaveSel.length);if(kinds.length===1)makeConstellation(kinds[0]);else{weaveAsk=kinds;syncDock();}return;}
-  if(weaveSel.includes(k))return;if(weaveSel.length>=5){feed(txt('map.weave'),txt('map.at_most_5_click'));return;}
+  if(weaveSel.includes(k))return;if(weaveSel.length>=5){feed(txt('map.weave'),txt('map.at_most_5_click'),'no');return;}
   weaveSel.push(k);updateHint();}
 function segX(a,b,c,d){const o=(p,q,r)=>Math.sign((q[0]-p[0])*(r[1]-p[1])-(q[1]-p[1])*(r[0]-p[0]));return o(a,b,c)*o(a,b,d)<0&&o(c,d,a)*o(c,d,b)<0;} // proper crossing (touching ends do not count)
 const constEdges=c=>c.keys.map((k,i)=>[k,c.keys[(i+1)%c.keys.length]]);
 function makeConstellation(type){
-  if(MP.role==='guest'&&!_mpFor){if(!mpMine()){feed(txt('mp.title'),txt('mp.not_your_turn',(mpP(mpTurn())||{}).name||''));return;}mpSend('weave',{type,sel:weaveSel.slice()});weaveSel=[];weaveAsk=null;armed=null;syncDock();return;} // a friend: the host makes it
-  if((inv.weave||0)<1){feed(txt('map.weave'),txt('map.you_have_no_weave'));weaveSel=[];weaveAsk=null;return;}
+  if(MP.role==='guest'&&!_mpFor){if(!mpMine()){feed(txt('mp.title'),txt('mp.not_your_turn',(mpP(mpTurn())||{}).name||''),'no');return;}mpSend('weave',{type,sel:weaveSel.slice()});weaveSel=[];weaveAsk=null;armed=null;syncDock();return;} // a friend: the host makes it
+  if((inv.weave||0)<1){feed(txt('map.weave'),txt('map.you_have_no_weave'),'no');weaveSel=[];weaveAsk=null;return;}
   const nc={keys:weaveSel.slice(),type},P=k=>a2w(...parseK(k)),broken=[];
   for(const o of constel)if(constEdges(nc).some(([a,b])=>constEdges(o).some(([c,d])=>![c,d].includes(a)&&![c,d].includes(b)&&segX(P(a),P(b),P(c),P(d)))))broken.push(o); // a newer one crossing an older one breaks it
   constel=constel.filter(o=>!broken.includes(o));constel.push(nc);spend('weave',1);weaveSel=[];weaveAsk=null;armed=null;
@@ -564,10 +566,10 @@ function sceneInit(){
   const gl=sc.getContext('webgl',{alpha:false,antialias:true,premultipliedAlpha:true});if(!gl)return null;
   const sh=(t,src)=>{const o=gl.createShader(t);gl.shaderSource(o,src);gl.compileShader(o);return o;},pr=gl.createProgram();
   gl.attachShader(pr,sh(gl.VERTEX_SHADER,'attribute vec2 aP;uniform mat4 uPV;uniform vec2 uS;varying vec2 vT,vP;void main(){vT=aP;vP=aP*uS;gl_Position=uPV*vec4((aP-0.5)*uS,0.0,1.0);}'));
-  gl.attachShader(pr,sh(gl.FRAGMENT_SHADER,'#ifdef GL_FRAGMENT_PRECISION_HIGH\nprecision highp float;\n#else\nprecision mediump float;\n#endif\nvarying vec2 vT,vP;uniform sampler2D uT;uniform vec2 uSp,uSr,uCp;uniform float uSa,uOn,uCr,uCa;void main(){vec4 c=texture2D(uT,vT);vec2 p=vP-uSp;float ca=cos(uSa),sa=sin(uSa);vec2 q=vec2(dot(p,vec2(ca,sa)),dot(p,vec2(-sa,ca)))/max(uSr,vec2(1.0));float d=length(q),m=uOn*0.8*(1.0-smoothstep(0.4,1.05,d)),dc=length(vP-uCp)/max(uCr,1.0),mc=uCa*(1.0-smoothstep(0.0,1.0,dc)),w=smoothstep(0.72,0.95,min(c.r,min(c.g,c.b)));vec3 l=c.rgb*(1.0+(1.15*m+0.9*mc)*(1.0-w));l=mix(l,vec3(1.0),(m*0.22*(1.0-d)+mc*0.3*(1.0-dc))*w);gl_FragColor=vec4(min(l,vec3(1.0)),1.0);}'));gl.linkProgram(pr);if(!gl.getProgramParameter(pr,gl.LINK_STATUS)){console.error('Surface Map ground shader:',gl.getProgramInfoLog(pr));return null;} /* (a uniform used by both shaders must have the same precision in each: the map position comes over as a varying instead) */
+  gl.attachShader(pr,sh(gl.FRAGMENT_SHADER,'#ifdef GL_FRAGMENT_PRECISION_HIGH\nprecision highp float;\n#else\nprecision mediump float;\n#endif\nvarying vec2 vT,vP;uniform sampler2D uT;uniform vec2 uSp,uSr,uCp,uIS,uRW;uniform vec4 uRp[8];uniform float uSa,uOn,uCr,uCa;void main(){vec2 dsp=vec2(0.0);for(int i=0;i<8;i++){if(uRp[i].w>0.0){vec2 dv=vP-uRp[i].xy;float dd=max(1.0,length(dv)),u=(dd-uRp[i].z)/uRW.x;dsp+=uRp[i].w*exp(-u*u)*sin((dd-uRp[i].z)/uRW.y*6.2832)*dv/dd;}}vec4 c=texture2D(uT,vT+dsp*uIS);vec2 p=vP-uSp;float ca=cos(uSa),sa=sin(uSa);vec2 q=vec2(dot(p,vec2(ca,sa)),dot(p,vec2(-sa,ca)))/max(uSr,vec2(1.0));float d=length(q),m=uOn*0.8*(1.0-smoothstep(0.4,1.05,d)),dc=length(vP-uCp)/max(uCr,1.0),mc=uCa*(1.0-smoothstep(0.0,1.0,dc)),w=smoothstep(0.72,0.95,min(c.r,min(c.g,c.b)));vec3 l=c.rgb*(1.0+(1.15*m+0.9*mc)*(1.0-w));l=mix(l,vec3(1.0),(m*0.22*(1.0-d)+mc*0.3*(1.0-dc))*w);gl_FragColor=vec4(min(l,vec3(1.0)),1.0);}'));gl.linkProgram(pr);if(!gl.getProgramParameter(pr,gl.LINK_STATUS)){console.error('Surface Map ground shader:',gl.getProgramInfoLog(pr));return null;} /* (a uniform used by both shaders must have the same precision in each: the map position comes over as a varying instead) */
   const buf=gl.createBuffer();gl.bindBuffer(gl.ARRAY_BUFFER,buf);gl.bufferData(gl.ARRAY_BUFFER,new Float32Array([0,0,1,0,0,1,1,1]),gl.STATIC_DRAW);
   const tex=gl.createTexture();gl.bindTexture(gl.TEXTURE_2D,tex);for(const [p,v] of [[gl.TEXTURE_MIN_FILTER,gl.LINEAR],[gl.TEXTURE_MAG_FILTER,gl.LINEAR],[gl.TEXTURE_WRAP_S,gl.CLAMP_TO_EDGE],[gl.TEXTURE_WRAP_T,gl.CLAMP_TO_EDGE]])gl.texParameteri(gl.TEXTURE_2D,p,v);
-  return{gl,pr,buf,tex,aP:gl.getAttribLocation(pr,'aP'),uPV:gl.getUniformLocation(pr,'uPV'),uS:gl.getUniformLocation(pr,'uS'),uT:gl.getUniformLocation(pr,'uT'),uSp:gl.getUniformLocation(pr,'uSp'),uSr:gl.getUniformLocation(pr,'uSr'),uSa:gl.getUniformLocation(pr,'uSa'),uOn:gl.getUniformLocation(pr,'uOn'),uCp:gl.getUniformLocation(pr,'uCp'),uCr:gl.getUniformLocation(pr,'uCr'),uCa:gl.getUniformLocation(pr,'uCa'),duck:duckCtx(gl)};}
+  return{gl,pr,buf,tex,aP:gl.getAttribLocation(pr,'aP'),uPV:gl.getUniformLocation(pr,'uPV'),uS:gl.getUniformLocation(pr,'uS'),uT:gl.getUniformLocation(pr,'uT'),uSp:gl.getUniformLocation(pr,'uSp'),uSr:gl.getUniformLocation(pr,'uSr'),uSa:gl.getUniformLocation(pr,'uSa'),uOn:gl.getUniformLocation(pr,'uOn'),uCp:gl.getUniformLocation(pr,'uCp'),uCr:gl.getUniformLocation(pr,'uCr'),uCa:gl.getUniformLocation(pr,'uCa'),uRp:gl.getUniformLocation(pr,'uRp'),uIS:gl.getUniformLocation(pr,'uIS'),uRW:gl.getUniformLocation(pr,'uRW'),duck:duckCtx(gl)};}
 function bottleOpts(d,now,side,alpha){ // a bottle floating upright, leaning a little and rocking, about half under the water (side 1: what shows above it; −1: its reflection)
   const[px,py]=w2s(d.x,d.y),[X,Y,k]=proj(px,py),f=duckFace(d,now),t=0.3+0.1*Math.sin(now/900+d.ph),ct=Math.cos(t),st=Math.sin(t),z=side,size=d._s*0.8,
     ax=[f[0]*st,f[1]*st,ct*z],bx=[-f[0]*ct,-f[1]*ct,st*z],sd=[-f[1],f[0],0],h=size*(0.03*Math.sin(now/650+d.ph)-(d._sink||0)*1.6); // (its length up, leaning along its heading)
@@ -580,6 +582,8 @@ function sceneRender(now){
   gl.activeTexture(gl.TEXTURE0);gl.bindTexture(gl.TEXTURE_2D,G3.tex);gl.pixelStorei(gl.UNPACK_PREMULTIPLY_ALPHA_WEBGL,false);gl.texImage2D(gl.TEXTURE_2D,0,gl.RGBA,gl.RGBA,gl.UNSIGNED_BYTE,mc);gl.uniform1i(G3.uT,0);
   gl.bindBuffer(gl.ARRAY_BUFFER,G3.buf);gl.enableVertexAttribArray(G3.aP);gl.vertexAttribPointer(G3.aP,2,gl.FLOAT,false,0,0);for(let i=0;i<3;i++)gl.disableVertexAttribArray(i+1); // the ground (its texture: y runs down, as the plane's)
   gl.uniformMatrix4fv(G3.uPV,false,cam.pv);gl.uniform2f(G3.uS,MW,MH);{const S=buoy.spotAt,on=!SCENE&&S&&!buoy.dunk&&!buoy.dip&&currentView!=='level';gl.uniform1f(G3.uOn,on?1:0);if(S){gl.uniform2f(G3.uSp,S.x,S.y);gl.uniform2f(G3.uSr,S.ma,S.mi);gl.uniform1f(G3.uSa,S.a);}}
+  {const R=new Float32Array(32),A=T.mapRippleBend!=null?T.mapRippleBend:4;let n=0;for(let i=ripples.length-1;i>=0&&n<8;i--){const r=ripples[i];if(now<r.t)continue;const a=(now-r.t)/1800;if(a>=1)continue;const[x,y]=w2s(r.x,r.y);R.set([x,y,4+a*HEX*(r.big?1.6:r.sm?0.4:0.9),A*(r.big?1.7:r.sm?0.5:1)*(1-a)*(1-a)],n*4);n++;} // the newest rings, each bending the ground round it (as the title's do)
+    gl.uniform4fv(G3.uRp,R);gl.uniform2f(G3.uIS,1/MW,1/MH);gl.uniform2f(G3.uRW,HEX*0.1,HEX*0.14);}
   {const on=!SCENE&&currentView==='map'&&mX>=0&&!menuOpen&&!shopUI&&overScene();gl.uniform1f(G3.uCa,on?1.1:0);if(on){const[px,py]=unproj(mX,mY),k=proj(px,py)[2]||1;gl.uniform2f(G3.uCp,px,py);gl.uniform1f(G3.uCr,56/k);}} // the cursor's own light on the ground, as the buoy's: colours brighten, white takes a sheen // the buoy's light, lighting the ground itself: colours brighten (black stays black), white takes a sheen
   gl.drawArrays(gl.TRIANGLE_STRIP,0,4);
   if(!G3.duck)return;let envd=false;
@@ -663,7 +667,13 @@ function downloadHubLog(){const L=[],now=performance.now(),f=hubPerf.fr,avg=k=>f
   for(const e of hubPerf.worst){L.push('');L.push('gap '+e.gap.toFixed(0)+' ms · map work '+e.work.toFixed(1)+' ms  ('+((now-e.t)/1000).toFixed(1)+' s ago)');L.push('   phases: '+Object.entries(e.ph).sort((a,b)=>b[1]-a[1]).map(x=>x[0]+' '+x[1].toFixed(1)).join(' · '));L.push('   before it: '+((e.ev||[]).map(x=>((x.t-e.t)/1000).toFixed(2)+'s '+x.m).join(' | ')||'—'));}
   L.push('');L.push('== LAST EVENTS ==');for(const x of hubPerf.ev.slice(-120))L.push(((now-x.t)/1000).toFixed(2)+'s ago  '+x.m);
   L.push('');L.push('== LAST 200 FRAMES (gap | work) ==');L.push(f.slice(-200).map(e=>e.gap.toFixed(0)+'|'+e.work.toFixed(1)).join('  '));
-  const blob=new Blob([L.join('\n')],{type:'text/plain'}),a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='surface-map-perf-log.txt';document.body.appendChild(a);a.click();setTimeout(()=>{URL.revokeObjectURL(a.href);a.remove();},500);}
+  saveText('surface-map-perf-log.txt',L.join('\n'));}
+function saveText(name,t){const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([t],{type:'text/plain'}));a.download=name;document.body.appendChild(a);a.click();setTimeout(()=>{URL.revokeObjectURL(a.href);a.remove();},500);}
+function downloadRunLog(){ // test mode: the whole run as it went, noise and all — a readable replay, then the record itself
+  const ic={tap:'·',no:'✗',hint:'?',move:'',duck:''},t0=playLog.length?playLog[0].at||0:0,L=['INFINITE LIGHT — run log  ('+new Date().toISOString()+')','day '+day+' · '+clockStr()+' · depth '+depth+' · score '+Math.round(score)+' · at '+pQ+','+pR+' · '+playLog.length+' entries',''];let dd=-1;
+  for(const e of playLog){if(e.day!==dd){dd=e.day;const de=dayLog.find(x=>x.day===e.day);L.push('','══ DAY '+e.day+(de?'  ('+(END_NAME[de.how||de.end]||de.end)+' · bright '+de.b+' · dark '+de.d+(de.win?' · won':'')+')':'')+' ══');}
+    L.push(('+'+(((e.at||t0)-t0)/1000).toFixed(1)+'s').padStart(9)+'  '+clockStr(e.clock).padEnd(10)+' '+(e.q!=null?('('+e.q+','+e.r+')').padEnd(9):''.padEnd(9))+' ★'+String(e.sc!=null?e.sc:'').padEnd(6)+(e.n?(ic[e.n]!=null?ic[e.n]:'·')+' ':'  ')+e.t+(e.d?' — '+e.d:''));}
+  L.push('','== RECORD (JSON) ==',JSON.stringify({day,clock,depth,score,pos:[pQ,pR],dayLog,playLog}));saveText('infinite-light-run-log.txt',L.join('\n'));}
 function mapRender(){
   if(currentView==='level'){mapRafId=null;return;}hubPerf.t0=_hpT=performance.now();
   camFrame();camSpring(performance.now());
@@ -784,7 +794,7 @@ function panCam(dx,dy){if(dive||camTween)return;buoy.follow=false; // (you took 
   const x=camTX+dx,y=camTY+dy;camX+=x-camTX;camY+=y-camTY;camTX=x;camTY=y;camV.x=camV.y=0;camFrame();} // (camFrame keeps the view on the spill)
 sc.addEventListener('mousedown',e=>{if(e.button===0&&currentView==='map')drag={x:e.clientX,y:e.clientY,moved:false};});
 document.addEventListener('mousemove',e=>{if(!drag)return;if(!(e.buttons&1)){duckLetGo();drag=null;return;}if(!drag.moved&&Math.hypot(e.clientX-drag.x,e.clientY-drag.y)<6)return;drag.moved=true;swipeMark(e.clientX,e.clientY);
-  if(!drag.carry&&!SCENE){const du=duckUnder(e.clientX,e.clientY)||duckUnder(drag.x,drag.y);if(du&&!du.parade&&!du.pd&&!du.gone&&!du.seek){drag.carry=du;du.held=1;du.riseAt=0;ripples.push({x:du.x,y:du.y,t:performance.now(),dk:onWhite(du.x,du.y),big:1});if(!du.bottle)neb({cmd:'quack',type:du.type,v:0.6});}} // a drag or a wipe over a duck or bottle pushes it under and carries it
+  if(!drag.carry&&!SCENE){const du=duckUnder(e.clientX,e.clientY)||duckUnder(drag.x,drag.y);if(du&&!du.parade&&!du.pd&&!du.gone&&!du.seek){drag.carry=du;du.held=1;playRec('🦆 '+du.type,'picked up','duck');du.riseAt=0;ripples.push({x:du.x,y:du.y,t:performance.now(),dk:onWhite(du.x,du.y),big:1});if(!du.bottle)neb({cmd:'quack',type:du.type,v:0.6});}} // a drag or a wipe over a duck or bottle pushes it under and carries it
   if(drag.carry){const[wx,wy]=s2wp(e.clientX,e.clientY);drag.carry.x=wx;drag.carry.y=wy;drag.x=e.clientX;drag.y=e.clientY;return;}const a=s2wp(drag.x,drag.y),b=s2wp(e.clientX,e.clientY);panCam(a[0]-b[0],a[1]-b[1]);drag.x=e.clientX;drag.y=e.clientY;});
 document.addEventListener('mouseup',()=>{duckLetGo();if(drag&&!drag.moved)drag=null;}); // (a drag's own click is swallowed below)
 sc.addEventListener('click',e=>{
@@ -794,7 +804,7 @@ sc.addEventListener('click',e=>{
   const[q,r]=evA(e),k0=K(q,r),c0=cells[k0];{const[wx,wy]=s2wp(e.clientX,e.clientY),now=performance.now();ripples.push({x:wx,y:wy,t:now,dk:onWhite(wx,wy),sm:1});} // a click: a little ripple
   if(armed==='test'){if(c0)testPick(k0,e.clientX,e.clientY);return;} // the test tool: on any hex
   if(c0&&!(armed?itemOK(k0):(q===pQ&&r===pR||(!tired()&&getMoves().some(m=>m.q===q&&m.r===r))))&&!(armed==='weave')){hexTap(k0);return;} // nothing it could do there: the hex rings like tapped glass, and the feed says why
-  if(MP.on&&!mpMine()&&!(armed==='weave')){feed(txt('mp.title'),txt('mp.not_your_turn',(mpP(mpTurn())||{}).name||''));return;} // playing together: on your turn
+  if(MP.on&&!mpMine()&&!(armed==='weave')){feed(txt('mp.title'),txt('mp.not_your_turn',(mpP(mpTurn())||{}).name||''),'no');return;} // playing together: on your turn
   if(MP.role==='guest'&&armed!=='weave'){mpSend('click',{q,r,armed});if(armed==='dial')armed=null;return;} // a friend: the host plays it
   mapClick(q,r);
 });
@@ -806,12 +816,12 @@ function mapClick(q,r){const k=K(q,r); // a click on a hex (yours, or a friend's
   const moves=getMoves();if(moves.find(m=>m.q===q&&m.r===r))doMove(q,r); // (at Midnight it only says you are too tired)
 }
 sc.addEventListener('mouseleave',()=>{hQ=null;hR=null;});
-sc.addEventListener('dblclick',e=>{if(currentView!=='map')return;{const du=duckUnder(e.clientX,e.clientY);if(du&&!du.held&&!du.seek){if(!du.dunk)du.dunk=performance.now();du.hop=1;}} /* a double dab on a duck (or an opened bottle): it goes under, then pops up high */const[wx,wy]=s2wp(e.clientX,e.clientY),now=performance.now();for(let i=0;i<3;i++)ripples.push({x:wx,y:wy,t:now+i*120,dk:onWhite(wx,wy),big:1});splashes.push({x:wx,y:wy,t:now,n:9,a:Math.random()*6.28});}); // a double click: a splash
+sc.addEventListener('dblclick',e=>{if(currentView!=='map')return;{const du=duckUnder(e.clientX,e.clientY);if(du&&!du.held&&!du.seek){if(!du.dunk)du.dunk=performance.now();du.hop=1;playRec('🦆 '+du.type,'hop!','duck');}} /* a double dab on a duck (or an opened bottle): it goes under, then pops up high */const[wx,wy]=s2wp(e.clientX,e.clientY),now=performance.now();for(let i=0;i<3;i++)ripples.push({x:wx,y:wy,t:now+i*120,dk:onWhite(wx,wy),big:1});splashes.push({x:wx,y:wy,t:now,n:9,a:Math.random()*6.28});}); // a double click: a splash
 let swipeWake=[],splashes=[],hexTaps=[],_swAt=0,_swP=null;
 function swipeMark(X,Y){const now=performance.now();if(now-_swAt<55)return;_swAt=now;const[wx,wy]=s2wp(X,Y),dk=onWhite(wx,wy);ripples.push({x:wx,y:wy,t:now,dk,sm:1}); // a click-swipe over the map: ripples behind it, and a wake
   if(_swP&&now-_swP.t<300){const dx=wx-_swP.x,dy=wy-_swP.y,l=Math.hypot(dx,dy);if(l>1)swipeWake.push({x:wx,y:wy,fx:dx/l,fy:dy/l,sp:Math.min(1,l/(HEX*0.4)),t:now,dk});}_swP={x:wx,y:wy,t:now};}
 function hexTap(k){const now=performance.now(),c=cells[k];hexTaps.push({k,t:now});neb({cmd:'tap'});if(!c)return; // a click that does nothing to a hex: it flashes like tapped glass; the feed tells you why (what pointing at it says)
-  const[a,b]=armed?itemInfo(armed,c):hexInfo(c);feed(a,armed?b:txt(tired()?'map.too_tired_to_move':c.isVoid?'map.tap.void':'map.tap.far')+(b?' · '+b:''));const fd=document.getElementById('hfeed');if(fd){fd.classList.remove('flash');void fd.offsetWidth;fd.classList.add('flash');}}
+  const[a,b]=armed?itemInfo(armed,c):hexInfo(c);feed(a,armed?b:txt(tired()?'map.too_tired_to_move':c.isVoid?'map.tap.void':'map.tap.far')+(b?' · '+b:''),'tap');const fd=document.getElementById('hfeed');if(fd){fd.classList.remove('flash');void fd.offsetWidth;fd.classList.add('flash');}}
 function clickFx(c,now){ // on the plane: the swipe's wake, splashes, tapped hexes
   swipeWake=swipeWake.filter(w=>now-w.t<900);for(const w of swipeWake){const[X,Y]=w2s(w.x,w.y),f=1-(now-w.t)/900,ink=w.dk?[20,24,32]:sunInk();drawWakeShape(c,X,Y,w.fx,w.fy,HEX*0.3,w.sp,0.35*f,ink,ink);}
   splashes=splashes.filter(p=>now-p.t<700);for(const p of splashes){const u=(now-p.t)/700,[X,Y]=w2s(p.x,p.y);c.save();c.fillStyle=`rgba(${(onWhite(p.x,p.y)?[20,24,32]:sunInk()).join(',')},${(0.7*(1-u)).toFixed(3)})`;
@@ -832,7 +842,7 @@ document.addEventListener('keydown',e=>{
   if(menuOpen||shopUI)return;
   if(e.target&&/^(INPUT|SELECT|TEXTAREA)$/.test(e.target.tagName))return; // typing in the Tune panel's filter
   if(e.code==='Backquote'||e.code==='KeyH'){document.body.classList.toggle('ui-hidden');neb({cmd:'ui',hidden:document.body.classList.contains('ui-hidden')});return;}
-  if(e.code==='Space'){e.preventDefault();if(currentView!=='map')return;if(MP.on&&!mpMine()){feed(txt('mp.title'),txt('mp.not_your_turn',(mpP(mpTurn())||{}).name||''));return;}if(MP.role==='guest')mpSend('click',{q:pQ,r:pR,armed:null});else doCapture();} // (playing together: on your turn; a friend's goes by the host)
+  if(e.code==='Space'){e.preventDefault();if(currentView!=='map')return;if(MP.on&&!mpMine()){feed(txt('mp.title'),txt('mp.not_your_turn',(mpP(mpTurn())||{}).name||''),'no');return;}if(MP.role==='guest')mpSend('click',{q:pQ,r:pR,armed:null});else doCapture();} // (playing together: on your turn; a friend's goes by the host)
   if(currentView==='map'&&(e.key==='+'||e.key==='='))zoomUser(1.15);if(currentView==='map'&&(e.key==='-'||e.key==='_'))zoomUser(1/1.15);
 });
 window.addEventListener('resize',mapResize);
@@ -1089,7 +1099,7 @@ function hubEvent(id){if(SCENE)return;if(disc.has('ev:'+id)||evAsked.has(id))ret
 function evPump(){if(currentView==='overlay'&&evQ.length&&nebReady){neb({cmd:'event',ids:evQ.splice(0)});return;} // joins the hand already showing
   if(currentView!=='map'||menuOpen||shopUI||letter||!nebReady||!evQ.length)return;const ids=evQ.splice(0).filter(i=>!disc.has('ev:'+i));if(!ids.length)return;currentView='overlay';showNeb(true);neb({cmd:'event',ids});} // together, as one hand
 function openGuide(){if(!nebReady||currentView!=='map')return;currentView='overlay';showNeb(true);neb({cmd:'guide'});}
-function openCollections(tab){if(!nebReady||currentView!=='map'||shopUI)return;currentView='overlay';showNeb(true);neb({cmd:'collections',tab,hist:{day,depth,score,days:dayLog.map(e=>({day:e.day,end:END_NAME[e.how||e.end]||e.end,b:e.b,d:e.d,win:e.win})),plays:playLog.slice(-120)}});} // (the run so far, for its History) // your buoy: Status and your collections, shown by the surface
+function openCollections(tab){if(!nebReady||currentView!=='map'||shopUI)return;currentView='overlay';showNeb(true);neb({cmd:'collections',tab,hist:{day,depth,score,days:dayLog.map(e=>({day:e.day,end:END_NAME[e.how||e.end]||e.end,b:e.b,d:e.d,win:e.win})),plays:playLog.filter(e=>!e.n).slice(-120).map(({day,clock,t,d})=>({day,clock,t,d}))}});} // (the run so far, for its History) // your buoy: Status and your collections, shown by the surface
 function takeState(m){
   // a tuner just set here wins over a message the surface sent before it got it
   if(m.T){const now=performance.now();for(const k in _tuneLocal)if(now-_tuneLocal[k]<1500)m.T[k]=T[k];else delete _tuneLocal[k];T=m.T;if(SW)camUpdate();}if(m.ducks)duckLog=m.ducks;if(m.duckTypes)DUCK_TYPES=m.duckTypes;if(m.icons)icons=m.icons;if(m.inv){inv=m.inv;syncDock();}if(m.disc)disc=new Set(m.disc);if(m.defs&&m.defs.length)tuneDefs=m.defs;if(m.run)run=m.run;if(m.status)runStatus=m.status;
@@ -1258,11 +1268,13 @@ function shopSprite(id,bk,lit,yaw,open,L,mir,soon){ // L: the buoy's light on it
   const si=soon?soonSign(id):shopImg('sign_'+id);if(!soon&&(!si.complete||!si.naturalWidth)||!_duckTex)return null;
   const type=shopModel(id,bk,lit,fl,si,open,soon),M=duckModel(type),Q=4*(bk==='m'||bk==='l'||bk==='t'?(T.mapShopUpScale||1.7):1), // (a bigger rank's two-storey store drawn larger, so its door is the size of main street's)
     q=quatTurn(quatTurn([0,0,0,1],0,yw*Math.PI/180,0),(mir?-pt:pt)*Math.PI/180,0,0),N=Math.ceil(2*M.g.R*Q)+8,pad=Math.ceil(30*gw)+8;
-  const cv=document.createElement('canvas');cv.width=cv.height=N+pad*2;const c=cv.getContext('2d'),lt=E=>({x:E.x,y:E.y,lights:L?L.ls.map(l=>[E.x+Math.cos(l.a)*100,E.y-Math.sin(l.a)*100,255,244,222,l.s,140]):[]}); /* the buoy's can light, as a light in the scene: on its walls, and glinting on its glass */
+  const cv=document.createElement('canvas');cv.width=cv.height=N+pad*2;const c=cv.getContext('2d'),lt=E=>({x:E.x,y:E.y,lights:L?L.ls.map(l=>[E.x+Math.cos(l.a)*90,E.y-Math.sin(l.a)*30+40,255,244,222,l.s,300]):[]}); /* (the lamp out in front of it, off to the side it comes from and a little low: its cone lands on the shopfront) */ /* the buoy's can light, as a light in the scene: on its walls, and glinting on its glass */
   const emk=soon?1:shopGlowK();M.emk=emk; /* its sign and lit room: full at night, about half at noon */
   drawDuck3D(c,type,q,[[cv.width/2,cv.height/2]],Q,1,2048,lt({x:cv.width/2,y:cv.height/2}));
   {const sun=DUCK_SUN.c;duckEnvUpdate(shopEnv(),performance.now());DUCK_SUN.c=sun.map(v=>v+(1-v)*0.75); // its glass: reflecting the street round the source (faint while the lights are on inside), barely tinted by the time of day
-    drawDuck3D(c,type+'|glass',q,[[cv.width/2,cv.height/2]],Q,lit?0.6+0.7*(1-emk):1,2048,lt({x:W/2,y:H/2})); /* (by day the street shows in it over the dimmer room) */DUCK_SUN.c=sun;}
+    drawDuck3D(c,type+'|glass',q,[[cv.width/2,cv.height/2]],Q,lit?0.6+0.7*(1-emk):1,2048,lt({x:W/2,y:H/2})); /* (by day the street shows in it over the dimmer room) */
+    if(!L&&!mir){const g=document.createElement('canvas');g.width=g.height=cv.width;const gx=g.getContext('2d');drawDuck3D(gx,type+'|glass',q,[[cv.width/2,cv.height/2]],Q,1,2048,null);gx.globalCompositeOperation='source-in';gx.fillStyle='#fff';gx.fillRect(0,0,g.width,g.height);cv._glass=g;} /* its glass alone, white: what a tap flashes */
+    DUCK_SUN.c=sun;}
   if(lit&&gw>0){const g=document.createElement('canvas');g.width=g.height=cv.width;M.eo=1;drawDuck3D(g.getContext('2d'),type,q,[[cv.width/2,cv.height/2]],Q,emk,2048);M.eo=0; // the neon: what glows, blurred out over it
     c.save();c.globalCompositeOperation='lighter';for(const[b,a]of[[22,0.8],[7,0.55]]){c.filter='blur('+(b*gw).toFixed(1)+'px)';c.globalAlpha=Math.min(1,a*gw);c.drawImage(g,0,0);}c.restore();}
   M.emk=1;const m=quatMat(q),fy=M.g.foot;cv._ax=cv.width/2+m[3]*fy*Q;cv._ay=cv.height/2-m[4]*fy*Q;cv._bw=264; // its foot: where it stands on the map; _bw: the size every shop is scaled by (main street's old 66-unit drawing at 4×, so shops keep the size they had)
@@ -1318,14 +1330,14 @@ function shopTick(){if(SCENE&&!document.body.classList.contains('scene-shops'))r
 function shopInfo(key){const el=shopEls[key],s=el&&el._s;if(!s)return['',''];const S=SHOPS[s.id];
   return s.soon?[txt('map.shop.soon',S.n),txt('map.shop.soon_info',s.rank,shopHours(s.id))]:S.street?[S.n,txt(s.lit?'map.shop.open':'map.shop.closed',shopHours(s.id))]:[txt('map.shop.popup',S.n),(s.lit||s.rise<1?txt('map.shop.popupinfo',s.rank,shopHours(s.id)):txt('map.shop.closed',shopHours(s.id)))];}
 let tapN=0,tapAt=0; // taps on closed glass in quick succession
-function shopTap(s){const now=performance.now();tapN=now-tapAt<900?tapN+1:1;tapAt=now;neb({cmd:'tap'}); // its sound, and a ring on the glass where it was tapped (as on a surface's glass)
-  const lay=document.getElementById('bfx');if(lay&&mX>=0){const r=document.createElement('b');r.className='tap';r.style.left=mX+'px';r.style.top=mY+'px';lay.appendChild(r);setTimeout(()=>r.remove(),700);}
-  const el=shopEls[s.key];if(el){const k=tapN===5?'rattle':'glint';el.classList.remove('rattle','glint');void el.offsetWidth;el.classList.add(k);} // a tap rings the glass; only the fifth (the yell) shakes it
-  if(tapN===5)feed(txt('map.tap.yell'),txt('map.tap.yell2',SHOPS[s.id].n));} // the fifth: someone inside has had enough
+function shopTap(s){const now=performance.now();tapN=now-tapAt<900?tapN+1:1;tapAt=now;neb({cmd:'tap'});playRec('✋ '+SHOPS[s.id].n,'tap ×'+tapN,'tap'); // its sound, and its glass flashing
+  const el=shopEls[s.key];if(el){const gm=el._cv&&el._cv._glass;if(gm){let f=el.querySelector('canvas.tapf');if(!f){f=document.createElement('canvas');f.className='tapf';el.appendChild(f);}if(f._src!==gm){f._src=gm;f.width=gm.width;f.height=gm.height;f.getContext('2d').drawImage(gm,0,0);}f.style.transform=el.firstChild?el.firstChild.style.transform:'';f.classList.remove('go');void f.offsetWidth;f.classList.add('go');} // its glass flashes, as a hex's does when a click does nothing there
+    if(tapN===5){el.classList.remove('rattle');void el.offsetWidth;el.classList.add('rattle');}} // only the fifth (the yell) shakes it
+  if(tapN===5)feed(txt('map.tap.yell'),txt('map.tap.yell2',SHOPS[s.id].n),'tap');} // the fifth: someone inside has had enough
 function openShop(key){const el=shopEls[key],s=el&&el._s;if(!s||phase==='collapse')return;
   if(!s.lit){shopTap(s); // a tap on its glass
     const g=runGood(run);if(!(g&&(FORTUNE_GOOD[g.id]||{}).knock)){if(tapN<5)feed(txt('map.is_closed',SHOPS[s.id].n),txt('map.open',shopHours(s.id),(runBad(run,'holiday')?txt('map.a_holiday_it_closes'):'')));return;}
-    feed(txt('map.tap.knock',SHOPS[s.id].n),txt('map.tap.knock2'));} // Friendly Neighborhood (a good fortune): a knock opens it up
+    feed(txt('map.tap.knock',SHOPS[s.id].n),txt('map.tap.knock2'),'tap');} // Friendly Neighborhood (a good fortune): a knock opens it up
   shopUI={id:s.id,rank:s.rank||3,exit:s.id==='gift',key};renderShop();hubEvent('shop_'+s.id);}
 function closeShop(){if(shopUI&&shopUI.gift){quitMain();return;} // leaving the Gift Shop: the run is over
   shopUI=null;renderShop();evPump();}
