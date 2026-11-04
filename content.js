@@ -92,8 +92,8 @@ function gameCursor(opt){GC.opt=opt||{};if(GC.cv)return; // opt.hide(el): the pa
   addEventListener('pointermove',e=>{GC.x=e.clientX;GC.y=e.clientY;GC.el=e.target;},true);
   addEventListener('pointerdown',e=>{GC.x=e.clientX;GC.y=e.clientY;GC.el=e.target;if(e.button===2)gcRClick(GC.st,performance.now());else if(e.button===0)gcPress(GC.st,performance.now());},true);
   addEventListener('pointerup',e=>{if(e.button===0)gcRelease(GC.st,performance.now());},true);
-  document.addEventListener('mouseout',e=>{if(!e.relatedTarget)GC.x=-1;});addEventListener('blur',()=>{GC.x=-1;});
-  const tick=now=>{const dp=window.devicePixelRatio||1,w=Math.round(innerWidth*dp),h=Math.round(innerHeight*dp);if(cv.width!==w||cv.height!==h){cv.width=w;cv.height=h;}
+  document.addEventListener('mouseout',e=>{if(!e.relatedTarget)GC.x=-1;});addEventListener('blur',()=>{if(!(document.activeElement&&document.activeElement.tagName==='IFRAME'))GC.x=-1;}); /* (focus going into a frame of this page, as a surface over the map, is not the pointer leaving) */
+  const ask=(f,d)=>{try{return f();}catch(e){if(!GC.err){GC.err=1;console.error('game cursor:',e);}return d;}}; /* what the page says about the cursor's spot: if that ever fails, the cursor is still drawn (it was lost for good when one frame threw) */
+  const tick=now=>{requestAnimationFrame(tick);const dp=window.devicePixelRatio||1,w=Math.round(innerWidth*dp),h=Math.round(innerHeight*dp);if(cv.width!==w||cv.height!==h){cv.width=w;cv.height=h;}
     const c=cv.getContext('2d');c.setTransform(dp,0,0,dp,0,0);c.clearRect(0,0,innerWidth,innerHeight);GC.shown=false;
-    if(GC.x>=0&&!(GC.opt.hide&&GC.opt.hide(GC.el))){GC.shown=true;gcDraw(c,GC.st,GC.x,GC.y,GC.opt.act?GC.opt.act(GC.el):gcActEl(GC.el),now,GC.opt.col?GC.opt.col(GC.el):null);}
-    requestAnimationFrame(tick);};requestAnimationFrame(tick);}
+    if(GC.x>=0&&!ask(()=>GC.opt.hide&&GC.opt.hide(GC.el),false)){GC.shown=true;ask(()=>gcDraw(c,GC.st,GC.x,GC.y,ask(()=>GC.opt.act?GC.opt.act(GC.el):gcActEl(GC.el),false),now,ask(()=>GC.opt.col?GC.opt.col(GC.el):null,null)));}};requestAnimationFrame(tick);}
