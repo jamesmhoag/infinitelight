@@ -176,9 +176,9 @@ body{
   </div>
   <div id="veil"></div>
   <!-- The game, loaded hidden: it holds the Guide, the sound setting, the items and the discoveries -->
-  <iframe id="neb" src="chromatic_nebula.html?hub=1&v=20261105l" title="Guide"></iframe>
+  <iframe id="neb" src="chromatic_nebula.html?hub=1&v=20261105m" title="Guide"></iframe>
 
-<script src="content.js?v=20261105l"></script><script src="shared.js?v=20261105l"></script>
+<script src="content.js?v=20261105m"></script><script src="shared.js?v=20261105m"></script>
 <script>loading('boot',true);addEventListener('load',()=>requestAnimationFrame(()=>requestAnimationFrame(()=>loading('boot',false)))); /* the site's first load: the same loading screen as every page */
 txtApply();gameCursor({hide:()=>document.getElementById('neb').classList.contains('show')}); // the game's cursor (the Guide over it draws its own)
 // The game's state the title reads (its tuners, purse and discoveries)
@@ -243,7 +243,7 @@ addEventListener('resize',placeMenu); document.fonts&&document.fonts.ready.then(
 // The water: a click ripples it, a double click splashes, a drag leaves a wake; the cursor's stain is laid in it (content.js cursorStain) — and the title, on the water, ripples with it
 const wv=document.getElementById('water'),wc=wv.getContext('2d'),splash=document.querySelector('.splash-container'),twImg=document.getElementById('twImg'),twMap=document.getElementById('twMap'),tf=document.getElementById('tw');
 const rip=[],DM=document.createElement('canvas');DM.width=128;DM.height=96;const dmc=DM.getContext('2d'),dmI=dmc.createImageData(128,96);let twOn=false,_twAt=0,pX=-1,pY=-1,dn=null;
-const tun=(k,d)=>T&&T[k]!=null?T[k]:d,RIP={get ms(){return tun('titleRipMs',2200);},get v(){return tun('titleRipSpeed',0.32);},get w(){return tun('titleRipWidth',26);},get l(){return tun('titleRipWave',34);},get a(){return tun('titleRipBend',9);}}; // a ring's life (ms), speed (px/ms), width, wavelength and how far it bends the title (px): the Title tuners
+const tun=(k,d)=>T&&T[k]!=null?T[k]:d,hexT=()=>tun('titleDuckSize',56)/0.62; // the title's rings are the Surface Map's (shared.js rippleAt, the Ripple tuners), at the size its duck makes a hex (a lake duck is 0.62 of a hex)
 const tiltDeg=()=>tun('mapTilt',32),tiltK=()=>Math.cos(tiltDeg()*Math.PI/180); // the water seen at the Surface Map's tilt: a ring on it is this much flatter than round
 function ripple(x,y,big){ const t=performance.now(); for(let i=0;i<(big?3:1);i++) rip.push({x,y,t:t+i*130,big:!!big}); }
 const onMenu=e=>!!(e.target.closest&&e.target.closest('button,.main-menu,#neb,input'));
@@ -254,15 +254,15 @@ addEventListener('dblclick',e=>{ if(onMenu(e)) return; if(duckHit(e.clientX,e.cl
 function water(now){
   const dp=devicePixelRatio||1,W=innerWidth,H=innerHeight;if(wv.width!==Math.round(W*dp)||wv.height!==Math.round(H*dp)){wv.width=Math.round(W*dp);wv.height=Math.round(H*dp);}
   wc.setTransform(dp,0,0,dp,0,0);wc.globalCompositeOperation='source-over';wc.fillStyle='#000';wc.fillRect(0,0,W,H);
-  const RM=RIP.ms,RV=RIP.v,RW=RIP.w,RL=RIP.l,RA=RIP.a,k=tiltK();
-  for(let i=rip.length-1;i>=0;i--){const r=rip[i],a=(now-r.t)/RM;if(a>=1){rip.splice(i,1);continue;}if(a<0)continue;const R=4+(now-r.t)*RV*(r.sm?0.6:1);wc.strokeStyle=`rgba(255,255,255,${(0.42*(1-a)*(1-a)*(r.sm?0.6:1)).toFixed(3)})`;wc.lineWidth=r.big?2:1.3;wc.beginPath();wc.ellipse(r.x,r.y,R,R*k,0,0,6.2832);wc.stroke();} // (rings on the water, seen at a slant)
+  const HT=hexT(),[RW,RL]=rippleW(HT),k=tiltK(),RA=tun('rippleBend',4)*HT/34;
+  for(let i=rip.length-1;i>=0;i--){const r=rip[i],{a,R}=rippleAt(r,now,HT);if(a>=1){rip.splice(i,1);continue;}if(a<0)continue;wc.strokeStyle=`rgba(255,255,255,${(0.42*(1-a)*(1-a)*(r.sm?0.6:1)).toFixed(3)})`;wc.lineWidth=r.big?2:1.3;wc.beginPath();wc.ellipse(r.x,r.y,R,R*k,0,0,6.2832);wc.stroke();} // (rings on the water, seen at a slant)
   if(T&&T.cursorBaseR!=null&&!nebEl.classList.contains('show')){cursorTrailRecord(pX,pY,now,pX>=0);cursorStain(wc,now,2*T.cursorBaseR*(T.cursorStainW!=null?T.cursorStainW:0.85),false);} // the cursor's stain, as on every surface
   // the title on the water: every live ring bends it (a displacement map over the title's whole glow, made from the rings)
   const live=rip.some(r=>now>=r.t);if(!live){if(twOn){twOn=false;splash.style.filter='';twMap.setAttribute('scale','0');}return;}
   if(now-_twAt<33)return;_twAt=now;const b=splash.getBoundingClientRect(),w0=splash.offsetWidth,h0=splash.offsetHeight,cx=b.left+b.width/2,cy=b.top+b.height/2,fx=-w0*0.9,fy=-h0*1.4,fw=w0*2.8,fh=h0*3.8,d=dmI.data; // (the filter works in the title's own flat box, before its tilt: a point in it is on the water at cx + x, cy + y·k)
   for(const el of [tf,twImg])for(const[k,v]of[['x',fx],['y',fy],['width',fw],['height',fh]])el.setAttribute(k,v.toFixed(1));
   for(let j=0;j<96;j++)for(let i=0;i<128;i++){const lx=fx+(i+0.5)/128*fw-w0/2,ly=fy+(j+0.5)/96*fh-h0/2;let dx=0,dy=0; // (on the water: the title's own flat coordinates)
-    for(const r of rip){const t=now-r.t;if(t<0)continue;const R=t*RV,ex=lx-(r.x-cx),ey=ly-(r.y-cy)/k,dd=Math.hypot(ex,ey)||1,u=(dd-R)/RW;if(u<-2.5||u>2.5)continue;const A=RA*(r.big?1.6:r.sm?0.5:1)*(1-t/RM)*Math.exp(-u*u)*Math.sin((dd-R)/RL*6.2832);dx+=A*ex/dd;dy+=A*ey/dd;}
+    for(const r of rip){if(now<r.t)continue;const{a,R}=rippleAt(r,now,HT),ex=lx-(r.x-cx),ey=ly-(r.y-cy)/k,dd=Math.hypot(ex,ey)||1,u=(dd-R)/RW;if(u<-2.5||u>2.5||a>=1)continue;const A=rippleBend(r)*HT/34*(1-a)*(1-a)*Math.exp(-u*u)*Math.sin((dd-R)/RL*6.2832);dx+=A*ex/dd;dy+=A*ey/dd;}
     const o=(j*128+i)*4,S=Math.max(1,RA*3);d[o]=128+Math.max(-127,Math.min(127,dx/S*127));d[o+1]=128+Math.max(-127,Math.min(127,dy/S*127));d[o+2]=128;d[o+3]=255;}
   dmc.putImageData(dmI,0,0);twImg.setAttribute('href',DM.toDataURL());twMap.setAttribute('scale',(Math.max(1,RA*3)*2).toFixed(1));if(!twOn){twOn=true;splash.style.filter='url(#tw)';}}
 // A duck of yours (once you have one): after a while it swims in onto the title's water, and plays as on the Surface Map — brush it and it spins,
@@ -278,7 +278,7 @@ function duckCarry(X,Y){const d=tdk;if(!d)return;if(!d.held){d.held=1;d.dunk=0;}
 function duckRelease(){const d=tdk;if(!d||!d.held){if(d&&!d.held)duckDunk(false);return;}d.held=0;d.next=performance.now()+1500;ripple(d.x,d.y,true);}
 function duckBrush(X,Y){const now=performance.now(),dt=Math.max(1,now-_bv.t),v=_bv.x<0?0:Math.hypot(X-_bv.x,Y-_bv.y)/dt,ox=_bv.x,oy=_bv.y;_bv={x:X,y:Y,t:now};const d=tdk;if(!d||d.held||d.dunk||(dn&&dn.duck))return;
   const near=duckHit(X,Y);if(!near){d.touch=0;return;}if(d.touch)return;d.touch=1; // once per touch: slow, it spins; fast, it is pushed off the way the cursor went
-  if(v<0.6)d.spin+=Math.min(0.03,0.004+0.02*v);else{d.hd=Math.atan2(Y-oy,X-ox);d.sp=Math.min(0.5,0.12+v*0.15);d.next=now+2500;rip.push({x:d.x,y:d.y,t:now,sm:1});}}
+  if(v<tun('mapDuckBumpV',0.35)*hexT()/34)d.spin+=Math.min(0.03,0.004+0.02*v);else{d.hd=Math.atan2(Y-oy,X-ox);d.sp=Math.min(0.5,0.12+v*0.15);d.next=now+2500;rip.push({x:d.x,y:d.y,t:now,sm:1});}}
 function duckTick(now){const dp=devicePixelRatio||1;if(dkv.width!==Math.round(innerWidth*dp)||dkv.height!==Math.round(innerHeight*dp)){dkv.width=Math.round(innerWidth*dp);dkv.height=Math.round(innerHeight*dp);}
   W=innerWidth;H=innerHeight;dkc.setTransform(1,0,0,1,0,0);dkc.clearRect(0,0,dkv.width,dkv.height);
   if(!tdk){if(nebReady&&now-t0>tun('titleDuckMs',9000)&&!nebEl.classList.contains('show'))duckSpawn(now);if(!tdk)return;}
@@ -287,7 +287,7 @@ function duckTick(now){const dp=devicePixelRatio||1;if(dkv.width!==Math.round(in
     const want=Math.atan2((d.ty-d.y)/k,d.tx-d.x),da=Math.atan2(Math.sin(want-d.hd),Math.cos(want-d.hd));d.hd+=Math.max(-0.02,Math.min(0.02,da))*dt;d.sp+=(0.045-d.sp)*0.01*dt;
     d.x+=Math.cos(d.hd)*d.sp*dt*16.67/10;d.y+=Math.sin(d.hd)*d.sp*dt*16.67/10*k;
     if(now>d.ripAt){d.ripAt=now+(d.sp>0.1?260:900);rip.push({x:d.x,y:d.y,t:now,sm:1});}} // its paddling ripples the water (and the title on it)
-  let sink=0,lift=0;if(d.dunk){const u=(now-d.dunk)/900;if(u>=1){d.dunk=0;ripple(d.x,d.y,false);if(d.hop){d.hopAt=now;d.hop=0;}}else sink=Math.sin(Math.PI*u);} // under, and back up
+  let sink=0,lift=0;if(d.dunk){const u=(now-d.dunk)/tun('mapDuckDunkMs',1300);if(u>=1){d.dunk=0;ripple(d.x,d.y,false);if(d.hop){d.hopAt=now;d.hop=0;}}else sink=Math.sin(Math.PI*u);} // under, and back up
   if(d.hopAt){const u=(now-d.hopAt)/650;if(u>=1){d.hopAt=0;d.tod=now;ripple(d.x,d.y,true);}else lift=Math.sin(Math.PI*u)*1.6;} // popped up high, then a splash and a toddle
   if(d.held)lift=0.9;d.spin*=Math.pow(0.985,dt);d.yaw+=d.spin*dt;if(d.spin<0.0005&&d.yaw){d.hd+=d.yaw;d.yaw=0;} /* spun round: it carries on the way it now faces */
   const td=d.tod?now-d.tod:1e9,face=d.hd+d.yaw,rl=td<2400?0.32*Math.exp(-td/650)*Math.sin(td/80):0; // (bobbling from side to side as it settles: a roll about its length; yaw: how far it has spun)
