@@ -37,7 +37,7 @@ function txt(k,...a){const s=TXT[k];if(s==null){console.warn('content: no text',
 function txtApply(root){for(const el of (root||document).querySelectorAll('[data-tx]'))el.textContent=txt(el.dataset.tx);for(const el of (root||document).querySelectorAll('[data-tt]'))el.title=txt(el.dataset.tt);for(const el of (root||document).querySelectorAll('[data-tp]'))el.placeholder=txt(el.dataset.tp);} // the page's own labels
 // ── Loading (every page): while a scene is still being drawn, a black screen with ∞ — a glowing bead running round it, its glow trailing behind — and a line of text under it
 // (content/strings.csv load.text) with a glow passing over it now and then; it fades in and out. loading(why, on): show while any reason is on.
-const _load={why:new Set(),el:null,t:0,shown:0};
+const _load={why:new Set(),el:null,t:0,shown:0,carry:0}; // carry: this page opened from one showing it, so it is on at once
 function loadingEl(){if(_load.el)return _load.el;const st=document.createElement('style');st.textContent=`#ilLoad{position:fixed;inset:0;z-index:2147483000;background:#000;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;opacity:0;transition:opacity .45s ease;pointer-events:none}
 #ilLoad.on{opacity:1;pointer-events:auto;cursor:progress}#ilLoad svg{width:56px;height:24px;overflow:visible}#ilLoad .lp{fill:none;stroke:#8a8a8a;stroke-width:1.6}
 #ilLoad .lr{fill:none;stroke:#fff;stroke-width:1.8;stroke-linecap:round;stroke-dasharray:12 88;filter:drop-shadow(0 0 2px #fff)}
@@ -46,11 +46,15 @@ function loadingEl(){if(_load.el)return _load.el;const st=document.createElement
 @keyframes ilSweep{0%{background-position:100% 0}22%,100%{background-position:0 0}}`;document.head.appendChild(st);
   const el=document.createElement('div');el.id='ilLoad';const P='M28,12 C22,2 6,2 6,12 C6,22 22,22 28,12 C34,2 50,2 50,12 C50,22 34,22 28,12 Z';
   el.innerHTML=`<svg viewBox="0 0 56 24"><path class="lp" d="${P}"/><path class="lr" pathLength="100" d="${P}"><animate attributeName="stroke-dashoffset" from="12" to="-88" dur="2.6s" repeatCount="indefinite"/></path><circle class="lb" r="1.9"><animateMotion dur="2.6s" repeatCount="indefinite" path="${P}"/></circle></svg><div class="lt"></div>`;
-  el.querySelector('.lt').textContent=txt('load.text');document.body.appendChild(el);_load.el=el;return el;}
+  el.querySelector('.lt').textContent=txt('load.text');document.body.appendChild(el);_load.el=el;
+  try{el.querySelector('svg').setCurrentTime((Date.now()%2600)/1000);}catch(e){}el.querySelector('.lt').style.animationDelay=-(Date.now()%7000)+'ms'; /* in step with the clock: on every page, the bead and the glow are where they were on the last one (never starting over) */
+  return el;}
 function loading(why,on){const s=_load.why,was=s.size>0;if(on)s.add(why);else s.delete(why);const now=s.size>0;if(now===was)return;clearTimeout(_load.t);
-  const show=()=>{if(!s.size)return;if(!document.body){document.addEventListener('DOMContentLoaded',show,{once:true});return;}const el=loadingEl();void el.offsetWidth;el.classList.add('on');_load.shown=performance.now();};
-  if(now)_load.t=setTimeout(show,why==='boot'?0:140); // (a quick change never flashes it)
-  else _load.t=setTimeout(()=>{if(s.size||!_load.el)return;_load.el.classList.remove('on');},Math.max(0,450-(performance.now()-_load.shown)));} // once shown, at least a moment
+  const show=()=>{if(!s.size)return;if(!document.body){document.addEventListener('DOMContentLoaded',show,{once:true});return;}const el=loadingEl();if(_load.carry){_load.carry=0;el.style.transition='none';el.classList.add('on');void el.offsetWidth;el.style.transition='';}else{void el.offsetWidth;el.classList.add('on');}_load.shown=performance.now();};
+  if(on&&why==='leave')try{sessionStorage.setItem('il_load',Date.now());}catch(e){} /* the next page carries it on */
+  if(now)_load.t=setTimeout(show,why==='boot'||why==='leave'||why==='arrive'?0:140); // (a quick change never flashes it)
+  else _load.t=setTimeout(()=>{if(s.size||!_load.el)return;_load.el.classList.remove('on');},Math.max(250,450-(performance.now()-_load.shown)));} // once shown, at least a moment; and one step of a load straight after another keeps the same screen (never off and on again)
+try{const t=+sessionStorage.getItem('il_load')||0;if(window.top===window&&t){sessionStorage.removeItem('il_load');if(Date.now()-t<15000){_load.carry=1;loading('arrive',true);addEventListener('load',()=>requestAnimationFrame(()=>requestAnimationFrame(()=>loading('arrive',false))));}}}catch(e){} /* opened from a page that was showing it: it stays up (the page's own reasons, as the map's, keep it longer) */
 
 // ═════════════════════════ THE GAME'S CURSOR (every page) ═════════════════════════
 // One cursor everywhere: the system cursor never shows (any state, any menu). The ring, its bloom and its dot; brighter over anything that does
