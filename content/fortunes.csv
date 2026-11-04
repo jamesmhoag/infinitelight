@@ -20,7 +20,7 @@ good,big,,,"{""luck"":""e""}",The {0} smiles on you.,+20% exotic duck chance (to
 good,bigger,,,"{""luck"":""r""}",The {0} smiles on you.,+20% rare exotic duck chance (today).,
 good,huge,,,"{""luck"":""r""}",The {0} smiles on you.,+20% rare exotic duck chance (today).,
 good,bighead,,,"{""next"":""exotic""}",The {0} smiles on you.,The next Dark Remnant is an exotic duck.,
-good,wood,,,"{""x3"":""lens""}",The {0} smiles on you.,Lenses come in threes when you earn them (today).,
+good,wood,,,"{""xsell"":1}",The {0} smiles on you.,"XACT change pays more for what you sell it (today): Dim +1.5, Magnetic, Neutron and Pulsing +0.015.",
 good,glass,,,"{""x3"":""key""}",The {0} smiles on you.,Keys come in threes when you earn them (today).,
 good,metal,,,"{""x3"":""all""}",The {0} smiles on you.,Every item you earn comes in threes (today).,
 good,dim,,,"{""luck"":""d""}",The {0} smiles on you.,+20% duck chance (today).,
@@ -36,8 +36,11 @@ dim,holiday,,,,A dim holiday.,"No pop-up shop opens, and main street closes a ti
 dim,laps,,,,Dimness drags.,"A Spindle needs one more orbit, a Weave one more point, and constellations pay every other time of day.",
 dim,dangerift,,Dangerift,,The tear is hungry.,"A Rift eats what touches it: a bright clear beside a Rift is removed, and a dark one becomes Rift too (and so on). Checked after every clear.",
 dim,paradeday,,Parade Day,,Ducks everywhere you look.,"Only a parade comes today: your own ducks (as many as you have, nine at most), two to a hex, winding through every hex, one hex further each time of day. Nothing can cross a hex they are in.",
+dim,xsell,,Short Change,,Your change comes up short.,"XACT change pays less for what you sell it (today): Dim −3.5, Magnetic, Neutron and Pulsing −0.035.",
 wonder,boom,,Boom or Bust,,"Step right up: five times the light, or none at all.",Every collection today is ×5 or nothing (50 / 50),collect
 wonder,inf,leash,Endless Spindles,,"One thread that never ends, and nothing else to tie it to.","Spindles never run out today, but your Strings and Weaves are lost, and none come",unwind
 wonder,inf,dial,Endless Strings,,Go anywhere you like. Only go.,"Strings never run out today, but your Spindles and Weaves are lost, and none come",stringhome
 wonder,inf,weave,Endless Weaves,,"Every star joins up today, though nothing else does.","Weaves never run out today, but your Spindles and Strings are lost, and none come",weave
 wonder,glasses,,Broken Glasses,,The cracks let the colours through.,"Only Lens constellations can be woven today, but each pays a Prism, Knot, Gate and Key (and no Lens)",lens
+wonder,xup,,Fair Exchange,,"A kind rate, for once.","XACT change gives a tenth more both ways today (×1.1), but the Clock smith will not sell you a time",
+wonder,xdown,,Bad Exchange,,The house always wins.,"XACT change gives a tenth less both ways today (×0.9), but every Luck Charm costs no more than the first",
