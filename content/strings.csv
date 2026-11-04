@@ -822,6 +822,7 @@ build.menu,Build ▾,Build mode,
 map.parade,A parade!,Surface Map,
 map.parade_d,"You have every {kind} duck: here they all come, in a line across the lake.",Surface Map,"kind = $0 — the kind (Colour, Size or Material)"
 mp.no_items,No items to use here,Surface Map (playing together),
+surf.clear.rift,⚡ a Rift tore it open: the hex is gone,surface,
 value.life_ms,T.lifeColor,values (shared: any text can use {life_ms}),a pigment's life factor (Life colour tuner)
 value.dim_mass_pct,Math.round(T.remMassFrac*100),values (shared: any text can use {dim_mass_pct}),% of its mass a failed collapse keeps
 value.dim_energy_pct,Math.round(T.remEnergyFrac*100),values (shared: any text can use {dim_energy_pct}),% of its energy a failed collapse keeps

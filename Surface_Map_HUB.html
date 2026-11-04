@@ -164,7 +164,7 @@ body.shop-open #hdock{z-index:59}#hinv .slot.wal::before{border-color:rgba(255,2
 <div id="veil"></div>
 <div id="bfx"></div>
 <iframe id="neb" data-tt="map.ui.surface"></iframe>
-<script src="content.js?v=20261104g"></script><script src="shared.js?v=20261104g"></script>
+<script src="content.js?v=20261104h"></script><script src="shared.js?v=20261104h"></script>
 <script>
 // ╔══════════════════════════════════════════════════════════════════════════════╗
 // ║  MAP ENGINE                                                                 ║
@@ -183,7 +183,7 @@ let clock=3,day=1,pool=6,fresh=true,burstFx=null,dayLog=[],dayCnt={b:0,d:0},pend
 // // clock: the hour (3 = Twilight … 24 = Midnight, the day's last turn); day: your attempts; pool: what the source put out at its last burst; fresh: no ring added yet since it
 let constel=[],armed=null,weaveSel=[],weaveAsk=null,clearFx={},mergeFx=[],feedMsg={t:'',d:'',at:-1e9}; // constellations {keys,type}; the armed map item; a Weave being drawn; animations; the final count
 const STEP_H=3; // the day: eight turns of three hours
-const CACHE_V='20261104g'; // the build: bump with shared.js's
+const CACHE_V='20261104h'; // the build: bump with shared.js's
 const SCENE=new URLSearchParams(location.search).get('scene'); // a Guide / event demo: the map plays a scripted moment (no surface behind it)
 let phase='move',turnTimer=0,mergeTimer=0;
 let gameOverReason='';
@@ -326,25 +326,41 @@ function riftEvict(k){ // a hex torn under a buoy: it goes to the innermost free
   const taken=new Set(MP.on?MP.players.map(p=>K(p.q,p.r)):[]),[q0,r0]=parseK(k),spot=()=>{let best=null,bs=1e9;for(const kk in cells){const c=cells[kk];if(c.isVoid||taken.has(kk))continue;const sc=cellRing(c.q,c.r)*100+dist(q0,r0,c.q,c.r);if(sc<bs){bs=sc;best=[c.q,c.r];}}return best||[0,0];};
   if(K(pQ,pR)===k){const c=cells[k];if(c)c.isP=false;[pQ,pR]=spot();if(cells[K(pQ,pR)])cells[K(pQ,pR)].isP=true;buoyGo('sail');focusCam(true);feed(txt('map.rift'),txt('map.rift_moved'));}
   if(MP.on&&MP.role==='host')for(const P of MP.players)if(P.id!=='h'&&K(P.q,P.r)===k){taken.delete(k);[P.q,P.r]=spot();taken.add(K(P.q,P.r));netOut({t:'feed',ft:txt('map.rift'),fd:txt('map.rift_moved')},P.id);}}
+let riftFx=[]; // a Rift opening on the map: it snaps open, a nova of a wave rings out, everything round it (and a bright clear it takes, shattered into glowing white; a shop on it, torn to pieces) is drawn in
+function riftFxAdd(k,from){const c=cells[k];if(!c)return null;const[x,y]=a2w(c.q,c.r),f={k,x,y,a:c.rift?c.rift.a:0,t0:currentView==='map'?performance.now():null,from:from||[],ps:null};riftFx.push(f);if(c.rift)c.rift.fx=f.t0;return f;}
+function riftFxStart(now){for(const f of riftFx)if(f.t0==null){f.t0=now;const c=cells[f.k];if(c&&c.rift)c.rift.fx=now;}} // (made while you were in a surface: it opens as the map comes back)
+function riftFxDraw(now){const c=mctx;riftFx=riftFx.filter(f=>f.t0==null||now-f.t0<2200);
+  for(const f of riftFx){if(f.t0==null||now<f.t0)continue;const u=(now-f.t0)/2200,[X,Y]=w2s(f.x,f.y);
+    if(!f.ps){f.ps=[];const add=(x,y,col,shard,n)=>{for(let i=0;i<n;i++){const a=Math.random()*6.2832,r=Math.random()*HEX*0.8;f.ps.push({x:x+Math.cos(a)*r,y:y+Math.sin(a)*r,col,shard,rot:Math.random()*6.28,vr:(Math.random()-0.5)*0.3,d:Math.random()*0.35});}};
+      for(const h of f.from){if(h.bright)add(h.x,h.y,'255,255,255',false,40);else add(h.x,h.y,null,false,22);if(h.shop)add(h.x,h.y,'40,40,52',true,14);} // shattered into glowing white; the rest its own colours; a shop, in pieces
+      for(let i=0;i<30;i++){const a=Math.random()*6.2832,r=HEX*(1+Math.random()*1.6);f.ps.push({x:f.x+Math.cos(a)*r,y:f.y+Math.sin(a)*r,col:null,rot:0,vr:0,d:Math.random()*0.3});}}
+    const tw=Math.min(1,(now-f.t0)/140),L=HEX*0.8*tw,P=new Path2D(),[ax,ay]=[Math.cos(f.a),Math.sin(f.a)]; // it snaps open (faster than its wave)
+    if(tw<1)riftStripe(P,X-ax*L,Y-ay*L,X+ax*L,Y+ay*L,HEX*0.16*Math.max(0.2,tw),f.k.length,HEX*0.3,true);if(tw<1)drawRiftGlow(c,P,now,HEX/160);
+    const wu=Math.min(1,(now-f.t0-60)/900);if(wu>0&&wu<1){const R=HEX*4.6*Math.sqrt(wu);c.save();c.globalCompositeOperation='screen';c.lineWidth=HEX*0.22*(1-wu);c.strokeStyle=`rgba(255,255,255,${(0.85*(1-wu)).toFixed(3)})`;c.beginPath();c.arc(X,Y,R,0,6.2832);c.stroke(); // the wave: a ring, as a nova's seen from above
+      c.filter=`blur(${(HEX*0.12).toFixed(1)}px)`;c.strokeStyle=`rgba(255,140,30,${(0.7*(1-wu)).toFixed(3)})`;c.lineWidth=HEX*0.4*(1-wu);c.stroke();c.restore();}
+    c.save();c.globalCompositeOperation='screen';for(const p of f.ps){const pu=Math.max(0,Math.min(1,(u*1.6-p.d)/(1-p.d))),e=pu*pu*pu,x=p.x+(f.x-p.x)*e,y=p.y+(f.y-p.y)*e;if(pu<=0||pu>=1)continue;const[px,py]=w2s(x,y),a=(1-pu*pu);
+      if(p.shard){c.save();c.globalCompositeOperation='source-over';c.translate(px,py);c.rotate(p.rot+p.vr*pu*40);c.fillStyle=`rgba(${p.col},${a.toFixed(3)})`;c.fillRect(-HEX*0.06,-HEX*0.03,HEX*0.12,HEX*0.06);c.restore();continue;}
+      const col=p.col||(p._c||(p._c=EFFECT_HEX[(Math.random()*6)|0].slice(1).match(/../g).map(h=>parseInt(h,16)).join(',')));c.fillStyle=`rgba(${col},${a.toFixed(3)})`;c.beginPath();c.arc(px,py,Math.max(0.6,HEX*0.035*(1-pu*0.5)),0,6.2832);c.fill();} // drawn in, faster and faster
+    c.restore();}}
 function riftCell(k,ang){ // a Rift tore the surface: the hex is gone (a scar), and the hexes beside it are drained of their particles (lost: nothing is shared out to them, or into it). Gone at Midnight (a new map)
-  const c=cells[k];if(!c||c.cap||c.isVoid)return;let lost=c.v;Object.assign(c,{isVoid:true,v:0,rift:{a:ang||0,t0:performance.now()}});
-  for(const[q,r]of neighbors(c.q,c.r)){const n=cells[K(q,r)];if(n&&!n.isVoid&&!n.cap){lost+=n.v;n.v=0;n.drain=true;}}
+  const c=cells[k];if(!c||c.cap||c.isVoid)return;let lost=c.v;Object.assign(c,{isVoid:true,v:0,rift:{a:ang||0,t0:performance.now()}});const from=[];
+  for(const[q,r]of neighbors(c.q,c.r)){const n=cells[K(q,r)];if(n&&!n.isVoid&&!n.cap){lost+=n.v;n.v=0;n.drain=true;const[x,y]=a2w(q,r);from.push({x,y});}}riftFxAdd(k,from); // (their particles: drawn in as it opens)
   pool=Math.max(0,pool-lost);nebulaCellKey=null;phase='captured';recomputeLocked();redistribute();feed(txt('map.rift'),txt('map.rift_tore'));riftEvict(k);dangerift();updateHint();saveMap();}
 function dangerift(){ // the dim fortune Dangerift (checked after every clear, of any kind): a bright clear beside a Rift is removed, a dark one becomes Rift too, and so on
   if(!runBad(run,'dangerift'))return;let n=0,more=true;const now=performance.now();
   while(more){more=false;for(const k in cells){const c=cells[k];if(!c.rift)continue;for(const[q,r]of neighbors(c.q,c.r)){const nk=K(q,r),d=cells[nk];if(!d||!d.cap||d.isVoid)continue;
-    const dark=d.kind==='dark';if(!dark)score=Math.round((score-d.capVal)*100)/100;Object.assign(d,{cap:false,capVal:0,v:0,isVoid:true,shop:null,mergeId:null});delete d.kind;if(dark){d.rift={a:c.rift.a,t0:now};more=true;riftEvict(nk);}
+    const dark=d.kind==='dark';{const[x,y]=a2w(d.q,d.r),f=riftFx.find(f=>f.k===k)||riftFxAdd(k);if(f)f.from.push({x,y,bright:!dark,shop:!!d.shop});}if(!dark)score=Math.round((score-d.capVal)*100)/100;Object.assign(d,{cap:false,capVal:0,v:0,isVoid:true,shop:null,mergeId:null});delete d.kind;if(dark){d.rift={a:c.rift.a,t0:now};more=true;riftEvict(nk);}
     captureOrder=captureOrder.filter(o=>!o.keys.includes(nk));mergeGroups=mergeGroups.filter(g=>{if(!g.cells.includes(nk))return true;for(const ck of g.cells)if(cells[ck])cells[ck].mergeId=null;return false;});n++;}}} // (a merge it was in comes apart)
   if(!n)return;checkConstellations();recomputeLocked();redistribute();feed(txt('map.dangerift'),txt('map.dangerift_ate',n,n>1?'s':''));}
 function riftsDraw(now){ // every Rift's scar, in the Dark Remnant's pulsing glow: alone, a jagged line across its hex at the angle it tore; beside another, the two
   // line up into one edge between them; three that all touch merge into one triangle
   for(const k in cells){const c=cells[k];if(!c.drain||c.cap||c.isVoid)continue;const[x,y]=w2s(...a2w(c.q,c.r));hexPath(x,y,HEX*0.92);mctx.fillStyle='rgba(3,3,6,0.8)';mctx.fill();} // drained beside a Rift: emptied of its particles
-  const rs=Object.keys(cells).filter(k=>cells[k].rift);if(!rs.length)return;const set=new Set(rs),P=new Path2D(),w=HEX*0.11,ctr=k=>w2s(...a2w(cells[k].q,cells[k].r)),nb=k=>neighbors(cells[k].q,cells[k].r).map(([q,r])=>K(q,r)).filter(n=>set.has(n)),seed=k=>(cells[k].q*7.3+cells[k].r*13.1);
+  riftFxDraw(now);const rs=Object.keys(cells).filter(k=>cells[k].rift&&!(cells[k].rift.fx!==undefined&&(cells[k].rift.fx===null||now-cells[k].rift.fx<140)));if(!rs.length)return; /* (one still to open, or opening: its effect draws it) */const set=new Set(rs),P=new Path2D(),w=HEX*0.11,ctr=k=>w2s(...a2w(cells[k].q,cells[k].r)),nb=k=>neighbors(cells[k].q,cells[k].r).map(([q,r])=>K(q,r)).filter(n=>set.has(n)),seed=k=>(cells[k].q*7.3+cells[k].r*13.1);
   const inTri=new Set();for(const a of rs)for(const b of nb(a))for(const c of nb(b))if(c!==a&&nb(c).includes(a)&&!inTri.has(a)&&!inTri.has(b)&&!inTri.has(c)){riftPoly(P,[ctr(a),ctr(b),ctr(c)],w*0.6,seed(a));inTri.add(a).add(b).add(c);} // three that touch: a triangle
   const done=new Set();for(const a of rs){if(inTri.has(a))continue;const ns=nb(a).filter(n=>!inTri.has(n));
-    if(!ns.length){const t=cells[a].rift.a,[x,y]=ctr(a),L=HEX*0.8;riftStripe(P,x-Math.cos(t)*L,y-Math.sin(t)*L,x+Math.cos(t)*L,y+Math.sin(t)*L,w,seed(a),8);continue;} // alone: across its hex
+    if(!ns.length){const t=cells[a].rift.a,[x,y]=ctr(a),L=HEX*0.8;riftStripe(P,x-Math.cos(t)*L,y-Math.sin(t)*L,x+Math.cos(t)*L,y+Math.sin(t)*L,w*1.4,seed(a),HEX*0.3,true);continue;} // alone: across its hex
     for(const b of ns){const id=a<b?a+'|'+b:b+'|'+a;if(done.has(id))continue;done.add(id);const[x0,y0]=ctr(a),[x1,y1]=ctr(b),dx=x1-x0,dy=y1-y0,l=Math.hypot(dx,dy)||1,ea=nb(a).length===1?HEX*0.75:0,eb=nb(b).length===1?HEX*0.75:0; // side by side: one edge, out past each end
-      riftStripe(P,x0-dx/l*ea,y0-dy/l*ea,x1+dx/l*eb,y1+dy/l*eb,w,seed(a)+seed(b),8);}}
+      riftStripe(P,x0-dx/l*ea,y0-dy/l*ea,x1+dx/l*eb,y1+dy/l*eb,w*1.4,seed(a)+seed(b),HEX*0.3,true);}}
   drawRiftGlow(mctx,P,now,HEX/160);}
 function completeCaptureForCell(cellKey,kind,tally){
   const c=cells[cellKey];if(!c||c.cap)return;
@@ -1000,7 +1016,8 @@ function enterNebula(cellKey){
   neb({cmd:'level',key:cellKey,seed:cellSeed(c),cov:cellCov(c),q:c.q,r:c.r,white:c.unw==='bright',label:`(${c.q},${c.r}) · value ${c.v.toFixed(2)}`,resume,clock}); // clock: the hour its ducks are lit for
 }
 let _enter=null; // going into a surface (the dunk and the camera's move), and how to come back out
-function exitNebula(){if(_enter&&_enter.back&&cam){const now=performance.now(),ms=T.mapEnterMs||1800;diveStart(_enter.key,-1,null,_enter.back);buoy.dunk={t0:now+ms*0.62,d:-1,ms:ms*0.33};}_enter=null; // back out: the same, backwards (the buoy bobs up at the end)
+function exitNebula(){riftFxStart(performance.now()+500); // (a Rift made in there opens as the map comes back)
+  if(_enter&&_enter.back&&cam){const now=performance.now(),ms=T.mapEnterMs||1800;diveStart(_enter.key,-1,null,_enter.back);buoy.dunk={t0:now+ms*0.62,d:-1,ms:ms*0.33};}_enter=null; // back out: the same, backwards (the buoy bobs up at the end)
   if(MP.on&&MP.surf&&MP.surf.owner===MP.me){netOut({t:'surf',owner:MP.me,on:false});MP.surf=null;neb({cmd:'remoteClear'});neb({cmd:'mpShare',on:false});}
   currentView='map';_loadAt=performance.now();loading('back',true);const t=performance.now();for(const k in clearFx)if(clearFx[k].t0==null)clearFx[k].t0=t+250;showNeb(false);mapResize();pondSpawn();startMapLoop();updateHint();evPump();}
 let evQ=[];

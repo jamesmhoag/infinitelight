@@ -112,7 +112,7 @@ button:hover{background:rgba(255,255,255,0.15);}
   <div id="dock" class="bottom"><div id="inventoryPanel"></div><div id="touch-info"></div></div>
   <canvas id="cur"></canvas>
 </div>
-<script src="content.js?v=20261104g"></script><script src="shared.js?v=20261104g"></script>
+<script src="content.js?v=20261104h"></script><script src="shared.js?v=20261104h"></script>
 <script>
 txtApply(); // the page's own labels (content/strings.csv)
 const _SRC=document.documentElement.outerHTML; // kept so the Encyclopedia can run live scenes as embedded copies of the game
@@ -5509,13 +5509,13 @@ function processBlackRemnant(now,dt){
   const bh=blackHole;
   if(!bh._brk){bh._brk=true;bhBreakFixtures(now);} // the Dark Remnant breaks every Lens (bright remnants at their corners) and every Gate — all of it is then drawn in
   bhContactSweep(now); // first thing, in every phase (grow / expand / active)
-  if(bh.phase==='crack'){if(now-bh.crackStart>=(T.riftCrackMs||1100)){bh.phase='grow';bh.growStart=now;}return;} // a Rift: the crack runs across the screen first, then it opens (grow)
+  if(bh.phase==='crack'){if(now-bh.crackStart>=(T.riftCrackMs||260)){bh.phase='grow';bh.growStart=now;}return;} // a Rift: the crack runs across the screen first, then it opens (grow)
   // Grow-in: single point -> derived full scale, running alongside the white's
   // own nova (see triggerNova/triggerBlackRemnant call sites). While growing,
   // the remnant is purely visual — it doesn't yet pull, consume, or affect
   // anything; that only starts once it reaches full scale (phase='active').
   if(bh.phase==='grow'){
-    const t=Math.min(1,(now-bh.growStart)/Math.max(1,T.blackGrowMs));
+    const t=Math.min(1,(now-bh.growStart)/Math.max(1,bh.rift?(T.riftOpenMs||120):T.blackGrowMs)); // (a Rift snaps open)
     bh.consumeR=bh.targetR*fade(t);
     if(t>=1){
       bh.consumeR=bh.targetR;
@@ -5774,7 +5774,7 @@ function drawClearOverlay(ctx,now){
   const secs=fmtDur(clearInfo.timeMs);
   lines.push(`time ${secs}   clicks ${clearInfo.clicks}`);
   if(clearInfo.type==='black'){
-    lines.push(`● dark remnant`);
+    lines.push(clearInfo.rift!=null?txt('surf.clear.rift'):`● dark remnant`);
     lines.push(`collapsed  mass ${clearInfo.collapsedMass.toFixed(0)}   energy ${clearInfo.collapsedEnergy.toFixed(2)}`);
   }
   { const tl=(lab,o)=>{const it=['dim','bright','neutron','magnetic','pulsing'].filter(k=>o[k]).map(k=>({k,n:o[k]}));if(it.length)lines.push({lab,it});};
@@ -12738,7 +12738,7 @@ function cardHTML(ev,mini){ // the one card format: name bar, art box, type line
   return `<div class="mtg${mini?' sm':''}" data-ev="${ev.id}" style="--rc:${TIER_COL[t]}"><div class="nm"><b>${gEsc(ev.name)}</b><span class="gem"></span></div><div class="art" data-scene="${ev.scene}">${mini?`<canvas class="rl-m" width="64" height="64" data-k="${ev.ico}"></canvas>`:''}</div><div class="ty"><span>${gEsc(ev.type.replace(/^Event — /,''))}</span><span>Tier ${TIER[t]}</span></div><div class="tx">${(mini?ev.facts().slice(0,1):ev.facts()).map(f=>`<p${ev.fx?' class="fx"':''}>${gEsc(f)}</p>`).join('')}${ev.flavor?`<p class="fl">${gEsc(ev.flavor)}</p>`:''}</div></div>`; // (small: its first line and its flavour; the rest when it is opened) (fx: the lines are changes to play, set apart from the flavour)
 }
 function mountScene(h,w,hh){if(!h||h.firstChild||document.querySelectorAll('.rl-live iframe,.mtg .art iframe').length>=5)return;const f=document.createElement('iframe'),nm=h.dataset.s||h.dataset.scene;f.style.cssText='border:0;max-width:100%;pointer-events:none;background:#000;border-radius:6px;'+(w?`width:${w}px;height:${hh}px`:'width:100%;height:100%');
-  if(nm.slice(0,4)==='hub:'){const[sn,dk]=nm.slice(4).split(':');f.src='Surface_Map_HUB.html?v=20261104g&scene='+sn+'&T='+encodeURIComponent(JSON.stringify(mapSceneT()))+'&D='+encodeURIComponent(JSON.stringify(dk&&DUCK_TYPES[dk]?{[dk]:DUCK_TYPES[dk]}:Object.fromEntries(Object.entries(DUCK_TYPES).slice(0,4))));}else f.srcdoc=liveSrc(nm);h.appendChild(f);} // a Surface Map demo is played by the map itself
+  if(nm.slice(0,4)==='hub:'){const[sn,dk]=nm.slice(4).split(':');f.src='Surface_Map_HUB.html?v=20261104h&scene='+sn+'&T='+encodeURIComponent(JSON.stringify(mapSceneT()))+'&D='+encodeURIComponent(JSON.stringify(dk&&DUCK_TYPES[dk]?{[dk]:DUCK_TYPES[dk]}:Object.fromEntries(Object.entries(DUCK_TYPES).slice(0,4))));}else f.srcdoc=liveSrc(nm);h.appendChild(f);} // a Surface Map demo is played by the map itself
 function mapSceneT(){const o={};for(const k in T)if(/^(map|bh|duck|wake|glass|metal|dimGlow|glowHalo|maxSpeed)/.test(k))o[k]=T[k];return o;} // what a map demo needs of the tuners
 function showCardHTML(html){ // a Guide card (an entry or a shop) opened over the Guide, where an event card shows
   guideCSS();_evOpen=true;_evReview=true;const ov=evOverlayEl();ov.innerHTML=`<div class="ev-box">${html}<button id="evOk">${txt('card.close')}</button></div>`;ov.style.display='flex';wrap.classList.add('ev-open');
@@ -13594,11 +13594,11 @@ Object.assign(RULE_EV,{duck:'duck',duckexo:'duck'});Object.assign(RULE_SCENES,{d
 function bhVec(bh,x,y){if(!bh.rift)return[_wrapD(x-bh.x,W),_wrapD(y-bh.y,H)];const r=bh.rift,s=(x-bh.x)*r.nx+(y-bh.y)*r.ny;return[r.nx*s,r.ny*s];} // from the hole (a Dark Remnant's centre, or the nearest point of a Rift's line) out to (x,y)
 function bhReach(bh){if(!bh.rift)return Math.sqrt(W*W+H*H);let m=0;for(const[x,y]of[[0,0],[W,0],[0,H],[W,H]])m=Math.max(m,Math.abs((x-bh.x)*bh.rift.nx+(y-bh.y)*bh.rift.ny));return m;} // how far its wave runs to cover the screen
 function drawRift(c,bh,now){const r=bh.rift,L=Math.hypot(W,H),tx=r.ny,ty=-r.nx;
-  if(bh.phase==='crack'){const u=Math.min(1,(now-bh.crackStart)/Math.max(1,T.riftCrackMs||1100)),l=L*(1-Math.pow(1-u,3)),P=new Path2D(); // the crack runs out both ways from where the mass was, like glass: a jagged line, short splinters off it
-    for(const sd of[-1,1]){let px=bh.x,py=bh.y;P.moveTo(px,py);for(let d=14,i=0;d<=l;d+=14,i++){const j=(riftJag(i,r.seed+sd)-0.5)*6;px=bh.x+tx*d*sd+r.nx*j;py=bh.y+ty*d*sd+r.ny*j;P.lineTo(px,py);
+  if(bh.phase==='crack'){const u=Math.min(1,(now-bh.crackStart)/Math.max(1,T.riftCrackMs||260)),l=L*(1-Math.pow(1-u,3)),P=new Path2D(); // the crack runs out both ways from where the mass was, like glass: a jagged line, short splinters off it
+    for(const sd of[-1,1]){let px=bh.x,py=bh.y;P.moveTo(px,py);for(let d=46,i=0;d<=l;d+=46,i++){const j=(riftJag(i,r.seed+sd)-0.5)*4;px=bh.x+tx*d*sd+r.nx*j;py=bh.y+ty*d*sd+r.ny*j;P.lineTo(px,py);
       if(riftJag(i+50,r.seed+sd)<0.22){const ba=(riftJag(i+80,r.seed)-0.5)*1.6,bl=8+22*riftJag(i+90,r.seed),bx=tx*sd*Math.cos(ba)-ty*sd*Math.sin(ba),by=tx*sd*Math.sin(ba)+ty*sd*Math.cos(ba);P.lineTo(px+bx*bl,py+by*bl);P.moveTo(px,py);}}}
     drawRiftGlow(c,P,now,0.5,0,true);c.save();c.strokeStyle='rgba(255,255,255,0.9)';c.lineWidth=1.2;c.stroke(P);c.restore();return;}
-  drawRiftGlow(c,riftStripe(new Path2D(),bh.x-tx*L,bh.y-ty*L,bh.x+tx*L,bh.y+ty*L,Math.max(0.5,bh.consumeR),r.seed,14),now,1);} // open: the stripe (its edges in the pulsing glow)
+  drawRiftGlow(c,riftStripe(new Path2D(),bh.x-tx*L,bh.y-ty*L,bh.x+tx*L,bh.y+ty*L,Math.max(0.5,bh.consumeR),r.seed,70),now,1);} // open: the stripe (its edges in the pulsing glow)
 function drawRiftWave(c,bh,now){const a=bh.activateR,L=Math.hypot(W,H),bw=Math.max(30,Math.min(150,a*0.2)); // the wave out from a Rift, both sides at once: the dark behind it, a white flare and the Dark Remnant's glow along its fronts
   c.save();c.translate(bh.x,bh.y);c.rotate(bh.rift.a);const g=c.createLinearGradient(0,-a,0,a);g.addColorStop(0,'rgba(0,0,0,0)');g.addColorStop(0.12,'rgba(0,0,0,0.95)');g.addColorStop(0.88,'rgba(0,0,0,0.95)');g.addColorStop(1,'rgba(0,0,0,0)');
   c.filter=`blur(${T.bhExpandBlur}px)`;c.fillStyle=g;c.fillRect(-L,-a,2*L,2*a);c.filter='none';c.globalCompositeOperation='screen';
