@@ -67,8 +67,9 @@ function souvenirs(){try{return JSON.parse(localStorage.getItem(SOUV_KEY)||'{}')
 const EFFECT_HEX=['#FF690E','#B0FF06','#01FF6B','#08BAFF','#4E05FF','#FE04C1']; // the six effect colours (the surface's pigments)
 const EFFECT_NAMES=['THROW','FLING','ORBIT','WHIRL','CATCH','SNARE'];  // Push out · Fling out · Orbit · Pull in · Attract · Brake
 const hexMix=(a,b)=>'#'+[1,3,5].map(i=>Math.round((parseInt(a.slice(i,i+2),16)+parseInt(b.slice(i,i+2),16))/2).toString(16).padStart(2,'0')).join('');
-const BUOY_COLS=[...EFFECT_HEX.flatMap((h,i)=>[h,hexMix(h,EFFECT_HEX[(i+1)%6])]),'#ffffff','#c8c8c8','#8c8c8c','#4a4a4a','#141414']; // a buoy's colours: the effect colours, one between each, then white, greys and black (later: skins like the ducks')
-const BUOY_COL_NAMES=['Orange','Gold','Lime','Bright green','Spring green','Turquoise','Azure','Royal blue','Violet','Purple','Magenta','Rose','White','Silver','Grey','Charcoal','Black'];
+const BUOY_COLS=[...EFFECT_HEX.flatMap((h,i)=>[h,hexMix(h,EFFECT_HEX[(i+1)%6])]),'#ffffff','#c8c8c8','#8c8c8c','#6b6b6b','#4a4a4a','#141414']; // a buoy's colours: the effect colours, one between each, then white, greys and black (later: skins like the ducks')
+const BUOY_COL_ORDER=[0,2,4,6,8,10,1,3,5,7,9,11,12,13,14,15,16,17]; // the picker's rows, six each: the effect colours, the ones between them, white to black
+const BUOY_COL_NAMES=['Orange','Gold','Lime','Bright green','Spring green','Turquoise','Azure','Royal blue','Violet','Purple','Magenta','Rose','White','Silver','Grey','Slate','Charcoal','Black'];
 function buoyColHint(c){const i=BUOY_COLS.indexOf(c);if(i<0)return null;return[BUOY_COL_NAMES[i]+' · '+c.toUpperCase(),i>=12?txt('buoy.col.plain'):i%2?txt('buoy.col.mid',EFFECT_NAMES[(i-1)/2],EFFECT_NAMES[((i+1)/2)%6]):txt('buoy.col.fx',EFFECT_NAMES[i/2])];} // a buoy colour pointed at, for the feed: its name and hex, and the effect colour it is (or the two it is between)
 function buoyModel(name,souv,col){ // name: up to 20 characters; souv: the souvenir ids kept (the latest of each kind); col: its colour → the model's type, for drawDuckScene
   name=String(name||'').slice(0,20);col=col||BUOY_COLS[0];const type='buoy:'+name+'|'+souv.join(',')+'|'+col;if(_duckModels.has(type))return type;const A=1024,tx=document.createElement('canvas');tx.width=tx.height=A;const c=tx.getContext('2d');
@@ -169,10 +170,10 @@ function duckCtx(gl){
   const sh=(t,src)=>{const s=gl.createShader(t);gl.shaderSource(s,src);gl.compileShader(s);if(!gl.getShaderParameter(s,gl.COMPILE_STATUS))console.error(gl.getShaderInfoLog(s));return s;};
   const pr=gl.createProgram();
   gl.attachShader(pr,sh(gl.VERTEX_SHADER,'attribute vec3 aP;attribute vec3 aN;attribute vec4 aU;uniform mat3 uR;uniform vec2 uK;uniform float uFl;varying vec3 vN;varying vec3 vM;varying vec4 vU;varying vec3 vP;'+
-    'uniform float uSc;uniform mat4 uV;uniform mat4 uPj;uniform mat3 uVR;uniform vec3 uPos;uniform float uMS;varying float vH;'+ // uSc: in a scene (uR = the duck's turn in the world, uMS its size, uPos where it is; uV / uPj the camera)
+    'uniform float uSc;uniform mat4 uV;uniform mat4 uPj;uniform mat3 uVR;uniform vec3 uPos;uniform float uMS;varying float vH;uniform vec3 uWn;uniform float uWh;'+ // uWn / uWh (a 2D drawing on water): the water's up in the view, and how high the model's middle is above it (model units) // uSc: in a scene (uR = the duck's turn in the world, uMS its size, uPos where it is; uV / uPj the camera)
     'void main(){vec3 P=aP,N=aN;if(uFl>0.0){P.z*=uFl;N=vec3(0.0,0.0,aN.z>=0.0?1.0:-1.0);}'+ // Paper: pressed flat to a thin card, each face the side view as drawn
     'vM=N;vU=aU;vH=0.0;if(uSc>0.5){vec3 w=uPos+uR*P*uMS;vH=w.z;vec4 v=uV*vec4(w,1.0);vP=v.xyz;vN=uVR*(uR*N);gl_Position=uPj*v;}'+
-    'else{vec3 p=uR*P;vP=p;vN=uR*N;gl_Position=vec4(p.xy*uK.x,-p.z*uK.y,1.0);}}'));
+    'else{vec3 p=uR*P;vP=p;vN=uR*N;vH=dot(p,uWn)+uWh;gl_Position=vec4(p.xy*uK.x,-p.z*uK.y,1.0);}}'));
   gl.attachShader(pr,sh(gl.FRAGMENT_SHADER,(dd?'#extension GL_OES_standard_derivatives : enable\n':'')+'precision mediump float;varying vec3 vN;varying vec3 vM;varying vec4 vU;varying vec3 vP;varying float vH;uniform float uCl;uniform float uNk;uniform float uBp;uniform sampler2D uImg;uniform float uEo;uniform float uEm;uniform float uPt;uniform float uGc;uniform float uEW;'+
     'uniform vec3 uC1;uniform vec3 uC2;uniform float uM;uniform float uGl;uniform float uTr;uniform float uA;uniform sampler2D uTex;uniform vec4 uTS;'+
     'uniform sampler2D uEnv;uniform vec3 uEP;uniform float uEA;uniform vec4 uLd[6];uniform vec3 uLc[6];uniform vec3 uDim;uniform float uAA;uniform vec3 uSunL;uniform vec3 uSunC;'+
@@ -219,7 +220,7 @@ function duckCtx(gl){
     'a*=uA;gl_FragColor=vec4(min(col,vec3(1.0))*a,a);}'));
   gl.linkProgram(pr);if(!gl.getProgramParameter(pr,gl.LINK_STATUS)){console.error(gl.getProgramInfoLog(pr));return null;}
   const at={},un={};for(const k of ['aP','aN','aU'])at[k]=gl.getAttribLocation(pr,k);
-  for(const k of ['uEW','uImg','uEo','uEm','uPt','uGc','uNk','uCl','uFl','uR','uK','uC1','uC2','uM','uGl','uTr','uA','uTex','uTS','uEnv','uEP','uEA','uLd','uLc','uDim','uAA','uBp','uSc','uV','uPj','uVR','uPos','uMS','uSunL','uSunC'])un[k]=gl.getUniformLocation(pr,k);
+  for(const k of ['uWn','uWh','uEW','uImg','uEo','uEm','uPt','uGc','uNk','uCl','uFl','uR','uK','uC1','uC2','uM','uGl','uTr','uA','uTex','uTS','uEnv','uEP','uEA','uLd','uLc','uDim','uAA','uBp','uSc','uV','uPj','uVR','uPos','uMS','uSunL','uSunC'])un[k]=gl.getUniformLocation(pr,k);
   const envT=gl.createTexture();gl.bindTexture(gl.TEXTURE_2D,envT);gl.texImage2D(gl.TEXTURE_2D,0,gl.RGBA,1,1,0,gl.RGBA,gl.UNSIGNED_BYTE,new Uint8Array([0,0,0,255]));
   for(const [p,v] of [[gl.TEXTURE_MIN_FILTER,gl.LINEAR],[gl.TEXTURE_MAG_FILTER,gl.LINEAR],[gl.TEXTURE_WRAP_S,gl.CLAMP_TO_EDGE],[gl.TEXTURE_WRAP_T,gl.CLAMP_TO_EDGE]])gl.texParameteri(gl.TEXTURE_2D,p,v);
   return{gl,pr,at,un,envT,envCv:document.createElement('canvas'),envAt:-1,bufs:new Map(),mtex:null,itex:new Map()};}
@@ -274,7 +275,7 @@ function duckDrawCalls(G,M){ // depth pre-pass so only the nearest surface is co
   if(M.mat===3){gl.cullFace(gl.FRONT);gl.drawElements(gl.TRIANGLES,n,gl.UNSIGNED_SHORT,0);}
   else{gl.colorMask(false,false,false,false);gl.cullFace(gl.BACK);gl.drawElements(gl.TRIANGLES,n,gl.UNSIGNED_SHORT,0);gl.colorMask(true,true,true,true);}
   gl.cullFace(gl.BACK);gl.drawElements(gl.TRIANGLES,n,gl.UNSIGNED_SHORT,0);gl.disable(gl.CULL_FACE);}
-function drawDuck3D(c,type,q,at,h,alpha,maxS,env){ // the type's model turned by q, h px per model unit, drawn centred on each [x,y] of at (a 2D canvas);
+function drawDuck3D(c,type,q,at,h,alpha,maxS,env,wat){ // wat: it floats on water ({n: the water's up in the view, h: its middle's height above it, clip: 1 what is above, −1 what is below (a reflection), mirror}) // the type's model turned by q, h px per model unit, drawn centred on each [x,y] of at (a 2D canvas);
   // env (Metal / Gold / Glass): {x,y} where the duck is in the scene the reflection is taken from, and the lights near it (metalLights rows)
   const G=duckGL(),M=duckModel(type);
   if(!G||!M||!_duckTex){c.save();c.fillStyle='rgba(255,222,40,'+alpha+')';for(const p of at){c.beginPath();c.arc(p[0],p[1],h*0.35,0,6.2832);c.fill();}c.restore();return;}
@@ -282,10 +283,15 @@ function drawDuck3D(c,type,q,at,h,alpha,maxS,env){ // the type's model turned by
   if(G.cv.width<S||G.cv.height<S){G.cv.width=G.cv.height=Math.min(2048,Math.max(S,G.cv.width*2));}
   gl.viewport(0,0,S,S);gl.enable(gl.SCISSOR_TEST);gl.scissor(0,0,S+2,S+2);gl.clearColor(0,0,0,0);gl.clearDepth(1);gl.clear(gl.COLOR_BUFFER_BIT|gl.DEPTH_BUFFER_BIT);gl.scissor(0,0,S,S); // the clear runs 2px past the copied square: the copy's filtering reads a pixel beyond it
   duckBind(G,M,env,h);const u=G.un;gl.uniform1f(u.uPt,1);
-  gl.uniform1f(u.uSc,0);gl.uniform1f(u.uCl,0);gl.uniform1f(u.uBp,DUCK_MESH.tex.b?T.duckBump/_duckTex.t:0); // bump depth in model units (a strip px is 1/t of one)
+  gl.uniform1f(u.uSc,0);gl.uniform1f(u.uCl,wat?wat.clip:0);gl.uniform3fv(u.uWn,wat?wat.n:[0,1,0]);gl.uniform1f(u.uWh,wat?wat.h:0);gl.uniform1f(u.uBp,DUCK_MESH.tex.b?T.duckBump/_duckTex.t:0); // bump depth in model units (a strip px is 1/t of one)
   gl.uniformMatrix3fv(u.uR,false,q.length===9?q:quatMat(q));gl.uniform2f(u.uK,2*h/S,1/(M.g.R+0.01));gl.uniform1f(u.uA,1); // (q: a quaternion, or already a 3×3 turn)
-  duckDrawCalls(G,M);
+  if(wat&&wat.mirror)gl.frontFace(gl.CW);duckDrawCalls(G,M);if(wat&&wat.mirror)gl.frontFace(gl.CCW);
   const sy=G.cv.height-S;c.save();c.globalAlpha*=alpha;for(const p of at)c.drawImage(G.cv,0,sy,S,S,p[0]-S/2,p[1]-S/2,S,S);c.restore();}
+function drawOnWater(c,type,R,X,Y,h,hb,n,env,ra,only){ // only: 'r' its reflection alone, 'm' itself alone (so what lies on the water can go between) // a model floating on water in a 2D view: what is above the water, and under it its reflection (mirrored in the water, faint). R: its turn (3×3 or a quaternion); X, Y: its middle on the screen; hb: that middle's height above the water (model units); n: the water's up in the view
+  const M=R.length===9?R:quatMat(R),F=[0,1,2].map(i=>[0,1,2].map(j=>(i===j?1:0)-2*n[i]*n[j])),Rm=new Float32Array(9);for(let col=0;col<3;col++)for(let i=0;i<3;i++)Rm[col*3+i]=F[i][0]*M[col*3]+F[i][1]*M[col*3+1]+F[i][2]*M[col*3+2]; // mirrored across the water
+  if(ra>0&&only!=='m')drawDuck3D(c,type,Rm,[[X-2*hb*n[0]*h,Y+2*hb*n[1]*h]],h,ra,0,null,{n,h:-hb,clip:-1,mirror:1});if(only!=='r')drawDuck3D(c,type,M,[[X,Y]],h,1,0,env,{n,h:hb,clip:1});}
+function splashAdd(L,x,y,s,n){for(let i=0;i<(n||14);i++){const a=-Math.PI*(0.15+0.7*Math.random()),v=s*(0.0015+0.003*Math.random());L.push({x,y,vx:Math.cos(a)*v*(Math.random()<0.5?-1:1)*1.3,vy:Math.sin(a)*v*1.6,g:s*0.000012,t:performance.now(),r:s*(0.025+0.035*Math.random()),c:EFFECT_HEX[(Math.random()*6)|0]});}} // a splash: drops of the surface's pigment thrown up (s: the splasher's size, px)
+function splashDraw(c,L,now,dt){dt=Math.min(50,dt||16);for(let i=L.length-1;i>=0;i--){const p=L[i],a=(now-p.t)/900;if(a>=1){L.splice(i,1);continue;}p.vy+=p.g*dt;p.x+=p.vx*dt;p.y+=p.vy*dt;c.globalAlpha=0.9*(1-a);c.fillStyle=p.c;c.beginPath();c.arc(p.x,p.y,p.r*(1-a*0.5),0,6.2832);c.fill();}c.globalAlpha=1;} // (they fall back and fade)
 function drawDuckScene(G,type,o){ // a duck straight into a scene (G = duckCtx of the scene's own context): o.rot a 3×3 (column-major) turn in the
   // world, o.size world units per model unit, o.pos where it is, o.view / o.proj / o.viewRot the camera; o.env as drawDuck3D (screen px), o.px its size on screen
   const M=duckModel(type);if(!G||!M||!_duckTex)return;const gl=G.gl,u=G.un;
@@ -508,11 +514,17 @@ function fortuneParts(f,duckName){ // [what it says, what it does]: the telling,
 function fortuneText(f,duckName){const[a,b]=fortuneParts(f,duckName);return a&&b?a.replace(/\.$/,'')+': '+b[0].toLowerCase()+b.slice(1):a+b;}
 // DAILY: the Daily Wonders: n its name, t what it does (the change to play), f what the Carnival says of it; scene: its card's live demo
 const DAILY=Object.values(FORTUNE_ROWS).filter(r=>r.kind==='wonder').map(r=>({id:r.id,item:cu(r.item),n:r.name,t:r.does,f:r.telling,scene:r.scene}));
+function fmtCount(n){n=Math.floor(n||0);if(n<=9999)return''+n;if(n<100000)return(Math.floor(n/100)/10).toFixed(1)+'k';if(n<1000000)return Math.floor(n/1000)+'k';return(Math.floor(n/10000)/100).toFixed(2)+'m';} // the inventory's short numbers: 99.9k · 999k · 9.99m
+const STATUS_CSS='<style>.stt{border-collapse:collapse;font-size:13px;margin:4px 0 10px;color:inherit;width:100%}.stt td{padding:3px 12px 3px 0;vertical-align:top;color:inherit!important;opacity:1}.stt td:last-child{padding-right:0}.stt td:first-child{opacity:.65;white-space:nowrap;width:1%}.stg{font-weight:600;margin-top:8px}.stu{font-size:13px;opacity:.85}'+
+  '.sv{display:flex;justify-content:space-between;align-items:baseline;gap:8px;font-variant-numeric:tabular-nums;line-height:1.25}.sv .c{opacity:.55;font-size:10.5px;white-space:nowrap}.sv .x{font-size:11.5px;opacity:.8}.sb{display:flex;height:4px;margin-top:3px;background:rgba(128,128,128,.22);border-radius:2px;overflow:hidden}.sb i{display:block;height:100%;flex:none;background:currentColor;opacity:.85}.sb i.dk{background:#9b84ff}.sb i.rf{background:#ff6a5a}</style>'; // Status: each amount over its bar (how full)
+const stBar=parts=>'<div class="sb">'+parts.map(([f,cl])=>`<i${cl?` class="${cl}"`:''} style="width:${Math.max(0,Math.min(100,f*100)).toFixed(1)}%"></i>`).join('')+'</div>'; // a bar: its parts, each a share of the whole width
+const stAmt=(v,cap)=>`<div class="sv"><span>${Math.floor(v||0).toLocaleString('en-US')}</span><span class="c">/ ${fmtCount(cap)}</span></div>`+stBar([[cap?(v||0)/cap:0]]); // what you have (in full), what it holds (short: its scale at a glance), and the bar between
+const stVal=(t,f,parts,x)=>`<div class="sv"><span>${t}</span>${x?`<span class="c">${x}</span>`:''}</div>`+stBar(parts||[[f]]); // a value over its bar
 function statusHTML(s,now){ // now: only what is so now (the Buoy page): no upgrades bought (they are under Shops) // the Guide's Status page, and beside a shop's menu: the wallet against its caps, today's fortune and bonus, duck luck, the permanent upgrades
   if(!s)return'';const r=s.run||{},row=(a,b)=>`<tr><td>${a}</td><td>${b}</td></tr>`,f=n=>Math.floor(n||0).toLocaleString('en-US'),pc=v=>Math.round(v*1000)/10+'%';
-  return`<table class="stt">${['bright','dim','neutron','magnetic','pulsing',...ACCUM_KINDS].map(k=>row(KIND_NAME[k],f(s.inv[k])+' / '+f(s.cap[k]))).join('')}</table>`+
+  return`<table class="stt">${['bright','dim','neutron','magnetic','pulsing',...ACCUM_KINDS].map(k=>row(KIND_NAME[k],stAmt(s.inv[k],s.cap[k]))).join('')}</table>`+
     `<div class="stg">${txt('status.today')}</div><table class="stt">${row(txt('status.fortune'),r.fortune?(r.fortune.good?'☀ ':'☾ ')+fortuneText(r.fortune,r.fortune.duck):'—')}${row(txt('status.tomorrow'),r.dimNext?(r.dimNext.good?'☀ ':'☾ ')+fortuneText(r.dimNext,r.dimNext.duck):'—')}${row(txt('status.wonder'),r.bonus?(DAILY.find(d=>d.id===r.bonus.id&&(d.item||'')===(r.bonus.item||''))||{}).n+(r.bonus.thru?txt('status.wonder_thru',TIMES[(r.bonus.thru-1)%24+1],Math.floor((r.bonus.thru-1)/24)>(r.day||0)?txt('status.tomorrow_l'):''):''):'—')}${row(txt('status.charms'),r.charm||0)}`+
-    `${row(txt('status.duck'),txt('status.duckval',pc(s.ch.d),pc(s.ch.luck)))}${row(txt('status.exotic'),pc(s.ch.e)+' / '+pc(s.ch.r))}${r.keysGone?row(txt('status.keys'),txt('status.keyslost')):''}</table>`+
+    `${row(txt('status.duck'),stVal(pc(s.ch.d),s.ch.d,[[Math.min(s.ch.d,1)],[Math.max(0,Math.min(s.ch.luck,1-s.ch.d)),'dk']],s.ch.luck?'+'+pc(s.ch.luck)+' '+txt('status.next'):''))}${row(txt('status.exotic'),stVal(pc(s.ch.e)+' · '+pc(s.ch.r),0,[[s.ch.r,'dk'],[Math.max(0,s.ch.e-s.ch.r)]],txt('status.exrare')))}${r.keysGone?row(txt('status.keys'),txt('status.keyslost')):''}</table>`+
     (now?'':`<div class="stg">${txt('status.upgrades')}</div><div class="stu">${s.owned.length?s.owned.join(' · '):txt('status.none')}</div>`);}
 // ── Messages in a bottle (the Surface Map's lake): letters from someone else who was here. t: the letter, f: who signed it ──
 const LETTERS=csvRead('letters').map(r=>({t:r.text,f:r.from})); // content/letters.csv (keep the order: the letters found are saved by their place in it — add new ones at the end)

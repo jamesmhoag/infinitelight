@@ -290,9 +290,9 @@ function duckTick(now){const dp=devicePixelRatio||1;if(dkv.width!==Math.round(in
   let sink=0,lift=0;if(d.dunk){const u=(now-d.dunk)/900;if(u>=1){d.dunk=0;ripple(d.x,d.y,false);if(d.hop){d.hopAt=now;d.hop=0;}}else sink=Math.sin(Math.PI*u);} // under, and back up
   if(d.hopAt){const u=(now-d.hopAt)/650;if(u>=1){d.hopAt=0;d.tod=now;ripple(d.x,d.y,true);}else lift=Math.sin(Math.PI*u)*1.6;} // popped up high, then a splash and a toddle
   if(d.held)lift=0.9;d.spin*=Math.pow(0.985,dt);d.yaw+=d.spin*dt;if(d.spin<0.0005&&d.yaw){d.hd+=d.yaw;d.yaw=0;} /* spun round: it carries on the way it now faces */
-  const td=d.tod?now-d.tod:1e9,face=d.hd+d.yaw+(td<2400?0.45*Math.exp(-td/650)*Math.sin(td/80):0); // (toddling from side to side as it settles; yaw: how far it has spun)
+  const td=d.tod?now-d.tod:1e9,face=d.hd+d.yaw,rl=td<2400?0.32*Math.exp(-td/650)*Math.sin(td/80):0; // (bobbling from side to side as it settles: a roll about its length; yaw: how far it has spun)
   const th=tiltDeg()*Math.PI/180,sun=duckSun(3),sd=sun.d,ct=Math.cos(th),st=Math.sin(th);DUCK_SUN={d:[sd[0],sd[1]*ct+sd[2]*st,sd[2]*ct-sd[1]*st],c:sun.c}; // twilight, from where the camera leans
-  const q=quatTurn(quatTurn([0,0,0,1],0,-face,0),Math.PI/2-th,0,0),bob=s*(0.36+0.03*Math.sin(now/700+d.ph)-sink*1.3+lift),X=d.x*dp,Y=(d.y-bob*Math.sin(Math.PI/2-th))*dp;
+  const q=quatTurn(quatTurn(quatTurn([0,0,0,1],rl,0,0),0,-face,0),Math.PI/2-th,0,0),bob=s*(0.36+0.03*Math.sin(now/700+d.ph)-sink*1.3+lift),X=d.x*dp,Y=(d.y-bob*Math.sin(Math.PI/2-th))*dp;
   dkc.save();if(sink>0.01&&!lift){dkc.beginPath();dkc.rect(0,0,dkv.width,(d.y+s*0.12)*dp);dkc.clip();} // (dunked: under the waterline)
   drawDuck3D(dkc,d.type,q,[[X,Y]],s*dp,1,1024,null);dkc.restore();
   if(d.x<-s*3||d.x>innerWidth+s*3||d.y<-s*3||d.y>innerHeight+s*3){d.tx=innerWidth/2;d.ty=innerHeight/2;d.next=now+8000;}} // (never lost off the edge)

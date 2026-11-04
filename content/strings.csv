@@ -45,6 +45,7 @@ map.merge_rings_1,△ Merge · Rings −1,Surface Map,
 map.descended_to_d,Descended to D{depth},Surface Map,depth = $0 — how deep you have descended
 map.day,{time} · Day {day},Surface Map,"time = $0 — the time of day
 day = $1 — the day number"
+map.dayn,Day {0},Surface Map,
 map.no_value_cannot_capture,no value — cannot capture,Surface Map,
 map.too_tired_to_move,Too tired to move,Surface Map,
 map.rest_under_midnight_to,Rest (under Midnight) to end the day,Surface Map,
@@ -673,8 +674,8 @@ status.fortune,Fortune today,"cards, Guide, Status",
 status.wonder,Daily wonder (at once),"cards, Guide, Status",
 status.charms,Luck Charms,"cards, Guide, Status",
 status.duck,Duck chance,"cards, Guide, Status",
-status.duckval,{chance} · next +{luck},"cards, Guide, Status","chance = $0 — the duck chance
-luck = $1 — what the next drop adds"
+status.next,on your next drop,"cards, Guide, Status",
+status.exrare,exotic · rare,"cards, Guide, Status",
 status.exotic,Exotic / rare,"cards, Guide, Status",
 status.keys,Keys,"cards, Guide, Status",
 status.keyslost,lost for this run,"cards, Guide, Status",
@@ -879,7 +880,7 @@ map.shop.soon_info,"Rank {rank} · opens here tomorrow · {hours}",Surface Map f
 hours = $1 — its hours"
 card.fortune.goodnext,"A good fortune, for tomorrow","cards, Guide, Status",
 map.shop.demo_bought,"Bought (a demo: nothing is spent)",Surface Map feed,
-coll.lake.note,"Every type you have, on a pond of your own, each in its own pen: it bobs, toddles and turns where it is. Swipe across one to spin it, click to dunk it, double-click to send it up high.",Status & collections,
+coll.lake.note,"Every type you have, on a pond of your own, each in its own pen: it bobs, bobbles and turns where it is. Swipe across one to spin it, click to dunk it, double-click to send it up high.",Status & collections,
 coll.mode.gallery,Gallery,Status & collections,
 coll.mode.lake,Pond,Status & collections,
 coll.mode.space,Space,Status & collections,
