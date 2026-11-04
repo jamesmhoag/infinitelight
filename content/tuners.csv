@@ -562,7 +562,6 @@ mapZoom,1,Hex zoom,0.25,8,0.05,Surface Map — hex pictures,map,,,,How much of i
 mapClearBlur,0.6,Clear edge blur,0,1.5,0.05,Surface Map — hex pictures,map,,,,How far a bright cleared hex blurs into its neighbours (× hex size),
 mapClearBleed,0.85,Clear edge glow α,0,1,0.05,Surface Map — hex pictures,map,,,,Strength of the white that bleeds from a bright cleared hex into its neighbours,
 mapAlpha,1,Hex layer α,0,1,0.05,Surface Map — hex pictures,map,,,,Opacity of the surface shown on an uncleared hex,
-mapCovMin,0.25,Hex min coverage,0,1,0.05,Surface Map — hex pictures,map,,,,Coverage of a surface whose hex value is 0,
 mapCovFull,1,Hex full coverage value,0.1,6,0.1,Surface Map — hex pictures,map,,,,Hex value at which a surface is fully covered with particles,
 mapPrevFadeMs,450,Hex ease ms,0,3000,50,Surface Map — hex pictures,map,,,,How long a hex's new picture takes to ease in over its old one,
 mapDucks,5,Lake ducks,0,12,1,Surface Map — lake and bottles,map,,,,How many of your collected ducks swim in the open space around the map,

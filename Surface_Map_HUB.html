@@ -163,7 +163,7 @@ body.shop-open #hdock{z-index:59}#hinv .slot.wal::before{border-color:rgba(255,2
 <div id="veil"></div>
 <div id="bfx"></div>
 <iframe id="neb" data-tt="map.ui.surface"></iframe>
-<script src="content.js?v=20261104q"></script><script src="shared.js?v=20261104q"></script>
+<script src="content.js?v=20261104r"></script><script src="shared.js?v=20261104r"></script>
 <script>
 // ╔══════════════════════════════════════════════════════════════════════════════╗
 // ║  MAP ENGINE                                                                 ║
@@ -182,7 +182,7 @@ let clock=3,day=1,pool=6,fresh=true,burstFx=null,dayLog=[],dayCnt={b:0,d:0},pend
 // // clock: the hour (3 = Twilight … 24 = Midnight, the day's last turn); day: your attempts; pool: what the source put out at its last burst; fresh: no ring added yet since it
 let constel=[],armed=null,weaveSel=[],weaveAsk=null,clearFx={},mergeFx=[],feedMsg={t:'',d:'',at:-1e9}; // constellations {keys,type}; the armed map item; a Weave being drawn; animations; the final count
 const STEP_H=3; // the day: eight turns of three hours
-const CACHE_V='20261104q'; // the build: bump with shared.js's
+const CACHE_V='20261104r'; // the build: bump with shared.js's
 const SCENE=new URLSearchParams(location.search).get('scene'); // a Guide / event demo: the map plays a scripted moment (no surface behind it)
 let phase='move',turnTimer=0,mergeTimer=0;
 let gameOverReason='';
@@ -611,7 +611,7 @@ function starPath(cx,cy,or,ir,pts){mctx.beginPath();for(let i=0;i<pts*2;i++){con
 let prev={},prevPending=new Set(),mapNeed=[],renderSig='';
 const shotSize=()=>Math.round(2*HEX*(window.devicePixelRatio||1));
 function cellSeed(c){return Math.abs(Math.sin(depth*999+7.13)*43758.5453)%100;} // one field per depth: each hex is a window onto it at its place (q,r), so a hex's edge pattern carries into its neighbours
-function cellCov(c){const lo=T.mapCovMin!=null?T.mapCovMin:0.25,full=T.mapCovFull||1;return Math.round((lo+(1-lo)*Math.min(1,c.v/full))*4)/4;} // in quarter steps: a move nudges every hex's value, and only a visible change is worth re-shooting its picture
+function cellCov(c){return Math.round(Math.max(0,Math.min(1,c.v/(T.mapCovFull||1)))*100)/100;} // the hex's value itself (to 1%): a low value is a bare surface; its particles keep their full mass and energy (coverage only decides where they are)
 function syncRenderSig(){ // any tuner that changes how a surface looks (not sound, discoveries or the map's own layout) re-shoots the hexes
   let h=0;const str=JSON.stringify(Object.keys(T).filter(k=>!/^(dc_|soundOn|masterVol|mapAlpha|mapCov|mapClear|mapHexSize|mapShop|mapStreet|mapPrev|duck)/.test(k)).sort().map(k=>T[k]))+'|'+shotSize();
   for(let i=0;i<str.length;i++)h=(h*31+str.charCodeAt(i))|0;renderSig=''+h;
