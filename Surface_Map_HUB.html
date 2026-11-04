@@ -163,7 +163,7 @@ body.shop-open #hdock{z-index:59}#hinv .slot.wal::before{border-color:rgba(255,2
 <div id="veil"></div>
 <div id="bfx"></div>
 <iframe id="neb" data-tt="map.ui.surface"></iframe>
-<script src="content.js?v=20261105j"></script><script src="shared.js?v=20261105j"></script>
+<script src="content.js?v=20261105k"></script><script src="shared.js?v=20261105k"></script>
 <script>
 // ╔══════════════════════════════════════════════════════════════════════════════╗
 // ║  MAP ENGINE                                                                 ║
@@ -182,7 +182,7 @@ let playLog=[],clock=3,day=1,pool=6,fresh=true,burstFx=null,dayLog=[],dayCnt={b:
 // // clock: the hour (3 = Twilight … 24 = Midnight, the day's last turn); day: your attempts; pool: what the source put out at its last burst; fresh: no ring added yet since it
 let constel=[],armed=null,weaveSel=[],weaveAsk=null,clearFx={},mergeFx=[],feedMsg={t:'',d:'',at:-1e9}; // constellations {keys,type}; the armed map item; a Weave being drawn; animations; the final count
 const STEP_H=3; // the day: eight turns of three hours
-const CACHE_V='20261105j'; // the build: bump with shared.js's
+const CACHE_V='20261105k'; // the build: bump with shared.js's
 const SCENE=new URLSearchParams(location.search).get('scene'); // a Guide / event demo: the map plays a scripted moment (no surface behind it)
 let phase='move',turnTimer=0,mergeTimer=0;
 let gameOverReason='';
@@ -365,7 +365,7 @@ function riftsDraw(now){ // every Rift's scar, in the Dark Remnant's pulsing glo
   for(const k in cells){const c=cells[k];if(!c.drain||c.cap||c.isVoid)continue;const[x,y]=w2s(...a2w(c.q,c.r));hexPath(x,y,HEX*0.92);mctx.fillStyle='rgba(3,3,6,0.8)';mctx.fill();} // drained beside a Rift: emptied of its particles
   riftFxDraw(now);const rs=Object.keys(cells).filter(k=>cells[k].rift&&!(cells[k].rift.fx!==undefined&&(cells[k].rift.fx===null||now-cells[k].rift.fx<140)));if(!rs.length)return; /* (one still to open, or opening: its effect draws it) */const set=new Set(rs),P=new Path2D(),w=HEX*0.11,ctr=k=>w2s(...a2w(cells[k].q,cells[k].r)),nb=k=>neighbors(cells[k].q,cells[k].r).map(([q,r])=>K(q,r)).filter(n=>set.has(n)),seed=k=>(cells[k].q*7.3+cells[k].r*13.1);
   const inTri=new Set();for(const a of rs)for(const b of nb(a))for(const c of nb(b))if(c!==a&&nb(c).includes(a)&&!inTri.has(a)&&!inTri.has(b)&&!inTri.has(c)){riftPoly(P,[ctr(a),ctr(b),ctr(c)],w*0.6,seed(a));inTri.add(a).add(b).add(c);} // three that touch: a triangle
-  const done=new Set();for(const a of rs){if(inTri.has(a))continue;const ns=nb(a).filter(n=>!inTri.has(n));
+  const done=new Set();for(const a of rs){if(inTri.has(a))continue;const ns=nb(a); // (beside a triangle: its edge runs on into the triangle's corner, so the shapes join)
     if(!ns.length){const t=cells[a].rift.a,[x,y]=ctr(a),L=HEX*0.8;riftStripe(P,x-Math.cos(t)*L,y-Math.sin(t)*L,x+Math.cos(t)*L,y+Math.sin(t)*L,w*1.4,seed(a),HEX*0.3,true);continue;} // alone: across its hex
     for(const b of ns){const id=a<b?a+'|'+b:b+'|'+a;if(done.has(id))continue;done.add(id);const[x0,y0]=ctr(a),[x1,y1]=ctr(b),dx=x1-x0,dy=y1-y0,l=Math.hypot(dx,dy)||1,ea=nb(a).length===1?HEX*0.75:0,eb=nb(b).length===1?HEX*0.75:0; // side by side: one edge, out past each end
       riftStripe(P,x0-dx/l*ea,y0-dy/l*ea,x1+dx/l*eb,y1+dy/l*eb,w*1.4,seed(a)+seed(b),HEX*0.3,true);}}
@@ -401,7 +401,7 @@ function updateHint(){ // the feed's resting line: what you can do now
   if(phase==='ended'){a=txt('map.the_run_is_won',dayLog.length,(dayLog.length===1?'':txt('map.s')));b=txt('map.back_to_the_main');}
   else if(phase==='gameover'){a=txt('map.game_over',gameOverReason);b=txt('map.a_new_map_keeps');}
   else if(phase==='captured'){a=(tired()?txt('map.cleared_too_tired_to'):txt('map.cleared'));b=(tired()?txt('map.rest_under_midnight_to'):txt('map.move_on'));}
-  else if(phase==='collapse'){a=(pendingEnd?(pendingEnd.how==='midnight'?txt('map.midnight'):txt('map.full_circle')):txt('map.day_cleared',day-1));b=(pendingEnd?txt('map.the_rings_fall_into'):txt('map.close_the_report_to'));}
+  else if(phase==='collapse'){a=(pendingEnd?txt('map.midnight'):fireworks.length?txt('map.win'):txt('map.collapsing'));b=(pendingEnd?txt('map.the_rings_fall_into'):txt('map.close_the_report_to'));}
   else if(armed==='weave'){a=txt('map.weave_click_bright_hexes');b=(weaveSel.length?txt('map.chosen',weaveSel.length):txt('map.right_click_esc_or'));}
   else if(armed==='dial'){a=txt('map.string_click_any_open');b=txt('map.1_string_per_hex');}
   else if(armed==='leash'){a=txt('map.spindle_click_a_cleared');b=txt('map.a_great_dark_remnant');}
@@ -484,57 +484,86 @@ function checkConstellations(){constel=constel.filter(c=>c.keys.every(isBright))
 function awardConstellations(){checkConstellations();const got={},laps=runBad(run,'laps'),gl=runBonus(run,'glasses');for(const c of constel){c.n=(c.n||0)+1;if(laps&&c.n%2)continue; // a dim fortune: every other time of day
     for(const k of gl&&c.type==='lens'?['prism','knot','gate'].concat(run.keysGone?[]:['key']):[c.type]){neb({cmd:'award',kind:k,n:1});got[k]=(got[k]||0)+1;}} // Broken Glasses: a Lens one pays the others
   const t=Object.keys(got);if(t.length)feed(txt('map.constellations'),t.map(k=>'+'+got[k]+' '+KIND_NAME[k]).join(' · '));}
-// ── Full circle: a ring of clears all of one kind (all bright or all dark) pulls the map back to it; what is inside can be either ──
+// ── Collapse: a ring of hexes all of one kind (all bright, all dark or all Rift) falls into the source, with everything inside it; the rings past it close in ──
 function ringCheck(){checkVoidAccess();
-  for(let n=1;n<=turn;n++){const ks=ring(n).map(([q,r])=>K(q,r));if(!ks.every(k=>cells[k]&&cells[k].cap)||!(ks.every(isBright)||ks.every(k=>cells[k].kind==='dark')))continue;
-    if(n===1&&voidOpen)continue; // the descent comes first: a first ring that opens the centre is the way down, not the end
-    endDay(ks.every(isBright)?'bright':'dark',n);return true;}
-  for(const k in cells)if(!cells[k].isVoid&&!cells[k].cap)return false;endDay('full',0);return true;} // every hex cleared: the run is won
-const END_NAME={midnight:txt('map.neither_midnight'),bright:txt('map.bright_collapse'),dark:txt('map.dark_collapse'),full:txt('map.every_hex_cleared')};
-function endDay(how,n){ // the day ends as a sequence: the rings fall into the source one after another, the outer first and each faster than the last, then a
-  // flash, then the value is shared out again and a new day starts at Twilight. how: 'midnight' (it all falls in, a new burst), 'bright' / 'dark' (a full circle
-  // at ring n: the rings past it fall in, what is inside is kept), 'full' (every hex cleared). A full circle at ring 1 or 2, or nothing left uncleared inside it, wins the run.
-  let inner=true;for(const k in cells){const c=cells[k];if(!c.isVoid&&!c.cap&&cellRing(c.q,c.r)<n)inner=false;}
-  const win=how==='full'||(how!=='midnight'&&(n<=2||inner));
-  pendingEnd={how,n,win};phase='collapse';armed=null;weaveSel=[];weaveAsk=null;dropSession();
-  if(how!=='midnight'){hubEvent('map_ring');if(how!=='full')hubEvent(how==='bright'?'map_brightstar':'map_darkstar');}if(win)hubEvent('map_end');
-  let outer=0;for(const k in cells){const c=cells[k];if(!c.isVoid)outer=Math.max(outer,cellRing(c.q,c.r));}
-  const stop=(how==='midnight'||win)?0:n,base=T.mapCollapseMs||1400;let t=0;
-  for(let i=outer,j=0;i>stop;i--,j++){const dur=Math.max(110,base*0.55*Math.pow(0.7,j)),ri=i;at(t,()=>fallRing(ri,dur));t+=dur;} // accelerating: each ring falls in faster
+  for(let n=1;n<=ringMax();n++){const ks=ring(n).map(([q,r])=>K(q,r));if(!ks.every(k=>cells[k]&&(cells[k].cap||cells[k].rift)))continue;
+    const kind=ks.every(isBright)?'bright':ks.every(k=>cells[k].kind==='dark')?'dark':ks.every(k=>cells[k].rift)?'rift':null;if(!kind)continue;
+    if(n===1&&voidOpen)continue; // the descent comes first: a first ring that opens the centre is the way down
+    collapseRing(n,kind);return true;}
+  for(const k in cells)if(!cells[k].isVoid&&!cells[k].cap)return false;collapseRing(ringMax(),'full');return true;} // every hex cleared: it all goes (a Win)
+const ringMax=()=>{let m=0;for(const k in cells){const c=cells[k];if(c.q||c.r)m=Math.max(m,cellRing(c.q,c.r));}return m;}; // the outermost ring there is
+const END_NAME={midnight:txt('map.neither_midnight'),win:txt('map.win'),bright:txt('map.bright_collapse'),dark:txt('map.dark_collapse'),full:txt('map.every_hex_cleared')};
+function ringSlot(q,r){const m=cellRing(q,r),L=ring(m),i=L.findIndex(([a,b])=>a===q&&b===r);return{m,s:Math.floor(i/Math.max(1,m)),p:i%Math.max(1,m)};} // a hex's place round the centre: its ring, its side (0–5) and how far along it
+function slotHex(m,s,p,m0){const pp=Math.min(m-1,Math.floor(p*m/Math.max(1,m0))),L=ring(m);return L[s*m+pp];} // the hex on ring m at the same place round (p of m0 along side s)
+function collapseRing(n,kind){ // ring n (and everything inside it) falls into the source: what was cleared in it is counted (a Rift takes one back), what is past it closes in, and if that was everything, it is a Win
+  const full=n>=ringMax(),inK=Object.keys(cells).filter(k=>{const c=cells[k];return(c.q||c.r)&&cellRing(c.q,c.r)<=n;});let b=0,d=0,rf=0,gone=0;
+  for(const k of inK){const c=cells[k];if(c.rift)rf++;else if(c.cap){if(c.kind==='dark')d++;else b++;}gone+=c.cap?c.capVal:c.v;}
+  if(kind==='rift')b=d=0;else for(let i=0;i<rf;i++){if(b>0)b--;else if(d>0)d--;} // (a Rift counts against a bright, or a dark when no bright is left; a Rift ring counts nothing)
+  (dayCnt.col=dayCnt.col||[]).push({n,kind,b,d});pool=Math.max(0,pool-gone);
+  const P=ringSlot(pQ,pR); // where the buoy is round the centre: it goes in with its ring (from inside it: onto ring 1, the same way round)
+  phase='collapse';armed=null;weaveSel=[];weaveAsk=null;dropSession();hubEvent('map_ring');if(kind==='bright')hubEvent('map_brightstar');if(kind==='dark')hubEvent('map_darkstar');
+  const base=T.mapCollapseMs||1400;let t=0;for(let i=n,j=0;i>=1;i--,j++){const dur=Math.max(110,base*0.55*Math.pow(0.7,j)),ri=i;at(t,()=>fallRing(ri,dur));t+=dur;} // the ring and what is inside it fall in, the ring first, each faster
+  feed(full?txt('map.win'):txt('map.collapse.t',n,txt('map.ringkind.'+kind)),txt(full?'map.win.d':'map.collapse.d',b,d));playRec('◎ '+txt('map.collapse.t',n,txt('map.ringkind.'+kind)),b+' bright · '+d+' dark','collapse');
+  if(full){at(t,()=>{burstFx={t0:performance.now(),kind:'flash',dur:700};});at(t+420,()=>winDay(P));}
+  else at(t,()=>{shrinkRings(n,P);burstFx={t0:performance.now(),kind:'burst',r:1};});
+  showTurn();updateHint();}
+function shrinkRings(n,P){ // the rings past n close in: ring n+1 becomes ring 1, and so on; a ring has fewer hexes nearer in, so what was on two may land on one (the busier kept: a shop, a clear, a Rift, then any) and its value is shared out over fewer hexes
+  const old=cells,rank=c=>(c.shop?8:0)+(c.cap?4:0)+(c.rift?2:0)+(c.isVoid?0:1),pick={},from={};
+  for(const k in old){const c=old[k];if(!(c.q||c.r))continue;const S=ringSlot(c.q,c.r);if(S.m<=n)continue;const[q,r]=slotHex(S.m-n,S.s,S.p,S.m),nk=K(q,r);if(!pick[nk]||rank(c)>rank(old[pick[nk]]))pick[nk]=k;}
+  cells={};cells[K(0,0)]=old[K(0,0)];const map={};for(const nk in pick){const ok=pick[nk],c=old[ok],[q,r]=parseK(nk);c.q=q;c.r=r;c.isP=false;cells[nk]=c;map[ok]=nk;if(prev[ok]){prev[nk]=prev[ok];if(nk!==ok)delete prev[ok];}}
+  for(const k in prev)if(!cells[k])delete prev[k];totalCells=Object.keys(cells).length;
+  const mk=ks=>{const o=ks.map(k=>map[k]);return o.every(Boolean)&&new Set(o).size===o.length?o:null;}; // (a merge, a constellation, a clear's place in line: kept only if all of it came through)
+  mergeGroups=mergeGroups.map(g=>{const c2=mk(g.cells);return c2?Object.assign(g,{cells:c2}):null;}).filter(Boolean);for(const k in cells){const c=cells[k];if(c.mergeId!=null&&!mergeGroups.some(g=>g.id===c.mergeId))c.mergeId=null;}
+  captureOrder=captureOrder.map(x=>({keys:x.keys.map(k=>map[k]).filter(Boolean),mergeId:x.mergeId})).filter(x=>x.keys.length);constel=constel.map(c=>{const k2=mk(c.keys);return k2?Object.assign(c,{keys:k2}):null;}).filter(Boolean);
+  for(const k in clearFx)if(!cells[k])delete clearFx[k];
+  const m=Math.max(1,P.m-n),h=P.m>n?slotHex(m,P.s,P.p,P.m):slotHex(1,P.s,0,1);[pQ,pR]=cells[K(h[0],h[1])]&&!cells[K(h[0],h[1])].isVoid?h:(ring(1).find(([q,r])=>cells[K(q,r)]&&!cells[K(q,r)].isVoid)||h);if(!cells[K(pQ,pR)])cells[K(pQ,pR)]={q:pQ,r:pR,v:0,cap:false,capVal:0,isP:false,locked:false,mergeId:null,isVoid:false};
+  cells[K(pQ,pR)].isP=true;buoyGo('sail');totalCells=Object.keys(cells).length;turn=Math.max(1,ringMax());fresh=true;
+  checkConstellations();recomputeLocked();redistribute();checkVoidAccess();phase='move';
+  {const ks=[];for(let i=1;i<=Math.min(3,turn);i++)for(const[q,r]of ring(i))if(cells[K(q,r)])ks.push(K(q,r));camTweenTo(ks.length?ks:['0,0'],900);}
+  if(phase==='move'&&!tired()&&!getMoves().length){phase='gameover';gameOverReason=txt('map.go.nomoves');}updateHint();saveMap();}
+let fireworks=[]; // a Win's fireworks: one over each hex of the new spill, its light reflected in the water under it
+function winDay(P){ // everything fell in: Midnight, the run's day logged as a Win, a new spill bursts out under fireworks (each hex stained with its particles as its burst goes off), and at Twilight a new day
+  dayLog.push({day,end:'win',ring:0,b:dayCnt.b,d:dayCnt.d,win:true,col:dayCnt.col});dayCnt={b:0,d:0};hubEvent('map_end');clock=24;showTurn();
+  newMap();{const o=cells[K(pQ,pR)];if(o)o.isP=false;const h=slotHex(1,P.s,0,1);[pQ,pR]=h;cells[K(pQ,pR)].isP=true;buoyGo('sail');} // (the buoy: on the first ring, the same way round)
+  const now=performance.now(),ks=Object.keys(cells).filter(k=>!cells[k].isVoid).sort((a,b)=>{const A=cells[a],B=cells[b];return cellRing(A.q,A.r)-cellRing(B.q,B.r)||Math.random()-0.5;});phase='collapse';
+  ks.forEach((k,i)=>{const t=now+600+i*140+Math.random()*90,[x,y]=a2w(cells[k].q,cells[k].r);cells[k].stain=t+450;fireworks.push({x,y,t,c:[EFFECT_HEX[(Math.random()*6)|0],EFFECT_HEX[(Math.random()*6)|0]],ps:Array.from({length:42},()=>{const u=Math.random()*2-1,a=Math.random()*6.2832,s=Math.sqrt(1-u*u);return[s*Math.cos(a),s*Math.sin(a),u,0.7+0.6*Math.random()];})});});
+  const end=600+ks.length*140+1800;{const ks3=[];for(let i=1;i<=3;i++)for(const[q,r]of ring(i))ks3.push(K(q,r));camTweenTo(ks3,900);}
+  at(end,()=>{for(const k in cells)delete cells[k].stain;clock=3;day++;neb({cmd:'day',day});popSoonOpen();phase='move';feed(txt('map.win.new',day),txt('map.win.new2'));showTurn();updateHint();saveMap();if(!SCENE)showDayReport();});
+  saveMap();}
+function fireworksDraw(now){ // over the scene (the beam's layer): a rocket up from its hex, a burst of pigment light, falling and fading; under the water's surface, the same faint and upside down (its reflection)
+  if(!fireworks.length||!cam)return;const c=beamCx,sp=v=>{const p=m4.tx(cam.pv,[v[0],v[1],v[2],1]);return[(p[0]/p[3]+1)/2*SW,(1-p[1]/p[3])/2*SH];};fireworks=fireworks.filter(f=>now-f.t<2600);c.save();c.globalCompositeOperation='lighter';
+  for(const f of fireworks){const u=now-f.t;if(u<0)continue;const[px,py]=w2s(f.x,f.y),X=px-MW/2,Y=py-MH/2,Hh=HEX*2.4;
+    for(const m of [1,-1]){const al=m>0?1:0.35; // (m −1: its reflection)
+      if(u<450){const e=u/450,z=Hh*(1-(1-e)*(1-e)),[ax,ay]=sp([X,Y,0]),[bx,by]=sp([X,Y,z*m]);c.strokeStyle=`rgba(255,240,210,${(0.8*al).toFixed(3)})`;c.lineWidth=1.5;c.beginPath();c.moveTo(ax+(bx-ax)*0.6,ay+(by-ay)*0.6);c.lineTo(bx,by);c.stroke();continue;} // its rocket going up
+      const e=(u-450)/2150,R=HEX*1.5*(1-Math.pow(1-Math.min(1,e*2.2),3)),fall=HEX*0.9*e*e,a=al*(1-e)*(0.75+0.25*Math.sin(u/40+f.x)); // its burst: out fast, then falling, flickering out
+      f.ps.forEach((p,i)=>{const[x,y]=sp([X+p[0]*R*p[3],Y+p[1]*R*p[3],(Hh+p[2]*R*p[3]-fall)*m]);c.fillStyle=f.c[i&1];c.globalAlpha=Math.max(0,a);c.beginPath();c.arc(x,y,Math.max(0.8,2.8*(1-e)),0,6.2832);c.fill();});c.globalAlpha=1;
+      if(m>0&&e<0.7){const[gx,gy]=sp([X,Y,0]),gr=HEX*1.6,g=c.createRadialGradient(gx,gy,0,gx,gy,gr),k=Math.max(0,0.32*(1-e/0.7));g.addColorStop(0,f.c[0]+Math.round(k*255).toString(16).padStart(2,'0'));g.addColorStop(1,f.c[0]+'00');c.fillStyle=g;c.fillRect(gx-gr,gy-gr,gr*2,gr*2);}}} // its flash lighting the water under it
+  c.restore();}
+function endDay(){ // Midnight passed: it all falls into the source (the outer rings first, each faster), a flash, and a new spill at Twilight
+  pendingEnd={how:'midnight',n:0,win:false};phase='collapse';armed=null;weaveSel=[];weaveAsk=null;dropSession();
+  const base=T.mapCollapseMs||1400;let t=0;for(let i=ringMax(),j=0;i>0;i--,j++){const dur=Math.max(110,base*0.55*Math.pow(0.7,j)),ri=i;at(t,()=>fallRing(ri,dur));t+=dur;}
   at(t,()=>{burstFx={t0:performance.now(),kind:'flash',dur:700};});at(t+420,finishDay);
-  {const R=how==='midnight'?Math.max(1,T.mapBurstRings||3):win?1:n,ks=[];for(let i=1;i<=R;i++)for(const[q,r]of ring(i))ks.push(K(q,r));camTweenTo(ks.length?ks:['0,0'],t+420);} // the camera moves once, smoothly, to where the next day starts
-  feed((how==='midnight'?txt('map.midnight'):(win?txt('map.full_collapse'):txt('map.full_circle'))),(how==='midnight'?txt('map.the_spill_falls_back'):(win?txt('map.everything_falls_into_the'):txt('map.the_rings_past_ring',n))));
-  showTurn();updateHint();saveMap();}
+  {const R=Math.max(1,T.mapBurstRings||3),ks=[];for(let i=1;i<=R;i++)for(const[q,r]of ring(i))ks.push(K(q,r));camTweenTo(ks,t+420);}
+  feed(txt('map.midnight'),txt('map.the_spill_falls_back'));showTurn();updateHint();saveMap();}
 function fallRing(i,dur){ // one ring falls into the source
   for(const k of Object.keys(cells)){const c=cells[k];if(!c.isVoid&&cellRing(c.q,c.r)===i){delete cells[k];totalCells--;}}
   burstFx={t0:performance.now(),kind:'fall',r:i,dur};}
-function finishDay(){ // after the flash: the day goes into the log, the value is shared out again and a new day begins at Twilight (a win ends the run instead)
+function finishDay(){ // after Midnight's flash: the day goes into the log, a new spill bursts out and a new day begins at Twilight
   const e=pendingEnd;if(!e)return;pendingEnd=null;
-  dayLog.push({day,end:e.how,ring:e.n,b:dayCnt.b,d:dayCnt.d,win:e.win});dayCnt={b:0,d:0};
-  if(e.win){phase='ended';for(const k of Object.keys(cells))if(!cells[k].isVoid){delete cells[k];totalCells--;}updateHint();saveMap();if(SCENE)showMergeFlash(txt('map.full_collapse_the_run'));else showDayReport();return;}
-  clock=3;day++;neb({cmd:'day',day});popSoonOpen();
-  if(e.how==='midnight'){newMap();feed(txt('map.day_ended_at_midnight',day-1),txt('map.bright_dark_a_new',dayLog[dayLog.length-1].b,dayLog[dayLog.length-1].d));}
-  else{const n=e.n,ks=ring(n).map(([q,r])=>K(q,r));
-    for(const k of Object.keys(cells)){const c=cells[k];if(!c.isVoid&&cellRing(c.q,c.r)>n){delete cells[k];totalCells--;}}
-    for(const k of ks){const c=cells[k];if(!c)continue;c.cap=false;c.capVal=0;c.v=0;delete c.kind;c.mergeId=null;}
-    mergeGroups=mergeGroups.filter(g=>g.cells.every(k=>cells[k]&&cells[k].cap));for(const k in cells){const c=cells[k];if(c.mergeId!=null&&!mergeGroups.some(g=>g.id===c.mergeId))c.mergeId=null;}
-    captureOrder=captureOrder.map(x=>({keys:x.keys.filter(k=>cells[k]&&cells[k].cap),mergeId:x.mergeId})).filter(x=>x.keys.length);
-    turn=n;fresh=true;if(!cells[K(pQ,pR)]||cellRing(pQ,pR)>n){const o=cells[K(pQ,pR)];if(o)o.isP=false;const[q,r]=ring(n)[0];pQ=q;pR=r;cells[K(q,r)].isP=true;}
-    checkConstellations();recomputeLocked();redistribute();checkVoidAccess();burstFx={t0:performance.now(),kind:'burst',r:n};
-    phase=SCENE?'move':'collapse';if(!SCENE)showDayReport();} // (the report holds the new day until it is closed)
+  dayLog.push({day,end:e.how,ring:0,b:dayCnt.b,d:dayCnt.d,win:false,col:dayCnt.col});dayCnt={b:0,d:0};
+  clock=3;day++;neb({cmd:'day',day});popSoonOpen();newMap();feed(txt('map.day_ended_at_midnight',day-1),txt('map.bright_dark_a_new',dayLog[dayLog.length-1].b,dayLog[dayLog.length-1].d));
   focusCam(true);showTurn();updateHint();saveMap();}
 function dayLogHTML(){
   if(!dayLog.length)return '<div class="dsum">'+txt('map.days.none')+'</div>';let tb=0,td=0;
   const rows=dayLog.map(e=>{tb+=e.b;td+=e.d;return `<tr${e.win?' class="w"':''}><td>Day ${e.day}</td><td>${END_NAME[e.end]||e.end}${e.ring?' · ring '+e.ring:''}${e.win?' · won':''}</td><td>${e.b}</td><td>${e.d}</td></tr>`;}).join('');
   return `<table class="dlog"><tr><th>${txt('map.days.day')}</th><th>${txt('map.days.ended')}</th><th>${txt('map.days.bright')}</th><th>${txt('map.days.dark')}</th></tr>${rows}<tr><th>${txt('map.days.all')}</th><th></th><th>${tb}</th><th>${td}</th></tr></table>`;}
 function showDayReport(){ // a day's report (or the run's, when won): how it ended, and the log of every day so far
-  const won=phase==='ended',e=dayLog[dayLog.length-1]||{day,end:'full',ring:0,b:0,d:0},el=document.getElementById('day-report'),b=el.querySelector('button');
-  el.querySelector('h2').textContent=(won?txt('map.the_run_is_won_2'):txt('map.day_cleared_2',e.day));
-  el.querySelector('.dsum').textContent=txt('map.bright_dark_this_day',END_NAME[e.end]||e.end,(e.ring?txt('map.at_ring',e.ring):''),e.b,e.d,(won?txt('map.your_items_and_discoveries'):''));
+  const e0=dayLog[dayLog.length-1],won=!!(e0&&e0.win),e=dayLog[dayLog.length-1]||{day,end:'full',ring:0,b:0,d:0},el=document.getElementById('day-report'),b=el.querySelector('button');
+  el.querySelector('h2').textContent=(won?txt('map.win.h',e.day):txt('map.day_cleared_2',e.day));
+  el.querySelector('.dsum').textContent=txt('map.bright_dark_this_day',END_NAME[e.end]||e.end,(e.ring?txt('map.at_ring',e.ring):''),e.b,e.d,'');
   el.querySelector('.dlogbox').innerHTML=dayLogHTML();
-  b.textContent=(won?txt('map.back_to_the_main_2'):txt('map.day_twilight',day));b.onclick=won?newRun:closeDayReport;el.classList.add('show');}
+  b.textContent=txt('map.day_twilight',day);b.onclick=closeDayReport;el.classList.add('show');}
 function closeDayReport(){document.getElementById('day-report').classList.remove('show');if(phase==='collapse'&&!pendingEnd)phase='move';updateHint();saveMap();}
-function newRun(){initGame();quitMain();} // a won run: the days start over (items and discoveries are the surface's own save, untouched)
 // ── The 3D scene: the plane lies flat (x right, y down, z up out of it); the camera looks at it from T.mapTilt off straight down, at
 // T.mapPersp px away (the perspective), zoomed by viewZoom. proj / unproj are that camera in maths: plane canvas px ↔ screen px (clicks,
 // what is on screen). Column-major 4×4 matrices.
@@ -708,7 +737,8 @@ function mapRender(){
     const fuse=isMerged&&!d3.has(k);hexPath(sx,sy,fuse?HEX+0.6:s);mctx.fillStyle=fill;mctx.fill(); // (merged: filled edge to edge, one shape with its neighbours in the merge)
     if(SCENE&&!c.cap&&!c.isVoid){const[wx,wy]=a2w(c.q,c.r),fd=sceneField(),F=HEX*16;mctx.save();hexPath(sx,sy,s);mctx.clip();mctx.globalAlpha=0.35+0.65*Math.min(1,c.v);mctx.drawImage(fd,sx-wx-F/2,sy-wy-F/2,F,F);mctx.restore();}
     else if(!c.cap&&!c.isVoid){const[vx,vy]=proj(sx,sy),img=cellLayer(k,c,vx>-HEX*2&&vx<SW+HEX*2&&vy>-HEX*2&&vy<SH+HEX*2);const pf=img?prevFade(k):1,po=prev[k]&&prev[k].old,oi=pf<1&&po?shotImg(po,po.img):null,ma=T.mapAlpha!=null?T.mapAlpha:1;
-      if(img||oi){mctx.save();hexPath(sx,sy,s);mctx.clip();if(oi){mctx.globalAlpha=ma;mctx.drawImage(oi,sx-HEX,sy-HEX,2*HEX,2*HEX);}if(img){mctx.globalAlpha=ma*pf;mctx.drawImage(img,sx-HEX,sy-HEX,2*HEX,2*HEX);}mctx.restore();}}
+      const sf=c.stain?Math.max(0,Math.min(1,(now-c.stain)/700)):1; /* (a Win's new spill: each hex stained with its particles as its firework bursts) */
+      if((img||oi)&&sf>0){mctx.save();hexPath(sx,sy,s);mctx.clip();if(oi){mctx.globalAlpha=ma*sf;mctx.drawImage(oi,sx-HEX,sy-HEX,2*HEX,2*HEX);}if(img){mctx.globalAlpha=ma*pf*sf;mctx.drawImage(img,sx-HEX,sy-HEX,2*HEX,2*HEX);}mctx.restore();}}
     const cf=clearFx[k],cp=cf&&cf.t0!=null?Math.min(1,(now-cf.t0)/(T.mapClearFxMs||1400)):cf?0:1;
     if(dark&&!d3.has(k)&&!(mergeFx.length&&mergeFx.some(m=>{const g=mergeGroups.find(x=>x.id===m.gid);return g&&g.cells.includes(k);})))drawDarkRemnantAt(mctx,sx,sy,HEX*0.34*(0.4+0.6*cp),now,HEX*0.34/60,c.q*911+c.r*577); // the surface's own Dark Remnant, at hex size
     if(cf&&cp<1){const p=prev[k],im=cf.un?null:(c.shot?shotImg(c,c.shot):p&&p.img?shotImg(p,p.img):null),e=1-cp; // the surface you left resolves into its clear
@@ -766,7 +796,7 @@ function mapRender(){
   mctx.restore();
   // Direction line
   if(hoverMove&&phase!=='gameover'){const pts=[{q:pQ,r:pR},...hoverMove.path,{q:hoverMove.q,r:hoverMove.r}];mctx.beginPath();for(let i=0;i<pts.length;i++){const[sx,sy]=w2s(...a2w(pts[i].q,pts[i].r));if(!i)mctx.moveTo(sx,sy);else mctx.lineTo(sx,sy);}mctx.strokeStyle='rgba(0,210,210,0.6)';mctx.lineWidth=1.5;mctx.setLineDash([5,4]);mctx.stroke();mctx.setLineDash([]);const[dx,dy]=w2s(...a2w(hoverMove.q,hoverMove.r));mctx.beginPath();mctx.arc(dx,dy,3.5,0,Math.PI*2);mctx.fillStyle='rgba(0,220,220,0.7)';mctx.fill();}
-  hubPh('overlays');requestPreviews(mapNeed);hubPh('previews');pondStep(now);if(!SCENE){buoyStep(now,1);buoyPlane(now);}hubPh('ducks');sceneRender(now);buoyBeam(now);hubPh('3d');
+  hubPh('overlays');requestPreviews(mapNeed);hubPh('previews');pondStep(now);if(!SCENE){buoyStep(now,1);buoyPlane(now);}hubPh('ducks');sceneRender(now);buoyBeam(now);fireworksDraw(now);hubPh('3d');
   // HUD
   let st=`${clockStr()} · day ${day} · rings ${turn} · score ${score.toFixed(2)} · captures ${captureOrder.length}`;
   if(phase==='gameover')st+=txt('map.stat.gameover',gameOverReason);
@@ -1065,7 +1095,7 @@ function loadMap(){
   let d=null;try{d=JSON.parse(localStorage.getItem(MAP_KEY)||'null');}catch(e){}
   if(!d||!d.cells)return false;
   if(d.v!==3)return false; // a map from before the times of day starts over
-  ({cells,turn,clock,day,pool,fresh,constel,dayLog,dayCnt,pendingEnd,score,pQ,pR,totalCells,phase,depth,gameOverReason,captureOrder,mergeGroups,mergeIdCounter,voidOpen}=d);mapHist=d.hist||{};playLog=d.playLog||[];nebulaCellKey=d.session||null;hubPop=d.hubPop||[null,null];_sunH=clock;_sun={from:clock,to:clock,t0:0};dayLog=dayLog||[];dayCnt=dayCnt||{b:0,d:0};
+  ({cells,turn,clock,day,pool,fresh,constel,dayLog,dayCnt,pendingEnd,score,pQ,pR,totalCells,phase,depth,gameOverReason,captureOrder,mergeGroups,mergeIdCounter,voidOpen}=d);mapHist=d.hist||{};playLog=d.playLog||[];if(phase==='collapse'&&!d.pendingEnd){phase='move';for(const k in cells)delete cells[k].stain;} /* (left mid-collapse: it is over) */nebulaCellKey=d.session||null;hubPop=d.hubPop||[null,null];_sunH=clock;_sun={from:clock,to:clock,t0:0};dayLog=dayLog||[];dayCnt=dayCnt||{b:0,d:0};
   if(pendingEnd)finishDay();else if(phase==='collapse')phase='move';else if(phase==='ended')showDayReport(); // a day left falling in finishes at once; a won run shows its report
   mapResize();focusCam(false);updateHint();return true;
 }
@@ -1085,7 +1115,7 @@ function enterNebula(cellKey){
   else{const ms=T.mapEnterMs||3000;currentView='entering';_enter={key:cellKey,ready:false,back:null};buoy.dunk={t0:now,d:1,ms:ms*0.33};ripples.push({x:buoy.x,y:buoy.y,t:now,dk:onWhite(buoy.x,buoy.y),big:1});startMapLoop(); // your buoy is dunked the whole way while the camera comes over the hex, turns to look straight down on it and goes down into it; then the surface fades in
     _enter.back=diveStart(cellKey,1,()=>{if(currentView!=='entering')return;currentView='level';if(!_enter.ready){loading('level',true);setTimeout(()=>loading('level',false),12000);}showNeb(true);});} // (not drawn yet: the clean loading screen until it is)
   const resume=nebulaCellKey===cellKey;nebulaCellKey=cellKey;saveMap();
-  neb({cmd:'level',key:cellKey,seed:cellSeed(c),cov:cellCov(c),q:c.q,r:c.r,white:c.unw==='bright',label:`(${c.q},${c.r}) · value ${c.v.toFixed(2)}`,resume,clock}); // clock: the hour its ducks are lit for
+  neb({cmd:'level',key:cellKey,seed:cellSeed(c),cov:cellCov(c),boost:Math.max(0,c.v/(T.mapCovFull||1)-1),q:c.q,r:c.r,white:c.unw==='bright',label:`(${c.q},${c.r}) · value ${c.v.toFixed(2)}`,resume,clock}); // clock: the hour its ducks are lit for
 }
 let _enter=null; // going into a surface (the dunk and the camera's move), and how to come back out
 function exitNebula(){riftFxStart(performance.now()+500); // (a Rift made in there opens as the map comes back)
