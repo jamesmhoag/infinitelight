@@ -433,6 +433,7 @@ const SHOPS={};for(const r of csvRead('shops'))SHOPS[r.id]={n:r.name,tag:r.tag,a
 // up (an upgrade, once: its effect is still to come)
 const SHOP_ITEMS=csvRead('shop_items').map(r=>[r.id,r.shop,r.name,cellV(r.cost),r.currency,cellV(r.rank),cvJ(r.effect)||{},r.requires,cellV(r.discover_dim),r.note]).map(([id,shop,n,cost,cur,r,fx,req,dc,note])=>({id,shop,n,cost,cur:cur||SHOPS[shop].cur||'bright',r,fx,req:req||null,dc:dc||0,note:note||''}));
 const shopItem=id=>SHOP_ITEMS.find(i=>i.id===id);
+function shopGlowK(){const d=(DUCK_SUN.c[0]+DUCK_SUN.c[1]+DUCK_SUN.c[2])/3;return Math.max(0.45,Math.min(1,1-(d-0.64)/0.36*0.55));} // a shop's sign, lamp and lit room by the time of day: full at night, about half at noon
 const _soonSign={};function soonSign(id){if(_soonSign[id])return _soonSign[id];const c=document.createElement('canvas');c.width=600;c.height=300;const g=c.getContext('2d'),S=SHOPS[id]; // a Coming soon sign: big and white on dark, the shop's name under it in its colour
   g.fillStyle='#0d0e12';g.fillRect(0,0,600,300);g.strokeStyle='#ffffff';g.lineWidth=10;g.strokeRect(14,14,572,272);g.textAlign='center';g.textBaseline='middle';g.fillStyle='#ffffff';let F=104;g.font='bold '+F+'px system-ui,sans-serif';while(F>30&&g.measureText(txt('shop.soon.sign')).width>520){F-=4;g.font='bold '+F+'px system-ui,sans-serif';}g.fillText(txt('shop.soon.sign'),300,118);
   g.fillStyle=S.col||'#ffe9a8';let f=52;g.font='bold '+f+'px system-ui,sans-serif';while(f>20&&g.measureText(S.n).width>540){f-=4;g.font='bold '+f+'px system-ui,sans-serif';}g.fillText(S.n,300,222);return _soonSign[id]=c;}
@@ -474,12 +475,12 @@ function fortuneParts(f,duckName){ // [what it says, what it does]: the telling,
 function fortuneText(f,duckName){const[a,b]=fortuneParts(f,duckName);return a&&b?a.replace(/\.$/,'')+': '+b[0].toLowerCase()+b.slice(1):a+b;}
 // DAILY: the Daily Wonders: n its name, t what it does (the change to play), f what the Carnival says of it; scene: its card's live demo
 const DAILY=Object.values(FORTUNE_ROWS).filter(r=>r.kind==='wonder').map(r=>({id:r.id,item:cu(r.item),n:r.name,t:r.does,f:r.telling,scene:r.scene}));
-function statusHTML(s){ // the Guide's Status page, and beside a shop's menu: the wallet against its caps, today's fortune and bonus, duck luck, the permanent upgrades
+function statusHTML(s,now){ // now: only what is so now (the Buoy page): no upgrades bought (they are under Shops) // the Guide's Status page, and beside a shop's menu: the wallet against its caps, today's fortune and bonus, duck luck, the permanent upgrades
   if(!s)return'';const r=s.run||{},row=(a,b)=>`<tr><td>${a}</td><td>${b}</td></tr>`,f=n=>Math.floor(n||0).toLocaleString('en-US'),pc=v=>Math.round(v*1000)/10+'%';
   return`<table class="stt">${['bright','dim','neutron','magnetic','pulsing',...ACCUM_KINDS].map(k=>row(KIND_NAME[k],f(s.inv[k])+' / '+f(s.cap[k]))).join('')}</table>`+
     `<div class="stg">${txt('status.today')}</div><table class="stt">${row(txt('status.fortune'),r.fortune?(r.fortune.good?'☀ ':'☾ ')+fortuneText(r.fortune,r.fortune.duck):'—')}${row(txt('status.tomorrow'),r.dimNext?(r.dimNext.good?'☀ ':'☾ ')+fortuneText(r.dimNext,r.dimNext.duck):'—')}${row(txt('status.wonder'),r.bonus?(DAILY.find(d=>d.id===r.bonus.id&&(d.item||'')===(r.bonus.item||''))||{}).n+(r.bonus.thru?txt('status.wonder_thru',TIMES[(r.bonus.thru-1)%24+1],Math.floor((r.bonus.thru-1)/24)>(r.day||0)?txt('status.tomorrow_l'):''):''):'—')}${row(txt('status.charms'),r.charm||0)}`+
     `${row(txt('status.duck'),txt('status.duckval',pc(s.ch.d),pc(s.ch.luck)))}${row(txt('status.exotic'),pc(s.ch.e)+' / '+pc(s.ch.r))}${r.keysGone?row(txt('status.keys'),txt('status.keyslost')):''}</table>`+
-    `<div class="stg">${txt('status.upgrades')}</div><div class="stu">${s.owned.length?s.owned.join(' · '):txt('status.none')}</div>`;}
+    (now?'':`<div class="stg">${txt('status.upgrades')}</div><div class="stu">${s.owned.length?s.owned.join(' · '):txt('status.none')}</div>`);}
 // ── Messages in a bottle (the Surface Map's lake): letters from someone else who was here. t: the letter, f: who signed it ──
 const LETTERS=csvRead('letters').map(r=>({t:r.text,f:r.from})); // content/letters.csv (keep the order: the letters found are saved by their place in it — add new ones at the end)
 function drawBottle(c,X,Y,s,hd,now,ph,col){ // a message in a bottle as an icon: the 3D bottle, turned a little
