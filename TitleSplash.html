@@ -183,7 +183,8 @@ body{
   <iframe id="neb" src="chromatic_nebula.html?hub=1&v=20261104m" title="Guide"></iframe>
 
 <script src="content.js?v=20261104m"></script>
-<script>txtApply();gameCursor({hide:()=>document.getElementById('neb').classList.contains('show')}); // the game's cursor (the Guide over it draws its own)
+<script>loading('boot',true);addEventListener('load',()=>requestAnimationFrame(()=>requestAnimationFrame(()=>loading('boot',false)))); /* the site's first load: the same loading screen as every page */
+txtApply();gameCursor({hide:()=>document.getElementById('neb').classList.contains('show')}); // the game's cursor (the Guide over it draws its own)
 // Audio context
 const AudioContext = window.AudioContext || window.webkitAudioContext;
 const ctx = new AudioContext();
