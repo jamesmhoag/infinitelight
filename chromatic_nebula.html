@@ -121,7 +121,7 @@ button:hover{background:rgba(255,255,255,0.15);}
   <div id="dock" class="bottom"><div id="inventoryPanel"></div><div id="touch-info"></div></div>
   <canvas id="cur"></canvas>
 </div>
-<script src="content.js?v=20261105b"></script><script src="shared.js?v=20261105b"></script>
+<script src="content.js?v=20261105c"></script><script src="shared.js?v=20261105c"></script>
 <script>
 txtApply(); // the page's own labels (content/strings.csv)
 const _SRC=document.documentElement.outerHTML; // kept so the Encyclopedia can run live scenes as embedded copies of the game
@@ -12759,7 +12759,7 @@ function cardHTML(ev,mini){ // the one card format: name bar, art box, type line
   return `<div class="mtg${mini?' sm':''}" data-ev="${ev.id}" style="--rc:${TIER_COL[t]}"><div class="nm"><b>${gEsc(ev.name)}</b><span class="gem"></span></div><div class="art" data-scene="${ev.scene}">${mini?`<canvas class="rl-m" width="64" height="64" data-k="${ev.ico}"></canvas>`:''}</div><div class="ty"><span>${gEsc(ev.type.replace(/^Event — /,''))}</span><span>Tier ${TIER[t]}</span></div><div class="tx">${(mini?ev.facts().slice(0,1):ev.facts()).map(f=>`<p${ev.fx?' class="fx"':''}>${gEsc(f)}</p>`).join('')}${ev.flavor?`<p class="fl">${gEsc(ev.flavor)}</p>`:''}</div></div>`; // (small: its first line and its flavour; the rest when it is opened) (fx: the lines are changes to play, set apart from the flavour)
 }
 function mountScene(h,w,hh){if(!h||h.firstChild||document.querySelectorAll('.rl-live iframe,.mtg .art iframe').length>=5)return;const f=document.createElement('iframe'),nm=h.dataset.s||h.dataset.scene;f.style.cssText='border:0;max-width:100%;pointer-events:none;background:#000;border-radius:6px;'+(w?`width:${w}px;height:${hh}px`:'width:100%;height:100%');
-  if(nm.slice(0,4)==='hub:'){const[sn,dk]=nm.slice(4).split(':');f.src='Surface_Map_HUB.html?v=20261105b&scene='+sn+'&T='+encodeURIComponent(JSON.stringify(mapSceneT()))+'&D='+encodeURIComponent(JSON.stringify(dk&&DUCK_TYPES[dk]?{[dk]:DUCK_TYPES[dk]}:Object.fromEntries(Object.entries(DUCK_TYPES).slice(0,4))));}else f.srcdoc=liveSrc(nm);h.appendChild(f);} // a Surface Map demo is played by the map itself
+  if(nm.slice(0,4)==='hub:'){const[sn,dk]=nm.slice(4).split(':');f.src='Surface_Map_HUB.html?v=20261105c&scene='+sn+(sn==='shop'?'&k='+encodeURIComponent(dk||''):'')+'&T='+encodeURIComponent(JSON.stringify(mapSceneT()))+'&D='+encodeURIComponent(JSON.stringify(dk&&DUCK_TYPES[dk]?{[dk]:DUCK_TYPES[dk]}:Object.fromEntries(Object.entries(DUCK_TYPES).slice(0,4))));}else f.srcdoc=liveSrc(nm);h.appendChild(f);} // a Surface Map demo is played by the map itself
 function mapSceneT(){const o={};for(const k in T)if(/^(map|bh|duck|wake|glass|metal|dimGlow|glowHalo|maxSpeed)/.test(k))o[k]=T[k];return o;} // what a map demo needs of the tuners
 function showCardHTML(html){ // a Guide card (an entry or a shop) opened over the Guide, where an event card shows
   guideCSS();_evOpen=true;_evReview=true;const ov=evOverlayEl();ov.innerHTML=`<div class="ev-box">${html}<button id="evOk">${txt('card.close')}</button></div>`;ov.style.display='flex';wrap.classList.add('ev-open');
@@ -12783,11 +12783,11 @@ function showEventCard(id,review){
 function shopBackHTML(k){return `<div class="mtg sm back sb"><div class="art"><img class="sign hid" src="shops/sign_${k}.svg" alt=""></div></div>`;} // a shop not yet found: its sign's shape
 function shopCardHTML(k,mini){const S=SHOPS[k],seen=evSeen('shop_'+k),t=S.street?0:SHOP_TIER(k)===0?2:1,f=n=>(+n).toLocaleString('en-US');
   if(!seen)return mini?shopBackHTML(k):'';
-  const how=S.street?(S.open<=0&&S.close>=27?'Open all day':'Open '+(['Twilight','Dawn','Morning','Noon','Afternoon','Dusk','Night','Midnight'][S.open/3-1]||'')+' – '+(['Twilight','Dawn','Morning','Noon','Afternoon','Dusk','Night','Midnight'][S.close/3-1]||''))+' · on main street, round the source'
-    :'A pop-up: opens on a cleared surface that collected '+S.cur+' (rank 1 at '+f(T[shopTK(S.cur)+1])+', rank 2 at '+f(T[shopTK(S.cur)+2])+', rank 3 at '+f(T[shopTK(S.cur)+3])+'). A bigger rank carries more.';
+  const hrs=S.open==null||S.open<=0&&S.close>=27?'Open all day':'Open '+(TIMES[S.open]||'')+' – '+(TIMES[S.close]||''),how=S.street?hrs+' · on main street, round the source'
+    :hrs+' · a pop-up: opens on a cleared surface that collected '+S.cur+' (rank 1 at '+f(T[shopTK(S.cur)+1])+', rank 2 at '+f(T[shopTK(S.cur)+2])+', rank 3 at '+f(T[shopTK(S.cur)+3])+'). A bigger rank carries more.';
   const its=SHOP_ITEMS.filter(i=>i.shop===k),cu=i=>i.fx.souv?'souvenirs':KIND_NAME[i.cur]||i.cur,curs=[...new Set(its.map(cu))]; // a tab for each thing it takes
   const items=(curs.length>1?'<div class="ctabs">'+curs.map((c,j)=>`<span class="${j?'':'on'}" data-t="${j}">${gEsc(c)}</span>`).join('')+'</div>':'')+curs.map((c,j)=>`<div class="clist" data-t="${j}"${j?' style="display:none"':''}>`+its.filter(i=>cu(i)===c).map(i=>`<div class="si" data-disc="si_${i.id}"><span>${gEsc(i.n)}${S.street?'':' <i>(rank '+i.r+')</i>'}</span><b>${f(i.cost)}</b></div>`).join('')+'</div>').join('');
-  const art=mini?`<img class="sign" src="shops/sign_${k}.svg" alt="">`:`<div class="art-live" data-scene="hub:shops"></div>`;
+  const art=mini?`<img class="sign" src="shops/sign_${k}.svg" alt="">`:`<div class="art-live" data-scene="hub:shop:${k}"></div>`;
   return `<div class="mtg${mini?' sm':' full'}" data-shop="${k}" style="--rc:${TIER_COL[t]}"><div class="nm"><b>${gEsc(S.n)}</b><span class="gem"></span></div><div class="art">${art}</div><div class="ty"><span>Shop · ${S.street?'main street':'pop-up'}</span><span>Tier ${TIER[t]}</span></div><div class="tx"><p>${gEsc(S.tag)}</p>${mini?'':`<p>${gEsc(how)}</p><p>${gEsc(S.about||'')}</p><p><b>Sells</b> (each found by discovery):</p>${items}`}</div></div>`;}
 function closeEventCard(){if(_evDraw)return;
   const ov=document.getElementById('evOverlay');if(ov){ov.querySelectorAll('iframe').forEach(f=>f.remove());ov.style.display='none';}
@@ -13435,7 +13435,7 @@ RULE_BLURB.surf='The map of surfaces. Every hex is a spill to clean up.';
 
 Object.assign(RULE_EV,{hublight:'map',hublake:'duck',hubview:'map',shopstreet:'map',shoppop:'map',shopbuy:'map'});Object.assign(RULE_SCENES,{shopstreet:['hub:street'],shoppop:['hub:shops']});
 // ── a shop's event: the first time you go into it (its card then shows in the Guide, with what it sells) ──
-{const at=EVENTS.findIndex(e=>e.id==='brightrelic')+1,sh=[];for(const k in SHOPS){const S=SHOPS[k];sh.push({id:'shop_'+k,name:S.n,type:txt('ev.shop.type'),rar:S.street?'c':'u',scene:'hub:shops',ico:'sign:'+k,
+{const at=EVENTS.findIndex(e=>e.id==='brightrelic')+1,sh=[];for(const k in SHOPS){const S=SHOPS[k];sh.push({id:'shop_'+k,name:S.n,type:txt('ev.shop.type'),rar:S.street?'c':'u',scene:'hub:shop:'+k,ico:'sign:'+k,
   facts:()=>[S.street?txt('ev.shop.street'):txt('ev.shop.popup',S.cur),S.about||'',txt('ev.shop.card')],flavor:S.tag});}EVENTS.splice(at,0,...sh);} // a shop's first opening (its text: content/strings.csv)
 Object.assign(RULE_EV,{hubbottle:'map_bottle',hubmap:'map',hubtime:'map',hubcell:'map',hubmove:'map',hubclear:'map_clear',hubmerge:'map_merge',hubitems:'map',hubconst:'map_constellation',hubring:'map_ring',hubdecay:'map_decay',hubdescend:'map_descend'});
 Object.assign(RULE_SCENES,{hubmap:['hub:map'],hubtime:['hub:time'],hubcell:['surface'],hubmove:['hub:move'],hubclear:['hub:clear'],hubmerge:['hub:merge'],hubitems:['hub:items'],hubconst:['hub:constellation'],hubring:['hub:ring','hub:brightstar','hub:darkstar'],hubdecay:['hub:decay'],hubdescend:['hub:descend'],hublight:['hub:light'],hublake:['hub:lake'],hubview:['hub:view'],hubbottle:['hub:bottle'],menu:['readouts']});
