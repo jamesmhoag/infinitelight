@@ -28,6 +28,11 @@ Served as a static site (GitHub Pages: Settings → Pages → Deploy from branch
 - One cursor everywhere (`gameCursor` in `content.js`): the system cursor never shows, in any state, menu or card (the title screen, the map's menus and shops, the surface's Guide, cards and panels). Over the surface's scene and dock the surface draws its own; everywhere else the same ring is drawn over everything. Its click reaction is the surface's on every page: a press shrinks it in, held it flares past rest, a release eases it back, a right-click punches it out (`cursorClick*`).
 - On the map, a click leaves a little ripple, a double click a splash, and a click-swipe (a drag) ripples and a wake behind it. A click that does nothing to a hex flashes it like tapped glass (with its tap), and the feed flashes with why.
 
+## The feed (the Surface Map)
+- One place for every message: nothing is said mid-screen and no card comes up over the map; something seen for the first time on the map is said in the feed (and discovered: its card is in the Guide).
+- Put away (its ▾), the feed still pops up for a message or an alert, then goes; its ▴ always shows; pointing into its place below the items brings it back up while you are there.
+- Status & collections is only as wide as its title, buttons and tabs, with a margin; its pages fit that.
+
 ## Parades (the Surface Map's lake)
 - When you have four or more ducks of one kind (a Colour, Size or Material; nine at most), they come out in a parade, once a day for each kind: one of each and the classic one, in a line like ducklings behind their mother, all the way round the spill just off its shore. Size goes biggest first (in a full one, the Big Head last, behind the smallest); otherwise the special one leads (Rainbow, Gold), the other specials next, then the rest. While it passes no other duck or bottle comes in. A touch spins one and a click dunks it, but none of them ever leaves the line. Pointing at one says whose parade it is and who is in it.
 - **Parade Day** (a dim fortune): no other duck or bottle comes; your own ducks (as many as you have, nine at most) parade on the hexes themselves, two to a hex, winding ring by ring through every hex, one hex further each time of day. Nothing crosses a hex they are in, as with a Rift.
