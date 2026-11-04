@@ -187,7 +187,7 @@ hubmap,surf,Surface Map,particle,A map of hexes around a white source. Every hex
 Particle layer | An uncleared hex shows the particles still on it, one pattern running on across the hexes. The more value a hex holds, the more of it is covered.
 Value | The open hexes share what the source put out. Locked hexes (next to a bright clear) keep theirs.
 Saved | The map is saved as you go. New map starts the map again but keeps every item you have."
-hubtime,surf,Time of day,nova,Every move is one time of day (clearing a surface takes none).,"The day | Twilight, Dawn, Morning, Noon, Afternoon, Dusk, Night, Midnight: eight turns. Midnight is the last.
+hubtime,surf,Time of day,nova,Every move is one time of day (clearing a surface takes none).,"The day | Twilight, Dawn, Morning, Midday, Afternoon, Dusk, Evening, Midnight: eight turns. Midnight is the last.
 Next day | After Midnight the rings fall back into the source one by one, faster each time, it flashes and bursts out again: a new day at Twilight. Days count your attempts.
 Day log | Each day is logged: how it ended (Bright collapse, Dark collapse, or neither at Midnight) and how many bright and dark hexes you cleared.
 Free | A String move takes no time."
@@ -214,7 +214,7 @@ Stars | A bright ring is a Bright Star; a dark ring, a Dark Star.
 The win | A full circle at ring 1 or 2, or every hex cleared, is a full collapse: everything falls in, the run is won and you return to the main menu. The days start over; your items and discoveries are kept."
 hubdecay,surf,Decay,dim,"When the value an open hex gets drops below 0.01, the oldest capture becomes a void.","Game over | No captures left to give up, no turns left, or no moves left."
 hubdescend,surf,Descend,dark,"Surround the centre with three triangle merges, then step into it.","Deeper | A new, deeper map begins. Your score and items come with you."
-hublight,surf,Time of day light,nova,"Ducks, their ripples, wakes and glows are lit by the time of day.","Day | Twilight cools, Dawn rises warm from one side, Noon is high and white, Dusk sets warm on the other, and Midnight is moonlight from overhead.
+hublight,surf,Time of day light,nova,"Ducks, their ripples, wakes and glows are lit by the time of day.","Day | Twilight cools, Dawn rises warm from one side, Midday is high and white, Dusk sets warm on the other, and Midnight is moonlight from overhead.
 Change | At each new hour the light moves round to it, as a hex's new picture eases in (Hex ease ms).
 Surface | A surface's ducks are lit for the hour you entered it."
 hublake,surf,The lake,duck:classic,Your ducks swim in the open water round the map.,"Brush | Brush one slowly with the cursor and it spins where it is.

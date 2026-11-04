@@ -8,10 +8,10 @@ lens,corner,Lens,5999,,1,"{""give"":{""lens"":1}}",,80,
 twilight,clock,Twilight,2000,,1,"{""clock"":3}",,,"Each time of day away costs more (×2, ×3, ×5, ×8, ×13, ×21, ×34)"
 dawn,clock,Dawn,2000,,1,"{""clock"":6}",,,"Each time of day away costs more (×2, ×3, ×5, ×8, ×13, ×21, ×34)"
 morning,clock,Morning,2000,,1,"{""clock"":9}",,,"Each time of day away costs more (×2, ×3, ×5, ×8, ×13, ×21, ×34)"
-noon,clock,Noon,2000,,1,"{""clock"":12}",,,"Each time of day away costs more (×2, ×3, ×5, ×8, ×13, ×21, ×34)"
+noon,clock,Midday,2000,,1,"{""clock"":12}",,,"Each time of day away costs more (×2, ×3, ×5, ×8, ×13, ×21, ×34)"
 afternoon,clock,Afternoon,2000,,1,"{""clock"":15}",,,"Each time of day away costs more (×2, ×3, ×5, ×8, ×13, ×21, ×34)"
 dusk,clock,Dusk,2000,,1,"{""clock"":18}",,,"Each time of day away costs more (×2, ×3, ×5, ×8, ×13, ×21, ×34)"
-night,clock,Night,2000,,1,"{""clock"":21}",,,"Each time of day away costs more (×2, ×3, ×5, ×8, ×13, ×21, ×34)"
+night,clock,Evening,2000,,1,"{""clock"":21}",,,"Each time of day away costs more (×2, ×3, ×5, ×8, ×13, ×21, ×34)"
 midnight,clock,Midnight,2000,,1,"{""clock"":24}",,,"Each time of day away costs more (×2, ×3, ×5, ×8, ×13, ×21, ×34)"
 yesterday,clock,"Yesterday, this time",250000,,1,"{""clock"":""yesterday""}",,,The map back as it was at the start of this time of day yesterday (you where you were)
 tomorrow,clock,"Tomorrow, this time",250000,,1,"{""clock"":""tomorrow""}",,,"A clean new map, a day on, at this time of day, before any move (you beside main street)"
@@ -78,7 +78,7 @@ u_pul,bright,Use Pulsing Remnants,500000,,3,"{""up"":1}",,,
 d_bright,bright,Random Duck,5000000,,3,"{""duck"":""roll""}",,,"Dupes possible, no variations"
 pure_bright,bright,Pure Brightness,9999999,,3,"{""up"":1}",,,
 secret,dim,A Card of Secrets,50,bright,1,"{""draw"":""secret""}",,,Pick one of three face-down cards: what it hides (an event or a Guide entry you have not found) is discovered for good · once a day
-fortune,dim,Fortune Telling,200,bright,1,"{""draw"":""fortune""}",,,"Pick one of three face-down cards: a good fortune for the rest of today, or a dim one for tomorrow (50 / 50) · once a day"
+fortune,dim,Fortune Telling,200,bright,1,"{""draw"":""fortune""}",,,"Pick one of three face-down cards: a good fortune or a dim one (50 / 50), for tomorrow · once a day"
 wonder,dim,A Daily Wonder,2000,bright,1,"{""draw"":""daily""}",,,"Draw three powerful bonuses, each with a catch, and keep one for a full day (until this time of day tomorrow) · once a day"
 cap_dial1,neutron,Max Strings 5>10,10,,1,"{""cap"":{""dial"":10}}",,,
 cap_dim1,neutron,"Max Faint 9,999>999,999",50,,1,"{""cap"":{""dim"":999999}}",,,

@@ -34,10 +34,10 @@ ev.shop.card,Its card is in the Guide (Shops).,events,
 map.twilight,Twilight,Surface Map,
 map.dawn,Dawn,Surface Map,
 map.morning,Morning,Surface Map,
-map.noon,Noon,Surface Map,
+map.noon,Midday,Surface Map,
 map.afternoon,Afternoon,Surface Map,
 map.dusk,Dusk,Surface Map,
-map.night,Night,Surface Map,
+map.night,Evening,Surface Map,
 map.midnight,Midnight,Surface Map,
 map.hex_merge_rings_3,⬡ Hex Merge · Rings −3,Surface Map,
 map.three_dark_remnants_become,● Three Dark Remnants become one · Rings −3,Surface Map,
@@ -664,13 +664,13 @@ card.fortune.type,Fortune — {duck},"cards, Guide, Status",duck = $0 — the du
 card.fortune.typedim,Fortune — Dim,"cards, Guide, Status",
 card.wonder.type,Daily Wonder,"cards, Guide, Status",
 card.draw.secret,"A Card of Secrets: pick one, and it is yours to know","cards, Guide, Status",
-card.draw.fortune,Fortune Telling: pick a card for today,"cards, Guide, Status",
+card.draw.fortune,Fortune Telling: pick a card for tomorrow,"cards, Guide, Status",
 card.draw.daily,"A Daily Wonder: keep one of three, for a full day","cards, Guide, Status",
 card.close,Close,"cards, Guide, Status",
 card.unlocks,Unlocks in the Guide: {entries},"cards, Guide, Status",entries = $0 — the Guide entries it unlocks
 status.today,Today,"cards, Guide, Status",
-status.fortune,Fortune,"cards, Guide, Status",
-status.wonder,Daily wonder,"cards, Guide, Status",
+status.fortune,Fortune today,"cards, Guide, Status",
+status.wonder,Daily wonder (at once),"cards, Guide, Status",
 status.charms,Luck Charms,"cards, Guide, Status",
 status.duck,Duck chance,"cards, Guide, Status",
 status.duckval,{chance} · next +{luck},"cards, Guide, Status","chance = $0 — the duck chance
@@ -779,8 +779,8 @@ build.test_prefab,Testing at {time}: “{name}” appeared.,Build mode,"name = $
 time = $1 — the time of day"
 build.test_none,Testing at {time}: no prefab this time.,Build mode,time = $0 — the time of day
 card.fortune.dimnext,"A dim fortune, for tomorrow","cards, Guide, Status",
-status.tomorrow,Tomorrow,"cards, Guide, Status",
-status.wonder_thru, · through {time}{when},"cards, Guide, Status","time = $0 — the last time of day it lasts
+status.tomorrow,Fortune tomorrow (every fortune is for the next day),"cards, Guide, Status",
+status.wonder_thru," · lasts through {time}{when}, the time of day before it was drawn","cards, Guide, Status","time = $0 — the last time of day it lasts
 when = $1 — “ tomorrow”, or nothing (today)"
 status.tomorrow_l, tomorrow,"cards, Guide, Status",
 map.dangerift,Dangerift,Surface Map,
@@ -879,3 +879,4 @@ shop.soon.sign,COMING SOON,Shop sign,
 map.shop.soon,"Coming soon: {shop}",Surface Map feed,shop = $0 — the shop
 map.shop.soon_info,"Rank {rank} · opens here tomorrow · {hours}",Surface Map feed,"rank = $0 — its rank
 hours = $1 — its hours"
+card.fortune.goodnext,"A good fortune, for tomorrow","cards, Guide, Status",
