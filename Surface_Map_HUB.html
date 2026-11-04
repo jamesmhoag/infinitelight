@@ -926,10 +926,10 @@ function askName(){const el=document.getElementById('nameAsk'),i=el.querySelecto
   const go=()=>{const v=i.value.trim().slice(0,20);if(!v)return;playerName=v;try{localStorage.setItem(NAME_KEY,v);}catch(e){}el.classList.remove('show');feed(v,txt('map.name.set'));};
   b.onclick=go;i.onkeydown=e=>{if(e.key==='Enter'){e.preventDefault();go();}e.stopPropagation();};el.classList.add('show');setTimeout(()=>i.focus(),50);}
 function buoyGo(mode){if(_mpFor){(MP.ob[_mpFor]=MP.ob[_mpFor]||{}).go=mode;return;}buoy.go=mode;} // the next move of yours is a sail ('sail') or a String's shot ('fire')
-function mpBuoys(dt){if(!MP.on)return;for(const P of MP.players){if(P.id===MP.me)continue;const[tx,ty]=a2w(P.q,P.r),b=MP.ob[P.id]=MP.ob[P.id]||{};if(b.x==null){b.x=tx;b.y=ty;b.yaw=Math.random()*6.28;b.spin=0;b.ph=Math.random()*6.28;} // everyone else's buoy: sails to their hex, turns slowly
+function mpBuoys(dt){if(!MP.on)return;for(const P of MP.players){if(P.id===MP.me)continue;const[tx,ty]=buoySpot(P.q,P.r),b=MP.ob[P.id]=MP.ob[P.id]||{};if(b.x==null){b.x=tx;b.y=ty;b.yaw=Math.random()*6.28;b.spin=0;b.ph=Math.random()*6.28;} // everyone else's buoy: sails to their hex, turns slowly
   const k=Math.min(1,0.05*dt);b.x+=(tx-b.x)*k;b.y+=(ty-b.y)*k;b.yaw+=0.004*dt;if(b.dunk&&b.dunk.d<0&&performance.now()-b.dunk.t0>b.dunk.ms)b.dunk=null;}}
 function buoyStep(now,dt){mpBuoys(dt);if(buoy.dunk&&buoy.dunk.d<0&&now-buoy.dunk.t0>buoy.dunk.ms)buoy.dunk=null;if(buoy.dip&&now-buoy.dip>450)buoy.dip=0;
-  if(buoy.follow&&buoy.mv&&!dive){camTX=buoy.x;camTY=buoy.y;}else if(!buoy.mv)buoy.follow=false; /* the camera goes with it to its new hex (unless you take the view) */const[tx,ty]=a2w(pQ,pR);if(!playerName&&currentView==='map'&&!shopUI&&!menuOpen&&!document.getElementById('nameAsk').classList.contains('show'))askName(); // no name yet (a new game): asked once the map is in view
+  if(buoy.follow&&buoy.mv&&!dive){camTX=buoy.x;camTY=buoy.y;}else if(!buoy.mv)buoy.follow=false; /* the camera goes with it to its new hex (unless you take the view) */const[tx,ty]=buoySpot(pQ,pR);if(!playerName&&currentView==='map'&&!shopUI&&!menuOpen&&!document.getElementById('nameAsk').classList.contains('show'))askName(); // no name yet (a new game): asked once the map is in view
 
   if(buoy.mv&&now>=buoy.mv.t0+buoy.mv.dur){buoy.x=buoy.mv.x1;buoy.y=buoy.mv.y1;buoy.mv=null;}
   if(!buoy.mv&&(Math.abs(tx-buoy.x)>0.5||Math.abs(ty-buoy.y)>0.5)){const d=Math.hypot(tx-buoy.x,ty-buoy.y);
@@ -1260,13 +1260,16 @@ function shopSprite(id,bk,lit,yaw,open,L,mir){ // L: the buoy's light on it ({k,
 function streetYaw(a){ // a main street shop at a: its turn so its front edge (in front of the source; behind it, its back) lies along the source hex's edge facing it, as the camera sees it
   if(!cam)return 0;const s=(d)=>{const[x,y]=a2w(0,0),r=HEX,t=(a+d)*Math.PI/180;return proj(...w2s(x+r*Math.cos(t),y+r*Math.sin(t)));},p=s(-30),q=s(30),[L_,R_]=p[0]<q[0]?[p,q]:[q,p];
   const rise=Math.atan2(L_[1]-R_[1],R_[0]-L_[0]),pt=(T.mapShopPitch!=null?T.mapShopPitch:22)*Math.PI/180;return Math.round(Math.atan(Math.tan(rise)/Math.max(0.05,Math.sin(pt)))*180/Math.PI);} // (the edge's slope on screen; a turned shop's front slopes by tan(yaw)·sin(its view angle))
+const popBack=()=>HEX*(T.mapPopBack!=null?T.mapPopBack:0.42); // a pop-up stands in the back half of its hex, a buoy on it in the front half: they never overlap
+const popSpot=(q,r)=>{const[x,y]=a2w(q,r);return[x,y-popBack()];};
+function buoySpot(q,r){const[x,y]=a2w(q,r),c=cells[K(q,r)];return c&&c.shop&&isBright(K(q,r))?[x,y+popBack()]:[x,y];} // where a buoy floats on a hex (forward, on one with a pop-up)
 function shopRise(o){ // a new pop-up: hidden while its hex's clear plays (clearFx), then it rises out of the bright (T.mapShopRiseMs), and once up turns on and opens (0..1)
   if(!o.rise)return 1;if(clearFx[o.rise]||currentView!=='map')return 0;const now=performance.now();if(o._r0==null)o._r0=now;const u=(now-o._r0)/(T.mapShopRiseMs||1100);if(u>=1){delete o.rise;delete o._r0;return 1;}return u;}
 function shopList(){ // every shop on the map now: main street hugging the source (two behind it, two in front), pop-ups on their bright clears
   const out=[],R=HEX*(T.mapStreetRing!=null?T.mapStreetRing:0.8);
   for(const id in SHOPS){const S=SHOPS[id],a=(S.a||0)*Math.PI/180;if(S.street)out.push({key:id,id,bk:S.bk||'s',wx:R*Math.cos(a),wy:R*Math.sin(a),yaw:streetYaw(S.a||0),lit:shopIsOpen(id,clock,run)});} // (turned so its front, or its back behind the source, runs along the source's edge)
   hubPop.forEach((h,i)=>{if(!h)return;const a=HUB_SLOTS[i]*Math.PI/180,u=shopRise(h);out.push({key:'hub'+i,id:h.id,rank:h.rank,bk:SHOP_RANK_BLD[h.rank-1],wx:R*1.15*Math.cos(a),wy:R*1.15*Math.sin(a),rise:u,lit:u>=1&&shopIsOpen(h.id,clock,run)});}); // (a little further out than main street) // pop-ups from dark clears, in the source hex
-  for(const k in cells){const c=cells[k];if(c.shop&&isBright(k)){const[wx,wy]=a2w(c.q,c.r),u=shopRise(c.shop);out.push({key:k,id:c.shop.id,rank:c.shop.rank,bk:SHOP_RANK_BLD[c.shop.rank-1],wx,wy,rise:u,lit:u>=1&&shopIsOpen(c.shop.id,clock,run)});}}
+  for(const k in cells){const c=cells[k];if(c.shop&&isBright(k)){const[wx,wy]=popSpot(c.q,c.r),u=shopRise(c.shop);out.push({key:k,id:c.shop.id,rank:c.shop.rank,bk:SHOP_RANK_BLD[c.shop.rank-1],wx,wy,rise:u,lit:u>=1&&shopIsOpen(c.shop.id,clock,run)});}}
   return out;}
 let _rfl=null;
 function shopReflect(){ // shops mirrored in the ground under them: each its own drawing seen from below and turned over (so it turns as the building does), all drawn solid into one layer (nearer over farther: never see-through to each other), laid on the ground once with 'lighten' (it shows only where the ground is dark)
