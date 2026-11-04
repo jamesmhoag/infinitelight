@@ -112,7 +112,7 @@ button:hover{background:rgba(255,255,255,0.15);}
   <div id="dock" class="bottom"><div id="inventoryPanel"></div><div id="touch-info"></div></div>
   <canvas id="cur"></canvas>
 </div>
-<script src="content.js?v=20261104h"></script><script src="shared.js?v=20261104h"></script>
+<script src="content.js?v=20261104i"></script><script src="shared.js?v=20261104i"></script>
 <script>
 txtApply(); // the page's own labels (content/strings.csv)
 const _SRC=document.documentElement.outerHTML; // kept so the Encyclopedia can run live scenes as embedded copies of the game
@@ -12738,7 +12738,7 @@ function cardHTML(ev,mini){ // the one card format: name bar, art box, type line
   return `<div class="mtg${mini?' sm':''}" data-ev="${ev.id}" style="--rc:${TIER_COL[t]}"><div class="nm"><b>${gEsc(ev.name)}</b><span class="gem"></span></div><div class="art" data-scene="${ev.scene}">${mini?`<canvas class="rl-m" width="64" height="64" data-k="${ev.ico}"></canvas>`:''}</div><div class="ty"><span>${gEsc(ev.type.replace(/^Event — /,''))}</span><span>Tier ${TIER[t]}</span></div><div class="tx">${(mini?ev.facts().slice(0,1):ev.facts()).map(f=>`<p${ev.fx?' class="fx"':''}>${gEsc(f)}</p>`).join('')}${ev.flavor?`<p class="fl">${gEsc(ev.flavor)}</p>`:''}</div></div>`; // (small: its first line and its flavour; the rest when it is opened) (fx: the lines are changes to play, set apart from the flavour)
 }
 function mountScene(h,w,hh){if(!h||h.firstChild||document.querySelectorAll('.rl-live iframe,.mtg .art iframe').length>=5)return;const f=document.createElement('iframe'),nm=h.dataset.s||h.dataset.scene;f.style.cssText='border:0;max-width:100%;pointer-events:none;background:#000;border-radius:6px;'+(w?`width:${w}px;height:${hh}px`:'width:100%;height:100%');
-  if(nm.slice(0,4)==='hub:'){const[sn,dk]=nm.slice(4).split(':');f.src='Surface_Map_HUB.html?v=20261104h&scene='+sn+'&T='+encodeURIComponent(JSON.stringify(mapSceneT()))+'&D='+encodeURIComponent(JSON.stringify(dk&&DUCK_TYPES[dk]?{[dk]:DUCK_TYPES[dk]}:Object.fromEntries(Object.entries(DUCK_TYPES).slice(0,4))));}else f.srcdoc=liveSrc(nm);h.appendChild(f);} // a Surface Map demo is played by the map itself
+  if(nm.slice(0,4)==='hub:'){const[sn,dk]=nm.slice(4).split(':');f.src='Surface_Map_HUB.html?v=20261104i&scene='+sn+'&T='+encodeURIComponent(JSON.stringify(mapSceneT()))+'&D='+encodeURIComponent(JSON.stringify(dk&&DUCK_TYPES[dk]?{[dk]:DUCK_TYPES[dk]}:Object.fromEntries(Object.entries(DUCK_TYPES).slice(0,4))));}else f.srcdoc=liveSrc(nm);h.appendChild(f);} // a Surface Map demo is played by the map itself
 function mapSceneT(){const o={};for(const k in T)if(/^(map|bh|duck|wake|glass|metal|dimGlow|glowHalo|maxSpeed)/.test(k))o[k]=T[k];return o;} // what a map demo needs of the tuners
 function showCardHTML(html){ // a Guide card (an entry or a shop) opened over the Guide, where an event card shows
   guideCSS();_evOpen=true;_evReview=true;const ov=evOverlayEl();ov.innerHTML=`<div class="ev-box">${html}<button id="evOk">${txt('card.close')}</button></div>`;ov.style.display='flex';wrap.classList.add('ev-open');
@@ -13288,7 +13288,7 @@ function shopPick(i){const d=runState.draw,c=d&&d.cards[i];if(!c)return{ok:0,tex
   else if(d.kind==='fortune'){if(c.good)runState.fortune=c;else runState.dimNext=c; /* a dim fortune is always for tomorrow */const g=c.good?FORTUNE_GOOD[c.id]||{}:{};if(g.next)runState.next=g.next;if(g.next==='rare'){runState.keysGone=1;inventory.key=0;}title=c.good?txt('card.fortune.good'):txt('card.fortune.dimnext');text=fortuneText(c,c.duck);}
   else{const t=runNow();runState.bonus={id:c.id,item:c.item||null,until:t+24,thru:t+21}; /* a Daily Wonder lasts a full day: until this time of day tomorrow */if(c.id==='inf')for(const k of ['leash','dial','weave'])inventory[k]=k===c.item?invMaxFor(k):0;title=c.n;text=c.t+'.';}
   saveInventory();updateInventoryUI();applyDisc();showCardHTML(cardHTML(drawEv(d.kind,c)));mountScene(document.querySelector('#evOverlay .art'));return{ok:1,title,text,good:d.kind!=='fortune'||!!c.good,show:1};} // the card itself, as every other card
-const FORTUNE_SCENE={dangerift:'rift',slowmove:'hub:move',holiday:'hub:street',laps:'hub:constellation',rift:'rift',noduck:'dark',exo1:'relic',slow:'relic'}; // a dim fortune's demo: what it changes, else Dim and Dark Remnants
+const FORTUNE_SCENE={paradeday:'duck',dangerift:'rift',slowmove:'hub:move',holiday:'hub:street',laps:'hub:constellation',rift:'rift',noduck:'dark',exo1:'relic',slow:'relic'}; // a dim fortune's demo: what it changes, else Dim and Dark Remnants
 function drawEv(kind,c){ // a Carnival card in the one card format: its change to play as its lines, what is said of it as its flavour, a live demo of it (a good fortune: its duck on the lake)
   if(kind==='fortune'){const[fl,fx]=fortuneParts(c,c.duck),v=c.good?DUCK_TYPES[c.id]||{}:null;
     return{id:'fortune',name:(c.good&&(FORTUNE_ROWS['good:'+c.id]||{}).name)||txt(c.good?'card.fortune.good':'card.fortune.dim'),type:c.good?txt('card.fortune.type',v.name||''):txt('card.fortune.typedim'),tier:c.good?(v.rare?3:v.mid?2:c.id==='classic'?0:1):1,scene:c.good?'hub:fortune:'+c.id:FORTUNE_SCENE[c.id]||'relic',ico:c.good?'duck:'+c.id:'dim',fx:1,facts:()=>[fx],flavor:fl};}
