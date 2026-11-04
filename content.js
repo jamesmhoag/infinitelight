@@ -34,7 +34,9 @@ function tpl(s,args,vars){ // a content text, as it shows. {name}: the text's ow
 function txtVals(s){const o={};for(const l of String(s||'').split('\n')){const m=l.match(/^\s*([\w]+)\s*=\s*(.*?)\s*(?:—.*)?$/);if(m)o[m[1]]=m[2];}return o;} // a text's values column: one per line, name = what fills it — what it is
 try{for(const r of csvRead('strings')){if(r.key.slice(0,6)==='value.')VAL[r.key.slice(6)]=r.text;else{TXT[r.key]=r.text;if(r.values)TXV[r.key]=txtVals(r.values);}}}catch(e){console.error(e);}
 function txt(k,...a){const s=TXT[k];if(s==null){console.warn('content: no text',k);return k;}return tpl(s,a,TXV[k]);} // a piece of the game's text (content/strings.csv), its {names} filled from a ($0…) by its values column
-function txtApply(root){for(const el of (root||document).querySelectorAll('[data-tx]'))el.textContent=txt(el.dataset.tx);for(const el of (root||document).querySelectorAll('[data-tt]'))el.title=txt(el.dataset.tt);for(const el of (root||document).querySelectorAll('[data-tp]'))el.placeholder=txt(el.dataset.tp);} // the page's own labels
+function txtApply(root){for(const el of (root||document).querySelectorAll('[data-tx]'))el.textContent=txt(el.dataset.tx);for(const el of (root||document).querySelectorAll('[data-tt]'))el.title=txt(el.dataset.tt);for(const el of (root||document).querySelectorAll('[data-tp]'))el.placeholder=txt(el.dataset.tp);parenHints(root);} // the page's own labels
+function parenHints(root){for(const b of (root||document).querySelectorAll('button')){if(b.children.length)continue;const m=/^(.*\S)\s*\(([^()]+)\)\s*$/.exec(b.textContent);if(m){b.textContent=m[1];b.dataset.more=m[2];}}} // a menu button's bracketed context ("Quit to main menu (saves this surface)"): off the button, said in the feed when it is pointed at (ilHint: each page's own feed)
+let _hintEl=null;document.addEventListener('pointerover',e=>{const el=e.target.closest&&e.target.closest('[data-more]');if(el&&el!==_hintEl&&window.ilHint)window.ilHint(el.textContent,el.dataset.more);_hintEl=el;},true);
 // ── Loading (every page): while a scene is still being drawn, a black screen with ∞ — a glowing bead running round it, its glow trailing behind — and a line of text under it
 // (content/strings.csv load.text) with a glow passing over it now and then; it fades in and out. loading(why, on): show while any reason is on.
 const _load={why:new Set(),el:null,t:0,shown:0,carry:0}; // carry: this page opened from one showing it, so it is on at once
@@ -53,7 +55,7 @@ function loading(why,on){const s=_load.why,was=s.size>0;if(on)s.add(why);else s.
   const show=()=>{if(!s.size)return;if(!document.body){document.addEventListener('DOMContentLoaded',show,{once:true});return;}const el=loadingEl();if(_load.carry){_load.carry=0;el.style.transition='none';el.classList.add('on');void el.offsetWidth;el.style.transition='';}else{void el.offsetWidth;el.classList.add('on');}_load.shown=performance.now();};
   if(on&&why==='leave')try{sessionStorage.setItem('il_load',Date.now());}catch(e){} /* the next page carries it on */
   if(now)_load.t=setTimeout(show,why==='boot'||why==='leave'||why==='arrive'?0:140); // (a quick change never flashes it)
-  else _load.t=setTimeout(()=>{if(s.size||!_load.el)return;_load.el.classList.remove('on');},Math.max(250,450-(performance.now()-_load.shown)));} // once shown, at least a moment; and one step of a load straight after another keeps the same screen (never off and on again)
+  else _load.t=setTimeout(()=>{if(s.size||!_load.el)return;_load.el.classList.remove('on');document.documentElement.classList.remove('il-arrive');},Math.max(250,450-(performance.now()-_load.shown)));} // once shown, at least a moment; and one step of a load straight after another keeps the same screen (never off and on again)
 try{const t=+sessionStorage.getItem('il_load')||0;if(window.top===window&&t){sessionStorage.removeItem('il_load');if(Date.now()-t<15000){_load.carry=1;loading('arrive',true);addEventListener('load',()=>requestAnimationFrame(()=>requestAnimationFrame(()=>loading('arrive',false))));}}}catch(e){} /* opened from a page that was showing it: it stays up (the page's own reasons, as the map's, keep it longer) */
 
 // ═════════════════════════ THE GAME'S CURSOR (every page) ═════════════════════════
@@ -70,6 +72,34 @@ function cursorRing(cx,x,y,cR,dimA,edgeCol,lw){cx.beginPath();cx.arc(x,y,cR,0,6.
 function cursorDot(cx,x,y,dimA,edgeCol){
   cx.globalCompositeOperation='screen';cx.filter='blur(3px)';cx.globalAlpha=0.7*dimA;cx.beginPath();cx.arc(x,y,1.4,0,6.2832);cx.fillStyle=`rgba(${edgeCol},0.9)`;cx.fill();
   cx.filter='none';cx.globalAlpha=1;cx.globalCompositeOperation='source-over';cx.beginPath();cx.arc(x,y,0.75,0,6.2832);cx.fillStyle=`rgba(${edgeCol},${(0.65*dimA).toFixed(3)})`;cx.fill();}
+// ── The cursor's stain (every page: a surface under its particles, the Surface Map's ground, the title's water): where it has just been, laid INTO the scene (under a surface's particles; flat on the map's ground, under its shops), so a
+// cursor gone faint on a busy surface is easy to find. Even toned: the path is drawn as one mask in which overlaps never add up, fading with age from the start.
+const _curTrail=[];let _stainCv=null; // {x, y, t, gap (off the scene: the stain breaks)} — in the scene's own coordinates; the stain's two work canvases
+let _curSm=null; // the trail follows the cursor eased (T.cursorStainSmooth), so a hand's jitters do not show
+function cursorTrailRecord(x,y,now,on){const ms=T.cursorStainMs!=null?T.cursorStainMs:900,l=_curTrail[_curTrail.length-1],k=T.cursorStainSmooth!=null?T.cursorStainSmooth:0.35;
+  if(ms<=0){_curTrail.length=0;return;}if(!on||!_curSm||(l&&l.gap))_curSm={x,y};else{_curSm.x+=(x-_curSm.x)*k;_curSm.y+=(y-_curSm.y)*k;}x=_curSm.x;y=_curSm.y;if(!on){if(l&&!l.gap)_curTrail.push({x,y,t:now,gap:1});}else if(!l||l.gap||Math.hypot(x-l.x,y-l.y)>1)_curTrail.push({x,y,t:now});else l.t=now;
+  while(_curTrail.length&&now-_curTrail[0].t>ms)_curTrail.shift();}
+function cursorStain(cx,now,w,dark,toXY){ // drawn over a finished scene, but only where it is dark: the stain's strength is scaled by (1 − the scene's brightness)², so
+  // particles cover it (their brightness × T.cursorStainHide), and it comes through only where they let the ground show. cx: the scene; w: the stain's width in cx's own units; dark: a light
+  // background (stain it dark: scaled by the scene's brightness² instead); toXY: trail point → cx's units (its transform is applied, so it works in device pixels)
+  const ms=T.cursorStainMs!=null?T.cursorStainMs:900,A=T.cursorStainA!=null?T.cursorStainA:0.22;if(_curTrail.length<2||ms<=0||A<=0)return;
+  const m=cx.getTransform(),cv=cx.canvas,wd=w*Math.hypot(m.a,m.b),P=_curTrail.map(p=>{const[x,y]=toXY?toXY(p.x,p.y):[p.x,p.y];return{x:m.a*x+m.c*y+m.e,y:m.b*x+m.d*y+m.f,gap:p.gap,f:Math.max(0,1-(now-p.t)/ms)};});
+  let x0=1e9,y0=1e9,x1=-1e9,y1=-1e9;for(const p of P){x0=Math.min(x0,p.x);y0=Math.min(y0,p.y);x1=Math.max(x1,p.x);y1=Math.max(y1,p.y);}
+  x0=Math.max(0,Math.floor(x0-wd));y0=Math.max(0,Math.floor(y0-wd));x1=Math.min(cv.width,Math.ceil(x1+wd));y1=Math.min(cv.height,Math.ceil(y1+wd));const cw=x1-x0,ch=y1-y0;if(cw<1||ch<1)return;
+  if(!_stainCv){_stainCv=[document.createElement('canvas'),document.createElement('canvas')];}
+  for(const c of _stainCv)if(c.width<cw||c.height<ch){c.width=Math.max(cw,c.width);c.height=Math.max(ch,c.height);}
+  const s=_stainCv[0].getContext('2d'),t=_stainCv[1].getContext('2d');
+  s.setTransform(1,0,0,1,0,0);s.globalCompositeOperation='source-over';s.fillStyle='#000';s.fillRect(0,0,cw,ch); // the mask, as an amount (0 = none): overlaps never add up ('lighten')
+  s.setTransform(1,0,0,1,-x0,-y0);s.globalCompositeOperation='lighten';s.lineCap='round';s.lineJoin='round';s.lineWidth=wd;
+  const mid=(a,b)=>[(a.x+b.x)/2,(a.y+b.y)/2]; // curves through the points' midpoints (no corners)
+  for(let i=1;i<P.length;i++){const a=P[i-1],b=P[i];if(a.gap||b.gap)continue;const v=Math.round(255*A*(a.f+b.f)/2),p0=i>1&&!P[i-2].gap?mid(P[i-2],a):[a.x,a.y],p1=mid(a,b);s.strokeStyle=`rgb(${v},${v},${v})`;s.beginPath();s.moveTo(p0[0],p0[1]);s.quadraticCurveTo(a.x,a.y,p1[0],p1[1]);if(i===P.length-1||P[i+1].gap)s.lineTo(b.x,b.y);s.stroke();}
+  const hide=T.cursorStainHide!=null?T.cursorStainHide:4;t.setTransform(1,0,0,1,0,0);t.globalCompositeOperation='copy';t.filter=`grayscale(1) brightness(${hide})`;t.drawImage(cv,x0,y0,cw,ch,0,0,cw,ch);t.filter='none'; // how much is over the ground there (its brightness × Stain hide: even a dim particle covers it)
+  if(!dark){t.globalCompositeOperation='difference';t.fillStyle='#fff';t.fillRect(0,0,cw,ch);} // → how dark it is
+  s.setTransform(1,0,0,1,0,0);s.globalCompositeOperation='multiply';s.drawImage(_stainCv[1],0,0,cw,ch,0,0,cw,ch);s.drawImage(_stainCv[1],0,0,cw,ch,0,0,cw,ch); // (squared)
+  cx.save();cx.setTransform(1,0,0,1,0,0);
+  if(dark){s.globalCompositeOperation='difference';s.fillStyle='#fff';s.fillRect(0,0,cw,ch);cx.globalCompositeOperation='multiply';} // a light scene: the amount darkens it
+  else{const c0=typeof DUCK_SUN!=='undefined'?DUCK_SUN.c:[1,1,1],mx=Math.max(1e-3,...c0),c=c0.map(v=>v/mx);s.globalCompositeOperation='multiply';s.fillStyle=`rgb(${c.map(v=>Math.round(Math.max(0,Math.min(1,v))*255)).join(',')})`;s.fillRect(0,0,cw,ch);cx.globalCompositeOperation='screen';} // (in the colour of the light at this time of day, at full strength: its hue, never dimmer at night)
+  cx.drawImage(_stainCv[0],0,0,cw,ch,x0,y0,cw,ch);cx.restore();}
 const _gcT=()=>(typeof T!=='undefined'&&T)?T:{};
 const gcState=()=>({down:false,at:-1,rel:-1,from:0,rAt:-1,r:255,g:255,b:255,dim:0.5,last:0});
 function gcHoldT(st,now,D){const el=now-st.at;if(el<D){const p=el/D;return-(1-(1-p)*(1-p));}const p=Math.min(1,(el-D)/D);return-1+2*(1-(1-p)*(1-p));} // −1 at the bottom of the punch, 0 at rest, +1 flared

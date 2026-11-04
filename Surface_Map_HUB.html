@@ -1,6 +1,7 @@
 <!DOCTYPE html>
 <html>
 <head>
+<script>try{if(window.top===window&&Date.now()-(+sessionStorage.getItem("il_load")||0)<15000)document.documentElement.classList.add("il-arrive")}catch(e){}</script><style>html.il-arrive,html.il-arrive body{background:#000!important}html.il-arrive body>*:not(#ilLoad){visibility:hidden!important}</style><!-- opened from a page that was loading: nothing but the loading screen shows from the first paint (content.js lifts it) -->
 <meta charset="utf-8"><meta name="darkreader-lock">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Infinite Light — Surface Map</title>
@@ -163,7 +164,7 @@ body.shop-open #hdock{z-index:59}#hinv .slot.wal::before{border-color:rgba(255,2
 <div id="veil"></div>
 <div id="bfx"></div>
 <iframe id="neb" data-tt="map.ui.surface"></iframe>
-<script src="content.js?v=20261105a"></script><script src="shared.js?v=20261105a"></script>
+<script src="content.js?v=20261105b"></script><script src="shared.js?v=20261105b"></script>
 <script>
 // ╔══════════════════════════════════════════════════════════════════════════════╗
 // ║  MAP ENGINE                                                                 ║
@@ -182,7 +183,7 @@ let clock=3,day=1,pool=6,fresh=true,burstFx=null,dayLog=[],dayCnt={b:0,d:0},pend
 // // clock: the hour (3 = Twilight … 24 = Midnight, the day's last turn); day: your attempts; pool: what the source put out at its last burst; fresh: no ring added yet since it
 let constel=[],armed=null,weaveSel=[],weaveAsk=null,clearFx={},mergeFx=[],feedMsg={t:'',d:'',at:-1e9}; // constellations {keys,type}; the armed map item; a Weave being drawn; animations; the final count
 const STEP_H=3; // the day: eight turns of three hours
-const CACHE_V='20261105a'; // the build: bump with shared.js's
+const CACHE_V='20261105b'; // the build: bump with shared.js's
 const SCENE=new URLSearchParams(location.search).get('scene'); // a Guide / event demo: the map plays a scripted moment (no surface behind it)
 let phase='move',turnTimer=0,mergeTimer=0;
 let gameOverReason='';
@@ -408,6 +409,7 @@ function updateHint(){ // the feed's resting line: what you can do now
   else if(armed==='test'){a=txt('test.tool_hint');b=txt('map.right_click_esc_or');}
   else if(c&&!c.cap&&!c.isVoid&&phase==='move'){a=(c.v<=0?txt('map.no_value_here_nothing'):txt('map.space_click_to',(nebulaCellKey===K(pQ,pR)?txt('map.continue_this_surface'):txt('map.enter_this_surface')),c.v.toFixed(2)));b=txt('map.day_or_move',clockStr(),day);if(tired()){a=txt('map.too_tired_to_move');b=txt('map.rest_under_midnight_to_2',(c.v>0?txt('map.or_this_surface',(nebulaCellKey===K(pQ,pR)?txt('map.continue'):txt('map.enter')),c.v.toFixed(2)):''));}}
   hintLine=[a,b];}
+window.ilHint=(a,b)=>feed(a,b); // a menu button's bracketed context, in the feed (content.js parenHints)
 function feed(t,d){feedPop(); // (a message: the feed shows it, even when it is put away)
   if(_mpFor){netOut({t:'feed',ft:t,fd:d||''},_mpFor);return;} // (a friend's action: told to them)
   feedMsg={t,d:d||'',at:performance.now()};} // a map message in the dock's feed (stays a few seconds)

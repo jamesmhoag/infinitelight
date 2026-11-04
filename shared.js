@@ -413,36 +413,6 @@ function drawDarkRemnantAt(ctx,x,y,R,now,f,ph){ // the surface's Dark Remnant lo
   const pad=T.bhDrawPad;T.bhDrawPad=pad*k; // (its drawing room scales with it)
   drawBHGlowRing(ctx,bh,R,now+o,0,c1,_drMapH1,true);drawBHGlowRing(ctx,bh,R,now+o,0.5,c2,_drMapH2,false);T.bhDrawPad=pad;
   ctx.save();ctx.beginPath();ctx.arc(x,y,R,0,6.2832);ctx.fillStyle='#000';ctx.fill();ctx.restore();}
-// ── The cursor (shared): the surface's standard cursor — a darkened centre, a bloom, a sharp ring and a centre dot — so the Surface Map's
-// cursor is the same one. cR: ring radius; dimA: idle dimming (1 = over a target); tintK: 1 − how much it steps aside over an object. ──
-// ── The cursor's stain: where it has just been, laid INTO the scene (under a surface's particles; flat on the map's ground, under its shops), so a
-// cursor gone faint on a busy surface is easy to find. Even toned: the path is drawn as one mask in which overlaps never add up, fading with age from the start.
-const _curTrail=[];let _stainCv=null; // {x, y, t, gap (off the scene: the stain breaks)} — in the scene's own coordinates; the stain's two work canvases
-let _curSm=null; // the trail follows the cursor eased (T.cursorStainSmooth), so a hand's jitters do not show
-function cursorTrailRecord(x,y,now,on){const ms=T.cursorStainMs!=null?T.cursorStainMs:900,l=_curTrail[_curTrail.length-1],k=T.cursorStainSmooth!=null?T.cursorStainSmooth:0.35;
-  if(ms<=0){_curTrail.length=0;return;}if(!on||!_curSm||(l&&l.gap))_curSm={x,y};else{_curSm.x+=(x-_curSm.x)*k;_curSm.y+=(y-_curSm.y)*k;}x=_curSm.x;y=_curSm.y;if(!on){if(l&&!l.gap)_curTrail.push({x,y,t:now,gap:1});}else if(!l||l.gap||Math.hypot(x-l.x,y-l.y)>1)_curTrail.push({x,y,t:now});else l.t=now;
-  while(_curTrail.length&&now-_curTrail[0].t>ms)_curTrail.shift();}
-function cursorStain(cx,now,w,dark,toXY){ // drawn over a finished scene, but only where it is dark: the stain's strength is scaled by (1 − the scene's brightness)², so
-  // particles cover it (their brightness × T.cursorStainHide), and it comes through only where they let the ground show. cx: the scene; w: the stain's width in cx's own units; dark: a light
-  // background (stain it dark: scaled by the scene's brightness² instead); toXY: trail point → cx's units (its transform is applied, so it works in device pixels)
-  const ms=T.cursorStainMs!=null?T.cursorStainMs:900,A=T.cursorStainA!=null?T.cursorStainA:0.22;if(_curTrail.length<2||ms<=0||A<=0)return;
-  const m=cx.getTransform(),cv=cx.canvas,wd=w*Math.hypot(m.a,m.b),P=_curTrail.map(p=>{const[x,y]=toXY?toXY(p.x,p.y):[p.x,p.y];return{x:m.a*x+m.c*y+m.e,y:m.b*x+m.d*y+m.f,gap:p.gap,f:Math.max(0,1-(now-p.t)/ms)};});
-  let x0=1e9,y0=1e9,x1=-1e9,y1=-1e9;for(const p of P){x0=Math.min(x0,p.x);y0=Math.min(y0,p.y);x1=Math.max(x1,p.x);y1=Math.max(y1,p.y);}
-  x0=Math.max(0,Math.floor(x0-wd));y0=Math.max(0,Math.floor(y0-wd));x1=Math.min(cv.width,Math.ceil(x1+wd));y1=Math.min(cv.height,Math.ceil(y1+wd));const cw=x1-x0,ch=y1-y0;if(cw<1||ch<1)return;
-  if(!_stainCv){_stainCv=[document.createElement('canvas'),document.createElement('canvas')];}
-  for(const c of _stainCv)if(c.width<cw||c.height<ch){c.width=Math.max(cw,c.width);c.height=Math.max(ch,c.height);}
-  const s=_stainCv[0].getContext('2d'),t=_stainCv[1].getContext('2d');
-  s.setTransform(1,0,0,1,0,0);s.globalCompositeOperation='source-over';s.fillStyle='#000';s.fillRect(0,0,cw,ch); // the mask, as an amount (0 = none): overlaps never add up ('lighten')
-  s.setTransform(1,0,0,1,-x0,-y0);s.globalCompositeOperation='lighten';s.lineCap='round';s.lineJoin='round';s.lineWidth=wd;
-  const mid=(a,b)=>[(a.x+b.x)/2,(a.y+b.y)/2]; // curves through the points' midpoints (no corners)
-  for(let i=1;i<P.length;i++){const a=P[i-1],b=P[i];if(a.gap||b.gap)continue;const v=Math.round(255*A*(a.f+b.f)/2),p0=i>1&&!P[i-2].gap?mid(P[i-2],a):[a.x,a.y],p1=mid(a,b);s.strokeStyle=`rgb(${v},${v},${v})`;s.beginPath();s.moveTo(p0[0],p0[1]);s.quadraticCurveTo(a.x,a.y,p1[0],p1[1]);if(i===P.length-1||P[i+1].gap)s.lineTo(b.x,b.y);s.stroke();}
-  const hide=T.cursorStainHide!=null?T.cursorStainHide:4;t.setTransform(1,0,0,1,0,0);t.globalCompositeOperation='copy';t.filter=`grayscale(1) brightness(${hide})`;t.drawImage(cv,x0,y0,cw,ch,0,0,cw,ch);t.filter='none'; // how much is over the ground there (its brightness × Stain hide: even a dim particle covers it)
-  if(!dark){t.globalCompositeOperation='difference';t.fillStyle='#fff';t.fillRect(0,0,cw,ch);} // → how dark it is
-  s.setTransform(1,0,0,1,0,0);s.globalCompositeOperation='multiply';s.drawImage(_stainCv[1],0,0,cw,ch,0,0,cw,ch);s.drawImage(_stainCv[1],0,0,cw,ch,0,0,cw,ch); // (squared)
-  cx.save();cx.setTransform(1,0,0,1,0,0);
-  if(dark){s.globalCompositeOperation='difference';s.fillStyle='#fff';s.fillRect(0,0,cw,ch);cx.globalCompositeOperation='multiply';} // a light scene: the amount darkens it
-  else{const c=DUCK_SUN.c;s.globalCompositeOperation='multiply';s.fillStyle=`rgb(${c.map(v=>Math.round(Math.max(0,Math.min(1,v))*255)).join(',')})`;s.fillRect(0,0,cw,ch);cx.globalCompositeOperation='screen';} // (in the colour of the light at this time of day)
-  cx.drawImage(_stainCv[0],0,0,cw,ch,x0,y0,cw,ch);cx.restore();}
 // ═════════════════════════ SHOPS (sold on the Surface Map; the surface, which keeps the purse, settles every purchase) ═════════════════════════
 // SHOPS: main street ones (street) stand round the source at angle a° (0 = right, 90 = in front, −90 = behind it; flip: its door on the other side), always there, lit only while open: hours are [open, close) on the map's clock (3 Twilight … 24 Midnight;
 // 0–27 = 24 hours; both ends open: close is the last time of day it is open). Pop-ups open on a bright clear whose surface collected at least T.mapShop<Cur>1/2/3 of their collectable (cur, also what they
