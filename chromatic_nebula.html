@@ -112,7 +112,7 @@ button:hover{background:rgba(255,255,255,0.15);}
   <div id="dock" class="bottom"><div id="inventoryPanel"></div><div id="touch-info"></div></div>
   <canvas id="cur"></canvas>
 </div>
-<script src="content.js?v=20261104e"></script><script src="shared.js?v=20261104e"></script>
+<script src="content.js?v=20261104f"></script><script src="shared.js?v=20261104f"></script>
 <script>
 txtApply(); // the page's own labels (content/strings.csv)
 const _SRC=document.documentElement.outerHTML; // kept so the Encyclopedia can run live scenes as embedded copies of the game
@@ -2077,7 +2077,7 @@ function runFresh(){return{day:0,clock:3,fortune:null,dimNext:null,bonus:null,ch
 const runNow=()=>(runState.day||0)*24+(runState.clock||3); // the map's day and time of day as one count of hours (a Daily Wonder's end)
 function runExpire(){if(runState.bonus&&runState.bonus.until&&runNow()>=runState.bonus.until){runState.bonus=null;return true;}return false;} // a Daily Wonder's full day is over // (dimDone: what Dim's Carnival has done today — each of its cards is once a day) // a new run's state (shared.js: runBad, runGood, runBonus read it)
 function runT(k){ // a tuner as today's fortune, daily wonder, Luck Charms and the Lucky Duck make it (the tuner itself is never changed, so the config is never saved with them)
-  const v=T[k],r=runState,lucky=discSeen.has('up:lucky'),g=runGood(r)?FORTUNE_GOOD[r.fortune.id]||{}:{};
+  const v=T[k],r=runState,lucky=discSeen.has('up:lucky'),g=runGood(r)?FORTUNE_GOOD[runGood(r).id]||{}:{};
   if(k==='duckChance')return runBad(r,'noduck')?0:v*(lucky?2:1)+0.05*(r.charm||0)+(g.luck==='d'?0.2:0);
   if(k==='duckExoticChance')return v*(lucky?2:1)+(g.luck==='e'?0.2:0);if(k==='duckRareChance')return v*(lucky?2:1)+(g.luck==='r'?0.2:0);if(k==='duckMidChance')return v*(lucky?2:1)+(g.luck==='r'?0.1:0);if(k==='duckLuckStep')return lucky?0.04:v;
   if(k==='orbitsPerDial'||k==='weaveMinPoints')return v+(runBad(r,'laps')?1:0);if(k==='flockSecondsPerLeash'||k==='weaveSeconds')return v+(runBad(r,'slow')?1:0);
@@ -2086,7 +2086,7 @@ function invMaxFor(kind){if(kind==='key'&&runState.keysGone)return 0;return Math
 // Adds (or, with a negative amount, spends) units of one inventory kind,
 // clamped between 0 and that kind's current tunable max.
 function addInventory(kind,amount,bought){ // bought: from a shop (no fortune or bonus applies)
-  if(amount>0&&!bought&&ACCUM_KINDS.includes(kind)){const b=runState.bonus,x=runGood(runState)&&(FORTUNE_GOOD[runState.fortune.id]||{}).x3;
+  if(amount>0&&!bought&&ACCUM_KINDS.includes(kind)){const b=runState.bonus,x=runState.fortune&&runState.fortune.good&&(FORTUNE_GOOD[runState.fortune.id]||{}).x3; /* (your own fortune only: it is your items) */
     if(b&&b.id==='inf'&&b.item!==kind&&['leash','dial','weave'].includes(kind))return; // an Endless … day: the other two never come
     if(x==='all'||x===kind)amount*=3;} // a good fortune: in threes
   const max=invMaxFor(kind);
@@ -4460,7 +4460,7 @@ function resetDiscoveries(){discSeen=new Set();_discReset=true;saveInventory();a
 window.resetDiscoveries=resetDiscoveries;
 for(const ev of ['mousedown','mouseup','click','dblclick','contextmenu','wheel'])document.addEventListener(ev,e=>{const el=e.target.closest&&e.target.closest('.disc-lock');if(el){e.stopPropagation();e.preventDefault();}},true); // an undiscovered element cannot be used
 function updateInventoryUI(){
-  if(runBonus(runState,'inf'))inventory[runState.bonus.item]=invMaxFor(runState.bonus.item); // an Endless … day: never runs out
+  if(runState.bonus&&runState.bonus.id==='inf')inventory[runState.bonus.item]=invMaxFor(runState.bonus.item); // an Endless … day: never runs out
   if(BUILD)for(const k of INV_KINDS)inventory[k]=Math.max(1,invMaxFor(k)); // Build mode: every item, endless
   const el=document.getElementById('inventoryPanel');
   if(!el)return;
@@ -4764,6 +4764,7 @@ function stepOneField(h,now,dtMs){
   const kind=h.kind,R=fieldR(h),sdt=isPaused?0:dtMs*Math.max(0,timeScale);
   const cost=kind==='dim'?T.dimWhirlCost:T.brightStasisCost,every=kind==='dim'?T.dimWhirlIntervalMs:T.brightStasisIntervalMs;
   h.acc+=sdt;
+  if(h.acc>=every&&h.pid){h.acc-=every;if((h.have||0)<cost){destroyFieldObj(h,now);return;}h.have-=cost;hubPost({type:'mpSpend',pid:h.pid,kind,n:cost});} // a friend's field: its upkeep comes off them
   if(h.acc>=every){h.acc-=every;if(inventory[kind]<cost){destroyFieldObj(h,now);flashSaveStatus(txt('surf.ran_out',(kind==='dim'?txt('surf.depth'):txt('surf.balance'))));return;}addInventory(kind,-cost);}
   if(kind==='dim'){
     if(isPaused)return;refreshActiveGrid(); // DEPTH: pulls everything in reach round and in
@@ -12737,7 +12738,7 @@ function cardHTML(ev,mini){ // the one card format: name bar, art box, type line
   return `<div class="mtg${mini?' sm':''}" data-ev="${ev.id}" style="--rc:${TIER_COL[t]}"><div class="nm"><b>${gEsc(ev.name)}</b><span class="gem"></span></div><div class="art" data-scene="${ev.scene}">${mini?`<canvas class="rl-m" width="64" height="64" data-k="${ev.ico}"></canvas>`:''}</div><div class="ty"><span>${gEsc(ev.type.replace(/^Event — /,''))}</span><span>Tier ${TIER[t]}</span></div><div class="tx">${(mini?ev.facts().slice(0,1):ev.facts()).map(f=>`<p${ev.fx?' class="fx"':''}>${gEsc(f)}</p>`).join('')}${ev.flavor?`<p class="fl">${gEsc(ev.flavor)}</p>`:''}</div></div>`; // (small: its first line and its flavour; the rest when it is opened) (fx: the lines are changes to play, set apart from the flavour)
 }
 function mountScene(h,w,hh){if(!h||h.firstChild||document.querySelectorAll('.rl-live iframe,.mtg .art iframe').length>=5)return;const f=document.createElement('iframe'),nm=h.dataset.s||h.dataset.scene;f.style.cssText='border:0;max-width:100%;pointer-events:none;background:#000;border-radius:6px;'+(w?`width:${w}px;height:${hh}px`:'width:100%;height:100%');
-  if(nm.slice(0,4)==='hub:'){const[sn,dk]=nm.slice(4).split(':');f.src='Surface_Map_HUB.html?v=20261104e&scene='+sn+'&T='+encodeURIComponent(JSON.stringify(mapSceneT()))+'&D='+encodeURIComponent(JSON.stringify(dk&&DUCK_TYPES[dk]?{[dk]:DUCK_TYPES[dk]}:Object.fromEntries(Object.entries(DUCK_TYPES).slice(0,4))));}else f.srcdoc=liveSrc(nm);h.appendChild(f);} // a Surface Map demo is played by the map itself
+  if(nm.slice(0,4)==='hub:'){const[sn,dk]=nm.slice(4).split(':');f.src='Surface_Map_HUB.html?v=20261104f&scene='+sn+'&T='+encodeURIComponent(JSON.stringify(mapSceneT()))+'&D='+encodeURIComponent(JSON.stringify(dk&&DUCK_TYPES[dk]?{[dk]:DUCK_TYPES[dk]}:Object.fromEntries(Object.entries(DUCK_TYPES).slice(0,4))));}else f.srcdoc=liveSrc(nm);h.appendChild(f);} // a Surface Map demo is played by the map itself
 function mapSceneT(){const o={};for(const k in T)if(/^(map|bh|duck|wake|glass|metal|dimGlow|glowHalo|maxSpeed)/.test(k))o[k]=T[k];return o;} // what a map demo needs of the tuners
 function showCardHTML(html){ // a Guide card (an entry or a shop) opened over the Guide, where an event card shows
   guideCSS();_evOpen=true;_evReview=true;const ov=evOverlayEl();ov.innerHTML=`<div class="ev-box">${html}<button id="evOk">${txt('card.close')}</button></div>`;ov.style.display='flex';wrap.classList.add('ev-open');
@@ -13253,6 +13254,7 @@ window.addEventListener('message',e=>{
   else if(m.cmd==='state')hubState('state',true);
   else if(m.cmd==='remote')remoteOn(m); // a map player's pointer on this surface
   else if(m.cmd==='remoteClear')REMOTES.clear();
+  else if(m.cmd==='mpRun'){MP_RUN.fx=m.fx||[];MP_RUN.bx=(m.bx||[]).filter(b=>b&&b.id!=='inf');updateInventoryUI();} // the other players' fortunes and wonders (theirs count here too)
   else if(m.cmd==='mpShare')_mpShare=!!m.on; // playing together on the map: this surface is being watched
   else if(m.cmd==='clock'){runState.clock=m.clock;if(m.day)runState.day=m.day;if(runExpire()){saveInventory();updateInventoryUI();}hubState();} // the map's time of day moved on
   else if(m.cmd==='tap')playGlassTap(); // a closed shop's glass tapped on the map
@@ -13331,7 +13333,11 @@ function mpOn(m,GUEST=window.GUEST){ // the friend's pointer (x, y as fractions 
 function mpAs(fn,G=GUEST){_collectFor=G;try{return withHeat(G.heat,fn);}finally{_collectFor=null;}}
 const REMOTES=new Map(); // map players watching this surface (playing together on the map): each its own pointer, heat and pickups
 function remoteOf(pid,name,col){let G=REMOTES.get(pid);if(!G){G={pid,name,col,x:-9999,y:-9999,down:false,downAt:0,downX:0,downY:0,drag:false,downOn:null,hold:false,seen:new Set(),cseen:new Set(),mine:new Set(),heat:{v:0,disp:0,until:0,dur:1,needNew:false,last:0},at:0};REMOTES.set(pid,G);}G.name=name||G.name;G.col=col||G.col;return G;}
-function remoteOn(m){const G=remoteOf(m.pid,m.name,m.col),p=m.m||{};if(!m.can&&(p.t==='down'||p.t==='up'||p.t==='rclick')){G.down=false;return;}mpOn(p,G);} // elsewhere on the map: they only watch (their pointer shows)
+function remoteItem(G,kind,x,y,have){ // a map player watching uses one of their items here (anyone, on any hex): it acts as it would for you, at that spot, and costs them, not you
+  if(!ITEM_TOOLS.has(kind)||blackHole||levelCleared||x<0||y<0||x>=W||y>=H)return;const now=performance.now(),save=inventory[kind],h0=Math.max(0,Math.min(have||0,invMaxFor(kind)));inventory[kind]=h0;
+  try{if(kind==='dim'||kind==='bright'){if(!fieldAt(x,y)&&placeField(kind,x,y,now)){const f=placedFields[placedFields.length-1];if(f){f.pid=G.pid;f.have=inventory[kind];}}} /* (its upkeep is theirs too) */else{const g=newGesture(kind,false);g.x0=x;g.y0=y;g.first=true;mpAs(()=>gestureStep(kind,x,y,g,now),G);}}
+  finally{const used=Math.max(0,h0-inventory[kind]);inventory[kind]=save;if(used)hubPost({type:'mpSpend',pid:G.pid,kind,n:used});updateInventoryUI();}}
+function remoteOn(m){const G=remoteOf(m.pid,m.name,m.col),p=m.m||{};if(p.t==='item'){G.x=p.x*W;G.y=p.y*H;G.at=performance.now();remoteItem(G,p.kind,p.x*W,p.y*H,p.have);return;}if(!m.can&&(p.t==='down'||p.t==='up'||p.t==='rclick')){G.down=false;return;}mpOn(p,G);} // elsewhere on the map: they only watch (their pointer shows)
 let _remFrame=0,_remCv=null,_mpShare=false;
 function mpTickOne(GUEST,now){withHeat(GUEST.heat,()=>heatTick(now));
   if(GUEST.down&&!blackHole&&!levelCleared){

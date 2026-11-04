@@ -466,7 +466,8 @@ const SHOP_TIER=id=>id==='duck'?0:id==='dim'?3:id==='bright'?2:1; // which pop-u
 // ── The run's state (kept by the surface, in the save): today's fortune and daily bonus, Luck Charms bought today, the cards drawn and waiting, the Keys lost ──
 const KIND_NAME={};for(const k of ['prism','gate','knot','key','lens','leash','dial','weave','bright','dim','neutron','magnetic','pulsing'])KIND_NAME[k]=txt('kind.'+k); // (content/strings.csv)
 const ACCUM_KINDS=['leash','dial','weave','prism','knot','gate','key','lens']; // what is earned by play (and a good fortune can triple)
-const runBad=(run,id)=>!!(run&&run.fortune&&!run.fortune.good&&run.fortune.id===id),runGood=run=>run&&run.fortune&&run.fortune.good?run.fortune:null,runBonus=(run,id)=>!!(run&&run.bonus&&run.bonus.id===id);
+const MP_RUN={fx:[],bx:[]}; // playing together: everyone else's fortunes and Daily Wonders: what changes the map or what drops counts for everyone
+const runBad=(run,id)=>!!(run&&run.fortune&&!run.fortune.good&&run.fortune.id===id)||MP_RUN.fx.some(f=>f&&!f.good&&f.id===id),runGood=run=>(run&&run.fortune&&run.fortune.good?run.fortune:null)||MP_RUN.fx.find(f=>f&&f.good)||null,runBonus=(run,id)=>!!(run&&run.bonus&&run.bonus.id===id)||MP_RUN.bx.some(b=>b&&b.id===id);
 // Good fortunes: one for each duck, which names it. x3: that item (or all) comes in threes when earned · luck: +20% duck (d), exotic (e) or rare exotic (r) chance ·
 // next: the next Dark Remnant is a duck / an exotic / a rare exotic (the rare one costs every Key, and Keys and Key constellations, for the rest of the run)
 const FORTUNE_ROWS={},FORTUNE_GOOD={},FORTUNE_BAD={};for(const r of csvRead('fortunes')){FORTUNE_ROWS[r.kind+':'+r.id+(r.item?':'+r.item:'')]=r;if(r.kind==='good')FORTUNE_GOOD[r.id]=cvJ(r.effect)||{};if(r.kind==='dim')FORTUNE_BAD[r.id]=r.does;} // content/fortunes.csv: good (one per duck: its effect), dim, and the Daily Wonders
