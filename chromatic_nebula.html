@@ -2020,7 +2020,7 @@ const INV_STORAGE_KEY='chromaticNebulaInventory_v1';
 let gateFx=null,keyFx=null; // the Gate's rewind transition / the Key's insert-twist-collapse animation (real-time, see draw())
 let keyShapes=[];        // one entry per Key in the purse, oldest first — each remembers the Pattern that formed it
 let inventory={bright:0,dim:0,neutron:0,magnetic:0,pulsing:0,dial:0,leash:0,prism:0,gate:0,knot:0,key:0,lens:0,weave:0};
-let invDisabled=new Set(),invDisableMode=false,discSeen=new Set(),shopLog={}; // shopLog: what you have bought, item → how many (Collections → Shops)
+let invDisabled=new Set(),invDisableMode=false,discSeen=new Set(),shopLog={},lifeLog={runs:0,days:0,bright:0,dark:0,rift:0},mapHist=null,_buoySub='now'; // lifeLog: every run there has been (runs begun, days, surfaces cleared of each kind); mapHist: this run, as the map last told it; shopLog: what you have bought, item → how many (Collections → Shops)
 let ducks=[],duckLog={},duckLuck={d:0,e:0},runState=runFresh(); // rubber ducks on this surface / the duck collection (type → count, saved with the inventory) / failed tries since the last duck (d) and the last exotic (e): each adds T.duckLuckStep to its chance (saved, so it carries across surfaces and days)
 let invFlash={kind:null,at:0};   // last slot that gained an item (its icon pulses)
 let earnFx=[],constellationFx=[]; // real-time visual effects (see drawEarnFx / drawConstellationFx)
@@ -2030,7 +2030,7 @@ let earnFx=[],constellationFx=[]; // real-time visual effects (see drawEarnFx / 
     if(raw){const saved=JSON.parse(raw);for(const k of INV_KINDS)if(typeof saved[k]==='number')inventory[k]=saved[k];
     if(Array.isArray(saved.disabled))invDisabled=new Set(saved.disabled);
     if(Array.isArray(saved.discovered))discSeen=new Set(saved.discovered);
-    if(saved.ducks&&typeof saved.ducks==='object')duckLog=saved.ducks;if(saved.buys&&typeof saved.buys==='object')shopLog=saved.buys;
+    if(saved.ducks&&typeof saved.ducks==='object')duckLog=saved.ducks;if(saved.buys&&typeof saved.buys==='object')shopLog=saved.buys;if(saved.life&&typeof saved.life==='object')lifeLog=Object.assign(lifeLog,saved.life);
     if(saved.luck)duckLuck=Object.assign({d:0,e:0},saved.luck);
     if(saved.run)runState=Object.assign(runFresh(),saved.run);
       if(typeof saved.notch==='number')inventory.knot=Math.min(invMaxFor('knot'),inventory.knot+saved.notch);
@@ -2054,9 +2054,10 @@ function cycleKeyRing(){if(keyShapes.length>1)keyShapes.push(keyShapes.shift());
 // merged in — discoveries are a union and duck counts the larger — so one copy can never write away what another found. It is backed up in
 // IndexedDB too, so a full or cleared localStorage loses nothing.
 let _discReset=false;
-function invPayload(){return Object.assign({},inventory,{disabled:[...invDisabled],discovered:[...discSeen],buys:shopLog,ducks:duckLog,luck:duckLuck,run:runState,at:Date.now()});}
+function invPayload(){return Object.assign({},inventory,{disabled:[...invDisabled],discovered:[...discSeen],buys:shopLog,life:lifeLog,ducks:duckLog,luck:duckLuck,run:runState,at:Date.now()});}
 function invMerge(saved){if(!saved)return false;let ch=false;const rk=_discReset==='all'||_discReset==='ducks'; // _discReset: true (discoveries reset), 'ducks' (ducks spent in a shop), 'all' (the Gift Shop wipe): what this save must not merge back
   if((_discReset!==true&&_discReset!=='all')&&Array.isArray(saved.discovered))for(const d of saved.discovered)if(!discSeen.has(d)){discSeen.add(d);ch=true;}
+  if(_discReset!=='all'&&saved.life&&typeof saved.life==='object')for(const k in saved.life){const n=saved.life[k]|0;if(n>(lifeLog[k]||0)){lifeLog[k]=n;ch=true;}}
   if(_discReset!=='all'&&saved.buys&&typeof saved.buys==='object')for(const k in saved.buys){const n=saved.buys[k]|0;if(n>(shopLog[k]||0)){shopLog[k]=n;ch=true;}}
   if(!rk&&saved.ducks&&typeof saved.ducks==='object')for(const k in saved.ducks){const n=saved.ducks[k]|0;if(n>(duckLog[k]||0)){duckLog[k]=n;ch=true;}} // (a Gift Shop wipe: nothing is merged back)
   return ch;}
@@ -4469,7 +4470,7 @@ const TEST_SNAP='il_test_snap_inv';
 function testOn(){try{if(!localStorage.getItem(TEST_SNAP))localStorage.setItem(TEST_SNAP,JSON.stringify(Object.assign(invPayload(),{keyShapes})));}catch(e){} /* (once: the save as it was before testing) */
   TEST.set('mode',1);TEST.set('free',1);discAll();unlockAll();testFill();testSync();}
 function testOff(){let s=null;try{s=JSON.parse(localStorage.getItem(TEST_SNAP)||'null');}catch(e){}TEST.set('mode',0);TEST.set('free',0);
-  if(s){for(const k of INV_KINDS)inventory[k]=typeof s[k]==='number'?s[k]:0;invDisabled=new Set(s.disabled||[]);discSeen=new Set(s.discovered||[]);duckLog=s.ducks||{};duckLuck=Object.assign({d:0,e:0},s.luck||{});runState=Object.assign(runFresh(),s.run||{});keyShapes=s.keyShapes||[];shopLog=s.buys||{};
+  if(s){for(const k of INV_KINDS)inventory[k]=typeof s[k]==='number'?s[k]:0;invDisabled=new Set(s.disabled||[]);discSeen=new Set(s.discovered||[]);duckLog=s.ducks||{};duckLuck=Object.assign({d:0,e:0},s.luck||{});runState=Object.assign(runFresh(),s.run||{});keyShapes=s.keyShapes||[];shopLog=s.buys||{};lifeLog=Object.assign({runs:0,days:0,bright:0,dark:0,rift:0},s.life||{});
     _discReset='all';saveInventory();} /* (nothing merged back: the save is exactly as it was) */
   try{localStorage.removeItem(TEST_SNAP);}catch(e){}applyDisc();updateInventoryUI();testSync();if(HUB)hubPost({type:'testRestored'});else location.reload();}
 function testMode(){if(HUB){hubPost({type:'testMode'});return;}if(TEST.get('mode'))testOff();else testOn();} // (on the map, the map runs it: its own save is snapshotted too)
@@ -12993,7 +12994,8 @@ function rulesRender(){
     body.innerHTML='<p class="rl-note">Main street round the source, and the pop-ups a cleared surface can open. A shop is discovered the first time it opens; until then only the shape of its sign shows.</p>'+sec('How shops work',cards(RULES.filter(e=>e[1]==='shops')))+sec('The shops','<div class="rl-cards">'+Object.keys(SHOPS).map(k=>shopCardHTML(k,true)).join('')+'</div>');
   } else if(_rulesTab==='coll'){body.innerHTML='';body.insertAdjacentHTML('beforeend',duckCollectionHTML());const sw=document.getElementById('pondSw');if(sw)sw.onclick=e=>{const m=e.target.dataset&&e.target.dataset.pm;if(!m)return;_pondMode=m;try{localStorage.setItem('il_pondmode',_pondMode);}catch(e){}rulesRender();};
   } else if(_rulesTab==='buoy'){let nm='',cl=BUOY_COLS[0];try{nm=localStorage.getItem('il_name_v1')||'';cl=localStorage.getItem('il_buoycol_v1')||cl;}catch(e){} // your buoy: its name and its colour (the map's own keys)
-    body.innerHTML=`<canvas id="buoyView" style="position:relative;left:auto;top:auto;display:block;width:100%;height:300px;border-radius:10px;touch-action:none;cursor:grab"></canvas><p class="rl-note">${txt('coll.buoy.view')}</p><p class="rl-note">${txt('coll.buoy.note')}</p><p><input id="byName" maxlength="20" value="${gEsc(nm)}" style="background:transparent;color:inherit;border:1px solid currentColor;padding:4px 8px;font:inherit;width:240px"></p><div class="ncols" style="display:flex;flex-wrap:wrap;gap:6px;max-width:420px">${BUOY_COLS.map(c=>`<span data-c="${c}" style="width:26px;height:26px;cursor:pointer;background:${c};border:1px solid rgba(128,128,128,.6);box-sizing:border-box;${c===cl?'outline:2px solid currentColor;outline-offset:2px':''}"></span>`).join('')}</div>`+STATUS_CSS+`<div class="stg" style="font-size:15px;margin-top:16px">${txt('coll.tab.status')}</div>`+statusHTML(statusData(),1);buoyViewMount();
+    body.innerHTML=`<canvas id="buoyView" style="position:relative;left:auto;top:auto;display:block;width:100%;height:300px;border-radius:10px;touch-action:none;cursor:grab"></canvas><p class="rl-note">${txt('coll.buoy.view')}</p><p class="rl-note">${txt('coll.buoy.note')}</p><p><input id="byName" maxlength="20" value="${gEsc(nm)}" style="background:transparent;color:inherit;border:1px solid currentColor;padding:4px 8px;font:inherit;width:240px"></p><div class="ncols" style="display:flex;flex-wrap:wrap;gap:6px;max-width:420px">${BUOY_COLS.map(c=>`<span data-c="${c}" style="width:26px;height:26px;cursor:pointer;background:${c};border:1px solid rgba(128,128,128,.6);box-sizing:border-box;${c===cl?'outline:2px solid currentColor;outline-offset:2px':''}"></span>`).join('')}</div>`+STATUS_CSS+`<div class="stg" style="font-size:15px;margin-top:16px">${txt('coll.tab.status')} <span id="bySub">${['now','hist'].map(t=>`<button class="gbtn sub" data-s="${t}"${t===_buoySub?' style="text-decoration:underline"':''}>${txt('coll.buoy.'+t)}</button>`).join(' ')}</span></div>`+(_buoySub==='now'?statusHTML(statusData(),1):buoyHistHTML());buoyViewMount();
+    body.querySelector('#bySub').onclick=e=>{const t=e.target.dataset&&e.target.dataset.s;if(t){_buoySub=t;rulesRender();}};
     const save=(k,v)=>{try{localStorage.setItem(k,v);}catch(e){}hubPost({type:'buoy'});};document.getElementById('byName').onchange=e=>{const v=e.target.value.trim().slice(0,20);if(v)save('il_name_v1',v);};
     body.querySelector('.ncols').onclick=e=>{const c=e.target.dataset&&e.target.dataset.c;if(c){save('il_buoycol_v1',c);rulesRender();}};
   } else if(_rulesTab==='mshops'){const f=n=>(+n).toLocaleString('en-US'),bought=k=>SHOP_ITEMS.filter(i=>i.shop===k).reduce((a,i)=>a+(shopLog[i.id]||0),0); // the shops you know: click one to look at its building and what you bought there
@@ -13260,7 +13262,7 @@ async function quitTo(dest){ // the pause menu's Quit buttons
   const key=hubLevel&&hubLevel.key;hubIdle();
   hubPost({type:'quit',to:dest,key,cleared:!rec,img:rec?rec.img:null,T:Object.assign({},T),inv:Object.assign({},inventory),disc:[...discSeen]});
 }
-function hubLevelCleared(){if(!HUB||!hubLevel)return;IDB.del('session').catch(()=>{});hubPost({type:'cleared',key:hubLevel.key,kind:clearInfo&&clearInfo.type==='black'?(clearInfo.rift!=null?'rift':'dark'):'bright',ang:clearInfo&&clearInfo.rift,tally:surfaceTally});} // the tally: what this surface collected (a pop-up shop may open on it)
+function hubLevelCleared(){if(!HUB||!hubLevel)return;{const kd=clearInfo&&clearInfo.type==='black'?(clearInfo.rift!=null?'rift':'dark'):'bright';lifeLog[kd]=(lifeLog[kd]||0)+1;}IDB.del('session').catch(()=>{});hubPost({type:'cleared',key:hubLevel.key,kind:clearInfo&&clearInfo.type==='black'?(clearInfo.rift!=null?'rift':'dark'):'bright',ang:clearInfo&&clearInfo.rift,tally:surfaceTally});} // the tally: what this surface collected (a pop-up shop may open on it)
 window.addEventListener('message',e=>{
   const m=e.data;if(!HUB||e.source!==window.parent||!m||!m.cmd)return;
   if(m.size)hubShotSize=m.size;
@@ -13268,7 +13270,7 @@ window.addEventListener('message',e=>{
   else if(m.cmd==='preview')hubPreviews(m.items,m.size);
   else if(m.cmd==='drop')IDB.del('session').catch(()=>{});
   else if(m.cmd==='guide'){hubOverlay_(true);openRules('guide',m.tab);}
-  else if(m.cmd==='collections'){hubOverlay_(true);openCollections(m.tab);} // your buoy on the map (or its slot in the map's dock)
+  else if(m.cmd==='collections'){if(m.hist)mapHist=m.hist;hubOverlay_(true);openCollections(m.tab);} // your buoy on the map (or its slot in the map's dock)
   else if(m.cmd==='event'){const ids=(m.ids||[m.id]).filter(i=>!discSeen.has('ev:'+i));if(!ids.length){hubState('overlayDone');return;}hubOverlay_(true);ids.forEach(fireEvent);}
   else if(m.cmd==='sound')setSound(m.on,m.vol);
   else if(m.cmd==='giveDuck'){if(DUCK_TYPES[m.type]){duckLog[m.type]=(duckLog[m.type]||0)+1;saveInventory();hubState();}} // a duck from a bottle on the lake
@@ -13279,7 +13281,7 @@ window.addEventListener('message',e=>{
   else if(m.cmd==='spend'){inventory[m.kind]=Math.max(0,(inventory[m.kind]||0)-(m.n||1));saveInventory();updateInventoryUI();hubState();} // the map used an item (Spindle, String, Weave)
   else if(m.cmd==='award'){addInventory(m.kind,m.n||1);hubState();} // a map constellation paid out
   else if(m.cmd==='buy'){const r=shopBuy(m.id,m.arg);hubPost(Object.assign({type:'bought',id:m.id},r));if(r.draw){hubOverlay_(true);showDraw();}hubState();} // a Carnival card: the draw shows here, over the map
-  else if(m.cmd==='day'){if(m.newRun)runState=runFresh();else if(m.day!==runState.day){Object.assign(runState,{fortune:runState.dimNext||null,dimNext:null,charm:0,draw:null,dimDone:{}});fortuneStart();}runState.day=m.day;runState.clock=3;runExpire(); /* (yesterday's dim fortune is today's; a Daily Wonder runs on to its time) */saveInventory();updateInventoryUI();hubState();} // a new day: today's fortune, bonus and Luck Charms are over // a shop on the map: this pays and hands it over
+  else if(m.cmd==='day'){if(m.newRun){runState=runFresh();lifeLog.runs++;}else if(m.day!==runState.day){lifeLog.days++;Object.assign(runState,{fortune:runState.dimNext||null,dimNext:null,charm:0,draw:null,dimDone:{}});fortuneStart();}runState.day=m.day;runState.clock=3;runExpire(); /* (yesterday's dim fortune is today's; a Daily Wonder runs on to its time) */saveInventory();updateInventoryUI();hubState();} // a new day: today's fortune, bonus and Luck Charms are over // a shop on the map: this pays and hands it over
   else if(m.cmd==='wipe'){for(const k of INV_KINDS)inventory[k]=0;duckLog={};duckLuck={d:0,e:0};runState=runFresh();discSeen=new Set();invDisabled=new Set();keyShapes=[];_discReset='all';IDB.del('session').catch(()=>{});saveInventory();updateInventoryUI();applyDisc();hubState();} // the Gift Shop: everything goes
   else if(m.cmd==='state')hubState('state',true);
   else if(m.cmd==='remote')remoteOn(m); // a map player's pointer on this surface
@@ -13617,6 +13619,14 @@ function openDuckViewer(type){const v=DUCK_TYPES[type];if(!v)return;
       if(sc!==1)drawDuck3D(c,'classic',q,[[N/2,N/2]],h/sc,0.2,N); // the classic duck at the same turn and zoom, for scale
       duckGlow(c,type,N/2,N/2,h,now,0,q);duckEnvUpdate(canvas,now);drawDuck3D(c,type,q,[[N/2,N/2]],h,1,N,{x:W/2,y:H/2,lights:[]});}});}
 const viewSun=()=>duckSun(runState.clock||12); // (the time of day on the map, not the surface's own light while it sleeps)
+function buoyHistHTML(){ // Status → History: what you have bought, this run day by day, every run there has been, and this run's play-by-play
+  const f=n=>(+n).toLocaleString('en-US'),row=(a,b)=>`<tr><td>${a}</td><td>${b}</td></tr>`,H=mapHist,sec=t=>`<div class="stg">${txt(t)}</div>`;
+  const bought=SHOP_ITEMS.filter(i=>shopLog[i.id]||shopOnce(i)&&discSeen.has('up:'+i.id)),byShop={};for(const i of bought)(byShop[i.shop]=byShop[i.shop]||[]).push(i);
+  const shop=bought.length?'<table class="stt">'+Object.keys(byShop).map(k=>row(gEsc(SHOPS[k].n),byShop[k].map(i=>gEsc(i.n)+' '+(shopOnce(i)&&discSeen.has('up:'+i.id)?txt('shopv.owned'):'× '+f(shopLog[i.id]||0))).join(' · '))).join('')+'</table>':`<div class="stu">${txt('hist.nobuys')}</div>`;
+  const run=H?'<table class="stt">'+row(txt('hist.today'),txt('hist.daynow',H.day,f(H.score||0),H.depth||0))+(H.days||[]).slice().reverse().map(e=>row(txt('hist.day',e.day),gEsc(String(e.end||''))+' · '+txt('hist.clears',e.b||0,e.d||0)+(e.win?' · '+txt('hist.won'):''))).join('')+'</table>':`<div class="stu">${txt('hist.nomap')}</div>`;
+  const L=lifeLog,life='<table class="stt">'+row(txt('hist.runs'),f(L.runs||0))+row(txt('hist.days'),f(L.days||0))+row(txt('hist.clearsl'),txt('hist.kinds',f(L.bright||0),f(L.dark||0),f(L.rift||0)))+row(txt('hist.bought'),f(Object.values(shopLog).reduce((a,b)=>a+b,0)))+row(txt('hist.ducks'),f(Object.values(duckLog).reduce((a,b)=>a+(b|0),0)))+'</table>';
+  const plays=H&&H.plays&&H.plays.length?'<div class="stu" style="max-height:260px;overflow:auto">'+H.plays.slice().reverse().map(p=>`<div style="margin:2px 0"><span style="opacity:.6">${txt('hist.when',p.day,TIMES[p.clock]||'')}</span> ${gEsc(p.t)}${p.d?` <span style="opacity:.75">— ${gEsc(p.d)}</span>`:''}</div>`).join('')+'</div>':`<div class="stu">${txt('hist.noplays')}</div>`;
+  return sec('hist.shopping')+shop+sec('hist.run')+run+sec('hist.life')+life+sec('hist.plays')+plays;}
 function openShopViewer(k){ // a shop you know, up close: its building in the map's light now, open or closed (and a pop-up at each rank), and what you have bought there
   const S=SHOPS[k];if(!S)return;const si=new Image();si.src='shops/sign_'+k+'.svg';let lit=shopIsOpen(k,runState.clock||12,runState),rank=3;const f=n=>(+n).toLocaleString('en-US');
   const its=SHOP_ITEMS.filter(i=>i.shop===k&&(shopLog[i.id]||discSeen.has('up:'+i.id))),hist=its.length?its.map(i=>`<div style="display:flex;justify-content:space-between;gap:18px"><span>${gEsc(i.n)}</span><b style="font-weight:400">${shopOnce(i)&&discSeen.has('up:'+i.id)?txt('shopv.owned'):'× '+f(shopLog[i.id]||0)}</b></div>`).join(''):`<div style="opacity:.7">${txt('shopv.none')}</div>`;

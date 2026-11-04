@@ -150,7 +150,7 @@ map.broke_older, · broke {broken} older,Surface Map,broken = $0 — older const
 map.gives_a_every_time,Gives a {kind} every time of day{broke},Surface Map,"kind = $0 — what it pays
 broke = $1 — ""· broke N older"" when it broke some"
 map.constellations,Constellations,Surface Map,
-map.neither_midnight,Neither · midnight,Surface Map,
+map.neither_midnight,Collapse · midnight,Surface Map,
 map.bright_collapse,Bright collapse,Surface Map,
 map.dark_collapse,Dark collapse,Surface Map,
 map.every_hex_cleared,Every hex cleared,Surface Map,
@@ -271,7 +271,7 @@ map.ui.help,Help,Surface_Map_HUB.html,
 map.ui.performance,Performance,Surface_Map_HUB.html,
 map.ui.days,Days,Surface_Map_HUB.html,
 map.ui.leave,Leave,Surface_Map_HUB.html,
-map.ui.quit_to_main_menu,Quit to main menu,Surface_Map_HUB.html,
+map.ui.quit_to_main_menu,Main menu (the map is kept),Surface_Map_HUB.html,
 map.ui.filter_settings,Filter settings…,Surface_Map_HUB.html,
 map.ui.surface,Surface,Surface_Map_HUB.html,
 map.confirm.newmap,Start a new map? Your items and discoveries are kept.,Surface Map,
@@ -290,9 +290,9 @@ menu.guide,Guide,menus,
 menu.together,Play together,menus,
 menu.invite,Invite a friend,menus,
 menu.leave,Leave,menus,
-menu.tomap,Quit to the Surface Map (saves this surface),menus,
-menu.tomain,Quit to main menu,menus,
-menu.tomain.save,Quit to main menu (saves this surface),menus,
+menu.tomap,Rise to the surface (this surface is kept as it is),menus,
+menu.tomain,Main menu,menus,
+menu.tomain.save,Main menu (this surface is kept as it is),menus,
 menu.tilde,~ hides the panels · H also works,menus,
 menu.sound.off,Sound: OFF,menus,
 menu.sound.on,Sound: ON,menus,
@@ -896,3 +896,30 @@ shopv.none,Nothing bought here yet,Status & collections,
 shopv.owned,yours,Status & collections,
 shopv.street,"On main street, in the light of the map's time of day",Status & collections,
 shopv.popup,"A pop-up, in the light of the map's time of day",Status & collections,
+coll.buoy.now,Now,Status & collections,
+coll.buoy.hist,History,Status & collections,
+hist.shopping,Shopping,Status & collections,
+hist.run,This run,Status & collections,
+hist.life,Every run,Status & collections,
+hist.plays,Play-by-play,Status & collections,
+hist.nobuys,Nothing bought yet,Status & collections,
+hist.nomap,Open this from the Surface Map to see the run,Status & collections,
+hist.noplays,Nothing yet this run,Status & collections,
+hist.today,Now,Status & collections,
+hist.daynow,"Day {day} · score {score} · depth {depth}",Status & collections,"day = $0 — the day
+score = $1 — the score
+depth = $2 — how deep"
+hist.day,Day {day},Status & collections,day = $0 — the day
+hist.clears,"{b} bright, {d} dark",Status & collections,"b = $0 — bright clears
+d = $1 — dark clears"
+hist.won,the run won,Status & collections,
+hist.runs,Runs begun,Status & collections,
+hist.days,Days ended,Status & collections,
+hist.clearsl,Surfaces cleared,Status & collections,
+hist.kinds,"{b} bright · {d} dark · {r} rift",Status & collections,"b = $0 — bright
+d = $1 — dark
+r = $2 — rift"
+hist.bought,Things bought,Status & collections,
+hist.ducks,Ducks in your collection,Status & collections,
+hist.when,"Day {day}, {time}",Status & collections,"day = $0 — the day
+time = $1 — the time of day"
