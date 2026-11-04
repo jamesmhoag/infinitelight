@@ -5,14 +5,40 @@ weave,corner,Weave,599,,1,"{""give"":{""weave"":1}}",,10,
 prism,corner,Prism,1999,,1,"{""give"":{""prism"":1}}",,40,
 knot,corner,Knot,2999,,1,"{""give"":{""knot"":1}}",,60,
 lens,corner,Lens,5999,,1,"{""give"":{""lens"":1}}",,80,
-midnight,clock,Midnight,1999999,,1,"{""clock"":24}",,1000,
-dawn,clock,Dawn,199999,,1,"{""clock"":6}",,400,
-noon,clock,Noon,19999,,1,"{""clock"":12}",,100,
-dusk,clock,Dusk,1999,,1,"{""clock"":18}",,,
-x_dim,xact,100k Dim,9999,,1,"{""give"":{""dim"":100000}}",,,
-x_mag,xact,100 Magnetic,9999,,1,"{""give"":{""magnetic"":100}}",,,
-x_pul,xact,100 Pulsing,9999,,1,"{""give"":{""pulsing"":100}}",,,
-x_neu,xact,100 Neutron,9999,,1,"{""give"":{""neutron"":100}}",,,
+twilight,clock,Twilight,2000,,1,"{""clock"":3}",,,"Each time of day away costs more (×2, ×3, ×5, ×8, ×13, ×21, ×34)"
+dawn,clock,Dawn,2000,,1,"{""clock"":6}",,,"Each time of day away costs more (×2, ×3, ×5, ×8, ×13, ×21, ×34)"
+morning,clock,Morning,2000,,1,"{""clock"":9}",,,"Each time of day away costs more (×2, ×3, ×5, ×8, ×13, ×21, ×34)"
+noon,clock,Noon,2000,,1,"{""clock"":12}",,,"Each time of day away costs more (×2, ×3, ×5, ×8, ×13, ×21, ×34)"
+afternoon,clock,Afternoon,2000,,1,"{""clock"":15}",,,"Each time of day away costs more (×2, ×3, ×5, ×8, ×13, ×21, ×34)"
+dusk,clock,Dusk,2000,,1,"{""clock"":18}",,,"Each time of day away costs more (×2, ×3, ×5, ×8, ×13, ×21, ×34)"
+night,clock,Night,2000,,1,"{""clock"":21}",,,"Each time of day away costs more (×2, ×3, ×5, ×8, ×13, ×21, ×34)"
+midnight,clock,Midnight,2000,,1,"{""clock"":24}",,,"Each time of day away costs more (×2, ×3, ×5, ×8, ×13, ×21, ×34)"
+yesterday,clock,"Yesterday, this time",250000,,1,"{""clock"":""yesterday""}",,,The map back as it was at the start of this time of day yesterday (you where you were)
+tomorrow,clock,"Tomorrow, this time",250000,,1,"{""clock"":""tomorrow""}",,,"A clean new map, a day on, at this time of day, before any move (you beside main street)"
+xb_dim_100,xact,Dim,100,bright,1,"{""xbuy"":""dim""}",,,
+xb_dim_10000,xact,Dim,10000,bright,1,"{""xbuy"":""dim""}",,,
+xb_dim_1000000,xact,Dim,1000000,bright,1,"{""xbuy"":""dim""}",,,
+xb_magnetic_100,xact,Magnetic,100,bright,1,"{""xbuy"":""magnetic""}",,,
+xb_magnetic_10000,xact,Magnetic,10000,bright,1,"{""xbuy"":""magnetic""}",,,
+xb_magnetic_1000000,xact,Magnetic,1000000,bright,1,"{""xbuy"":""magnetic""}",,,
+xb_neutron_100,xact,Neutron,100,bright,1,"{""xbuy"":""neutron""}",,,
+xb_neutron_10000,xact,Neutron,10000,bright,1,"{""xbuy"":""neutron""}",,,
+xb_neutron_1000000,xact,Neutron,1000000,bright,1,"{""xbuy"":""neutron""}",,,
+xb_pulsing_100,xact,Pulsing,100,bright,1,"{""xbuy"":""pulsing""}",,,
+xb_pulsing_10000,xact,Pulsing,10000,bright,1,"{""xbuy"":""pulsing""}",,,
+xb_pulsing_1000000,xact,Pulsing,1000000,bright,1,"{""xbuy"":""pulsing""}",,,
+xs_dim_100,xact,Bright,100,dim,1,"{""xsell"":""dim""}",,,Sold at a little less than it costs
+xs_dim_10000,xact,Bright,10000,dim,1,"{""xsell"":""dim""}",,,Sold at a little less than it costs
+xs_dim_1000000,xact,Bright,1000000,dim,1,"{""xsell"":""dim""}",,,Sold at a little less than it costs
+xs_magnetic_100,xact,Bright,100,magnetic,1,"{""xsell"":""magnetic""}",,,Sold at a little less than it costs
+xs_magnetic_10000,xact,Bright,10000,magnetic,1,"{""xsell"":""magnetic""}",,,Sold at a little less than it costs
+xs_magnetic_1000000,xact,Bright,1000000,magnetic,1,"{""xsell"":""magnetic""}",,,Sold at a little less than it costs
+xs_neutron_100,xact,Bright,100,neutron,1,"{""xsell"":""neutron""}",,,Sold at a little less than it costs
+xs_neutron_10000,xact,Bright,10000,neutron,1,"{""xsell"":""neutron""}",,,Sold at a little less than it costs
+xs_neutron_1000000,xact,Bright,1000000,neutron,1,"{""xsell"":""neutron""}",,,Sold at a little less than it costs
+xs_pulsing_100,xact,Bright,100,pulsing,1,"{""xsell"":""pulsing""}",,,Sold at a little less than it costs
+xs_pulsing_10000,xact,Bright,10000,pulsing,1,"{""xsell"":""pulsing""}",,,Sold at a little less than it costs
+xs_pulsing_1000000,xact,Bright,1000000,pulsing,1,"{""xsell"":""pulsing""}",,,Sold at a little less than it costs
 postcard,gift,Postcard,99999,,1,"{""souv"":1}",,,
 keychain,gift,Key Chain,199999,,1,"{""souv"":1}",,,
 hat,gift,Hat,1999999,,1,"{""souv"":1}",,,

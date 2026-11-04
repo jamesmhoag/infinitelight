@@ -827,6 +827,10 @@ map.parade.hover,A {kind} parade: duck {n} of {of},Surface Map,"kind = $0 — th
 n = $1 — which in the line
 of = $2 — how many"
 map.pday.hover,"Parade Day: {n} ducks, two to a hex — nothing crosses them",Surface Map,n = $0 — how many
+map.shop.notoday,not today,Surface Map (shops),
+map.clock.title,The Clock smith,Surface Map (shops),
+map.clock.yesterday,"Back to yesterday, this time: the map as it was.",Surface Map (shops),
+map.clock.tomorrow,"On to tomorrow, this time: a clean map, before any move.",Surface Map (shops),
 value.life_ms,T.lifeColor,values (shared: any text can use {life_ms}),a pigment's life factor (Life colour tuner)
 value.dim_mass_pct,Math.round(T.remMassFrac*100),values (shared: any text can use {dim_mass_pct}),% of its mass a failed collapse keeps
 value.dim_energy_pct,Math.round(T.remEnergyFrac*100),values (shared: any text can use {dim_energy_pct}),% of its energy a failed collapse keeps

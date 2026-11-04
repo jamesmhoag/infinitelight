@@ -13276,6 +13276,7 @@ function shopBuy(id,arg){
   else{if((inventory[it.cur]||0)<cost)return{ok:0,msg:'You need '+cost.toLocaleString('en-US')+' '+it.cur};inventory[it.cur]-=cost;}
   let got=it.n;
   if(fx.give)for(const k in fx.give)addInventory(k,fx.give[k],true);
+  if(fx.xbuy||fx.xsell){const n=xactGets(it,runState),k=fx.xbuy||'bright';addInventory(k,n,true);got=fmtCount(n)+' '+(KIND_NAME[k]||k);} // XACT change
   if(fx.charm){runState.charm=(runState.charm||0)+1;duckLuck.d+=0.01/Math.max(0.001,runT('duckLuckStep'));got='Luck Charm: +5% duck chance today';} // and +1% on the next drop
   let draw=null;if(fx.draw){const D=fx.draw==='secret'?sec:fx.draw==='fortune'?[0,1,2].map(()=>{if(Math.random()<0.5){const t=DUCK_IDS[(Math.random()*DUCK_IDS.length)|0];return{good:1,id:t,duck:DUCK_TYPES[t].name};}const b=Object.keys(FORTUNE_BAD);return{good:0,id:b[(Math.random()*b.length)|0]};}):DAILY.slice().sort(()=>Math.random()-0.5).slice(0,3);
     runState.draw={kind:fx.draw,cards:D};runState.dimDone=Object.assign({},runState.dimDone,{[fx.draw]:1});draw={kind:fx.draw,cards:D.map(c=>fx.draw==='daily'?{n:c.n,t:c.t}:{back:1})};got=it.n+': pick a card';} // face down, but for the wonders
