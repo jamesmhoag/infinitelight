@@ -92,7 +92,8 @@ body.thru .shop{pointer-events:none} /* an armed map item, or the open source, r
 @keyframes neon3{0%,9%,15%,100%{opacity:1}10%{opacity:.74}11%{opacity:.98}12%{opacity:.76}60%{opacity:.94}}
 /* a shop's menu: its sign and store over a black card (name left, price right); a tab per currency, by its symbol; the list as long as it needs */
 #mpBar{position:fixed;top:64px;left:50%;transform:translateX(-50%);z-index:21;display:flex;align-items:center;gap:6px;background:rgba(0,0,0,.6);padding:2px 10px;font:11px system-ui,'Inter',sans-serif;color:#bbb;letter-spacing:.5px}#mpBar span{display:flex;align-items:center;gap:4px;opacity:.6}#mpBar span.on{opacity:1;color:#fff;font-weight:600}#mpBar span.me{text-decoration:underline}#mpBar i{width:8px;height:8px;display:inline-block;border:1px solid #fff}#mpBar b{opacity:.4;font-weight:400} /* playing together: the turn order (now in bold) */
-#mpView{position:fixed;inset:0;z-index:57;background:#000;display:flex;flex-direction:column;align-items:center;justify-content:center}#mpView img{max-width:100%;max-height:calc(100% - 30px);cursor:crosshair;user-select:none}#mpView .mh{color:#fff;font:12px system-ui,'Inter',sans-serif;letter-spacing:.6px;padding:6px} /* watching a friend's surface */
+#mpView{position:fixed;inset:0;z-index:57;background:#000;display:flex;flex-direction:column;align-items:center;justify-content:center}#mpView img{max-width:100%;max-height:calc(100% - 30px);cursor:crosshair;user-select:none}#mpView .mi{display:flex;gap:6px;padding:6px}#mpView .mi span{display:flex;flex-direction:column;align-items:center;justify-content:center;width:40px;height:40px;border:1px solid rgba(255,255,255,.35);color:#fff;font:10px system-ui}#mpView .mi span svg{width:16px;height:16px}#mpView .mi span.on{background:#fff;color:#000}#mpView .mi i{color:#888;font:11px system-ui} /* your own items, to use on their surface */
+#mpView .mh{color:#fff;font:12px system-ui,'Inter',sans-serif;letter-spacing:.6px;padding:6px} /* watching a friend's surface */
 #nameAsk{position:fixed;inset:0;z-index:62;display:none;align-items:center;justify-content:center;background:rgba(0,0,0,.6)}#nameAsk.show{display:flex} /* your name, for your buoy's sign: asked on a new game */
 #nameAsk .scard{width:320px;background:#000;border:1px solid #fff;padding:16px 22px 16px;color:#fff;font:12px/1.5 system-ui,'Inter',sans-serif;letter-spacing:.6px;text-align:center}#nameAsk h2{font:700 19px/1.25 system-ui,'Inter',sans-serif;letter-spacing:1.6px;margin:0 0 6px}
 #nameAsk input{width:100%;box-sizing:border-box;margin:14px 0 4px;padding:6px 8px;background:#000;color:#fff;border:1px solid rgba(255,255,255,.5);font:15px system-ui,sans-serif;text-align:center;outline:none}#nameAsk input:focus{border-color:#fff}#nameAsk .nlen{opacity:.5;font-size:10px;text-align:right}
@@ -1004,7 +1005,7 @@ function takeState(m){
   if(m.T){const now=performance.now();for(const k in _tuneLocal)if(now-_tuneLocal[k]<1500)m.T[k]=T[k];else delete _tuneLocal[k];T=m.T;if(SW)camUpdate();}if(m.ducks)duckLog=m.ducks;if(m.duckTypes)DUCK_TYPES=m.duckTypes;if(m.icons)icons=m.icons;if(m.inv){inv=m.inv;syncDock();}if(m.disc)disc=new Set(m.disc);if(m.defs&&m.defs.length)tuneDefs=m.defs;if(m.run)run=m.run;if(m.status)runStatus=m.status;
   if(T.mapHexSize&&T.mapHexSize!==HEX){HEX=T.mapHexSize;focusCam(false);}
   if(buySnap&&(m.inv||m.ducks)&&performance.now()-buySnap.at<5000)buyShow(); // a purchase's answer: show what it spent and gave
-  if(m.T)syncRenderSig();applyDisc();syncMenu();if(shopUI)renderShop();
+  if(m.T)syncRenderSig();applyDisc();syncMenu();if(shopUI)renderShop();mpShareMine();
 }
 window.addEventListener('message',e=>{
   const m=e.data;if(e.source!==nebEl.contentWindow||!m||!m.il)return;
@@ -1020,6 +1021,7 @@ window.addEventListener('message',e=>{
   else if(m.type==='buoy')buoyLoad(); // its name or colour changed (Status & collections → Buoy)
   else if(m.type==='cleared'){if(MP.role==='guest')mpSend('cleared',{key:m.key,kind:m.kind,tally:m.tally,ang:m.ang});else if(m.kind==='rift')riftCell(m.key,m.ang);else completeCaptureForCell(m.key,m.kind,m.tally);}
   else if(m.type==='frame'){if(MP.on)netOut({t:'frame',url:m.url});} // my surface, for everyone watching
+  else if(m.type==='mpSpend'){if(MP.on)netOut({t:'spend',kind:m.kind,n:m.n},m.pid);} // a friend used their item in my surface: it comes off theirs
   else if(m.type==='mpGot'){if(MP.on)netOut({t:'got',kind:m.kind,n:m.n},m.pid);} // what a friend collected in my surface: theirs
   else if(m.type==='ui')document.body.classList.toggle('ui-hidden',!!m.hidden); // ~ on a surface hides the map's time of day over it too
   else if(m.type==='bought')shopBought(m);
@@ -1257,20 +1259,23 @@ function netJoin(){MP.role='guest';MP.on=true;MP.room=MPJOIN;MP.me='g'+Math.rand
 window.addEventListener('beforeunload',()=>{if(MP.on&&MP.role==='guest')netOut({t:'bye'});});
 function netHostOn(m,pid){if(!m||!m.t)return; // the host: a friend's word
   if(m.to&&m.to!=='h'){if(!MP.bc){const c=MP.conns.get(m.to);if(c&&c.open)c.send(m);}return;} // for another player: passed on
-  if(!MP.bc&&(m.t==='frame'||m.t==='surf'))for(const[id,c]of MP.conns)if(id!==pid&&c.open)c.send(m); // a friend's surface: for everyone
+  if(!MP.bc&&(m.t==='frame'||m.t==='surf'||m.t==='disc'))for(const[id,c]of MP.conns)if(id!==pid&&c.open)c.send(m); // a friend's surface: for everyone
   if(m.t==='hello'){if(mpP(pid)){mpSync();return;}if(MP.players.length>=4){netOut({t:'full'},pid);return;}const sp=mpSpot();MP.players.push({id:pid,name:String(m.name||'').slice(0,20),col:m.col,q:sp[0],r:sp[1]});MP.order.push(pid);
     feed(txt('mp.title'),txt('mp.joined',m.name));mpSync();if(MP.surf)netOut({t:'surf',owner:MP.surf.owner,key:MP.surf.key,on:true},pid);return;}
   if(m.t==='bye'){mpLeave(pid);return;}
+  if(m.t==='run'){const P=mpP(pid);if(P){P.run=m.run;mpSync();}return;}
   if(m.t==='act')mpAct(pid,m);else mpCommon(m);}
 function netGuestOn(m){if(!m||!m.t)return; // a friend: the host's word (or another player's, passed on)
   if(m.t==='state'){mpApply(m);return;}if(m.t==='full'){feed(txt('mp.title'),txt('mp.full'));return;}
-  if(m.t==='spend'){spend(m.kind,m.n);return;}if(m.t==='feed'){feed(m.ft,m.fd);return;}
+  if(m.t==='feed'){feed(m.ft,m.fd);return;}
   if(m.t==='enter'){const c=cells[m.key];if(c)enterNebula(m.key);return;}
   mpCommon(m);}
 function mpCommon(m){ // either side: a surface being shared, its frames, a pointer on it, what someone collected in it
   if(m.t==='surf'){if(m.on&&m.owner!==MP.me)mpView(m.owner,m.key);else if(!m.on&&MP.surf&&MP.surf.owner===m.owner)mpView(null);if(MP.role==='host')MP.surf=m.on?{owner:m.owner,key:m.key}:null;return;}
   if(m.t==='frame'){if(MP.surf&&MP.surf.owner===m.from){const im=document.querySelector('#mpView img');if(im)im.src=m.url;}return;}
   if(m.t==='ptr'){if(currentView!=='level')return;const P=mpP(m.from),k=nebulaCellKey&&cells[nebulaCellKey],can=!!(P&&k&&P.q===k.q&&P.r===k.r);neb({cmd:'remote',pid:m.from,name:P?P.name:'',col:P?P.col:'#fc0',can,m:m.p});return;} // on the same hex: they play it with you
+  if(m.t==='spend'){spend(m.kind,m.n);mpViewItems();return;}
+  if(m.t==='disc'){for(const id of m.ids||[])if(!disc.has(id)){disc.add(id);if(MP._disc)MP._disc.add(id);neb({cmd:'discover',id});}return;} // someone discovered it: so do I
   if(m.t==='got'){neb({cmd:'award',kind:m.kind,n:m.n});feed(txt('mp.title'),txt('mp.got',m.n,KIND_NAME[m.kind]||m.kind));return;}}
 function mpSpot(){const taken=new Set(MP.players.map(p=>K(p.q,p.r)));const r1=ring(1).map(([q,r])=>K(q,r)).filter(k=>cells[k]&&!cells[k].isVoid&&!taken.has(k));return parseK(r1[0]||K(pQ,pR));} // a new player: a free hex beside the source
 function mpLeave(pid){const i=MP.order.indexOf(pid);if(i<0)return;const P=mpP(pid);MP.order.splice(i,1);MP.players=MP.players.filter(p=>p.id!==pid);if(i<MP.turnI)MP.turnI--;if(MP.turnI>=MP.order.length){MP.turnI=0;}
@@ -1296,7 +1301,11 @@ function mpAct(pid,m){const P=mpP(pid);if(!P)return;
   mpAs(P,m,()=>{if(m.a==='click'){armed=m.armed||null;mapClick(m.q,m.r);}else if(m.a==='weave'){weaveSel=m.sel||[];makeConstellation(m.type);}else if(m.a==='rest'){advanceTurn();}else if(m.a==='clock'){clock=m.clock;showTurn();}});
   updateHint();saveMap();}
 function mpSend(a,o){netOut(Object.assign({t:'act',a,inv:Object.assign({},inv)},o||{}));} // a friend: an action of mine, for the host to play
-function mpBar(){let el=document.getElementById('mpBar');if(!MP.on){if(el)el.remove();return;}if(!el){el=document.createElement('div');el.id='mpBar';document.body.appendChild(el);}
+function mpShareMine(){if(!MP.on)return; // playing together: my fortune and wonder count for everyone; what I discover, anyone who has not yet can discover too
+  const r={fortune:run.fortune||null,bonus:run.bonus||null},j=JSON.stringify(r);if(j!==MP._runJ){MP._runJ=j;const me=mpP(MP.me);if(me)me.run=r;if(MP.role==='guest')netOut({t:'run',run:r});else mpSync();}
+  if(!MP._disc)MP._disc=new Set(disc);const ids=[...disc].filter(i=>!MP._disc.has(i));if(ids.length){ids.forEach(i=>MP._disc.add(i));netOut({t:'disc',ids});}}
+function mpRunApply(){const o=MP.players.filter(p=>p.id!==MP.me&&p.run),fx=o.map(p=>p.run.fortune).filter(Boolean),bx=o.map(p=>p.run.bonus).filter(b=>b&&b.id!=='inf'),j=JSON.stringify([fx,bx]);if(j===MP._mpRunJ)return;MP._mpRunJ=j;MP_RUN.fx=fx;MP_RUN.bx=bx;neb({cmd:'mpRun',fx,bx});} // everyone else's, here and in my surface
+function mpBar(){mpRunApply();let el=document.getElementById('mpBar');if(!MP.on){if(el)el.remove();return;}if(!el){el=document.createElement('div');el.id='mpBar';document.body.appendChild(el);}
   if(MP.surf&&MP.surf.owner!==MP.me&&document.getElementById('mpView'))mpView(MP.surf.owner,MP.surf.key); // (watching: whether I can play it follows where I am)
   el.innerHTML=MP.order.map((id,i)=>{const P=mpP(id)||{};return`<span class="${i===MP.turnI?'on':''}${id===MP.me?' me':''}"><i style="background:${P.col||'#fff'}"></i>${gEsc(P.name||'?')}</span>`;}).join('<b>›</b>');}
 const gEsc=v=>String(v).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
@@ -1305,9 +1314,12 @@ function mpView(owner,key){ // watching another player's surface: their frames, 
   if(MP.role!=='host')MP.surf={owner,key};const P=mpP(owner)||{},me=mpP(MP.me)||{},c=cells[key],can=!!(c&&me.q===c.q&&me.r===c.r);
   if(!v){v=document.createElement('div');v.id='mpView';v.innerHTML='<div class="mh"></div><img alt="">';document.body.appendChild(v);const im=v.querySelector('img');let last=0;
     const at=e=>{const r=im.getBoundingClientRect();return{x:(e.clientX-r.left)/Math.max(1,r.width),y:(e.clientY-r.top)/Math.max(1,r.height)};},send=(t,e)=>netOut({t:'ptr',p:Object.assign({t},e?at(e):{x:-1,y:-1})},MP.surf&&MP.surf.owner);
-    im.addEventListener('pointermove',e=>{const n=performance.now();if(n-last>25){last=n;send('move',e);}});im.addEventListener('pointerdown',e=>{if(e.button===0)send('down',e);});im.addEventListener('pointerup',e=>{if(e.button===0)send('up',e);});
+    im.addEventListener('pointermove',e=>{const n=performance.now();if(n-last>25){last=n;send('move',e);}});im.addEventListener('pointerdown',e=>{if(e.button!==0)return;if(MP.vArm){netOut({t:'ptr',p:Object.assign({t:'item',kind:MP.vArm,have:inv[MP.vArm]||0},at(e))},MP.surf&&MP.surf.owner);return;}send('down',e);});im.addEventListener('pointerup',e=>{if(e.button===0&&!MP.vArm)send('up',e);}); // (an item in hand: used where you click)
     im.addEventListener('contextmenu',e=>{e.preventDefault();send('rclick',e);});im.draggable=false;}
-  v.querySelector('.mh').textContent=txt(can?'mp.watch_play':'mp.watch_only',P.name||'');}
+  v.querySelector('.mh').textContent=txt(can?'mp.watch_play':'mp.watch_only',P.name||'');mpViewItems();}
+const MP_ITEMS=['dim','bright','magnetic','neutron','pulsing','leash']; // what a player can use in someone else's surface, from anywhere
+function mpViewItems(){const v=document.getElementById('mpView');if(!v)return;let bar=v.querySelector('.mi');if(!bar){bar=document.createElement('div');bar.className='mi';v.appendChild(bar);bar.onclick=e=>{const b=e.target.closest('[data-k]');if(!b)return;MP.vArm=MP.vArm===b.dataset.k?null:b.dataset.k;mpViewItems();};}
+  bar.innerHTML=MP_ITEMS.filter(k=>(inv[k]||0)>0).map(k=>`<span data-k="${k}" class="${MP.vArm===k?'on':''}" title="${KIND_NAME[k]||k}">${icons[k]||KIND_NAME[k]||k}<b>${fmtN(inv[k])}</b></span>`).join('')||`<i>${txt('mp.no_items')}</i>`;if(MP.vArm&&!(inv[MP.vArm]>0))MP.vArm=null;}
 // ╔══════════════════════════════════════════════════════════════════════════════╗
 // ║  DOCK, FEED AND CURSOR — the surface's own slots, feed line and cursor       ║
 // ╚══════════════════════════════════════════════════════════════════════════════╝
