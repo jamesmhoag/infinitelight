@@ -523,7 +523,7 @@ cacheKeyR,16,Cache keyhole pane R,6,40,1,Time dilation & Risks,gameplay,,,,Radiu
 masterVol,0.7,Master volume,0,1,0.05,Master volume,sounds,,,,Overall volume (also in the Esc menu),
 duckChance,0.25,Duck chance,0,1,0.01,Ducks,gameplay,,,,Chance a Dark Remnant comes out as a duck instead (the surface then carries on),
 duckExoticChance,0.2,Exotic chance,0,1,0.01,Ducks,gameplay,,,,"Chance a duck is an exotic (one colour, size or material change)",
-duckSunA,1,Duck time-of-day light,0,1,0.05,Ducks,gameplay,,,,"How much the time of day lights the ducks: the moon overhead at midnight, the sun rising cool to warm, white at noon, setting warm, back to moonlight (0 = always noon)",
+duckSunA,1,Duck time-of-day light,0,1,0.05,Ducks,gameplay,,,,"How much the time of day lights the ducks: the moon overhead at midnight, the sun rising cool to warm, white at midday, setting warm, back to moonlight (0 = always noon)",
 duckLuckStep,0.01,Duck luck per miss,0,0.2,0.005,Ducks,gameplay,,,,"Added to Duck chance for every Dark Remnant that was not a duck, and to Exotic chance for every duck that was classic; back to the base on a hit (game data: carried from surface to surface and day to day)",
 duckRareChance,0.03,Rare exotic chance,0,1,0.005,Ducks,gameplay,,,,"Chance a duck is a rare exotic: Rainbow, Big Head or Gold",
 duckMidChance,0.06,Mid exotic chance,0,1,0.005,Ducks,gameplay,,,,"Chance a duck is a mid-tier exotic, between the colours and the Rainbow: Crystalize or Eclipse",
