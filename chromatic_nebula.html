@@ -1,5 +1,5 @@
 <meta charset="utf-8"><meta name="darkreader-lock"><!-- the game draws its own dark scheme (and Invert); a dark-mode extension restyling it greys out the Guide demos -->
-<script>try{if(window.top===window&&Date.now()-(+sessionStorage.getItem("il_load")||0)<15000)document.documentElement.classList.add("il-arrive")}catch(e){}</script><style>html.il-arrive,html.il-arrive body{background:#000!important}html.il-arrive body>*:not(#ilLoad){visibility:hidden!important}</style><!-- opened from a page that was loading: nothing but the loading screen shows from the first paint (content.js lifts it) -->
+<script>try{if(window.top===window)document.documentElement.classList.add("il-arrive")}catch(e){}</script><style>html.il-arrive,html.il-arrive body{background:#000!important}html.il-arrive body>*:not(#ilLoad){visibility:hidden!important}</style><!-- opened from a page that was loading: nothing but the loading screen shows from the first paint (content.js lifts it) -->
 <style>
 *{margin:0;padding:0;box-sizing:border-box;}
 #wrap{position:relative;width:100%;height:100vh;background:#000;overflow:hidden;cursor:none;user-select:none;}
@@ -12440,7 +12440,7 @@ function pruneDeadArtifacts(){
   for(let i=flashes.length-1;i>=0;i--){const f=flashes[i];if(f.follow&&!liveObj.has(f.follow))flashes.splice(i,1);}
   for(let i=earnFx.length-1;i>=0;i--){const f=earnFx[i];if(f.kind!=='use'&&f.follow&&!liveObj.has(f.follow))earnFx.splice(i,1);}
 }
-function loop(now){rafId=null;_batchSnd=false;audioCallsThisFrame=0;revalidateUI();eventPump();discTick();syncReadoutBtns();if(blackHole&&speedMult!==1){speedMult=1;if(!isPaused)setPauseTarget(1,now);}pruneDeadArtifacts();
+function loop(now){rafId=null;if(!window.ilReady&&window.top===window&&(loop._n=(loop._n||0)+1)>3&&document.readyState==='complete')pageReady(); /* a surface on its own (or Build mode): ready once its first frames are drawn */_batchSnd=false;audioCallsThisFrame=0;revalidateUI();eventPump();discTick();syncReadoutBtns();if(blackHole&&speedMult!==1){speedMult=1;if(!isPaused)setPauseTarget(1,now);}pruneDeadArtifacts();
   if(!isPaused&&pendingActs.size)flushPendingActs(now); // queued activations take effect on the first frame after unpausing
   updateBondCrossings(); // breaks any chain/bond whose lines actually cross this frame — replaces the old click-time-only overlap block
   if(!isPaused&&pendingDial.size)flushPendingDial(); // String changes made while paused take effect the moment play resumes

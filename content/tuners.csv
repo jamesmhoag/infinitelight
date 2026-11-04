@@ -553,6 +553,7 @@ mapTilt,32,Map tilt°,0,60,1,Surface Map — the map and camera,map,,,,How far t
 mapPersp,1400,Map perspective px,400,4000,50,Surface Map — the map and camera,map,,,,Viewing distance for the tilt: smaller = stronger perspective,
 mapCamEase,2.4,Camera ease s,0.3,6,0.1,Surface Map — the map and camera,map,,,,Seconds: how slowly the camera eases into a scripted move (following your buoy, framing it for Status, back to your hex) — the larger the gentler,
 mapCamSlow,1.8,Camera scene slowness,0.5,4,0.1,Surface Map — the map and camera,map,,,,How much longer a scene's own camera move takes (the day's end, back from Status) than its base time,
+mapCamHandMs,1400,Camera hand back ms,0,5000,50,Surface Map — the map and camera,map,,,,How long the camera takes to ease from where a scene's own move left it to your own view (your control fades in over it),
 mapZoomMin,0.55,Map zoom out,0.3,1,0.05,Surface Map — the map and camera,map,,,,Furthest the map zooms out (wheel or −),
 mapZoomMax,1.8,Map zoom in,1,3,0.05,Surface Map — the map and camera,map,,,,Closest the map zooms in (wheel or +),
 mapSourceGlow,1,Source glow,0,3,0.05,Surface Map — the map and camera,map,,,,Brightness of the white source at the centre of the map,
@@ -567,11 +568,12 @@ mapAlpha,1,Hex layer α,0,1,0.05,Surface Map — hex pictures,map,,,,Opacity of 
 mapCovFull,1,Hex full coverage value,0.1,6,0.1,Surface Map — hex pictures,map,,,,Hex value at which a surface is fully covered with particles,
 mapPrevFadeMs,450,Hex ease ms,0,3000,50,Surface Map — hex pictures,map,,,,How long a hex's new picture takes to ease in over its old one,
 mapDucks,5,Lake ducks,0,12,1,Surface Map — lake and bottles,map,,,,How many of your collected ducks swim in the open space around the map,
+mapParadeMin,4,Parade at least,2,20,1,Surface Map — lake and bottles,map,,,,How many ducks of one kind (a Colour, Size or Material) you need for them to parade,
+mapParadeMax,9,Parade at most,1,30,1,Surface Map — lake and bottles,map,,,,How many ducks a parade has at most (more of the kind: a run of them in their order from a random one),
+mapParadeRise,2.2,Parade rise,0.3,8,0.1,Surface Map — lake and bottles,map,,,,Hexes: how far a parade duck swims while it slowly surfaces at the start (and sinks at the end),
 mapDuckBumpV,0.35,Duck bump speed,0.02,3,0.01,Surface Map — lake and bottles,map,,,,"How fast the cursor must cross a lake duck (world px per ms) to send it puttering off; slower, it just spins where it is",
 mapDuckDunkMs,1300,Duck dunk ms,300,4000,50,Surface Map — lake and bottles,map,,,,How long a clicked lake duck stays dunked before it pops back up,
 mapDuckTrapMs,6000,Duck trapped ms,1000,30000,500,Surface Map — lake and bottles,map,,,,How long a duck on the spill can find no way off (shops and Rifts in its way) before it sinks under and is gone,
-mapSpotEdge,0.9,Spot edge,0,0.99,0.01,Surface Map — the map and camera,map,,,,Where the spot on the water starts to fade toward its rim (0.9: a crisp edge; lower: softer),
-mapSpotA,1,Spot strength,0,1.5,0.05,Surface Map — the map and camera,map,,,,How bright the buoy's spot is on the water (the shops take its light as a point light),
 rippleMs,1800,Ripple life ms,300,6000,100,Ripples — every water,map,,,,How long a ring on the water lasts (the Surface Map's and the title's),
 rippleReach,0.9,Ripple reach,0.1,4,0.05,Ripples — every water,map,,,,How far a ring spreads over its life (hexes; a double click's three go nearly twice as far),
 rippleWidth,0.1,Ripple width,0.02,0.6,0.01,Ripples — every water,map,,,,How wide a ring's swell is (of a hex),
@@ -593,9 +595,24 @@ mapShopUpScale,1.7,Big store scale,1,2.5,0.05,Surface Map — shops,map,,,,How m
 mapShopPitch,22,Shop view angle,0,60,1,Surface Map — shops,map,,,,Degrees: how far from straight ahead the 3D shops are seen from above (their roofs and sign scaffolding show more),
 mapShopRiseMs,1100,Shop rise time,200,4000,50,Surface Map — shops,map,,,,Milliseconds: how long a new pop-up takes to rise out of its bright clear (after the clear has played) before it turns on and opens,
 mapPopBack,0.42,Pop-up set back,0,0.8,0.02,Surface Map — shops,map,,,,How far back in its hex a pop-up stands (in hex sizes); a buoy on that hex floats as far forward,
-mapShopLight,1,Shop in the buoy light,0,4,0.05,Surface Map — shops,map,,,,How strongly the buoy's can light lights a shop in its spot (its walls and the glints on its glass),
-mapCursorLightA,0.9,Cursor light,0,3,0.05,Surface Map — shops,map,,,,How strongly the cursor's own light lights what is near it on the map: shops, ducks, bottles and your buoy (as it lights the ground),
-mapCursorLightR,170,Cursor light reach,40,500,10,Surface Map — shops,map,,,,Pixels: how far the cursor's light reaches on the map's shops, ducks, bottles and buoy,
+mapSpotA,1,Spot on the water,0,2,0.05,Surface Map — lights,map,,,,How bright the buoy's spot is on the water
+mapSpotSize,1,Spot size,0.3,3,0.05,Surface Map — lights,map,,,,How big the buoy's spot is on the water
+mapSpotEdge,0.9,Spot edge,0,0.99,0.01,Surface Map — lights,map,,,,Where the spot on the water starts to fade toward its rim (0.9: crisp; lower: softer)
+mapShopLight,1,Spot on models,0,4,0.05,Surface Map — lights,map,,,,How strongly the buoy's can light lights the shops (and anything painted) it falls on
+mapSpotConeIn,9,Spot cone (full) °,1,45,0.5,Surface Map — lights,map,,,,Degrees: the can light's cone at full strength (from its middle)
+mapSpotConeOut,22,Spot cone (edge) °,2,80,0.5,Surface Map — lights,map,,,,Degrees: where the cone has faded out (between the two: its soft edge)
+mapSpotRange,7,Spot reach,1,20,0.5,Surface Map — lights,map,,,,Hexes: how far the can light carries before it falls off
+mapCursorLightA,0.9,Cursor light on models,0,4,0.05,Surface Map — lights,map,,,,How strongly the cursor's light lights the shops and your buoy near it
+mapCursorLightRange,2.6,Cursor light reach,0.3,10,0.1,Surface Map — lights,map,,,,Hexes: how far the cursor's light carries on the shops and buoy
+mapCursorLightH,0.8,Cursor light height,0,4,0.05,Surface Map — lights,map,,,,Hexes: how high above where it points the cursor's light is (higher: it lights more from above)
+mapCursorLightR,170,Cursor glints reach,40,500,10,Surface Map — lights,map,,,,Pixels: how far the cursor's glints reach on ducks and glass
+mapCursorGround,1.1,Cursor light on the water,0,3,0.05,Surface Map — lights,map,,,,How bright the cursor's light is on the water
+mapCursorGroundR,56,Cursor light size,10,300,2,Surface Map — lights,map,,,,Pixels: how big the cursor's light is on the water
+mapCursorGroundSoft,0,Cursor light edge,0,0.95,0.05,Surface Map — lights,map,,,,Where the cursor's light on the water starts to fade (0: soft all through; higher: a crisper edge)
+mapSourceLight,1.6,Source light,0,5,0.05,Surface Map — lights,map,,,,How strongly the white source lights the shops and buoy round it
+mapSourceLightR,3.4,Source light reach,0.5,12,0.1,Surface Map — lights,map,,,,Hexes: how far the source's light carries
+mapBrightLight,0.7,Bright clear light,0,4,0.05,Surface Map — lights,map,,,,How strongly each bright clear lights what is near it
+mapBrightLightR,1.7,Bright clear reach,0.3,6,0.1,Surface Map — lights,map,,,,Hexes: how far a bright clear's light carries
 mapShopReflect,0.7,Shop reflections,0,1,0.02,Surface Map — shops,map,,,,How strongly shops show reflected in the dark ground under them,
 mapDockLingerMs,2500,Dock linger ms,0,10000,100,Surface Map — dock,map,,,,"With the dock reduced (its ▾ or ~): how long an item stays up after it is used, its count changes or the dock is toggled",
 mapPlanePx,2500000,Map plane pixels,500000,8000000,100000,Surface Map — performance,map,,,,"Most pixels the Surface Map's ground is drawn with (it is sent to the GPU every frame: fewer is faster, more is sharper)",

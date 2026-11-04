@@ -1,7 +1,7 @@
 <!doctype html>
 <html lang="en">
 <head>
-<script>try{if(window.top===window&&Date.now()-(+sessionStorage.getItem("il_load")||0)<15000)document.documentElement.classList.add("il-arrive")}catch(e){}</script><style>html.il-arrive,html.il-arrive body{background:#000!important}html.il-arrive body>*:not(#ilLoad){visibility:hidden!important}</style><!-- opened from a page that was loading: nothing but the loading screen shows from the first paint (content.js lifts it) -->
+<script>try{if(window.top===window)document.documentElement.classList.add("il-arrive")}catch(e){}</script><style>html.il-arrive,html.il-arrive body{background:#000!important}html.il-arrive body>*:not(#ilLoad){visibility:hidden!important}</style><!-- opened from a page that was loading: nothing but the loading screen shows from the first paint (content.js lifts it) -->
 <meta charset="utf-8"/><meta name="darkreader-lock"/>
 <meta name="viewport" content="width=device-width,initial-scale=1"/>
 <title>Infinite Light</title>
@@ -179,7 +179,7 @@ body{
   <iframe id="neb" src="chromatic_nebula.html?hub=1&v=20261105m" title="Guide"></iframe>
 
 <script src="content.js?v=20261105m"></script><script src="shared.js?v=20261105m"></script>
-<script>loading('boot',true);addEventListener('load',()=>requestAnimationFrame(()=>requestAnimationFrame(()=>loading('boot',false)))); /* the site's first load: the same loading screen as every page */
+<script>
 txtApply();gameCursor({hide:()=>document.getElementById('neb').classList.contains('show')}); // the game's cursor (the Guide over it draws its own)
 // The game's state the title reads (its tuners, purse and discoveries)
 let T = {}, inv = {dim:0}, disc = new Set(), nebReady = false, duckLog = {}, W = innerWidth, H = innerHeight, invertMode = false, DUCK_TYPES = {}; // (W, H, invertMode, DUCK_TYPES: what shared.js's duck renderer reads)
@@ -296,7 +296,8 @@ function duckTick(now){const dp=devicePixelRatio||1;if(dkv.width!==Math.round(in
   dkc.save();if(sink>0.01&&!lift){dkc.beginPath();dkc.rect(0,0,dkv.width,(d.y+s*0.12)*dp);dkc.clip();} // (dunked: under the waterline)
   drawDuck3D(dkc,d.type,q,[[X,Y]],s*dp,1,1024,null);dkc.restore();
   if(d.x<-s*3||d.x>innerWidth+s*3||d.y<-s*3||d.y>innerHeight+s*3){d.tx=innerWidth/2;d.ty=innerHeight/2;d.next=now+8000;}} // (never lost off the edge)
-(function tick(){ requestAnimationFrame(tick); const now=performance.now(); discTick(); water(now); duckTick(now); })();
+let _tf=0,_fontOK=!document.fonts;document.fonts&&document.fonts.ready.then(()=>{_fontOK=true;});
+(function tick(){ requestAnimationFrame(tick); const now=performance.now(); discTick(); water(now); duckTick(now); if(!window.ilReady&&nebReady&&_fontOK&&document.readyState==='complete'&&++_tf>2)pageReady(); })(); // ready to be seen: the game's state in (its tilt, its ducks), the fonts, a few frames of the water
 duckLoad&&duckLoad();
 </script>
 </body>
