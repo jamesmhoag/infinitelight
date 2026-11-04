@@ -20,7 +20,7 @@ body{background:#050608;overflow:hidden;font-family:'Share Tech Mono',monospace;
 #hinv .slot::before{content:'';position:absolute;inset:0;border-radius:5px;background:rgba(8,10,16,.5);border:1px solid rgba(255,255,255,.18);transition:transform .28s ease,opacity .28s,background .15s} /* each button its own see-through backing */
 #hinv .slot>*{position:relative}#hinv .slot svg{filter:drop-shadow(0 0 2px #000) drop-shadow(0 0 4px #000)}#hinv .slot:hover::before{background:rgba(255,255,255,0.14)}
 #hinv .dmin{font-size:13px;cursor:pointer}#hinv .dmin>span{opacity:.6}#hinv .dmin:hover>span{opacity:1} /* the feed's ▾ / ▴: a button like the others */
-body.dock-min:not(.feed-pop) #hfeed{display:none}body.dock-min #hinv .slot.dmin>*,body.dock-min #hinv .slot.dmin::before{transform:none!important;opacity:1!important} /* (its ▴ stays, to bring the feed back) */ /* the dock's own hide (its ▾): the feed goes, and each item keeps out of the way until pointed at (~ leaves the dock as it is, but for the ▾) */
+body.dock-top #hdock{top:0;bottom:auto;flex-direction:column-reverse;border-radius:0 0 8px 8px}#hfeed{cursor:pointer} /* the feed clicked: it and the items go to the top edge (and back), as on a surface */body.dock-min:not(.feed-pop) #hfeed{display:none}body.dock-min #hinv .slot.dmin>*,body.dock-min #hinv .slot.dmin::before{transform:none!important;opacity:1!important} /* (its ▴ stays, to bring the feed back) */ /* the dock's own hide (its ▾): the feed goes, and each item keeps out of the way until pointed at (~ leaves the dock as it is, but for the ▾) */
 body.dock-min:not(.shop-open) #hinv .slot:not(.up):not(:hover)>*,body.dock-min:not(.shop-open) #hinv .slot:not(.up):not(:hover)::before{transform:translateY(130%);opacity:0} /* each item down out of the way until you point at its own place: then it comes up from below */
 body.ui-hidden #hinv .dmin{display:none}#hinv .slot.armed::before{background:rgba(255,220,120,0.28);border-color:rgba(255,220,120,0.8)}#hinv .slot.empty{opacity:0.4}
 #hinv .slot svg{width:18px;height:18px;color:#fff}#hinv .slot b{font-weight:400;margin-top:1px}#hinv .sep{width:6px}
@@ -34,8 +34,8 @@ body.scene .hbtn,body.scene:not(.scene-shops) #shops,body.scene #hdock,body.scen
 /* the surface (chromatic_nebula.html): hidden with visibility, not display, so it keeps its size for the hex previews */
 #neb{position:fixed;inset:0;width:100%;height:100%;border:0;z-index:50;visibility:hidden;pointer-events:none;background:#000}
 #neb.see{background:transparent}#neb.show{visibility:visible;pointer-events:auto;animation:nebIn .45s ease-out}@keyframes nebIn{from{opacity:0}to{opacity:1}} /* (fades in over the map) */
-#turn-label{position:absolute;top:8px;left:50%;transform:translateX(-50%);background:rgba(0,0,0,.55);padding:2px 10px 3px;border-radius:3px;font-family:'Orbitron',sans-serif;font-size:16px;white-space:nowrap;color:rgba(255,255,255,0.7);pointer-events:none;transition:color 0.4s,text-shadow 0.4s;letter-spacing:2px;z-index:10}
-#rest-btn{position:absolute;top:38px;left:50%;transform:translateX(-50%);display:none;font:12px/1.5 system-ui,'Inter',sans-serif;letter-spacing:1.2px;padding:3px 18px;background:#000;border:1px solid #fff;color:#fff;border-radius:0;cursor:pointer;z-index:20}#rest-btn:hover{background:#fff;color:#000}
+#turn-label{position:absolute;top:8px;right:12px;display:flex;flex-direction:column;align-items:flex-end;text-align:right;line-height:1.15;background:rgba(0,0,0,.55);padding:3px 10px 4px;border-radius:3px;font-family:'Orbitron',sans-serif;font-size:16px;white-space:nowrap;color:rgba(255,255,255,0.7);pointer-events:none;transition:color 0.4s,text-shadow 0.4s;letter-spacing:2px;z-index:10}
+#turn-label small{font-size:10px;letter-spacing:1.5px;opacity:.7} /* the time of day over the day, top right */#rest-btn{position:absolute;top:52px;right:12px;display:none;font:12px/1.5 system-ui,'Inter',sans-serif;letter-spacing:1.2px;padding:3px 18px;background:#000;border:1px solid #fff;color:#fff;border-radius:0;cursor:pointer;z-index:20}#rest-btn:hover{background:#fff;color:#000}
 #rest-btn:hover{background:rgba(150,160,255,0.28)}#rest-btn.on{display:block} /* at Midnight: end the day when you are ready (under the time of day; ~ keeps it) */
 #bfx{position:fixed;inset:0;pointer-events:none;z-index:70}#bfx i{position:absolute;font:600 12px 'Share Tech Mono',monospace;font-style:normal;white-space:nowrap;transform:translate(-50%,0);animation:bfxUp 1.6s ease-out forwards;text-shadow:0 0 4px #000,0 0 8px #000}
 #bfx b.tap{position:absolute;width:6px;height:6px;margin:-3px 0 0 -3px;border-radius:50%;border:1.5px solid rgba(235,245,255,.95);box-shadow:0 0 6px rgba(220,235,255,.8);animation:tapRing .6s ease-out forwards}@keyframes tapRing{to{transform:scale(6);opacity:0;border-width:.5px}} /* a tap on a closed shop's glass */
@@ -98,7 +98,7 @@ body.thru .shop{pointer-events:none} /* an armed map item, or the open source, r
 #nameAsk{position:fixed;inset:0;z-index:62;display:none;align-items:center;justify-content:center;background:rgba(0,0,0,.6)}#nameAsk.show{display:flex} /* your name, for your buoy's sign: asked on a new game */
 #nameAsk .scard{width:320px;background:#000;border:1px solid #fff;padding:16px 22px 16px;color:#fff;font:12px/1.5 system-ui,'Inter',sans-serif;letter-spacing:.6px;text-align:center}#nameAsk h2{font:700 19px/1.25 system-ui,'Inter',sans-serif;letter-spacing:1.6px;margin:0 0 6px}
 #nameAsk input{width:100%;box-sizing:border-box;margin:14px 0 4px;padding:6px 8px;background:#000;color:#fff;border:1px solid rgba(255,255,255,.5);font:15px system-ui,sans-serif;text-align:center;outline:none}#nameAsk input:focus{border-color:#fff}#nameAsk .nlen{opacity:.5;font-size:10px;text-align:right}
-#nameAsk .ncl{margin-top:8px;opacity:.7}.ncols{display:flex;flex-wrap:wrap;justify-content:center;gap:5px;margin-top:6px}.ncols span{width:20px;height:20px;border:1px solid rgba(255,255,255,.35);cursor:pointer;box-sizing:border-box}.ncols span.on{outline:2px solid #fff;outline-offset:2px} /* your buoy's colour */
+#nameAsk .ncl{margin-top:8px;opacity:.7}.ncols{display:grid;grid-template-columns:repeat(6,20px);justify-content:center;gap:5px;margin-top:6px}.ncols span{width:20px;height:20px;border:1px solid rgba(255,255,255,.35);cursor:pointer;box-sizing:border-box}.ncols span.on{outline:2px solid #fff;outline-offset:2px} /* your buoy's colour */
 #nameAsk button{margin-top:10px;background:none;color:#fff;border:0;font:inherit;letter-spacing:inherit;cursor:pointer;padding:2px 10px}#nameAsk button:hover{background:rgba(255,255,255,.12)}#nameAsk button:disabled{opacity:.35;cursor:default;background:none}
 #letter{position:fixed;inset:0;z-index:61;display:none;align-items:center;justify-content:center;background:rgba(0,0,0,.55);cursor:pointer}#letter.show{display:flex}
 #letter .lp{width:min(420px,86vw);padding:30px 34px 22px;background:linear-gradient(#f4ead0,#e6d6ae);color:#3a2c18;font:italic 17px/1.6 Georgia,serif;border-radius:3px;box-shadow:0 10px 40px rgba(0,0,0,.6),inset 0 0 40px rgba(140,100,40,.25);transform-origin:50% 50%;animation:unroll .7s ease-out}
@@ -154,7 +154,6 @@ body.shop-open #hdock{z-index:59}#hinv .slot.wal::before{border-color:rgba(255,2
   <div class="gl" data-tx="map.ui.sound"></div><div class="row"><button id="mSnd" onclick="setSound(!soundOn())"></button><input id="mVol" type="range" min="0" max="1" step="0.05" oninput="setSound(true,this.value)"></div>
   <div class="gl" data-tx="map.ui.help"></div><button id="mGuide" data-disc="hub_guide" onclick="toggleMenu();openGuide()" data-tx="map.ui.guide"></button>
   <div class="gl" data-tx="map.ui.performance"></div><button onclick="downloadHubLog()" data-tx="map.ui.performance_log"></button>
-  <div class="gl" data-tx="map.ui.days"></div><div id="mDays"></div>
   <div class="gl" data-tx="mp.title"></div><button onclick="netHost()" data-tx="mp.invite_btn"></button><div id="mpLink" style="display:none;font-size:10px;word-break:break-all;opacity:.8;user-select:all"></div>
   <div class="gl" data-tx="map.ui.leave"></div><button onclick="quitMain()" data-tx="map.ui.quit_to_main_menu"></button>
 </div></div>
@@ -164,7 +163,7 @@ body.shop-open #hdock{z-index:59}#hinv .slot.wal::before{border-color:rgba(255,2
 <div id="veil"></div>
 <div id="bfx"></div>
 <iframe id="neb" data-tt="map.ui.surface"></iframe>
-<script src="content.js?v=20261105i"></script><script src="shared.js?v=20261105i"></script>
+<script src="content.js?v=20261105j"></script><script src="shared.js?v=20261105j"></script>
 <script>
 // ╔══════════════════════════════════════════════════════════════════════════════╗
 // ║  MAP ENGINE                                                                 ║
@@ -183,7 +182,7 @@ let playLog=[],clock=3,day=1,pool=6,fresh=true,burstFx=null,dayLog=[],dayCnt={b:
 // // clock: the hour (3 = Twilight … 24 = Midnight, the day's last turn); day: your attempts; pool: what the source put out at its last burst; fresh: no ring added yet since it
 let constel=[],armed=null,weaveSel=[],weaveAsk=null,clearFx={},mergeFx=[],feedMsg={t:'',d:'',at:-1e9}; // constellations {keys,type}; the armed map item; a Weave being drawn; animations; the final count
 const STEP_H=3; // the day: eight turns of three hours
-const CACHE_V='20261105i'; // the build: bump with shared.js's
+const CACHE_V='20261105j'; // the build: bump with shared.js's
 const SCENE=new URLSearchParams(location.search).get('scene'); // a Guide / event demo: the map plays a scripted moment (no surface behind it)
 let phase='move',turnTimer=0,mergeTimer=0;
 let gameOverReason='';
@@ -313,7 +312,7 @@ const canRest=()=>(MP.on?mpMine():tired())&&currentView==='map'&&!menuOpen&&!sho
 function rest(){if(!canRest())return;if(tired()){buoy.dunk={t0:performance.now(),d:1,ms:900};buoy.rested=true;}if(MP.role==='guest'){mpSend('rest');return;}advanceTurn();updateHint();saveMap();} // (at Midnight it sinks to sleep, and bobs up in the morning) // Rest: the day ends at Midnight without a move, after any last thing (a shop, an item) you wanted to do
 const clockStr=(h=clock)=>TIMES[h]||TIMES[Math.max(3,Math.floor(h/3)*3)]||TIMES[3];
 function showTurn(){neb({cmd:'clock',clock,day});mapHistKeep();if(buoy.rested&&clock<24){buoy.rested=false;buoy.dunk={t0:performance.now()+400,d:-1,ms:900};} // morning: up again // (the surface's run: a Daily Wonder ends at its time)
-  const el=document.getElementById('turn-label');el.textContent=txt('map.day',clockStr(),day);el.classList.add('show');clearTimeout(turnTimer);turnTimer=setTimeout(()=>el.classList.remove('show'),1200);} // (always shown; it glows when the time changes)
+  const el=document.getElementById('turn-label');turnLabel(el);el.classList.add('show');clearTimeout(turnTimer);turnTimer=setTimeout(()=>el.classList.remove('show'),1200);} // (always shown; it glows when the time changes)
 
 function getMoves(){
   const out=[];
@@ -574,7 +573,9 @@ function bottleOpts(d,now,side,alpha){ // a bottle floating upright, leaning a l
   const[px,py]=w2s(d.x,d.y),[X,Y,k]=proj(px,py),f=duckFace(d,now),t=0.3+0.1*Math.sin(now/900+d.ph),ct=Math.cos(t),st=Math.sin(t),z=side,size=d._s*0.8,
     ax=[f[0]*st,f[1]*st,ct*z],bx=[-f[0]*ct,-f[1]*ct,st*z],sd=[-f[1],f[0],0],h=size*(0.03*Math.sin(now/650+d.ph)-(d._sink||0)*1.6); // (its length up, leaning along its heading)
   return{rot:new Float32Array([...ax,...bx,...sd]),size,pos:[px-MW/2,py-MH/2,side*h],view:cam.view,proj:cam.proj,viewRot:cam.viewRot,env:{x:X,y:Y,lights:side>0?curLights(X,Y):[]},px:size*k,alpha,mirror:side<0,clip:side};}
-function duckFace(d,now){const td=d.tod?now-d.tod:1e9,a=d.hd+((DUCK_TYPES[d.type]||{}).mat==='paper'?now/900+d.ph:0)+(td<2400?0.45*Math.exp(-td/650)*Math.sin(td/80):0); /* (toddling from side to side as it settles after a hop) */return[Math.cos(a),Math.sin(a),0];} // which way a lake duck faces (a Paper one keeps turning, to show its thinness)
+function duckFace(d,now){const a=d.hd+((DUCK_TYPES[d.type]||{}).mat==='paper'?now/900+d.ph:0);return[Math.cos(a),Math.sin(a),0];} // which way a lake duck faces (a Paper one keeps turning, to show its thinness)
+function duckRot(d,now,m){const f=duckFace(d,now),td=d.tod?now-d.tod:1e9,r=td<2400?0.32*Math.exp(-td/650)*Math.sin(td/80):0,cr=Math.cos(r),sr=Math.sin(r); // a lake duck upright on the plane, its forward along its heading — bobbling from side to side (a roll about its length) as it settles after a hop; m −1: mirrored across (its reflection)
+  return new Float32Array([f[0],f[1],0, -f[1]*sr,f[0]*sr,cr*m, -f[1]*cr,f[0]*cr,-sr*m]);}
 function sceneRender(now){
   if(!G3)G3=sceneInit();if(!G3||!cam)return;const gl=G3.gl;
   gl.viewport(0,0,sc.width,sc.height);gl.clearColor(5/255,6/255,8/255,1);gl.clearDepth(1);gl.clear(gl.COLOR_BUFFER_BIT|gl.DEPTH_BUFFER_BIT);
@@ -591,14 +592,14 @@ function sceneRender(now){
     const u=Math.min(1,(now-_sun.t0)/(T.mapSunMs||4500));_sunH=_sun.from+(_sun.to-_sun.from)*u*u*(3-2*u); // a slow shift of the light, over Light shift ms
     const s=duckSun(_sunH),R=cam.viewRot,l=[s.d[0],-s.d[1],s.d[2]];DUCK_SUN={d:[0,1,2].map(i=>R[i]*l[0]+R[3+i]*l[1]+R[6+i]*l[2]),c:s.c};} // (the plane's y runs down the screen)
   const ra=T.mapDuckRefl!=null?T.mapDuckRefl:0.4; // ducks are mirrored in the surface beneath them
-  if(ra>0){gl.clear(gl.DEPTH_BUFFER_BIT);for(const d of pond)if(d._s&&d.bottle)drawBottleScene(G3.duck,d,bottleOpts(d,now,-1,ra));for(const d of pond){if(!d._s||d.bottle)continue;const[px,py]=w2s(d.x,d.y),[X,Y,k]=proj(px,py),f=duckFace(d,now),size=d._s,bob=duckBob(d,now);
-    drawDuckScene(G3.duck,d.type,{rot:new Float32Array([f[0],f[1],0, 0,0,-1, -f[1],f[0],0]),size,pos:[px-MW/2,py-MH/2,-bob],view:cam.view,proj:cam.proj,viewRot:cam.viewRot,env:{x:X,y:Y,lights:[]},px:size*k,alpha:ra*(d.fade!=null?d.fade:1),mirror:true,clip:-1});}
+  if(ra>0){gl.clear(gl.DEPTH_BUFFER_BIT);for(const d of pond)if(d._s&&d.bottle)drawBottleScene(G3.duck,d,bottleOpts(d,now,-1,ra));for(const d of pond){if(!d._s||d.bottle)continue;const[px,py]=w2s(d.x,d.y),[X,Y,k]=proj(px,py),size=d._s,bob=duckBob(d,now);
+    drawDuckScene(G3.duck,d.type,{rot:duckRot(d,now,-1),size,pos:[px-MW/2,py-MH/2,-bob],view:cam.view,proj:cam.proj,viewRot:cam.viewRot,env:{x:X,y:Y,lights:[]},px:size*k,alpha:ra*(d.fade!=null?d.fade:1),mirror:true,clip:-1});}
     if(!SCENE)buoyDraw(now,true);gl.clear(gl.DEPTH_BUFFER_BIT);} // (your buoy, mirrored too)
   for(const d of pond)if(d._s&&d.bottle){if(!envd){duckEnvUpdate(mc,now,G3.duck);envd=true;}drawBottleScene(G3.duck,d,bottleOpts(d,now,1,1));} // glass: it reflects the scene round it
   for(const d of pond){if(!d._s||d.bottle)continue;const v=DUCK_TYPES[d.type]||{},refl=v.mat==='metal'||v.mat==='gold'||v.mat==='glass',[px,py]=w2s(d.x,d.y),[X,Y,k]=proj(px,py);
     if(refl&&!envd){duckEnvUpdate(mc,now,G3.duck);envd=true;}
-    const f=duckFace(d,now),size=d._s; // upright on the plane: its forward along its heading, its up out of the plane (mirrored across, as the view flips y)
-    drawDuckScene(G3.duck,d.type,{rot:new Float32Array([f[0],f[1],0, 0,0,1, -f[1],f[0],0]),size,pos:[px-MW/2,py-MH/2,duckBob(d,now)],view:cam.view,proj:cam.proj,viewRot:cam.viewRot,env:{x:X,y:Y,lights:curLights(X,Y)},px:size*k,clip:1});}
+    const size=d._s; // upright on the plane: its forward along its heading, its up out of the plane
+    drawDuckScene(G3.duck,d.type,{rot:duckRot(d,now,1),size,pos:[px-MW/2,py-MH/2,duckBob(d,now)],view:cam.view,proj:cam.proj,viewRot:cam.viewRot,env:{x:X,y:Y,lights:curLights(X,Y)},px:size*k,clip:1});}
   if(!SCENE)buoyDraw(now,false);} // your buoy, half under the surface
 function duckBob(d,now){return d._s*(0.36+0.03*Math.sin(now/700+d.ph)-(d._sink||0)*1.3);} // how high a lake duck floats: dunked or splashing up, under the waterline
 let _glow=null;
@@ -770,7 +771,7 @@ function mapRender(){
   let st=`${clockStr()} · day ${day} · rings ${turn} · score ${score.toFixed(2)} · captures ${captureOrder.length}`;
   if(phase==='gameover')st+=txt('map.stat.gameover',gameOverReason);
   document.getElementById('score-display').textContent=st;
-  {const el=document.getElementById('turn-label'),tl=clockStr()+' · Day '+day;if(el.textContent!==tl)el.textContent=tl;document.getElementById('rest-btn').classList.toggle('on',canRest());}
+  {turnLabel(document.getElementById('turn-label'));document.getElementById('rest-btn').classList.toggle('on',canRest());}
   ptOver=mX>=0?document.elementFromPoint(mX,mY):null;statsTick(now);shopTick();discTick();feedTick(now);cursorTick(now);hubPh('hud');hubPerfFrame(now); // ptOver: one hit test a frame, before the shops move (a hit test after a style change forces a layout)
   if(!SCENE&&!document.hasFocus()&&currentView==='map'){mapRafId=setTimeout(()=>{mapRafId=requestAnimationFrame(mapRender);},1000/(T.mapIdleFps||8));hubPerf.last=0;} // the window is not in use (another window in front): a few frames a second, so a map left open costs little
   else mapRafId=requestAnimationFrame(mapRender);
@@ -938,7 +939,7 @@ const LETTER_KEY='il_letters_v1';
 const NAME_KEY='il_name_v1',BCOL_KEY='il_buoycol_v1';let playerName='',buoyCol=BUOY_COLS[0];function buoyLoad(){try{playerName=localStorage.getItem(NAME_KEY)||'';buoyCol=localStorage.getItem(BCOL_KEY)||BUOY_COLS[0];}catch(e){}}buoyLoad(); // your name and your buoy's colour (Status & collections → Buoy changes them)
 const BUOY_SIZE=0.55,buoys=[]; // every buoy on the map: yours first (friends' join it, each its own {name, x, y, …})
 const buoy={x:0,y:0,yaw:0,spin:0,mv:null,trail:null,ripAt:0,spot:{a:0,d:1},touch:0,hd:0};buoys.push(buoy);
-function buoyColours(box){box.innerHTML=BUOY_COLS.map(c=>`<span data-c="${c}" style="background:${c}"${c===buoyCol?' class="on"':''}></span>`).join('');box.onpointerover=e=>{const h=buoyColHint(e.target.dataset&&e.target.dataset.c);if(h)feed(h[0],h[1],'hint');};box.onclick=e=>{const c=e.target.dataset&&e.target.dataset.c;if(!c)return;buoyCol=c;try{localStorage.setItem(BCOL_KEY,c);}catch(e){}buoyColours(box);};} // the colours to pick from (shared.js BUOY_COLS)
+function buoyColours(box){box.innerHTML=BUOY_COL_ORDER.map(i=>BUOY_COLS[i]).map(c=>`<span data-c="${c}" style="background:${c}"${c===buoyCol?' class="on"':''}></span>`).join('');box.onpointerover=e=>{const h=buoyColHint(e.target.dataset&&e.target.dataset.c);if(h)feed(h[0],h[1],'hint');};box.onclick=e=>{const c=e.target.dataset&&e.target.dataset.c;if(!c)return;buoyCol=c;try{localStorage.setItem(BCOL_KEY,c);}catch(e){}buoyColours(box);};} // the colours to pick from (shared.js BUOY_COLS)
 function askName(){const el=document.getElementById('nameAsk'),i=el.querySelector('input'),b=el.querySelector('button'),n=el.querySelector('.nlen'); // a new game (or no name yet): your name for your buoy's sign, up to 20 characters
   const up=()=>{b.disabled=!i.value.trim();n.textContent=i.value.length+' / 20';};i.value=playerName;up();i.oninput=up;buoyColours(el.querySelector('.ncols'));
   const go=()=>{const v=i.value.trim().slice(0,20);if(!v)return;playerName=v;try{localStorage.setItem(NAME_KEY,v);}catch(e){}el.classList.remove('show');feed(v,txt('map.name.set'));};
@@ -1099,7 +1100,7 @@ function hubEvent(id){if(SCENE)return;if(disc.has('ev:'+id)||evAsked.has(id))ret
 function evPump(){if(currentView==='overlay'&&evQ.length&&nebReady){neb({cmd:'event',ids:evQ.splice(0)});return;} // joins the hand already showing
   if(currentView!=='map'||menuOpen||shopUI||letter||!nebReady||!evQ.length)return;const ids=evQ.splice(0).filter(i=>!disc.has('ev:'+i));if(!ids.length)return;currentView='overlay';showNeb(true);neb({cmd:'event',ids});} // together, as one hand
 function openGuide(){if(!nebReady||currentView!=='map')return;currentView='overlay';showNeb(true);neb({cmd:'guide'});}
-function openCollections(tab){if(!nebReady||currentView!=='map'||shopUI)return;currentView='overlay';showNeb(true);neb({cmd:'collections',tab,hist:{day,depth,score,days:dayLog.map(e=>({day:e.day,end:END_NAME[e.how||e.end]||e.end,b:e.b,d:e.d,win:e.win})),plays:playLog.filter(e=>!e.n).slice(-120).map(({day,clock,t,d})=>({day,clock,t,d}))}});} // (the run so far, for its History) // your buoy: Status and your collections, shown by the surface
+function openCollections(tab){if(!nebReady||currentView!=='map'||shopUI)return;currentView='overlay';showNeb(true);dockTell();neb({cmd:'collections',tab,hist:{day,depth,score,days:dayLog.map(e=>({day:e.day,end:END_NAME[e.how||e.end]||e.end,b:e.b,d:e.d,win:e.win})),plays:playLog.filter(e=>!e.n).slice(-120).map(({day,clock,t,d})=>({day,clock,t,d}))}});} // (the run so far, for its History) // your buoy: Status and your collections, shown by the surface
 function takeState(m){
   // a tuner just set here wins over a message the surface sent before it got it
   if(m.T){const now=performance.now();for(const k in _tuneLocal)if(now-_tuneLocal[k]<1500)m.T[k]=T[k];else delete _tuneLocal[k];T=m.T;if(SW)camUpdate();}if(m.ducks)duckLog=m.ducks;if(m.duckTypes)DUCK_TYPES=m.duckTypes;if(m.icons)icons=m.icons;if(m.inv){inv=m.inv;syncDock();}if(m.disc)disc=new Set(m.disc);if(m.defs&&m.defs.length)tuneDefs=m.defs;if(m.run)run=m.run;if(m.status)runStatus=m.status;
@@ -1147,11 +1148,15 @@ window.addEventListener('message',e=>{
 // ║  ESC MENU — sound, the Guide, the hex-layer tuners, quit to main            ║
 // ╚══════════════════════════════════════════════════════════════════════════════╝
 let menuOpen=false;
+function dockSide(top){document.body.classList.toggle('dock-top',top);try{localStorage.setItem('il_docktop',top?'1':'');}catch(e){}dockTell();} // the feed and the items: the bottom edge or the top
+function dockTell(){const d=document.getElementById('hdock'),l=document.getElementById('turn-label');neb({cmd:'dock',top:document.body.classList.contains('dock-top'),h:d?d.offsetHeight:0,lab:l?l.getBoundingClientRect().bottom:0});} // (the menus over the map keep clear of it)
+document.getElementById('hfeed').addEventListener('click',e=>{if(e.target.closest('button'))return;dockSide(!document.body.classList.contains('dock-top'));});try{if(localStorage.getItem('il_docktop'))document.body.classList.add('dock-top');}catch(e){}
+function turnLabel(el){const k=clockStr()+'|'+day;if(el._k===k)return;el._k=k;el.innerHTML=`<span>${clockStr()}</span><small>${txt('map.dayn',day)}</small>`;} // the time of day, and under it (smaller) the day
 function toggleMenu(){menuOpen=!menuOpen;document.getElementById('menu').classList.toggle('show',menuOpen);syncMenu();if(!menuOpen)evPump();}
 const soundOn=()=>!!T.soundOn;
 function setSound(on,vol){T.soundOn=on?1:0;if(vol!=null)T.masterVol=+vol;neb({cmd:'sound',on,vol:vol!=null?+vol:null});syncMenu();}
 function syncMenu(){syncModes();
-  document.getElementById('mDays').innerHTML=dayLogHTML();
+
   document.getElementById('mSnd').textContent=txt('map.sound',(soundOn()?txt('map.on'):txt('map.off')));document.getElementById('mVol').value=T.masterVol!=null?T.masterVol:0.7;
   for(const el of document.querySelectorAll('#tuneP [data-k]')){if(T[el.dataset.k]==null)continue;el.value=T[el.dataset.k];const v=el.nextElementSibling;if(v&&v._show&&document.activeElement!==v)v._show();}
 }
@@ -1373,7 +1378,7 @@ function renderShop(){const el=document.getElementById('shop');if(SCENE)requestA
   if(sp){const w=Math.min(150,sp.width*0.45),h=w*sp.height/sp.width;art.width=sp.width;art.height=sp.height;art.style.width=w+'px';art.style.height=h+'px';art.getContext('2d').drawImage(sp,0,0);}
   shopHover=null;syncDock(); // the wallet slot for the tab shown, in the dock
   document.body.classList.toggle('focus-clock',u.id==='clock');document.body.classList.toggle('focus-items',u.id==='corner'); // what the shop works on, over the dimmed map
-  const st=el.querySelector('.sstat');st.style.display=u.exit?'none':'';st.innerHTML='<div class="sth">'+txt('map.shop.status')+'</div>'+statusHTML(runStatus);{const now={};for(const tr of st.querySelectorAll('tr')){const td=tr.children;if(td.length<2)continue;const k=td[0].textContent,v=td[1].textContent;now[k]=v;if(_stPrev&&_stPrev[k]!=null&&_stPrev[k]!==v)tr.classList.add('chg');}_stPrev=now;} // a value that just changed (a purchase, a card) lights up
+  const st=el.querySelector('.sstat');st.style.display=u.exit?'none':'';st.innerHTML=STATUS_CSS+'<div class="sth">'+txt('map.shop.status')+'</div>'+statusHTML(runStatus);{const now={};for(const tr of st.querySelectorAll('tr')){const td=tr.children;if(td.length<2)continue;const k=td[0].textContent,v=td[1].textContent;now[k]=v;if(_stPrev&&_stPrev[k]!=null&&_stPrev[k]!==v)tr.classList.add('chg');}_stPrev=now;} // a value that just changed (a purchase, a card) lights up
   card.innerHTML=`<h2>${(u.exit?txt('map.exit'):(u.pick?txt('map.pick_a_duck'):S.n))}</h2><div class="stag">${(u.exit?txt('map.gift.ask'):(u.pick?txt('map.ninety_nine_ducks_for'):S.tag))}</div>`+
     (curs.length&&!u.pick&&!u.exit?'<div class="stabs">'+curs.map(c=>`<span class="${c===u.tab?'on':''}" data-t="${c}">${curIcon(c)}</span>`).join('')+'</div>':'')+'<div class="srows">'+ // a tab for each thing it takes, by its symbol (one alone stays as the open tab)
     rows.map((r,i)=>r.c?`<div class="srow c" data-i="${i}"><span>${r.n}<br>${r.sub}</span></div>`:
