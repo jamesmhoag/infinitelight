@@ -464,6 +464,14 @@ const CLOCK_HOURS=[3,6,9,12,15,18,21,24],CLOCK_MULT=[1,2,3,5,8,13,21,34,55]; // 
 const XACT={dim:{buy:9,sell:8.5,up:1.5,down:3.5},magnetic:{buy:0.1,sell:0.085,up:0.015,down:0.035},neutron:{buy:0.1,sell:0.085,up:0.015,down:0.035},pulsing:{buy:0.1,sell:0.085,up:0.015,down:0.035}}; // XACT change: how many of each for one Bright; sold back at sell / buy of what it cost (a little less); a fortune moves the sell rate, a wonder both (×1.1 / ×0.9)
 function xactRate(k,run){const X=XACT[k],g=runGood(run),w=runBonus(run,'xup')?1.1:runBonus(run,'xdown')?0.9:1,sell=Math.max(0,X.sell+(g&&(FORTUNE_GOOD[g.id]||{}).xsell?X.up:0)-(runBad(run,'xsell')?X.down:0));return{buy:X.buy*w,sell:sell/X.buy*w/X.buy};} // buy: units per Bright; sell: Bright per unit
 const xactGets=(it,run)=>it.fx.xbuy?Math.floor(it.cost*xactRate(it.fx.xbuy,run).buy):it.fx.xsell?Math.floor(it.cost*xactRate(it.fx.xsell,run).sell):0; // what a lot gets you
+// ── Tuners (the surface's Tune panel, Build mode's, and the Surface Map's: one behaviour) ──
+function tuneFmt(v,step){if(step>=1&&v>=10000)return Math.round(v).toLocaleString('en-US');return step<0.005?v.toFixed(4):step<0.01?v.toFixed(3):step<0.1?v.toFixed(2):step<1?v.toFixed(1):v.toString();} // as many places as its step has
+function tuneSnap(d,v){v=parseFloat(String(v).replace(/,/g,''));if(!isFinite(v))return null;const st=+d.step||0,mn=+d.min,mx=+d.max;v=Math.max(mn,Math.min(mx,v));if(st>0)v=mn+Math.round((v-mn)/st)*st;return Math.max(mn,Math.min(mx,+v.toFixed(6)));} // a typed value: within its range, on its nearest step
+function tuneValInput(d,get,set){ // the value beside a tuner's slider, and a box to type one in: Enter (or leaving it) sets it, corrected to its range and nearest step; Esc puts it back
+  const el=document.createElement('input');el.type='text';el.inputMode='decimal';el.className='tval';el.spellcheck=false;const show=()=>{el.value=tuneFmt(+get(),+d.step||0);};show();
+  const go=()=>{const v=tuneSnap(d,el.value);if(v!=null)set(v);show();};
+  el.addEventListener('keydown',e=>{e.stopPropagation();if(e.key==='Enter'){go();el.blur();}else if(e.key==='Escape'){show();el.blur();}}); // (typing here is not a game key)
+  el.addEventListener('change',go);el.addEventListener('focus',()=>el.select());el._show=show;return el;}
 /* Test mode (Modes → Test mode, on the map and on a surface; each player's own). mode: on (the save was snapshotted as it came on, and is put back as it goes off);
    free: every price is 0 (still only up to each purse's cap). On by default with test mode, with everything discovered, unlocked and filled */
 const TEST={get(k){try{return (JSON.parse(localStorage.getItem('il_test')||'{}')||{})[k];}catch(e){return null;}},set(k,v){let o={};try{o=JSON.parse(localStorage.getItem('il_test')||'{}')||{};}catch(e){}o[k]=v;try{localStorage.setItem('il_test',JSON.stringify(o));}catch(e){}}};

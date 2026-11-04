@@ -40,7 +40,7 @@ button:hover{background:rgba(255,255,255,0.15);}
 #tunePanel .row{display:flex;align-items:center;padding:2px 12px 2px 10px;gap:6px;box-sizing:border-box;}
 #tunePanel .row label{font:10px/1 monospace;color:rgba(255,255,255,0.6);width:80px;flex-shrink:0;}
 #tunePanel .row input[type=range]{flex:1;min-width:0;height:12px;accent-color:#888;cursor:pointer;}
-#tunePanel .row .val{font:10px/1 monospace;color:rgba(255,255,255,0.4);width:36px;flex-shrink:0;text-align:right;}
+#tunePanel .row .tval{font:10px/1 monospace;color:rgba(255,255,255,0.55);width:46px;flex-shrink:0;text-align:right;background:transparent;border:1px solid transparent;border-radius:2px;padding:2px 3px;cursor:text;}#tunePanel .row .tval:hover{border-color:rgba(255,255,255,0.2)}#tunePanel .row .tval:focus{outline:none;border-color:rgba(255,255,255,0.5);color:#fff;background:rgba(255,255,255,0.06)}
 #modesPanel{position:absolute;top:calc(36px + var(--hud-dy,0px));left:10px;width:170px;background:rgba(0,0,0,0.88);border:1px solid rgba(255,255,255,0.12);border-radius:6px;z-index:20;display:none;padding:6px;}
 #modesPanel button{display:block;width:100%;margin:3px 0;text-align:left;}
 #modesPanel .div{border-top:1px solid rgba(255,255,255,0.1);margin:5px 0;}#modesPanel .ttl{font-size:10px;letter-spacing:1px;color:#888;margin:2px 2px 0;text-transform:uppercase;}
@@ -120,7 +120,7 @@ button:hover{background:rgba(255,255,255,0.15);}
   <div id="dock" class="bottom"><div id="inventoryPanel"></div><div id="touch-info"></div></div>
   <canvas id="cur"></canvas>
 </div>
-<script src="content.js?v=20261104u"></script><script src="shared.js?v=20261104u"></script>
+<script src="content.js?v=20261104v"></script><script src="shared.js?v=20261104v"></script>
 <script>
 txtApply(); // the page's own labels (content/strings.csv)
 const _SRC=document.documentElement.outerHTML; // kept so the Encyclopedia can run live scenes as embedded copies of the game
@@ -438,15 +438,7 @@ let baseScale=1,dilations=[],dilLast=0,dilSlow=0,risksOn=false,_glAt=0,_bhSF=-1,
 
 TUNE_DEFS.push({sec:txt('tune.sec.popranks'),tab:'map'});
 for(const id in SHOPS){const S=SHOPS[id];if(S.street)continue;for(let i=1;i<=3;i++){const k=shopTK(S.cur)+i;T[k]=S.at[i-1];TUNE_DEFS.push({key:k,label:txt('tune.poprank.label',S.n.slice(0,18),i),min:0,max:9999999,step:1,tip:txt('tune.poprank.tip',S.cur,i,S.n)});}} // (their defaults: content/shops.csv)
-let tuneTab='gameplay',tuneFilter='',tuneSel=null,tuneBuf='';
-document.addEventListener('keydown',e=>{ // type digits / '.' to set the last-touched tuner row; clamps to its min/max and snaps to its step
-  if(!tuneSel||!/^[0-9.]$|^Backspace$/.test(e.key)||e.ctrlKey||e.metaKey||e.altKey)return;
-  const t=e.target;if(t&&(t.type==='search'||t.tagName==='SELECT'||t.tagName==='TEXTAREA'))return;
-  e.preventDefault();tuneBuf=e.key==='Backspace'?tuneBuf.slice(0,-1):tuneBuf+e.key;
-  let v=parseFloat(tuneBuf);if(isNaN(v))return;const {inp,def,val}=tuneSel;
-  v=Math.max(def.min,Math.min(def.max,v));v=def.min+Math.round((v-def.min)/def.step)*def.step;v=Math.max(def.min,Math.min(def.max,+v.toFixed(6)));
-  inp.value=v;T[def.key]=v;val.textContent=fmt(v,def.step);debounceSave();
-});
+let tuneTab='gameplay',tuneFilter='';
 const tuneTabs=()=>{const all=[...new Set(TUNE_DEFS.map(d=>d.tab).filter(Boolean))],P=['theme','gameplay','sounds','map','discoveries'];return all.sort((a,b)=>(P.indexOf(a)+99)%99-(P.indexOf(b)+99)%99);}; // (in this order, any other after)
 function setTuneTab(t){tuneTab=t;buildTunePanel();}
 window.setTuneTab=setTuneTab;
@@ -490,14 +482,12 @@ function buildTunePanel(){
       continue;
     }
     const inp=document.createElement('input');inp.type='range';inp.min=def.min;inp.max=def.max;inp.step=def.step;inp.value=T[def.key];inp.dataset.key=def.key;
-    const val=document.createElement('span');val.className='val';val.textContent=fmt(T[def.key],def.step);
-    inp.addEventListener('input',()=>{
-      T[def.key]=parseFloat(inp.value);val.textContent=fmt(T[def.key],def.step);debounceSave();tuneSel={inp,def,val};tuneBuf='';if(def.key==='masterVol')setSound(!audioMuted,T.masterVol);
-    });
-    inp.addEventListener('pointerdown',()=>{tuneSel={inp,def,val};tuneBuf='';});row.appendChild(lbl);row.appendChild(inp);row.appendChild(val);addTestBtn();panel.appendChild(row);
+    const set=v=>{T[def.key]=v;inp.value=v;debounceSave();if(def.key==='masterVol')setSound(!audioMuted,T.masterVol);},val=tuneValInput(def,()=>T[def.key],set); // (type a value in its box)
+    inp.addEventListener('input',()=>{set(parseFloat(inp.value));val._show();});
+    row.appendChild(lbl);row.appendChild(inp);row.appendChild(val);addTestBtn();panel.appendChild(row);
   }
 }
-function fmt(v,step){if(step>=1&&v>=10000)return Math.round(v).toLocaleString('en-US');return step<0.005?v.toFixed(4):step<0.01?v.toFixed(3):step<0.1?v.toFixed(2):step<1?v.toFixed(1):v.toString();}
+const fmt=tuneFmt; // (shared.js)
 let tuneOpen=false;
 function toggleTune(){
   tuneOpen=!tuneOpen;
@@ -12766,7 +12756,7 @@ function cardHTML(ev,mini){ // the one card format: name bar, art box, type line
   return `<div class="mtg${mini?' sm':''}" data-ev="${ev.id}" style="--rc:${TIER_COL[t]}"><div class="nm"><b>${gEsc(ev.name)}</b><span class="gem"></span></div><div class="art" data-scene="${ev.scene}">${mini?`<canvas class="rl-m" width="64" height="64" data-k="${ev.ico}"></canvas>`:''}</div><div class="ty"><span>${gEsc(ev.type.replace(/^Event — /,''))}</span><span>Tier ${TIER[t]}</span></div><div class="tx">${(mini?ev.facts().slice(0,1):ev.facts()).map(f=>`<p${ev.fx?' class="fx"':''}>${gEsc(f)}</p>`).join('')}${ev.flavor?`<p class="fl">${gEsc(ev.flavor)}</p>`:''}</div></div>`; // (small: its first line and its flavour; the rest when it is opened) (fx: the lines are changes to play, set apart from the flavour)
 }
 function mountScene(h,w,hh){if(!h||h.firstChild||document.querySelectorAll('.rl-live iframe,.mtg .art iframe').length>=5)return;const f=document.createElement('iframe'),nm=h.dataset.s||h.dataset.scene;f.style.cssText='border:0;max-width:100%;pointer-events:none;background:#000;border-radius:6px;'+(w?`width:${w}px;height:${hh}px`:'width:100%;height:100%');
-  if(nm.slice(0,4)==='hub:'){const[sn,dk]=nm.slice(4).split(':');f.src='Surface_Map_HUB.html?v=20261104u&scene='+sn+'&T='+encodeURIComponent(JSON.stringify(mapSceneT()))+'&D='+encodeURIComponent(JSON.stringify(dk&&DUCK_TYPES[dk]?{[dk]:DUCK_TYPES[dk]}:Object.fromEntries(Object.entries(DUCK_TYPES).slice(0,4))));}else f.srcdoc=liveSrc(nm);h.appendChild(f);} // a Surface Map demo is played by the map itself
+  if(nm.slice(0,4)==='hub:'){const[sn,dk]=nm.slice(4).split(':');f.src='Surface_Map_HUB.html?v=20261104v&scene='+sn+'&T='+encodeURIComponent(JSON.stringify(mapSceneT()))+'&D='+encodeURIComponent(JSON.stringify(dk&&DUCK_TYPES[dk]?{[dk]:DUCK_TYPES[dk]}:Object.fromEntries(Object.entries(DUCK_TYPES).slice(0,4))));}else f.srcdoc=liveSrc(nm);h.appendChild(f);} // a Surface Map demo is played by the map itself
 function mapSceneT(){const o={};for(const k in T)if(/^(map|bh|duck|wake|glass|metal|dimGlow|glowHalo|maxSpeed)/.test(k))o[k]=T[k];return o;} // what a map demo needs of the tuners
 function showCardHTML(html){ // a Guide card (an entry or a shop) opened over the Guide, where an event card shows
   guideCSS();_evOpen=true;_evReview=true;const ov=evOverlayEl();ov.innerHTML=`<div class="ev-box">${html}<button id="evOk">${txt('card.close')}</button></div>`;ov.style.display='flex';wrap.classList.add('ev-open');

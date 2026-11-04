@@ -78,7 +78,7 @@ body.scene .hbtn,body.scene:not(.scene-shops) #shops,body.scene #hdock,body.scen
 #tuneP{left:16px;width:330px;max-height:calc(100vh - 140px);flex-direction:column;overflow:hidden}
 #tuneP .tabs{display:flex;flex-wrap:wrap;gap:3px;padding:6px}#tuneP .tabs button{flex:1 1 auto;white-space:nowrap}#tuneP input[type=search]{margin:0 6px 6px;font:11px monospace;background:#111;color:#eee;border:1px solid #333;padding:3px 5px}
 #tuneP .rows{overflow:auto;padding:0 8px 8px}#tuneP .sec{opacity:.55;margin:8px 0 3px;text-transform:uppercase;letter-spacing:1px;font-size:10px}
-#tuneP .row{display:flex;gap:6px;align-items:center;margin:2px 0}#tuneP .row>span{flex:0 0 130px;font-size:11px;opacity:.85;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}#tuneP .row b{flex:0 0 52px;font-weight:400;text-align:right}#tuneP input[type=range],#tuneP select{flex:1;min-width:0}
+#tuneP .row{display:flex;gap:6px;align-items:center;margin:2px 0}#tuneP .row>span{flex:0 0 130px;font-size:11px;opacity:.85;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}#tuneP .row .tval{flex:0 0 52px;width:52px;font:11px 'Share Tech Mono',monospace;color:#ccc;text-align:right;background:transparent;border:1px solid transparent;border-radius:2px;padding:2px 3px;cursor:text}#tuneP .row .tval:hover{border-color:rgba(255,255,255,0.2)}#tuneP .row .tval:focus{outline:none;border-color:rgba(255,255,255,0.5);color:#fff;background:rgba(255,255,255,0.06)}#tuneP input[type=range],#tuneP select{flex:1;min-width:0}
 #hstats{position:absolute;top:96px;right:16px;z-index:10;display:none;font:10px/1.55 'Share Tech Mono',monospace;color:rgba(255,255,255,0.6);text-align:right;white-space:pre;background:rgba(0,0,0,0.45);padding:6px 9px;border-radius:5px}#hstats.show{display:block}
 body.ui-hidden .hbtn,body.ui-hidden #legend,body.ui-hidden #bottom-bar,body.ui-hidden #hstats,body.ui-hidden #mModes,body.ui-hidden #tuneP{display:none!important} /* ~: everything but the time of day, the inventory (reduced) and its feed */
 /* shops: upright on the plane (placed through the camera each frame); open ones glow like neon */
@@ -163,7 +163,7 @@ body.shop-open #hdock{z-index:59}#hinv .slot.wal::before{border-color:rgba(255,2
 <div id="veil"></div>
 <div id="bfx"></div>
 <iframe id="neb" data-tt="map.ui.surface"></iframe>
-<script src="content.js?v=20261104u"></script><script src="shared.js?v=20261104u"></script>
+<script src="content.js?v=20261104v"></script><script src="shared.js?v=20261104v"></script>
 <script>
 // ╔══════════════════════════════════════════════════════════════════════════════╗
 // ║  MAP ENGINE                                                                 ║
@@ -182,7 +182,7 @@ let clock=3,day=1,pool=6,fresh=true,burstFx=null,dayLog=[],dayCnt={b:0,d:0},pend
 // // clock: the hour (3 = Twilight … 24 = Midnight, the day's last turn); day: your attempts; pool: what the source put out at its last burst; fresh: no ring added yet since it
 let constel=[],armed=null,weaveSel=[],weaveAsk=null,clearFx={},mergeFx=[],feedMsg={t:'',d:'',at:-1e9}; // constellations {keys,type}; the armed map item; a Weave being drawn; animations; the final count
 const STEP_H=3; // the day: eight turns of three hours
-const CACHE_V='20261104u'; // the build: bump with shared.js's
+const CACHE_V='20261104v'; // the build: bump with shared.js's
 const SCENE=new URLSearchParams(location.search).get('scene'); // a Guide / event demo: the map plays a scripted moment (no surface behind it)
 let phase='move',turnTimer=0,mergeTimer=0;
 let gameOverReason='';
@@ -1132,14 +1132,14 @@ function setSound(on,vol){T.soundOn=on?1:0;if(vol!=null)T.masterVol=+vol;neb({cm
 function syncMenu(){syncModes();
   document.getElementById('mDays').innerHTML=dayLogHTML();
   document.getElementById('mSnd').textContent=txt('map.sound',(soundOn()?txt('map.on'):txt('map.off')));document.getElementById('mVol').value=T.masterVol!=null?T.masterVol:0.7;
-  for(const el of document.querySelectorAll('#tuneP [data-k]')){if(T[el.dataset.k]==null)continue;el.value=T[el.dataset.k];if(el.nextElementSibling)el.nextElementSibling.textContent=+(+T[el.dataset.k]).toFixed(2);}
+  for(const el of document.querySelectorAll('#tuneP [data-k]')){if(T[el.dataset.k]==null)continue;el.value=T[el.dataset.k];const v=el.nextElementSibling;if(v&&v._show&&document.activeElement!==v)v._show();}
 }
 const _tuneLocal={};
 function tuneSet(k,v){T[k]=v;_tuneLocal[k]=performance.now();neb({cmd:'tune',T:{[k]:v}});if(k==='mapHexSize'){HEX=T.mapHexSize;focusCam(false);}if(/^map(Tilt|Persp|Zoom(Min|Max))$/.test(k))mapResize();syncRenderSig();syncMenu();} // a tuner changed here: the surface keeps and saves it
 function tuneRows(box,defs){ // the surface's own tuner definitions (one source), as rows: a slider, or a choice
   box.innerHTML='';for(const d of defs){if(d.sec){const h=document.createElement('div');h.className='sec';h.textContent=d.sec;box.appendChild(h);continue;}const r=document.createElement('div');r.className='row';r.title=d.tip||'';
-    r.innerHTML=d.type==='select'?`<span>${d.label}</span><select data-k="${d.key}">${(d.options||[]).map(o=>`<option>${o}</option>`).join('')}</select>`:`<span>${d.label}</span><input type="range" min="${d.min}" max="${d.max}" step="${d.step}" data-k="${d.key}"><b></b>`;
-    const el=r.querySelector('[data-k]');el.addEventListener(d.type==='select'?'change':'input',e=>tuneSet(d.key,d.type==='select'?e.target.value:+e.target.value));box.appendChild(r);}
+    r.innerHTML=d.type==='select'?`<span>${d.label}</span><select data-k="${d.key}">${(d.options||[]).map(o=>`<option>${o}</option>`).join('')}</select>`:`<span>${d.label}</span><input type="range" min="${d.min}" max="${d.max}" step="${d.step}" data-k="${d.key}">`;
+    const el=r.querySelector('[data-k]');el.addEventListener(d.type==='select'?'change':'input',e=>tuneSet(d.key,d.type==='select'?e.target.value:+e.target.value));if(d.type!=='select')r.appendChild(tuneValInput(d,()=>T[d.key],v=>tuneSet(d.key,v)));box.appendChild(r);} // (type a value in its box, as on a surface)
   syncMenu();}
 function buildTune(){buildTuneP();} // the Tune panel: every tuner, the map's own on its Surface Map tab
 let tuneTabM='map',tuneQ=''; // (on the map, its own tab first)
