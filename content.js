@@ -5,7 +5,7 @@
 // ── Players (every page): each player saved in this browser has their own save. Player 1's keys are as they always were; player n's are
 // 'p<n>:'-prefixed (localStorage, and the IndexedDB session), so every page reads and writes the chosen player's without knowing it. The player
 // is chosen on the title screen (Continue asks which, when there is more than one) and kept for this tab (sessionStorage), or ?profile=n.
-const IL_SHARED_KEYS=new Set(['il_profiles','il_dockmin','il_map_modes','il_pondmode','nebula-config']); // (the same for every player: the setup, not the save)
+const IL_SHARED_KEYS=new Set(['il_profiles','il_dockmin','il_map_modes','il_pondmode','nebula-config','il_test']); // (the same for every player: the setup, not the save)
 const IL_PROFILE=(()=>{let p=null;try{p=new URLSearchParams(location.search).get('profile');if(p)sessionStorage.setItem('il_profile',p);else p=sessionStorage.getItem('il_profile');}catch(e){}return Math.max(1,parseInt(p)||1);})();
 const IL_PRE=n=>n>1?'p'+n+':':'',_lsGet=Storage.prototype.getItem,_lsSet=Storage.prototype.setItem;
 const profileGet=(n,k)=>{try{return _lsGet.call(localStorage,IL_SHARED_KEYS.has(k)?k:IL_PRE(n)+k);}catch(e){return null;}}; // another player's saved value

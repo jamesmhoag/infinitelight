@@ -74,7 +74,7 @@ body.scene .hbtn,body.scene:not(.scene-shops) #shops,body.scene #hdock,body.scen
 #mModes,#tuneP{position:absolute;top:46px;z-index:25;display:none;background:rgba(0,0,0,0.86);border:1px solid rgba(255,255,255,0.14);border-radius:6px;font:11px 'Share Tech Mono',monospace;color:#ddd}
 #mModes{left:182px;padding:5px;flex-direction:column;gap:3px}#mModes.show,#tuneP.show{display:flex}#mModes button{text-align:left}
 #mModes button,#tuneP button{font:11px 'Share Tech Mono',monospace;padding:4px 9px;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.14);color:#ccc;border-radius:3px}
-#mModes button.on,#tuneP button.on{background:rgba(255,220,120,0.22);border-color:rgba(255,220,120,0.7);color:#fff}
+#mModes .ttl{font-size:10px;letter-spacing:1px;color:#888;margin:4px 2px 0;text-transform:uppercase;border-top:1px solid rgba(255,255,255,0.1);padding-top:5px}#mModes button.on,#tuneP button.on{background:rgba(255,220,120,0.22);border-color:rgba(255,220,120,0.7);color:#fff}
 #tuneP{left:16px;width:330px;max-height:calc(100vh - 140px);flex-direction:column;overflow:hidden}
 #tuneP .tabs{display:flex;flex-wrap:wrap;gap:3px;padding:6px}#tuneP .tabs button{flex:1 1 auto;white-space:nowrap}#tuneP input[type=search]{margin:0 6px 6px;font:11px monospace;background:#111;color:#eee;border:1px solid #333;padding:3px 5px}
 #tuneP .rows{overflow:auto;padding:0 8px 8px}#tuneP .sec{opacity:.55;margin:8px 0 3px;text-transform:uppercase;letter-spacing:1px;font-size:10px}
@@ -133,7 +133,7 @@ body.shop-open #hdock{z-index:59}#hinv .slot.wal::before{border-color:rgba(255,2
   <button class="hbtn" id="menu-btn" onclick="toggleMenu()" data-tx="map.ui.menu_esc"></button>
   <button class="hbtn" id="modes-btn" data-disc="hud_modes" onclick="togglePanel('mModes')" data-tx="map.ui.modes"></button>
   <button class="hbtn" id="tune-btn" data-disc="hud_tune" onclick="togglePanel('tuneP')" data-tx="map.ui.tune"></button>
-  <div id="mModes"><button id="mdTel" data-disc="mode_telemetry" onclick="setMapMode('tel')" data-tx="map.ui.telemetry_hex_values"></button><button id="mdStats" onclick="setMapMode('stats')" data-tx="map.ui.stats_frames_hexes"></button><button onclick="downloadHubLog()" data-tx="map.ui.performance_log"></button></div>
+  <div id="mModes"><button id="mdTel" data-disc="mode_telemetry" onclick="setMapMode('tel')" data-tx="map.ui.telemetry_hex_values"></button><button id="mdStats" onclick="setMapMode('stats')" data-tx="map.ui.stats_frames_hexes"></button><button onclick="downloadHubLog()" data-tx="map.ui.performance_log"></button><div class="ttl" data-tx="test.title"></div><button data-test="free" onclick="testFree();renderShop()"></button><button onclick="neb({cmd:'test',f:'discAll'})" data-tx="test.discover_all"></button><button onclick="neb({cmd:'test',f:'testFill'})" data-tx="test.fill"></button></div>
   <div id="tuneP"><div class="tabs"></div><input type="search" data-tp="map.ui.filter_settings"><div class="rows"></div></div>
   <div id="hstats"></div>
   <button class="hbtn" id="restart-btn" data-disc="hub_restart" onclick="if(confirm(txt('map.confirm.newmap')))initGame()" data-tx="map.ui.new_map"></button>
@@ -1130,7 +1130,7 @@ document.querySelector('#tuneP input[type=search]').addEventListener('input',e=>
 let mapMode={tel:0,stats:0};try{Object.assign(mapMode,JSON.parse(localStorage.getItem('il_map_modes')||'{}'));}catch(e){}
 function togglePanel(id){for(const o of ['mModes','tuneP'])document.getElementById(o).classList.toggle('show',o===id&&!document.getElementById(o).classList.contains('show'));}
 function setMapMode(k){mapMode[k]=mapMode[k]?0:1;try{localStorage.setItem('il_map_modes',JSON.stringify(mapMode));}catch(e){}syncModes();}
-function syncModes(){document.getElementById('mdTel').classList.toggle('on',!!mapMode.tel);document.getElementById('mdStats').classList.toggle('on',!!mapMode.stats);document.getElementById('hstats').classList.toggle('show',!!mapMode.stats);}
+function syncModes(){testSync();document.getElementById('mdTel').classList.toggle('on',!!mapMode.tel);document.getElementById('mdStats').classList.toggle('on',!!mapMode.stats);document.getElementById('hstats').classList.toggle('show',!!mapMode.stats);}
 function telemetryLayer(){ // on the plane, over each hex on screen: its value, and how covered or what it is
   const fs=Math.max(7,HEX*0.21);mctx.save();mctx.font=`${fs}px 'Share Tech Mono',monospace`;mctx.textAlign='center';mctx.textBaseline='middle';
   for(const k in cells){const c=cells[k];const[sx,sy]=w2s(...a2w(c.q,c.r));if(sx<-HEX||sx>MW+HEX||sy<-HEX||sy>MH+HEX)continue;
@@ -1268,7 +1268,7 @@ function renderShop(){const el=document.getElementById('shop');el.classList.togg
   card.querySelectorAll('.stabs span').forEach(t=>{t.onclick=()=>{u.tab=t.dataset.t;renderShop();};t.onmouseenter=()=>{const c=t.dataset.t;shopHover=[curName(c),txt(rows.length===1?'map.shop.tab1':'map.shop.tab',fmtN(shopWallet(c)),rows.length)];};t.onmouseleave=()=>{shopHover=null;};});
   applyDisc();}
 function shopBuy(it,arg){
-  if(it.fx.souv){if(giftWallet<it.cost){feed(it.n,txt('map.you_need_bright',fmtN(it.cost)));return;}giftWallet-=it.cost;const sv=souvenirs();sv[it.id]=(sv[it.id]||0)+1;try{localStorage.setItem(SOUV_KEY,JSON.stringify(sv));}catch(e){}feed(txt('map.souvenir',it.n),txt('map.kept_whatever_comes_next'));renderShop();return;}
+  if(it.fx.souv){const pr=shopPrice(it,run);if(giftWallet<pr){feed(it.n,txt('map.you_need_bright',fmtN(it.cost)));return;}giftWallet-=pr;const sv=souvenirs();sv[it.id]=(sv[it.id]||0)+1;try{localStorage.setItem(SOUV_KEY,JSON.stringify(sv));}catch(e){}feed(txt('map.souvenir',it.n),txt('map.kept_whatever_comes_next'));renderShop();return;}
   buySnap={had:buyTake(),it,at:performance.now()};neb({cmd:'buy',id:it.id,arg});}
 let buySnap=null,shopFlash=null,_stPrev=null; // a purchase on its way (what you had, so what it spent and gave shows once the surface answers); the row last bought; the Status values last shown
 const BUY_KINDS=['bright','dim','neutron','magnetic','pulsing','duck','leash','dial','weave','prism','knot','gate','key','lens'],dockFx={};
