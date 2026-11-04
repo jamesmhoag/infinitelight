@@ -842,3 +842,13 @@ value.string_seconds,runT('flockSecondsPerLeash'),values (shared: any text can u
 value.weave_seconds,runT('weaveSeconds'),values (shared: any text can use {weave_seconds}),seconds a Weave needs (today)
 value.letters_total,LETTERS.length,values (shared: any text can use {letters_total}),letters there are
 value.rift_mass,Math.round(runT('riftMass')).toLocaleString(),values (shared: any text can use {rift_mass}),mass in one place that tears a Rift (today)
+test.title,Testing,Modes menu,
+test.free_off,Free purchases: OFF,Modes menu,
+test.free_on,Free purchases: ON,Modes menu,
+test.discover_all,Discover everything,Modes menu,
+test.fill,Fill every item,Modes menu,
+test.clear_bright,Clear: bright,Modes menu,
+test.clear_dark,Clear: dark,Modes menu,
+test.clear_rift,Clear: rift,Modes menu,
+test.discovered_all,Everything is discovered,Modes menu,
+test.filled,Every item is full,Modes menu,
