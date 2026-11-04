@@ -183,11 +183,12 @@ function duckCtx(gl){
     'float g=0.5+0.5*sin(vU.x*0.33+4.0*sin(vU.y*0.06+vU.x*0.01)+vU.y*0.04);vec3 eC=vec3(0.98),lC=vec3(0.086,0.086,0.1);'+
     'if(m==1.0){eC=uC1*(1.05+0.35*g);lC=uC1*(0.22+0.12*g);}'+ // wood: wooden eyes, darkened wood in the mouth and lines
     'c=mix(c,eC,eye);c=mix(c,lC,ln);'+
-    'vec3 env=vec3(0.0),gs=vec3(0.0);if(m==2.0||m==3.0||m==7.0){vec3 r=reflect(-V,n);env=texture2D(uEnv,clamp(uEP.xy-r.xy*uEP.z+vec2(vP.x,-vP.y)*uEW,0.0,1.0)).rgb;'+
+    'vec3 env=vec3(0.0),gs=vec3(0.0),lt=vec3(0.0);if(m==13.0){for(int i=0;i<6;i++){if(uLd[i].w>0.0){vec3 l=normalize(uLd[i].xyz);lt+=uLc[i]*uLd[i].w*(max(0.0,dot(n,l))+0.6*pow(max(0.0,dot(n,normalize(l+V))),24.0));}}}'+ // a painted model in a light: its diffuse, and a soft sheen
+    'if(m==2.0||m==3.0||m==7.0){vec3 r=reflect(-V,n);env=texture2D(uEnv,clamp(uEP.xy-r.xy*uEP.z+vec2(vP.x,-vP.y)*uEW,0.0,1.0)).rgb;'+
     'for(int i=0;i<6;i++){if(uLd[i].w>0.0)gs+=uLc[i]*uLd[i].w*pow(max(0.0,dot(n,normalize(normalize(uLd[i].xyz)+V))),90.0);}}'+ // (empty light slots are skipped: normalize(0) is NaN)
     'vec3 col;float a=1.0;bool em=m==13.0&&((vU.z>0.5&&vU.z<1.5)||vU.z>2.5);if(uEo>0.5&&!em){gl_FragColor=vec4(0.0);return;}'+ // em: what glows on a painted model (uEo: draw only that — a shop's neon glow is blurred from it)
     'if(m==1.0){col=c*(0.62+0.32*g)*(0.35+0.75*dif)+pow(nh,12.0)*0.12*uGl;}'+
-    'else if(m==13.0){vec4 t=texture2D(uImg,vU.xy);if(t.a<0.5)discard;col=vU.z>2.5?t.rgb*(0.5+0.3*max(0.0,n.y)+0.3*max(0.0,n.z)):vU.z>1.5?vec3(0.13,0.13,0.15)*(0.45+0.6*dif):vU.z>0.5?t.rgb:t.rgb*(0.3+0.8*dif)+pow(nh,30.0)*0.04;}'+ // Painted (a shop): its texture (uv in vU.xy), lit by the sun; vU.z 1 = glowing (an open shop\'s sign and lamp), 2 = the back of a sign, 3 = inside an open shop (lit by its lamp)
+    'else if(m==13.0){vec4 t=texture2D(uImg,vU.xy);if(t.a<0.5)discard;col=vU.z>2.5?t.rgb*(0.5+0.3*max(0.0,n.y)+0.3*max(0.0,n.z)):vU.z>1.5?vec3(0.13,0.13,0.15)*(0.45+0.6*dif):vU.z>0.5?t.rgb+t.rgb*lt*0.4:t.rgb*(0.3+0.8*dif+lt)+pow(nh,30.0)*0.04;}'+ // Painted (a shop): its texture (uv in vU.xy), lit by the sun; vU.z 1 = glowing (an open shop\'s sign and lamp), 2 = the back of a sign, 3 = inside an open shop (lit by its lamp)
     'else if(m==3.0){float sp=(pow(nh,80.0)*1.6+rim*0.6)*uGl;col=c*(0.7*(0.55+0.5*dif)+0.25*edg)+sp+env*uEA*(0.3+0.7*edg)+gs;a=min(1.0,0.42+0.55*pow(edg,1.5)+sp/1.2+ln*0.6);}'+
     'else if(m==2.0||m==7.0){float au=m==7.0?1.0:0.0;vec3 r=reflect(-V,n);float el=dot(env,vec3(0.3,0.59,0.11)),hz=smoothstep(-0.2,0.25,r.y),fr=pow(edg,2.0);'+ // Metal and Gold: a chrome-style horizon split and the scene's brightness drive a dark → metal → bright ramp, so both read as polished metal
     'float s=0.02+0.42*dif*hz+0.3*hz+1.1*el*uEA+0.35*fr*hz;vec3 g0=mix(c*0.07,vec3(0.13,0.06,0.01),au),g2=mix(vec3(1.0),vec3(1.0,0.95,0.7),au),gt=mix(vec3(1.0),vec3(1.0,0.82,0.42),au);'+ // steel: near-black → silver → white; gold: dark bronze → gold → pale gold
@@ -248,10 +249,11 @@ function duckBind(G,M,env,hpx){ // everything a duck draw shares: its mesh and m
     gl.activeTexture(gl.TEXTURE2);gl.bindTexture(gl.TEXTURE_2D,t);gl.uniform1i(u.uImg,2);}
   gl.uniform1f(u.uEo,M.eo?1:0);gl.uniform1f(u.uEW,M.ew||0);
   const refl=M.mat===2||M.mat===3||M.mat===7,ld=new Float32Array(24),lc=new Float32Array(18);
-  if(refl&&env){gl.uniform3f(u.uEP,1-env.x/Math.max(1,W),env.y/Math.max(1,H),0.22);gl.uniform1f(u.uEA,M.mat===3?T.glassReflect:T.metalReflA);
-    (env.lights||[]).slice(0,6).forEach((l,i)=>{const dx=l[0]-env.x,dy=-(l[1]-env.y),dz=Math.max(20,l[6]*0.6),mix=v=>(v+255*1.6)/2.6/255; // glints mostly white, tinted by the light (as on the game's metal)
-      ld.set([dx,dy,dz,l[5]*T.metalLightA],i*4);lc.set([mix(l[2]),mix(l[3]),mix(l[4])],i*3);});}
+  if(refl&&env){gl.uniform3f(u.uEP,1-env.x/Math.max(1,W),env.y/Math.max(1,H),0.22);gl.uniform1f(u.uEA,M.mat===3?T.glassReflect:T.metalReflA);}
   else{gl.uniform3f(u.uEP,0.5,0.5,0.22);gl.uniform1f(u.uEA,refl?0.5:0);}
+  if(env&&(refl||M.mat===13)){ // the lights near it: glints on metal and glass, and light on a painted model (a shop in the buoy's light)
+    (env.lights||[]).slice(0,6).forEach((l,i)=>{const dx=l[0]-env.x,dy=-(l[1]-env.y),dz=Math.max(20,l[6]*0.6),mix=v=>(v+255*1.6)/2.6/255; // glints mostly white, tinted by the light (as on the game's metal)
+      ld.set([dx,dy,dz,l[5]*(M.mat===13?1:T.metalLightA)],i*4);lc.set(M.mat===13?[l[2]/255,l[3]/255,l[4]/255]:[mix(l[2]),mix(l[3]),mix(l[4])],i*3);});}
   gl.uniform4fv(u.uLd,ld);gl.uniform3fv(u.uLc,lc);gl.uniform3f(u.uDim,T.dimGlowRed/255,T.dimGlowGreen/255,T.dimGlowBlue/255);gl.uniform1f(u.uAA,Math.max(0.05,0.6/Math.max(1,hpx*0.01)));
   gl.uniform3fv(u.uSunL,DUCK_SUN.d);gl.uniform3fv(u.uSunC,DUCK_SUN.c);gl.uniform3fv(u.uC1,M.c1);gl.uniform3fv(u.uC2,M.c2);gl.uniform1f(u.uM,M.mat);gl.uniform1f(u.uFl,M.mat===12?0.07:0);gl.uniform1f(u.uNk,M.nomk?1:0);gl.uniform1f(u.uGl,T.duckGloss);gl.uniform1f(u.uTr,T.duckTrans);}
 function duckDrawCalls(G,M){ // depth pre-pass so only the nearest surface is coloured; glass shows its inside wall first

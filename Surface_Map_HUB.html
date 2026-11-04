@@ -1194,20 +1194,21 @@ function popPlace(k){ // opens (or moves up) the pop-up hex k's surface earned: 
 function shopTearDown(fr){if(!fr)return;if(fr.slice(0,3)==='hub')hubPop[+fr[3]]=null;else if(cells[fr])delete cells[fr].shop;} // a shop moved up a rank: the old one goes (its hex may open another the next turn)
 function freedShops(){for(const k in cells)popPlace(k);} // each turn every cleared surface that earned a pop-up and has none open tries again (a hex a shop moved out of, a Dark Remnant clear that found no room, a holiday)
 let _shopEnv=null;
-function shopEnv(){ // what a shop's glass reflects: the hexes round the source (where the shops stand), softened, with a pale sheen from above
+function shopEnv(){ // what a shop's glass reflects: the hexes round the source (where the shops stand), sharp, with a pale sheen from above
   const e=_shopEnv||(_shopEnv=document.createElement('canvas'));e.width=e.height=256;const g=e.getContext('2d'),[x,y]=w2s(0,0),R=HEX*6*MK;
-  g.fillStyle='#202228';g.fillRect(0,0,256,256);g.filter='blur(6px)';try{g.drawImage(mc,x*MK-R/2,y*MK-R/2,R,R,0,0,256,256);}catch(err){}g.filter='none';
+  g.fillStyle='#202228';g.fillRect(0,0,256,256);try{g.drawImage(mc,x*MK-R/2,y*MK-R/2,R,R,0,0,256,256);}catch(err){}
   const sh=g.createLinearGradient(0,0,0,256);sh.addColorStop(0,'rgba(230,236,245,.45)');sh.addColorStop(0.45,'rgba(230,236,245,.08)');sh.addColorStop(1,'rgba(0,0,0,.25)');g.fillStyle=sh;g.fillRect(0,0,256,256);return e;}
-function shopSprite(id,bk,lit,yaw,open){ // the shop's 3D building (shared.js shopModel) drawn from a little above and turned by yaw (degrees), lit by the time of day: then the glow of its sign and
+function shopSprite(id,bk,lit,yaw,open,L){ // L: the buoy's light on it ({k, x, y, s}: its way in on screen and strength, in steps), or none // the shop's 3D building (shared.js shopModel) drawn from a little above and turned by yaw (degrees), lit by the time of day: then the glow of its sign and
   // windows when open; at Q px per unit (as its drawings were at 4×), so a shop stays crisp however near the camera or the menu shows it. Redrawn when the light changes.
   const gw=T.mapShopGlow!=null?T.mapShopGlow:1,fl=bk===(SHOPS[id].bk||'s')&&SHOPS[id].flip,yw=Math.round(yaw||0),sun=DUCK_SUN.c.map(v=>Math.round(v*16)).concat(DUCK_SUN.d.map(v=>Math.round(v*8))).join(','),pt=T.mapShopPitch!=null?T.mapShopPitch:22,
-    base=id+bk+(lit?1:0)+(open?'o':'')+gw+'|'+yw+'|'+pt+'|'+(T.mapShopUpScale||1.7)+'|',key=base+sun;if(shopCv[key])return shopCv[key];
+    base=id+bk+(lit?1:0)+(open?'o':'')+gw+'|'+yw+'|'+pt+'|'+(T.mapShopUpScale||1.7)+'|',key=base+sun+(L?'|L'+L.k:'');if(shopCv[key])return shopCv[key];
   const si=shopImg('sign_'+id);if(!si.complete||!si.naturalWidth||!_duckTex)return null;
   const type=shopModel(id,bk,lit,fl,si,open),M=duckModel(type),Q=4*(bk==='m'||bk==='l'||bk==='t'?(T.mapShopUpScale||1.7):1), // (a bigger rank's two-storey store drawn larger, so its door is the size of main street's)
     q=quatTurn(quatTurn([0,0,0,1],0,yw*Math.PI/180,0),pt*Math.PI/180,0,0),N=Math.ceil(2*M.g.R*Q)+8,pad=Math.ceil(30*gw)+8;
-  const cv=document.createElement('canvas');cv.width=cv.height=N+pad*2;const c=cv.getContext('2d');drawDuck3D(c,type,q,[[cv.width/2,cv.height/2]],Q,1,2048);
+  const cv=document.createElement('canvas');cv.width=cv.height=N+pad*2;const c=cv.getContext('2d'),lt=E=>({x:E.x,y:E.y,lights:L?[[E.x+L.x*100,E.y-L.y*100,255,244,222,L.s,140]]:[]}); /* the buoy's can light, as a light in the scene: on its walls, and glinting on its glass */
+  drawDuck3D(c,type,q,[[cv.width/2,cv.height/2]],Q,1,2048,lt({x:cv.width/2,y:cv.height/2}));
   {const sun=DUCK_SUN.c;duckEnvUpdate(shopEnv(),performance.now());DUCK_SUN.c=sun.map(v=>v+(1-v)*0.75); // its glass: reflecting the street round the source (faint while the lights are on inside), barely tinted by the time of day
-    drawDuck3D(c,type+'|glass',q,[[cv.width/2,cv.height/2]],Q,lit?0.3:1,2048,{x:W/2,y:H/2,lights:[]});DUCK_SUN.c=sun;}
+    drawDuck3D(c,type+'|glass',q,[[cv.width/2,cv.height/2]],Q,lit?0.6:1,2048,lt({x:W/2,y:H/2}));DUCK_SUN.c=sun;}
   if(lit&&gw>0){const g=document.createElement('canvas');g.width=g.height=cv.width;M.eo=1;drawDuck3D(g.getContext('2d'),type,q,[[cv.width/2,cv.height/2]],Q,1,2048);M.eo=0; // the neon: what glows, blurred out over it
     c.save();c.globalCompositeOperation='lighter';for(const[b,a]of[[22,0.8],[7,0.55]]){c.filter='blur('+(b*gw).toFixed(1)+'px)';c.globalAlpha=Math.min(1,a*gw);c.drawImage(g,0,0);}c.restore();}
   const m=quatMat(q),fy=M.g.foot;cv._ax=cv.width/2+m[3]*fy*Q;cv._ay=cv.height/2-m[4]*fy*Q;cv._bw=264; // its foot: where it stands on the map; _bw: the size every shop is scaled by (main street's old 66-unit drawing at 4×, so shops keep the size they had)
@@ -1222,15 +1223,18 @@ function shopList(){ // every shop on the map now: main street hugging the sourc
   hubPop.forEach((h,i)=>{if(!h)return;const a=HUB_SLOTS[i]*Math.PI/180;out.push({key:'hub'+i,id:h.id,rank:h.rank,bk:SHOP_RANK_BLD[h.rank-1],wx:R*1.15*Math.cos(a),wy:R*1.15*Math.sin(a),lit:true});}); // (a little further out than main street) // pop-ups from dark clears, in the source hex
   for(const k in cells){const c=cells[k];if(c.shop&&isBright(k)){const[wx,wy]=a2w(c.q,c.r);out.push({key:k,id:c.shop.id,rank:c.shop.rank,bk:SHOP_RANK_BLD[c.shop.rank-1],wx,wy,lit:true});}}
   return out;}
+function shopLight(s){ // the buoy's can light on a shop in (or near) its spot: from where the lamp is, as strong as the spot is there (in steps, so its drawing is redrawn only when that changes)
+  const S=buoy.spotAt;if(SCENE||!S||!cam||buoy.dunk||buoy.dip||currentView==='level')return null;const[px,py]=w2s(s.wx,s.wy),dx=px-S.x,dy=py-S.y,ca=Math.cos(S.a),sa=Math.sin(S.a),u=(dx*ca+dy*sa)/Math.max(1,S.ma),v=(-dx*sa+dy*ca)/Math.max(1,S.mi),d=Math.hypot(u,v);
+  const st=Math.round(Math.max(0,Math.min(1,(1.5-d)/0.8))*4)/4;if(!st)return null;const[X,Y]=proj(px,py),[lx,ly]=buoyScreen(1.05),a=Math.round(Math.atan2(Y-ly,lx-X)/(Math.PI/12))*(Math.PI/12);
+  return{k:a.toFixed(2)+','+st,x:Math.cos(a),y:Math.sin(a),s:st*(T.mapShopLight!=null?T.mapShopLight:1.4)};}
 function shopTick(){if(SCENE&&!document.body.classList.contains('scene-shops'))return;
   document.body.classList.toggle('thru',!!armed||voidOpen);const box=document.getElementById('shops'),seen=new Set();
   for(const s of shopList()){if(s.lit&&!disc.has('ev:shop_'+s.id))hubEvent('shop_'+s.id); // a shop is discovered the first time it opens
-    const cv=shopSprite(s.id,s.bk,s.lit,s.yaw,!!(shopUI&&shopUI.key===s.key));if(!cv)continue;/* (its doors open while its menu is) */seen.add(s.key);let el=shopEls[s.key];
+    const cv=shopSprite(s.id,s.bk,s.lit,s.yaw,!!(shopUI&&shopUI.key===s.key),shopLight(s));if(!cv)continue;/* (its doors open while its menu is) */seen.add(s.key);let el=shopEls[s.key];
     if(!el){el=shopEls[s.key]=document.createElement('div');el.className='shop';el.dataset.key=s.key;box.appendChild(el);
       let h=7;for(const ch of s.key)h=(h*31+ch.charCodeAt(0))>>>0;el._fl=`neon${h%4} ${(2.5+(h>>4)%60/10).toFixed(1)}s ${-((h>>10)%50)/10}s infinite`;} // its own flicker: which, how fast, where in it
     if(el._cv!==cv){el._cv=cv;const d=document.createElement('canvas');d.width=cv.width;d.height=cv.height;d.getContext('2d').drawImage(cv,0,0);d.style.animation=s.lit?el._fl:'none';el.innerHTML='';el.appendChild(d);}el.classList.toggle('lit',s.lit);el._s=s; // (its own copy: two pop-ups can share a sprite)
     const[X,Y,k]=proj(...w2s(s.wx,s.wy)),sc_=HEX*(T.mapStreetSize||0.75)*k/cv._bw; // every shop at main street's scale: the set keeps its own sizes
-    {const S=buoy.spotAt,lit=!!(S&&!buoy.dunk&&!buoy.dip&&Math.hypot(...w2s(s.wx,s.wy).map((v,i)=>v-(i?S.y:S.x)))<S.ma*1.15),f=lit?'brightness(1.45)':'';if(el._lf!==f){el._lf=f;el.style.filter=f;}} // in the buoy's light: lit up
     const tf=`translate(${(X-cv._ax*sc_).toFixed(1)}px,${(Y-cv._ay*sc_).toFixed(1)}px) scale(${sc_.toFixed(4)})`;if(el._tf!==tf){el._tf=tf;el.style.transform=tf;el.style.zIndex=Math.round(Y);}} // (only when it moved)
   for(const k in shopEls)if(!seen.has(k)){shopEls[k].remove();delete shopEls[k];}}
 function shopInfo(key){const el=shopEls[key],s=el&&el._s;if(!s)return['',''];const S=SHOPS[s.id];
