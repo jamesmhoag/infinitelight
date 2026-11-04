@@ -106,7 +106,7 @@ body.thru .shop{pointer-events:none} /* an armed map item, or the open source, r
 @keyframes unroll{0%{transform:scaleY(.06) scaleX(.4);opacity:.2}45%{transform:scaleY(.06) scaleX(1);opacity:1}100%{transform:none}}
 #shop{position:fixed;inset:0;z-index:58;display:none;align-items:center;justify-content:center;background:rgba(0,0,0,.55);overflow:auto;padding:3vh 0 110px;box-sizing:border-box}#shop.show{display:flex}
 #shop .sbox{display:flex;align-items:flex-start;margin:auto}#shop .scol{display:flex;flex-direction:column;align-items:center} /* the shop centred (as far up as a long list needs), the Status beside the right edge */
-#shop .sstat{position:fixed;right:16px;top:50%;transform:translateY(-50%)}
+#shop .sstat{position:fixed;right:16px;top:50%;transform:translateY(-50%)}body.scene #shop{padding:6px}body.scene #shop .sstat{display:none}body.scene #shop{align-items:center;overflow:hidden}body.scene #shop .sbox{transform-origin:50% 50%;margin:0} /* (a shop card's demo: its list, small enough for the card) */
 #shop .sstat{width:290px;max-height:70vh;overflow:auto;background:rgba(0,0,0,.9);border:1px solid rgba(255,255,255,.35);padding:12px 14px;color:#ddd;font:11px/1.45 system-ui,sans-serif}#shop .sth{font:700 13px system-ui;letter-spacing:1.4px;margin-bottom:6px}
 #shop .stt{border-collapse:collapse;width:100%}#shop .stt td{padding:1px 6px 1px 0;vertical-align:top}#shop .stt td:first-child{opacity:.6;white-space:nowrap}#shop .stg{font-weight:600;margin:8px 0 2px}#shop .stu{opacity:.85}
 body.focus-clock #turn-label,body.focus-items #hdock{z-index:59;filter:drop-shadow(0 0 10px rgba(255,220,140,.8))}body.focus-clock #turn-label{color:#fff;text-shadow:0 0 14px rgba(255,255,255,.85)}
@@ -570,7 +570,7 @@ function sceneInit(){
 function bottleOpts(d,now,side,alpha){ // a bottle floating upright, leaning a little and rocking, about half under the water (side 1: what shows above it; −1: its reflection)
   const[px,py]=w2s(d.x,d.y),[X,Y,k]=proj(px,py),f=duckFace(d,now),t=0.3+0.1*Math.sin(now/900+d.ph),ct=Math.cos(t),st=Math.sin(t),z=side,size=d._s*0.8,
     ax=[f[0]*st,f[1]*st,ct*z],bx=[-f[0]*ct,-f[1]*ct,st*z],sd=[-f[1],f[0],0],h=size*(0.03*Math.sin(now/650+d.ph)-(d._sink||0)*1.6); // (its length up, leaning along its heading)
-  return{rot:new Float32Array([...ax,...bx,...sd]),size,pos:[px-MW/2,py-MH/2,side*h],view:cam.view,proj:cam.proj,viewRot:cam.viewRot,env:{x:X,y:Y,lights:[]},px:size*k,alpha,mirror:side<0,clip:side};}
+  return{rot:new Float32Array([...ax,...bx,...sd]),size,pos:[px-MW/2,py-MH/2,side*h],view:cam.view,proj:cam.proj,viewRot:cam.viewRot,env:{x:X,y:Y,lights:side>0?curLights(X,Y):[]},px:size*k,alpha,mirror:side<0,clip:side};}
 function duckFace(d,now){const a=d.hd+((DUCK_TYPES[d.type]||{}).mat==='paper'?now/900+d.ph:0);return[Math.cos(a),Math.sin(a),0];} // which way a lake duck faces (a Paper one keeps turning, to show its thinness)
 function sceneRender(now){
   if(!G3)G3=sceneInit();if(!G3||!cam)return;const gl=G3.gl;
@@ -593,7 +593,7 @@ function sceneRender(now){
   for(const d of pond){if(!d._s||d.bottle)continue;const v=DUCK_TYPES[d.type]||{},refl=v.mat==='metal'||v.mat==='gold'||v.mat==='glass',[px,py]=w2s(d.x,d.y),[X,Y,k]=proj(px,py);
     if(refl&&!envd){duckEnvUpdate(mc,now,G3.duck);envd=true;}
     const f=duckFace(d,now),size=d._s; // upright on the plane: its forward along its heading, its up out of the plane (mirrored across, as the view flips y)
-    drawDuckScene(G3.duck,d.type,{rot:new Float32Array([f[0],f[1],0, 0,0,1, -f[1],f[0],0]),size,pos:[px-MW/2,py-MH/2,duckBob(d,now)],view:cam.view,proj:cam.proj,viewRot:cam.viewRot,env:{x:X,y:Y,lights:[]},px:size*k,clip:1});}
+    drawDuckScene(G3.duck,d.type,{rot:new Float32Array([f[0],f[1],0, 0,0,1, -f[1],f[0],0]),size,pos:[px-MW/2,py-MH/2,duckBob(d,now)],view:cam.view,proj:cam.proj,viewRot:cam.viewRot,env:{x:X,y:Y,lights:curLights(X,Y)},px:size*k,clip:1});}
   if(!SCENE)buoyDraw(now,false);} // your buoy, half under the surface
 function duckBob(d,now){return d._s*(0.36+0.03*Math.sin(now/700+d.ph)-(d._sink||0)*1.3);} // how high a lake duck floats: dunked or splashing up, under the waterline
 let _glow=null;
@@ -968,7 +968,7 @@ function buoyFrame(now,b){b=b||buoy; // how it floats now: its turn, a slow rock
   const X=tip([f[0],f[1],0]),Y=tip([0,0,1]),Z=tip([-f[1],f[0],0]),dk=b.dunk?Math.max(0,Math.min(1,(now-b.dunk.t0)/(b.dunk.ms||700))):0,dp=b.dip?Math.min(1,(now-b.dip)/450):1,sink=(b.dunk?(b.dunk.d>0?dk*dk:1-dk):0)+(dp<1?0.35*Math.sin(Math.PI*dp):0),bob=size*(0.1*Math.sin(now/1100+ph)+0.035*Math.sin(now/530+0.8+ph)-2.6*sink),[px,py]=w2s(b.x,b.y),h=BUOY_LAMP*size;
   return{X,Y,Z,size,bob,px,py,lamp:[px-MW/2+Y[0]*h,py-MH/2+Y[1]*h,bob+Y[2]*h]};}
 function buoyOpts(now,mirror,bo){const F=buoyFrame(now,bo),[X,Y,k]=proj(F.px,F.py),m=mirror?-1:1,{X:a,Y:b,Z:c}=F; // (mirrored: its reflection, under the surface)
-  return{rot:new Float32Array([a[0],a[1],a[2]*m, b[0],b[1],b[2]*m, c[0],c[1],c[2]*m]),size:F.size,pos:[F.px-MW/2,F.py-MH/2,F.bob*m],view:cam.view,proj:cam.proj,viewRot:cam.viewRot,env:{x:X,y:Y,lights:[]},px:F.size*k,clip:m,mirror,alpha:mirror?(T.mapDuckRefl!=null?T.mapDuckRefl:0.4):1};}
+  return{rot:new Float32Array([a[0],a[1],a[2]*m, b[0],b[1],b[2]*m, c[0],c[1],c[2]*m]),size:F.size,pos:[F.px-MW/2,F.py-MH/2,F.bob*m],view:cam.view,proj:cam.proj,viewRot:cam.viewRot,env:{x:X,y:Y,lights:mirror?[]:curLights(X,Y)},px:F.size*k,clip:m,mirror,alpha:mirror?(T.mapDuckRefl!=null?T.mapDuckRefl:0.4):1};}
 function buoyCanDir(now){const S=buoy.spotAt,F=buoyFrame(now);if(!S)return null;const L=F.lamp;if(buoy.dunk||buoy.dip)return{L,d:[F.Y[0],F.Y[1],F.Y[2]],F,up:1}; /* sinking, rising or dipping: it points straight up */const d=[S.x-MW/2-L[0],S.y-MH/2-L[1],-L[2]],l=Math.hypot(...d)||1;return{L,d:d.map(v=>v/l),F};} // from the can light to its spot
 function buoyCan(now,mirror){const A=buoyCanDir(now);if(!A||!cam)return null;const{L,d,F}=A,m=mirror?-1:1,up=Math.abs(d[2])>0.98?[1,0,0]:[0,0,1],cr=(a,b)=>[a[1]*b[2]-a[2]*b[1],a[2]*b[0]-a[0]*b[2],a[0]*b[1]-a[1]*b[0]],nz=v=>{const k=Math.hypot(...v)||1;return v.map(x=>x/k);},X=nz(cr(d,up)),Z=cr(d,X),[sx,sy,k]=proj(L[0]+MW/2,L[1]+MH/2);
   return{rot:new Float32Array([X[0],X[1],X[2]*m, d[0],d[1],d[2]*m, Z[0],Z[1],Z[2]*m]),size:F.size,pos:[L[0],L[1],L[2]*m],view:cam.view,proj:cam.proj,viewRot:cam.viewRot,env:{x:sx,y:sy,lights:[]},px:F.size*k,clip:m,mirror,alpha:mirror?(T.mapDuckRefl!=null?T.mapDuckRefl:0.4):1};}
@@ -976,7 +976,9 @@ const beamCv=document.getElementById('beam'),beamCx=beamCv.getContext('2d');
 function buoyBeam(now){ // the lantern's light, in 3D: a cone from the lantern down to its spot on the surface (drawn over the scene, crisp, faint)
   const dp=window.devicePixelRatio||1;if(beamCv.width!==Math.round(innerWidth*dp)){beamCv.width=Math.round(innerWidth*dp);beamCv.height=Math.round(innerHeight*dp);}
   beamCx.setTransform(dp,0,0,dp,0,0);beamCx.clearRect(0,0,innerWidth,innerHeight);const S=buoy.spotAt;if(SCENE||!cam||!S||currentView!=='map'||buoy.dunk||buoy.dip)return; // (pointing up, or under: off)
-  const sp=v=>{const p=m4.tx(cam.pv,[v[0],v[1],v[2],1]);return[(p[0]/p[3]+1)/2*SW,(1-p[1]/p[3])/2*SH];},CD=buoyCanDir(now),A=sp(CD?CD.L.map((v,i)=>v+CD.d[i]*0.14*CD.F.size):buoyFrame(now).lamp),P=[A],ca=Math.cos(S.a),sa=Math.sin(S.a);
+  const sp=v=>{const p=m4.tx(cam.pv,[v[0],v[1],v[2],1]);return[(p[0]/p[3]+1)/2*SW,(1-p[1]/p[3])/2*SH];},CD=buoyCanDir(now),M0=CD?CD.L.map((v,i)=>v+CD.d[i]*0.14*CD.F.size):buoyFrame(now).lamp,A=sp(M0),P=[A],ca=Math.cos(S.a),sa=Math.sin(S.a);
+  if(CD){const d=CD.d,up=Math.abs(d[2])>0.98?[1,0,0]:[0,0,1],cr=(a,b)=>[a[1]*b[2]-a[2]*b[1],a[2]*b[0]-a[0]*b[2],a[0]*b[1]-a[1]*b[0]],nz=v=>{const k=Math.hypot(...v)||1;return v.map(x=>x/k);},X=nz(cr(d,up)),Z=cr(d,X),r=0.088*CD.F.size; /* the cone starts as wide as the can's lens */
+    for(let i=0;i<16;i++){const t=i/16*6.2832,c=Math.cos(t)*r,s=Math.sin(t)*r;P.push(sp([M0[0]+X[0]*c+Z[0]*s,M0[1]+X[1]*c+Z[1]*s,M0[2]+X[2]*c+Z[2]*s]));}}
   for(let i=0;i<32;i++){const t=i/32*6.2832,ex=Math.cos(t)*S.ma,ey=Math.sin(t)*S.mi;P.push(sp([S.x+ex*ca-ey*sa-MW/2,S.y+ex*sa+ey*ca-MH/2,0]));}
   P.sort((p,q)=>p[0]-q[0]||p[1]-q[1]);const cr=(o,a,b)=>(a[0]-o[0])*(b[1]-o[1])-(a[1]-o[1])*(b[0]-o[0]),lo=[],hi=[];for(const p of P){while(lo.length>1&&cr(lo[lo.length-2],lo[lo.length-1],p)<=0)lo.pop();lo.push(p);}for(let i=P.length-1;i>=0;i--){const p=P[i];while(hi.length>1&&cr(hi[hi.length-2],hi[hi.length-1],p)<=0)hi.pop();hi.push(p);}
   const H=lo.slice(0,-1).concat(hi.slice(0,-1)),C=sp([S.x-MW/2,S.y-MH/2,0]),g=beamCx.createLinearGradient(A[0],A[1],C[0],C[1]);g.addColorStop(0,'rgba(255,246,222,0.22)');g.addColorStop(1,'rgba(255,246,222,0.05)');
@@ -1255,7 +1257,7 @@ function shopSprite(id,bk,lit,yaw,open,L,mir,soon){ // L: the buoy's light on it
   const si=soon?soonSign(id):shopImg('sign_'+id);if(!soon&&(!si.complete||!si.naturalWidth)||!_duckTex)return null;
   const type=shopModel(id,bk,lit,fl,si,open,soon),M=duckModel(type),Q=4*(bk==='m'||bk==='l'||bk==='t'?(T.mapShopUpScale||1.7):1), // (a bigger rank's two-storey store drawn larger, so its door is the size of main street's)
     q=quatTurn(quatTurn([0,0,0,1],0,yw*Math.PI/180,0),(mir?-pt:pt)*Math.PI/180,0,0),N=Math.ceil(2*M.g.R*Q)+8,pad=Math.ceil(30*gw)+8;
-  const cv=document.createElement('canvas');cv.width=cv.height=N+pad*2;const c=cv.getContext('2d'),lt=E=>({x:E.x,y:E.y,lights:L?[[E.x+L.x*100,E.y-L.y*100,255,244,222,L.s,140]]:[]}); /* the buoy's can light, as a light in the scene: on its walls, and glinting on its glass */
+  const cv=document.createElement('canvas');cv.width=cv.height=N+pad*2;const c=cv.getContext('2d'),lt=E=>({x:E.x,y:E.y,lights:L?L.ls.map(l=>[E.x+Math.cos(l.a)*100,E.y-Math.sin(l.a)*100,255,244,222,l.s,140]):[]}); /* the buoy's can light, as a light in the scene: on its walls, and glinting on its glass */
   const day=(DUCK_SUN.c[0]+DUCK_SUN.c[1]+DUCK_SUN.c[2])/3,emk=soon?1:Math.max(0.45,Math.min(1,1-(day-0.64)/0.36*0.55));M.emk=emk; /* its sign and lit room: full at night, about half at noon */
   drawDuck3D(c,type,q,[[cv.width/2,cv.height/2]],Q,1,2048,lt({x:cv.width/2,y:cv.height/2}));
   {const sun=DUCK_SUN.c;duckEnvUpdate(shopEnv(),performance.now());DUCK_SUN.c=sun.map(v=>v+(1-v)*0.75); // its glass: reflecting the street round the source (faint while the lights are on inside), barely tinted by the time of day
@@ -1263,7 +1265,7 @@ function shopSprite(id,bk,lit,yaw,open,L,mir,soon){ // L: the buoy's light on it
   if(lit&&gw>0){const g=document.createElement('canvas');g.width=g.height=cv.width;M.eo=1;drawDuck3D(g.getContext('2d'),type,q,[[cv.width/2,cv.height/2]],Q,emk,2048);M.eo=0; // the neon: what glows, blurred out over it
     c.save();c.globalCompositeOperation='lighter';for(const[b,a]of[[22,0.8],[7,0.55]]){c.filter='blur('+(b*gw).toFixed(1)+'px)';c.globalAlpha=Math.min(1,a*gw);c.drawImage(g,0,0);}c.restore();}
   M.emk=1;const m=quatMat(q),fy=M.g.foot;cv._ax=cv.width/2+m[3]*fy*Q;cv._ay=cv.height/2-m[4]*fy*Q;cv._bw=264; // its foot: where it stands on the map; _bw: the size every shop is scaled by (main street's old 66-unit drawing at 4×, so shops keep the size they had)
-  for(const k in shopCv)if(k.startsWith(base)&&k!==key&&k.endsWith('|m')===!!mir)delete shopCv[k]; // (an older light's drawing; its reflection's own kept beside it)
+  {const now_=base+sun,ks=[];for(const k of Object.keys(shopCv))if(k.startsWith(base)&&k!==key){if(!k.startsWith(now_))delete shopCv[k];else if(k.endsWith('|m')===!!mir)ks.push(k);}while(ks.length>7)delete shopCv[ks.shift()];} // (an older time of day's drawings go; a few of this one's recent lights are kept, the cursor moving to and fro; its reflection's own beside them)
   return shopCv[key]=cv;}
 function streetYaw(a){ // a main street shop at a: its turn so its front edge (in front of the source; behind it, its back) lies along the source hex's edge facing it, as the camera sees it
   if(!cam)return 0;const s=(d)=>{const[x,y]=a2w(0,0),r=HEX,t=(a+d)*Math.PI/180;return proj(...w2s(x+r*Math.cos(t),y+r*Math.sin(t)));},p=s(-30),q=s(30),[L_,R_]=p[0]<q[0]?[p,q]:[q,p];
@@ -1290,10 +1292,14 @@ function shopReflect(){ // shops mirrored in the ground under them: each its own
   if(!_rfl)_rfl=document.createElement('canvas');if(_rfl.width<w||_rfl.height<h){_rfl.width=Math.max(w,_rfl.width);_rfl.height=Math.max(h,_rfl.height);}const g=_rfl.getContext('2d');g.setTransform(1,0,0,1,0,0);g.clearRect(0,0,w,h);
   L.sort((p,q)=>p.py-q.py);for(const r of L){g.setTransform(MK*r.sx,0,0,-MK*r.sy,MK*(r.px-x0),MK*(r.py-y0));g.drawImage(r.cv,-r.cv._ax,-r.cv._ay);}
   mctx.save();mctx.setTransform(1,0,0,1,0,0);mctx.globalCompositeOperation='lighten';mctx.globalAlpha=T.mapShopReflect!=null?T.mapShopReflect:0.7;mctx.filter='brightness(1.6)';mctx.drawImage(_rfl,0,0,w,h,Math.round(x0*MK),Math.round(y0*MK),w,h);mctx.restore();} // (lifted a little: a closed, dark building still shows in the black)
-function shopLight(s){ // the buoy's can light on a shop in (or near) its spot: from where the lamp is, as strong as the spot is there (in steps, so its drawing is redrawn only when that changes)
-  const S=buoy.spotAt;if(SCENE||!S||!cam||buoy.dunk||buoy.dip||currentView==='level')return null;const[px,py]=w2s(s.wx,s.wy),dx=px-S.x,dy=py-S.y,ca=Math.cos(S.a),sa=Math.sin(S.a),u=(dx*ca+dy*sa)/Math.max(1,S.ma),v=(-dx*sa+dy*ca)/Math.max(1,S.mi),d=Math.hypot(u,v);
-  const st=Math.round(Math.max(0,Math.min(1,(1.5-d)/0.8))*4)/4;if(!st)return null;const[X,Y]=proj(px,py),[lx,ly]=buoyScreen(1.05),a=Math.round(Math.atan2(Y-ly,lx-X)/(Math.PI/12))*(Math.PI/12);
-  return{k:a.toFixed(2)+','+st,x:Math.cos(a),y:Math.sin(a),s:st*(T.mapShopLight!=null?T.mapShopLight:1.4)};}
+function curLights(X,Y){ // the cursor's own light, on what is near it on the map (a duck, a bottle, your buoy: glints on metal and glass, light on a painted one), as on the ground
+  if(SCENE||currentView!=='map'||mX<0||menuOpen||shopUI||!overScene())return[];const R=T.mapCursorLightR!=null?T.mapCursorLightR:170,d=Math.hypot(mX-X,mY-Y);if(d>=R)return[];return[[mX,mY-30,255,248,235,(T.mapCursorLightA!=null?T.mapCursorLightA:0.9)*(1-d/R),160]];}
+function shopLight(s){ // the lights on a shop: the buoy's can light where its spot is, and the cursor's (in steps, so its drawing is redrawn only when one changes)
+  if(SCENE||!cam||currentView==='level')return null;const[px,py]=w2s(s.wx,s.wy),[X,Y]=proj(px,py),q=a=>Math.round(a/(Math.PI/12))*(Math.PI/12),ls=[];
+  const S=buoy.spotAt;if(S&&!buoy.dunk&&!buoy.dip){const dx=px-S.x,dy=py-S.y,ca=Math.cos(S.a),sa=Math.sin(S.a),u=(dx*ca+dy*sa)/Math.max(1,S.ma),v=(-dx*sa+dy*ca)/Math.max(1,S.mi),d=Math.hypot(u,v),st=Math.round(Math.max(0,Math.min(1,(1.5-d)/0.8))*4)/4;
+    if(st){const[lx,ly]=buoyScreen(1.05),a=q(Math.atan2(Y-ly,lx-X));ls.push({a,s:st*(T.mapShopLight!=null?T.mapShopLight:1.4)});}}
+  if(mX>=0&&!menuOpen&&!shopUI&&overScene()){const R=(T.mapCursorLightR!=null?T.mapCursorLightR:170)*1.3,d=Math.hypot(mX-X,mY-(Y-20)),st=Math.round(Math.max(0,1-d/R)*3)/3;if(st){const a=Math.round(Math.atan2(Y-(mY-30),mX-X)/(Math.PI/4))*(Math.PI/4);ls.push({a,s:st*(T.mapCursorLightA!=null?T.mapCursorLightA:0.9)*1.2});}} // (the cursor: a light just above where it points)
+  if(!ls.length)return null;return{k:ls.map(l=>l.a.toFixed(2)+','+l.s.toFixed(2)).join(';'),ls};}
 function shopTick(){if(SCENE&&!document.body.classList.contains('scene-shops'))return;
   document.body.classList.toggle('thru',!!armed||voidOpen);const box=document.getElementById('shops'),seen=new Set();
   for(const s of shopList()){if(s.lit&&!disc.has('ev:shop_'+s.id))hubEvent('shop_'+s.id); // a shop is discovered the first time it opens
@@ -1332,7 +1338,8 @@ const curName=c=>c==='gift'?txt('map.cur.gift'):c==='duck'?txt('map.cur.duck'):K
 const shopCur=i=>i.fx.souv?'gift':i.cur; // what an item is paid with (souvenirs: your last Bright)
 function shopWallet(c){return c==='gift'?giftWallet:c==='duck'?Object.values(duckLog).reduce((a,b)=>a+(b|0),0):(inv[c]||0);}
 let shopHover=null; // the item under the cursor: its details go to the feed, so the menu keeps one length
-function renderShop(){const el=document.getElementById('shop');el.classList.toggle('show',!!shopUI&&currentView!=='overlay'); // (hidden while a card the shop gave is showing)
+function renderShop(){const el=document.getElementById('shop');if(SCENE)requestAnimationFrame(()=>{const b=el.querySelector('.sbox');if(b){b.style.transform='';const k=Math.min(1,innerHeight*0.94/b.offsetHeight,innerWidth*0.94/b.offsetWidth);b.style.transform='scale('+k.toFixed(3)+')';}}); // (a card's demo: the list scaled to fit its frame)
+  el.classList.toggle('show',!!shopUI&&currentView!=='overlay'); // (hidden while a card the shop gave is showing)
   document.body.classList.toggle('shop-open',!!shopUI);if(!shopUI){syncDock();document.body.classList.remove('focus-clock','focus-items');return;}
   const u=shopUI,S=SHOPS[u.id],all=shopRows(),curs=[...new Set(all.filter(r=>r.cur).map(r=>r.cur))];if(!curs.includes(u.tab))u.tab=curs.includes(S.cur)?S.cur:curs[0];
   const rows=u.pick||u.exit?all:all.filter(r=>r.cur===u.tab); // the whole list: a long one makes the shop taller
@@ -1521,6 +1528,7 @@ function sceneField(){if(_sf)return _sf;const S=512,cv=document.createElement('c
   return _sf=cv;}
 const sceneCap=(k,kind)=>{const c=cells[k];if(!c||c.cap)return;c.cap=true;c.capVal=c.v;c.kind=kind;clearFx[k]={t0:performance.now()};}; // a clear, shown as it resolves
 const at=(ms,fn)=>sceneTimers.push(setTimeout(fn,ms));let sceneTimers=[];
+let sceneShopAt=null; // (the shop demo's hex: a pop-up's bright clear, or main street)
 function sceneReset(rings){sceneTimers.forEach(clearTimeout);sceneTimers=[];hubPop=[null,null];const br=T.mapBurstRings;T.mapBurstRings=rings||br||3;score=0;depth=0;clock=3;day=1;pendingEnd=null;newMap();T.mapBurstRings=br;clearFx={};mergeFx=[];
   const o=cells[K(pQ,pR)];if(o)o.isP=false;pQ=1;pR=-1;cells[K(1,-1)].isP=true;camX=camTX=0;camY=camTY=0;}
 const SCENES={
@@ -1549,12 +1557,22 @@ const SCENES={
   darkstar(){return sceneRing(()=>'dark');},
   shops(){sceneReset(4);clock=6;viewZoom=1.7;const k=ring(1).map(([q,r])=>K(q,r)).filter(k=>!cells[k].isP),t=[[700,()=>clock=9],[1400,()=>{sceneCap(k[0],'bright');cells[k[0]].shop={id:'bright',rank:1};}],[2600,()=>{clock=12;sceneCap(k[2],'bright');cells[k[2]].shop={id:'duck',rank:2};}],
     [3800,()=>{hubPop[0]={id:'magnetic',rank:2};}],[5000,()=>{clock=18;sceneCap(k[4],'bright');cells[k[4]].shop={id:'bright',rank:3};delete cells[k[0]].shop;}],[6400,()=>clock=21]];for(const[ms,f]of t)at(ms,f);return 8400;},
+  shop(){sceneReset(2);const id=SHOPS[SCENE_K]?SCENE_K:'corner',S=SHOPS[id];clock=S.open!=null&&!shopIsOpen(id,12,run)?S.open:12;_sunH=clock;_sun={from:clock,to:clock,t0:0};inv={bright:2e6,dim:2e5,neutron:9e3,magnetic:9e3,pulsing:9e3,duck:12}; // a shop's own card: the shop, its list open, and something bought
+    sceneShopAt=null;if(!S.street){const k=r1().find(k=>!cells[k].isP);sceneCap(k,'bright');cells[k].shop={id,rank:3};sceneShopAt=k;}
+    for(const t of [1700,2200,2700,3200])at(t,()=>{if(!shopUI)openShop(sceneShopAt||id);}); /* (once its building is drawn) */at(3900,()=>{const it=SHOP_ITEMS.find(i=>i.shop===id&&!i.fx.souv&&i.r<=3);if(it&&shopUI){shopFlash={id:it.id,ok:true,at:performance.now()};renderShop();feed(it.n,txt('map.shop.demo_bought'));}});at(6900,()=>{shopUI=null;renderShop();});return 8400;},
   end(){sceneReset();const r1=ring(1).map(([q,r])=>K(q,r));r1.forEach((k,i)=>at(400+i*300,()=>i<r1.length-1?sceneCap(k,'bright'):completeCaptureForCell(k,'bright')));return 7000;}};
 function sceneDucks(n){const ids=Object.keys(DUCK_TYPES).slice(0,n);duckLog={};for(const k of ids)duckLog[k]=ids.length>1?1:n;T.mapDucks=n;pond=[];at(300,()=>{water.at=0;scanWater(performance.now());for(let i=0;i<n;i++)spawnLakeDuck(performance.now(),false,true);});} // (a demo's lake: a few of the kinds)
 function sceneRing(kind){sceneReset(4);const r3=ring(3).map(([q,r])=>K(q,r));r3.forEach((k,i)=>at(300+i*140,()=>{if(i<r3.length-1)sceneCap(k,kind(i));else{completeCaptureForCell(k,kind(i));if(clearFx[k])clearFx[k].t0=performance.now();}}));return 300+r3.length*140+4200;}
-function sceneLoop(){const f=SCENES[SCENE]||SCENES.map;const ms=f();setTimeout(sceneLoop,ms);}
+// What each demo is about: the camera eases onto it (its hexes, or its ducks and bottle), fitted to the card's own frame, not the middle of the map
+const SCENE_K=new URLSearchParams(location.search).get('k')||'',r1=()=>ring(1).map(([q,r])=>K(q,r)),allK=()=>Object.keys(cells),onPond=()=>({pts:pond.filter(d=>d._s).map(d=>[d.x,d.y])});
+const SCENE_FOCUS={map:allK,time:allK,ring:allK,brightstar:allK,darkstar:allK,move:()=>[K(pQ,pR),...neighbors(pQ,pR).map(([q,r])=>K(q,r))],light:onPond,lake:onPond,bottle:onPond,
+  items:()=>['2,-1','0,1','-2,1','1,-1'],street:()=>['0,0'],clear:()=>['1,-1','1,0','0,1','-1,1','2,-1'],merge:()=>['1,0','0,1','1,1'],decay:()=>['2,-1','-1,2','-2,0','0,0'],constellation:()=>['2,-1','1,1','-1,2','-2,1','-1,-1'],
+  shops:()=>['0,0',...r1()],end:()=>['0,0',...r1()],descend:()=>['0,0',...r1()],shop:()=>{const s=shopList().find(x=>x.key===(sceneShopAt||SHOPS[SCENE_K]&&SCENE_K)),w=s?[s.wx,s.wy]:[0,0];return{pts:[[w[0],w[1]+HEX*0.5],[w[0],w[1]-HEX*2.4]]};}}; // (a shop: the whole building, its sign too)
+function sceneLook(F){if(!F||!cam)return;let b;if(F.pts){if(!F.pts.length)return;let x0=1e9,y0=1e9,x1=-1e9,y1=-1e9;for(const[x,y]of F.pts){x0=Math.min(x0,x);y0=Math.min(y0,y);x1=Math.max(x1,x);y1=Math.max(y1,y);}const m=HEX*1.6;b=[x0-m,y0-m,x1+m,y1+m];}else b=camBounds(F);if(!b)return;
+  const f=camFit(b);camTX=f.x;camTY=f.y;zoomT=f.z;}
+function sceneLoop(){const f=SCENES[SCENE]||SCENES.map;zoomT=null;camV.x=camV.y=camV.z=0;const ms=f(),fk=SCENE_FOCUS[SCENE];if(fk){sceneLook(fk());at(1300,()=>sceneLook(fk()));at(3500,()=>sceneLook(fk()));}setTimeout(sceneLoop,ms);} // (looked at again as its ducks swim in and its hexes clear)
 // ═══ START ═══
-if(SCENE){document.body.classList.add('scene');if(SCENE==='shops'||SCENE==='street')document.body.classList.add('scene-shops');if(SCENE==='fortune')document.body.classList.add('scene-calm');try{const u=new URLSearchParams(location.search);T=JSON.parse(u.get('T')||'{}');DUCK_TYPES=JSON.parse(u.get('D')||'{}');}catch(e){T={};}HEX=T.mapHexSize||HEX;viewZoom=1.3;mapResize();camUpdate&&SW&&camUpdate();sceneLoop();startMapLoop();}
+if(SCENE){document.body.classList.add('scene');if(SCENE==='shops'||SCENE==='street'||SCENE==='shop')document.body.classList.add('scene-shops');if(SCENE==='fortune')document.body.classList.add('scene-calm');try{const u=new URLSearchParams(location.search);T=JSON.parse(u.get('T')||'{}');DUCK_TYPES=JSON.parse(u.get('D')||'{}');}catch(e){T={};}HEX=T.mapHexSize||HEX;viewZoom=1.3;mapResize();camUpdate&&SW&&camUpdate();sceneLoop();startMapLoop();}
 else{nebEl.src='chromatic_nebula.html?hub=1&v='+CACHE_V;if(MPJOIN){newMap();mapResize();netJoin();}else if(!loadMap())initGame();startMapLoop();neb({cmd:'state'});} // (joining a friend: their map comes in its place)
 </script>
 </body>

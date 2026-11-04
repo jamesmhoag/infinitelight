@@ -880,3 +880,4 @@ map.shop.soon,"Coming soon: {shop}",Surface Map feed,shop = $0 — the shop
 map.shop.soon_info,"Rank {rank} · opens here tomorrow · {hours}",Surface Map feed,"rank = $0 — its rank
 hours = $1 — its hours"
 card.fortune.goodnext,"A good fortune, for tomorrow","cards, Guide, Status",
+map.shop.demo_bought,"Bought (a demo: nothing is spent)",Surface Map feed,
