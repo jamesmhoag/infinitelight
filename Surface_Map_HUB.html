@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html>
 <head>
-<script>try{if(window.top===window&&Date.now()-(+sessionStorage.getItem("il_load")||0)<15000)document.documentElement.classList.add("il-arrive")}catch(e){}</script><style>html.il-arrive,html.il-arrive body{background:#000!important}html.il-arrive body>*:not(#ilLoad){visibility:hidden!important}</style><!-- opened from a page that was loading: nothing but the loading screen shows from the first paint (content.js lifts it) -->
+<script>try{if(window.top===window)document.documentElement.classList.add("il-arrive")}catch(e){}</script><style>html.il-arrive,html.il-arrive body{background:#000!important}html.il-arrive body>*:not(#ilLoad){visibility:hidden!important}</style><!-- opened from a page that was loading: nothing but the loading screen shows from the first paint (content.js lifts it) -->
 <meta charset="utf-8"><meta name="darkreader-lock">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Infinite Light — Surface Map</title>
@@ -84,9 +84,9 @@ body.scene .hbtn,body.scene:not(.scene-shops) #shops,body.scene #hdock,body.scen
 body.ui-hidden .hbtn,body.ui-hidden #legend,body.ui-hidden #bottom-bar,body.ui-hidden #hstats,body.ui-hidden #mModes,body.ui-hidden #tuneP{display:none!important} /* ~: everything but the time of day, the inventory (reduced) and its feed */
 /* shops: upright on the plane (placed through the camera each frame); open ones glow like neon */
 #shops{position:absolute;inset:0;pointer-events:none;z-index:6;overflow:hidden}
-.shop{position:absolute;left:0;top:0;transform-origin:0 0;pointer-events:none;will-change:transform}.shop canvas.lay{position:absolute;left:0;top:0} /* a light on it: its fully lit drawing over it, as strong as the light is there */.shop canvas.disco{position:absolute;left:0;top:0;pointer-events:none;mix-blend-mode:screen;animation:discoH 4.8s steps(6) infinite,discoB 0.8s ease-in-out infinite alternate}@keyframes discoH{to{filter:hue-rotate(360deg)}}@keyframes discoB{from{opacity:.3}to{opacity:1}} /* the Pulse's lamps: each through the six effect colours, a step every 0.8 s, breathing (not flashing) on the beat */.shop canvas.tapf{position:absolute;left:0;top:0;opacity:0;pointer-events:none}.shop canvas.tapf.go{animation:tapf .3s ease-out}@keyframes tapf{0%{opacity:.42}100%{opacity:0}} /* (hit only where drawn: shopAt) a tap glints on the glass */.shop canvas{display:block;will-change:opacity} /* each its own layer: moving or flickering one repaints nothing */
+.shop{position:absolute;left:0;top:0;transform-origin:0 0;pointer-events:none;will-change:transform}.shop canvas.hit{opacity:0}.shop canvas.glow{position:absolute;left:0;top:0;mix-blend-mode:screen} /* the building is drawn in the scene (in its lights); here only what a pointer hits, and its neon's glow */.shop canvas.tapf{position:absolute;left:0;top:0;opacity:0;pointer-events:none}.shop canvas.tapf.go{animation:tapf .3s ease-out}@keyframes tapf{0%{opacity:.42}100%{opacity:0}} /* (hit only where drawn: shopAt) a tap glints on the glass */.shop canvas{display:block;will-change:opacity} /* each its own layer: moving or flickering one repaints nothing */
 body.thru .shop{pointer-events:none} /* an armed map item, or the open source, reaches the hexes under them */
-.shop.lit canvas{animation:neon0 5s infinite} /* each shop gets its own flicker (one of these, its own pace and start: shopTick) */
+.shop.lit canvas.glow{animation:neon0 5s infinite} /* each shop gets its own flicker (one of these, its own pace and start: shopTick) */
 @keyframes neon0{0%,45%,51%,100%{opacity:1}48%{opacity:.78}50%{opacity:.97}53%{opacity:.9}} /* opacity, not a filter: the compositor runs it without repainting the shop */
 @keyframes neon1{0%,19%,22%,69%,76%,100%{opacity:1}20%{opacity:.86}71%{opacity:.66}72%{opacity:.98}74%{opacity:.84}}
 @keyframes neon2{0%,100%{opacity:.9}50%{opacity:1}}
@@ -163,7 +163,7 @@ body.shop-open #hdock{z-index:59}#hinv .slot.wal::before{border-color:rgba(255,2
 <div id="veil"></div>
 <div id="bfx"></div>
 <iframe id="neb" data-tt="map.ui.surface"></iframe>
-<script src="content.js?v=20261105m"></script><script src="shared.js?v=20261105m"></script>
+<script src="content.js?v=20261105n"></script><script src="shared.js?v=20261105n"></script>
 <script>
 // ╔══════════════════════════════════════════════════════════════════════════════╗
 // ║  MAP ENGINE                                                                 ║
@@ -182,7 +182,7 @@ let playLog=[],clock=3,day=1,pool=6,fresh=true,burstFx=null,dayLog=[],dayCnt={b:
 // // clock: the hour (3 = Twilight … 24 = Midnight, the day's last turn); day: your attempts; pool: what the source put out at its last burst; fresh: no ring added yet since it
 let constel=[],armed=null,weaveSel=[],weaveAsk=null,clearFx={},mergeFx=[],feedMsg={t:'',d:'',at:-1e9}; // constellations {keys,type}; the armed map item; a Weave being drawn; animations; the final count
 const STEP_H=3; // the day: eight turns of three hours
-const CACHE_V='20261105m'; // the build: bump with shared.js's
+const CACHE_V='20261105n'; // the build: bump with shared.js's
 const SCENE=new URLSearchParams(location.search).get('scene'); // a Guide / event demo: the map plays a scripted moment (no surface behind it)
 let phase='move',turnTimer=0,mergeTimer=0;
 let gameOverReason='';
@@ -276,20 +276,25 @@ const ease5=t=>{t=Math.max(0,Math.min(1,t));return t*t*t*(t*(t*6-15)+10);}; // s
 function camSpring(now){if(camTween||dive){_camT=now;return;} /* (a scene's own move has the camera) */const dt=Math.min(0.1,Math.max(0,(now-(_camT||now))/1000)),w=2*Math.PI/Math.max(0.3,T.mapCamEase||2.4);_camT=now; // to where it is heading (camTX, camTY; zoomT): starts gently, never overshoots, settles in about mapCamEase s
   const st=(p,t,k)=>{camV[k]+=(w*w*(t-p)-2*w*camV[k])*dt;return p+camV[k]*dt;};camX=st(camX,camTX,'x');camY=st(camY,camTY,'y');
   if(zoomT!=null){const z=st(viewZoom,zoomT,'z');if(Math.abs(zoomT-z)<2e-4&&Math.abs(camV.z)<2e-3){camV.z=0;camZoomTo(zoomT);zoomT=null;mapResize();}else camZoomTo(z);}}
+let camHand=null; // a scripted move just ended: the camera shown eases from where it left off (a) to yours (p, which you move as usual from the first moment: your control fades in as the blend does)
+function camHandStart(){camHand={t0:performance.now(),ms:(T.mapCamHandMs||1400),a:{x:camX,y:camY,z:viewZoom},p:null,d:null};}
+function camHandRestore(){const H=camHand;if(!H||!H.p)return;H.p.x+=camX-H.d.x;H.p.y+=camY-H.d.y;H.p.z*=viewZoom/H.d.z;camX=H.p.x;camY=H.p.y;viewZoom=H.p.z;} // (back to your own camera, with anything you did to the shown one since)
+function camHandShow(now){const H=camHand;if(!H)return;if(dive||camTween){camHand=null;return;}const u=Math.min(1,(now-H.t0)/H.ms),e=ease5(u);H.p={x:camX,y:camY,z:viewZoom};
+  if(u>=1){camHand=null;camZoomTo(viewZoom);return;}const z=H.a.z*Math.pow(H.p.z/H.a.z,e);camX=H.a.x+(H.p.x-H.a.x)*e;camY=H.a.y+(H.p.y-H.a.y)*e;camZoomTo(z);H.d={x:camX,y:camY,z:viewZoom};}
 let camTween=null,camTiltOv=null,dive=null,statusCam=null; // statusCam: Status is open (its menu's width w, the zoom z it goes to, and your view to go back to) // dive: going into a surface (dir 1) or coming out of it (−1)
 function diveStart(key,dir,done,back){const c=cells[key];if(!c||!cam){if(done)done();return null;}const[wx,wy]=a2w(c.q,c.r),k=proj(...w2s(wx,wy))[2]||1,zFit=viewZoom*Math.min(SW,SH)*0.92/(2*HEX*k); // the zoom where the hex fills the frame
   dive={t0:performance.now(),ms:T.mapEnterMs||3000,x:wx,y:wy,a:back||{x:camX,y:camY,z:viewZoom,t:T.mapTilt!=null?T.mapTilt:32},zFit:back&&back.zFit||zFit,dir,done};dive.a.zFit=dive.zFit;return dive.a;}
 function diveStep(){ // over the hex, waiting for the buoy to be under; then turning to look straight down with the hex filling the frame; then down into it (coming out: the same, backwards)
   const D=dive,u=Math.min(1,(performance.now()-D.t0)/D.ms),U=D.dir>0?u:1-u,p1=ease5(U/0.45),p2=ease5((U-0.28)/0.47),p3=ease5((U-0.62)/0.38),A=D.a;
   camX=camTX=A.x+(D.x-A.x)*p1;camY=camTY=A.y+(D.y-A.y)*p1;camV.x=camV.y=camV.z=0;camTiltOv=A.t*(1-p2);const z=A.z*Math.pow(D.zFit/A.z,p2);camZoomTo(z*Math.pow(2.6,p3)); /* (over the hex, turning to look down, then down: each overlapping the next) */
-  if(u>=1){const d=D.done;dive=null;if(D.dir<0){camTiltOv=null;mapResize();}if(d)d();}} // the day's end: one smooth move from where the camera is to where the next day starts (its middle and zoom)
+  if(u>=1){const d=D.done;dive=null;if(D.dir<0){camTiltOv=null;mapResize();camHandStart();}if(d)d();}} // the day's end: one smooth move from where the camera is to where the next day starts (its middle and zoom)
 function camSees(wx,wy){if(!cam)return false;const[X,Y]=w2sc(wx,wy),m=Math.min(SW,SH)*0.08;return X>m&&X<SW-m&&Y>m&&Y<SH-m;} // a point well inside the screen
 function camTweenTo(keys,ms){const b=camBounds(keys);if(!b||SCENE)return;const f=camFit(b);camTween={t0:performance.now(),dur:ms*(T.mapCamSlow||1.8),a:{x:camX,y:camY,z:viewZoom},b:f};}
 function camFrame(){ // the camera is held on the spill: at its extent (a rectangle round its hexes, plus the lake margin, room for a bottle or a duck to swim in) it stops dead; a spill smaller than the view sits in its middle
   if(SCENE||!cam||!SW)return;
   if(dive){diveStep();return;}
   if(statusCam){const C=statusCam;zoomT=C.z;const[wx,wy]=s2wp(Math.max(80,(SW-C.w)/2),SH*0.55);camTX=camX+(buoy.x-wx);camTY=camY+(buoy.y-wy);return;} /* (no edge: it is framing the buoy) */
-  if(camTween){const t=Math.min(1,(performance.now()-camTween.t0)/camTween.dur),e=ease5(t),A=camTween.a,B=camTween.b;camX=camTX=A.x+(B.x-A.x)*e;camY=camTY=A.y+(B.y-A.y)*e;camZoomTo(A.z*Math.pow(B.z/A.z,e));camV.x=camV.y=camV.z=0;if(t>=1){camTween=null;mapResize();}return;} /* (zoom eased evenly in scale: no rush at either end) */
+  if(camTween){const t=Math.min(1,(performance.now()-camTween.t0)/camTween.dur),e=ease5(t),A=camTween.a,B=camTween.b;camX=camTX=A.x+(B.x-A.x)*e;camY=camTY=A.y+(B.y-A.y)*e;camZoomTo(A.z*Math.pow(B.z/A.z,e));camV.x=camV.y=camV.z=0;if(t>=1){camTween=null;mapResize();camHandStart();}return;} /* (zoom eased evenly in scale: no rush at either end) */
   const b=camBounds(Object.keys(cells));if(!b)return;const f=camFit(b);zoomFloor=f.z;
   if(zoomAuto||viewZoom<f.z-1e-3){const d=f.z-viewZoom;if(Math.abs(d)>2e-3){camZoomTo(viewZoom+(Math.abs(d)<0.01?d:d*0.12));_zoomSettle=1;}else if(_zoomSettle){_zoomSettle=0;mapResize();}} // its zoom follows the spill (at most out to it; held there until you zoom in)
   const[lx,ty,rx,by]=camView(),cx=v=>b[2]-b[0]<=rx-lx?(b[0]+b[2])/2-(lx+rx)/2:Math.max(b[0]-lx,Math.min(b[2]-rx,v)),cy=v=>b[3]-b[1]<=by-ty?(b[1]+b[3])/2-(ty+by)/2:Math.max(b[1]-ty,Math.min(b[3]-by,v));
@@ -528,8 +533,9 @@ function winDay(P){ // everything fell in: Midnight, the run's day logged as a W
   const now=performance.now(),ks=Object.keys(cells).filter(k=>!cells[k].isVoid).sort((a,b)=>{const A=cells[a],B=cells[b];return cellRing(A.q,A.r)-cellRing(B.q,B.r)||Math.random()-0.5;});phase='collapse';
   ks.forEach((k,i)=>{const t=now+600+i*140+Math.random()*90,[x,y]=a2w(cells[k].q,cells[k].r);cells[k].stain=t+450;fireworks.push({x,y,t,c:[EFFECT_HEX[(Math.random()*6)|0],EFFECT_HEX[(Math.random()*6)|0]],ps:Array.from({length:42},()=>{const u=Math.random()*2-1,a=Math.random()*6.2832,s=Math.sqrt(1-u*u);return[s*Math.cos(a),s*Math.sin(a),u,0.7+0.6*Math.random()];})});});
   const end=600+ks.length*140+1800;{const ks3=[];for(let i=1;i<=3;i++)for(const[q,r]of ring(i))ks3.push(K(q,r));camTweenTo(ks3,900);}
-  at(end,()=>{for(const k in cells)delete cells[k].stain;clock=3;day++;neb({cmd:'day',day});popSoonOpen();phase='move';feed(txt('map.win.new',day),txt('map.win.new2'));showTurn();updateHint();saveMap();if(!SCENE)showDayReport();});
+  at(end,()=>{for(const k in cells)delete cells[k].stain;saveMap();if(SCENE)winRest();else showDayReport();}); // (the report: Rest starts the new day)
   saveMap();}
+function winRest(){document.getElementById('day-report').classList.remove('show');clock=3;day++;neb({cmd:'day',day});popSoonOpen();phase='move';feed(txt('map.win.new',day),txt('map.win.new2'));showTurn();updateHint();saveMap();} // after a Win's fireworks: Rest, and the new day begins at Twilight
 function fireworksDraw(now){ // over the scene (the beam's layer): a rocket up from its hex, a burst of pigment light, falling and fading; under the water's surface, the same faint and upside down (its reflection)
   if(!fireworks.length||!cam)return;const c=beamCx,sp=v=>{const p=m4.tx(cam.pv,[v[0],v[1],v[2],1]);return[(p[0]/p[3]+1)/2*SW,(1-p[1]/p[3])/2*SH];};fireworks=fireworks.filter(f=>now-f.t<2600);c.save();c.globalCompositeOperation='lighter';
   for(const f of fireworks){const u=now-f.t;if(u<0)continue;const[px,py]=w2s(f.x,f.y),X=px-MW/2,Y=py-MH/2,Hh=HEX*2.4;
@@ -562,7 +568,7 @@ function showDayReport(){ // a day's report (or the run's, when won): how it end
   el.querySelector('h2').textContent=(won?txt('map.win.h',e.day):txt('map.day_cleared_2',e.day));
   el.querySelector('.dsum').textContent=txt('map.bright_dark_this_day',END_NAME[e.end]||e.end,(e.ring?txt('map.at_ring',e.ring):''),e.b,e.d,'');
   el.querySelector('.dlogbox').innerHTML=dayLogHTML();
-  b.textContent=txt('map.day_twilight',day);b.onclick=closeDayReport;el.classList.add('show');}
+  b.textContent=won&&clock===24?txt('map.ui.rest'):txt('map.day_twilight',day);b.onclick=won&&clock===24?winRest:closeDayReport;el.classList.add('show');}
 function closeDayReport(){document.getElementById('day-report').classList.remove('show');if(phase==='collapse'&&!pendingEnd)phase='move';updateHint();saveMap();}
 // ── The 3D scene: the plane lies flat (x right, y down, z up out of it); the camera looks at it from T.mapTilt off straight down, at
 // T.mapPersp px away (the perspective), zoomed by viewZoom. proj / unproj are that camera in maths: plane canvas px ↔ screen px (clicks,
@@ -594,15 +600,15 @@ function sceneInit(){
   const gl=sc.getContext('webgl',{alpha:false,antialias:true,premultipliedAlpha:true});if(!gl)return null;
   const sh=(t,src)=>{const o=gl.createShader(t);gl.shaderSource(o,src);gl.compileShader(o);return o;},pr=gl.createProgram();
   gl.attachShader(pr,sh(gl.VERTEX_SHADER,'attribute vec2 aP;uniform mat4 uPV;uniform vec2 uS;varying vec2 vT,vP;void main(){vT=aP;vP=aP*uS;gl_Position=uPV*vec4((aP-0.5)*uS,0.0,1.0);}'));
-  gl.attachShader(pr,sh(gl.FRAGMENT_SHADER,'#ifdef GL_FRAGMENT_PRECISION_HIGH\nprecision highp float;\n#else\nprecision mediump float;\n#endif\nvarying vec2 vT,vP;uniform sampler2D uT;uniform vec2 uSp,uSr,uCp,uIS,uRW;uniform vec4 uRp[8];uniform float uSa,uOn,uCr,uCa;uniform vec2 uSe;void main(){vec2 dsp=vec2(0.0);for(int i=0;i<8;i++){if(uRp[i].w>0.0){vec2 dv=vP-uRp[i].xy;float dd=max(1.0,length(dv)),u=(dd-uRp[i].z)/uRW.x;dsp+=uRp[i].w*exp(-u*u)*sin((dd-uRp[i].z)/uRW.y*6.2832)*dv/dd;}}vec4 c=texture2D(uT,vT+dsp*uIS);vec2 p=vP-uSp;float ca=cos(uSa),sa=sin(uSa);vec2 q=vec2(dot(p,vec2(ca,sa)),dot(p,vec2(-sa,ca)))/max(uSr,vec2(1.0));float d=length(q),m=uOn*uSe.y*(1.0-smoothstep(uSe.x,1.0,d)),dc=length(vP-uCp)/max(uCr,1.0),mc=uCa*(1.0-smoothstep(0.0,1.0,dc)),w=smoothstep(0.72,0.95,min(c.r,min(c.g,c.b)));vec3 l=c.rgb*(1.0+(1.15*m+0.9*mc)*(1.0-w));l=mix(l,vec3(1.0),(m*0.22*(1.0-d)+mc*0.3*(1.0-dc))*w);gl_FragColor=vec4(min(l,vec3(1.0)),1.0);}'));gl.linkProgram(pr);if(!gl.getProgramParameter(pr,gl.LINK_STATUS)){console.error('Surface Map ground shader:',gl.getProgramInfoLog(pr));return null;} /* (a uniform used by both shaders must have the same precision in each: the map position comes over as a varying instead) */
+  gl.attachShader(pr,sh(gl.FRAGMENT_SHADER,'#ifdef GL_FRAGMENT_PRECISION_HIGH\nprecision highp float;\n#else\nprecision mediump float;\n#endif\nvarying vec2 vT,vP;uniform sampler2D uT;uniform vec2 uSp,uSr,uCp,uIS,uRW;uniform vec4 uRp[8];uniform float uSa,uOn,uCr,uCa,uCs;uniform vec2 uSe;void main(){vec2 dsp=vec2(0.0);for(int i=0;i<8;i++){if(uRp[i].w>0.0){vec2 dv=vP-uRp[i].xy;float dd=max(1.0,length(dv)),u=(dd-uRp[i].z)/uRW.x;dsp+=uRp[i].w*exp(-u*u)*sin((dd-uRp[i].z)/uRW.y*6.2832)*dv/dd;}}vec4 c=texture2D(uT,vT+dsp*uIS);vec2 p=vP-uSp;float ca=cos(uSa),sa=sin(uSa);vec2 q=vec2(dot(p,vec2(ca,sa)),dot(p,vec2(-sa,ca)))/max(uSr,vec2(1.0));float d=length(q),m=uOn*uSe.y*(1.0-smoothstep(uSe.x,1.0,d)),dc=length(vP-uCp)/max(uCr,1.0),mc=uCa*(1.0-smoothstep(uCs,1.0,dc)),w=smoothstep(0.72,0.95,min(c.r,min(c.g,c.b)));vec3 l=c.rgb*(1.0+(1.15*m+0.9*mc)*(1.0-w));l=mix(l,vec3(1.0),(m*0.22*(1.0-d)+mc*0.3*(1.0-dc))*w);gl_FragColor=vec4(min(l,vec3(1.0)),1.0);}'));gl.linkProgram(pr);if(!gl.getProgramParameter(pr,gl.LINK_STATUS)){console.error('Surface Map ground shader:',gl.getProgramInfoLog(pr));return null;} /* (a uniform used by both shaders must have the same precision in each: the map position comes over as a varying instead) */
   const buf=gl.createBuffer();gl.bindBuffer(gl.ARRAY_BUFFER,buf);gl.bufferData(gl.ARRAY_BUFFER,new Float32Array([0,0,1,0,0,1,1,1]),gl.STATIC_DRAW);
   const tex=gl.createTexture();gl.bindTexture(gl.TEXTURE_2D,tex);for(const [p,v] of [[gl.TEXTURE_MIN_FILTER,gl.LINEAR],[gl.TEXTURE_MAG_FILTER,gl.LINEAR],[gl.TEXTURE_WRAP_S,gl.CLAMP_TO_EDGE],[gl.TEXTURE_WRAP_T,gl.CLAMP_TO_EDGE]])gl.texParameteri(gl.TEXTURE_2D,p,v);
-  return{gl,pr,buf,tex,aP:gl.getAttribLocation(pr,'aP'),uPV:gl.getUniformLocation(pr,'uPV'),uS:gl.getUniformLocation(pr,'uS'),uT:gl.getUniformLocation(pr,'uT'),uSp:gl.getUniformLocation(pr,'uSp'),uSr:gl.getUniformLocation(pr,'uSr'),uSa:gl.getUniformLocation(pr,'uSa'),uOn:gl.getUniformLocation(pr,'uOn'),uSe:gl.getUniformLocation(pr,'uSe'),uCp:gl.getUniformLocation(pr,'uCp'),uCr:gl.getUniformLocation(pr,'uCr'),uCa:gl.getUniformLocation(pr,'uCa'),uRp:gl.getUniformLocation(pr,'uRp'),uIS:gl.getUniformLocation(pr,'uIS'),uRW:gl.getUniformLocation(pr,'uRW'),duck:duckCtx(gl)};}
+  return{gl,pr,buf,tex,aP:gl.getAttribLocation(pr,'aP'),uPV:gl.getUniformLocation(pr,'uPV'),uS:gl.getUniformLocation(pr,'uS'),uT:gl.getUniformLocation(pr,'uT'),uSp:gl.getUniformLocation(pr,'uSp'),uSr:gl.getUniformLocation(pr,'uSr'),uSa:gl.getUniformLocation(pr,'uSa'),uOn:gl.getUniformLocation(pr,'uOn'),uCs:gl.getUniformLocation(pr,'uCs'),uSe:gl.getUniformLocation(pr,'uSe'),uCp:gl.getUniformLocation(pr,'uCp'),uCr:gl.getUniformLocation(pr,'uCr'),uCa:gl.getUniformLocation(pr,'uCa'),uRp:gl.getUniformLocation(pr,'uRp'),uIS:gl.getUniformLocation(pr,'uIS'),uRW:gl.getUniformLocation(pr,'uRW'),duck:duckCtx(gl)};}
 function bottleOpts(d,now,side,alpha){ // a bottle floating upright, leaning a little and rocking, about half under the water (side 1: what shows above it; −1: its reflection)
   const[px,py]=w2s(d.x,d.y),[X,Y,k]=proj(px,py),f=duckFace(d,now),t=0.3+0.1*Math.sin(now/900+d.ph),ct=Math.cos(t),st=Math.sin(t),z=side,size=d._s*0.8,
     ax=[f[0]*st,f[1]*st,ct*z],bx=[-f[0]*ct,-f[1]*ct,st*z],sd=[-f[1],f[0],0],h=size*(0.03*Math.sin(now/650+d.ph)-(d._sink||0)*1.6); // (its length up, leaning along its heading)
   return{rot:new Float32Array([...ax,...bx,...sd]),size,pos:[px-MW/2,py-MH/2,side*h],view:cam.view,proj:cam.proj,viewRot:cam.viewRot,env:{x:X,y:Y,lights:side>0?curLights(X,Y):[]},px:size*k,alpha,mirror:side<0,clip:side};}
-function duckFace(d,now){const a=d.hd+((DUCK_TYPES[d.type]||{}).mat==='paper'?now/900+d.ph:0);return[Math.cos(a),Math.sin(a),0];} // which way a lake duck faces (a Paper one keeps turning, to show its thinness)
+function duckFace(d,now){const mt=(DUCK_TYPES[d.type]||{}).mat,a=d.hd+(mt==='paper'||mt==='shadow'?now/900+d.ph:0);return[Math.cos(a),Math.sin(a),0];} // which way a lake duck faces (a Paper one keeps turning, to show its thinness)
 function duckRot(d,now,m){const f=duckFace(d,now),td=d.tod?now-d.tod:1e9,r=td<2400?0.32*Math.exp(-td/650)*Math.sin(td/80):0,cr=Math.cos(r),sr=Math.sin(r); // a lake duck upright on the plane, its forward along its heading — bobbling from side to side (a roll about its length) as it settles after a hop; m −1: mirrored across (its reflection)
   return new Float32Array([f[0],f[1],0, -f[1]*sr,f[0]*sr,cr*m, -f[1]*cr,f[0]*cr,-sr*m]);}
 function sceneRender(now){
@@ -614,7 +620,7 @@ function sceneRender(now){
   gl.uniformMatrix4fv(G3.uPV,false,cam.pv);gl.uniform2f(G3.uS,MW,MH);{const S=buoy.spotAt,on=!SCENE&&S&&!buoy.dunk&&!buoy.dip&&currentView!=='level';gl.uniform1f(G3.uOn,on?1:0);gl.uniform2f(G3.uSe,T.mapSpotEdge!=null?T.mapSpotEdge:0.9,T.mapSpotA!=null?T.mapSpotA:1); /* the spot on the water: crisp-edged (its own look; the shops take the light as a point light instead) */if(S){gl.uniform2f(G3.uSp,S.x,S.y);gl.uniform2f(G3.uSr,S.ma,S.mi);gl.uniform1f(G3.uSa,S.a);}}
   {const R=new Float32Array(32);let n=0;for(let i=ripples.length-1;i>=0&&n<8;i--){const r=ripples[i];if(now<r.t)continue;const q=rippleAt(r,now,HEX),a=q.a;if(a>=1)continue;const[x,y]=w2s(r.x,r.y);R.set([x,y,q.R,rippleBend(r)*HEX/34*(1-a)*(1-a)],n*4);n++;} // the newest rings, each bending the ground round it (as the title's do)
     gl.uniform4fv(G3.uRp,R);gl.uniform2f(G3.uIS,1/MW,1/MH);gl.uniform2f(G3.uRW,...rippleW(HEX));}
-  {const on=!SCENE&&currentView==='map'&&mX>=0&&!menuOpen&&!shopUI&&overScene();gl.uniform1f(G3.uCa,on?1.1:0);if(on){const[px,py]=unproj(mX,mY),k=proj(px,py)[2]||1;gl.uniform2f(G3.uCp,px,py);gl.uniform1f(G3.uCr,56/k);}} // the cursor's own light on the ground, as the buoy's: colours brighten, white takes a sheen // the buoy's light, lighting the ground itself: colours brighten (black stays black), white takes a sheen
+  {const on=!SCENE&&currentView==='map'&&mX>=0&&!menuOpen&&!shopUI&&overScene();gl.uniform1f(G3.uCa,on?(T.mapCursorGround!=null?T.mapCursorGround:1.1):0);gl.uniform1f(G3.uCs,T.mapCursorGroundSoft!=null?T.mapCursorGroundSoft:0);if(on){const[px,py]=unproj(mX,mY),k=proj(px,py)[2]||1;gl.uniform2f(G3.uCp,px,py);gl.uniform1f(G3.uCr,(T.mapCursorGroundR!=null?T.mapCursorGroundR:56)/k);}} // the cursor's own light on the ground, as the buoy's: colours brighten, white takes a sheen // the buoy's light, lighting the ground itself: colours brighten (black stays black), white takes a sheen
   gl.drawArrays(gl.TRIANGLE_STRIP,0,4);
   if(!G3.duck)return;let envd=false;
   {if(clock!==_sun.to%24&&!(clock===24&&_sun.to%24===0)){let to=clock;const fr=_sunH;if(to<fr&&fr-to>12)to+=24;else if(to>fr&&to-fr>12)to-=24;_sun={from:fr,to,t0:now};} // a new hour: the light moves to it (backwards for the Clock smith)
@@ -623,13 +629,13 @@ function sceneRender(now){
   const ra=T.mapDuckRefl!=null?T.mapDuckRefl:0.4; // ducks are mirrored in the surface beneath them
   if(ra>0){gl.clear(gl.DEPTH_BUFFER_BIT);for(const d of pond)if(d._s&&d.bottle)drawBottleScene(G3.duck,d,bottleOpts(d,now,-1,ra));for(const d of pond){if(!d._s||d.bottle)continue;const[px,py]=w2s(d.x,d.y),[X,Y,k]=proj(px,py),size=d._s,bob=duckBob(d,now);
     drawDuckScene(G3.duck,d.type,{rot:duckRot(d,now,-1),size,pos:[px-MW/2,py-MH/2,-bob],view:cam.view,proj:cam.proj,viewRot:cam.viewRot,env:{x:X,y:Y,lights:[]},px:size*k,alpha:ra*(d.fade!=null?d.fade:1),mirror:true,clip:-1});}
-    if(!SCENE)buoyDraw(now,true);gl.clear(gl.DEPTH_BUFFER_BIT);} // (your buoy, mirrored too)
+    shopsScene(now,true);if(!SCENE)buoyDraw(now,true);gl.clear(gl.DEPTH_BUFFER_BIT);} // (your buoy and the shops, mirrored too)
   for(const d of pond)if(d._s&&d.bottle){if(!envd){duckEnvUpdate(mc,now,G3.duck);envd=true;}drawBottleScene(G3.duck,d,bottleOpts(d,now,1,1));} // glass: it reflects the scene round it
   for(const d of pond){if(!d._s||d.bottle)continue;const v=DUCK_TYPES[d.type]||{},refl=v.mat==='metal'||v.mat==='gold'||v.mat==='glass',[px,py]=w2s(d.x,d.y),[X,Y,k]=proj(px,py);
     if(refl&&!envd){duckEnvUpdate(mc,now,G3.duck);envd=true;}
     const size=d._s; // upright on the plane: its forward along its heading, its up out of the plane
     drawDuckScene(G3.duck,d.type,{rot:duckRot(d,now,1),size,pos:[px-MW/2,py-MH/2,duckBob(d,now)],view:cam.view,proj:cam.proj,viewRot:cam.viewRot,env:{x:X,y:Y,lights:curLights(X,Y)},px:size*k,clip:1});}
-  if(!SCENE)buoyDraw(now,false);} // your buoy, half under the surface
+  shopsScene(now,false);if(!SCENE)buoyDraw(now,false);} // the shops, in every light where they stand; your buoy, half under the surface
 function duckBob(d,now){return d._s*(0.36+0.03*Math.sin(now/700+d.ph)-(d._sink||0)*1.3);} // how high a lake duck floats: dunked or splashing up, under the waterline
 let _glow=null;
 function glowSprite(bl,ba){ // one bright clear's glow (a wide and a mid blur pass and its soft white core), drawn once per hex size and setting
@@ -706,7 +712,7 @@ function downloadRunLog(){ // test mode: the whole run as it went, noise and all
   L.push('','== RECORD (JSON) ==',JSON.stringify({day,clock,depth,score,pos:[pQ,pR],dayLog,playLog}));saveText('infinite-light-run-log.txt',L.join('\n'));}
 function mapRender(){
   if(currentView==='level'){mapRafId=null;return;}hubPerf.t0=_hpT=performance.now();
-  camFrame();camSpring(performance.now());
+  camHandRestore();camFrame();camSpring(performance.now());camHandShow(performance.now());
   mctx.setTransform(MK,0,0,MK,0,0);mctx.fillStyle='#050608';mctx.fillRect(0,0,MW,MH);
   mapNeed=[];
   const moves=(phase==='move'||phase==='captured')&&!tired()?getMoves():[];
@@ -771,8 +777,6 @@ function mapRender(){
       else{const r0=HEX*1.75*(fx.r||T.mapBurstRings||3)+HEX,r=fx.kind==='fall'?r0*(1-ft*ft):r0*ft; // a fall accelerates in; a burst opens out
         mctx.save();mctx.globalCompositeOperation='screen';mctx.strokeStyle=`rgba(255,255,255,${0.8*(1-ft*0.6)})`;mctx.lineWidth=HEX*0.35;mctx.filter=`blur(${HEX*0.15}px)`;mctx.beginPath();mctx.arc(cx,cy,Math.max(1,r),0,6.2832);mctx.stroke();mctx.restore();}}
     else if(fx&&ft>=1)burstFx=null;}
-  // Shops reflected in the ground, upside down under their base (after the source's glow, so they show on it too): on the dark as a light, on the bright as a mirror's darker image; never over a Dark Remnant
-  if(!SCENE&&cam)shopReflect();
   // Merge visuals
   for(const g of mergeGroups){if(g.type!=='dark3'||!g.cells.length)continue;const cs=g.cells.map(ck=>cells[ck]).filter(Boolean);if(!cs.length)continue;
     const pts=cs.map(cc=>w2s(...a2w(cc.q,cc.r))),cx=pts.reduce((a,p)=>a+p[0],0)/pts.length,cy=pts.reduce((a,p)=>a+p[1],0)/pts.length,set=new Set(g.cells);
@@ -809,7 +813,7 @@ function mapRender(){
 function mapReady(){return nebReady&&(currentView==='overlay'||(!prevPending.size&&!mapNeed.length&&shopList().every(s=>shopEls[s.key])));} // nothing left to load before the map is shown (a card over it: the card is what shows)
 let _loadAt=performance.now();
 setInterval(()=>loadTick(),150); // (whatever the view: the map's own loop sleeps under a card)
-function loadTick(){if((_load.why.has('boot')||_load.why.has('back'))&&(mapReady()||performance.now()-_loadAt>12000)){loading('boot',false);loading('back',false);}}
+function loadTick(){if((_load.why.has('boot')||_load.why.has('back'))&&(mapReady()||performance.now()-_loadAt>12000)){loading('boot',false);loading('back',false);pageReady();}}
 function startMapLoop(){if(!mapRafId){hubPerf.last=0;mapRafId=requestAnimationFrame(mapRender);}} // (the time the loop was stopped is not a slow frame)
 document.addEventListener('visibilitychange',()=>{hubPerf.last=0;}); // nor is a tab in the background
 
@@ -896,7 +900,7 @@ const offView=(X,Y,m)=>X<-m||X>SW+m||Y<-m||Y>SH+m;
 // next, then the rest. One of each, never two alike. While it passes, no other duck or bottle comes in. A touch spins one and a click dunks it,
 // but none of them ever leaves the line: always forward. (Once a day for each kind you have all of.)
 let parade=null,_paradeAt=0;const paradeSeen=new Set();
-function paradeKinds(){const by={};for(const id in DUCK_TYPES){const a=DUCK_TYPES[id].axis;if(!a||a==='Classic'||!((duckLog[id]||0)>0))continue;(by[a]=by[a]||[]).push(id);}return Object.keys(by).filter(a=>by[a].length>=4).map(a=>[a,by[a].slice(0,9)]);} // four of a kind of yours is a parade (nine at most)
+function paradeKinds(){const by={};for(const id in DUCK_TYPES){const a=DUCK_TYPES[id].axis;if(!a||a==='Classic'||!((duckLog[id]||0)>0))continue;(by[a]=by[a]||[]).push(id);}return Object.keys(by).filter(a=>by[a].length>=(T.mapParadeMin||4)).map(a=>[a,by[a]]);} // enough of a kind of yours (Parade at least) is a parade
 function paradeOrder(axis,ids){const sz=id=>(DUCK_TYPES[id].scale||1),L=ids.slice();if(DUCK_TYPES.classic&&!L.includes('classic'))L.push('classic');
   if(axis==='Size'){const full=Object.keys(DUCK_TYPES).filter(k=>DUCK_TYPES[k].axis==='Size').every(k=>L.includes(k));L.sort((a,b)=>sz(b)-sz(a)||(DUCK_TYPES[b].head?1:0)-(DUCK_TYPES[a].head?1:0));if(full){const i=L.findIndex(k=>DUCK_TYPES[k].head);if(i>=0)L.push(...L.splice(i,1));}return L;} // (a full one: the Big Head last, behind the smallest)
   const rank=id=>id==='classic'?3:DUCK_TYPES[id].rare?0:DUCK_TYPES[id].mid?1:2;return L.sort((a,b)=>rank(a)-rank(b));}
@@ -919,7 +923,7 @@ function paradeStep(now,dt){
   if(SCENE||currentView!=='map'||now<_paradeAt||!water.pts.length)return;_paradeAt=now+8000;
   const K2=paradeKinds().filter(([a])=>!paradeSeen.has(a+'|'+day));if(!K2.length)return;const[axis,ids]=K2[0];paradeSeen.add(axis+'|'+day);
   let R=0;for(const k in cells){const c=cells[k];if(!c.isVoid)R=Math.max(R,Math.hypot(...a2w(c.q,c.r)));}R+=HEX*1.3; // its line: round the spill, just off its shore, once all the way round
-  const sg=Math.random()<0.5?1:-1,th=Math.random()*6.2832,order=paradeOrder(axis,ids);parade={R,th,sg,s:0,v:0.9,path:2*Math.PI*R,axis,n:order.length,names:order.map(k=>DUCK_TYPES[k].name)};let off=0,prev=0,i0=1;
+  const sg=Math.random()<0.5?1:-1,th=Math.random()*6.2832,all=paradeOrder(axis,ids),mx=Math.max(1,T.mapParadeMax||9),st=all.length>mx?(Math.random()*all.length)|0:0,order=all.length>mx?Array.from({length:mx},(_,i)=>all[(st+i)%all.length]):all; // (more than Parade at most: a run of them in their order, from a random one on)parade={R,th,sg,s:0,v:0.9,path:2*Math.PI*R,axis,n:order.length,names:order.map(k=>DUCK_TYPES[k].name)};let off=0,prev=0,i0=1;
   for(const id of order){const t=DUCK_TYPES[id],sz=(t.scale||1)*HEX*0.62;off+=prev?(prev+sz)*0.62:0;prev=sz;pond.push({type:id,x:R*Math.cos(th),y:R*Math.sin(th),hd:th+sg*Math.PI/2,sp:0,pk:axis,pn:i0++,cur:0,next:1e15,born:now,seen:true,lastRip:0,ph:Math.random()*6.28,parade:{off}});}
   feed(txt('map.parade'),txt('map.parade_d',axis));}
 function shopUnder(wx,wy){const R=HEX*(T.mapStreetSize||0.75)*0.42;return shopList().find(s=>Math.hypot(wx-s.wx,wy-s.wy)<R*(s.rank>1?1.35:1))||null;} // the shop standing on this spot of the ground (its footprint, not its picture)
@@ -996,7 +1000,7 @@ function buoyPlane(now){ // on the plane, under it: its spot light, its ripples,
   const da=Math.atan2(Math.sin(ta-S.a),Math.cos(ta-S.a)),rate=(T.mapSpotTurn!=null?T.mapSpotTurn:1.6)/1000*dms,lr=HEX*3/1000*dms; // it swings at one steady rate (the short way round), whatever the distance
   if(Math.abs(da)<=rate){S.a=ta;if(!aim)S.cyc=S.a+6.2832*dms/(T.mapSpotMs||30000);}else S.a+=Math.sign(da)*rate;if(aim)S.cyc=S.a; // the cycle carries on from wherever the light is (not from where it would have been)
   S.d+=Math.max(-lr,Math.min(lr,td-S.d));
-  const px=bx+Math.cos(S.a)*S.d,py=by+Math.sin(S.a)*S.d,h=buoyFrame(now).lamp[2],Rs=HEX*0.36,ma=Rs*Math.min(2.2,Math.sqrt(1+(S.d/Math.max(1,h))**2)); // the spot: where the lantern's cone meets the surface, stretched away from it (it comes in at a slant)
+  const px=bx+Math.cos(S.a)*S.d,py=by+Math.sin(S.a)*S.d,h=buoyFrame(now).lamp[2],Rs=HEX*0.36*(T.mapSpotSize!=null?T.mapSpotSize:1),ma=Rs*Math.min(2.2,Math.sqrt(1+(S.d/Math.max(1,h))**2)); // the spot: where the lantern's cone meets the surface, stretched away from it (it comes in at a slant)
   buoy.spotAt={x:px,y:py,a:S.a,ma,mi:Rs}; // (lit by the ground's own shader: sceneRender)
   if(now>buoy.ripAt){buoy.ripAt=now+2200+Math.random()*900;ripples.push({x:buoy.x,y:buoy.y,t:now,dk:onWhite(buoy.x,buoy.y)});} // it ripples the surface it floats in
   if(buoy.mv&&!buoy.mv.fire){const ink=onWhite(buoy.x,buoy.y)?[20,24,32]:sunInk();drawWakeShape(c,bx,by,Math.cos(buoy.hd),Math.sin(buoy.hd),HEX*0.4,0.7,0.4,ink,ink);if(now-(buoy.lastRip||0)>180){buoy.lastRip=now;ripples.push({x:buoy.x,y:buoy.y,t:now,dk:onWhite(buoy.x,buoy.y)});}}
@@ -1010,7 +1014,7 @@ function buoyFrame(now,b){b=b||buoy; // how it floats now: its turn, a slow rock
   const X=tip([f[0],f[1],0]),Y=tip([0,0,1]),Z=tip([-f[1],f[0],0]),dk=b.dunk?Math.max(0,Math.min(1,(now-b.dunk.t0)/(b.dunk.ms||700))):0,dp=b.dip?Math.min(1,(now-b.dip)/450):1,sink=(b.dunk?(b.dunk.d>0?dk*dk:1-dk):0)+(dp<1?0.35*Math.sin(Math.PI*dp):0),bob=size*(0.1*Math.sin(now/1100+ph)+0.035*Math.sin(now/530+0.8+ph)-2.6*sink),[px,py]=w2s(b.x,b.y),h=BUOY_LAMP*size;
   return{X,Y,Z,size,bob,px,py,lamp:[px-MW/2+Y[0]*h,py-MH/2+Y[1]*h,bob+Y[2]*h]};}
 function buoyOpts(now,mirror,bo){const F=buoyFrame(now,bo),[X,Y,k]=proj(F.px,F.py),m=mirror?-1:1,{X:a,Y:b,Z:c}=F; // (mirrored: its reflection, under the surface)
-  return{rot:new Float32Array([a[0],a[1],a[2]*m, b[0],b[1],b[2]*m, c[0],c[1],c[2]*m]),size:F.size,pos:[F.px-MW/2,F.py-MH/2,F.bob*m],view:cam.view,proj:cam.proj,viewRot:cam.viewRot,env:{x:X,y:Y,lights:mirror?[]:curLights(X,Y)},px:F.size*k,clip:m,mirror,alpha:mirror?(T.mapDuckRefl!=null?T.mapDuckRefl:0.4):1};}
+  return{rot:new Float32Array([a[0],a[1],a[2]*m, b[0],b[1],b[2]*m, c[0],c[1],c[2]*m]),size:F.size,pos:[F.px-MW/2,F.py-MH/2,F.bob*m],view:cam.view,proj:cam.proj,viewRot:cam.viewRot,env:{x:X,y:Y,lights:mirror?[]:curLights(X,Y)},px:F.size*k,clip:m,mirror,alpha:mirror?(T.mapDuckRefl!=null?T.mapDuckRefl:0.4):1,L3:bo?null:sceneLights(buoy.x,buoy.y,mirror,'spot')};}
 function buoyCanDir(now){const S=buoy.spotAt,F=buoyFrame(now);if(!S)return null;const L=F.lamp;if(buoy.dunk||buoy.dip)return{L,d:[F.Y[0],F.Y[1],F.Y[2]],F,up:1}; /* sinking, rising or dipping: it points straight up */const d=[S.x-MW/2-L[0],S.y-MH/2-L[1],-L[2]],l=Math.hypot(...d)||1;return{L,d:d.map(v=>v/l),F};} // from the can light to its spot
 function buoyCan(now,mirror){const A=buoyCanDir(now);if(!A||!cam)return null;const{L,d,F}=A,m=mirror?-1:1,up=Math.abs(d[2])>0.98?[1,0,0]:[0,0,1],cr=(a,b)=>[a[1]*b[2]-a[2]*b[1],a[2]*b[0]-a[0]*b[2],a[0]*b[1]-a[1]*b[0]],nz=v=>{const k=Math.hypot(...v)||1;return v.map(x=>x/k);},X=nz(cr(d,up)),Z=cr(d,X),[sx,sy,k]=proj(L[0]+MW/2,L[1]+MH/2);
   return{rot:new Float32Array([X[0],X[1],X[2]*m, d[0],d[1],d[2]*m, Z[0],Z[1],Z[2]*m]),size:F.size,pos:[L[0],L[1],L[2]*m],view:cam.view,proj:cam.proj,viewRot:cam.viewRot,env:{x:sx,y:sy,lights:[]},px:F.size*k,clip:m,mirror,alpha:mirror?(T.mapDuckRefl!=null?T.mapDuckRefl:0.4):1};}
@@ -1049,7 +1053,8 @@ function pondStep(now){
     if(!d.dunk){if(d.hop)d.tod=now;d._up=0;d.hop=0;} // (up high and down again: it toddles as it settles)
     if(d.pd)return pday?pdStep(d,now,dt):false;
     if(d.parade&&parade){const s=parade.s-d.parade.off,th=parade.th+parade.sg*s/parade.R,dir=th+parade.sg*Math.PI/2;d.x=parade.R*Math.cos(th);d.y=parade.R*Math.sin(th);if(!sp_)d.hd+=Math.atan2(Math.sin(dir-d.hd),Math.cos(dir-d.hd))*0.12*dt; // in the parade: always on, along its line (a touch spins it, a click dunks it, it never leaves the line)
-      if(now-d.lastRip>380){d.lastRip=now;ripples.push({x:d.x,y:d.y,t:now,dk:onWhite(d.x,d.y)});}const t=DUCK_TYPES[d.type]||{};d._s=HEX*0.62*(t.scale||1)/(t.head?1.25:1);return s<parade.path;}
+      const RL=HEX*(T.mapParadeRise||2.2),e=v=>v*v*(3-2*v),ps=s<0?1:s<RL?1-e(s/RL):s>parade.path-RL?e(Math.min(1,(s-parade.path+RL)/RL)):0;d._sink=Math.max(d._sink,ps); // one at a time: each comes up slowly as it sets off (a submarine surfacing, moving all the while), and goes down slowly at the end
+      if(ps<1&&now-d.lastRip>380){d.lastRip=now;ripples.push({x:d.x,y:d.y,t:now,dk:onWhite(d.x,d.y)});}const t=DUCK_TYPES[d.type]||{};d._s=HEX*0.62*(t.scale||1)/(t.head?1.25:1);return s<parade.path;}
     if(d.kick){d.kick*=Math.pow(0.97,dt);if(d.kick<0.05)d.kick=0;}if(d.twist){d.hd+=d.twist*dt;d.twist*=Math.pow(0.94,dt);if(Math.abs(d.twist)<0.002)d.twist=0;}
     if(d.leave){const out=Math.atan2(d.y,d.x);d.hd+=Math.atan2(Math.sin(out-d.hd),Math.cos(out-d.hd))*0.08*dt;d.cur=0;d.dash=now+500;d.next=now+1e9;}
     if(now>d.next){d.next=now+1800+Math.random()*3000;d.cur=Math.random()<0.1?(Math.random()<0.5?-1:1)*0.03:(Math.random()-0.5)*0.006;d.dash=Math.random()<0.18?now+1200+Math.random()*1200:0;} // now and then a dash // mostly a gentle curve on its way across; now and then a doughnut
@@ -1067,7 +1072,7 @@ function pondStep(now){
     const t=d.bottle?{scale:1.4}:DUCK_TYPES[d.type]||{};d._s=HEX*0.62*(t.scale||1)/(t.head?1.25:1);return true;}); // world units per model unit (its type's size)
   pondBump(dt);ripples=ripples.filter(r=>now-r.t<(T.rippleMs||1800));
   clickFx(c,now);for(const r of ripples){if(now<r.t)continue;const{a,R}=rippleAt(r,now,HEX),[X,Y]=w2s(r.x,r.y);c.strokeStyle=`rgba(${r.dk?'20,24,32':sunInk().join(',')},${(0.5*(1-a)*(1-a)).toFixed(3)})`;c.lineWidth=r.big?2:1.4;c.beginPath();c.arc(X,Y,R,0,6.2832);c.stroke();} // rings on the water (the camera foreshortens them)
-  for(const d of pond)if(d._s){const[X,Y]=w2s(d.x,d.y);if(d.bottle){if(d.isNew&&!d.empty)duckGlow(c,'shining',X,Y,d._s*1.2,now,d.ph);continue;}if((DUCK_TYPES[d.type]||{}).mat==='shadow'&&cam){const f=duckFace(d,now),R=cam.viewRot,r=[f[0],f[1],0, 0,0,1, -f[1],f[0],0],m=new Float32Array(9),b=duckBob(d,now); // a Silhouette: its glow in the outline the camera sees, laid on the water under it
+  for(const d of pond)if(d._s){const[X,Y]=w2s(d.x,d.y);if(d.bottle){if(d.isNew&&!d.empty)duckGlow(c,'shining',X,Y,d._s*1.2,now,d.ph);continue;}if((DUCK_TYPES[d.type]||{}).mat==='shadow'&&cam){const R=cam.viewRot,r=duckRot(d,now,1),m=new Float32Array(9),b=duckBob(d,now); /* (its turn exactly as it is drawn) */ // a Silhouette: its glow in the outline the camera sees, laid on the water under it
       for(let i=0;i<3;i++)for(let j=0;j<3;j++)m[j*3+i]=R[i]*r[j*3]+R[3+i]*r[j*3+1]+R[6+i]*r[j*3+2];duckGlow(c,d.type,X,Y-b*Math.tan(cam.th),d._s,now,d.ph,m,1/Math.cos(cam.th));}
     else duckGlow(c,d.type,X,Y,d._s,now,d.ph); // a Bright / Shining / Dim duck lights the water round it
     const r=Math.max(0,Math.min(1,(d.sp-0.6)/0.9)); // paddling hard: the same bow wake a pigment pushes into particles, on the water ahead of it
@@ -1110,7 +1115,7 @@ function enterNebula(cellKey){
   if(_mpFor){netOut({t:'enter',key:cellKey},_mpFor);return;} // a friend's surface: they play it, everyone watches
   if(MP.on){MP.surf={owner:MP.me,key:cellKey};netOut({t:'surf',owner:MP.me,key:cellKey,on:true});neb({cmd:'mpShare',on:true});} // (its frames, for everyone watching)
   const c=cells[cellKey];
-  loading('boot',false);const now=performance.now(),boot=!cam||SCENE||/[?&]resume=1/.test(location.search)&&!_enter; // (straight in when the map was never drawn: the clean load)
+  loading('boot',false);pageReady();const now=performance.now(),boot=!cam||SCENE||/[?&]resume=1/.test(location.search)&&!_enter; // (straight in when the map was never drawn: the clean load)
   if(boot){currentView='level';loading('level',true);setTimeout(()=>loading('level',false),12000);showNeb(true);} // (the surface says when it is drawn: 'levelReady')
   else{const ms=T.mapEnterMs||3000;currentView='entering';_enter={key:cellKey,ready:false,back:null};buoy.dunk={t0:now,d:1,ms:ms*0.33};ripples.push({x:buoy.x,y:buoy.y,t:now,dk:onWhite(buoy.x,buoy.y),big:1});startMapLoop(); // your buoy is dunked the whole way while the camera comes over the hex, turns to look straight down on it and goes down into it; then the surface fades in
     _enter.back=diveStart(cellKey,1,()=>{if(currentView!=='entering')return;currentView='level';if(!_enter.ready){loading('level',true);setTimeout(()=>loading('level',false),12000);}showNeb(true);});} // (not drawn yet: the clean loading screen until it is)
@@ -1298,28 +1303,45 @@ function shopEnv(){ // what a shop's glass reflects: the hexes round the source 
   const e=_shopEnv||(_shopEnv=document.createElement('canvas'));e.width=e.height=256;const g=e.getContext('2d'),[x,y]=w2s(0,0),R=HEX*6*MK;
   g.fillStyle='#202228';g.fillRect(0,0,256,256);try{g.drawImage(mc,x*MK-R/2,y*MK-R/2,R,R,0,0,256,256);}catch(err){}
   const sh=g.createLinearGradient(0,0,0,256);sh.addColorStop(0,'rgba(230,236,245,.45)');sh.addColorStop(0.45,'rgba(230,236,245,.08)');sh.addColorStop(1,'rgba(0,0,0,.25)');g.fillStyle=sh;g.fillRect(0,0,256,256);return e;}
-function shopSprite(id,bk,lit,yaw,open,L,mir,soon){ // L: the buoy's light on it ({k, x, y, s}: its way in on screen and strength, in steps), or none // the shop's 3D building (shared.js shopModel) drawn from a little above and turned by yaw (degrees), lit by the time of day: then the glow of its sign and
-  // windows when open; at Q px per unit (as its drawings were at 4×), so a shop stays crisp however near the camera or the menu shows it. Redrawn when the light changes.
-  const gw=T.mapShopGlow!=null?T.mapShopGlow:1,fl=bk===(SHOPS[id].bk||'s')&&SHOPS[id].flip,yw=Math.round(yaw||0),sun=DUCK_SUN.c.map(v=>Math.round(v*16)).concat(DUCK_SUN.d.map(v=>Math.round(v*8))).join(','),pt=T.mapShopPitch!=null?T.mapShopPitch:22,
-    base=id+bk+(lit?1:0)+(open?'o':'')+(soon?'s':'')+gw+'|'+yw+'|'+pt+'|'+(T.mapShopUpScale||1.7)+'|',key=base+sun+(L?'|L'+L.k:'')+(mir?'|m':'')+(id==='clock'&&!soon?'|h'+clockSign(clock)._a:'');if(shopCv[key])return shopCv[key];
-  const si=soon?soonSign(id):id==='clock'?clockSign(clock):shopImg('sign_'+id);if(!soon&&(!si.complete||!si.naturalWidth)||!_duckTex)return null;
-  const dsc=id==='pulsing'&&lit&&!soon,type=shopModel(id,bk,lit,fl,si,open,soon,dsc?-1:undefined),M=duckModel(type),Q=4*(bk==='m'||bk==='l'||bk==='t'?(T.mapShopUpScale||1.7):1), // (a bigger rank's two-storey store drawn larger, so its door is the size of main street's)
-    q=quatTurn(quatTurn([0,0,0,1],0,yw*Math.PI/180,0),(mir?-pt:pt)*Math.PI/180,0,0),N=Math.ceil(2*M.g.R*Q)+8,pad=Math.ceil(30*gw)+8;
-  const cv=document.createElement('canvas');cv.width=cv.height=N+pad*2;const c=cv.getContext('2d'),lt=E=>({x:E.x,y:E.y,lights:L?L.ls.map(l=>[E.x+Math.cos(l.a)*90,E.y-Math.sin(l.a)*30+40,255,244,222,l.s,300]):[]}); /* (the lamp out in front of it, off to the side it comes from and a little low: its cone lands on the shopfront) */ /* the buoy's can light, as a light in the scene: on its walls, and glinting on its glass */
-  const emk=soon?1:shopGlowK();M.emk=emk; /* its sign and lit room: full at night, about half at noon */
-  drawDuck3D(c,type,q,[[cv.width/2,cv.height/2]],Q,1,2048,lt({x:cv.width/2,y:cv.height/2}));
-  {const sun=DUCK_SUN.c;duckEnvUpdate(shopEnv(),performance.now());DUCK_SUN.c=sun.map(v=>v+(1-v)*0.75); // its glass: reflecting the street round the source (faint while the lights are on inside), barely tinted by the time of day
-    drawDuck3D(c,type+'|glass',q,[[cv.width/2,cv.height/2]],Q,lit?0.6+0.7*(1-emk):1,2048,lt({x:W/2,y:H/2})); /* (by day the street shows in it over the dimmer room) */
-    if(!L&&!mir){const g=document.createElement('canvas');g.width=g.height=cv.width;const gx=g.getContext('2d');drawDuck3D(gx,type+'|glass',q,[[cv.width/2,cv.height/2]],Q,1,2048,null);gx.globalCompositeOperation='source-in';gx.fillStyle='#fff';gx.fillRect(0,0,g.width,g.height);cv._glass=g;} /* its glass alone, white: what a tap flashes */
-    DUCK_SUN.c=sun;}
-  if(lit&&gw>0){const g=document.createElement('canvas');g.width=g.height=cv.width;M.eo=1;drawDuck3D(g.getContext('2d'),type,q,[[cv.width/2,cv.height/2]],Q,emk,2048);M.eo=0; // the neon: what glows, blurred out over it
-    c.save();c.globalCompositeOperation='lighter';for(const[b,a]of[[22,0.8],[7,0.55]]){c.filter='blur('+(b*gw).toFixed(1)+'px)';c.globalAlpha=Math.min(1,a*gw);c.drawImage(g,0,0);}c.restore();}
-  M.emk=1;if(dsc&&!L&&!mir)cv._disco=[0,1,2,3].map(i=>{const t=shopModel(id,bk,lit,fl,si,open,soon,'m'+i),Mm=duckModel(t),g=document.createElement('canvas');g.width=g.height=cv.width;const gx=g.getContext('2d');Mm.emk=1;drawDuck3D(gx,t,q,[[cv.width/2,cv.height/2]],Q,1,2048,null); // the Pulse's lamps: each one's light, apart (where it shows through the openings), blurred out round it — the map blinks each through the effect colours
-    const im=gx.getImageData(0,0,g.width,g.height),d=im.data,[r,gg,b]=[1,3,5].map(j=>parseInt(EFFECT_HEX[0].slice(j,j+2),16));for(let k=0;k<d.length;k+=4){const a=d[k]>150?d[k]:0;d[k]=r;d[k+1]=gg;d[k+2]=b;d[k+3]=a;}gx.putImageData(im,0,0);
-    const o=document.createElement('canvas');o.width=o.height=cv.width;const ox=o.getContext('2d');ox.globalCompositeOperation='lighter';for(const[bl,al]of[[30,1],[30,1],[30,1],[30,1],[10,1],[10,1],[0,1]]){ox.filter=bl?'blur('+bl+'px)':'none';ox.globalAlpha=al;ox.drawImage(g,0,0);}return o;});
-  const m=quatMat(q),fy=M.g.foot;cv._ax=cv.width/2+m[3]*fy*Q;cv._ay=cv.height/2-m[4]*fy*Q;cv._bw=264; // its foot: where it stands on the map; _bw: the size every shop is scaled by (main street's old 66-unit drawing at 4×, so shops keep the size they had)
-  {const now_=base+sun,ks=[];for(const k of Object.keys(shopCv))if(k.startsWith(base)&&k!==key){if(!k.startsWith(now_))delete shopCv[k];else if(k.endsWith('|m')===!!mir)ks.push(k);}while(ks.length>7)delete shopCv[ks.shift()];} // (an older time of day's drawings go; a few of this one's recent lights are kept, the cursor moving to and fro; its reflection's own beside them)
+function shopSprite(id,bk,lit,yaw,open,soon){ // the shop drawn flat (not in the scene's light): what a pointer hits (its own pixels), its glass (what a tap flashes), its neon's glow (blurred, laid over it in the scene) and the picture in its menu. The building itself is drawn in the 3D scene, lit there (shopsScene)
+  const gw=T.mapShopGlow!=null?T.mapShopGlow:1,fl=bk===(SHOPS[id].bk||'s')&&SHOPS[id].flip,yw=Math.round(yaw||0),pt=T.mapShopPitch!=null?T.mapShopPitch:22,emk=soon?1:shopGlowK(),
+    base=id+bk+(lit?1:0)+(open?'o':'')+(soon?'s':'')+gw+'|'+yw+'|'+pt+'|'+(T.mapShopUpScale||1.7)+'|',key=base+emk.toFixed(2)+(id==='clock'&&!soon?'|h'+clockSign(clock)._a:'');if(shopCv[key])return shopCv[key];
+  const si=shopSign(id,soon);if(!soon&&(!si.complete||!si.naturalWidth)||!_duckTex)return null;
+  const type=shopModel(id,bk,lit,fl,si,open,soon),M=duckModel(type),Q=shopQ(bk),q=quatTurn(quatTurn([0,0,0,1],0,yw*Math.PI/180,0),pt*Math.PI/180,0,0),N=Math.ceil(2*M.g.R*Q)+8,pad=Math.ceil(30*gw)+8;
+  const cv=document.createElement('canvas');cv.width=cv.height=N+pad*2;const c=cv.getContext('2d'),at=[[cv.width/2,cv.height/2]];M.emk=emk;
+  drawDuck3D(c,type,q,at,Q,1,2048,null);drawDuck3D(c,type+'|glass',q,at,Q,1,2048,null);
+  {const g=document.createElement('canvas');g.width=g.height=cv.width;const gx=g.getContext('2d');drawDuck3D(gx,type+'|glass',q,at,Q,1,2048,null);gx.globalCompositeOperation='source-in';gx.fillStyle='#fff';gx.fillRect(0,0,g.width,g.height);cv._glass=g;} /* its glass alone, white: what a tap flashes */
+  if(lit&&gw>0){const g=document.createElement('canvas');g.width=g.height=cv.width;M.eo=1;drawDuck3D(g.getContext('2d'),type,q,at,Q,emk,2048);M.eo=0; // the neon: what glows, blurred out (the glow alone: laid over the building in the scene)
+    const o=cv._glow=document.createElement('canvas');o.width=o.height=cv.width;const ox=o.getContext('2d');ox.globalCompositeOperation='lighter';for(const[b,a]of[[22,0.8],[7,0.55]]){ox.filter='blur('+(b*gw).toFixed(1)+'px)';ox.globalAlpha=Math.min(1,a*gw);ox.drawImage(g,0,0);}}
+  M.emk=1;const m=quatMat(q),fy=M.g.foot;cv._ax=cv.width/2+m[3]*fy*Q;cv._ay=cv.height/2-m[4]*fy*Q;cv._bw=264; // its foot: where it stands on the map; _bw: the size every shop is scaled by (main street's old 66-unit drawing at 4×, so shops keep the size they had)
+  for(const k of Object.keys(shopCv))if(k.startsWith(base)&&k!==key)delete shopCv[k]; // (an older time of day's drawing goes)
   return shopCv[key]=cv;}
+const shopSign=(id,soon)=>soon?soonSign(id):id==='clock'?clockSign(clock):shopImg('sign_'+id),shopQ=bk=>4*(bk==='m'||bk==='l'||bk==='t'?(T.mapShopUpScale||1.7):1); // its sign's picture; its drawing's px per unit (a bigger rank's two-storey store larger, so its door is the size of main street's)
+function sceneLights(wx,wy,mir,skip){ // the lights round a point of the scene, where they really are (in the view), for a painted model there to take as a 3D renderer would: your buoy's can light (a cone), the cursor's, the source's and the bright clears' near it (time of day's sun and sky come in on their own)
+  const L=[],[cx,cy]=w2s(wx,wy),X0=cx-MW/2,Y0=cy-MH/2,now=performance.now(),add=(p,s,col,R,dir,ci,co)=>{const d=Math.hypot(p[0]-X0,p[1]-Y0,p[2]);L.push({p,s,col,R,dir,ci,co,w:s/(1+(d/R)**2)});};
+  if(!SCENE&&cam&&currentView!=='level'){
+    if(skip!=='spot'){const A=buoyCanDir(now);if(A&&!A.up)add(A.L,T.mapShopLight!=null?T.mapShopLight:1,[1,0.957,0.87],HEX*(T.mapSpotRange||7),A.d,Math.cos((T.mapSpotConeIn!=null?T.mapSpotConeIn:9)*Math.PI/180),Math.cos((T.mapSpotConeOut!=null?T.mapSpotConeOut:22)*Math.PI/180));} // the buoy's can light: a cone, crisp inside, fading to its rim
+    if(currentView==='map'&&mX>=0&&!menuOpen&&!shopUI&&overScene()){const[px,py]=unproj(mX,mY);add([px-MW/2,py-MH/2,HEX*(T.mapCursorLightH!=null?T.mapCursorLightH:0.8)],T.mapCursorLightA!=null?T.mapCursorLightA:0.9,[1,0.97,0.92],HEX*(T.mapCursorLightRange||2.6));}} // the cursor's: a lamp just above where it points
+  {const[sx,sy]=w2s(0,0);add([sx-MW/2,sy-MH/2,HEX*0.7],T.mapSourceLight!=null?T.mapSourceLight:1.6,[1,1,1],HEX*(T.mapSourceLightR||3.4));} // the source: a big white light at the centre
+  const B=[];for(const k in cells){const c=cells[k];if(!c.cap||c.kind==='dark')continue;const[bx,by]=a2w(c.q,c.r),d=Math.hypot(bx-wx,by-wy);if(d<HEX*5)B.push([d,bx,by]);}B.sort((a,b)=>a[0]-b[0]); // the bright clears near it: each a soft white light low over its hex
+  for(const[,bx,by]of B.slice(0,3)){const[x,y]=w2s(bx,by);add([x-MW/2,y-MH/2,HEX*0.35],T.mapBrightLight!=null?T.mapBrightLight:0.7,[1,1,1],HEX*(T.mapBrightLightR||1.7));}
+  L.sort((a,b)=>b.w-a.w);const V=cam.view,R=cam.viewRot,o={ld:new Float32Array(24),lc:new Float32Array(18),ls:new Float32Array(24),lr:new Float32Array(12)},m=mir?-1:1;
+  L.slice(0,6).forEach((l,i)=>{const[x,y,z0]=l.p,z=z0*m;o.ld.set([V[0]*x+V[4]*y+V[8]*z+V[12],V[1]*x+V[5]*y+V[9]*z+V[13],V[2]*x+V[6]*y+V[10]*z+V[14],l.s],i*4);o.lc.set(l.col,i*3); // (mirrored: the light as the reflection sees it)
+    if(l.dir){const[dx,dy,dz0]=l.dir,dz=dz0*m;o.ls.set([R[0]*dx+R[3]*dy+R[6]*dz,R[1]*dx+R[4]*dy+R[7]*dz,R[2]*dx+R[5]*dy+R[8]*dz,l.ci],i*4);o.lr.set([l.co,l.R],i*2);}else{o.ls.set([0,0,0,-2],i*4);o.lr.set([0,l.R],i*2);}});
+  return o;}
+function shopRot(yw,lean,m){const a=-yw*Math.PI/180,ca=Math.cos(a),sa=Math.sin(a),cl=Math.cos(lean),sl=-Math.sin(lean); // a shop in the scene: turned on the ground by yw, and leant toward the camera by lean (so it is seen from as far above as Shop view angle, as it always has been); m −1 its reflection
+  return new Float32Array([ca,cl*sa,-sl*sa*m, 0,sl,cl*m, -sa,cl*ca,-sl*ca*m]);}
+function shopsScene(now,mir){ // every shop in the 3D scene, lit by every light where it is (sceneLights) and the time of day: its walls, its glass (reflecting the street), its sign and lit room glowing; or (mir) mirrored in the water under it
+  if(!G3||!G3.duck||!cam||SCENE&&!document.body.classList.contains('scene-shops'))return;const ra=T.mapShopReflect!=null?T.mapShopReflect:0.7;if(mir&&ra<=0)return;
+  const pt=T.mapShopPitch!=null?T.mapShopPitch:22,lean=Math.max(0,(90-(camTiltOv!=null?camTiltOv:(T.mapTilt!=null?T.mapTilt:32))-pt))*Math.PI/180,m=mir?-1:1,emk=shopGlowK();let envd=false;
+  for(const s of shopList()){const el=shopEls[s.key];if(!el||!el._cv)continue;const si=shopSign(s.id,s.soon);if(!s.soon&&(!si.complete||!si.naturalWidth))continue;
+    const op=!!(shopUI&&shopUI.key===s.key),fl=s.bk===(SHOPS[s.id].bk||'s')&&SHOPS[s.id].flip,ph=s.id==='pulsing'&&s.lit&&!s.soon?Math.floor(now/800)%6:undefined; // (the Pulse's lamps: a step through the effect colours on its beat, their own light)
+    const type=shopModel(s.id,s.bk,s.lit,fl,si,op,s.soon,ph),M=duckModel(type);if(!M)continue;const size=HEX*(T.mapStreetSize||0.75)*shopQ(s.bk)/264,rot=shopRot(s.yaw||0,lean,m),[px,py]=w2s(s.wx,s.wy),[X,Y,k]=proj(px,py);
+    const u=s.rise==null?1:s.rise,e=1-Math.pow(1-Math.min(1,u),3),dn=u<1?(1-e)*M.g.R*2*size:0,f=M.g.foot*size,pos=[px-MW/2-rot[3]*f,py-MH/2-rot[4]*f,(-rot[5]*f-dn)*1]; // its foot on the ground (rising out of it: cut off below)
+    if(mir){pos[2]=-(-rot[5]*m*f-dn);}
+    const L3=sceneLights(s.wx,s.wy,mir),o={rot,size,pos,view:cam.view,proj:cam.proj,viewRot:cam.viewRot,env:{x:X,y:Y,lights:[]},px:size*k,clip:m,mirror:mir,alpha:mir?ra:1,L3};
+    M.emk=s.soon?1:emk;drawDuckScene(G3.duck,type,o);M.emk=1;
+    if(!envd){duckEnvUpdate(shopEnv(),now+0.5,G3.duck);envd=true;}drawDuckScene(G3.duck,type+'|glass',Object.assign({},o,{env:{x:X,y:Y,lights:mir?[]:curLights(X,Y)},alpha:(s.lit?0.6+0.7*(1-emk):1)*(mir?ra:1),L3:null}));}} // its glass: the street round the source in it, glints of the cursor's light
 function streetYaw(a){ // a main street shop at a: its turn so its front edge (in front of the source; behind it, its back) lies along the source hex's edge facing it, as the camera sees it
   if(!cam)return 0;const s=(d)=>{const[x,y]=a2w(0,0),r=HEX,t=(a+d)*Math.PI/180;return proj(...w2s(x+r*Math.cos(t),y+r*Math.sin(t)));},p=s(-30),q=s(30),[L_,R_]=p[0]<q[0]?[p,q]:[q,p];
   const rise=Math.atan2(L_[1]-R_[1],R_[0]-L_[0]),pt=(T.mapShopPitch!=null?T.mapShopPitch:22)*Math.PI/180;return Math.round(Math.atan(Math.tan(rise)/Math.max(0.05,Math.sin(pt)))*180/Math.PI);} // (the edge's slope on screen; a turned shop's front slopes by tan(yaw)·sin(its view angle))
@@ -1335,39 +1357,17 @@ function shopList(){ // every shop on the map now: main street hugging the sourc
   for(const k in cells){const c=cells[k];if(c.shop&&isBright(k)){const[wx,wy]=popSpot(c.q,c.r),u=shopRise(c.shop);out.push({key:k,id:c.shop.id,rank:c.shop.rank,bk:SHOP_RANK_BLD[c.shop.rank-1],wx,wy,rise:u,lit:u>=1&&shopIsOpen(c.shop.id,clock,run)});}}
   return out;}
 let _rfl=null;
-function shopReflect(){ // shops mirrored in the ground under them: each its own drawing seen from below and turned over (so it turns as the building does), all drawn solid into one layer (nearer over farther: never see-through to each other), laid on the ground once with 'lighten' (it shows only where the ground is dark)
-  const ct=Math.max(0.2,Math.cos(cam.th)),L=[];let x0=1e9,y0=1e9,x1=-1e9,y1=-1e9;
-  for(const key in shopEls){const el=shopEls[key],sh=el._s;if(!sh||(sh.rise!=null&&sh.rise<1))continue;const cv=shopSprite(sh.id,sh.bk,sh.lit,sh.yaw,!!(shopUI&&shopUI.key===sh.key),null,1,sh.soon);if(!cv)continue;
-    const[px,py]=w2s(sh.wx,sh.wy),sx=HEX*(T.mapStreetSize||0.75)/cv._bw,sy=sx/ct; /* (its screen height again, on a plane seen at a slant) */
-    const a=[px-cv._ax*sx,py-(cv.height-cv._ay)*sy],b=[px+(cv.width-cv._ax)*sx,py+cv._ay*sy];if(b[0]<0||a[0]>MW||b[1]<0||a[1]>MH)continue;
-    x0=Math.min(x0,a[0]);y0=Math.min(y0,a[1]);x1=Math.max(x1,b[0]);y1=Math.max(y1,b[1]);L.push({cv,px,py,sx,sy});}
-  if(!L.length)return;x0=Math.max(0,x0);y0=Math.max(0,y0);x1=Math.min(MW,x1);y1=Math.min(MH,y1);const w=Math.ceil((x1-x0)*MK),h=Math.ceil((y1-y0)*MK);if(w<1||h<1)return;
-  if(!_rfl)_rfl=document.createElement('canvas');if(_rfl.width<w||_rfl.height<h){_rfl.width=Math.max(w,_rfl.width);_rfl.height=Math.max(h,_rfl.height);}const g=_rfl.getContext('2d');g.setTransform(1,0,0,1,0,0);g.clearRect(0,0,w,h);
-  L.sort((p,q)=>p.py-q.py);for(const r of L){g.setTransform(MK*r.sx,0,0,-MK*r.sy,MK*(r.px-x0),MK*(r.py-y0));g.drawImage(r.cv,-r.cv._ax,-r.cv._ay);}
-  g.setTransform(MK,0,0,MK,-MK*x0,-MK*y0);g.globalCompositeOperation='destination-out';const hole=(x,y,r)=>{if(x+r<x0||x-r>x1||y+r<y0||y-r>y1)return;const gr=g.createRadialGradient(x,y,r*0.55,x,y,r);gr.addColorStop(0,'#000');gr.addColorStop(1,'rgba(0,0,0,0)');g.fillStyle=gr;g.fillRect(x-r,y-r,2*r,2*r);}; // (each Dark Remnant: the reflection stops at it)
-  const big=new Set();for(const gp of mergeGroups)if(gp.type==='dark3'&&gp.cells.length){const P=gp.cells.map(k=>cells[k]).filter(Boolean).map(c=>w2s(...a2w(c.q,c.r)));gp.cells.forEach(k=>big.add(k));if(P.length)hole(P.reduce((a,p)=>a+p[0],0)/P.length,P.reduce((a,p)=>a+p[1],0)/P.length,HEX*1.3);}
-  for(const k in cells){const c=cells[k];if(c.cap&&c.kind==='dark'&&!big.has(k)){const[x,y]=w2s(...a2w(c.q,c.r));hole(x,y,HEX*0.55);}}g.globalCompositeOperation='source-over';g.setTransform(1,0,0,1,0,0);
-  const A=T.mapShopReflect!=null?T.mapShopReflect:0.7,dst=[Math.round(x0*MK),Math.round(y0*MK),w,h];mctx.save();mctx.setTransform(1,0,0,1,0,0);
-  mctx.globalCompositeOperation='lighten';mctx.globalAlpha=A;mctx.filter='brightness(1.6)';mctx.drawImage(_rfl,0,0,w,h,...dst); // on the dark: lifted a little, so a closed, dark building still shows in the black
-  mctx.globalCompositeOperation='multiply';mctx.globalAlpha=A*0.8;mctx.filter='none';mctx.drawImage(_rfl,0,0,w,h,...dst);mctx.restore();} // on the bright: the building's own colours over it, as a mirror's image
 function curLights(X,Y){ // the cursor's own light, on what is near it on the map (a duck, a bottle, your buoy: glints on metal and glass, light on a painted one), as on the ground
   if(SCENE||currentView!=='map'||mX<0||menuOpen||shopUI||!overScene())return[];const R=T.mapCursorLightR!=null?T.mapCursorLightR:170,d=Math.hypot(mX-X,mY-Y);if(d>=R)return[];return[[mX,mY-30,255,248,235,(T.mapCursorLightA!=null?T.mapCursorLightA:0.9)*(1-d/R),160]];}
-function shopLights(s){ // the lights on a shop: the buoy's can light where its spot is, and the cursor's. Each: its way in (in steps, from where it stands still: the buoy's hex, not its bobbing lamp) and its strength (smooth: the lit drawing is laid over at that strength, never a new drawing for a little more light)
-  if(SCENE||!cam||currentView==='level')return{};const[px,py]=w2s(s.wx,s.wy),[X,Y]=proj(px,py),o={};
-  const S=buoy.spotAt;if(S&&!buoy.dunk&&!buoy.dip){const dx=px-S.x,dy=py-S.y,ca=Math.cos(S.a),sa=Math.sin(S.a),u=(dx*ca+dy*sa)/Math.max(1,S.ma),v=(-dx*sa+dy*ca)/Math.max(1,S.mi),st=Math.max(0,Math.min(1,(1.5-Math.hypot(u,v))/0.8));
-    if(st>0.01){const[bx,by,k]=proj(...w2s(...buoySpot(pQ,pR))),ly=by-HEX*BUOY_SIZE*BUOY_LAMP*k*0.8;o.spot={a:Math.round(Math.atan2(Y-ly,bx-X)/(Math.PI/12))*(Math.PI/12),s:st*st*(3-2*st),mx:T.mapShopLight!=null?T.mapShopLight:1};}}
-  if(mX>=0&&!menuOpen&&!shopUI&&overScene()){const R=(T.mapCursorLightR!=null?T.mapCursorLightR:170)*1.3,st=Math.max(0,1-Math.hypot(mX-X,mY-(Y-20))/R);if(st>0.01)o.cur={a:Math.round(Math.atan2(Y-(mY-30),mX-X)/(Math.PI/4))*(Math.PI/4),s:st,mx:(T.mapCursorLightA!=null?T.mapCursorLightA:0.9)*1.2};} // (the cursor: a light just above where it points)
-  return o;}
 function shopTick(){if(SCENE&&!document.body.classList.contains('scene-shops'))return;
   document.body.classList.toggle('thru',!!armed||voidOpen);const box=document.getElementById('shops'),seen=new Set();
   for(const s of shopList()){if(s.lit&&!disc.has('ev:shop_'+s.id))hubEvent('shop_'+s.id); // a shop is discovered the first time it opens
-    const op=!!(shopUI&&shopUI.key===s.key),cv=shopSprite(s.id,s.bk,s.lit,s.yaw,op,null,0,s.soon);if(!cv)continue;/* (its doors open while its menu is) */seen.add(s.key);let el=shopEls[s.key];
+    const op=!!(shopUI&&shopUI.key===s.key),cv=shopSprite(s.id,s.bk,s.lit,s.yaw,op,s.soon);if(!cv)continue;/* (its doors open while its menu is) */seen.add(s.key);let el=shopEls[s.key];
     if(!el){el=shopEls[s.key]=document.createElement('div');el.className='shop';el.dataset.key=s.key;box.appendChild(el);
       let h=7;for(const ch of s.key)h=(h*31+ch.charCodeAt(0))>>>0;el._fl=`neon${h%4} ${(2.5+(h>>4)%60/10).toFixed(1)}s ${-((h>>10)%50)/10}s infinite`;} // its own flicker: which, how fast, where in it
-    if(el._cv!==cv){el._cv=cv;const d=document.createElement('canvas');d.width=cv.width;d.height=cv.height;d.getContext('2d').drawImage(cv,0,0);d.style.animation=s.lit?el._fl:'none';el.innerHTML='';el.appendChild(d);(cv._disco||[]).forEach((g,i)=>{const o=document.createElement('canvas');o.width=g.width;o.height=g.height;o.getContext('2d').drawImage(g,0,0);o.className='disco';o.style.animationDelay=(-i*1.6)+'s,'+(-i*0.37)+'s';el.appendChild(o);});el._rk=null;el._lay={};}el.classList.toggle('lit',s.lit);el._s=s; // (its own copy: two pop-ups can share a sprite)
-    {const Ls=shopLights(s);for(const kind of ['spot','cur']){const l=Ls[kind];let c2=el._lay[kind];if(l){const lc=shopSprite(s.id,s.bk,s.lit,s.yaw,op,{k:kind+l.a.toFixed(2),ls:[{a:l.a,s:l.mx}]},0,s.soon);
-        if(lc){if(!c2){c2=el._lay[kind]=document.createElement('canvas');c2.className='lay';el.appendChild(c2);el._rk=null;}if(c2._src!==lc){c2._src=lc;c2.width=lc.width;c2.height=lc.height;c2.getContext('2d').drawImage(lc,0,0);}const a=l.s.toFixed(3);if(c2._a!==a){c2._a=a;c2.style.opacity=a;}if(c2.style.display)c2.style.display='';continue;}}
-      if(c2&&c2.style.display!=='none')c2.style.display='none';}} // its lights: each its fully lit drawing over it, as strong as that light is there
+    if(el._cv!==cv){el._cv=cv;const d=document.createElement('canvas');d.width=cv.width;d.height=cv.height;d.getContext('2d').drawImage(cv,0,0);d.className='hit';el.innerHTML='';el.appendChild(d); // (its own copy, never shown: what a pointer hits; two pop-ups can share a drawing)
+      if(cv._glow){const g=document.createElement('canvas');g.width=cv.width;g.height=cv.height;g.getContext('2d').drawImage(cv._glow,0,0);g.className='glow';g.style.animation=el._fl;el.appendChild(g);}el._rk=null;} // its neon's glow, over the building the scene draws, flickering as neon does
+    el.classList.toggle('lit',s.lit);el._s=s;
     const[X,Y,k]=proj(...w2s(s.wx,s.wy)),sc_=HEX*(T.mapStreetSize||0.75)*k/cv._bw; // every shop at main street's scale: the set keeps its own sizes
     {const u=s.rise==null?1:s.rise,e=1-Math.pow(1-Math.min(1,u),3),dn=u<1?(1-e)*cv._ay:0,k=dn.toFixed(1);if(el._rk!==k){el._rk=k;for(const d of el.querySelectorAll('canvas'))d.style.transform=u<1?`translateY(${k}px)`:'';el.style.clipPath=u<1?`inset(0 0 ${cv.height-cv._ay}px 0)`:'';}} /* rising out of the ground (cut off below its foot) */
     const tf=`translate(${(X-cv._ax*sc_).toFixed(1)}px,${(Y-cv._ay*sc_).toFixed(1)}px) scale(${sc_.toFixed(4)})`;if(el._tf!==tf){el._tf=tf;el.style.transform=tf;el.style.zIndex=Math.round(Y);}} // (only when it moved)
@@ -1404,8 +1404,8 @@ function renderShop(){const el=document.getElementById('shop');if(SCENE)requestA
   document.body.classList.toggle('shop-open',!!shopUI);if(!shopUI){syncDock();document.body.classList.remove('focus-clock','focus-items');return;}
   const u=shopUI,S=SHOPS[u.id],all=shopRows(),curs=[...new Set(all.filter(r=>r.cur).map(r=>r.cur))];if(!curs.includes(u.tab))u.tab=curs.includes(S.cur)?S.cur:curs[0];
   const rows=u.pick||u.exit?all:all.filter(r=>r.cur===u.tab); // the whole list: a long one makes the shop taller
-  const art=el.querySelector('.sart'),sp=shopSprite(u.id,S.street?(S.bk||'s'):SHOP_RANK_BLD[u.rank-1],true,0,true),card=el.querySelector('.scard');
-  if(sp){const w=Math.min(150,sp.width*0.45),h=w*sp.height/sp.width;art.width=sp.width;art.height=sp.height;art.style.width=w+'px';art.style.height=h+'px';art.getContext('2d').drawImage(sp,0,0);}
+  const art=el.querySelector('.sart'),sp=shopSprite(u.id,S.street?(S.bk||'s'):SHOP_RANK_BLD[u.rank-1],true,0,true,false),card=el.querySelector('.scard');
+  if(sp){const w=Math.min(150,sp.width*0.45),h=w*sp.height/sp.width;art.width=sp.width;art.height=sp.height;art.style.width=w+'px';art.style.height=h+'px';{const ax=art.getContext('2d');ax.drawImage(sp,0,0);if(sp._glow){ax.globalCompositeOperation='lighter';ax.drawImage(sp._glow,0,0);ax.globalCompositeOperation='source-over';}}}
   shopHover=null;syncDock(); // the wallet slot for the tab shown, in the dock
   document.body.classList.toggle('focus-clock',u.id==='clock');document.body.classList.toggle('focus-items',u.id==='corner'); // what the shop works on, over the dimmed map
   const st=el.querySelector('.sstat');st.style.display=u.exit?'none':'';st.innerHTML=STATUS_CSS+'<div class="sth">'+txt('map.shop.status')+'</div>'+statusHTML(runStatus);{const now={};for(const tr of st.querySelectorAll('tr')){const td=tr.children;if(td.length<2)continue;const k=td[0].textContent,v=td[1].textContent;now[k]=v;if(_stPrev&&_stPrev[k]!=null&&_stPrev[k]!==v)tr.classList.add('chg');}_stPrev=now;} // a value that just changed (a purchase, a card) lights up

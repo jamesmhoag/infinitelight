@@ -176,7 +176,7 @@ function duckCtx(gl){
     'else{vec3 p=uR*P;vP=p;vN=uR*N;vH=dot(p,uWn)+uWh;gl_Position=vec4(p.xy*uK.x,-p.z*uK.y,1.0);}}'));
   gl.attachShader(pr,sh(gl.FRAGMENT_SHADER,(dd?'#extension GL_OES_standard_derivatives : enable\n':'')+'precision mediump float;varying vec3 vN;varying vec3 vM;varying vec4 vU;varying vec3 vP;varying float vH;uniform float uCl;uniform float uNk;uniform float uBp;uniform sampler2D uImg;uniform float uEo;uniform float uEm;uniform float uPt;uniform float uGc;uniform float uEW;'+
     'uniform vec3 uC1;uniform vec3 uC2;uniform float uM;uniform float uGl;uniform float uTr;uniform float uA;uniform sampler2D uTex;uniform vec4 uTS;'+
-    'uniform sampler2D uEnv;uniform vec3 uEP;uniform float uEA;uniform vec4 uLd[6];uniform vec3 uLc[6];uniform vec3 uDim;uniform float uAA;uniform vec3 uSunL;uniform vec3 uSunC;'+
+    'uniform sampler2D uEnv;uniform vec3 uEP;uniform float uEA;uniform vec4 uLd[6];uniform vec3 uLc[6];uniform vec4 uLs[6];uniform vec2 uLr[6];uniform vec3 uDim;uniform float uAA;uniform vec3 uSunL;uniform vec3 uSunC;'+
     'vec3 hue(float h){return clamp(abs(mod(h*6.0+vec3(0.0,4.0,2.0),6.0)-3.0)-1.0,0.0,1.0);}'+
     'float cov(float v){float d=(v*255.0-128.0)/48.0;float w='+(dd?'max(fwidth(d)*0.75,0.02)':'uAA')+';return smoothstep(-w,w,d);}'+ // distance field → anti-aliased coverage
     'void main(){if(uCl*vH<0.0)discard;vec3 n=normalize(vN);'+ // uCl: only what is above the water (1), or below it (−1, a reflection) — a bottle floats half under
@@ -195,7 +195,7 @@ function duckCtx(gl){
     'float g=0.5+0.5*sin(vU.x*0.33+4.0*sin(vU.y*0.06+vU.x*0.01)+vU.y*0.04);vec3 eC=vec3(0.98),lC=vec3(0.086,0.086,0.1);'+
     'if(m==1.0){eC=uC1*(1.05+0.35*g);lC=uC1*(0.22+0.12*g);}'+ // wood: wooden eyes, darkened wood in the mouth and lines
     'c=mix(c,eC,eye);c=mix(c,lC,ln);'+
-    'vec3 env=vec3(0.0),gs=vec3(0.0),lt=vec3(0.0);if(m==13.0){for(int i=0;i<6;i++){if(uLd[i].w>0.0){vec3 l;float at=1.0;if(uPt>0.5){vec3 Lv=uLd[i].xyz-vP;float d=max(1e-3,length(Lv)),D=max(1e-3,length(uLd[i].xyz));l=Lv/d;at=smoothstep(0.72,0.975,dot(-l,-uLd[i].xyz/D))*1.9/(1.0+d*d/(D*D));}else l=normalize(uLd[i].xyz);'+
+    'vec3 env=vec3(0.0),gs=vec3(0.0),lt=vec3(0.0);if(m==13.0){for(int i=0;i<6;i++){if(uLd[i].w>0.0){vec3 l;float at=1.0;if(uPt>1.5){vec3 Lv=uLd[i].xyz-vP;float d=max(1e-3,length(Lv));l=Lv/d;float q=d/max(1e-3,uLr[i].y);at=1.0/(1.0+q*q)*(1.0-smoothstep(0.75,1.0,q));if(uLs[i].w>-1.5)at*=smoothstep(uLr[i].x,uLs[i].w,dot(-l,uLs[i].xyz));}else if(uPt>0.5){vec3 Lv=uLd[i].xyz-vP;float d=max(1e-3,length(Lv)),D=max(1e-3,length(uLd[i].xyz));l=Lv/d;at=smoothstep(0.72,0.975,dot(-l,-uLd[i].xyz/D))*1.9/(1.0+d*d/(D*D));}else l=normalize(uLd[i].xyz);'+
       'lt+=uLc[i]*uLd[i].w*at*(max(0.0,dot(n,l))+0.6*pow(max(0.0,dot(n,normalize(l+V))),24.0));}}}'+ // a painted model in a light: a lamp where it is (on its own: a cone aimed at it, so each wall has its hotspot and falls off round it, as the spot does on the ground), its diffuse and a soft sheen
     'if(m==2.0||m==3.0||m==7.0){vec3 r=reflect(-V,n);env=texture2D(uEnv,clamp(uEP.xy-r.xy*uEP.z+vec2(vP.x,-vP.y)*uEW,0.0,1.0)).rgb;'+
     'for(int i=0;i<6;i++){if(uLd[i].w>0.0)gs+=uLc[i]*uLd[i].w*pow(max(0.0,dot(n,normalize(normalize(uLd[i].xyz)+V))),90.0);}}'+ // (empty light slots are skipped: normalize(0) is NaN)
@@ -220,7 +220,7 @@ function duckCtx(gl){
     'a*=uA;gl_FragColor=vec4(min(col,vec3(1.0))*a,a);}'));
   gl.linkProgram(pr);if(!gl.getProgramParameter(pr,gl.LINK_STATUS)){console.error(gl.getProgramInfoLog(pr));return null;}
   const at={},un={};for(const k of ['aP','aN','aU'])at[k]=gl.getAttribLocation(pr,k);
-  for(const k of ['uWn','uWh','uEW','uImg','uEo','uEm','uPt','uGc','uNk','uCl','uFl','uR','uK','uC1','uC2','uM','uGl','uTr','uA','uTex','uTS','uEnv','uEP','uEA','uLd','uLc','uDim','uAA','uBp','uSc','uV','uPj','uVR','uPos','uMS','uSunL','uSunC'])un[k]=gl.getUniformLocation(pr,k);
+  for(const k of ['uLs','uLr','uWn','uWh','uEW','uImg','uEo','uEm','uPt','uGc','uNk','uCl','uFl','uR','uK','uC1','uC2','uM','uGl','uTr','uA','uTex','uTS','uEnv','uEP','uEA','uLd','uLc','uDim','uAA','uBp','uSc','uV','uPj','uVR','uPos','uMS','uSunL','uSunC'])un[k]=gl.getUniformLocation(pr,k);
   const envT=gl.createTexture();gl.bindTexture(gl.TEXTURE_2D,envT);gl.texImage2D(gl.TEXTURE_2D,0,gl.RGBA,1,1,0,gl.RGBA,gl.UNSIGNED_BYTE,new Uint8Array([0,0,0,255]));
   for(const [p,v] of [[gl.TEXTURE_MIN_FILTER,gl.LINEAR],[gl.TEXTURE_MAG_FILTER,gl.LINEAR],[gl.TEXTURE_WRAP_S,gl.CLAMP_TO_EDGE],[gl.TEXTURE_WRAP_T,gl.CLAMP_TO_EDGE]])gl.texParameteri(gl.TEXTURE_2D,p,v);
   return{gl,pr,at,un,envT,envCv:document.createElement('canvas'),envAt:-1,bufs:new Map(),mtex:null,itex:new Map()};}
@@ -269,7 +269,7 @@ function duckBind(G,M,env,hpx){ // everything a duck draw shares: its mesh and m
     (env.lights||[]).slice(0,6).forEach((l,i)=>{const dx=l[0]-env.x,dy=-(l[1]-env.y),dz=Math.max(20,l[6]*0.6),mix=v=>(v+255*1.6)/2.6/255; // glints mostly white, tinted by the light (as on the game's metal)
       ld.set(M.mat===13?[dx/Math.max(1e-3,hpx),dy/Math.max(1e-3,hpx),dz/Math.max(1e-3,hpx),l[5]]:[dx,dy,dz,l[5]*T.metalLightA],i*4);lc.set(M.mat===13?[l[2]/255,l[3]/255,l[4]/255]:[mix(l[2]),mix(l[3]),mix(l[4])],i*3);});}
   gl.uniform4fv(u.uLd,ld);gl.uniform3fv(u.uLc,lc);gl.uniform3f(u.uDim,T.dimGlowRed/255,T.dimGlowGreen/255,T.dimGlowBlue/255);gl.uniform1f(u.uAA,Math.max(0.05,0.6/Math.max(1,hpx*0.01)));
-  gl.uniform3fv(u.uSunL,DUCK_SUN.d);gl.uniform3fv(u.uSunC,DUCK_SUN.c);gl.uniform3fv(u.uC1,M.c1);gl.uniform3fv(u.uC2,M.c2);gl.uniform1f(u.uM,M.mat);gl.uniform1f(u.uFl,M.mat===12?0.07:0);gl.uniform1f(u.uNk,M.nomk?1:0);gl.uniform1f(u.uGl,T.duckGloss);gl.uniform1f(u.uTr,T.duckTrans);}
+  gl.uniform3fv(u.uSunL,DUCK_SUN.d);gl.uniform3fv(u.uSunC,DUCK_SUN.c);gl.uniform3fv(u.uC1,M.c1);gl.uniform3fv(u.uC2,M.c2);gl.uniform1f(u.uM,M.mat);gl.uniform1f(u.uFl,M.mat===12||M.mat===11?0.07:0); /* (Paper, and the Silhouette: a paper duck, all black) */gl.uniform1f(u.uNk,M.nomk?1:0);gl.uniform1f(u.uGl,T.duckGloss);gl.uniform1f(u.uTr,T.duckTrans);}
 function duckDrawCalls(G,M){ // depth pre-pass so only the nearest surface is coloured; glass shows its inside wall first
   const gl=G.gl,n=M.g.idx.length;gl.enable(gl.DEPTH_TEST);gl.depthFunc(gl.LEQUAL);gl.enable(gl.BLEND);gl.blendFunc(gl.ONE,gl.ONE_MINUS_SRC_ALPHA);gl.enable(gl.CULL_FACE);
   if(M.mat===3){gl.cullFace(gl.FRONT);gl.drawElements(gl.TRIANGLES,n,gl.UNSIGNED_SHORT,0);}
@@ -297,7 +297,8 @@ function splashDraw(c,L,now,dt){dt=Math.min(50,dt||16);for(let i=L.length-1;i>=0
 function drawDuckScene(G,type,o){ // a duck straight into a scene (G = duckCtx of the scene's own context): o.rot a 3×3 (column-major) turn in the
   // world, o.size world units per model unit, o.pos where it is, o.view / o.proj / o.viewRot the camera; o.env as drawDuck3D (screen px), o.px its size on screen
   const M=duckModel(type);if(!G||!M||!_duckTex)return;const gl=G.gl,u=G.un;
-  duckBind(G,M,o.env,o.px||o.size);gl.uniform1f(u.uPt,0); // (lights here come in as directions)
+  duckBind(G,M,o.env,o.px||o.size);gl.uniform1f(u.uPt,o.L3?2:0); // (lights here come in as directions — or o.L3: real lights in the scene, where they are, as a painted model takes them: sceneLights on the map)
+  if(o.L3){gl.uniform4fv(u.uLd,o.L3.ld);gl.uniform3fv(u.uLc,o.L3.lc);gl.uniform4fv(u.uLs,o.L3.ls);gl.uniform2fv(u.uLr,o.L3.lr);}
   gl.uniform1f(u.uSc,1);gl.uniform1f(u.uCl,o.clip||0);gl.uniform1f(u.uBp,DUCK_MESH.tex.b?T.duckBump/_duckTex.t*o.size:0);
   gl.uniformMatrix3fv(u.uR,false,o.rot);gl.uniform1f(u.uMS,o.size);gl.uniform3fv(u.uPos,o.pos);gl.uniformMatrix4fv(u.uV,false,o.view);gl.uniformMatrix4fv(u.uPj,false,o.proj);gl.uniformMatrix3fv(u.uVR,false,o.viewRot);
   gl.uniform1f(u.uA,o.alpha==null?1:o.alpha);if(o.mirror)gl.frontFace(gl.CW);duckDrawCalls(G,M);if(o.mirror)gl.frontFace(gl.CCW);} // o.mirror: a reflection (its turn mirrored), so its faces wind the other way
