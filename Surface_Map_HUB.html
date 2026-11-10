@@ -163,7 +163,7 @@ body.shop-open #hdock{z-index:59}#hinv .slot.wal::before{border-color:rgba(255,2
 <div id="veil"></div>
 <div id="bfx"></div>
 <iframe id="neb" data-tt="map.ui.surface"></iframe>
-<script src="content.js?v=20261105n"></script><script src="shared.js?v=20261105n"></script>
+<script src="content.js?v=20261109a"></script><script src="shared.js?v=20261109a"></script><script src="cabin.js?v=20261109a"></script>
 <script>
 // ╔══════════════════════════════════════════════════════════════════════════════╗
 // ║  MAP ENGINE                                                                 ║
@@ -182,7 +182,7 @@ let playLog=[],clock=3,day=1,pool=6,fresh=true,burstFx=null,dayLog=[],dayCnt={b:
 // // clock: the hour (3 = Twilight … 24 = Midnight, the day's last turn); day: your attempts; pool: what the source put out at its last burst; fresh: no ring added yet since it
 let constel=[],armed=null,weaveSel=[],weaveAsk=null,clearFx={},mergeFx=[],feedMsg={t:'',d:'',at:-1e9}; // constellations {keys,type}; the armed map item; a Weave being drawn; animations; the final count
 const STEP_H=3; // the day: eight turns of three hours
-const CACHE_V='20261105n'; // the build: bump with shared.js's
+const CACHE_V='20261109a'; // the build: bump with shared.js's
 const SCENE=new URLSearchParams(location.search).get('scene'); // a Guide / event demo: the map plays a scripted moment (no surface behind it)
 let phase='move',turnTimer=0,mergeTimer=0;
 let gameOverReason='';
@@ -862,10 +862,10 @@ function shopAt(X,Y){if(document.body.classList.contains('thru')||currentView!==
 document.addEventListener('click',e=>{if(currentView!=='map'||menuOpen||shopUI||drag&&drag.moved)return;if(e.target!==sc)return;const el=shopAt(e.clientX,e.clientY);if(el){e.stopPropagation();openShop(el.dataset.key);}},true); // a shop clicked
 document.addEventListener('click',e=>{ // a lake duck clicked (even under a read-out like the legend): dunked, it comes back up — and the click goes no further
   if(drag&&drag.moved)return;if(currentView!=='map'||menuOpen||shopUI||!(e.target===sc||(e.target.closest&&!e.target.closest('button,.slot,.shop,input,select,#hdock,#tuneP,#mModes,#shop,#menu,#day-report,#letter,#nameAsk'))))return;
-  if(!SCENE&&buoyHit(e.clientX,e.clientY)){e.stopPropagation();buoy.dip=performance.now();setTimeout(()=>openCollections('status'),300);return;} // a quick dip (its light up), then Status // your buoy: Status and your collections
+  if(!SCENE&&buoyHit(e.clientX,e.clientY)){e.stopPropagation();cabinOpen();return;} // your buoy: down its hatch, below deck (cabin.js), where Status and your collections open from what is in the cabin
   const du=duckUnder(e.clientX,e.clientY);if(!du||du.dunk)return;e.stopPropagation();if(du.bottle&&!du.empty){openBottle(du);return;}if(du.good&&!du.good.open&&!du.flot){openLakeGood(du);return;}
   du.dunk=performance.now();ripples.push({x:du.x,y:du.y,t:du.dunk,dk:onWhite(du.x,du.y),big:1});neb({cmd:'quack',type:du.type,v:1});},true);
-document.addEventListener('keydown',e=>{
+document.addEventListener('keydown',e=>{if(currentView==='cabin'){if(e.key==='Escape'){e.preventDefault();cabinClose();}return;} // below deck: Esc climbs back up
   if(document.getElementById('nameAsk').classList.contains('show'))return; // naming your buoy: Enter sets it
   if(e.code==='Escape'){e.preventDefault();if(letter){closeLetter();return;}if(shopUI){closeShop();return;}if(currentView==='map'&&armed){armed=null;weaveSel=[];weaveAsk=null;updateHint();syncDock();return;}if(currentView==='map')toggleMenu();return;}
   if(menuOpen||shopUI)return;
@@ -1186,7 +1186,7 @@ window.addEventListener('message',e=>{
   else if(m.type==='testMode')testMode();
   else if(m.type==='coll'){nebEl.classList.add('see');if(!statusCam)statusCam={w:m.w,z:Math.min((T.mapZoomMax||1.8)*2,viewZoom*1.8),back:{x:camTX,y:camTY,z:viewZoom,follow:buoy.follow,auto:zoomAuto}};else statusCam.w=m.w;} /* Status: the map shows to its left, framing your buoy */
   else if(m.type==='overlayDone'){nebEl.classList.remove('see');if(statusCam){const B=statusCam.back;statusCam=null;zoomT=null;camV.z=0;camTween={t0:performance.now(),dur:800*(T.mapCamSlow||1.8),a:{x:camX,y:camY,z:viewZoom},b:{x:B.x,y:B.y,z:B.z}};buoy.follow=B.follow;zoomAuto=B.auto;} /* and back to your own view */
-    if(currentView==='overlay'){currentView='map';showNeb(false);if(shopUI)renderShop();evPump();}}
+    if(currentView==='overlay'){currentView='map';showNeb(false);if(shopUI)renderShop();cabinBack();evPump();}}
   else if(m.type==='hint')feed(m.a,m.b,'hint'); // something pointed at in the Guide / Status over the map: said in the map's feed
   else if(m.type==='buoy')buoyLoad(); // its name or colour changed (Status & collections → Buoy)
   else if(m.type==='cleared'){if(MP.role==='guest')mpSend('cleared',{key:m.key,kind:m.kind,tally:m.tally,ang:m.ang});else if(m.kind==='rift')riftCell(m.key,m.ang);else completeCaptureForCell(m.key,m.kind,m.tally);}
