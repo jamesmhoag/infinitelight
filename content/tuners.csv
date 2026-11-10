@@ -677,6 +677,7 @@ evSoloMs,1600,Event solo ms,0,8000,100,Events — capture,gameplay,,,,"If no oth
 evSnapMs,250,Event snapshot ms,50,1000,10,Events — capture,gameplay,,,,"How often the surface's state is kept for a recording (the moment before an event, Event pre ms, is played from the nearest)",
 evAspect,1.65,Event frame shape,0.8,2.5,0.05,Events — capture,theme,,,,"A recording's width ÷ its height: the card's own shape, so it fills the card",
 evReplayTail,900,Event replay tail ms,0,5000,100,Events — capture,theme,,,,How long a recording plays on past its capture before it starts again,
+evAdoptR,90,Event follow px,10,400,5,Events,gameplay,,,,"When an event's subject is gone (a point gone nova, a woken particle) or it happened at a place, the frame takes up what came of it within this many px (a remnant first) and follows that",
 evFrameS,55,Event frame small,20,400,5,Events — capture,theme,,,,"Half the size of a small event's frame (most events: what matters is small, whatever went on round it)",
 evFrameL,160,Event frame large,40,1000,10,Events — capture,theme,,,,"Half the size of a large event's frame (a Dark Remnant); a Rift's is the whole screen",
 evZoomMs,700,Event zoom ms,100,3000,50,Events — capture,theme,,,,How long the frame takes to grow into the event's card,

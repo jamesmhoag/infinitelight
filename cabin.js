@@ -5,7 +5,7 @@
 // The Observation Desk faces the ladder up to the hatch. On it: the surface map as it is (white hexes bright clears, black circles dark ones, black marks
 // Rifts) with the day at its top right, a fortune card for each day (yesterday's, today's, tomorrow's: face up when known), the Ink Well (your Dim) and the
 // Journal; the shovel-sized Fountain Pen (white enamel, a gold nib) and the Net (a white pole, a hoop and a net that drapes off the desk and sways with the
-// water) lie on it. The open Treasure Chest (your Bright and exotic remnants) stands on the floor to its right; the pool in the floor shows your hex's surface,
+// water) lie on it. The open Treasure Chest (your Bright and exotic remnants) stands on its stand by the desk's near right corner, its opening level with the desk top; the pool in the floor shows your hex's surface,
 // its particles drifting; the Loom (a Spindle, its Pins) and the Gadget Shelf (camera, spectrometer, a telescope at the pool, compass, hourglass) are to its
 // left; Storage (the Hull Compartment) is on the right between the desk and the ladder; the Mirror (your buoy in it) is right of the ladder; the Fresh water
 // barrel (a white hexagon painted on it, six drinks on its lid) is left of it, the Hammock hung low beside it. The room rocks with the water, the hammock,
@@ -13,10 +13,10 @@
 // your exact Dim, the chest your exact Bright and exotic remnants); the Mirror opens your buoy's Status, Storage its gear, the Journal the Guide; the ladder
 // (Esc, right click) takes you back up.
 const CABIN={on:false,t0:0,dir:1,cv:null,ov:null,gl:null,hov:null,mx:null,my:null,atlasAt:0,shotAt:0};
-const CABIN_A=3,CABIN_H=2.7,CABIN_RV=CABIN_A/Math.cos(Math.PI/6),CABIN_POOL=[0,0.5,1.28],CAB_CHEST=[1.62,-0.3],CAB_TOOL={a:0.35,net:[-1.35,-1.88],pen:[-1.65,-1.77]}; // the tools: their heading (from the desk out over the pool) and where each handle ends; the room: its apothem, height, corner radius; the pool (x, z, radius)
+const CABIN_A=3,CABIN_H=2.7,CABIN_RV=CABIN_A/Math.cos(Math.PI/6),CABIN_POOL=[0,0.5,1.28],CAB_CHEST={x:2.26,z:-1.5,a:Math.PI/2,y:0.52},CAB_TOOL={a:0.35,net:[-1.35,-1.88],pen:[-1.65,-1.77]}; // the tools: their heading (from the desk out over the pool) and where each handle ends; the room: its apothem, height, corner radius; the pool (x, z, radius)
 const CABIN_DO={ladder:'up',mirror:'buoy',storage:'buoy',journal:'guide'}; // what a click opens (anything else: what it is, in the feed)
 const CAB_OBJ=['ladder','desk','map','day','cards','ink','journal','pen','net','chest','storage','mirror','barrel','hammock','loom','shelf','candle','lantern','pool','porthole'];
-const CM={wood:0,dark:1,brass:2,white:3,leather:4,canvas:5,glass:6,mirror:7,atlas:8,flame:9,iron:10,rope:11,paint:12,gem:13,net:14,sky:15,wax:16,gold:17,decal:18,pool:19,hatch:20,parch:21,bottle:22,water:23,steel:24};
+const CM={slab:25,wood:0,dark:1,brass:2,white:3,leather:4,canvas:5,glass:6,mirror:7,atlas:8,flame:9,iron:10,rope:11,paint:12,gem:13,net:14,sky:15,wax:16,gold:17,decal:18,pool:19,hatch:20,parch:21,bottle:22,water:23,steel:24};
 function cabinOpen(){if(CABIN.on||!nebReady||currentView!=='map'||shopUI)return;buoy.dip=performance.now();
   if(!CABIN.cv&&!cabInit())return;CABIN.on=true;CABIN.dir=1;CABIN.t0=performance.now()+350;currentView='cabin';CABIN.cv.style.display=CABIN.ov.style.display='block';requestAnimationFrame(()=>{CABIN.cv.style.opacity=CABIN.ov.style.opacity='1';});feed(txt('cabin.title'),txt('cabin.hint'));updateHint();cabinLoop();}
 function cabinClose(){if(!CABIN.on||CABIN.dir<0)return;CABIN.dir=-1;CABIN.t0=performance.now();const ms=T.cabinMoveMs||1400;setTimeout(()=>{CABIN.cv.style.opacity=CABIN.ov.style.opacity='0';},ms*0.55);
@@ -34,7 +34,7 @@ function cabGeo(){return{p:[],n:[],u:[],m:[],i:[],x:[]};}
 function cabV(G,p,n,u,m,id){G.p.push(p[0],p[1],p[2]);G.n.push(n[0],n[1],n[2]);G.u.push(u[0],u[1]);G.m.push(m);G.i.push(id?CAB_OBJ.indexOf(id)+1:0);return G.p.length/3-1;}
 const cabV3={s:(a,b)=>[a[0]-b[0],a[1]-b[1],a[2]-b[2]],a:(a,b)=>[a[0]+b[0],a[1]+b[1],a[2]+b[2]],k:(a,k)=>[a[0]*k,a[1]*k,a[2]*k],c:(a,b)=>[a[1]*b[2]-a[2]*b[1],a[2]*b[0]-a[0]*b[2],a[0]*b[1]-a[1]*b[0]],d:(a,b)=>a[0]*b[0]+a[1]*b[1]+a[2]*b[2],n:a=>{const l=Math.hypot(a[0],a[1],a[2])||1;return[a[0]/l,a[1]/l,a[2]/l];}};
 function cabQuad(G,A,B,C,D,m,id,U){const n=cabV3.n(cabV3.c(cabV3.s(B,A),cabV3.s(D,A))),u=U||[[0,0],[1,0],[1,1],[0,1]],a=cabV(G,A,n,u[0],m,id),b=cabV(G,B,n,u[1],m,id),c=cabV(G,C,n,u[2],m,id),d=cabV(G,D,n,u[3],m,id);G.x.push(a,b,c,a,c,d);}
-function cabBox(G,x0,y0,z0,x1,y1,z1,m,id,s){s=s||1;const P=(a,b,c)=>[a?x1:x0,b?y1:y0,c?z1:z0],W=x1-x0,H=y1-y0,D=z1-z0,U=(w,h,o)=>[[o,0],[o+w*s,0],[o+w*s,h*s],[o,h*s]]; // (uv in metres: the procedural textures stay to scale)
+function cabBox(G,x0,y0,z0,x1,y1,z1,m,id,s){s=s||1;const P=(a,b,c)=>[a?x1:x0,b?y1:y0,c?z1:z0],W=x1-x0,H=y1-y0,D=z1-z0,U=(w,h,o)=>h>w?[[o,0],[o,w*s],[o+h*s,w*s],[o+h*s,0]]:[[o,0],[o+w*s,0],[o+w*s,h*s],[o,h*s]]; // (uv in metres: the procedural textures stay to scale; the grain runs along each face's longer edge, as boards are cut from a log)
   cabQuad(G,P(0,1,0),P(1,1,0),P(1,1,1),P(0,1,1),m,id,U(W,D,0.3));cabQuad(G,P(0,0,1),P(1,0,1),P(1,0,0),P(0,0,0),m,id,U(W,D,0.7));cabQuad(G,P(0,0,0),P(1,0,0),P(1,1,0),P(0,1,0),m,id,U(W,H,0.1));
   cabQuad(G,P(1,0,1),P(0,0,1),P(0,1,1),P(1,1,1),m,id,U(W,H,0.5));cabQuad(G,P(0,0,1),P(0,0,0),P(0,1,0),P(0,1,1),m,id,U(D,H,0.9));cabQuad(G,P(1,0,0),P(1,0,1),P(1,1,1),P(1,1,0),m,id,U(D,H,0.2));}
 function cabLathe(G,c,prof,seg,m,id,ms,a0,a1,sw){a0=a0||0;a1=a1==null?6.2832:a1;const N=prof.length,base=G.p.length/3; // prof: [[y, r], …] round a vertical axis at c; ms(i): a band's own material
@@ -47,7 +47,7 @@ function cabTube(G,pts,r,seg,m,id,rf){const N=pts.length,base=G.p.length/3;let L
   for(let i=0;i<N-1;i++)for(let j=0;j<seg;j++){const a=base+i*(seg+1)+j,b=a+seg+1;G.x.push(a,b,a+1,a+1,b,b+1);}}
 function cabTorus(G,c,R,r,ax,seg,m,id){const pts=[];for(let i=0;i<=seg;i++){const a=i/seg*6.2832;pts.push(Array.isArray(ax)?[c[0]-ax[2]*R*Math.cos(a),c[1]+R*Math.sin(a),c[2]+ax[0]*R*Math.cos(a)]:ax==='z'?[c[0]+R*Math.cos(a),c[1]+R*Math.sin(a),c[2]]:ax==='x'?[c[0],c[1]+R*Math.sin(a),c[2]+R*Math.cos(a)]:[c[0]+R*Math.cos(a),c[1],c[2]+R*Math.sin(a)]);}cabTube(G,pts,r,10,m,id);}
 const cabTW=(p,a,o)=>[o[0]+p[0]*Math.cos(a)+p[2]*Math.sin(a),p[1],o[1]-p[0]*Math.sin(a)+p[2]*Math.cos(a)]; // a point built along +z, turned to heading a and moved to o (x, z)
-function cabXf(G,from,a,o){const c=Math.cos(a),sn=Math.sin(a);for(let k=from;k<G.p.length/3;k++){for(const A of[G.p,G.n]){const x=A[k*3],z=A[k*3+2];A[k*3]=x*c+z*sn;A[k*3+2]=-x*sn+z*c;}G.p[k*3]+=o[0];G.p[k*3+2]+=o[1];}} // (everything built since from)
+function cabXf(G,from,a,o,dy){const c=Math.cos(a),sn=Math.sin(a);for(let k=from;k<G.p.length/3;k++){for(const A of[G.p,G.n]){const x=A[k*3],z=A[k*3+2];A[k*3]=x*c+z*sn;A[k*3+2]=-x*sn+z*c;}G.p[k*3]+=o[0];G.p[k*3+1]+=dy||0;G.p[k*3+2]+=o[1];}} // (everything built since from; dy: raised)
 function cabSheet(G,fn,nu,nv,m,id,U){const base=G.p.length/3; // a cloth (or any surface) from fn(u, v) → position, its normals from its own slopes
   for(let j=0;j<=nv;j++)for(let i=0;i<=nu;i++){const u=i/nu,v=j/nv,p=fn(u,v),e=1e-3,a=cabV3.s(fn(Math.min(1,u+e),v),fn(Math.max(0,u-e),v)),b=cabV3.s(fn(u,Math.min(1,v+e)),fn(u,Math.max(0,v-e)));cabV(G,p,cabV3.n(cabV3.c(a,b)),U?U(u,v):[u,v],m,id);}
   for(let j=0;j<nv;j++)for(let i=0;i<nu;i++){const a=base+j*(nu+1)+i,b=a+nu+1;G.x.push(a,a+1,b,a+1,b+1,b);}}
@@ -66,7 +66,7 @@ function cabStatic(){const G=cabGeo(),RV=CABIN_RV,A=CABIN_A,H=CABIN_H,co=k=>[RV*
   // the pool, its brass rim
   {const[px,pz,pr]=CABIN_POOL;cabSheet(G,(u,v)=>[px+pr*v*Math.cos(u*6.2832),0.004,pz+pr*v*Math.sin(u*6.2832)],40,6,CM.pool,'pool',(u,v)=>[0.5+0.5*v*Math.cos(u*6.2832),0.5+0.5*v*Math.sin(u*6.2832)]);cabTorus(G,[px,0.02,pz],pr+0.02,0.04,'y',48,CM.brass,'pool');}
   // the Observation Desk: a heavy top, solid panelled sides, a front rail
-  cabBox(G,-1.95,0.9,-1.98,1.95,1.0,-0.82,CM.wood,'desk',1);cabBox(G,-1.85,0,-1.9,-1.4,0.9,-0.9,CM.dark,'desk');cabBox(G,1.4,0,-1.9,1.85,0.9,-0.9,CM.dark,'desk');cabBox(G,-1.4,0.55,-1.88,1.4,0.9,-1.82,CM.dark,'desk');
+  cabBox(G,-1.95,0.9,-1.98,1.95,1.0,-0.82,CM.slab,'desk',1);cabBox(G,-1.85,0,-1.9,-1.4,0.9,-0.9,CM.dark,'desk');cabBox(G,1.4,0,-1.9,1.85,0.9,-0.9,CM.dark,'desk');cabBox(G,-1.4,0.55,-1.88,1.4,0.9,-1.82,CM.dark,'desk');
   for(const x of[-1.62,1.62])for(const y of[0.25,0.6])cabTube(G,[[x-0.09,y,-0.885],[x+0.09,y,-0.885]],0.012,6,CM.brass,'desk'); // drawer pulls
   cabQuad(G,[-0.95,1.001,-1.82],[0.95,1.001,-1.82],[0.95,1.001,-1.2],[-0.95,1.001,-1.2],CM.parch,'map',atUV(CAB_AT.map)); // the surface map on parchment (the day at its top right)
   [0.12,0.38,0.64].forEach((x,i)=>{const z0=-1.16,z1=-0.86,y=1.003+i*0.0006,r=(i-1)*0.05,cx=x+0.11,cz=(z0+z1)/2,R=([a,b])=>[cx+(a-cx)*Math.cos(r)-(b-cz)*Math.sin(r),cz+(a-cx)*Math.sin(r)+(b-cz)*Math.cos(r)],P=[[x,z0],[x+0.22,z0],[x+0.22,z1],[x,z1]].map(R);cabQuad(G,[P[0][0],y,P[0][1]],[P[1][0],y,P[1][1]],[P[2][0],y,P[2][1]],[P[3][0],y,P[3][1]],CM.atlas,'cards',atUV(CAB_AT.cards[i]));}); // a fortune card for each day: yesterday, today, tomorrow
@@ -81,16 +81,17 @@ function cabStatic(){const G=cabGeo(),RV=CABIN_RV,A=CABIN_A,H=CABIN_H,co=k=>[RV*
     const top=u=>nib(u,0.5,-0.0012);cabLathe(G,top(0.3),[[0,0.007],[0.0006,0.007],[0.0006,0]],12,CM.iron,'pen');const sl=[];for(let i=0;i<=10;i++)sl.push(top(0.3+0.68*i/10));cabTube(G,sl,0.0016,4,CM.iron,'pen');cabXf(G,G0,CAB_TOOL.a,CAB_TOOL.pen);} // its breather hole, its slit to the point
   // (the Net lies beside it: the moving parts, its net draping and swaying)
 
-  // the Treasure Chest, open on the floor to the desk's right, out where it can be seen: wood bound in gold, its lid thrown back, its hoard glowing
-  {const[x0,z0]=CAB_CHEST,x1=x0+0.72,z1=z0+0.6;cabBox(G,x0,0,z0,x1,0.48,z1,CM.wood,'chest',1.4);for(const x of[x0+0.15,x0+0.57])cabBox(G,x-0.035,-0.005,z0-0.008,x+0.035,0.485,z1+0.008,CM.gold,'chest');cabBox(G,x0-0.008,0.43,z0-0.008,x1+0.008,0.485,z1+0.008,CM.gold,'chest');
-    {const r=(z1-z0)/2,al=1.95,ca=Math.cos(al),sa=Math.sin(al),lid=(u,v,k)=>{const t=v*Math.PI,dy=r*0.62*Math.sin(t)*k,dz=-r-r*Math.cos(t)*k-(1-k)*0;return[x0+(x1-x0)*u,0.48+dy*ca-dz*sa,z1+dz*ca+dy*sa];}; // its rounded lid, thrown back on its hinge
+  // the Treasure Chest, by the desk's near right corner (its long side along the desk's end), raised on its stand so its opening is level with the desk top: wood bound in gold, its lid thrown back, its hoard shining
+  {const G0=G.p.length/3,x0=-0.36,x1=0.36,z0=-0.24,z1=0.24;for(const[x,z]of[[x0+0.04,z0+0.04],[x1-0.04,z0+0.04],[x0+0.04,z1-0.04],[x1-0.04,z1-0.04]])cabBox(G,x-0.035,-0.52,z-0.035,x+0.035,0,z+0.035,CM.dark,'chest');cabBox(G,x0+0.01,-0.36,z0+0.01,x1-0.01,-0.32,z1-0.01,CM.dark,'chest');cabBox(G,x0-0.01,-0.06,z0-0.01,x1+0.01,0,z1+0.01,CM.dark,'chest'); // (its stand)
+    cabBox(G,x0,0,z0,x1,0.48,z1,CM.wood,'chest',1.4);for(const x of[x0+0.15,x0+0.57])cabBox(G,x-0.035,-0.005,z0-0.008,x+0.035,0.485,z1+0.008,CM.gold,'chest');cabBox(G,x0-0.008,0.43,z0-0.008,x1+0.008,0.485,z1+0.008,CM.gold,'chest');
+    {const r=(z1-z0)/2,al=1.35,ca=Math.cos(al),sa=Math.sin(al),lid=(u,v,k)=>{const t=v*Math.PI,dy=r*0.62*Math.sin(t)*k,dz=-r-r*Math.cos(t)*k-(1-k)*0;return[x0+(x1-x0)*u,0.48+dy*ca-dz*sa,z1+dz*ca+dy*sa];}; // its rounded lid, thrown back on its hinge
       cabSheet(G,(u,v)=>lid(u,v,1),6,12,CM.wood,'chest',(u,v)=>[u*0.7,v*0.6]);cabSheet(G,(u,v)=>lid(u,v,0.93),6,12,CM.dark,'chest');for(const x of[0.21,0.79])cabSheet(G,(u,v)=>lid(x+(u-0.5)*0.1,v,1.012),1,12,CM.gold,'chest');}
     cabQuad(G,[x0+0.03,0.44,z1-0.03],[x1-0.03,0.44,z1-0.03],[x1-0.03,0.44,z0+0.03],[x0+0.03,0.44,z0+0.03],CM.gold,'chest');
     for(let i=0;i<44;i++){const x=x0+0.07+((i*37)%23)/23*(x1-x0-0.14),z=z0+0.07+((i*17)%13)/13*(z1-z0-0.14),hx=Math.sin(Math.PI*(x-x0)/(x1-x0))*Math.sin(Math.PI*(z-z0)/(z1-z0)),y=0.45+hx*0.09+((i*7)%5)*0.01,r=0.026+((i*11)%4)*0.006,k=i%4; // its hoard, heaped: shining remnants like the ones you collect (Bright diamonds, Neutron squares, Pulsing triangles, Magnetic diamonds)
       if(k===1)cabBox(G,x-r*0.8,y-r*0.8,z-r*0.8,x+r*0.8,y+r*0.8,z+r*0.8,CM.gem,'chest');else if(k===2)cabLathe(G,[x,y-r*0.5,z],[[0,r*1.2],[r*1.5,0]],3,CM.gem,'chest',null,i);else cabLathe(G,[x,y,z],[[-r*1.2,0],[0,r*(k===3?1.1:0.8)],[r*1.2,0]],4,CM.gem,'chest',null,i*0.7);}
-    cabBox(G,x0+0.3,0.32,z0-0.025,x0+0.42,0.44,z0-0.008,CM.gold,'chest');}
+    cabBox(G,x0+0.3,0.32,z0-0.025,x0+0.42,0.44,z0-0.008,CM.gold,'chest');cabXf(G,G0,CAB_CHEST.a,[CAB_CHEST.x,CAB_CHEST.z],CAB_CHEST.y);}
   // Storage: the Hull Compartment (painted wood, panelled doors, brass pulls, a brass plaque)
-  {const x=2.0,Z=z=>0.35+(z-0.1)*0.65;cabBox(G,x,0,Z(0.1),2.62,1.8,Z(1.4),CM.paint,'storage');for(const[z0,z1]of[[0.16,0.74],[0.76,1.34]]){cabBox(G,x-0.02,0.1,Z(z0),x,1.7,Z(z1),CM.paint,'storage');cabBox(G,x-0.035,0.25,Z(z0+0.06),x-0.02,1.55,Z(z1-0.06),CM.dark,'storage');}for(const z of[0.68,0.82])cabTube(G,[[x-0.05,0.85,Z(z)],[x-0.05,1.05,Z(z)]],0.014,8,CM.brass,'storage');
+  {const x=2.0,Z=z=>z-1.2;cabBox(G,x,0,Z(0.1),2.62,1.8,Z(1.4),CM.paint,'storage');for(const[z0,z1]of[[0.16,0.74],[0.76,1.34]]){cabBox(G,x-0.02,0.1,Z(z0),x,1.7,Z(z1),CM.paint,'storage');cabBox(G,x-0.035,0.25,Z(z0+0.06),x-0.02,1.55,Z(z1-0.06),CM.dark,'storage');}for(const z of[0.68,0.82])cabTube(G,[[x-0.05,0.85,Z(z)],[x-0.05,1.05,Z(z)]],0.014,8,CM.brass,'storage');
     cabQuad(G,[x-0.04,1.6,Z(1.25)],[x-0.04,1.6,Z(0.25)],[x-0.04,1.74,Z(0.25)],[x-0.04,1.74,Z(1.25)],CM.atlas,'storage',atUV(CAB_AT.plaque));} // (beside the chest, clear of the porthole behind)
   // the Mirror, right of the ladder: a gold frame, your buoy in the glass
   {const z=A-0.07;cabQuad(G,[1.4,0.6,z],[0.8,0.6,z],[0.8,2.0,z],[1.4,2.0,z],CM.mirror,'mirror',atUV(CAB_AT.mirror));const fr=[[0.78,0.58],[1.42,0.58],[1.42,2.02],[0.78,2.02],[0.78,0.58]].map(([x,y])=>[x,y,z-0.01]);cabTube(G,fr,0.035,10,CM.gold,'mirror');}
@@ -136,10 +137,13 @@ const CAB_VS=`attribute vec3 aP,aN;attribute vec2 aU;attribute float aM,aI;unifo
 void main(){vP=aP;vN=aN;vU=aU;vM=aM;vI=aI;vL=uLVP*vec4(aP,1.);gl_Position=uVP*vec4(aP,1.);}`;
 const CAB_FS=`#extension GL_OES_standard_derivatives : enable
 precision highp float;varying vec3 vP,vN;varying vec2 vU;varying float vM,vI;varying vec4 vL;
-uniform vec3 uEye,uLp[8],uLc[8],uSky,uChroma;uniform float uT,uHov;uniform sampler2D uAt,uPool,uSh;
+uniform vec3 uEye,uLp[8],uLc[8],uSky,uChroma,uCC;uniform float uT,uHov;uniform sampler2D uAt,uPool,uSh;
 float h2(vec2 p){return fract(sin(dot(p,vec2(127.1,311.7)))*43758.5453);}
 float n2(vec2 p){vec2 i=floor(p),f=fract(p);f=f*f*(3.-2.*f);return mix(mix(h2(i),h2(i+vec2(1,0)),f.x),mix(h2(i+vec2(0,1)),h2(i+vec2(1,1)),f.x),f.y);}
 float fbm(vec2 p){float s=0.,a=.5;for(int i=0;i<4;i++){s+=a*n2(p);p*=2.03;a*=.5;}return s;}
+vec3 slab(vec2 uv,out float b){vec2 p=uv*vec2(1.,3.); // one solid board, polished: its grain wandering along it (cathedral arches, flame and pores), never repeating
+ float w=fbm(p*vec2(.35,.9))*1.8+fbm(p*vec2(2.,4.)+7.)*.22,y=p.y+w+.45*sin(p.x*.7+fbm(p*.4+2.)*4.),g=fract(y*1.7),ln=smoothstep(0.,.06,g)*smoothstep(.55,.12,g),fl=fbm(vec2(p.x*.6,y*6.)),pr=n2(vec2(p.x*2.5,y*90.));
+ vec3 c=mix(vec3(.30,.12,.05),vec3(.56,.27,.11),smoothstep(.2,.8,fbm(p*.5+3.)));c=mix(c,vec3(.17,.06,.025),(1.-ln)*.5);c*=.88+.24*fl;c=mix(c,c*.72,step(.82,pr)*.5);b=(1.-ln)*.012+step(.82,pr)*.004;return c;}
 vec3 wood(vec2 uv,float tone,out float b){float pw=.23,row=floor(uv.y/pw),x=uv.x+h2(vec2(row,3.))*5.,seg=floor(x/1.6),gy=fract(uv.y/pw),gx=fract(x/1.6); // planks: long grain lines that wander along each board, a knot now and then, a tone of its own, butt joints and seams
  float n=fbm(vec2(x*.7,uv.y*5.+row*7.)),g=.5+.5*sin((gy*3.2+n*1.6+sin(x*.6+row*2.)*.4)*3.1416),fine=n2(vec2(x*40.,gy*60.)),kd=length(vec2((fract(x*.45+row*.37)-.5)*3.,gy-.5)),knot=smoothstep(.22,.0,kd)*step(.7,h2(vec2(row,floor(x*.45+row*.37))));
  vec3 c=mix(vec3(.36,.21,.1),vec3(.5,.31,.16),g*.35+n*.65)*(.94+.05*fine)*tone*(.8+.32*h2(vec2(row,seg)));c=mix(c,vec3(.16,.08,.03)*tone,knot*.75);
@@ -149,7 +153,7 @@ float unp(vec4 c){return dot(c,vec4(1.,1./255.,1./65025.,1./16581375.));}
 float shadow(){vec3 s=vL.xyz/vL.w*.5+.5;if(vL.w<=0.||s.x<0.||s.x>1.||s.y<0.||s.y>1.)return 1.;float r=0.;for(int i=-1;i<=1;i++)for(int j=-1;j<=1;j++)r+=s.z-.0025>unp(texture2D(uSh,s.xy+vec2(float(i),float(j))/1024.))?0.:1.;return r/9.;}
 void main(){int m=int(vM+.5);vec3 N=normalize(vN),V=normalize(uEye-vP);if(dot(N,V)<0.)N=-N;float hv=(abs(vI-uHov)<.5&&uHov>.5)?0.:1.; // (hv 0: what the cursor is on, for its outline)
  vec3 base=vec3(.5);float sp=.15,sh=24.,met=0.,b=0.,bk=0.,em=0.,ns=0.;vec3 emc=vec3(0.);
- if(m==0||m==1||m==12){base=wood(vU,m==1?.55:1.,b);bk=.0012;sp=.22;sh=36.;if(m==12){base=vec3(.2,.18,.3)*(.95+.1*n2(vU*3.));b=0.;bk=0.;sp=.35;sh=60.;}}
+ if(m==25){base=slab(vU,b);bk=.0009;sp=1.;sh=160.;}else if(m==0||m==1||m==12){base=wood(vU,m==1?.55:1.,b);bk=.0012;sp=.22;sh=36.;if(m==12){base=vec3(.2,.18,.3)*(.95+.1*n2(vU*3.));b=0.;bk=0.;sp=.35;sh=60.;}}
  else if(m==2||m==17){base=m==17?vec3(1.,.76,.33):vec3(.86,.63,.32);float n=n2(vec2(vU.x*3.,vU.y*160.));base*=.9+.12*n;sp=1.5;sh=m==17?140.:80.;met=1.;}
  else if(m==3){base=vec3(.97,.97,.95);sp=.9;sh=110.;em=1.;ns=1.;emc=vec3(.62,.62,.6)+uChroma*.12;} // (the tools' white: lit from within, in no shadow, shining as a Bright Remnant does)
  else if(m==4){float n=fbm(vU*25.);base=vec3(.36,.15,.08)*(.8+.3*n);sp=.3;sh=22.;b=n;bk=.0004;}
@@ -161,7 +165,7 @@ void main(){int m=int(vM+.5);vec3 N=normalize(vN),V=normalize(uEye-vP);if(dot(N,
  else if(m==9){float f=.75+.25*sin(uT*17.+vP.y*90.);gl_FragColor=vec4(vec3(1.,.72,.32)*1.6*f+vec3(.4,.3,.1)*smoothstep(.0,.04,vP.y-floor(vP.y)),hv);return;}
  else if(m==10){float n=fbm(vU*12.);base=vec3(.13,.13,.14)*(.8+.3*n);sp=.7;sh=40.;met=.6;b=n;bk=.0003;}
  else if(m==11){base=vec3(.66,.55,.38)*(.8+.3*sin(vU.x*300.+vU.y*20.));sp=.05;sh=6.;}
- else if(m==13){float hh=fract(vP.x*5.3+vP.z*3.7+vP.y*9.1);vec3 pc=.5+.5*cos(6.2832*(hh+uT*.03+vec3(0.,.33,.67)));gl_FragColor=vec4(mix(mix(vec3(1.,.97,.9),pc,.5),uChroma,.25)*(1.15+.5*sin(uT*3.+vP.x*40.+vP.z*30.)),hv);return;} // (jewels like the remnants you collect: each its own colour, shifting, shining)
+ else if(m==13){vec2 q=vP.xz-uCC.xz;float a=atan(q.y,q.x)/6.2832;vec3 L1=.5+.5*cos(6.2832*(a+uT/33.+vec3(0.,.33,.67))),L2=.5+.5*cos(6.2832*(-a+uT/36.+.5+vec3(.67,.33,0.))),L3=.5+.5*cos(6.2832*(2.*a+uT/40.+vec3(0.,.5,.25)));vec3 c=1.-(1.-L1*.62)*(1.-L2*.62)*(1.-L3*.62);c*=.55+.75*pow(abs(dot(N,V)),2.)+.35*pow(max(0.,dot(reflect(-V,N),vec3(0.,1.,0.))),12.);gl_FragColor=vec4(c,hv);return;} // (jewels like the remnants you collect, in the title's light: three rainbows sweeping round the hoard, turning their own ways and screened together, each facet catching it)
  else if(m==14){vec2 g=fract(vU);float l=min(min(g.x,1.-g.x),min(g.y,1.-g.y));if(l>.06)discard;base=vec3(.97,.97,.95);sp=.3;sh=20.;em=1.;ns=1.;emc=vec3(.5)+uChroma*.1;} // (thin, dense straps)
  else if(m==24){base=vec3(.78,.8,.84);sp=1.6;sh=150.;met=1.;}
  else if(m==23){float w=n2(vP.xz*14.+uT*.6)*.5+n2(vP.xz*31.-uT*.9)*.5;base=vec3(.06,.16,.22);sp=2.2;sh=180.;b=w;bk=.0004;em=1.;emc=vec3(.02,.05,.07)+uSky*.08;} // fresh water: dark, clear, rippling, catching the lights
@@ -218,7 +222,7 @@ function cabPick(C,X,Y,W,H){if(X==null||CABIN.ui)return null;const q=cabFish(X/W
 // ── the room's lights, the atlas and the pool ──
 function cabLights(now){const sk=duckSun(_sunH),day=Math.max(0,Math.min(1,sk.d[1]+0.45)),sc=sk.c,P=chromaRGB(now,0.2).map(v=>v/255),fl=k=>0.82+0.18*Math.sin(now/70+k*7)*Math.sin(now/43+k*3),lp=CABIN.lantern||[0.35,2.1,0.3],H=CABIN_H,A=CABIN_A,pt=CABIN_PORTS;
   return[[cabV3.a(lp,[0,-0.26,0]),[1.9*fl(0),1.25*fl(0),0.55*fl(0)]],[[1.0,1.3,-0.97],[0.9*fl(1),0.55*fl(1),0.22*fl(1)]],[[-2.55,1.76,0.12],[0.7*fl(2),0.42*fl(2),0.17*fl(2)]],[[CABIN_POOL[0],0.25,CABIN_POOL[1]],P.map(v=>0.35+0.9*v)],
-    [[pt[0][0]+pt[0][2]*0.5,1.7,pt[0][1]+pt[0][3]*0.5],sc.map(v=>v*(0.15+0.9*day))],[[pt[1][0]+pt[1][2]*0.5,1.7,pt[1][1]+pt[1][3]*0.5],sc.map(v=>v*(0.15+0.9*day))],[[0,H-0.4,A-0.55],sc.map(v=>v*(0.1+0.7*day))],[[CAB_CHEST[0]+0.36,0.75,CAB_CHEST[1]+0.3],chromaRGB(now,0.6).map(v=>0.25+0.75*v/255)]];} // (the last: the chest's hoard, shining)
+    [[pt[0][0]+pt[0][2]*0.5,1.7,pt[0][1]+pt[0][3]*0.5],sc.map(v=>v*(0.15+0.9*day))],[[pt[1][0]+pt[1][2]*0.5,1.7,pt[1][1]+pt[1][3]*0.5],sc.map(v=>v*(0.15+0.9*day))],[[0,H-0.4,A-0.55],sc.map(v=>v*(0.1+0.7*day))],[[CAB_CHEST.x,CAB_CHEST.y+0.75,CAB_CHEST.z],chromaRGB(now,0.6).map(v=>0.25+0.75*v/255)]];} // (the last: the chest's hoard, shining)
 function cabAtlas(now){const c=CABIN.atlas.getContext('2d'),A=CAB_AT,par=(x,y,w,h)=>{const g=c.createRadialGradient(x+w/2,y+h/2,10,x+w/2,y+h/2,Math.max(w,h)*0.7);g.addColorStop(0,'#efe2bf');g.addColorStop(1,'#c9ad78');c.fillStyle=g;c.fillRect(x,y,w,h);};
   {const[x,y,w,h]=A.map;par(x,y,w,h);c.strokeStyle='rgba(90,60,30,0.6)';c.lineWidth=3;c.strokeRect(x+8,y+8,w-16,h-16);const ks=Object.keys(cells);let mr=1;for(const k of ks){const q=cells[k];mr=Math.max(mr,Math.abs(q.q),Math.abs(q.r),Math.abs(q.q+q.r));}
     const S=Math.min(w,(h-70)*1.15)/(mr*2+2)/1.75,cx=x+w*0.46,cy=y+72+(h-80)/2;c.lineWidth=1.2;for(const k of ks){const q=cells[k],px=cx+S*1.732*(q.q+q.r/2),py=cy+S*1.5*q.r;c.beginPath();for(let i=0;i<6;i++){const a=i*Math.PI/3+Math.PI/6;c[i?'lineTo':'moveTo'](px+S*0.96*Math.cos(a),py+S*0.96*Math.sin(a));}c.closePath();
@@ -253,7 +257,7 @@ function cabinFrame(now){const gl=CABIN.gl,cv=CABIN.cv,dpr=Math.min(2,window.dev
   const all=[[CABIN.S],[CABIN.D]].map(a=>a[0]),A=[['aP',3,0],['aN',3,3],['aU',2,6],['aM',1,8],['aI',1,9]];
   gl.enable(gl.DEPTH_TEST);gl.disable(gl.CULL_FACE);gl.bindFramebuffer(gl.FRAMEBUFFER,CABIN.fb);gl.viewport(0,0,1024,1024);gl.clearColor(1,1,1,1);gl.clear(gl.COLOR_BUFFER_BIT|gl.DEPTH_BUFFER_BIT);gl.useProgram(CABIN.SP);gl.uniformMatrix4fv(gl.getUniformLocation(CABIN.SP,'uLVP'),false,LVP);for(const B of all)cabDraw(CABIN.SP,B,[['aP',3,0],['aM',1,8]]);
   gl.bindFramebuffer(gl.FRAMEBUFFER,CABIN.pf.fb);gl.viewport(0,0,PW,PH);gl.clearColor(0.03,0.025,0.035,1);gl.clear(gl.COLOR_BUFFER_BIT|gl.DEPTH_BUFFER_BIT);const P=CABIN.P;gl.useProgram(P);const u=n=>gl.getUniformLocation(P,n);
-  gl.uniformMatrix4fv(u('uVP'),false,C.VP);gl.uniformMatrix4fv(u('uLVP'),false,LVP);gl.uniform3fv(u('uEye'),C.p);gl.uniform3fv(u('uLp'),Ls.flatMap(l=>l[0]));gl.uniform3fv(u('uLc'),Ls.flatMap(l=>l[1]));const sk=duckSun(_sunH).c;gl.uniform3fv(u('uSky'),sk.map(v=>v*0.55));gl.uniform3fv(u('uChroma'),chromaRGB(now,0.2).map(v=>v/255));gl.uniform1f(u('uT'),now/1000);
+  gl.uniformMatrix4fv(u('uVP'),false,C.VP);gl.uniformMatrix4fv(u('uLVP'),false,LVP);gl.uniform3fv(u('uEye'),C.p);gl.uniform3f(u('uCC'),CAB_CHEST.x,CAB_CHEST.y+0.5,CAB_CHEST.z);gl.uniform3fv(u('uLp'),Ls.flatMap(l=>l[0]));gl.uniform3fv(u('uLc'),Ls.flatMap(l=>l[1]));const sk=duckSun(_sunH).c;gl.uniform3fv(u('uSky'),sk.map(v=>v*0.55));gl.uniform3fv(u('uChroma'),chromaRGB(now,0.2).map(v=>v/255));gl.uniform1f(u('uT'),now/1000);
   const h=CABIN.dir>0&&now-CABIN.t0>(T.cabinMoveMs||1400)?cabPick(C,CABIN.mx,CABIN.my,W,H):null;if(h!==CABIN.hov){CABIN.hov=h;if(h)feed(...cabinInfo(h),'hint');updateHint();}gl.uniform1f(u('uHov'),h?CAB_OBJ.indexOf(h)+1:0); // every face of what the cursor is on lights up
   [[CABIN.tAt,'uAt'],[CABIN.tPool,'uPool'],[CABIN.tSh,'uSh']].forEach(([t,n],i)=>{gl.activeTexture(gl.TEXTURE0+i);gl.bindTexture(gl.TEXTURE_2D,t);gl.uniform1i(u(n),i);});gl.activeTexture(gl.TEXTURE0);
   for(const B of all)cabDraw(P,B,A);
@@ -261,7 +265,6 @@ function cabinFrame(now){const gl=CABIN.gl,cv=CABIN.cv,dpr=Math.min(2,window.dev
     for(let l=0;l<8;l++)gl.disableVertexAttribArray(l);gl.bindBuffer(gl.ARRAY_BUFFER,CABIN.qb);const l=gl.getAttribLocation(PP,'aQ');gl.enableVertexAttribArray(l);gl.vertexAttribPointer(l,2,gl.FLOAT,false,8,0);gl.drawArrays(gl.TRIANGLES,0,3);} // onto the screen: fisheye, and the outline
   const o=CABIN.ov.getContext('2d');o.setTransform(dpr,0,0,dpr,0,0);o.clearRect(0,0,W,H);o.globalCompositeOperation='lighter'; // the haloes round the flames, and a little light in the air
   for(const q of CABIN.glow||[]){const S=cabScr(C,q,W,H);if(S)chromaGlow(o,S[0],S[1],S[2]*0.11,now,0.12,(q[0]*3+q[2])%1);} // the tools' white shines as a Bright Remnant does (the title's light)
-  {const S=cabScr(C,[CAB_CHEST[0]+0.36,0.52,CAB_CHEST[1]+0.3],W,H);if(S)chromaGlow(o,S[0],S[1],S[2]*0.55,now,0.42,0.6);} // and the chest's hoard, radiating
   for(const[q,c,r0]of[[Ls[0][0],[255,190,110],0.5],[Ls[1][0],[255,170,90],0.23],[Ls[2][0],[255,170,90],0.19]]){const S=cabScr(C,q,W,H);if(!S)continue;const X=S[0],Y=S[1],r=r0*S[2],g=o.createRadialGradient(X,Y,0,X,Y,r);g.addColorStop(0,`rgba(${c},0.28)`);g.addColorStop(0.3,`rgba(${c},0.1)`);g.addColorStop(1,`rgba(${c},0)`);o.fillStyle=g;o.fillRect(X-r,Y-r,2*r,2*r);}
   if(CABIN.mx!=null){o.globalCompositeOperation='source-over';o.strokeStyle='rgba(255,255,255,0.92)';o.lineWidth=1.6;o.beginPath();o.arc(CABIN.mx,CABIN.my,CABIN.hov?11:8,0,6.2832);o.stroke();o.fillStyle='rgba(255,255,255,0.9)';o.beginPath();o.arc(CABIN.mx,CABIN.my,1.4,0,6.2832);o.fill();}} // the cursor, in the room (bigger over something you can point at)
 function cabinLoop(){if(!CABIN.on)return;try{cabinFrame(performance.now());}catch(e){console.error(e);}requestAnimationFrame(cabinLoop);}

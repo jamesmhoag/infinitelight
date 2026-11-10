@@ -101,21 +101,20 @@ map.nothing_left_here,Nothing left here,Surface Map,
 map.great_dark_remnant,Great Dark Remnant,Surface Map,
 map.dark_remnant_clear,Dark Remnant clear,Surface Map,
 map.three_swirled_into_one,Three swirled into one · a Spindle ×3 unwinds it,Surface Map,
-map.locks_nothing_the_spill,Locks nothing · the spill cannot spread past it,Surface Map,
+map.locks_nothing_the_spill,The spill cannot spread past it,Surface Map,
 map.value,{kind} · value {value},Surface Map,"kind = $0 — what the Dark Remnant clear does
 value = $1 — the clear's value"
 map.star, · {stars} star,Surface Map,stars = $0 — the constellations it is part of
 map.bright_clear,Bright clear{star},Surface Map,"star = $0 — ""· <kind> star"" when it is in a constellation"
 map.merged, · merged,Surface Map,
-map.locks_its_neighbours_value,Locks its neighbours · value {value}{merged},Surface Map,"value = $0 — the clear's value
+map.locks_its_neighbours_value,Value {value}{merged},Surface Map,"value = $0 — the clear's value
 merged = $1 — ""· merged"" when it is part of a merge"
 map.you,You · ,Surface Map,
 map.surface,{you}Surface {value},Surface Map,"you = $0 — ""You · "" on your own hex
 value = $1 — the hex's value"
 map.wound_up_by_a,Wound up by a Spindle: held at 1.00 · ,Surface Map,
-map.locked_by_a_bright,Locked by a bright clear · ,Surface Map,
 map.saved_where_you_left, · saved where you left it,Surface Map,
-map.covered,{state}covered {pct}%{saved},Surface Map,"state = $0 — wound up / locked, when it is
+map.covered,{state}covered {pct}%{saved},Surface Map,"state = $0 — wound up, when it is
 pct = $1 — how much of the hex is covered (%)
 saved = $2 — ""· saved where you left it"" on the surface you left"
 map.unwinds_a_cleared_hex,"Unwinds a cleared hex back to a surface (a great Dark Remnant takes 3), or winds an open one below 1.00 up to 1.00",Surface Map,
@@ -273,7 +272,7 @@ map.ui.new_map,new map,Surface_Map_HUB.html,
 map.ui.you,you,Surface_Map_HUB.html,
 map.ui.cleared_bright,cleared (bright),Surface_Map_HUB.html,
 map.ui.cleared_dark_remnant,cleared (dark remnant),Surface_Map_HUB.html,
-map.ui.locked,locked,Surface_Map_HUB.html,
+map.ui.wound,wound up,Surface_Map_HUB.html,
 map.ui.merged,merged,Surface_Map_HUB.html,
 map.ui.void,void,Surface_Map_HUB.html,
 map.ui.paused,PAUSED,Surface_Map_HUB.html,
