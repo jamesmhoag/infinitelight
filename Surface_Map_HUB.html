@@ -163,7 +163,7 @@ body.shop-open #hdock{z-index:59}#hinv .slot.wal::before{border-color:rgba(255,2
 <div id="veil"></div>
 <div id="bfx"></div>
 <iframe id="neb" data-tt="map.ui.surface"></iframe>
-<script src="content.js?v=20261109a"></script><script src="shared.js?v=20261109c"></script><script src="cabin.js?v=20261109e"></script>
+<script src="content.js?v=20261110a"></script><script src="shared.js?v=20261110a"></script><script src="cabin.js?v=20261110a"></script>
 <script>
 // ╔══════════════════════════════════════════════════════════════════════════════╗
 // ║  MAP ENGINE                                                                 ║
@@ -182,7 +182,7 @@ let playLog=[],clock=3,day=1,pool=6,fresh=true,burstFx=null,dayLog=[],dayCnt={b:
 // // clock: the hour (3 = Twilight … 24 = Midnight, the day's last turn); day: your attempts; pool: what the source put out at its last burst; fresh: no ring added yet since it
 let constel=[],armed=null,weaveSel=[],weaveAsk=null,clearFx={},mergeFx=[],feedMsg={t:'',d:'',at:-1e9}; // constellations {keys,type}; the armed map item; a Weave being drawn; animations; the final count
 const STEP_H=3; // the day: eight turns of three hours
-const CACHE_V='20261109a'; // the build: bump with shared.js's
+const CACHE_V='20261110a'; // the build: bump with shared.js's
 const SCENE=new URLSearchParams(location.search).get('scene'); // a Guide / event demo: the map plays a scripted moment (no surface behind it)
 let phase='move',turnTimer=0,mergeTimer=0;
 let gameOverReason='';
@@ -376,6 +376,7 @@ function completeCaptureForCell(cellKey,kind,tally){
 const tired=()=>clock===24&&!SCENE; // Midnight: no more moves (Rest ends the day)
 function doMove(tq,tr){
   if(phase==='gameover'||phase==='collapse')return;if(tired()){feed(txt('map.too_tired_to_move'),txt('map.rest_under_midnight_to'),'no');return;}
+  hubLearn('hubmove');hubLearn('hubtime');hubLearn('hublight');
   const tc=cells[K(tq,tr)];
   if(tc&&tc.isVoid&&voidOpen&&tq===0&&tr===0){const ok=cells[K(pQ,pR)];if(ok)ok.isP=false;descendDepth();return;}
   const ok=cells[K(pQ,pR)];if(ok)ok.isP=false;
@@ -811,7 +812,7 @@ document.addEventListener('mousemove',e=>{mX=e.clientX;mY=e.clientY;},true);docu
 window.addEventListener('wheel',e=>{if(currentView!=='map'||menuOpen||shopUI||(e.target.closest&&e.target.closest('#tuneP,#mModes')))return;e.preventDefault();zoomUser(Math.exp(-e.deltaY*0.0015));},{passive:false});
 sc.addEventListener('contextmenu',e=>{e.preventDefault();if(currentView!=='map')return;if(armed){armed=null;weaveSel=[];weaveAsk=null;updateHint();syncDock();}else focusCam(true);}); // right-click puts a selected item down, else takes the view back to your hex
 let drag=null; // a left-button drag pans the map
-function panCam(dx,dy){if(dive||camTween)return;buoy.follow=false; // (you took the view; a scene's own camera move cannot be taken)
+function panCam(dx,dy){if(dive||camTween)return;hubLearn('hubview');buoy.follow=false; // (you took the view; a scene's own camera move cannot be taken)
   const x=camTX+dx,y=camTY+dy;camX+=x-camTX;camY+=y-camTY;camTX=x;camTY=y;camV.x=camV.y=0;camFrame();} // (camFrame keeps the view on the spill)
 sc.addEventListener('mousedown',e=>{if(e.button===0&&currentView==='map')drag={x:e.clientX,y:e.clientY,moved:false};});
 document.addEventListener('mousemove',e=>{if(!drag)return;if(!(e.buttons&1)){duckLetGo();drag=null;return;}if(!drag.moved&&Math.hypot(e.clientX-drag.x,e.clientY-drag.y)<6)return;drag.moved=true;swipeMark(e.clientX,e.clientY);
@@ -838,7 +839,7 @@ function mapPress(p){ // a click on a hex, or Space (p.space: your own hex, wher
   if(MP.role==='guest'&&armed!=='weave'){mpSend('click',{q,r,armed});if(armed==='dial')armed=null;return;} // a friend: the host plays it
   mapClick(q,r);
 }
-function mapClick(q,r){const k=K(q,r); // a click on a hex (yours, or a friend's played by the host)
+function mapClick(q,r){const k=K(q,r);if(armed)hubLearn('hubitems'); // a click on a hex (yours, or a friend's played by the host)
   if(armed==='leash'){if(cells[k]&&cells[k].cap)unclear(k);else spindleFill(k);return;} // an armed map item takes the click
   if(armed==='dial'){stringMove(q,r);return;}
   if(armed==='weave'){if(!weaveAsk)weaveClick(k);return;}
@@ -1141,7 +1142,7 @@ function loadMap(){
 const nebEl=document.getElementById('neb');
 function neb(m){if(nebEl.contentWindow)nebEl.contentWindow.postMessage(m,'*');}
 function showNeb(on){nebEl.classList.toggle('show',on);if(on){nebEl.focus();try{nebEl.contentWindow.focus();}catch(e){}}else window.focus();}
-function enterNebula(cellKey){
+function enterNebula(cellKey){hubLearn('hubcell');
   if(_mpFor){netOut({t:'enter',key:cellKey},_mpFor);return;} // a friend's surface: they play it, everyone watches
   if(MP.on){MP.surf={owner:MP.me,key:cellKey};netOut({t:'surf',owner:MP.me,key:cellKey,on:true});neb({cmd:'mpShare',on:true});} // (its frames, for everyone watching)
   const c=cells[cellKey];
@@ -1160,6 +1161,7 @@ function exitNebula(){riftFxStart(performance.now()+500); // (a Rift made in the
 let evQ=[];
 const evAsked=new Set(); // (asked for once a session: the surface's reply may take a moment to say it is seen)
 const MAP_EV={};for(const r of csvRead('events'))MAP_EV[r.id]=r;
+let _guideRows=null;function hubLearn(id){if(SCENE||disc.has('g_'+id))return;disc.add('g_'+id);neb({cmd:'discover',id:'g_'+id});const g=(_guideRows=_guideRows||csvRead('guide')).find(x=>x.id===id);if(g)feed(txt('guide.learned',g.name),''); } // a Journal entry learned on the map, where it happens (the surface keeps it)
 function hubEvent(id){if(SCENE)return;if(disc.has('ev:'+id)||evAsked.has(id))return;evAsked.add(id); // something seen for the first time on the map: said in the feed (one place for every message: no card over the map), and discovered (its card is in the Guide)
   const r=MAP_EV[id];if(r)feed(r.name,tpl(String(r.facts||'').split('\n')[0]));disc.add('ev:'+id);neb({cmd:'discover',id:'ev:'+id});}
 function evPump(){if(currentView==='overlay'&&evQ.length&&nebReady){neb({cmd:'event',ids:evQ.splice(0)});return;} // joins the hand already showing
@@ -1221,7 +1223,7 @@ function dockSide(top){document.body.classList.toggle('dock-top',top);try{localS
 function dockTell(){const d=document.getElementById('hdock'),l=document.getElementById('turn-label');neb({cmd:'dock',top:document.body.classList.contains('dock-top'),h:d?d.offsetHeight:0,lab:l?l.getBoundingClientRect().bottom:0});} // (the menus over the map keep clear of it)
 document.getElementById('hfeed').addEventListener('click',e=>{if(e.target.closest('button'))return;dockSide(!document.body.classList.contains('dock-top'));});try{if(localStorage.getItem('il_docktop'))document.body.classList.add('dock-top');}catch(e){}
 function turnLabel(el){const k=clockStr()+'|'+day;if(el._k===k)return;el._k=k;el.innerHTML=`<span>${clockStr()}</span><small>${txt('map.dayn',day)}</small>`;} // the time of day, and under it (smaller) the day
-function toggleMenu(){menuOpen=!menuOpen;document.getElementById('menu').classList.toggle('show',menuOpen);syncMenu();if(!menuOpen)evPump();}
+function toggleMenu(){menuOpen=!menuOpen;if(menuOpen)hubLearn('menu');document.getElementById('menu').classList.toggle('show',menuOpen);syncMenu();if(!menuOpen)evPump();}
 const soundOn=()=>!!T.soundOn;
 function setSound(on,vol){T.soundOn=on?1:0;if(vol!=null)T.masterVol=+vol;neb({cmd:'sound',on,vol:vol!=null?+vol:null});syncMenu();}
 function syncMenu(){syncModes();
@@ -1451,7 +1453,7 @@ function renderShop(){const el=document.getElementById('shop');if(SCENE)requestA
   card.querySelectorAll('.srow').forEach(r=>{const row=pr[+r.dataset.i];r.onclick=()=>{if(!row.own)row.go();};r.onmouseenter=()=>{shopHover=row.it?[row.fn||row.n,row.note||'']:null;};r.onmouseleave=()=>{shopHover=null;};});
   card.querySelectorAll('.stabs span').forEach(t=>{t.onclick=()=>{u.tab=t.dataset.t;renderShop();};t.onmouseenter=()=>{const c=t.dataset.t;shopHover=[curName(c),txt(rows.length===1?'map.shop.tab1':'map.shop.tab',fmtN(shopWallet(c)),rows.length)];};t.onmouseleave=()=>{shopHover=null;};});
   applyDisc();}
-function shopBuy(it,arg){
+function shopBuy(it,arg){hubLearn('shopbuy');
   if(it.fx.souv){const pr=shopPrice(it,run);if(giftWallet<pr){feed(it.n,txt('map.you_need_bright',fmtN(it.cost)));return;}giftWallet-=pr;const sv=souvenirs();sv[it.id]=(sv[it.id]||0)+1;try{localStorage.setItem(SOUV_KEY,JSON.stringify(sv));}catch(e){}feed(txt('map.souvenir',it.n),txt('map.kept_whatever_comes_next'));renderShop();return;}
   buySnap={had:buyTake(),it,at:performance.now()};neb({cmd:'buy',id:it.id,arg,ship:shopUI&&!shopHere(shopUI.key)?1:0});} // (a shop you are not at: what it gives comes in a box, delivered on the lake)
 const shopHere=key=>cells[key]?key===K(pQ,pR):cellRing(pQ,pR)<=1; // you are at a shop: on its hex (a pop-up), or beside the Point (main street and the Point's own pop-ups)
@@ -1499,8 +1501,8 @@ function netHost(){if(MP.on){mpInviteShow();return;}MP.room='ilm-'+Math.random()
   mpLoadLib(()=>{MP.peer=new Peer(MP.room);MP.peer.on('open',mpInviteShow);MP.peer.on('error',e=>feed(txt('mp.title'),txt('mp.error',e.type||e)));
     MP.peer.on('connection',c=>{c.on('data',m=>{if(m&&m.t==='hello'&&!c._pid){c._pid=m.from;MP.conns.set(m.from,c);}netHostOn(m,m.from);});c.on('close',()=>{if(c._pid)mpLeave(c._pid);});});});mpSync();}
 const mpLink=()=>new URL('Surface_Map_HUB.html?join='+encodeURIComponent(MP.room)+(MPBC?'&net=bc':''),location.href).href;
-function mpInviteShow(){feed(txt('mp.title'),txt('mp.invite'));const el=document.getElementById('mpLink');if(el){el.style.display='';el.textContent=mpLink();}try{navigator.clipboard.writeText(mpLink()).catch(()=>{});}catch(e){}}
-function netJoin(){MP.role='guest';MP.on=true;MP.room=MPJOIN;MP.me='g'+Math.random().toString(36).slice(2,7);const hi=()=>netOut({t:'hello',name:playerName||txt('mp.player'),col:buoyCol});
+function mpInviteShow(){hubLearn('together');feed(txt('mp.title'),txt('mp.invite'));const el=document.getElementById('mpLink');if(el){el.style.display='';el.textContent=mpLink();}try{navigator.clipboard.writeText(mpLink()).catch(()=>{});}catch(e){}}
+function netJoin(){hubLearn('together');MP.role='guest';MP.on=true;MP.room=MPJOIN;MP.me='g'+Math.random().toString(36).slice(2,7);const hi=()=>netOut({t:'hello',name:playerName||txt('mp.player'),col:buoyCol});
   if(MPBC){MP.bc=new BroadcastChannel(MP.room);MP.bc.onmessage=e=>{const m=e.data;if(m&&m.from!==MP.me&&(!m.to||m.to===MP.me))netGuestOn(m);};hi();return;}
   mpLoadLib(()=>{MP.peer=new Peer();MP.peer.on('open',()=>{MP.host=MP.peer.connect(MP.room,{reliable:true});MP.host.on('open',hi);MP.host.on('data',m=>{if(!m.to||m.to===MP.me)netGuestOn(m);});MP.host.on('close',()=>feed(txt('mp.title'),txt('mp.host_left')));});
     MP.peer.on('error',e=>feed(txt('mp.title'),txt(e.type==='peer-unavailable'?'mp.no_room':'mp.error',e.type||e)));});
