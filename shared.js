@@ -20,7 +20,7 @@ const DUCK_MAT={plastic:0,wood:1,metal:2,glass:3,dim:4,bright:5,shining:6,gold:7
 const duckStar=v=>v&&v.rare?'★ ':v&&v.mid?'☆ ':''; // a rare exotic's mark; a mid-tier one's
 const _duckModels=new Map();let _duckTex=null;
 function duckModel(type){ // a type = one of the two baked meshes + its own colours and material (or 'bottle:<colour>:<part>', a message in a bottle's glass, cork or letter)
-  if(_duckModels.has(type))return _duckModels.get(type);if(type.slice(0,7)==='bottle:')return bottleModel(type);
+  if(_duckModels.has(type))return _duckModels.get(type);if(type.slice(0,7)==='bottle:')return bottleModel(type);if(type.slice(0,5)==='good:')return goodModel(type);
   const v=DUCK_TYPES[type]||DUCK_TYPES.classic,geo=duckGeo(v.head?'bighead':'classic');if(!geo)return null;
   const M={g:geo,mat:v.tex==='rainbow'?8:DUCK_MAT[v.mat||'plastic'],c1:(v.col||DUCK_YEL).map(c=>c/255),c2:(v.col2||DUCK_ORA).map(c=>c/255)};
   _duckModels.set(type,M);return M;}
@@ -81,6 +81,7 @@ function buoyModel(name,souv,col){ // name: up to 20 characters; souv: the souve
   beam([0,0.28,0],[0,2.16,0],0.07,2);for(let i=0;i<3;i++){const a=i/3*6.2832+0.5;beam([0.42*Math.cos(a),0.24,0.42*Math.sin(a)],[0,1.3,0],0.05,0);} // the mast, and its cage
   const sh=0.4,sw=sh*tw/160,y0=1.3,u0=(A-tw)/2/A,u1=1-u0,v0=512/A,v1=672/A,F=[[u0,v1],[u1,v1],[u1,v0],[u0,v0]]; // the sign, on the mast: a framed board, thick, the name on both faces
   box(-sw/2-0.03,y0-0.03,-0.04,sw/2+0.03,y0+sh+0.03,0.04,2);glow(()=>{quad([[-sw/2,y0,0.042],[sw/2,y0,0.042],[sw/2,y0+sh,0.042],[-sw/2,y0+sh,0.042]],[0,0,1],F);quad([[sw/2,y0,-0.042],[-sw/2,y0,-0.042],[-sw/2,y0+sh,-0.042],[sw/2,y0+sh,-0.042]],[0,0,-1],F);}); /* its faces lit from within: the name reads at any time of day */
+  box(0.06,0.2,-0.2,0.46,0.36,0.2,5);box(0.09,0.36,-0.17,0.43,0.4,0.17,1);beam([0.3,0.45,-0.09],[0.3,0.45,0.09],0.035,5);beam([0.3,0.4,-0.09],[0.3,0.45,-0.09],0.035,5);beam([0.3,0.4,0.09],[0.3,0.45,0.09],0.035,5); // the hatch on its deck (a coaming, its lid, a brass handle): the way below deck
   box(-0.07,2.14,-0.07,0.07,2.19,0.07,2);beam([-0.11,2.19,0],[-0.11,2.33,0],0.03,2);beam([0.11,2.19,0],[0.11,2.33,0],0.03,2);beam([-0.11,2.19,0],[0.11,2.19,0],0.03,2); // the yoke its can light turns in (the can: buoyCanModel), high on the mast: looking down it clears the name sign
   souv.forEach((id,i)=>{const a=i/Math.max(1,souv.length)*6.2832+1.1,x=0.62*Math.cos(a),z=0.62*Math.sin(a),k=BUOY_SOUV[id]||6; // each souvenir, hung on the float's rim
     if(id==='keychain'){beam([x,0.3,z],[x,0.12,z],0.015,2);box(x-0.05,0.05,z-0.05,x+0.05,0.13,z+0.05,k);}else if(id==='postcard')box(x-0.11,0.12,z-0.02,x+0.11,0.28,z+0.02,k);
@@ -92,6 +93,39 @@ function buoyCanModel(){ // the buoy's can light: a short metal can, its lit len
   const K=meshKit(A,false),{uv,lathe}=K;lathe([[-0.13,0],[-0.13,0.065],[-0.1,0.08],[0.11,0.09],[0.135,0.092],[0.13,0.085]],16,[2,0,0,2,2],0); // its back, its body, its rim (closed to the lens)
   const n=uv.length/4;lathe([[0.13,0.085],[0.13,0]],16,[1],0);for(let k=n;k<uv.length/4;k++)uv[k*4+2]=1; // the lens, lit
   _duckModels.set(type,{g:K.geo(0.2),nomk:1,mat:13,c1:[1,1,1],c2:[1,1,1],img:tx});return type;}
+// ── Commodities: what the shops sell and send, floating on the lake or adrift in space, drawn by the duck renderer (painted, material 13). type =
+// good:<kind>:<shop>:<state> — kind: soda (a can in an effect colour, the PULSE's logo on its dark half), coffee (a cup with the Corner Store's logo),
+// box (cardboard, the shop's logo on its side, a plain shipping label, its seams sealed with shiny clear tape), can (an aluminium can, the DUCK SHOP's
+// logo, a pull tab), chest (wood bound in gold, an ornate lock), sign (a shop's sign on its board, lit and blinking while open); state: '' whole, open
+// (opened, empty: what is left floats away), lit / off (a sign). Their logos are the shops' own signs (goodLogo) ──
+const GOOD_KINDS=['soda','coffee','box','can','chest','sign'],GOOD_SHOP={soda:'pulsing',coffee:'corner',can:'duck'}; // (a box and a sign: any shop's)
+const _goodLogo={};
+function goodLogo(shop){if(!shop||shop==='-')return null;let im=_goodLogo[shop];if(!im){im=_goodLogo[shop]=new Image();im.onload=()=>{for(const k of [..._duckModels.keys()])if(k.slice(0,5)==='good:'&&k.split(':')[2]===shop)_duckModels.delete(k);if(window.onSignChange)onSignChange();};im.src='shops/sign_'+shop+'.svg';}return im.complete&&im.naturalWidth?im:null;}
+function goodModel(type){const[,kind,shop0,st]=type.split(':'),shop=shop0||GOOD_SHOP[kind]||'corner',open=st==='open',lit=st==='lit',A=512,tx=document.createElement('canvas');tx.width=tx.height=A;const c=tx.getContext('2d');
+  const ci=Math.abs([...shop].reduce((a,ch)=>a*31+ch.charCodeAt(0),7))%6,eff=kind==='soda'&&shop0&&/^\d$/.test(shop0)?EFFECT_HEX[+shop0]:EFFECT_HEX[ci];
+  ['#c9ccd2','#1b1b20','#b98b57','#8f6436','#f2eee2','#fbfbf7','#6b4423','#3f2512','#e6b23a','#fff1b8','#2b2420','#f1ece4',eff,'#f6f3ea','#08080a','#9aa0a8'].forEach((col,i)=>{c.fillStyle=col;c.fillRect(i*32,0,32,32);}); // its colours: aluminium, dark, cardboard (light, dark), tape, white, wood (light, dark), gold, glow, a cup's lid, a cup, the effect colour, label paper, black, steel
+  const lg=goodLogo(kind==='soda'?'pulsing':kind==='coffee'?'corner':kind==='can'?'duck':shop),half=(x0,x1,col)=>{c.fillStyle=col;c.fillRect(x0,64,x1-x0,192);};
+  if(kind==='soda'){half(0,256,eff);half(256,512,'#0d0d10');} else if(kind==='can'){const g=c.createLinearGradient(0,64,0,256);g.addColorStop(0,'#e9ecef');g.addColorStop(0.5,'#a9afb6');g.addColorStop(1,'#dfe3e6');c.fillStyle=g;c.fillRect(0,64,512,192);} else{c.fillStyle=kind==='coffee'?'#f1ece4':kind==='sign'?(lit?'#202128':'#141418'):'#b98b57';c.fillRect(0,64,512,192);}
+  if(lg){const r=Math.min(170/lg.naturalWidth,170/lg.naturalHeight),w=lg.naturalWidth*r,h=lg.naturalHeight*r,x=kind==='soda'?256+(256-w)/2:(512-w)/2;if(kind==='sign'&&!lit)c.filter='brightness(0.35) saturate(0.5)';c.drawImage(lg,x,64+(192-h)/2,w,h);c.filter='none';} // the logo (a soda's on its dark half)
+  c.fillStyle='#f6f3ea';c.fillRect(0,288,256,128);c.fillStyle='#1b1b20';for(let i=0;i<5;i++)c.fillRect(16,304+i*20,i===0?120:200-i*22,6);c.fillRect(180,300,60,40); // a plain shipping label: lines, a block
+  const K=meshKit(A,false),{quad,box,lathe,uv}=K,L0=uv.length,img=(x0,y0,x1,y1)=>[[x0/A,y1/A],[x1/A,y1/A],[x1/A,y0/A],[x0/A,y0/A]],sw=K.sw_,lit1=n=>{for(let k=n;k<uv.length/4;k++)uv[k*4+2]=1;};
+  const cyl=(ya,yb,r,seg,U0,U1,ti)=>{for(let j=0;j<seg;j++){const t0=j/seg*6.2832,t1=(j+1)/seg*6.2832,a0=Math.cos(t0),b0=Math.sin(t0),a1=Math.cos(t1),b1=Math.sin(t1),u0=U0+(U1-U0)*j/seg,u1=U0+(U1-U0)*(j+1)/seg,tm=(t0+t1)/2; // a label wrapped round a can: the image's width once round
+      quad([[r*a0,ya,r*b0],[r*a1,ya,r*b1],[r*a1,yb,r*b1],[r*a0,yb,r*b0]],[Math.cos(tm),0,Math.sin(tm)],ti!=null?sw(ti):[[u0/A,256/A],[u1/A,256/A],[u1/A,64/A],[u0/A,64/A]]);}};
+  if(kind==='soda'||kind==='can'){lathe([[-0.62,0],[-0.62,0.3],[-0.56,0.34]],18,[0,0],0);cyl(-0.56,0.5,0.34,24,512,0);lathe([[0.5,0.34],[0.6,0.27],[0.62,0.27],[0.62,0]],18,[0,0,open?14:0],0); // a can: its base, its body (the label round it), its neck and lid
+    if(!open)box(-0.04,0.62,-0.16,0.04,0.645,0.05,15);else{box(-0.04,0.62,0.02,0.04,0.78,0.05,15);quad([[-0.07,0.625,-0.2],[0.07,0.625,-0.2],[0.07,0.625,-0.05],[-0.07,0.625,-0.05]],[0,1,0],sw(14));}} // its pull tab (open: standing up over the hole)
+  else if(kind==='coffee'){lathe([[-0.55,0],[-0.55,0.3]],18,[11],0);cyl(-0.55,0.42,0.3,24,512,0);lathe([[0.42,0.3],[0.48,0.34],[0.56,0.33],[0.6,0.2],...(open?[]:[[0.62,0]])],18,[10,10,10,10],0);} // a cup (tapering), its sleeve with the logo, its lid
+  else if(kind==='box'){const X=0.6,Y=0.45,Z=0.45;box(-X,-Y,-Z,X,Y,Z,2);quad([[-0.42,-0.3,Z+0.002],[0.42,-0.3,Z+0.002],[0.42,0.3,Z+0.002],[-0.42,0.3,Z+0.002]],[0,0,1],img(96,64,416,256));quad([[0.42,-0.3,-Z-0.002],[-0.42,-0.3,-Z-0.002],[-0.42,0.3,-Z-0.002],[0.42,0.3,-Z-0.002]],[0,0,-1],img(96,64,416,256)); // cardboard; the shop's label on its sides
+    quad([[X+0.002,-0.32,0.3],[X+0.002,-0.32,-0.05],[X+0.002,-0.12,-0.05],[X+0.002,-0.12,0.3]],[1,0,0],img(0,288,256,416)); // a small shipping label
+    if(!open){box(-X-0.005,Y,-0.07,X+0.005,Y+0.006,0.07,4);box(-X-0.006,0.2,-0.07,-X,Y+0.006,0.07,4);box(X,0.2,-0.07,X+0.006,Y+0.006,0.07,4);} // its seam, taped over and down the ends (shiny)
+    else for(const sd of[-1,1])quad([[-X,Y,sd*Z],[X,Y,sd*Z],[X,Y+0.4,sd*(Z+0.25)],[-X,Y+0.4,sd*(Z+0.25)]],[0,0.5,sd],sw(3));} // opened: its flaps up and out, empty
+  else if(kind==='chest'){const X=0.7,Y=0.32,Z=0.42;box(-X,-Y,-Z,X,Y,Z,6);for(const x of[-0.45,0.45])box(x-0.05,-Y-0.01,-Z-0.01,x+0.05,Y+0.01,Z+0.01,8);box(-X-0.01,-Y-0.01,-Z-0.01,X+0.01,-Y+0.05,Z+0.01,8); // wood, bound in gold
+    const lid=(a)=>{const cs=Math.cos(a),sn=Math.sin(a),R=(y,z)=>[Y+(y)*cs-(z+Z)*sn,-Z+(y)*sn+(z+Z)*cs];for(let i=0;i<6;i++){const t0=i/6*Math.PI,t1=(i+1)/6*Math.PI,p0=[0.32*Math.sin(t0),-Z*Math.cos(t0)],p1=[0.32*Math.sin(t1),-Z*Math.cos(t1)],A0=R(...p0),A1=R(...p1),m0=Math.sin((t0+t1)/2),m1=-Math.cos((t0+t1)/2),nm=[0,m0*cs-m1*sn,m0*sn+m1*cs];
+        quad([[-X,A0[0],A0[1]],[X,A0[0],A0[1]],[X,A1[0],A1[1]],[-X,A1[0],A1[1]]],nm,sw(i%2?7:6));for(const x of[-0.45,0.45])quad([[x-0.05,A0[0]+0.004,A0[1]],[x+0.05,A0[0]+0.004,A0[1]],[x+0.05,A1[0]+0.004,A1[1]],[x-0.05,A1[0]+0.004,A1[1]]],nm,sw(8));}};lid(open?-1.6:0); // its rounded lid (open: thrown back)
+    const LZ=Z+0.012;quad([[-0.12,-0.12,LZ],[0.12,-0.12,LZ],[0.12,0.22,LZ],[-0.12,0.22,LZ]],[0,0,1],sw(8));for(const[a,b,e,f]of[[-0.16,0.12,-0.12,0.28],[0.12,0.12,0.16,0.28],[-0.06,0.22,0.06,0.32],[-0.16,-0.18,0.16,-0.12]])quad([[a,b,LZ+0.004],[e,b,LZ+0.004],[e,f,LZ+0.004],[a,f,LZ+0.004]],[0,0,1],sw(8)); // an ornate lock: its plate, scrolls at its shoulders, a crest, a foot
+    quad([[-0.025,-0.02,LZ+0.008],[0.025,-0.02,LZ+0.008],[0.025,0.09,LZ+0.008],[-0.025,0.09,LZ+0.008]],[0,0,1],sw(14)); // its keyhole
+    const n=uv.length/4;if(open)quad([[-X*0.95,Y+0.002,-Z*0.9],[X*0.95,Y+0.002,-Z*0.9],[X*0.95,Y+0.002,Z*0.9],[-X*0.95,Y+0.002,Z*0.9]],[0,1,0],sw(9));else quad([[-X,Y+0.003,Z+0.003],[X,Y+0.003,Z+0.003],[X,Y+0.02,Z+0.003],[-X,Y+0.02,Z+0.003]],[0,0,1],sw(9));if(st!=='shut')lit1(n);} // the glow at its seam (cracking open) or filling it
+  else{const X=0.8,Y=0.5;box(-X-0.04,-Y-0.04,-0.05,X+0.04,Y+0.04,-0.01,1);const n=uv.length/4;quad([[-X,-Y,0],[X,-Y,0],[X,Y,0],[-X,Y,0]],[0,0,1],img(42,64,470,256));if(lit)lit1(n);} // a sign: its board, its face (lit while its shop is open)
+  _duckModels.set(type,{g:K.geo(1),nomk:1,mat:13,c1:[1,1,1],c2:[1,1,1],img:tx});return _duckModels.get(type);}
 // ── A shop: its building as a 3D model the duck renderer draws (material 13, painted): walls with window and door openings, the lit room
 // behind them, frames and a roof edge, scaffolding on the roof and the sign mounted on it. One texture holds its colours, the room and the sign. ──
 function shopModel(id,bk,lit,fl,si,open,soon,ph){ // si: the sign's loaded image; open: its doors stand open (its menu is open); soon: Coming soon (closed, its sign saying so, lit) → the model's type, for drawDuck3D
@@ -362,6 +396,19 @@ function drawWakeShape(c,x,y,fwX,fwY,R,spdRatio,alpha,hi,lo){
 }
 // ── The Dark Remnant's glow ring (shared): the surface draws its Dark Remnant with two of these (drawBlackRemnant), the Surface Map its
 // Dark Remnant hexes with the same two, scaled to the hex (drawDarkRemnantAt) — so they look identical, only smaller. ──
+// ── Chroma: the title splash's chromatic light (its rainbow sweeps turning, drifting and swelling, their vibrancy breathing as its focus does), for
+// anything that shines that way: The Point (the map's centre), remnant and relic glows. One look, one set of tuners (chromaTurnS, chromaBreatheMs) ──
+const CHROMA=[[255,0,0],[255,127,0],[255,255,0],[0,255,0],[0,0,255],[75,0,130],[148,0,211]];
+function chromaRGB(now,ph){const n=CHROMA.length,u=(((now/((T.chromaTurnS||33)*1000)+(ph||0))%1)+1)%1*n,i=u|0,f=u-i,a=CHROMA[i%n],b=CHROMA[(i+1)%n];return a.map((v,k)=>Math.round(v+(b[k]-v)*f));} // the colour it is at now (ph: an object's own place round the wheel)
+function chromaVib(now,ph){const B=T.chromaBreatheMs||9000;return 0.62+0.38*(0.5+0.5*Math.sin(now/B*6.2832+(ph||0)*5.1))*(0.75+0.25*Math.sin(now/(B*1.37)*6.2832+(ph||0)*2.3));} // its vibrancy, ever changing (0.62–1)
+function chromaGrad(c,x,y,R,now,ph,a){const g=c.createRadialGradient(x,y,0,x,y,R),k=a==null?1:a,s=(o,d)=>{const C=chromaRGB(now,(ph||0)+d);g.addColorStop(o,`rgba(${C[0]},${C[1]},${C[2]},${(k*(1-o*0.85)).toFixed(3)})`);};s(0,0);s(0.45,0.18);s(0.8,0.36);g.addColorStop(1,'rgba(0,0,0,0)');return g;} // a glow of R: its colours running outwards round the wheel
+function chromaGlow(c,x,y,R,now,a,ph){ // the title's light at (x,y), as starlight: six bright, saturated lobes (the rainbow's colours, each turning to the next over Chroma turn s) drifting round a white-hot heart,
+  // added together (lighter), so where they overlap they blend toward white as real light does; each swells and fades on its own beat (its vibrancy ever changing)
+  if(!(R>0))return;c.save();c.globalCompositeOperation='lighter';const t=now/1000,v=chromaVib(now,ph),n=6;
+  for(let i=0;i<n;i++){const ang=t*(0.11+0.04*i)*(i%2?-1:1)+i*6.2832/n+(ph||0)*6.2832,off=R*(0.22+0.1*Math.sin(t*(0.5+0.13*i)+i*1.7)),cx=x+Math.cos(ang)*off,cy=y+Math.sin(ang)*off,r=R*(0.55+0.12*Math.sin(t*(0.7+0.09*i)+i)),C=chromaRGB(now,(ph||0)+i/n),al=Math.min(1,a*v*(0.55+0.25*Math.sin(t*(0.9+0.2*i)+i*2.1)));
+    const g=c.createRadialGradient(cx,cy,0,cx,cy,r);g.addColorStop(0,`rgba(${C[0]},${C[1]},${C[2]},${al.toFixed(3)})`);g.addColorStop(0.45,`rgba(${C[0]},${C[1]},${C[2]},${(al*0.45).toFixed(3)})`);g.addColorStop(1,`rgba(${C[0]},${C[1]},${C[2]},0)`);c.fillStyle=g;c.fillRect(cx-r,cy-r,2*r,2*r);}
+  const h=c.createRadialGradient(x,y,0,x,y,R*0.4);h.addColorStop(0,`rgba(255,255,255,${Math.min(1,a).toFixed(3)})`);h.addColorStop(1,'rgba(255,255,255,0)');c.fillStyle=h;c.fillRect(x-R*0.4,y-R*0.4,R*0.8,R*0.8); // its white-hot heart
+  c.restore();}
 function heartbeatPulse(phase){
   const bump=(center,width,amp)=>{
     let d=phase-center;

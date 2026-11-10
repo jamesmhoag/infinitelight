@@ -132,6 +132,8 @@ paneBodyA,1.3,Glass body,0,3,0.05,Achievements & Pattern — Visual,theme,,,,Gla
 paneEdgeA,1,Glass edge A,0,2,0.05,Achievements & Pattern — Visual,theme,,,,Glass: edge opacity,Glass (create tool) — its own look
 paneEdgeW,1.8,Glass edge W,0.3,6,0.1,Achievements & Pattern — Visual,theme,,,,Glass: edge thickness,Glass (create tool) — its own look
 crateEdgeW,21,Crate edge width,3,30,1,Achievements & Pattern — Visual,theme,,,,Thickness of the ring of planks around a Crate,px: thickness of the ring of planks around a Crate
+crateDepth,18,Crate depth px,0,80,1,Achievements & Pattern — Visual,theme,,,,"How deep a Crate, Case or Cache is (they are boxes, locked to the surface's plane as they are; 0 = flat)",
+crateDepthAng,-50,Crate depth angle,-180,180,5,Achievements & Pattern — Visual,theme,,,,"Which way a Crate's depth goes back from its face (degrees: 0 = right, −90 = up)",
 crateW,21,Crate post width,2,30,1,Achievements & Pattern — Visual,theme,,,,Crate post width,px: Crate post width
 crateGap,1,Crate post gap,0,30,1,Achievements & Pattern — Visual,theme,,,,Gap between Crate posts,px: gap between Crate posts
 gatePostW,15,Gate post width,3,30,1,Achievements & Pattern — Visual,theme,,,,Width of each Gate post,px width of each Gate post
@@ -280,10 +282,17 @@ whiteFormMs,1500,Form ms,0,2000,50,Death Nova — Visual,theme,,,,White-point bi
 novaBlastForce,30,Blast force,0,30,0.5,Death Nova — Behavior,gameplay,,,,Push strength on active points caught in the blast radius,push strength applied to active points caught in the blast radius
 novaDebrisGrace,1500,Debris grace,0,3000,100,Death Nova — Behavior,gameplay,,,,ms blast debris ignores freshly spawned nova-ring particles,ms: blast-ejected debris ignores freshly spawned nova-ring particles
 novaFreshGrace,1500,Ring grace,0,5000,100,Death Nova — Behavior,gameplay,,,,ms freshly spawned nova-ring particles are immune to ambient absorption,ms: freshly spawned nova-ring particles are immune to ambient absorption
+effRadGrowMs,400,Radius grow ms,0,3000,50,Death Nova — Behavior,gameplay,,,,"How long an effect radius takes to ease out to a bigger scale (a pigment's from 0, its base); paired with Radius shrink ms. 0 = jumps. A Pulsing beam keeps its own animated pattern",
+effRadShrinkMs,300,Radius shrink ms,0,3000,50,Death Nova — Behavior,gameplay,,,,"How long an effect radius takes to ease in to a smaller scale (back to 0 for a pigment that stops). 0 = jumps",
+effFlowN,6,Effect arrows,0,16,1,Death Nova — Behavior,gameplay,,,,"Arrows drawn inside an effect radius, in its ring's colour, showing which way it moves what is in it (0 = none)",
+effFlowLen,0.3,Effect arrow len,0.05,1,0.05,Death Nova — Behavior,gameplay,,,,"An effect arrow's length at full force, × its radius (shorter as the colour's force K is turned down)",
 remSize,3,Diamond ◇,1,10,0.5,Remnant — Scale (gameplay: sets actual collision size),gameplay,,,,"Remnant diamond half-size (px) — this IS its collision radius, not just how it looks",
 pulseRateMult,1,Pulse rate ×,0.1,5,0.1,Remnant — Visual,theme,,,,Speed multiplier on the Pulsing Remnant's glow-pulse AND triangle-flip animation (they always stay in sync with each other),speed multiplier on the Pulsing Remnant's glow-pulse + triangle-flip animation
 remGlowR,4,Glow rad,0,20,1,Remnant — Visual,theme,,,,Remnant glow radius,
 remGlowA,0.3,Glow α,0,0.6,0.05,Remnant — Visual,theme,,,,Remnant glow alpha,
+remChromaR,2.2,Glow chroma ×,1,6,0.1,Remnant — Visual,theme,,,,"How far a remnant's or relic's chromatic glow reaches, × Glow rad (Bright, Neutron, Pulsing and every relic: the title splash's colours; a Magnetic one keeps its two colours, breathing)",
+chromaTurnS,33,Chroma turn s,4,120,1,Remnant — Visual,theme,,,,"Seconds for chromatic light (The Point, remnant and relic glows) to run once round the rainbow, as the title splash's glow turns",
+chromaBreatheMs,9000,Chroma breathe ms,1000,30000,250,Remnant — Visual,theme,,,,"How long chromatic light takes to breathe its vibrancy up and down (ever changing: two rates beating)",
 dimGlowRMult,3,Dim glow radius ×,0,10,0.25,Remnant — Visual,theme,,,,"Dim Remnant glow radius, as a multiplier over the remnant's own current (mass-scaled) radius","Dim Remnant glow radius, as a multiplier over the remnant's OWN current (mass-scaled) radius, so a big Dim Remnant's glow actually grows with it instead of staying a fixed size"
 dimGlowA,0.6,Dim glow α,0,1,0.05,Remnant — Visual,theme,,,,Dim Remnant glow strength,(glow radius is dimGlowRMult below)
 dimGlowRed,255,Dim glow R,0,255,5,Remnant — Visual,theme,,,,Dim Remnant glow colour — red,(glow radius is dimGlowRMult below)
@@ -544,7 +553,9 @@ riftR,150,Rift area px,40,400,10,Rift,gameplay,,,,Cell size: the mass of every 2
 riftEveryMs,250,Rift check ms,50,2000,50,Rift,gameplay,,,,How often the surface is checked for a Rift,
 riftWMin,40,Rift width min px,10,200,2,Rift,gameplay,,,,The narrowest a Rift's black stripe opens (its width is random between this and the max),
 riftWMax,80,Rift width max px,10,300,2,Rift,gameplay,,,,The widest a Rift's black stripe opens,
-riftCrackMs,260,Rift crack ms,200,5000,50,Rift,gameplay,,,,How long the crack takes to run across the screen before the Rift opens,
+riftCrackMs,260,Rift crack ms,200,5000,50,Rift,gameplay,,,,"How long each crack takes to run its quarter of the screen (and the last, the whole crack, before the Rift opens)",
+riftStageMs,3000,Rift stage ms,250,20000,250,Rift,gameplay,,,,"While the mass that cracked an area holds, the next crack (a quarter of the screen further, branching off at a slight angle) forms after this long; the fourth fills the screen and the Rift opens",
+riftSealMs,1500,Rift seal ms,100,20000,100,Rift,gameplay,,,,"Once an area's mass drops below Rift mass its crack seals back, one crack every this long (it picks up again if the mass comes back)",
 riftOpenMs,120,Rift opening ms,20,2000,10,Rift,gameplay,,,,"How long the crack takes to snap open into the black stripe (faster than the wave it sends out)",
 prefabEdgeBuf,20,Prefab edge buffer px,0,200,2,Build mode,gameplay,,,,"How far past the screen's edge a prefab (or a Move / Duplicate) placed at an edge is pushed, to wait until its motion carries it on",
 prefabChance,0.35,Prefab chance,0,1,0.05,Build mode,gameplay,,,,"The chance, when a surface is entered at a time of day, that a prefab whose times include it appears (phases in somewhere, or drifts in from an edge if it moves)",
@@ -556,10 +567,10 @@ mapCamSlow,1.8,Camera scene slowness,0.5,4,0.1,Surface Map — the map and camer
 mapCamHandMs,1400,Camera hand back ms,0,5000,50,Surface Map — the map and camera,map,,,,How long the camera takes to ease from where a scene's own move left it to your own view (your control fades in over it),
 mapZoomMin,0.55,Map zoom out,0.3,1,0.05,Surface Map — the map and camera,map,,,,Furthest the map zooms out (wheel or −),
 mapZoomMax,1.8,Map zoom in,1,3,0.05,Surface Map — the map and camera,map,,,,Closest the map zooms in (wheel or +),
-mapSourceGlow,1,Source glow,0,3,0.05,Surface Map — the map and camera,map,,,,Brightness of the white source at the centre of the map,
+mapSourceGlow,1,The Point glow,0,3,0.05,Surface Map — the map and camera,map,,,,How bright The Point is at the centre of the map: its light moving and multi-coloured, its vibrancy ever changing (Chroma tuners),
 mapLakeMargin,1.1,Lake margin,0,6,0.1,Surface Map — the map and camera,map,,,,How much lake (× hex size) the camera shows past the edges of the spill: room for a bottle or a duck to swim in,
-mapBurstRings,3,Midnight burst rings,1,6,1,Surface Map — the day,map,,,,How many rings the source bursts out to at each midnight and on a new map (each hex at 1.00),
-mapCollapseMs,1400,Day end collapse ms,200,5000,100,Surface Map — the day,map,,,,Sets how fast the rings fall into the source at the end of a day (the outer ring takes about half this; each ring after it is faster),
+mapBurstRings,3,Midnight burst rings,1,6,1,Surface Map — the day,map,,,,How many rings the Point bursts out to at each midnight and on a new map (each hex at 1.00),
+mapCollapseMs,1400,Day end collapse ms,200,5000,100,Surface Map — the day,map,,,,Sets how fast the rings fall into the Point at the end of a day (the outer ring takes about half this; each ring after it is faster),
 mapSunMs,4500,Light shift ms,0,10000,100,Surface Map — the day,map,,,,"How long the light (on the ducks, the bottles, their ripples and wakes) takes to move round to a new time of day",
 mapZoom,1,Hex zoom,0.25,8,0.05,Surface Map — hex pictures,map,,,,How much of its surface a hex shows: 1 = the middle square of the screen; higher zooms in,
 mapClearBlur,0.6,Clear edge blur,0,1.5,0.05,Surface Map — hex pictures,map,,,,How far a bright cleared hex blurs into its neighbours (× hex size),
@@ -589,7 +600,7 @@ mapEnterMs,3000,Enter a surface ms,0,6000,50,Surface Map — your buoy,map,,,,"H
 mapBottleMs,90000,Bottle every ms,5000,600000,5000,Surface Map — lake and bottles,map,,,,About how long between messages in a bottle floating onto the lake (one at a time),
 mapBottleDuck,0.25,Bottle duck chance,0,1,0.05,Surface Map — lake and bottles,map,,,,Chance a message in a bottle holds a duck instead of a letter (opening it adds the duck to your collection),
 mapStreetSize,0.75,Shop size,0.15,1.5,0.01,Surface Map — shops,map,,,,"Width of a main street shop (× hex size); every shop, pop-ups too, is drawn at this scale",
-mapStreetRing,0.8,Main street ring,0,2,0.05,Surface Map — shops,map,,,,"How far from the centre of the source the main street shops stand (× hex size): two behind it, two in front",
+mapStreetRing,0.8,Main street ring,0,2,0.05,Surface Map — shops,map,,,,"How far from the centre of the Point the main street shops stand (× hex size): two behind it, two in front",
 mapShopGlow,1,Shop neon glow,0,3,0.05,Surface Map — shops,map,,,,How strongly an open shop's sign and windows glow,
 mapShopUpScale,1.7,Big store scale,1,2.5,0.05,Surface Map — shops,map,,,,How much larger the rank 2 and 3 pop-ups' two-storey stores are drawn than a main street shop (1.7: their doors are about the same size),
 mapShopPitch,22,Shop view angle,0,60,1,Surface Map — shops,map,,,,Degrees: how far from straight ahead the 3D shops are seen from above (their roofs and sign scaffolding show more),
@@ -609,8 +620,8 @@ mapCursorLightR,170,Cursor glints reach,40,500,10,Surface Map — lights,map,,,,
 mapCursorGround,1.1,Cursor light on the water,0,3,0.05,Surface Map — lights,map,,,,How bright the cursor's light is on the water
 mapCursorGroundR,56,Cursor light size,10,300,2,Surface Map — lights,map,,,,Pixels: how big the cursor's light is on the water
 mapCursorGroundSoft,0,Cursor light edge,0,0.95,0.05,Surface Map — lights,map,,,,Where the cursor's light on the water starts to fade (0: soft all through; higher: a crisper edge)
-mapSourceLight,1.6,Source light,0,5,0.05,Surface Map — lights,map,,,,How strongly the white source lights the shops and buoy round it
-mapSourceLightR,3.4,Source light reach,0.5,12,0.1,Surface Map — lights,map,,,,Hexes: how far the source's light carries
+mapSourceLight,1.6,The Point light,0,5,0.05,Surface Map — lights,map,,,,How strongly The Point lights the shops and buoy round it
+mapSourceLightR,3.4,The Point light reach,0.5,12,0.1,Surface Map — lights,map,,,,Hexes: how far the Point's light carries
 mapBrightLight,0.7,Bright clear light,0,4,0.05,Surface Map — lights,map,,,,How strongly each bright clear lights what is near it
 mapBrightLightR,1.7,Bright clear reach,0.3,6,0.1,Surface Map — lights,map,,,,Hexes: how far a bright clear's light carries
 mapShopReflect,0.7,Shop reflections,0,1,0.02,Surface Map — shops,map,,,,How strongly shops show reflected in the dark ground under them,
@@ -628,3 +639,29 @@ dimWhirlCoreR,14,,,,,(no slider),,,,,,px: a particle-point swirled this close to
 orbitMaxDist,220,,,,,(no slider),,,,,,px: a String orbit only counts when the orbiting pair are this close (stops screen-wide 'orbits')
 bhExpandBlur,22,,,,,(no slider),,,,,,px: blur radius on the expanding-darkness fill while the Dark Remnant is still growing to fill the screen
 soundOn,0,,,,,(no slider),,,,,,
+goodSize,40,Commodity size px,10,120,1,Commodities,theme,,,,"How big a commodity (a can, a cup, a box, a sign) is in space",
+goodAwayMs,4000,Packaging away ms,500,15000,250,Commodities,theme,,,,How long opened packaging takes to float off and fade,
+goodChance,0.15,Commodity chance,0,1,0.01,Commodities,gameplay,,,,Chance one commodity drifts in from an edge when a surface is entered,
+signBlinkMs,700,Sign blink ms,100,3000,50,Commodities,theme,,,,"An open shop's sign blinks: off one beat in four, a beat this long",
+chestBright,400,Chest hoard,50,5000,50,Commodities,gameplay,,,,"About how much Bright a treasure chest holds (Dim about half; Neutron, Magnetic and Pulsing a few each, by chance)",
+chestRelic,0.5,Chest relic chance,0,1,0.05,Commodities,gameplay,,,,Chance a treasure chest also holds a relic (counts ×100),
+mapGoodScale,0.7,Lake commodity size,0.2,2,0.05,Commodities,map,,,,"How big commodities and flotsam are on the lake, × a duck's",
+mapGoodMs,150000,Lake goods ms,10000,900000,5000,Commodities,map,,,,"About how often a can, a cup or a box floats in on the lake",
+mapChestMs,300000,Chest ms,10000,1800000,10000,Commodities,map,,,,About how often a treasure chest floats in (one at a time),
+mapChestOpenMs,1600,Chest open ms,200,6000,100,Commodities,map,,,,How long an opened chest glows before it sinks,
+mapChestBurnMs,2600,Chest burn ms,500,8000,100,Commodities,map,,,,How long an emptied chest takes to sink and burn away,
+evSlow,0.5,Event slow,0,0.9,0.05,Events — capture,gameplay,,,,"How much an event's capture slows the game, added to the novas' slows (0.5 = half speed)",
+evPreMs,600,Event pre ms,0,3000,50,Events — capture,gameplay,,,,How much of the moment before an event its recording keeps,
+evCaptureMs,2400,Event capture ms,300,8000,100,Events — capture,gameplay,,,,How long an event is framed and recorded as it unfolds,
+evSoloMs,1600,Event solo ms,0,8000,100,Events — capture,gameplay,,,,"If no other event happens for this long, the game pauses and its frame grows into its card (else it goes to the discovery desk)",
+evRecMs,66,Event frame ms,16,200,2,Events — capture,theme,,,,Time between the recording's frames,
+evRecW,360,Event record px,120,1280,20,Events — capture,theme,,,,How wide the recording's frames are (the whole surface; each event's frame is cut from it),
+evFrameS,70,Event frame small,20,400,5,Events — capture,theme,,,,"Half the size of a small event's frame (a pigment, a Point, a Dim Remnant)",
+evFrameM,130,Event frame mid,20,600,5,Events — capture,theme,,,,"Half the size of a middling event's frame (remnants, relics, a duck)",
+evFrameL,260,Event frame large,40,1000,10,Events — capture,theme,,,,"Half the size of a large event's frame (a Dark Remnant, a nova); a Rift's is the whole screen",
+evZoomMs,700,Event zoom ms,100,3000,50,Events — capture,theme,,,,How long the frame takes to grow into the event's card,
+evEmphMs,500,Event emphasis ms,0,3000,50,Events — capture,theme,,,,How long the frame shines brighter as the event first triggers,
+evClipsKept,8,Event clips kept,1,40,1,Events — capture,gameplay,,,,How many events' recordings are kept to play on their cards,
+cabinMoveMs,1400,Below deck move ms,300,5000,100,Surface Map — below deck,map,,,,"How long the climb down the ladder (and back up) takes",
+cabinLook,0.14,Below deck look,0,0.5,0.01,Surface Map — below deck,map,,,,How far the view leans toward the cursor,
+cabinSway,0.018,Below deck sway,0,0.1,0.002,Surface Map — below deck,map,,,,How much the room rocks with the buoy on the water,
