@@ -132,6 +132,8 @@ paneBodyA,1.3,Glass body,0,3,0.05,Achievements & Pattern — Visual,theme,,,,Gla
 paneEdgeA,1,Glass edge A,0,2,0.05,Achievements & Pattern — Visual,theme,,,,Glass: edge opacity,Glass (create tool) — its own look
 paneEdgeW,1.8,Glass edge W,0.3,6,0.1,Achievements & Pattern — Visual,theme,,,,Glass: edge thickness,Glass (create tool) — its own look
 crateEdgeW,21,Crate edge width,3,30,1,Achievements & Pattern — Visual,theme,,,,Thickness of the ring of planks around a Crate,px: thickness of the ring of planks around a Crate
+crateDepth,18,Crate depth px,0,80,1,Achievements & Pattern — Visual,theme,,,,"How deep a Crate, Case or Cache is (they are boxes, locked to the surface's plane as they are; 0 = flat)",
+crateDepthAng,-50,Crate depth angle,-180,180,5,Achievements & Pattern — Visual,theme,,,,"Which way a Crate's depth goes back from its face (degrees: 0 = right, −90 = up)",
 crateW,21,Crate post width,2,30,1,Achievements & Pattern — Visual,theme,,,,Crate post width,px: Crate post width
 crateGap,1,Crate post gap,0,30,1,Achievements & Pattern — Visual,theme,,,,Gap between Crate posts,px: gap between Crate posts
 gatePostW,15,Gate post width,3,30,1,Achievements & Pattern — Visual,theme,,,,Width of each Gate post,px width of each Gate post
@@ -637,3 +639,14 @@ dimWhirlCoreR,14,,,,,(no slider),,,,,,px: a particle-point swirled this close to
 orbitMaxDist,220,,,,,(no slider),,,,,,px: a String orbit only counts when the orbiting pair are this close (stops screen-wide 'orbits')
 bhExpandBlur,22,,,,,(no slider),,,,,,px: blur radius on the expanding-darkness fill while the Dark Remnant is still growing to fill the screen
 soundOn,0,,,,,(no slider),,,,,,
+goodSize,40,Commodity size px,10,120,1,Commodities,theme,,,,"How big a commodity (a can, a cup, a box, a sign) is in space",
+goodAwayMs,4000,Packaging away ms,500,15000,250,Commodities,theme,,,,How long opened packaging takes to float off and fade,
+goodChance,0.15,Commodity chance,0,1,0.01,Commodities,gameplay,,,,Chance one commodity drifts in from an edge when a surface is entered,
+signBlinkMs,700,Sign blink ms,100,3000,50,Commodities,theme,,,,"An open shop's sign blinks: off one beat in four, a beat this long",
+chestBright,400,Chest hoard,50,5000,50,Commodities,gameplay,,,,"About how much Bright a treasure chest holds (Dim about half; Neutron, Magnetic and Pulsing a few each, by chance)",
+chestRelic,0.5,Chest relic chance,0,1,0.05,Commodities,gameplay,,,,Chance a treasure chest also holds a relic (counts ×100),
+mapGoodScale,0.7,Lake commodity size,0.2,2,0.05,Commodities,map,,,,"How big commodities and flotsam are on the lake, × a duck's",
+mapGoodMs,150000,Lake goods ms,10000,900000,5000,Commodities,map,,,,"About how often a can, a cup or a box floats in on the lake",
+mapChestMs,300000,Chest ms,10000,1800000,10000,Commodities,map,,,,About how often a treasure chest floats in (one at a time),
+mapChestOpenMs,1600,Chest open ms,200,6000,100,Commodities,map,,,,How long an opened chest glows before it sinks,
+mapChestBurnMs,2600,Chest burn ms,500,8000,100,Commodities,map,,,,How long an emptied chest takes to sink and burn away,
