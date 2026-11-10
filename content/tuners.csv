@@ -662,3 +662,6 @@ evFrameL,260,Event frame large,40,1000,10,Events — capture,theme,,,,"Half the 
 evZoomMs,700,Event zoom ms,100,3000,50,Events — capture,theme,,,,How long the frame takes to grow into the event's card,
 evEmphMs,500,Event emphasis ms,0,3000,50,Events — capture,theme,,,,How long the frame shines brighter as the event first triggers,
 evClipsKept,8,Event clips kept,1,40,1,Events — capture,gameplay,,,,How many events' recordings are kept to play on their cards,
+cabinMoveMs,1400,Below deck move ms,300,5000,100,Surface Map — below deck,map,,,,"How long the climb down the ladder (and back up) takes",
+cabinLook,0.14,Below deck look,0,0.5,0.01,Surface Map — below deck,map,,,,How far the view leans toward the cursor,
+cabinSway,0.018,Below deck sway,0,0.1,0.002,Surface Map — below deck,map,,,,How much the room rocks with the buoy on the water,
