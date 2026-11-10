@@ -639,13 +639,13 @@ dimWhirlCoreR,14,,,,,(no slider),,,,,,px: a particle-point swirled this close to
 orbitMaxDist,220,,,,,(no slider),,,,,,px: a String orbit only counts when the orbiting pair are this close (stops screen-wide 'orbits')
 bhExpandBlur,22,,,,,(no slider),,,,,,px: blur radius on the expanding-darkness fill while the Dark Remnant is still growing to fill the screen
 soundOn,0,,,,,(no slider),,,,,,
-goodSize,40,Commodity size px,10,120,1,Commodities,theme,,,,"How big a commodity (a can, a cup, a box, a sign) is in space",
-goodAwayMs,4000,Packaging away ms,500,15000,250,Commodities,theme,,,,How long opened packaging takes to float off and fade,
+goodSize,70,Commodity size px,10,120,1,Commodities,theme,,,,"How big a commodity (a can, a cup, a box, a sign) is in space",
+goodBoxScale,1.4,Box & chest scale,0.5,4,0.05,Commodities,theme,,,,"How much bigger a box or a chest is than a can or a cup, × Commodity size",
 goodChance,0.15,Commodity chance,0,1,0.01,Commodities,gameplay,,,,Chance one commodity drifts in from an edge when a surface is entered,
 signBlinkMs,700,Sign blink ms,100,3000,50,Commodities,theme,,,,"An open shop's sign blinks: off one beat in four, a beat this long",
 chestBright,400,Chest hoard,50,5000,50,Commodities,gameplay,,,,"About how much Bright a treasure chest holds (Dim about half; Neutron, Magnetic and Pulsing a few each, by chance)",
 chestRelic,0.5,Chest relic chance,0,1,0.05,Commodities,gameplay,,,,Chance a treasure chest also holds a relic (counts ×100),
-mapGoodScale,0.7,Lake commodity size,0.2,2,0.05,Commodities,map,,,,"How big commodities and flotsam are on the lake, × a duck's",
+mapGoodScale,1.1,Lake commodity size,0.2,2,0.05,Commodities,map,,,,"How big commodities and flotsam are on the lake, × a duck's",
 mapGoodMs,150000,Lake goods ms,10000,900000,5000,Commodities,map,,,,"About how often a can, a cup or a box floats in on the lake",
 mapChestMs,300000,Chest ms,10000,1800000,10000,Commodities,map,,,,About how often a treasure chest floats in (one at a time),
 mapChestOpenMs,1600,Chest open ms,200,6000,100,Commodities,map,,,,How long an opened chest glows before it sinks,

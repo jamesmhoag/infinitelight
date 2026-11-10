@@ -16,7 +16,7 @@ const CABIN={on:false,t0:0,dir:1,cv:null,ov:null,gl:null,hov:null,mx:null,my:nul
 const CABIN_A=3,CABIN_H=2.7,CABIN_RV=CABIN_A/Math.cos(Math.PI/6),CABIN_POOL=[0,0.55,0.95]; // the room: its apothem, height, corner radius; the pool (x, z, radius)
 const CABIN_DO={ladder:'up',mirror:'buoy',storage:'buoy',journal:'guide'}; // what a click opens (anything else: what it is, in the feed)
 const CAB_OBJ=['ladder','desk','map','day','cards','ink','journal','pen','net','chest','storage','mirror','barrel','hammock','loom','shelf','candle','lantern','pool','porthole'];
-const CM={wood:0,dark:1,brass:2,white:3,leather:4,canvas:5,glass:6,mirror:7,atlas:8,flame:9,iron:10,rope:11,paint:12,gem:13,net:14,sky:15,wax:16,gold:17,decal:18,pool:19,hatch:20,parch:21,bottle:22};
+const CM={wood:0,dark:1,brass:2,white:3,leather:4,canvas:5,glass:6,mirror:7,atlas:8,flame:9,iron:10,rope:11,paint:12,gem:13,net:14,sky:15,wax:16,gold:17,decal:18,pool:19,hatch:20,parch:21,bottle:22,water:23};
 function cabinOpen(){if(CABIN.on||!nebReady||currentView!=='map'||shopUI)return;buoy.dip=performance.now();
   if(!CABIN.cv&&!cabInit())return;CABIN.on=true;CABIN.dir=1;CABIN.t0=performance.now()+350;currentView='cabin';CABIN.cv.style.display=CABIN.ov.style.display='block';requestAnimationFrame(()=>{CABIN.cv.style.opacity=CABIN.ov.style.opacity='1';});feed(txt('cabin.title'),txt('cabin.hint'));updateHint();cabinLoop();}
 function cabinClose(){if(!CABIN.on||CABIN.dir<0)return;CABIN.dir=-1;CABIN.t0=performance.now();const ms=T.cabinMoveMs||1400;setTimeout(()=>{CABIN.cv.style.opacity=CABIN.ov.style.opacity='0';},ms*0.55);
@@ -39,7 +39,7 @@ function cabBox(G,x0,y0,z0,x1,y1,z1,m,id,s){s=s||1;const P=(a,b,c)=>[a?x1:x0,b?y
   cabQuad(G,P(1,0,1),P(0,0,1),P(0,1,1),P(1,1,1),m,id,U(W,H,0.5));cabQuad(G,P(0,0,1),P(0,0,0),P(0,1,0),P(0,1,1),m,id,U(D,H,0.9));cabQuad(G,P(1,0,0),P(1,0,1),P(1,1,1),P(1,1,0),m,id,U(D,H,0.2));}
 function cabLathe(G,c,prof,seg,m,id,ms,a0,a1,sw){a0=a0||0;a1=a1==null?6.2832:a1;const N=prof.length,base=G.p.length/3; // prof: [[y, r], …] round a vertical axis at c; ms(i): a band's own material
   for(let i=0;i<N;i++){const[y,r]=prof[i],pa=prof[Math.max(0,i-1)],pb=prof[Math.min(N-1,i+1)],dy=pb[0]-pa[0],dr=pb[1]-pa[1],l=Math.hypot(dy,dr)||1,ny=-dr/l,nr=dy/l;
-    for(let j=0;j<=seg;j++){const t=a0+(a1-a0)*j/seg,cs=Math.cos(t),sn=Math.sin(t);cabV(G,[c[0]+r*cs,c[1]+y,c[2]+r*sn],[nr*cs,ny,nr*sn],sw?[y,t*Math.max(0.05,r)]:[t*Math.max(0.05,r),y],ms?ms(Math.min(i,N-2)):m,id);}}
+    for(let j=0;j<=seg;j++){const t=a0+(a1-a0)*j/seg,cs=Math.cos(t),sn=Math.sin(t);cabV(G,[c[0]+r*cs,c[1]+y,c[2]+r*sn],[nr*cs,ny,nr*sn],sw?[y,t*0.45]:[t*Math.max(0.05,r),y],ms?ms(Math.min(i,N-2)):m,id);}}
   for(let i=0;i<N-1;i++)for(let j=0;j<seg;j++){const a=base+i*(seg+1)+j,b=a+seg+1;G.x.push(a,b,a+1,a+1,b,b+1);}}
 function cabTube(G,pts,r,seg,m,id,rf){const N=pts.length,base=G.p.length/3;let L=0,nn=null; // a round tube along a path (parallel-transported frames); rf(i): its radius there
   for(let i=0;i<N;i++){const t=cabV3.n(cabV3.s(pts[Math.min(N-1,i+1)],pts[Math.max(0,i-1)]));if(!nn){nn=cabV3.n(cabV3.c(t,Math.abs(t[1])<0.9?[0,1,0]:[1,0,0]));}else nn=cabV3.n(cabV3.c(cabV3.c(t,nn),t));const bb=cabV3.c(t,nn),R=rf?rf(i):r;if(i)L+=Math.hypot(...cabV3.s(pts[i],pts[i-1]));
@@ -65,15 +65,18 @@ function cabStatic(){const G=cabGeo(),RV=CABIN_RV,A=CABIN_A,H=CABIN_H,co=k=>[RV*
   // the Observation Desk: a heavy top, solid panelled sides, a front rail
   cabBox(G,-1.95,0.9,-1.98,1.95,1.0,-0.82,CM.wood,'desk',1);cabBox(G,-1.85,0,-1.9,-1.4,0.9,-0.9,CM.dark,'desk');cabBox(G,1.4,0,-1.9,1.85,0.9,-0.9,CM.dark,'desk');cabBox(G,-1.4,0.55,-1.88,1.4,0.9,-1.82,CM.dark,'desk');
   for(const x of[-1.62,1.62])for(const y of[0.25,0.6])cabTube(G,[[x-0.09,y,-0.885],[x+0.09,y,-0.885]],0.012,6,CM.brass,'desk'); // drawer pulls
-  cabQuad(G,[-0.95,1.001,-1.82],[0.95,1.001,-1.82],[0.95,1.001,-1.0],[-0.95,1.001,-1.0],CM.parch,'map',atUV(CAB_AT.map)); // the surface map on parchment (the day at its top right)
-  [-1.62,-1.36,-1.1].forEach((x,i)=>{const z0=-1.42,z1=-1.06,y=1.003+i*0.0006,r=(i-1)*0.06,cx=x+0.11,cz=(z0+z1)/2,R=([a,b])=>[cx+(a-cx)*Math.cos(r)-(b-cz)*Math.sin(r),cz+(a-cx)*Math.sin(r)+(b-cz)*Math.cos(r)],P=[[x,z0],[x+0.22,z0],[x+0.22,z1],[x,z1]].map(R);cabQuad(G,[P[0][0],y,P[0][1]],[P[1][0],y,P[1][1]],[P[2][0],y,P[2][1]],[P[3][0],y,P[3][1]],CM.atlas,'cards',atUV(CAB_AT.cards[i]));}); // a fortune card for each day: yesterday, today, tomorrow
+  cabQuad(G,[-0.95,1.001,-1.82],[0.95,1.001,-1.82],[0.95,1.001,-1.2],[-0.95,1.001,-1.2],CM.parch,'map',atUV(CAB_AT.map)); // the surface map on parchment (the day at its top right)
+  [0.12,0.38,0.64].forEach((x,i)=>{const z0=-1.16,z1=-0.86,y=1.003+i*0.0006,r=(i-1)*0.05,cx=x+0.11,cz=(z0+z1)/2,R=([a,b])=>[cx+(a-cx)*Math.cos(r)-(b-cz)*Math.sin(r),cz+(a-cx)*Math.sin(r)+(b-cz)*Math.cos(r)],P=[[x,z0],[x+0.22,z0],[x+0.22,z1],[x,z1]].map(R);cabQuad(G,[P[0][0],y,P[0][1]],[P[1][0],y,P[1][1]],[P[2][0],y,P[2][1]],[P[3][0],y,P[3][1]],CM.atlas,'cards',atUV(CAB_AT.cards[i]));}); // a fortune card for each day: yesterday, today, tomorrow
   {const c=[1.38,1.0,-1.1];cabLathe(G,c,[[0,0],[0,0.11],[0.02,0.12],[0.15,0.12],[0.19,0.08],[0.21,0.045],[0.215,0.045]],28,CM.glass,'ink');cabLathe(G,c,[[0.205,0.05],[0.215,0.058],[0.25,0.058],[0.255,0.04],[0.255,0]],28,CM.brass,'ink');cabLathe(G,[c[0],c[1]+0.17,c[2]],[[0,0.085],[0,0]],20,CM.flame,null);} // the Ink Well, on the desk: thick glass, a brass collar; its ink (Dim) glows faintly
-  cabBox(G,1.05,1.0,-1.78,1.62,1.06,-1.38,CM.leather,'journal');cabBox(G,1.07,1.004,-1.775,1.6,1.054,-1.385,CM.parch,'journal');cabQuad(G,[1.06,1.0605,-1.38],[1.61,1.0605,-1.38],[1.61,1.0605,-1.78],[1.06,1.0605,-1.78],CM.decal,'journal',(U=>[U[2],U[3],U[0],U[1]])(atUV(CAB_AT.journal)));cabTube(G,[[1.05,1.03,-1.78],[1.05,1.03,-1.38]],0.032,10,CM.leather,'journal'); // the Journal: leather, its pages, its title in gold, its spine
+  cabBox(G,1.05,1.0,-1.78,1.62,1.06,-1.38,CM.leather,'journal');cabBox(G,1.07,1.004,-1.775,1.6,1.054,-1.385,CM.parch,'journal');cabQuad(G,[1.06,1.0605,-1.38],[1.61,1.0605,-1.38],[1.61,1.0605,-1.78],[1.06,1.0605,-1.78],CM.decal,'journal',(U=>[U[3],U[2],U[1],U[0]])(atUV(CAB_AT.journal)));cabTube(G,[[1.05,1.03,-1.78],[1.05,1.03,-1.38]],0.032,10,CM.leather,'journal'); // the Journal: leather, its pages, its title in gold, its spine
   // the Fountain Pen, lying on the desk: as big as a shovel, white enamel, round; a gold band, a gold nib (its slit, its breather hole)
-  {const a=[-1.88,1.04,-1.75],b=[-0.95,1.04,-1.0],d=cabV3.n(cabV3.s(b,a)),pts=[];for(let i=0;i<=12;i++)pts.push(cabV3.a(a,cabV3.k(cabV3.s(b,a),i/12)));cabTube(G,pts,0.04,18,CM.white,'pen',i=>i===0?0.032:i===12?0.035:0.04);
-    cabTube(G,[cabV3.a(b,cabV3.k(d,-0.04)),cabV3.a(b,cabV3.k(d,0.02))],0.042,18,CM.gold,'pen');const tip=cabV3.a(b,cabV3.k(d,0.24)),np=[];for(let i=0;i<=8;i++)np.push(cabV3.a(b,cabV3.k(cabV3.s(tip,b),i/8)));cabTube(G,np,0.03,16,CM.gold,'pen',i=>0.034*(1-i/8)**0.8+0.002);}
-  // the Net, lying on the desk: a round white pole, a white hoop off the desk's edge (its net is in the moving parts: it drapes and sways)
-  {const a=[-1.6,1.035,-1.95],b=[-1.92,1.04,-0.86];cabTube(G,[a,b],0.03,14,CM.white,'net');}
+  {const x=-1.42,y=1.045,z0=-1.92,z1=-1.27,pts=[];for(let i=0;i<=14;i++)pts.push([x,y,z0+(z1-z0)*i/14]);cabTube(G,pts,0.045,20,CM.white,'pen',i=>i===0?0.03:i===14?0.04:i<3?0.045-(3-i)*0.004:0.045); // its barrel and cap (round, bright white)
+    cabTube(G,[[x,y,z1-0.02],[x,y,z1+0.05]],0.047,20,CM.gold,'pen');cabTube(G,[[x,y,z1+0.05],[x,y,z1+0.13]],0.036,20,CM.white,'pen',i=>i?0.03:0.04); // a gold band, its section tapering to the nib
+    const NL=0.3,nz=z1+0.13,nib=(u,v,k)=>{const w=0.034*Math.pow(1-u,0.85)*(1+0.25*Math.sin(Math.PI*Math.min(1,u*2.2)))+0.0015,a=(v-0.5)*2.4,r=w;return[x+Math.sin(a)*r,y+Math.cos(a)*r*0.45-0.012*u-k,nz+u*NL];}; // a calligraphy nib: a long, curved, tapering gold plate, its shoulders, its point
+    cabSheet(G,(u,v)=>nib(u,v,0),16,8,CM.gold,'pen');cabSheet(G,(u,v)=>nib(u,v,0.004),16,8,CM.gold,'pen');
+    cabTube(G,[[x,y+0.0158,nz+0.1],[x,y+0.004,nz+NL-0.004]],0.0018,4,CM.iron,'pen');cabLathe(G,[x,y+0.0172,nz+0.09],[[0,0.006],[0.0005,0.006],[0.0005,0]],10,CM.iron,'pen');} // its slit, its breather hole
+  // (the Net lies beside it: the moving parts, its net draping and swaying)
+
   // the Treasure Chest, open on the floor to the desk's right: wood bound in gold, its lid thrown back, its hoard glowing
   {const x0=2.0,x1=2.72,z0=-1.78,z1=-1.18;cabBox(G,x0,0,z0,x1,0.48,z1,CM.wood,'chest',1.4);for(const x of[2.15,2.57])cabBox(G,x-0.035,-0.005,z0-0.008,x+0.035,0.485,z1+0.008,CM.gold,'chest');cabBox(G,x0-0.008,0.43,z0-0.008,x1+0.008,0.485,z1+0.008,CM.gold,'chest');
     {const r=(z1-z0)/2,al=1.95,ca=Math.cos(al),sa=Math.sin(al),lid=(u,v,k)=>{const t=v*Math.PI,dy=r*0.62*Math.sin(t)*k,dz=-r-r*Math.cos(t)*k-(1-k)*0;return[x0+(x1-x0)*u,0.48+dy*ca-dz*sa,z1+dz*ca+dy*sa];}; // its rounded lid, thrown back on its hinge
@@ -86,11 +89,10 @@ function cabStatic(){const G=cabGeo(),RV=CABIN_RV,A=CABIN_A,H=CABIN_H,co=k=>[RV*
     cabQuad(G,[x-0.04,1.6,1.25],[x-0.04,1.6,0.25],[x-0.04,1.74,0.25],[x-0.04,1.74,1.25],CM.atlas,'storage',atUV(CAB_AT.plaque));}
   // the Mirror, right of the ladder: a gold frame, your buoy in the glass
   {const z=A-0.07;cabQuad(G,[1.4,0.6,z],[0.8,0.6,z],[0.8,2.0,z],[1.4,2.0,z],CM.mirror,'mirror',atUV(CAB_AT.mirror));const fr=[[0.78,0.58],[1.42,0.58],[1.42,2.02],[0.78,2.02],[0.78,0.58]].map(([x,y])=>[x,y,z-0.01]);cabTube(G,fr,0.035,10,CM.gold,'mirror');}
-  // the Fresh water barrel: bulging staves, iron hoops, a lid, FRESH in a white hexagon, six drinks
-  {const c=[-1.05,0,2.2],prof=[];for(let i=0;i<=12;i++){const y=i/12*1.05;prof.push([y,0.38+0.07*Math.sin(Math.PI*i/12)]);}cabLathe(G,c,prof,40,CM.wood,'barrel',null,0,6.2832,1);cabLathe(G,c,[[1.05,0.38],[1.05,0]],40,CM.dark,'barrel');
+  // the Fresh water barrel: open, its staves straight up it, iron hoops, FRESH in a white hexagon, the water inside
+  {const c=[-1.05,0,2.2],prof=[];for(let i=0;i<=12;i++){const y=i/12*1.05;prof.push([y,0.38+0.07*Math.sin(Math.PI*i/12)]);}cabLathe(G,c,prof,40,CM.wood,'barrel',null,0,6.2832,1);cabLathe(G,c,[[1.05,0.38],[1.07,0.375],[1.07,0.35],[1.05,0.345],[0.93,0.345]],40,CM.wood,'barrel',null,0,6.2832,1);cabLathe(G,c,[[0.93,0.345],[0.93,0]],40,CM.water,'barrel');
     for(const y of[0.12,0.42,0.63,0.93]){const r=0.38+0.07*Math.sin(Math.PI*y/1.05)+0.006;cabLathe(G,c,[[y,r],[y+0.05,r]],40,CM.iron,'barrel');}
     {const[ax,ay,aw,ah]=CAB_AT.fresh;cabSheet(G,(u,v)=>{const t=-Math.PI/2+(u-0.5)*0.9,y=0.3+v*0.46,r=0.38+0.07*Math.sin(Math.PI*y/1.05)+0.004;return[c[0]+r*Math.cos(t),y,c[2]+r*Math.sin(t)];},10,6,CM.decal,'barrel',(u,v)=>[(ax+u*aw)/1024,(ay+(1-v)*ah)/1024]);} // FRESH in its white hexagon, painted on the front
-    const fz=G.p.length;for(let i=0;i<6;i++){const a=i/6*6.2832;cabLathe(G,[c[0]+0.2*Math.cos(a),1.05,c[2]+0.2*Math.sin(a)],[[0,0],[0,0.045],[0.12,0.045],[0.16,0.02],[0.2,0.02],[0.2,0]],12,CM.bottle,'barrel');}
   }
   // the Weaving Loom (round frame posts, its warp, a Spindle, its Pins) and the Gadget Shelf, to the desk's left
   {const x=-2.62;for(const z of[-1.2,-0.3])cabTube(G,[[x,0,z],[x,1.65,z]],0.045,10,CM.wood,'loom');for(const y of[0.45,1.6])cabTube(G,[[x,y,-1.2],[x,y,-0.3]],0.04,10,CM.wood,'loom');for(let i=0;i<14;i++){const z=-1.13+i*0.06;cabTube(G,[[x+0.02,0.47,z],[x+0.02,1.58,z]],0.004,4,CM.rope,'loom');}
@@ -116,9 +118,9 @@ function cabDynamic(now){const G=cabGeo(),t=now/1000,sw=Math.sin(t/1.7*6.2832/6.
   {const a=[-2.5,2.2,0.75],b=[-1.5,2.2,2.5],swg=Math.sin(now/1500)*0.11,swz=Math.cos(now/2100)*0.05,s=(u,v)=>{const sg=Math.sin(Math.PI*u),w=0.32*Math.sin(Math.PI*Math.min(1,Math.max(0,(u-0.06)/0.88)))+0.02,ax=cabV3.n(cabV3.s(b,a)),side=cabV3.n(cabV3.c(ax,[0,1,0]));
       return cabV3.a(cabV3.a(a,cabV3.k(cabV3.s(b,a),u)),[side[0]*(v-0.5)*2*w+swg*sg,-1.25*sg-0.25*sg*((v-0.5)*2)**2+0.04*Math.sin(t*1.3+u*3)*sg,side[2]*(v-0.5)*2*w+swz*sg]);}; // the hammock: a sling of canvas, low, swaying (a gentle ripple runs along it)
     cabSheet(G,s,28,10,CM.canvas,'hammock',(u,v)=>[u*2.2,v]);for(const e of[0,1]){const p=s(e?0.97:0.03,0.5),q=e?b:a;for(const v of[0,0.5,1]){const r=s(e?0.97:0.03,v);cabTube(G,[r,cabV3.a(q,[0,0.05,0])],0.008,5,CM.rope,'hammock');}cabTube(G,[cabV3.a(q,[0,0.05,0]),[q[0],H-0.16,q[2]]],0.014,6,CM.rope,'hammock');cabTube(G,[s(e?0.97:0.03,0),s(e?0.97:0.03,1)],0.02,8,CM.wood,'hammock');}}
-  {const c=[-2.08,0.98,-0.72],sway=(T.cabinSway!=null?T.cabinSway:0.018)*14,ph=Math.sin(now/1700)*sway,ph2=Math.sin(now/1100+1)*sway*0.5; // the net: its hoop over the desk's edge, the net hanging from it, draping and swaying with the water
-    cabTorus(G,c,0.26,0.018,'x',36,CM.white,'net');cabSheet(G,(u,v)=>{const a=u*6.2832,R=0.26*(1-v*0.55),dep=0.55*Math.sin(v*Math.PI/2);return[c[0]-dep*0.35+ph*v*v+0.03*Math.sin(a*3+now/600)*v,c[1]+R*Math.sin(a)-dep*0.9+ph2*v*v*0.4,c[2]+R*Math.cos(a)+ph2*v*v];},28,10,CM.net,'net',(u,v)=>[u*9,v*6]);
-    cabTube(G,[[-1.92,1.04,-0.86],[c[0]+0.02,c[1]+0.0,c[2]-0.26]],0.022,10,CM.white,'net');}
+  {const x=-1.7,y=1.035,z0=-1.92,z1=-1.3,c=[-2.2,0.86,-1.05],sway=(T.cabinSway!=null?T.cabinSway:0.018)*14,ph=Math.sin(now/1700)*sway,ph2=Math.sin(now/1100+1)*sway*0.5; // the Net, beside the pen and parallel to it: its round bright white pole, then an L that zigzags out over the desk's edge into its hoop; the net hangs from it, draping and swaying with the water
+    cabTube(G,[[x,y,z0],[x,y,z1]],0.035,18,CM.white,'net',i=>i?0.035:0.028);cabTube(G,[[x,y,z1],[x,y,z1+0.12],[x-0.12,y+0.03,z1+0.1],[x-0.22,y,z1+0.2],[x-0.33,y+0.02,z1+0.14],[c[0]+0.02,c[1]+0.16,c[2]-0.08]],0.022,10,CM.white,'net');
+    cabTorus(G,c,0.26,0.016,'x',36,CM.white,'net');cabSheet(G,(u,v)=>{const a=u*6.2832,R=0.26*(1-v*0.55),dep=0.55*Math.sin(v*Math.PI/2);return[c[0]-dep*0.35+ph*v*v+0.03*Math.sin(a*3+now/600)*v,c[1]+R*Math.sin(a)-dep*0.9+ph2*v*v*0.4,c[2]+R*Math.cos(a)+ph2*v*v];},40,14,CM.net,'net',(u,v)=>[u*26,v*16]);}
   return G;}
 // ── the renderer ──
 const CAB_VS=`attribute vec3 aP,aN;attribute vec2 aU;attribute float aM,aI;uniform mat4 uVP,uLVP;varying vec3 vP,vN;varying vec2 vU;varying float vM,vI;varying vec4 vL;
@@ -140,7 +142,7 @@ void main(){int m=int(vM+.5);vec3 N=normalize(vN),V=normalize(uEye-vP);if(dot(N,
  vec3 base=vec3(.5);float sp=.15,sh=24.,met=0.,b=0.,bk=0.,em=0.;vec3 emc=vec3(0.);float alpha=1.;
  if(m==0||m==1||m==12){base=wood(vU,m==1?.55:1.,b);bk=.0012;sp=.22;sh=36.;if(m==12){base=vec3(.2,.18,.3)*(.95+.1*n2(vU*3.));b=0.;bk=0.;sp=.35;sh=60.;}}
  else if(m==2||m==17){base=m==17?vec3(1.,.76,.33):vec3(.86,.63,.32);float n=n2(vec2(vU.x*3.,vU.y*160.));base*=.9+.12*n;sp=1.5;sh=m==17?140.:80.;met=1.;}
- else if(m==3){base=vec3(.96,.95,.92);sp=.9;sh=110.;}
+ else if(m==3){base=vec3(.97,.97,.95);sp=.9;sh=110.;em=1.;emc=vec3(.55,.55,.53);} // (the tools' white: bright, lit from within)
  else if(m==4){float n=fbm(vU*25.);base=vec3(.36,.15,.08)*(.8+.3*n);sp=.3;sh=22.;b=n;bk=.0004;}
  else if(m==5){float st=step(.5,fract(vU.x*3.5));base=mix(vec3(.86,.78,.62),vec3(.68,.2,.16),st);float w=fbm(vU*vec2(40.,20.));base*=.9+.12*w;b=w;bk=.0003;sp=.05;sh=8.;}
  else if(m==6||m==22){base=m==22?vec3(.35,.6,.75):vec3(.05,.08,.2);sp=2.;sh=160.;emc=m==6?vec3(.02,.03,.08)+uChroma*.02:vec3(.02,.05,.06);em=1.;}
@@ -151,7 +153,8 @@ void main(){int m=int(vM+.5);vec3 N=normalize(vN),V=normalize(uEye-vP);if(dot(N,
  else if(m==10){float n=fbm(vU*12.);base=vec3(.13,.13,.14)*(.8+.3*n);sp=.7;sh=40.;met=.6;b=n;bk=.0003;}
  else if(m==11){base=vec3(.66,.55,.38)*(.8+.3*sin(vU.x*300.+vU.y*20.));sp=.05;sh=6.;}
  else if(m==13){gl_FragColor=vec4(mix(vec3(1.,.97,.86),uChroma,.45)*(1.+.4*sin(uT*3.+vP.x*40.+vP.z*30.)),1.);return;}
- else if(m==14){vec2 g=fract(vU);float l=min(min(g.x,1.-g.x),min(g.y,1.-g.y));if(l>.1)discard;base=vec3(.95,.95,.92);sp=.3;sh=20.;}
+ else if(m==14){vec2 g=fract(vU);float l=min(min(g.x,1.-g.x),min(g.y,1.-g.y));if(l>.06)discard;base=vec3(.97,.97,.95);sp=.3;sh=20.;em=1.;emc=vec3(.45);} // (thin, dense straps)
+ else if(m==23){float w=n2(vP.xz*14.+uT*.6)*.5+n2(vP.xz*31.-uT*.9)*.5;base=vec3(.06,.16,.22);sp=2.2;sh=180.;b=w;bk=.0004;em=1.;emc=vec3(.02,.05,.07)+uSky*.08;} // fresh water: dark, clear, rippling, catching the lights
  else if(m==15){gl_FragColor=vec4(uSky*(.85+.15*fbm(vU*8.+uT*.02)),1.);return;}
  else if(m==16){base=vec3(.95,.9,.78);em=1.;emc=vec3(.35,.25,.12);sp=.2;sh=20.;}
  else if(m==19){vec3 c=texture2D(uPool,vU).rgb;float r=length(vU-.5)*2.;gl_FragColor=vec4(c*(1.-.35*r*r)+uChroma*.08,1.);return;}
@@ -184,7 +187,7 @@ const cabM4={mul:(a,b)=>{const o=new Float32Array(16);for(let i=0;i<4;i++)for(le
   look:(e,F,U)=>{const z=cabV3.n(cabV3.k(F,-1)),x=cabV3.n(cabV3.c(U,z)),y=cabV3.c(z,x);return new Float32Array([x[0],y[0],z[0],0,x[1],y[1],z[1],0,x[2],y[2],z[2],0,-cabV3.d(x,e),-cabV3.d(y,e),-cabV3.d(z,e),1]);}};
 function cabCam(now,W,H){const ms=T.cabinMoveMs||1400,mv=CABIN.dir>0?Math.min(1,Math.max(0,(now-CABIN.t0)/ms)):1-Math.min(1,(now-CABIN.t0)/ms),e=mv*mv*(3-2*mv); // coming down the ladder from the hatch, then round to the desk (and back up the same way)
   const lx=CABIN.mx!=null?CABIN.mx/W-0.5:0,ly=CABIN.my!=null?CABIN.my/H-0.5:0,lk=T.cabinLook!=null?T.cabinLook:0.14,roll=Math.sin(now/1700)*(T.cabinSway!=null?T.cabinSway:0.018); // it leans toward the cursor; the room rocks on the water
-  const P0=[0,CABIN_H-0.25,CABIN_A-0.55],P1=[0,2.3,-2.72],p=P0.map((v,i)=>v+(P1[i]-v)*e+(i===1?Math.sin(now/2300)*0.01:0)),yaw=Math.PI*(1-e)-lx*lk*2,pitch=-0.75*(1-e)-0.42*e-ly*lk;
+  const P0=[0,CABIN_H-0.25,CABIN_A-0.55],P1=[0,2.3,-2.72],p=P0.map((v,i)=>v+(P1[i]-v)*e+(i===1?Math.sin(now/2300)*0.01:0)),yaw=Math.PI*(1-e)+lx*lk*2,pitch=-0.75*(1-e)-0.42*e-ly*lk;
   const F=[Math.sin(yaw)*Math.cos(pitch),Math.sin(pitch),Math.cos(yaw)*Math.cos(pitch)],R0=cabV3.n(cabV3.c(F,[0,1,0])),U0=cabV3.c(R0,F),U=cabV3.n(cabV3.a(cabV3.k(U0,Math.cos(roll)),cabV3.k(R0,Math.sin(roll)))),Rt=cabV3.n(cabV3.c(U,F)),fov=1.05; // (Rt: the screen's right, as drawn)
   return{p,F,U,R:Rt,fov,a:W/H,VP:cabM4.mul(cabM4.persp(fov,W/H,0.05,30,1),cabM4.look(p,F,U))};}
 function cabPick(C,X,Y,W,H){if(X==null)return null;const x=(X/W*2-1)*Math.tan(C.fov/2)*C.a,y=(1-Y/H*2)*Math.tan(C.fov/2),d=cabV3.n(cabV3.a(C.F,cabV3.a(cabV3.k(C.R,x),cabV3.k(C.U,y))));let best=null,bt=1e9;
@@ -204,12 +207,12 @@ function cabAtlas(now){const c=CABIN.atlas.getContext('2d'),A=CAB_AT,par=(x,y,w,
     c.fillStyle='#3a2410';c.font='bold 30px Georgia,serif';c.textAlign='right';c.textBaseline='top';c.fillText(txt('cabin.day',day),x+w-20,y+18);c.font='italic 18px Georgia,serif';c.fillText(clockStr(),x+w-20,y+52);} // the day, at the map's top right
   const fN=r=>{const F=r&&(FORTUNE_ROWS[(r.good?'good:':'dim:')+r.id]||{});return r?(F.name||r.id):'';};
   [[run&&run.prevFortune,'cabin.card.yesterday'],[run&&run.fortune,'cabin.card.today'],[run&&run.dimDone&&run.dimDone.fortune?run.dimNext:null,'cabin.card.tomorrow',!(run&&run.dimDone&&run.dimDone.fortune)]].forEach(([f,k,hid],i)=>{const[x,y,w,h]=A.cards[i];
-    c.fillStyle=hid?'#2b2350':f?(f.good?'#f3e2a6':'#c9bce8'):'#ece0c2';c.fillRect(x,y,w,h);c.strokeStyle=hid?'#d7b45a':'#7a5a2a';c.lineWidth=5;c.strokeRect(x+7,y+7,w-14,h-14);c.textAlign='center';c.textBaseline='middle'; // a card for each day: face up when known; tomorrow's face down until it is told
+    c.save();c.beginPath();c.rect(x,y,w,h);c.clip();c.fillStyle=hid?'#2b2350':f?(f.good?'#f3e2a6':'#c9bce8'):'#ece0c2';c.fillRect(x,y,w,h);c.strokeStyle=hid?'#d7b45a':'#7a5a2a';c.lineWidth=5;c.strokeRect(x+7,y+7,w-14,h-14);c.textAlign='center';c.textBaseline='middle'; // a card for each day: face up when known; tomorrow's face down until it is told
     if(hid){c.strokeStyle='rgba(215,180,90,0.6)';c.lineWidth=1.5;for(let j=0;j<9;j++){c.beginPath();c.arc(x+w/2,y+h/2,10+j*9,0,6.2832);c.stroke();}c.fillStyle='#e8c870';c.font='bold 44px Georgia,serif';c.fillText('?',x+w/2,y+h/2);}
     else{c.fillStyle=f?(f.good?'#8a5a00':'#4a2f8a'):'#a08860';c.font='bold 56px Georgia,serif';c.fillText(f?(f.good?'★':'☾'):'·',x+w/2,y+h*0.42);c.font='bold 17px Georgia,serif';c.fillStyle='#3a2410';const nm=f?fN(f):txt('cabin.none');c.fillText(nm.length>16?nm.slice(0,15)+'…':nm,x+w/2,y+h*0.72);}
-    c.font='italic 15px Georgia,serif';c.fillStyle=hid?'#e8c870':'#5a3a18';c.fillText(txt(k),x+w/2,y+26);});
+    c.font='italic 15px Georgia,serif';c.fillStyle=hid?'#e8c870':'#5a3a18';c.fillText(txt(k),x+w/2,y+26);c.restore();});
   {const[x,y,w,h]=A.fresh;c.clearRect(x,y,w,h);c.strokeStyle='#fff';c.fillStyle='#fff';c.lineWidth=12;c.beginPath();for(let i=0;i<6;i++){const a=i*Math.PI/3;c[i?'lineTo':'moveTo'](x+w/2+105*Math.cos(a),y+h/2+105*Math.sin(a));}c.closePath();c.stroke();c.font='bold 54px Georgia,serif';c.textAlign='center';c.textBaseline='middle';c.fillText(txt('cabin.fresh'),x+w/2,y+h/2+4);} // FRESH, painted white in a white hexagon
-  {const[x,y,w,h]=A.journal;c.clearRect(x,y,w,h);c.strokeStyle='#e0b040';c.lineWidth=4;c.strokeRect(x+18,y+18,w-36,h-36);c.fillStyle='#f0c860';c.font='italic bold 44px Georgia,serif';c.textAlign='center';c.textBaseline='middle';c.save();c.translate(x+w/2,y+h/2);c.rotate(-Math.PI/2);c.fillText(txt('cabin.journal'),0,0);c.restore();} // its title, tooled in gold
+  {const[x,y,w,h]=A.journal;c.clearRect(x,y,w,h);c.strokeStyle='#e0b040';c.lineWidth=4;c.strokeRect(x+18,y+18,w-36,h-36);c.fillStyle='#f0c860';c.font='italic bold 44px Georgia,serif';c.textAlign='center';c.textBaseline='middle';c.fillText(txt('cabin.journal'),x+w/2,y+h/2);} // its title, tooled in gold
   {const[x,y,w,h]=A.plaque;const g=c.createLinearGradient(x,y,x,y+h);g.addColorStop(0,'#f2cf74');g.addColorStop(1,'#a87a2a');c.fillStyle=g;c.fillRect(x,y,w,h);c.fillStyle='#3a2410';c.font='bold 30px Georgia,serif';c.textAlign='center';c.textBaseline='middle';c.fillText(txt('cabin.storage'),x+w/2,y+h/2);}
   if(now-CABIN.shotAt>1500){CABIN.shotAt=now;const[x,y,w,h]=A.mirror,g=c.createLinearGradient(x,y,x+w,y+h);g.addColorStop(0,'#5a6b7a');g.addColorStop(1,'#25303a');c.fillStyle=g;c.fillRect(x,y,w,h);try{drawDuck3D(c,buoyModel(playerName,buoySouv(),buoyCol),quatTurn([0,0,0,1],0.12,now/3000,0),[[x+w/2,y+h*0.62]],w*0.42,1,0,null);}catch(e){}} // your buoy, in the mirror
   const gl=CABIN.gl;gl.bindTexture(gl.TEXTURE_2D,CABIN.tAt);gl.texImage2D(gl.TEXTURE_2D,0,gl.RGBA,gl.RGBA,gl.UNSIGNED_BYTE,CABIN.atlas);}
@@ -228,5 +231,6 @@ function cabinFrame(now){const gl=CABIN.gl,cv=CABIN.cv,dpr=Math.min(2,window.dev
   [[CABIN.tAt,'uAt'],[CABIN.tPool,'uPool'],[CABIN.tSh,'uSh']].forEach(([t,n],i)=>{gl.activeTexture(gl.TEXTURE0+i);gl.bindTexture(gl.TEXTURE_2D,t);gl.uniform1i(u(n),i);});gl.activeTexture(gl.TEXTURE0);
   for(const B of all)cabDraw(P,B,A);
   const o=CABIN.ov.getContext('2d');o.setTransform(dpr,0,0,dpr,0,0);o.clearRect(0,0,W,H);o.globalCompositeOperation='lighter'; // the haloes round the flames, and a little light in the air
-  for(const[q,c,r0]of[[Ls[0][0],[255,190,110],120],[Ls[1][0],[255,170,90],55],[Ls[2][0],[255,170,90],45]]){const v=cabM4.mul(C.VP,new Float32Array([1,0,0,0,0,1,0,0,0,0,1,0,q[0],q[1],q[2],1])),w=v[15];if(w<=0.05)continue;const X=(v[12]/w*0.5+0.5)*W,Y=(0.5-v[13]/w*0.5)*H,r=r0*2.4/w,g=o.createRadialGradient(X,Y,0,X,Y,r);g.addColorStop(0,`rgba(${c},0.28)`);g.addColorStop(0.3,`rgba(${c},0.1)`);g.addColorStop(1,`rgba(${c},0)`);o.fillStyle=g;o.fillRect(X-r,Y-r,2*r,2*r);}}
+  for(const[q,c,r0]of[[Ls[0][0],[255,190,110],120],[Ls[1][0],[255,170,90],55],[Ls[2][0],[255,170,90],45]]){const v=cabM4.mul(C.VP,new Float32Array([1,0,0,0,0,1,0,0,0,0,1,0,q[0],q[1],q[2],1])),w=v[15];if(w<=0.05)continue;const X=(v[12]/w*0.5+0.5)*W,Y=(0.5-v[13]/w*0.5)*H,r=r0*2.4/w,g=o.createRadialGradient(X,Y,0,X,Y,r);g.addColorStop(0,`rgba(${c},0.28)`);g.addColorStop(0.3,`rgba(${c},0.1)`);g.addColorStop(1,`rgba(${c},0)`);o.fillStyle=g;o.fillRect(X-r,Y-r,2*r,2*r);}
+  if(CABIN.mx!=null){o.globalCompositeOperation='source-over';o.strokeStyle='rgba(255,255,255,0.92)';o.lineWidth=1.6;o.beginPath();o.arc(CABIN.mx,CABIN.my,CABIN.hov?11:8,0,6.2832);o.stroke();o.fillStyle='rgba(255,255,255,0.9)';o.beginPath();o.arc(CABIN.mx,CABIN.my,1.4,0,6.2832);o.fill();}} // the cursor, in the room (bigger over something you can point at)
 function cabinLoop(){if(!CABIN.on)return;try{cabinFrame(performance.now());}catch(e){console.error(e);}requestAnimationFrame(cabinLoop);}
