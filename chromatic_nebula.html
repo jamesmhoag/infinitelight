@@ -5237,11 +5237,12 @@ function flushDialCollects(){for(const q of active.slice()){if(!q._dialCollect)c
 let _collHeatPress=-1;
 function bondOf(p){return activeBonds.find(b=>b.chain.indexOf(p)!==-1)||null;} // the shape (if any) a remnant is still a node of
 function collectRemnant(c){
+  if(!c||!c.p||c.p._collected||!c.kind)return false; // one collect per collectable: a fast second click (the grace window's last target, a hold's first, a double click's sweep) finds it already taken
   c.inShape=!!bondOf(c.p);
   if(!c.free){ const hn=performance.now(); if(heatBlocked(hn))return false; // an overheated cursor collects nothing
     const pr=_collectFor?_collectFor.downAt:mouseDownAt;if(_collHeatPress===pr)heatAdd(1,hn);else _collHeatPress=pr; } // (a String shot collecting costs no heat) the first object of a press is free; each further one adds heat, like a swipe
-  c.p._collected=true;if(blackHole)c.p._bhGone=true;lastCollectDoneAt=performance.now();discObj(c.p);
   if(!_collectFor&&inventory[c.kind]>=invMaxFor(c.kind)){flashSaveStatus(txt('surf.is_full',INV_LABEL[c.kind]));return false;}
+  c.p._collected=true;if(blackHole)c.p._bhGone=true;lastCollectDoneAt=performance.now();discObj(c.p);if(lastCollectTarget===c.p)lastCollectTarget=null;
   for(let bi=activeBonds.length-1;bi>=0;bi--){const bd=activeBonds[bi];if(bd.chain.indexOf(c.p)!==-1)popBond(bd,bi);} // a node taken out breaks its Pattern / prism / knot; the other nodes drift free
   const idx=active.indexOf(c.p);if(idx>=0)active.splice(idx,1);
   pressedIDs.delete(c.p.id);if(lastActivatedId===c.p.id)lastActivatedId=-1;
@@ -5666,6 +5667,10 @@ function drawBlackRemnantBG(ctx,now){
   ctx.globalCompositeOperation='screen';ctx.fillStyle=g;ctx.beginPath();ctx.arc(bh.x,bh.y,Rf+bw*0.35,0,6.2832);ctx.fill();
   ctx.restore();
 }
+function voidPath(P){ // the Dark Remnant's / Rift's pure black core (every wrapped copy), added to Path2D P: what no light in the scene may brighten
+  const bh=blackHole;if(!bh||bh.phase==='crack')return P;const R=Math.max(0.5,bh.consumeR);
+  if(bh.rift){const r=bh.rift,L=Math.hypot(W,H);riftStripe(P,bh.x-r.ny*L,bh.y+r.nx*L,bh.x+r.ny*L,bh.y-r.nx*L,R,r.seed,70);}
+  else wrapCopies(bh.x,bh.y,R,(ox,oy)=>{P.moveTo(bh.x+ox+R,bh.y+oy);P.arc(bh.x+ox,bh.y+oy,R,0,6.2832);});return P;}
 function drawBlackRemnant(ctx,now){
   if(!blackHole)return;
   const bh=blackHole;
@@ -10830,6 +10835,7 @@ function computeHoverAndCursor(now){
       // (multiply) light in Invert mode instead of a white, brightening (screen) one, so it still visibly does
       // something to whatever's underneath rather than disappearing against a white background.
       ctx.globalCompositeOperation=invertMode?'multiply':'screen';
+      if(blackHole){const P=new Path2D();P.rect(-W,-H,3*W,3*H);ctx.clip(voidPath(P),'evenodd');} // (the void stays pure black under it)
       const LR=T.cursorLightR;
       const lc=invStr(255,255,255);
       const lgrad=ctx.createRadialGradient(mouse.x,mouse.y,0,mouse.x,mouse.y,LR);
@@ -13447,8 +13453,8 @@ Object.assign(RULE_EV,{hublight:'map',hublake:'duck',hubview:'map',shopstreet:'m
 // ── a shop's event: the first time you go into it (its card then shows in the Guide, with what it sells) ──
 {const at=EVENTS.findIndex(e=>e.id==='brightrelic')+1,sh=[];for(const k in SHOPS){const S=SHOPS[k];sh.push({id:'shop_'+k,name:S.n,type:txt('ev.shop.type'),rar:S.street?'c':'u',scene:'hub:shop:'+k,ico:'sign:'+k,
   facts:()=>[S.street?txt('ev.shop.street'):txt('ev.shop.popup',S.cur),S.about||'',txt('ev.shop.card')],flavor:S.tag});}EVENTS.splice(at,0,...sh);} // a shop's first opening (its text: content/strings.csv)
-Object.assign(RULE_EV,{hubbottle:'map_bottle',hubmap:'map',hubtime:'map',hubcell:'map',hubmove:'map',hubclear:'map_clear',hubmerge:'map_merge',hubitems:'map',hubconst:'map_constellation',hubring:'map_ring',hubdecay:'map_decay',hubdescend:'map_descend'});
-Object.assign(RULE_SCENES,{hubmap:['hub:map'],hubtime:['hub:time'],hubcell:['surface'],hubmove:['hub:move'],hubclear:['hub:clear'],hubmerge:['hub:merge'],hubitems:['hub:items'],hubconst:['hub:constellation'],hubring:['hub:ring','hub:brightstar','hub:darkstar'],hubdecay:['hub:decay'],hubdescend:['hub:descend'],hublight:['hub:light'],hublake:['hub:lake'],hubview:['hub:view'],hubbottle:['hub:bottle'],menu:['readouts']});
+Object.assign(RULE_EV,{hubbottle:'map_bottle',hubmap:'map',hubtime:'map',hubcell:'map',hubmove:'map',hubclear:'map_clear',hubmerge:'map_merge',hubitems:'map',hubconst:'map_constellation',hubring:'map_ring',hubdescend:'map_descend'});
+Object.assign(RULE_SCENES,{hubmap:['hub:map'],hubtime:['hub:time'],hubcell:['surface'],hubmove:['hub:move'],hubclear:['hub:clear'],hubmerge:['hub:merge'],hubitems:['hub:items'],hubconst:['hub:constellation'],hubring:['hub:ring','hub:brightstar','hub:darkstar'],hubdescend:['hub:descend'],hublight:['hub:light'],hublake:['hub:lake'],hubview:['hub:view'],hubbottle:['hub:bottle'],menu:['readouts']});
 
 // ═════════════════════════ DUCKS ═════════════════════════
 // A Dark Remnant can come out as a rubber duck instead (T.duckChance); the surface then carries on. Ducks are collected into a

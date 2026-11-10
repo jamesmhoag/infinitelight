@@ -186,7 +186,6 @@ const CACHE_V='20261105n'; // the build: bump with shared.js's
 const SCENE=new URLSearchParams(location.search).get('scene'); // a Guide / event demo: the map plays a scripted moment (no surface behind it)
 let phase='move',turnTimer=0,mergeTimer=0;
 let gameOverReason='';
-const MIN_VAL=0.01;
 let hQ=null,hR=null;
 let captureOrder=[],mergeGroups=[],mergeIdCounter=0;
 let depth=0,voidOpen=false;
@@ -229,20 +228,6 @@ function redistribute(){
   const pv=(pool-exSum)/freeN;
   for(const k in cells){const c=cells[k];if(c.isVoid||c.cap||c.locked||c.full||c.drain)continue;c.v=Math.round(Math.max(0,pv)*10000)/10000;}
   dropSession(); // moving resets an unfinished surface
-}
-function decayCycle(){
-  let mx=200;
-  while(mx-->0){
-    let fv=null;for(const k in cells){const c=cells[k];if(!c.cap&&!c.isVoid&&!c.locked&&!c.full){fv=c.v;break;}}
-    if(fv===null||fv>=MIN_VAL)break;
-    if(captureOrder.length===0){phase='gameover';gameOverReason=txt('map.go.dissipated');return;}
-    const oldest=captureOrder.shift();
-    for(const k of oldest.keys){const c=cells[k];if(!c)continue;c.cap=false;c.capVal=0;c.isVoid=true;c.mergeId=null;c.v=0;delete c.kind;}
-    if(oldest.mergeId!=null)mergeGroups=mergeGroups.filter(g=>g.id!==oldest.mergeId);
-    hubEvent('map_decay');
-    redistribute();
-  }
-  checkVoidAccess();
 }
 function detectMerges(){
   let totalRed=0;
@@ -312,11 +297,11 @@ function advanceTurn(){ // time moves on (a move) by one time of day; the spill 
   if(pday&&pdOn())pday.i++; // (the Parade Day parade moves on a hex) // (playing together: the next player's turn first, until everyone has had theirs)
   awardConstellations();freedShops();clock+=STEP_H;
   if(clock>24){clock=24;endDay('midnight',0);return;} // after Midnight: the day ends (the new day starts once it has all fallen in)
-  if(fresh)fresh=false;else{turn++;addRing(turn);}redistribute();decayCycle();showTurn();}
+  if(fresh)fresh=false;else{turn++;addRing(turn);}redistribute();checkVoidAccess();showTurn();}
 const canRest=()=>(MP.on?mpMine():tired())&&currentView==='map'&&!menuOpen&&!shopUI&&phase!=='collapse'&&phase!=='ended'&&phase!=='gameover'; // Midnight, on the map: the day can be ended (Rest is the only way: no moves at Midnight)
 function rest(){if(!canRest())return;if(tired()){buoy.dunk={t0:performance.now(),d:1,ms:900};buoy.rested=true;}if(MP.role==='guest'){mpSend('rest');return;}advanceTurn();updateHint();saveMap();} // (at Midnight it sinks to sleep, and bobs up in the morning) // Rest: the day ends at Midnight without a move, after any last thing (a shop, an item) you wanted to do
 const clockStr=(h=clock)=>TIMES[h]||TIMES[Math.max(3,Math.floor(h/3)*3)]||TIMES[3];
-function showTurn(){neb({cmd:'clock',clock,day});mapHistKeep();if(buoy.rested&&clock<24){buoy.rested=false;buoy.dunk={t0:performance.now()+400,d:-1,ms:900};} // morning: up again // (the surface's run: a Daily Wonder ends at its time)
+function showTurn(){neb({cmd:'clock',clock,day});mapHistKeep();if(buoy.rested&&clock<24){buoy.rested=false;buoy.under=false;buoy.dunk={t0:performance.now()+400,d:-1,ms:900};} // morning: up again // (the surface's run: a Daily Wonder ends at its time)
   const el=document.getElementById('turn-label');turnLabel(el);el.classList.add('show');clearTimeout(turnTimer);turnTimer=setTimeout(()=>el.classList.remove('show'),1200);} // (always shown; it glows when the time changes)
 
 function getMoves(){
@@ -835,14 +820,23 @@ document.addEventListener('mouseup',()=>{duckLetGo();if(drag&&!drag.moved)drag=n
 sc.addEventListener('click',e=>{
   if(drag&&drag.moved){drag=null;return;} // the end of a drag, not a click
   if(currentView!=='map')return;
+  const[q,r]=evA(e);{const[wx,wy]=s2wp(e.clientX,e.clientY),now=performance.now();ripples.push({x:wx,y:wy,t:now,dk:onWhite(wx,wy),sm:1});} // a click: a little ripple
+  mapPress({q,r,X:e.clientX,Y:e.clientY});
+});
+let _held=null; // a click (or Space) made while your last move is still playing out: held until your turn starts, then played (a double click can never move and dive at once)
+const mapBusy=()=>!!(buoy.go||buoy.mv||dive||performance.now()-_sun.t0<(T.mapSunMs||4500)||buoy.dunk&&buoy.dunk.d<0); // your move's sail, the light's change of time (and the spill's spread with it), a dive or the buoy bobbing up
+function mapPress(p){ // a click on a hex, or Space (p.space: your own hex, wherever that is by then)
   if(phase==='gameover'||phase==='ended'||phase==='collapse')return;
-  const[q,r]=evA(e),k0=K(q,r),c0=cells[k0];{const[wx,wy]=s2wp(e.clientX,e.clientY),now=performance.now();ripples.push({x:wx,y:wy,t:now,dk:onWhite(wx,wy),sm:1});} // a click: a little ripple
-  if(armed==='test'){if(c0)testPick(k0,e.clientX,e.clientY);return;} // the test tool: on any hex
+  if(mapBusy()&&armed!=='test'){_held=p;return;}
+  const off=()=>MP.on&&!mpMine()&&armed!=='weave'&&(feed(txt('mp.title'),txt('mp.not_your_turn',(mpP(mpTurn())||{}).name||''),'no'),1); // playing together: on your turn
+  if(p.space){if(off())return;if(MP.role==='guest')mpSend('click',{q:pQ,r:pR,armed:null});else doCapture();return;} // (a friend's goes by the host)
+  const{q,r}=p,k0=K(q,r),c0=cells[k0];
+  if(armed==='test'){if(c0)testPick(k0,p.X,p.Y);return;} // the test tool: on any hex
   if(c0&&!(armed?itemOK(k0):(q===pQ&&r===pR||(!tired()&&getMoves().some(m=>m.q===q&&m.r===r))))&&!(armed==='weave')){hexTap(k0);return;} // nothing it could do there: the hex rings like tapped glass, and the feed says why
-  if(MP.on&&!mpMine()&&!(armed==='weave')){feed(txt('mp.title'),txt('mp.not_your_turn',(mpP(mpTurn())||{}).name||''),'no');return;} // playing together: on your turn
+  if(off())return;
   if(MP.role==='guest'&&armed!=='weave'){mpSend('click',{q,r,armed});if(armed==='dial')armed=null;return;} // a friend: the host plays it
   mapClick(q,r);
-});
+}
 function mapClick(q,r){const k=K(q,r); // a click on a hex (yours, or a friend's played by the host)
   if(armed==='leash'){if(cells[k]&&cells[k].cap)unclear(k);else spindleFill(k);return;} // an armed map item takes the click
   if(armed==='dial'){stringMove(q,r);return;}
@@ -877,7 +871,7 @@ document.addEventListener('keydown',e=>{
   if(menuOpen||shopUI)return;
   if(e.target&&/^(INPUT|SELECT|TEXTAREA)$/.test(e.target.tagName))return; // typing in the Tune panel's filter
   if(e.code==='Backquote'||e.code==='KeyH'){document.body.classList.toggle('ui-hidden');neb({cmd:'ui',hidden:document.body.classList.contains('ui-hidden')});return;}
-  if(e.code==='Space'){e.preventDefault();if(currentView!=='map')return;if(MP.on&&!mpMine()){feed(txt('mp.title'),txt('mp.not_your_turn',(mpP(mpTurn())||{}).name||''),'no');return;}if(MP.role==='guest')mpSend('click',{q:pQ,r:pR,armed:null});else doCapture();} // (playing together: on your turn; a friend's goes by the host)
+  if(e.code==='Space'){e.preventDefault();if(currentView!=='map')return;mapPress({space:1});}
   if(currentView==='map'&&(e.key==='+'||e.key==='='))zoomUser(1.15);if(currentView==='map'&&(e.key==='-'||e.key==='_'))zoomUser(1/1.15);
 });
 window.addEventListener('resize',mapResize);
@@ -923,7 +917,8 @@ function paradeStep(now,dt){
   if(SCENE||currentView!=='map'||now<_paradeAt||!water.pts.length)return;_paradeAt=now+8000;
   const K2=paradeKinds().filter(([a])=>!paradeSeen.has(a+'|'+day));if(!K2.length)return;const[axis,ids]=K2[0];paradeSeen.add(axis+'|'+day);
   let R=0;for(const k in cells){const c=cells[k];if(!c.isVoid)R=Math.max(R,Math.hypot(...a2w(c.q,c.r)));}R+=HEX*1.3; // its line: round the spill, just off its shore, once all the way round
-  const sg=Math.random()<0.5?1:-1,th=Math.random()*6.2832,all=paradeOrder(axis,ids),mx=Math.max(1,T.mapParadeMax||9),st=all.length>mx?(Math.random()*all.length)|0:0,order=all.length>mx?Array.from({length:mx},(_,i)=>all[(st+i)%all.length]):all; // (more than Parade at most: a run of them in their order, from a random one on)parade={R,th,sg,s:0,v:0.9,path:2*Math.PI*R,axis,n:order.length,names:order.map(k=>DUCK_TYPES[k].name)};let off=0,prev=0,i0=1;
+  const sg=Math.random()<0.5?1:-1,th=Math.random()*6.2832,all=paradeOrder(axis,ids),mx=Math.max(1,T.mapParadeMax||9),st=all.length>mx?(Math.random()*all.length)|0:0,order=all.length>mx?Array.from({length:mx},(_,i)=>all[(st+i)%all.length]):all; // (more than Parade at most: a run of them in their order, from a random one on)
+  parade={R,th,sg,s:0,v:0.9,path:2*Math.PI*R,axis,n:order.length,names:order.map(k=>DUCK_TYPES[k].name)};let off=0,prev=0,i0=1;
   for(const id of order){const t=DUCK_TYPES[id],sz=(t.scale||1)*HEX*0.62;off+=prev?(prev+sz)*0.62:0;prev=sz;pond.push({type:id,x:R*Math.cos(th),y:R*Math.sin(th),hd:th+sg*Math.PI/2,sp:0,pk:axis,pn:i0++,cur:0,next:1e15,born:now,seen:true,lastRip:0,ph:Math.random()*6.28,parade:{off}});}
   feed(txt('map.parade'),txt('map.parade_d',axis));}
 function shopUnder(wx,wy){const R=HEX*(T.mapStreetSize||0.75)*0.42;return shopList().find(s=>Math.hypot(wx-s.wx,wy-s.wy)<R*(s.rank>1?1.35:1))||null;} // the shop standing on this spot of the ground (its footprint, not its picture)
@@ -978,10 +973,10 @@ function askName(){const el=document.getElementById('nameAsk'),i=el.querySelecto
   const up=()=>{b.disabled=!i.value.trim();n.textContent=i.value.length+' / 20';};i.value=playerName;up();i.oninput=up;buoyColours(el.querySelector('.ncols'));
   const go=()=>{const v=i.value.trim().slice(0,20);if(!v)return;playerName=v;try{localStorage.setItem(NAME_KEY,v);}catch(e){}el.classList.remove('show');feed(v,txt('map.name.set'));};
   b.onclick=go;i.onkeydown=e=>{if(e.key==='Enter'){e.preventDefault();go();}e.stopPropagation();};el.classList.add('show');setTimeout(()=>i.focus(),50);}
-function buoyGo(mode){if(_mpFor){(MP.ob[_mpFor]=MP.ob[_mpFor]||{}).go=mode;return;}buoy.go=mode;} // the next move of yours is a sail ('sail') or a String's shot ('fire')
+function buoyGo(mode){if(_mpFor){(MP.ob[_mpFor]=MP.ob[_mpFor]||{}).go=mode;return;}if(buoy.under){buoy.under=false;buoy.go=null;buoy.dunk={t0:performance.now(),d:-1,ms:900};return;}buoy.go=mode;} // (still under after a clear: it comes up at the hex you chose, not sailing there) // the next move of yours is a sail ('sail') or a String's shot ('fire')
 function mpBuoys(dt){if(!MP.on)return;for(const P of MP.players){if(P.id===MP.me)continue;const[tx,ty]=buoySpot(P.q,P.r),b=MP.ob[P.id]=MP.ob[P.id]||{};if(b.x==null){b.x=tx;b.y=ty;b.yaw=Math.random()*6.28;b.spin=0;b.ph=Math.random()*6.28;} // everyone else's buoy: sails to their hex, turns slowly
   const k=Math.min(1,0.05*dt);b.x+=(tx-b.x)*k;b.y+=(ty-b.y)*k;b.yaw+=0.004*dt;if(b.dunk&&b.dunk.d<0&&performance.now()-b.dunk.t0>b.dunk.ms)b.dunk=null;}}
-function buoyStep(now,dt){mpBuoys(dt);if(buoy.dunk&&buoy.dunk.d<0&&now-buoy.dunk.t0>buoy.dunk.ms)buoy.dunk=null;if(buoy.dip&&now-buoy.dip>450)buoy.dip=0;
+function buoyStep(now,dt){mpBuoys(dt);if(_held&&currentView==='map'&&!mapBusy()){const h=_held;_held=null;mapPress(h);}if(buoy.dunk&&buoy.dunk.d<0&&now-buoy.dunk.t0>buoy.dunk.ms)buoy.dunk=null;if(buoy.dip&&now-buoy.dip>450)buoy.dip=0;
   if(buoy.follow&&buoy.mv&&!dive){camTX=buoy.x;camTY=buoy.y;}else if(!buoy.mv)buoy.follow=false; /* the camera goes with it to its new hex (unless you take the view) */const[tx,ty]=buoySpot(pQ,pR);if(!playerName&&currentView==='map'&&!shopUI&&!menuOpen&&!document.getElementById('nameAsk').classList.contains('show'))askName(); // no name yet (a new game): asked once the map is in view
 
   if(buoy.mv&&now>=buoy.mv.t0+buoy.mv.dur){buoy.x=buoy.mv.x1;buoy.y=buoy.mv.y1;buoy.mv=null;}
@@ -1124,7 +1119,7 @@ function enterNebula(cellKey){
 }
 let _enter=null; // going into a surface (the dunk and the camera's move), and how to come back out
 function exitNebula(){riftFxStart(performance.now()+500); // (a Rift made in there opens as the map comes back)
-  if(_enter&&_enter.back&&cam){const now=performance.now(),ms=T.mapEnterMs||3000;diveStart(_enter.key,-1,null,_enter.back);buoy.dunk={t0:now+ms*0.62,d:-1,ms:ms*0.33};}_enter=null; // back out: the same, backwards (the buoy bobs up at the end)
+  if(_enter&&_enter.back&&cam){const now=performance.now(),ms=T.mapEnterMs||3000,cl=cells[_enter.key],gone=cl&&(cl.cap||cl.rift||cl.isVoid);diveStart(_enter.key,-1,null,_enter.back);buoy.under=!!gone;buoy.dunk=gone?{t0:now,d:1,ms:1}:{t0:now+ms*0.62,d:-1,ms:ms*0.33};}_enter=null; // back out: the same, backwards (the buoy bobs up at the end; a surface you cleared leaves it under until you pick the hex to move to: buoyGo)
   if(MP.on&&MP.surf&&MP.surf.owner===MP.me){netOut({t:'surf',owner:MP.me,on:false});MP.surf=null;neb({cmd:'remoteClear'});neb({cmd:'mpShare',on:false});}
   currentView='map';_loadAt=performance.now();loading('back',true);const t=performance.now();for(const k in clearFx)if(clearFx[k].t0==null)clearFx[k].t0=t+250;showNeb(false);mapResize();pondSpawn();startMapLoop();updateHint();evPump();}
 let evQ=[];
@@ -1608,8 +1603,6 @@ const SCENES={
   street(){sceneReset(3);viewZoom=1.8;clock=3;for(let i=1;i<=7;i++)at(i*1100,()=>{clock=3+i*3;showTurn();});return 9000;}, // main street through the day: each shop lit while it is open
   clear(){sceneReset();const ks=['1,-1','1,0','0,1','-1,1','2,-1'];ks.forEach((k,i)=>at(700+i*1100,()=>sceneCap(k,i%2?'dark':'bright')));return 7600;},
   merge(){sceneReset(5);const ks=['1,0','0,1','1,1'];ks.forEach((k,i)=>at(500+i*600,()=>{if(i<2)sceneCap(k,'dark');else{completeCaptureForCell(k,'dark');clearFx[k].t0=performance.now();camTX=camTY=0;}}));return 7000;},
-  decay(){sceneReset();['2,-1','-1,2','-2,0'].forEach((k,i)=>at(300+i*400,()=>{sceneCap(k,'bright');captureOrder.push({keys:[k],mergeId:null});}));
-    at(2600,()=>{recomputeLocked();let n=0;for(const k in cells){const c=cells[k];if(!c.cap&&!c.isVoid&&!c.locked)n++;}let ex=0;for(const k in cells){const c=cells[k];if(c.cap)ex+=c.capVal;else if(c.locked)ex+=c.v;}pool=ex+n*0.009;fresh=true;advanceTurn();camTX=camTY=0;});return 7000;}, // the value runs too thin (below 0.01): the oldest capture becomes a void // the value runs too thin: the oldest capture becomes a void
   descend(){sceneReset();ring(1).forEach(([q,r],i)=>at(300+i*350,()=>sceneCap(K(q,r),'bright')));at(2700,()=>{voidOpen=true;});at(3600,()=>{const o=cells[K(pQ,pR)];if(o)o.isP=false;depth++;newMap();camTX=camTY=0;showMergeFlash(txt('map.descended_to_d',depth));});return 6500;},
   constellation(){sceneReset();const ks=['2,-1','1,1','-1,2','-2,1','-1,-1'];ks.forEach((k,i)=>at(300+i*250,()=>sceneCap(k,'bright')));armed='weave';weaveSel=[];
     ks.forEach((k,i)=>at(1800+i*450,()=>weaveSel.push(k)));at(1800+5*450+300,()=>{constel=[{keys:ks.slice(),type:'lens'}];weaveSel=[];armed=null;showMergeFlash(txt('map.constellation_lens'));});at(5200,()=>{advanceTurn();showMergeFlash(txt('map.1_lens'));});return 7500;},
@@ -1627,7 +1620,7 @@ function sceneRing(kind){sceneReset(4);const r3=ring(3).map(([q,r])=>K(q,r));r3.
 // What each demo is about: the camera eases onto it (its hexes, or its ducks and bottle), fitted to the card's own frame, not the middle of the map
 const SCENE_K=new URLSearchParams(location.search).get('k')||'',r1=()=>ring(1).map(([q,r])=>K(q,r)),allK=()=>Object.keys(cells),onPond=()=>({pts:pond.filter(d=>d._s).map(d=>[d.x,d.y])});
 const SCENE_FOCUS={map:allK,time:allK,ring:allK,brightstar:allK,darkstar:allK,move:()=>[K(pQ,pR),...neighbors(pQ,pR).map(([q,r])=>K(q,r))],light:onPond,lake:onPond,bottle:onPond,
-  items:()=>['2,-1','0,1','-2,1','1,-1'],street:()=>['0,0'],clear:()=>['1,-1','1,0','0,1','-1,1','2,-1'],merge:()=>['1,0','0,1','1,1'],decay:()=>['2,-1','-1,2','-2,0','0,0'],constellation:()=>['2,-1','1,1','-1,2','-2,1','-1,-1'],
+  items:()=>['2,-1','0,1','-2,1','1,-1'],street:()=>['0,0'],clear:()=>['1,-1','1,0','0,1','-1,1','2,-1'],merge:()=>['1,0','0,1','1,1'],constellation:()=>['2,-1','1,1','-1,2','-2,1','-1,-1'],
   shops:()=>['0,0',...r1()],end:()=>['0,0',...r1()],descend:()=>['0,0',...r1()],shop:()=>{const s=shopList().find(x=>x.key===(sceneShopAt||SHOPS[SCENE_K]&&SCENE_K)),w=s?[s.wx,s.wy]:[0,0];return{pts:[[w[0],w[1]+HEX*0.5],[w[0],w[1]-HEX*2.4]]};}}; // (a shop: the whole building, its sign too)
 function sceneLook(F){if(!F||!cam)return;let b;if(F.pts){if(!F.pts.length)return;let x0=1e9,y0=1e9,x1=-1e9,y1=-1e9;for(const[x,y]of F.pts){x0=Math.min(x0,x);y0=Math.min(y0,y);x1=Math.max(x1,x);y1=Math.max(y1,y);}const m=HEX*1.6;b=[x0-m,y0-m,x1+m,y1+m];}else b=camBounds(F);if(!b)return;
   const f=camFit(b);camTX=f.x;camTY=f.y;zoomT=f.z;}

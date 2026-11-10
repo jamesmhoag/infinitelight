@@ -50,8 +50,8 @@ function meshKit(A,fl){ // fl: mirrored left to right (but for what is kept, a s
   const beam=(p,q,t,i)=>{const d=q.map((v,j)=>v-p[j]),l=Math.hypot(...d)||1,u=d.map(v=>v/l),up=Math.abs(u[1])<0.9?[0,1,0]:[1,0,0],cr=(a,b)=>[a[1]*b[2]-a[2]*b[1],a[2]*b[0]-a[0]*b[2],a[0]*b[1]-a[1]*b[0]],nz=v=>{const k=Math.hypot(...v)||1;return v.map(x=>x/k);},
     e1=nz(cr(u,up)),e2=nz(cr(u,e1)),h=t/2,U=sw_(i),C=(o,s1,s2)=>o.map((v,j)=>v+e1[j]*s1*h+e2[j]*s2*h); // a square beam from p to q
     for(const [s1,s2,s3,s4,n] of [[1,-1,1,1,e1],[-1,1,-1,-1,e1.map(v=>-v)],[1,1,-1,1,e2],[-1,-1,1,-1,e2.map(v=>-v)]])quad([C(p,s1,s2),C(q,s1,s2),C(q,s3,s4),C(p,s3,s4)],n,U);};
-  const lathe=(prof,seg,cols,y0)=>{ // a round part (prof: [[y, r], …] round the y axis, from y0 up); cols[i]: the swatch of each band
-    for(let i=0;i<prof.length-1;i++){const[ya,ra]=prof[i],[yb,rb]=prof[i+1],dy=yb-ya,dr=rb-ra,l=Math.hypot(dy,dr)||1,ny=-dr/l,nr=dy/l,U=sw_(cols[Math.min(i,cols.length-1)]);
+  const lathe=(prof,seg,cols,y0)=>{ // a round part (prof: [[y, r], …] round the y axis, from y0 up); cols[i]: the swatch of each band (a band starting on the axis starts just off it: a quad with two corners in one place cannot tell which way it faces, and was culled — the can light's back was seen through)
+    for(let i=0;i<prof.length-1;i++){const[ya,ra0]=prof[i],[yb,rb]=prof[i+1],ra=ra0||1e-4,dy=yb-ya,dr=rb-ra,l=Math.hypot(dy,dr)||1,ny=-dr/l,nr=dy/l,U=sw_(cols[Math.min(i,cols.length-1)]);
       for(let j=0;j<seg;j++){const t0=j/seg*6.2832,t1=(j+1)/seg*6.2832,c0=Math.cos(t0),s0=Math.sin(t0),c1=Math.cos(t1),s1=Math.sin(t1),tm=(t0+t1)/2;
         quad([[ra*c0,y0+ya,ra*s0],[ra*c1,y0+ya,ra*s1],[rb*c1,y0+yb,rb*s1],[rb*c0,y0+yb,rb*s0]],[nr*Math.cos(tm),ny,nr*Math.sin(tm)],U);}}};
   const geo=R=>({pos:new Float32Array(pos),nrm:new Float32Array(nrm),uv:new Float32Array(uv),idx:new Uint16Array(idx),R});
@@ -89,7 +89,7 @@ function buoyModel(name,souv,col){ // name: up to 20 characters; souv: the souve
 const BUOY_LAMP=2.3; // the can light's height, in its own units (where its spot light comes from)
 function buoyCanModel(){ // the buoy's can light: a short metal can, its lit lens at one end (+y), drawn turned to point where its light goes
   const type='buoycan';if(_duckModels.has(type))return type;const A=256,tx=document.createElement('canvas');tx.width=tx.height=A;const c=tx.getContext('2d');['#2a2c33','#fff4c8','#55585f'].forEach((cl,i)=>{c.fillStyle=cl;c.fillRect(i*32,0,32,32);});
-  const K=meshKit(A,false),{uv,lathe}=K;lathe([[-0.13,0],[-0.13,0.065],[-0.1,0.08],[0.11,0.09],[0.135,0.092]],16,[2,0,0,2],0); // its back, its body, its rim
+  const K=meshKit(A,false),{uv,lathe}=K;lathe([[-0.13,0],[-0.13,0.065],[-0.1,0.08],[0.11,0.09],[0.135,0.092],[0.13,0.085]],16,[2,0,0,2,2],0); // its back, its body, its rim (closed to the lens)
   const n=uv.length/4;lathe([[0.13,0.085],[0.13,0]],16,[1],0);for(let k=n;k<uv.length/4;k++)uv[k*4+2]=1; // the lens, lit
   _duckModels.set(type,{g:K.geo(0.2),nomk:1,mat:13,c1:[1,1,1],c2:[1,1,1],img:tx});return type;}
 // ── A shop: its building as a 3D model the duck renderer draws (material 13, painted): walls with window and door openings, the lit room

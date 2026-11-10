@@ -218,7 +218,6 @@ plural = $1 — ""s"" when more than one"
 map.wind_it_up_from,Wind it up from {value} to 1.00: 1 Spindle,Surface Map,value = $0 — the hex's value now
 map.go_straight_here_string,Go straight here: {cost} String{plural} · no time passes,Surface Map,"cost = $0 — Strings it takes (1 per hex of distance)
 plural = $1 — ""s"" when more than one"
-map.go.dissipated,all captures dissipated,Surface Map,
 map.go.zero,turn reduced to zero,Surface Map,
 map.go.nomoves,no viable moves,Surface Map,
 map.item.youhave, · you have {amount},Surface Map,amount = $0 — how many of the item you have

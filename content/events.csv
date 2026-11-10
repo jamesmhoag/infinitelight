@@ -50,7 +50,6 @@ map_merge,Merge,Event — Surface Map,r,hub:merge,dark,"Three touching captures 
 Three Dark Remnants swirl into one great one and pull in three rings.","Many surfaces, one shape."
 map_bottle,Message in a Bottle,Event — Surface Map,u,hub:bottle,bottle,"A bottle floated onto the lake with a letter rolled up inside.
 Someone else was here. There are {letters_total} letters to find; the ones you find are kept in the Guide (Letters).","Somebody, somewhere, hoped you would read this."
-map_decay,Decay,Event — Surface Map,u,hub:decay,dim,"Value ran too thin, so the oldest capture became a void.",Nothing stays clean forever.
 map_descend,Descent,Event — Surface Map,m,hub:descend,dark,You stepped into the centre. A deeper map begins.,"Under every surface, another."
 map_constellation,Constellation,Event — Surface Map,u,hub:constellation,weave,"A Weave joined bright hexes into a constellation.
 Each time of day it gives you one of its item. A newer one crossing it breaks it.","Light, drawn between lights."
