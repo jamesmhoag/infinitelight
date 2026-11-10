@@ -662,6 +662,7 @@ surf.ui.collapse_expand_the_statistics,collapse / expand the statistics,chromati
 surf.ui.change_the_line_shown,change the line shown while collapsed,chromatic_nebula.html,
 surf.ui.download_the_performance_log,"download the performance log (worst frames, phase timings, events)",chromatic_nebula.html,
 map.buy.title,Bought: {item},Surface Map,item = $0 — what was bought
+guide.learned,In your Journal: {0},"surface feed, map feed",
 guide.tab.disc,Discoveries,"cards, Guide, Status",
 guide.tab.map,Taxonomy,"cards, Guide, Status",
 guide.tab.items,Items,"cards, Guide, Status",

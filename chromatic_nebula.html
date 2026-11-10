@@ -119,7 +119,7 @@ button:hover{background:rgba(255,255,255,0.15);}
   <div id="dock" class="bottom"><div id="inventoryPanel"></div><div id="touch-info"></div></div>
   <canvas id="cur"></canvas>
 </div>
-<script src="content.js?v=20261109a"></script><script src="shared.js?v=20261109a"></script>
+<script src="content.js?v=20261110a"></script><script src="shared.js?v=20261110a"></script>
 <script>
 txtApply(); // the page's own labels (content/strings.csv)
 const _SRC=document.documentElement.outerHTML; // kept so the Encyclopedia can run live scenes as embedded copies of the game
@@ -210,7 +210,7 @@ function withHeat(h,fn){const o=heat;heat=h;try{return fn();}finally{heat=o;}}
 function heatBlocked(now){return heat.until>now||heat.needNew;}
 function heatAdd(n,now){
   if(!(n>0)||heat.until>now)return;
-  heat.v+=n;
+  heat.v+=n;if(heat.v>T.heatMax*0.5)ruleLearn('heat');
   if(heat.v>T.heatMax){heat.v=T.heatMax;heat.until=now+T.heatCooldownMs;heat.dur=Math.max(1,T.heatCooldownMs);heat.needNew=true;}
 }
 function heatTick(now){
@@ -2586,7 +2586,7 @@ function _fxSet(q,t,D){
 function shiftTo(q,target,now){
   if(!q||q._stasis||q.unwind||fieldProtects(q.x,q.y)||q.dying||q.captured||(q.isRemnant&&(q.remKind==='brown'||q.remKind==='black'||target==='b')))return; // Dim / Dark remnants keep their fixed colour
   if(q._shTo===target)return; // already on its way there
-  const D=Math.max(0,T.colorLingerMs),cur=fxStateOf(q),busy=q._shTo!==undefined;
+  const D=Math.max(0,T.colorLingerMs),cur=fxStateOf(q),busy=q._shTo!==undefined;if(cur!==target&&!q.isRemnant)ruleLearn('shift');
   if(cur===target&&!busy)return;
   if(busy){if(cur===target){q._shTo=undefined;q._tweenW=false;_shiftQ.delete(q);return;}q._shTo=target;q._shEnd=pulsingClock+D;return;} // interrupted mid-shift: it stays on the intermediary and the resolve timer restarts, so rapid hits never restart the detour
   if(cur===target){return;}
@@ -2988,7 +2988,7 @@ function applyEdgeToShape(mx,my){
 let _grpSeq=0,_grpPrev=new Map();
 function chainPts(chain){return unwrapPts(chain).map(u=>({x:u.x,y:u.y}));} // the shape's nodes as one piece, even if it straddles a screen edge
 function pushFixed(sh){ // a fixed shape that hangs over a screen edge gets a twin on the opposite side so it exists (and draws, bounces, magnifies…) on both
-  fixedShapes.push(sh);
+  fixedShapes.push(sh);ruleLearn(sh.cache?'Cache':sh.case?'Case':sh.crate?'Crate':sh.plate?'Plate':sh.port?'Port':sh.cat==='shape_barrier'&&!sh.gate?'Barrier':null); // (seen on a surface: its Journal entry)
   const P=sh.pts;if(!P||!P.length)return sh;
   let x0=1e9,x1=-1e9,y0=1e9,y1=-1e9;for(const q of P){x0=Math.min(x0,q.x);x1=Math.max(x1,q.x);y0=Math.min(y0,q.y);y1=Math.max(y1,q.y);}
   const xs=[0],ys=[0];if(x0<0)xs.push(W);if(x1>W)xs.push(-W);if(y0<0)ys.push(H);if(y1>H)ys.push(-H);
@@ -4442,7 +4442,7 @@ function objKey(p){ // which object TYPE this is (feed and telemetry are unlocke
   if(p.blackFx)return 'eclipse';if(p.whiteFx)return 'crystal';if(p.failedCollapse)return 'dim';return p.collapsed?'point':'pigment';}
 // An object type's feed info is discovered by using one: activating it, hovering one for T.discHoverMs in total, or collecting it (no Dim needed)
 const _discHov={};let _discHovAt=0;
-function discObj(p){const id='of_'+objKey(p);if(discHas(id))return;discSeen.add(id);saveInventory();}
+function discObj(p){const id='of_'+objKey(p);if(discHas(id))return;discSeen.add(id);saveInventory();ruleLearn('info');}
 function discHoverTick(p,now){const dt=Math.min(100,now-(_discHovAt||now));_discHovAt=now;if(!p)return;const k=objKey(p);if(discHas('of_'+k))return;_discHov[k]=(_discHov[k]||0)+dt;if(_discHov[k]>=(T.discHoverMs||1000))discObj(p);}
 function feedLock(p){const id='of_'+objKey(p);if(discHas(id))return false;if(pressedIDs.has(p.id)){discObj(p);return false;}
   const k=objKey(p),f=Math.min(1,(_discHov[k]||0)/(T.discHoverMs||1000));setFeed(txt('surf.undiscovered'),(f>0?txt('surf.discovering','▮'.repeat(Math.round(f*8)),'▯'.repeat(8-Math.round(f*8))):txt('surf.hover_one_activate_one')),'rgba(255,255,255,0.55)');return true;}
@@ -4452,7 +4452,7 @@ function applyDisc(){
   document.querySelectorAll('[data-disc]').forEach(el=>{const id=el.dataset.disc,cost=BUILD?0:T['dc_'+id]||0,lock=cost>0&&!discSeen.has(id);el.classList.toggle('disc-lock',lock);if(lock)el.dataset.cost=fmtCount(cost);});
 }
 function discReveal(id){
-  discSeen.add(id);saveInventory();
+  discSeen.add(id);saveInventory();if(id.slice(0,2)!=='g_')ruleLearn('discover');
   const el=document.querySelector('[data-disc="'+id+'"]');
   if(el){const r=el.getBoundingClientRect(),wr=wrap.getBoundingClientRect(),n=Math.min(45,Math.max(8,Math.round(r.width*r.height/50)));
     for(let i=0;i<n;i++){const p=document.createElement('div'),x=r.left-wr.left+Math.random()*r.width,y=r.top-wr.top+Math.random()*r.height;
@@ -5262,7 +5262,7 @@ function flushDialCollects(){for(const q of active.slice()){if(!q._dialCollect)c
 let _collHeatPress=-1;
 function bondOf(p){return activeBonds.find(b=>b.chain.indexOf(p)!==-1)||null;} // the shape (if any) a remnant is still a node of
 function collectRemnant(c){
-  if(!c||!c.p||c.p._collected||!c.kind)return false; // one collect per collectable: a fast second click (the grace window's last target, a hold's first, a double click's sweep) finds it already taken
+  if(!c||!c.p||c.p._collected||!c.kind)return false;ruleLearn('goal');ruleLearn('collect'); // one collect per collectable: a fast second click (the grace window's last target, a hold's first, a double click's sweep) finds it already taken
   c.inShape=!!bondOf(c.p);
   if(!c.free){ const hn=performance.now(); if(heatBlocked(hn))return false; // an overheated cursor collects nothing
     const pr=_collectFor?_collectFor.downAt:mouseDownAt;if(_collHeatPress===pr)heatAdd(1,hn);else _collHeatPress=pr; } // (a String shot collecting costs no heat) the first object of a press is free; each further one adds heat, like a swipe
@@ -6413,7 +6413,7 @@ function updateParticleBtn(){const b=document.getElementById('pvb');if(b)b.textC
 // one-shot actions, not a mode that holds the counts: collection and use carry on normally afterwards. The Modes button only
 // decides whether the two action slots are shown.
 let itemCacheMode=false;
-function cacheAction(fill){
+function cacheAction(fill){ruleLearn('cache');
   for(const k of INV_KINDS)inventory[k]=fill?invMaxFor(k):0;
   syncKeyShapes();saveInventory();updateInventoryUI();
   flashSaveStatus((fill?txt('surf.every_item_filled_to'):txt('surf.every_item_cleared')));
@@ -8624,7 +8624,7 @@ function heldActivateAt(mx,my,heldSeen,now){ // a held press sweeping at (mx,my)
   if(fromDormant){removeDormant(bestIdx,now);initWoken(best,0);active.push(best);}
   best.touchStart=now;
   if(!best.collapsed)best.wakeProgress=0;
-  pressedIDs.add(best.id);lastActivatedId=best.id;totalActivations++;
+  pressedIDs.add(best.id);lastActivatedId=best.id;totalActivations++;ruleLearn('wipe');if(!best.isRemnant)ruleLearn(pointFxName(best));
   if(activationSounds.has('wipe')){if(activationSounds.get('wipe').ci!==best.ci)retuneActivationSound('wipe',best.ci);} // wiping: ONE violin chord that glides to each new colour
   else playViolin(best.ci,best.mass,true,'wipe');
   enforceMaxActivePoints();
@@ -8754,7 +8754,7 @@ function activateAt(mx,my,now,allowToggleOff,exact){
   } else {
     bestP.touchStart=now;
     if(!bestP.collapsed)bestP.wakeProgress=0;
-    pressedIDs.add(bestP.id);
+    pressedIDs.add(bestP.id);ruleLearn(dragMode?'wipe':'dab');if(!bestP.isRemnant)ruleLearn(pointFxName(bestP));
     lastActivatedId=bestP.id;
     totalActivations++;
     playViolin(bestP.ci,bestP.mass,true,bestP.id); // activate: violin note
@@ -9263,14 +9263,14 @@ wrap.addEventListener('dblclick',e=>{
   if(performance.now()-lastCollectDoneAt<700)return; // a double-click that collected is never also a group-activate / deactivate
   if(overUI||pressConsumed||uiPress||collectHold||blackHole||conMode||armedInvItem||createActive())return;
   const mx=e.clientX-wrapRect.left,my=e.clientY-wrapRect.top;
-  autoSelectClosestTargets(mx,my,performance.now());
+  autoSelectClosestTargets(mx,my,performance.now());ruleLearn('dbl');
 });
 // Right-click is now the ONLY way to restart a cleared level. Otherwise it
 // deselects everything currently activated (without opening the browser's
 // context menu), and gives the cursor an outward "expand" punch — the
 // mirror image of the inward punch a left-click gives it.
 wrap.addEventListener('contextmenu',e=>{
-  e.preventDefault();
+  e.preventDefault();ruleLearn('rclick');
   if(e.target&&e.target.closest&&e.target.closest('#dock')){ // right-click on the dock: the cursor's right-click punch + put the armed item away
     cursorRClickAt=performance.now();
     if(whiteChain.length>0){whiteChain.length=0;flashSaveStatus(txt('surf.pattern_cancelled'));}
@@ -9969,7 +9969,7 @@ _pm('collisions');
           if(_hdOn&&dt>0&&pressedIDs.has(p.id)&&p.lifespan!==Infinity){
             _hdAny=true;let h=p._hd;if(!h)h=p._hd={l0:p.lifespan,t:0,Td:Math.max(250,T.holdDrainK*704*Math.pow(Math.max(0.5,p.lifespan/1000),0.648))};
             h.t+=dt;const f=Math.min(1,h.t/h.Td);
-            p.lifespan=Math.min(p.lifespan-dt,h.l0*(1-f*f));_holdDrainUsed=true;
+            p.lifespan=Math.min(p.lifespan-dt,h.l0*(1-f*f));_holdDrainUsed=true;ruleLearn('mop');
           } else p.lifespan-=dt;
         }
         if(p.lifespan<=0){
@@ -10076,7 +10076,7 @@ function pulseSetActive(q,on,ep){ // switches a point ON (or OFF); already in th
   if(underGlass(q.x,q.y))return; // nothing under a Lens can be activated, by cursor or by beam
   const has=pressedIDs.has(q.id);if(on===has)return;
   if(on&&ep!==undefined){if(q._pulEp===ep)return;q._pulEp=ep;} // once per beam pass: a point the snake already pushed out isn't re-activated until the next first side
-  if(on){q.touchStart=performance.now();if(!q.collapsed)q.wakeProgress=0;pressedIDs.add(q.id);totalActivations++;pulseEnforceCap();}
+  if(on){q.touchStart=performance.now();if(!q.collapsed)q.wakeProgress=0;pressedIDs.add(q.id);totalActivations++;pulseEnforceCap();if(!q.isRemnant)ruleLearn(pointFxName(q));}
   else{q.touchStart=-1;pressedIDs.delete(q.id);if(lastActivatedId===q.id)lastActivatedId=-1;}
 }
 function curTintCI(p){if(p.magTintCI===undefined)return undefined;if(p.remKind==='pulsing')return pulseTintCI(p,pulsingBeamState(p).side);if(p.remKind==='neutron'&&p.magTintCI2!==undefined&&p.neutronState!=='max')return p.magTintCI2;return p.magTintCI;}
@@ -12792,12 +12792,15 @@ const RULE_SCENES={surface:['surface'],goal:['lifecycle'],tips:['cap'],cleared:[
  DEPTH:['depth'],BALANCE:['balance'],DYNAMISM:['dynamism'],HARMONY:['harmony'],RHYTHM:['rhythm'],String:['stringhome'],Spindle:['unwind','unwindmove'],Weave:['weave','weavemove'],
  Barrier:['barrier'],Port:['port'],Plate:['plate'],Crate:['crate'],Case:['crate'],Cache:['cachefx'],Prism:['prism'],Knot:['knot'],Gate:['gate'],Key:['gate'],Lens:['lens']};
 // An entry (or an item) shows in the Guide only once the event that introduces it has been witnessed (see EVENTS).
-const RULE_EV={pig:'pigment',pnt:'point',dim:'dim',brem:'bright',nova:'bright',neutron:'neutron',magnetic:'magnetic',pulsing:'pulsing',sharing:['neutron','magnetic','pulsing'],dark:'dark',cleared:'cleared',surface:'surface',collect:['dim','bright'],DEPTH:'dim',BALANCE:'bright',DYNAMISM:'neutron',HARMONY:'magnetic',RHYTHM:'pulsing',Weave:'weave',String:'string',Spindle:'spindle',Prism:'pat_prism',Knot:'pat_knot',Gate:'pat_gate',Key:'pat_key',Lens:'pat_lens'};
+const RULE_EV={particle:'surface',tips:'cleared',relic:['dimrelic','brightrelic'],pig:'pigment',pnt:'point',dim:'dim',brem:'bright',nova:'bright',neutron:'neutron',magnetic:'magnetic',pulsing:'pulsing',sharing:['neutron','magnetic','pulsing'],dark:'dark',cleared:'cleared',surface:'surface',DEPTH:'dim',BALANCE:'bright',DYNAMISM:'neutron',HARMONY:'magnetic',RHYTHM:'pulsing',Weave:'weave',String:'string',Spindle:'spindle',Prism:'pat_prism',Knot:'pat_knot',Gate:'pat_gate',Key:'pat_key',Lens:'pat_lens'};
 const RULE_MATH={pnt:['collapse'],pig:['wake','pigdeath'],particle:['wake'],dim:['faildim','pigdeath'],brem:['pointdeath'],nova:['pointdeath'],neutron:['fuse','status'],magnetic:['fuse','status'],pulsing:['fuse','status'],sharing:['status'],dark:['dark','crash'],relic:['relic'],collect:['collect','status'],Spindle:['unwind']};
 const RULE_TAB_COST={start:0,touch:0,things:3,bright:8,rem:12,items:20,shapes:30,shops:5};
-const ruleIds=id=>({base:'g_'+id,det:'g_'+id+'_d',ill:'g_'+id+'_i',mat:'g_'+id+'_m'});
+const ruleIds=id=>({det:'g_'+id+'_d',ill:'g_'+id+'_i',mat:'g_'+id+'_m'});
 const evSeen=id=>!!window.__SCENE||discSeen.has('ev:'+id);
 const evOk=ev=>!ev||(Array.isArray(ev)?ev.some(evSeen):evSeen(ev));
+// A Journal entry is there only once you have done or witnessed what it is about: its event (RULE_EV), or ruleLearn where it happens in play (nothing is given)
+function ruleOk(id){return !!window.__SCENE||BUILD||discSeen.has('g_'+id)||(RULE_EV[id]!=null&&evOk(RULE_EV[id]));}
+function ruleLearn(id){try{if(!id||ruleOk(id))return;const e=RULES.find(x=>x[0]===id);if(!e)return;discSeen.add('g_'+id);saveInventory();flashSaveStatus(txt('guide.learned',e[2]));if(HUB)hubState();}catch(err){}} // (before the Guide exists, on load: learned next time)
 const cvn=(v,d)=>+(+v).toFixed(d===undefined?3:d);
 // ── Conversion math: every line is built from the CURRENT tuned values, so the Guide always states the real rule ──
 const TUNE_LABEL={};for(const r of csvRead('tuners'))TUNE_LABEL[r.key]=r.label?r.label+' ('+(r.section||'')+')':'no slider';
@@ -12882,7 +12885,7 @@ function cardHTML(ev,mini){ // the one card format: name bar, art box, type line
   return `<div class="mtg${mini?' sm':''}${evUnread.has(ev.id)?' unread':''}" data-ev="${ev.id}" style="--rc:${TIER_COL[t]}"><div class="nm"><b>${gEsc(ev.name)}</b><span class="gem"></span></div><div class="art" data-scene="${ev.scene}" data-ev="${ev.id}">${mini?`<canvas class="rl-m" width="64" height="64" data-k="${ev.ico}"></canvas>`:''}</div><div class="ty"><span>${gEsc(ev.type.replace(/^Event — /,''))}</span><span>Tier ${TIER[t]}</span></div><div class="tx">${(mini?ev.facts().slice(0,1):ev.facts()).map(f=>`<p${ev.fx?' class="fx"':''}>${tvHTML(f)}</p>`).join('')}${ev.flavor?`<p class="fl">${gEsc(ev.flavor)}</p>`:''}</div></div>`; // (small: its first line and its flavour; the rest when it is opened) (fx: the lines are changes to play, set apart from the flavour)
 }
 function mountScene(h,w,hh){if(!h||h.firstChild||document.querySelectorAll('.rl-live iframe,.mtg .art iframe').length>=5)return;{const R=(h.dataset.ev||'').split(',').map(evRecFor).find(Boolean);if(R&&!w){evReplayMount(h,R);return;}} /* something you witnessed: your own recording of it, live (a demo only for what you have not) */const f=document.createElement('iframe'),nm=h.dataset.s||h.dataset.scene;f.style.cssText='border:0;max-width:100%;pointer-events:none;background:#000;border-radius:6px;'+(w?`width:${w}px;height:${hh}px`:'width:100%;height:100%');
-  if(nm.slice(0,4)==='hub:'){const[sn,dk]=nm.slice(4).split(':');f.src='Surface_Map_HUB.html?v=20261109a&scene='+sn+(sn==='shop'?'&k='+encodeURIComponent(dk||''):'')+'&T='+encodeURIComponent(JSON.stringify(mapSceneT()))+'&D='+encodeURIComponent(JSON.stringify(dk&&DUCK_TYPES[dk]?{[dk]:DUCK_TYPES[dk]}:Object.fromEntries(Object.entries(DUCK_TYPES).slice(0,4))));}else f.srcdoc=liveSrc(nm);h.appendChild(f);} // a Surface Map demo is played by the map itself
+  if(nm.slice(0,4)==='hub:'){const[sn,dk]=nm.slice(4).split(':');f.src='Surface_Map_HUB.html?v=20261110a&scene='+sn+(sn==='shop'?'&k='+encodeURIComponent(dk||''):'')+'&T='+encodeURIComponent(JSON.stringify(mapSceneT()))+'&D='+encodeURIComponent(JSON.stringify(dk&&DUCK_TYPES[dk]?{[dk]:DUCK_TYPES[dk]}:Object.fromEntries(Object.entries(DUCK_TYPES).slice(0,4))));}else f.srcdoc=liveSrc(nm);h.appendChild(f);} // a Surface Map demo is played by the map itself
 function mapSceneT(){const o={};for(const k in T)if(/^(map|bh|duck|wake|glass|metal|dimGlow|glowHalo|maxSpeed)/.test(k))o[k]=T[k];return o;} // what a map demo needs of the tuners
 function showCardHTML(html){ // a Guide card (an entry or a shop) opened over the Guide, where an event card shows
   guideCSS();_evOpen=true;_evReview=true;const ov=evOverlayEl();ov.innerHTML=`<div class="ev-box">${html}<button id="evOk">${txt('card.close')}</button></div>`;ov.style.display='flex';wrap.classList.add('ev-open');
@@ -12924,7 +12927,7 @@ function closeEventCard(){if(_evDraw)return;
 function registerGuideDisc(){
   const add=(id,label,cost)=>{if(!('dc_'+id in T))T['dc_'+id]=cost;TUNE_DEFS.push({key:'dc_'+id,label,min:0,max:9999999,step:1,tip:'Dim to hold while hovering to discover this (nothing is spent). 0 = always visible'});};
   TUNE_DEFS.push({sec:'Discoveries — Guide entries (base / details / demo / math)',tab:'discoveries'});
-  for(const e of RULES){const b=RULE_TAB_COST[e[1]]||0,L=e[2].slice(0,20);add('g_'+e[0],L,b);if(e[5].length>1)add('g_'+e[0]+'_d',L+' details',b+3);if(RULE_SCENES[e[0]])add('g_'+e[0]+'_i',L+' demo',b+6);if(RULE_MATH[e[0]])add('g_'+e[0]+'_m',L+' math',b+15);}
+  for(const e of RULES){const b=RULE_TAB_COST[e[1]]||0,L=e[2].slice(0,20);if(e[5].length>1)add('g_'+e[0]+'_d',L+' details',b+3);if(RULE_SCENES[e[0]])add('g_'+e[0]+'_i',L+' demo',b+6);if(RULE_MATH[e[0]])add('g_'+e[0]+'_m',L+' math',b+15);}
   TUNE_DEFS.push({sec:'Discoveries — Lifecycle (things and lines)',tab:'discoveries'});
   for(const id in MAP_NODES)add('mapn_'+id,'Lifecycle: '+MAP_NODES[id][2],MAP_NODES[id][5]);
   for(const ed of MAP_EDGES)add('map_'+ed.id,'Lifecycle: '+MAP_NODES[ed.a][2]+' → '+MAP_NODES[ed.b][2],ed.cost);
@@ -13077,14 +13080,14 @@ function guideCSS(){
 function ruleCardHTML(e,mini){ // a Guide entry as a card: its name, art (a live demo, once discovered), page and tier, then what it is, its details, more demos and the live math
   // (each behind its own discovery, as before). mini: the small card in a page's grid (click it for the whole card)
   const id=e[0],ids=ruleIds(id),sc=RULE_SCENES[id]||[],mt=RULE_MATH[id]||[],rows=e[5],t=tierOfCost(RULE_TAB_COST[e[1]]||0),home=(RULE_HOME[e[1]]||[0,''])[1];
-  if(!evOk(RULE_EV[id]))return '';
+  if(!ruleOk(id))return mini?'<div class="mtg sm back">?</div>':''; // (not yet learned: face down)
   const ico=['THROW','FLING','ORBIT','WHIRL','CATCH','SNARE'].includes(id)?id:(({pig:'point',pnt:'bright'})[e[3]]||e[3]),p=r=>`<p><b>${gHi(r[0])}:</b> ${gHi(r[1])}</p>`;
   let tx=`<p>${gHi(e[4])}</p>`;
   if(!mini){tx+=rows.slice(0,1).map(p).join('');if(rows.length>1)tx+=`<div class="rl-x" data-disc="${ids.det}">${rows.slice(1).map(p).join('')}</div>`;
     if(sc.length>1)tx+=`<div class="rl-x" data-disc="${ids.ill}">${sc.slice(1).map(x=>`<span class="rl-live" data-s="${x}"></span>`).join('')}</div>`;
     if(mt.length)tx+=`<div class="rl-x" data-disc="${ids.mat}"><details class="rl-math"><summary>Math (live values)</summary>${mt.map(m=>CONV[m]?`<div class="rl-mh">${gEsc(CONV[m].t)}</div><ul>${CONV[m].f().map(l=>`<li>${tvHTML(l)}</li>`).join('')}</ul>`:'').join('')}</details></div>`;}
   const art=mini||!sc.length?`<canvas class="rl-m" width="${mini?64:120}" height="${mini?64:120}" data-k="${ico}"></canvas>`:`<div class="art-live" data-disc="${ids.ill}" data-scene="${sc[0]}" data-ev="${[].concat(RULE_EV[id]||[]).join(',')}"></div>`;
-  return `<div class="mtg${mini?' sm':' full'}" data-rule="${id}" data-disc="${ids.base}" style="--rc:${TIER_COL[t]}"><div class="nm"><b>${gHi(e[2])}</b><span class="gem"></span></div><div class="art">${art}</div><div class="ty"><span>${gEsc(home)}</span><span>Tier ${TIER[t]}</span></div><div class="tx">${tx}</div></div>`;
+  return `<div class="mtg${mini?' sm':' full'}" data-rule="${id}" style="--rc:${TIER_COL[t]}"><div class="nm"><b>${gHi(e[2])}</b><span class="gem"></span></div><div class="art">${art}</div><div class="ty"><span>${gEsc(home)}</span><span>Tier ${TIER[t]}</span></div><div class="tx">${tx}</div></div>`;
 }
 function cardSize(ov){ // every small card the same size: its text box as tall as the longest of them all (every event, Guide entry and shop)
   const m=document.createElement('div');m.style.cssText='position:absolute;left:-9999px;top:0;visibility:hidden;width:2000px';m.className='rl-cards';
@@ -13413,7 +13416,7 @@ window.addEventListener('message',e=>{
   else if(m.cmd==='ui')wrap.classList.toggle('ui-hidden',!!m.hidden); // ~ on the map: one hide / show for both
   else if(m.cmd==='tune'){applyLoadedConfig(m.T,true);debounceSave();}
   else if(m.cmd==='test'&&['discAll','testFill','unlockAll','testOn','testOff'].includes(m.f)){window[m.f]();}
-  else if(m.cmd==='discover'){discSeen.add(m.id);saveInventory();hubState();}
+  else if(m.cmd==='discover'){if(m.id.slice(0,2)==='g_'){ruleLearn(m.id.slice(2));return;}discSeen.add(m.id);saveInventory();hubState();}
   else if(m.cmd==='spend'){inventory[m.kind]=Math.max(0,(inventory[m.kind]||0)-(m.n||1));saveInventory();updateInventoryUI();hubState();} // the map used an item (Spindle, String, Weave)
   else if(m.cmd==='award'){addInventory(m.kind,m.n||1);hubState();} // a map constellation paid out
   else if(m.cmd==='buy'){const r=shopBuy(m.id,m.arg,m.ship);hubPost(Object.assign({type:'bought',id:m.id},r));if(r.draw){hubOverlay_(true);showDraw();}hubState();} // a Carnival card: the draw shows here, over the map
@@ -13451,7 +13454,7 @@ function shopBuy(id,arg,ship){ // ship: bought from a shop you are not at: what 
     duckLog[t]=(duckLog[t]||0)+1;got='\u{1F986} '+DUCK_TYPES[t].name;}
   if(fx.disc)discSeen.add(fx.disc);if(shopOnce(it))discSeen.add('up:'+id);shopLog[id]=(shopLog[id]||0)+1;
   saveInventory();updateInventoryUI();applyDisc();return{ok:1,msg:got,draw,ship:ship||null};}
-function secretCards(){const c=[...EVENTS.filter(e=>!evSeen(e.id)).map(e=>({id:'ev:'+e.id,ev:e.id,n:e.name})),...RULES.filter(e=>!discHas('g_'+e[0])&&evOk(RULE_EV[e[0]])).map(e=>({id:'g_'+e[0],rule:e[0],n:e[2]}))];return c.sort(()=>Math.random()-0.5).slice(0,3);} // what a Card of Secrets can turn up: events not yet witnessed, and Guide entries not yet found that the Guide would show
+function secretCards(){const c=[...EVENTS.filter(e=>!evSeen(e.id)).map(e=>({id:'ev:'+e.id,ev:e.id,n:e.name})),...RULES.filter(e=>!ruleOk(e[0])).map(e=>({id:'g_'+e[0],rule:e[0],n:e[2]}))];return c.sort(()=>Math.random()-0.5).slice(0,3);} // what a Card of Secrets can turn up: events not yet witnessed, and Guide entries not yet found that the Guide would show
 function shopPick(i){const d=runState.draw,c=d&&d.cards[i];if(!c)return{ok:0,text:'Nothing to pick'};runState.draw=null;let title,text; // a card turned over: what it gives
   if(d.kind==='secret'){discSeen.add(c.id);title='A secret';text=c.n+' is discovered for good.';saveInventory();applyDisc();hubOverlay_(true);if(c.ev)showEventCard(c.ev,true);else showCardHTML(ruleCardHTML(RULES.find(x=>x[0]===c.rule),false));return{ok:1,title,text,good:true,show:1};} // the card itself, shown over the map
   else if(d.kind==='fortune'){runState.dimNext=c; /* every fortune, good or dim, is for tomorrow (it takes hold as the day starts: fortuneStart) */title=txt(c.good?'card.fortune.goodnext':'card.fortune.dimnext');text=fortuneText(c,c.duck);}
@@ -13533,7 +13536,7 @@ function syncGameMenu(){
 }
 function toggleGameMenu(){if(_menuOpen)closeGameMenu();else openGameMenu();}
 function openGameMenu(){
-  if(_menuOpen||window.__SCENE)return;_menuOpen=true;_menuWasPaused=isPaused;if(!isPaused&&!gateFx)togglePause();
+  if(_menuOpen||window.__SCENE)return;_menuOpen=true;ruleLearn('menu');_menuWasPaused=isPaused;if(!isPaused&&!gateFx)togglePause();
   let m=document.getElementById('gameMenu');
   if(!m){
     const st=document.createElement('style');st.textContent=`#gameMenu{position:absolute;inset:0;z-index:55;display:none;align-items:center;justify-content:center;background:rgba(0,0,0,.55)}
@@ -13573,11 +13576,11 @@ function closeGameMenu(){
 RULE_TAB_COST.surf=5;
 RULE_BLURB.surf='The map of surfaces. Every hex is a spill to clean up.';
 
-Object.assign(RULE_EV,{hublight:'map',hublake:'duck',hubview:'map',shopstreet:'map',shoppop:'map',shopbuy:'map'});Object.assign(RULE_SCENES,{shopstreet:['hub:street'],shoppop:['hub:shops']});
+Object.assign(RULE_EV,{hublake:'duck'}); // (hublight, hubview, shopbuy: learned where they happen, on the map)Object.assign(RULE_SCENES,{shopstreet:['hub:street'],shoppop:['hub:shops']});
 // ── a shop's event: the first time you go into it (its card then shows in the Guide, with what it sells) ──
 {const at=EVENTS.findIndex(e=>e.id==='brightrelic')+1,sh=[];for(const k in SHOPS){const S=SHOPS[k];sh.push({id:'shop_'+k,name:S.n,type:txt('ev.shop.type'),rar:S.street?'c':'u',scene:'hub:shop:'+k,ico:'sign:'+k,
   facts:()=>[S.street?txt('ev.shop.street'):txt('ev.shop.popup',S.cur),S.about||'',txt('ev.shop.card')],flavor:S.tag});}EVENTS.splice(at,0,...sh);} // a shop's first opening (its text: content/strings.csv)
-Object.assign(RULE_EV,{hubbottle:'map_bottle',hubmap:'map',hubtime:'map',hubcell:'map',hubmove:'map',hubclear:'map_clear',hubmerge:'map_merge',hubitems:'map',hubconst:'map_constellation',hubring:'map_ring',hubdescend:'map_descend'});
+Object.assign(RULE_EV,{shopstreet:Object.keys(SHOPS).filter(k=>SHOPS[k].street).map(k=>'shop_'+k),shoppop:Object.keys(SHOPS).filter(k=>!SHOPS[k].street).map(k=>'shop_'+k),hubbottle:'map_bottle',hubmap:'map',hubclear:'map_clear',hubmerge:'map_merge',hubconst:'map_constellation',hubring:'map_ring',hubdescend:'map_descend'});
 Object.assign(RULE_SCENES,{hubmap:['hub:map'],hubtime:['hub:time'],hubcell:['surface'],hubmove:['hub:move'],hubclear:['hub:clear'],hubmerge:['hub:merge'],hubitems:['hub:items'],hubconst:['hub:constellation'],hubring:['hub:ring','hub:brightstar','hub:darkstar'],hubdescend:['hub:descend'],hublight:['hub:light'],hublake:['hub:lake'],hubview:['hub:view'],hubbottle:['hub:bottle'],menu:['readouts']});
 
 // ═════════════════════════ DUCKS ═════════════════════════
@@ -13606,7 +13609,7 @@ function rollDuckType(){const pick=a=>a[Math.floor(Math.random()*a.length)],nx=r
 function spawnDuck(x,y,now,type,made){ // made: placed with Create (no event, no Dark Remnant message)
   type=type||rollDuckType();const a=Math.random()*6.2832,yaw=Math.random()*6.2832,sp=T.duckDrift/60;
   const d={x,y,vx:Math.cos(a)*sp,vy:Math.sin(a)*sp,rot:0,wx:0,wy:0,q:[0,Math.sin(yaw/2),0,Math.cos(yaw/2)],spin:(Math.random()<0.5?-1:1)*(0.6+Math.random()*0.8),born:now,type,ph:Math.random()*6.2832};
-  d.wy=d.spin*T.duckSpin/60;ducks.push(d);if(made)return d;fireEvent('duck',d);flashSaveStatus(txt('surf.a_dark_remnant_came',DUCK_TYPES[type].name));return d;}
+  d.wy=d.spin*T.duckSpin/60;ducks.push(d);if(made)return d;fireEvent('duck',d);if(type!=='classic')ruleLearn('duckexo');flashSaveStatus(txt('surf.a_dark_remnant_came',DUCK_TYPES[type].name));return d;}
 function duckInit(d){if(!d.q){const a=d.ang||0;d.q=[0,Math.sin(a/2),0,Math.cos(a/2)];}d.rot=d.rot||0;d.wx=d.wx||0;d.wy=d.wy||0;if(d._pvx===undefined){d._pvx=d.vx;d._pvy=d.vy;}}
 function duckSizeOf(d){return T.duckSize*(DUCK_TYPES[d.type].scale||1);}
 function duckMass(d){const s=DUCK_TYPES[d.type].scale||1;return Math.max(0.01,T.duckMass*s*s*s);}
@@ -13858,7 +13861,7 @@ SCENES.duck={dur:6500,setup(S){S.ps=[];S.ring(6,30,60,(x,y,i)=>S.ps.push(S.pig(x
     if(S.d&&!S.shot&&t>1700){S.shot=1;for(const p of S.ps){const dx=S.d.x-p.x,dy=S.d.y-p.y,l=Math.hypot(dx,dy)||1;p.vx=dx/l*1.6;p.vy=dy/l*1.6;}}}}; // pigments thrown at it bounce off; it squeaks and tumbles
 RULE_TAB_COST.ducks=0;RULE_BLURB.ducks='Rubber ducks you have collected. Each type you find joins the collection.';
 
-Object.assign(RULE_EV,{duck:'duck',duckexo:'duck'});Object.assign(RULE_SCENES,{duck:['duck']});
+Object.assign(RULE_EV,{duck:'duck'}); // (duckexo: learned when an exotic one comes out)Object.assign(RULE_SCENES,{duck:['duck']});
 // ═════════════════════════ RIFT ═════════════════════════
 // The mechanics trend toward ever more mass in fewer places. A Rift (a Tear): when the mass of everything on the surface inside one
 // area — any 2×2 block of Rift-area cells — reaches Rift mass, the surface tears there and a Dark Remnant forms at that mass's centre.
