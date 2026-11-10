@@ -163,7 +163,7 @@ body.shop-open #hdock{z-index:59}#hinv .slot.wal::before{border-color:rgba(255,2
 <div id="veil"></div>
 <div id="bfx"></div>
 <iframe id="neb" data-tt="map.ui.surface"></iframe>
-<script src="content.js?v=20261110f"></script><script src="shared.js?v=20261110f"></script><script src="cabin.js?v=20261110f"></script>
+<script src="content.js?v=20261110g"></script><script src="shared.js?v=20261110g"></script><script src="cabin.js?v=20261110g"></script>
 <script>
 // ╔══════════════════════════════════════════════════════════════════════════════╗
 // ║  MAP ENGINE                                                                 ║
@@ -178,11 +178,11 @@ let HEX=34; // T.mapHexSize (tuned in the Esc menu / the surface's Tune menu)
 const DIRS=[[1,0],[1,-1],[0,-1],[-1,0],[-1,1],[0,1]];
 let camX=0,camY=0,camTX=0,camTY=0;
 let hubPop=[null,null],cells={},turn=0,score=0,pQ=0,pR=0,totalCells=0; // turn: how many rings the spill has spread to (merges pull it back)
-let playLog=[],clock=3,day=1,pool=6,fresh=true,burstFx=null,dayLog=[],dayCnt={b:0,d:0},pendingEnd=null; // dayLog: how each day ended {day,end,ring,b,d,win}; dayCnt: this day's bright / dark clears; pendingEnd: a day end still falling in
+let playLog=[],clock=3,day=1,pool=6,burstFx=null,dayLog=[],dayCnt={b:0,d:0},pendingEnd=null; // dayLog: how each day ended {day,end,ring,b,d,win}; dayCnt: this day's bright / dark clears; pendingEnd: a day end still falling in
 // // clock: the hour (3 = Twilight … 24 = Midnight, the day's last turn); day: your attempts; pool: what the source put out at its last burst; fresh: no ring added yet since it
 let constel=[],armed=null,weaveSel=[],weaveAsk=null,clearFx={},mergeFx=[],feedMsg={t:'',d:'',at:-1e9}; // constellations {keys,type}; the armed map item; a Weave being drawn; animations; the final count
 const STEP_H=3; // the day: eight turns of three hours
-const CACHE_V='20261110f'; // the build: bump with shared.js's
+const CACHE_V='20261110g'; // the build: bump with shared.js's
 const SCENE=new URLSearchParams(location.search).get('scene'); // a Guide / event demo: the map plays a scripted moment (no surface behind it)
 let phase='move',turnTimer=0,mergeTimer=0;
 let gameOverReason='';
@@ -242,7 +242,7 @@ function checkVoidAccess(){const vc=cells[K(0,0)];if(!vc||!vc.isVoid){voidOpen=f
 function newMap(){flotLake(()=>true); // a new map, a descent and every midnight: the source at the centre bursts out (T.mapBurstRings rings at 1.00), the player beside it
   dropSession();cells={};totalCells=0;captureOrder=[];mergeGroups=[];mergeIdCounter=0;voidOpen=false;phase='move';gameOverReason='';prev={};constel=[];weaveSel=[];weaveAsk=null;armed=null;
   cells[K(0,0)]={q:0,r:0,v:0,cap:false,capVal:0,isP:false,mergeId:null,isVoid:true};totalCells++;
-  turn=Math.max(1,T.mapBurstRings||3);for(let n=1;n<=turn;n++)addRing(n);pool=0;for(const k in cells)if(!cells[k].isVoid){cells[k].v=1.0;pool+=1;}fresh=true;
+  turn=Math.max(1,T.mapBurstRings||3);for(let n=1;n<=turn;n++)addRing(n);pool=0;for(const k in cells)if(!cells[k].isVoid){cells[k].v=1.0;pool+=1;}
   const r1=ring(1),si=Math.floor(Math.random()*r1.length);pQ=r1[si][0];pR=r1[si][1];
   if(MP.on&&MP.role==='host'){const h=mpP('h');if(h){h.q=pQ;h.r=pR;}for(const P of MP.players)if(P.id!=='h'){const sp=mpSpot();P.q=sp[0];P.r=sp[1];}} // (playing together: everyone starts the new day beside the source)
   cells[K(pQ,pR)].isP=true;burstFx={t0:performance.now(),kind:'burst'};
@@ -291,12 +291,12 @@ function initGame(){ // a new map: score and depth start over; items, resources 
   neb({cmd:'day',day:1,newRun:true});hubPop=[null,null];score=0;depth=0;clock=3;_sunH=3;_sun={from:3,to:3,t0:0};day=1;dayLog=[];playLog=[];dayCnt={b:0,d:0};pendingEnd=null;newMap();
   showTurn();mapResize();focusCam(false);updateHint();saveMap();
 }
-function advanceTurn(){ // time moves on (a move) by one time of day; the spill spreads a ring, except the first turn after a burst
+function advanceTurn(){ // time moves on (a move) by one time of day; the spill spreads a ring (from the very first move)
   if(mpPass()){updateHint();return;}
   if(pday&&pdOn())pday.i++; // (the Parade Day parade moves on a hex) // (playing together: the next player's turn first, until everyone has had theirs)
   awardConstellations();freedShops();clock+=STEP_H;
   if(clock>24){clock=24;endDay('midnight',0);return;} // after Midnight: the day ends (the new day starts once it has all fallen in)
-  if(fresh)fresh=false;else{turn++;addRing(turn);}redistribute();checkVoidAccess();flotDrift();showTurn();}
+  turn++;addRing(turn);redistribute();checkVoidAccess();flotDrift();showTurn();}
 const canRest=()=>(MP.on?mpMine():tired())&&currentView==='map'&&!menuOpen&&!shopUI&&phase!=='collapse'&&phase!=='ended'&&phase!=='gameover'; // Midnight, on the map: the day can be ended (Rest is the only way: no moves at Midnight)
 function rest(){if(!canRest())return;if(tired()){buoy.dunk={t0:performance.now(),d:1,ms:900};buoy.rested=true;}if(MP.role==='guest'){mpSend('rest');return;}advanceTurn();updateHint();saveMap();} // (at Midnight it sinks to sleep, and bobs up in the morning) // Rest: the day ends at Midnight without a move, after any last thing (a shop, an item) you wanted to do
 const clockStr=(h=clock)=>TIMES[h]||TIMES[Math.max(3,Math.floor(h/3)*3)]||TIMES[3];
@@ -418,7 +418,7 @@ const ITEM_NOTE={leash:txt('map.unwinds_a_cleared_hex'),dial:txt('map.goes_strai
   knot:txt('map.used_on_a_surface_2'),gate:txt('map.used_on_a_surface_3'),
   key:txt('map.used_on_a_surface_4'),lens:txt('map.used_on_a_surface_5')};
 function itemInfo(k,c){ // an item in the dock: what it does; in hand over a hex, what it would do there (and what it costs)
-  if(k==='test')return[txt('test.tool'),txt('test.tool_hint')]; // the test tool in hand
+  if(k==='buoy')return[txt('map.buoy.deck'),txt('map.buoy.deck_d')];if(k==='test')return[txt('test.tool'),txt('test.tool_hint')]; // the test tool in hand
   const n=inv[k]||0,nm=KIND_NAME[k]||k;if(!ITEM_NOTE[k])return[curName(k),txt('map.you_have',fmtN(shopWallet(k)))];
   if(!c)return[nm+' × '+n+((armed===k?txt('map.in_hand'):(DOCK_ITEMS.includes(k)?txt('map.click_to_take_it'):txt('map.earned_on_the_map')))),ITEM_NOTE[k]];
   const ck=K(c.q,c.r),g=c.mergeId!=null?mergeGroups.find(x=>x.id===c.mergeId):null,have=(m,u)=>m+(n<u?txt('map.item.youhave',n):'');
@@ -507,7 +507,7 @@ function shrinkRings(n,P){ // the rings past n close in: ring n+1 becomes ring 1
   captureOrder=captureOrder.map(x=>({keys:x.keys.map(k=>map[k]).filter(Boolean),mergeId:x.mergeId})).filter(x=>x.keys.length);constel=constel.map(c=>{const k2=mk(c.keys);return k2?Object.assign(c,{keys:k2}):null;}).filter(Boolean);
   for(const k in clearFx)if(!cells[k])delete clearFx[k];
   const m=Math.max(1,P.m-n),h=P.m>n?slotHex(m,P.s,P.p,P.m):slotHex(1,P.s,0,1);[pQ,pR]=cells[K(h[0],h[1])]&&!cells[K(h[0],h[1])].isVoid?h:(ring(1).find(([q,r])=>cells[K(q,r)]&&!cells[K(q,r)].isVoid)||h);if(!cells[K(pQ,pR)])cells[K(pQ,pR)]={q:pQ,r:pR,v:0,cap:false,capVal:0,isP:false,mergeId:null,isVoid:false};
-  cells[K(pQ,pR)].isP=true;buoyGo('sail');totalCells=Object.keys(cells).length;turn=Math.max(1,ringMax());fresh=true;
+  cells[K(pQ,pR)].isP=true;buoyGo('sail');totalCells=Object.keys(cells).length;turn=Math.max(1,ringMax());
   checkConstellations();redistribute();checkVoidAccess();phase='move';
   {const ks=[];for(let i=1;i<=Math.min(3,turn);i++)for(const[q,r]of ring(i))if(cells[K(q,r)])ks.push(K(q,r));camTweenTo(ks.length?ks:['0,0'],900);}
   if(phase==='move'&&!tired()&&!getMoves().length){phase='gameover';gameOverReason=txt('map.go.nomoves');}updateHint();saveMap();}
@@ -1115,21 +1115,21 @@ function pondStep(now){
 let mapHist={}; // the map at the start of each time of day, for the last day and a bit (the Clock smith's Yesterday)
 function mapHistKeep(){if(SCENE)return;const t=day*24+clock;if(!mapHist[t]){mapHist[t]=Object.assign(mpRec(),{pQ,pR});const ks=Object.keys(mapHist).map(Number).sort((a,b)=>a-b);while(ks.length>10)delete mapHist[ks.shift()];}}
 function timeTravel(w){ // the Clock smith: yesterday, this time (the map as it was then, you where you were), or tomorrow, this time (a clean map a day on, before any move, you beside main street)
-  const c=clock;if(w==='yesterday'){const d=mapHist[(day-1)*24+c];if(!d)return;({cells,turn,clock,day,pool,fresh,constel,dayLog,dayCnt,score,totalCells,phase,depth,gameOverReason,captureOrder,mergeGroups,mergeIdCounter,voidOpen}=JSON.parse(JSON.stringify(d)));hubPop=d.hubPop||[null,null];pQ=d.pQ;pR=d.pR;for(const k in cells)cells[k].isP=false;if(cells[K(pQ,pR)])cells[K(pQ,pR)].isP=true;}
+  const c=clock;if(w==='yesterday'){const d=mapHist[(day-1)*24+c];if(!d)return;({cells,turn,clock,day,pool,constel,dayLog,dayCnt,score,totalCells,phase,depth,gameOverReason,captureOrder,mergeGroups,mergeIdCounter,voidOpen}=JSON.parse(JSON.stringify(d)));hubPop=d.hubPop||[null,null];pQ=d.pQ;pR=d.pR;for(const k in cells)cells[k].isP=false;if(cells[K(pQ,pR)])cells[K(pQ,pR)].isP=true;}
   else{day++;newMap();clock=c;popSoonOpen();}
   neb({cmd:'day',day});pendingEnd=null;phase='move';showTurn();mapResize();focusCam(false);updateHint();saveMap();feed(txt('map.clock.title'),txt(w==='yesterday'?'map.clock.yesterday':'map.clock.tomorrow'));}
 function saveMap(){
   if(SCENE)return; // a demo never touches your map
   if(MP.on){if(MP.role==='guest')return;mpSync();} // (playing together: the host's map is everyone's; a friend's own map is left as it was)
   const out={};for(const k in cells){const c=Object.assign({},cells[k]);delete c._im;out[k]=c;}
-  const rec=()=>JSON.stringify({v:3,hist:mapHist,cells:out,turn,clock,day,pool,fresh,constel,dayLog,dayCnt,pendingEnd,score,pQ,pR,totalCells,phase,depth,gameOverReason,captureOrder,mergeGroups,mergeIdCounter,voidOpen,hubPop,playLog,session:nebulaCellKey});
+  const rec=()=>JSON.stringify({v:3,hist:mapHist,cells:out,turn,clock,day,pool,constel,dayLog,dayCnt,pendingEnd,score,pQ,pR,totalCells,phase,depth,gameOverReason,captureOrder,mergeGroups,mergeIdCounter,voidOpen,hubPop,playLog,session:nebulaCellKey});
   try{localStorage.setItem(MAP_KEY,rec());}catch(e){for(const k in out)delete out[k].shot;try{localStorage.setItem(MAP_KEY,rec());}catch(x){}} // full: an unfinished hex's picture is the first thing to go
 }
 function loadMap(){
   let d=null;try{d=JSON.parse(localStorage.getItem(MAP_KEY)||'null');}catch(e){}
   if(!d||!d.cells)return false;
   if(d.v!==3)return false; // a map from before the times of day starts over
-  ({cells,turn,clock,day,pool,fresh,constel,dayLog,dayCnt,pendingEnd,score,pQ,pR,totalCells,phase,depth,gameOverReason,captureOrder,mergeGroups,mergeIdCounter,voidOpen}=d);mapHist=d.hist||{};playLog=d.playLog||[];if(phase==='collapse'&&!d.pendingEnd){phase='move';for(const k in cells)delete cells[k].stain;} /* (left mid-collapse: it is over) */nebulaCellKey=d.session||null;hubPop=d.hubPop||[null,null];_sunH=clock;_sun={from:clock,to:clock,t0:0};dayLog=dayLog||[];dayCnt=dayCnt||{b:0,d:0};
+  ({cells,turn,clock,day,pool,constel,dayLog,dayCnt,pendingEnd,score,pQ,pR,totalCells,phase,depth,gameOverReason,captureOrder,mergeGroups,mergeIdCounter,voidOpen}=d);mapHist=d.hist||{};playLog=d.playLog||[];if(phase==='collapse'&&!d.pendingEnd){phase='move';for(const k in cells)delete cells[k].stain;} /* (left mid-collapse: it is over) */nebulaCellKey=d.session||null;hubPop=d.hubPop||[null,null];_sunH=clock;_sun={from:clock,to:clock,t0:0};dayLog=dayLog||[];dayCnt=dayCnt||{b:0,d:0};
   if(pendingEnd)finishDay();else if(phase==='collapse')phase='move';else if(phase==='ended')showDayReport(); // a day left falling in finishes at once; a won run shows its report
   mapResize();focusCam(false);updateHint();return true;
 }
@@ -1532,11 +1532,11 @@ function mpCommon(m){ // either side: a surface being shared, its frames, a poin
 function mpSpot(){const taken=new Set(MP.players.map(p=>K(p.q,p.r)));const r1=ring(1).map(([q,r])=>K(q,r)).filter(k=>cells[k]&&!cells[k].isVoid&&!taken.has(k));return parseK(r1[0]||K(pQ,pR));} // a new player: a free hex beside the source
 function mpLeave(pid){const i=MP.order.indexOf(pid);if(i<0)return;const P=mpP(pid);MP.order.splice(i,1);MP.players=MP.players.filter(p=>p.id!==pid);if(i<MP.turnI)MP.turnI--;if(MP.turnI>=MP.order.length){MP.turnI=0;}
   for(const[k,c]of MP.conns)if(k===pid)MP.conns.delete(k);feed(txt('mp.title'),txt('mp.left',P?P.name:''));if(MP.surf&&MP.surf.owner===pid){MP.surf=null;netOut({t:'surf',owner:pid,on:false});mpView(null);}mpSync();}
-function mpRec(){const out={};for(const k in cells){const c=Object.assign({},cells[k]);delete c._im;delete c.shot;out[k]=c;}return{v:3,cells:out,turn,clock,day,pool,fresh,constel,dayLog,dayCnt,pendingEnd:null,score,totalCells,phase,depth,gameOverReason,captureOrder,mergeGroups,mergeIdCounter,voidOpen,hubPop};}
+function mpRec(){const out={};for(const k in cells){const c=Object.assign({},cells[k]);delete c._im;delete c.shot;out[k]=c;}return{v:3,cells:out,turn,clock,day,pool,constel,dayLog,dayCnt,pendingEnd:null,score,totalCells,phase,depth,gameOverReason,captureOrder,mergeGroups,mergeIdCounter,voidOpen,hubPop};}
 function mpSync(){if(!MP.on||MP.role!=='host')return;const h=mpP('h');if(h){h.q=pQ;h.r=pR;h.name=playerName||h.name;h.col=buoyCol;}const now=performance.now(); // the host: everyone's view of the map (after every change: saveMap calls it)
   if(now-MP._st<60){clearTimeout(MP._stT);MP._stT=setTimeout(mpSync,70);return;}MP._st=now;netOut({t:'state',map:mpRec(),mp:{players:MP.players,order:MP.order,turnI:MP.turnI}});mpBar();}
 function mpApply(m){ // a friend: the map as the host has it (my own hex mine)
-  const d=m.map,dayWas=day,clockWas=clock;({cells,turn,clock,day,pool,fresh,constel,dayLog,dayCnt,score,totalCells,phase,depth,gameOverReason,captureOrder,mergeGroups,mergeIdCounter,voidOpen}=d);hubPop=d.hubPop||[null,null];
+  const d=m.map,dayWas=day,clockWas=clock;({cells,turn,clock,day,pool,constel,dayLog,dayCnt,score,totalCells,phase,depth,gameOverReason,captureOrder,mergeGroups,mergeIdCounter,voidOpen}=d);hubPop=d.hubPop||[null,null];
   Object.assign(MP,m.mp);const me=mpP(MP.me);for(const k in cells)cells[k].isP=false;if(me){pQ=me.q;pR=me.r;if(cells[K(pQ,pR)])cells[K(pQ,pR)].isP=true;}
   if(!MP._got){MP._got=true;_sunH=clock;_sun={from:clock,to:clock,t0:0};mapResize();focusCam(false);feed(txt('mp.title'),txt('mp.joined_you'));}
   if(day!==dayWas)neb({cmd:'day',day});if(clock!==clockWas||day!==dayWas)showTurn();updateHint();mpBar();}
@@ -1580,7 +1580,7 @@ function syncDock(){const box=document.getElementById('hinv');if(!box)return;
   box.innerHTML=DOCK_ITEMS.map(k=>`<div class="slot${armed===k?' armed':''}${(inv[k]||0)<=0?' empty':''}" data-k="${k}" title="${KIND_NAME[k]}">${icons[k]||KIND_NAME[k][0]}<b>${inv[k]||0}</b></div>`).join('')+
     '<div class="sep"></div>'+['prism','knot','gate','key','lens'].filter(k=>(inv[k]||0)>0).map(k=>`<div class="slot empty" data-k="${k}" title="${KIND_NAME[k]} (earned)">${icons[k]||KIND_NAME[k][0]}<b>${inv[k]}</b></div>`).join('')+
     (shopUI?'<div class="sep"></div>'+(shopUI.gift?['gift']:['bright','dim','neutron','magnetic','pulsing','duck']).map(c=>`<div class="slot${c===shopUI.tab?' wal':''}" data-k="${c}" title="${curName(c)}">${curIcon(c)}<b>${fmtN(shopWallet(c))}</b></div>`).join(''):''); // in a shop: every purse, the open tab's lit
-  box.insertAdjacentHTML('beforeend',`<div class="slot buoy" data-k="buoy" title="${txt('coll.title')}">${BUOY_ICO}</div>`);box.querySelector('.buoy').onclick=()=>openCollections(); // your buoy: Status and your collections
+  box.insertAdjacentHTML('beforeend',`<div class="slot buoy" data-k="buoy" title="${txt('map.buoy.deck')}">${BUOY_ICO}</div>`);box.querySelector('.buoy').onclick=()=>currentView==='cabin'?cabinClose():cabinOpen(); // your buoy: below deck, or back up (its Status is the mirror there)
   box.insertAdjacentHTML('beforeend',ilDockArrow(dockMin));
   for(const k of [...DOCK_ITEMS,'prism','knot','gate','key','lens'])if((inv[k]||0)!==dockSeen[k]){if(dockSeen[k]!=null)dockUp[k]=performance.now();dockSeen[k]=inv[k]||0;} // a count that changed shows for a while
   dockLinger(performance.now());

@@ -710,6 +710,8 @@ surf.create.duckmade,🦆 {duck} floats here,placed with Create,duck = $0 — th
 surf.create.duckpond,🦆 {duck} is off to the pond · it swims on the lake when you are back on the map,sent with Create,duck = $0 — the duck
 surf.create.nopond,The pond is on the Surface Map: open this surface from the map to send a duck there,"Create → pond, outside the map",
 coll.title,Status & collections,Status & collections (your buoy),
+map.buoy.deck,"Below deck (or back up on deck)",the dock's buoy icon,
+map.buoy.deck_d,"Your buoy: its Status is the mirror below deck",the dock's buoy icon,
 coll.tab.status,Status,Status & collections,
 coll.tab.coll,Ducks,Status & collections,
 coll.tab.notes,Letters,Status & collections,
