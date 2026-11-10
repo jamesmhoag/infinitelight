@@ -10179,7 +10179,7 @@ function renderWorld(now,suppressGlow,asPlay){
     // In the normal scheme the background is already black so this is invisible/harmless; in Invert mode it's the
     // thing that actually carries the background from white to black as the Dark Remnant finishes consuming the surface.
     const bgR=Math.min(Math.sqrt(W*W+H*H),blackHole.activateR);
-    if(bgR>0){ctx.save();ctx.beginPath();if(blackHole.rift){ctx.translate(blackHole.x,blackHole.y);ctx.rotate(blackHole.rift.a);const L=Math.hypot(W,H);ctx.rect(-L,-bgR,2*L,2*bgR);}else ctx.arc(blackHole.x,blackHole.y,bgR,0,6.2832);ctx.fillStyle=blackHole.rift?'#fff':'#000';ctx.fill();ctx.restore();} // (a Rift's: a band along it)
+    if(bgR>0){ctx.save();ctx.beginPath();if(blackHole.rift){ctx.translate(blackHole.x,blackHole.y);ctx.rotate(blackHole.rift.a);const L=Math.hypot(W,H);ctx.rect(-L,-bgR,2*L,2*bgR);}else ctx.arc(blackHole.x,blackHole.y,bgR,0,6.2832);ctx.fillStyle=blackHole.rift?`rgba(255,255,255,${(T.riftWashA!=null?T.riftWashA:0.28).toFixed(3)})`:'#000';ctx.fill();ctx.restore();} // (a Rift's: a band along it)
   }
 
   if(!pointsCanvas){pointsCanvas=document.createElement('canvas');pointsCtx=pointsCanvas.getContext('2d');}
@@ -12555,10 +12555,11 @@ function spawnCollectSparks(p){const now=performance.now(),k=p.remKind||'brown',
     shardFx.push({x:p.x+ex,y:p.y+ey,cx:p.x,cy:p.y-r*0.5,rise:0.01+Math.random()*0.02,vx:0,vy:0,born:now,dur:450+Math.random()*450,s:0.9+Math.random()*1.4,col:cols[i%cols.length],tw:Math.random()*6.28});}}
 function toggleReadout(m){if(m==='tel')toggleTelemetry();else if(m==='risk')toggleRisks();else if(m==='dyn')toggleDynamics();else if(m==='cls')toggleClass();else toggleRadii();updateInventoryUI();}
 function readoutSlotHTML(){const b=(m,l,on)=>`<span data-m="${m}" class="rdb${on?' on':''}">${l}</span>`;return `<div class="slot rd5" data-kind="readouts">${b('tel','T',telemetryOn)}${b('risk','R',risksOn)}${b('dyn','D',dynamicsOn)}${b('cls','C',classOn)}${b('rad','◎',showRadii)}</div>`;}
-function liveSrc(name){return '<!doctype html>'+_SRC.replace('<script>',()=>'<script>window.__SCENE='+JSON.stringify(name)+';window.__INV='+(invertMode?1:0)+';window.__T='+JSON.stringify(T)+';<\/script><script>');}
+function liveSrc(name,rec){return '<!doctype html>'+_SRC.replace('<script>',()=>'<script>window.__SCENE='+JSON.stringify(name)+';'+(rec?'window.__REPLAY='+JSON.stringify(rec).replace(/</g,'\\u003c')+';':'')+'window.__INV='+(rec?rec.inv:(invertMode?1:0))+';window.__T='+JSON.stringify(T)+';<\/script><script>');}
 
 const SCENES={};
 (function(){
+  SCENES.replay={dur:(window.__REPLAY||{}).dur||6000,setup(S){const R=window.__REPLAY||{dorm:[],objs:[]};for(const d of R.dorm)stampSnapshotAt(d,S.W/2+d.dx,S.H/2+d.dy);for(const o of R.objs){const p=stampSnapshotAt(o,S.W/2+o.dx,S.H/2+o.dy);if(!p)continue;p.vx=o.vx||0;p.vy=o.vy||0;p.rot=o.rot||0;if(o.on)S.act(p);}}}; // your moment: what was there, as it was, playing out again
   const rv=s=>(Math.random()-0.5)*2*s,TAU=6.2832;
   const R4=(x0,y0,x1,y1)=>[{x:x0,y:y0},{x:x1,y:y0},{x:x1,y:y1},{x:x0,y:y1}];
   const shp=o=>{pushFixed(Object.assign({id:++shapeSeq,closed:false,acc:0,lastSweep:0,broken:{}},o));rebuildGlassList();};
@@ -12690,9 +12691,10 @@ const SCENES={};
   SCENES.eclpoint=fxp('black');SCENES.cryspoint=fxp('white');
 })();
 function sceneBoot(name,TT){
+  {const l=document.getElementById('ilLoad');if(l)l.remove();document.documentElement.classList.remove('il-arrive');} // (a copy of a page that was still loading carries its loading screen: a demo or a recording never shows it)
   Object.assign(T,TT||{});
-  {const k=0.5/Math.max(0.05,T.particleScale||1);T.nebBlur*=k;T.nebBlur2*=k;} // a demo draws particles at half size: its blur radii shrink with them, so the look matches play
-  T.particleScale=0.5;T.particleGap=2;T.nebBlurScale=1;T.glowResScale=1; // a demo canvas is small: its blur and glow layers can run at full resolution
+  if(name!=='replay'){{const k=0.5/Math.max(0.05,T.particleScale||1);T.nebBlur*=k;T.nebBlur2*=k;} // a demo draws particles at half size: its blur radii shrink with them, so the look matches play (a recording plays at the size it happened, in your settings)
+  T.particleScale=0.5;T.particleGap=2;T.nebBlurScale=1;T.glowResScale=1;} // a demo canvas is small: its blur and glow layers can run at full resolution
   const dockScene=(name==='itemcache'||name==='discover');wrap.classList.add('ui-hidden');if(!dockScene)document.getElementById('dock').style.display='none';wrap.style.pointerEvents='none';for(const k in T)if(k.slice(0,3)==='dc_')T[k]=0;
   const def=SCENES[name]||{dur:3000,setup(){}};
   const S={W:0,H:0,t0:0,n:0,
@@ -12829,34 +12831,43 @@ function fireEvent(id,at){if(window.__SCENE||BUILD||discSeen.has('ev:'+id)||_evQ
 // happens for Event solo ms, the game pauses and the frame grows into the event's card, its art the recording of your own moment. Another event during
 // one sends the first to the discovery desk (its count by the dock) and takes over; after the last, its card shows with the rest in the hand to review.
 // An event is discovered when it happens (the Guide shows it at once); it stays marked unread until it is looked at, anywhere ──
-const EV_FRAME={pigment:'s',point:'s',dim:'s',bright:'l',neutron:'m',magnetic:'m',pulsing:'m',dimrelic:'m',brightrelic:'m',duck:'m',dark:'l',rift:'f'};
+const EV_FRAME={pigment:'s',point:'s',dim:'s',bright:'s',neutron:'s',magnetic:'s',pulsing:'s',dimrelic:'s',brightrelic:'s',duck:'s',dark:'l',rift:'f'}; // a frame's size: small, for what matters (a remnant left by a nova that covered the screen is still small); large for a Dark Remnant; the whole screen for a Rift
 const EV_UNREAD_KEY='il_ev_unread';let evUnread=new Set();try{evUnread=new Set(JSON.parse(localStorage.getItem(EV_UNREAD_KEY)||'[]'));}catch(e){}
 function evUnreadSave(){try{localStorage.setItem(EV_UNREAD_KEY,JSON.stringify([...evUnread]));}catch(e){}}
-let _evRec=[],_evRecAt=0,_evRecPool=[],_evCap=null,_evZoom=null,_evClips={},_evPlay=0,_evDeskOpen=false;
-function evFrameR(c){return c.sz==='f'?Math.hypot(W,H):c.sz==='l'?(T.evFrameL||260):c.sz==='m'?(T.evFrameM||130):(T.evFrameS||70);}
+let _evSnaps=[],_evSnapAt=0,_evCap=null,_evZoom=null,_evRecs={},_evDeskOpen=false;
+// The recording is not pictures: it is the surface's own state (each object as Duplicate copies it, shining or not, and the nebula's particles there),
+// taken Event pre ms before the event, in a frame of the card's own shape round it (unwrapped across the screen's edges: a moment at an edge is one
+// piece). On its card it plays again, live, in a copy of the game at the size it happened and in the settings you play with now: your own moment,
+// as you saw it, and never a picture. It is kept (IndexedDB evrec:<id>) for its card, its Guide entries and the Journal; an event with none yet shows its demo.
+function evFrameR(c){const ar=T.evAspect||1.65,h=c.sz==='f'?H/2:c.sz==='l'?(T.evFrameL||160):(T.evFrameS||55);return{rh:h,rw:Math.min(c.sz==='f'?W/2:W/2,h*ar)};} // its half height and half width (the card's shape; a Rift's: the screen's height, the card's shape across it)
 function evCapSlow(now){const c=_evCap;if(!c)return 0;const u=(now-c.t0)/250;return (T.evSlow!=null?T.evSlow:0.5)*Math.min(1,u);} // (a 50% slow, eased in, for as long as it is captured)
-function evRecord(now){if(window.__SCENE||BUILD||now-_evRecAt<(T.evRecMs||66))return;_evRecAt=now;const k=Math.min(1,(T.evRecW||360)/canvas.width),w=Math.max(1,Math.round(canvas.width*k)),h=Math.max(1,Math.round(canvas.height*k));
-  let cv=_evRecPool.pop();if(!cv||cv.width!==w||cv.height!==h){cv=document.createElement('canvas');cv.width=w;cv.height=h;}cv.getContext('2d').drawImage(canvas,0,0,w,h);_evRec.push({t:now,cv,sx:w/W,sy:h/H});
-  const keep=_evCap?_evCap.t0-(T.evPreMs||600):now-(T.evPreMs||600);while(_evRec.length&&_evRec[0].t<keep){const f=_evRec.shift();if(!f.kept)_evRecPool.push(f.cv);}}
+function evRecord(now){if(window.__SCENE||BUILD||now-_evSnapAt<(T.evSnapMs||250))return;_evSnapAt=now; // the rolling record: what is on the surface, every Event snapshot ms
+  const L=[];for(const o of active){if(o.dying||o.captured||o._bhGone)continue;const q=snapshotForDup(o,false);q.on=pressedIDs.has(o.id)?1:0;L.push(q);}_evSnaps.push({t:now,L});
+  const keep=now-(T.evPreMs||600);while(_evSnaps.length>1&&_evSnaps[1].t<=keep)_evSnaps.shift();}
 function evAt(c){const a=c.at;return[a.x,a.y];}
-function evCapStart(id,at,sz){const now=performance.now();if(_evCap){evCapClip(_evCap);_evDesk.push(_evCap.id);evDeskSync();} // another one during this: it goes to the desk
-  _evCap={id,at,sz,t0:now,rects:[]};playGlassTap();}
-function evCapClip(c){const fr=_evRec.filter(f=>f.t>=c.t0-(T.evPreMs||600));for(const f of fr)f.kept=1;_evClips[c.id]={frames:fr.map(f=>({cv:f.cv,sx:f.sx,sy:f.sy})),rect:c.rect||{x:W/2,y:H/2,r:evFrameR(c)}};const ks=Object.keys(_evClips);if(ks.length>(T.evClipsKept||8))delete _evClips[ks[0]];}
+function evCapStart(id,at,sz){const now=performance.now();if(_evCap){evCapSave(_evCap);_evDesk.push(_evCap.id);evDeskSync();} // another one during this: it goes to the desk
+  _evCap={id,at,sz,t0:now,snap:_evSnaps[0]||null};_evCap.rect=Object.assign({x:at.x,y:at.y},evFrameR(_evCap));playGlassTap();}
+function evCapSave(c){const S=c.snap;if(!S)return;const{x,y,rw,rh}=c.rect,inR=(px,py)=>{const dx=_wrapD(px-x,W),dy=_wrapD(py-y,H);return Math.abs(dx)<=rw+30&&Math.abs(dy)<=rh+30?[dx,dy]:null;}; // (a margin round it: what drifts in shows)
+  const objs=[],dorm=[];for(const q of S.L){const d=inR(q.x,q.y);if(d)objs.push(Object.assign({},q,{dx:d[0],dy:d[1]}));}
+  for(const o of dormant){if(!o)continue;const d=inR(o.x,o.y);if(d){const q=snapshotForDup(o,true);q.dx=d[0];q.dy=d[1];dorm.push(q);}}
+  const rec={id:c.id,w:Math.round(2*rw),h:Math.round(2*rh),inv:invertMode?1:0,dur:Math.round(performance.now()-S.t+(T.evReplayTail||900)),objs,dorm,at:Date.now()};_evRecs[c.id]=rec;IDB.put('evrec:'+c.id,rec).catch(()=>{});}
 let _evDesk=[];
-function evCapTick(now){const c=_evCap;if(!c)return;const[x,y]=evAt(c),r=evFrameR(c);c.rect={x,y,r};
-  if(now-c.t0>=Math.max(T.evCaptureMs||2400,T.evSoloMs||1600)){_evCap=null;evCapClip(c);evZoomStart(c);}} // nothing else happened: pause, and the frame grows into its card
-function evZoomStart(c){const wasP=isPaused;if(!isPaused)togglePause();const rc=wrap.getBoundingClientRect(),cr=canvas.getBoundingClientRect(),k=cr.width/W,rr=Math.min(c.rect.r,Math.max(W,H)),el=document.createElement('canvas'),S=280;
-  el.width=S;el.height=S;const clip=_evClips[c.id],f=clip.frames[clip.frames.length-1];if(f){const g=el.getContext('2d');g.drawImage(f.cv,(c.rect.x-rr)*f.sx,(c.rect.y-rr)*f.sy,2*rr*f.sx,2*rr*f.sy,0,0,S,S);}
-  el.style.cssText=`position:absolute;z-index:60;left:${cr.left-rc.left+(c.rect.x-rr)*k}px;top:${cr.top-rc.top+(c.rect.y-rr)*k}px;width:${2*rr*k}px;height:${2*rr*k}px;border:1px solid rgba(255,255,255,.7);box-shadow:0 0 18px rgba(255,255,255,.35);transition:all ${(T.evZoomMs||700)}ms cubic-bezier(.2,.8,.2,1);pointer-events:none`;
-  wrap.appendChild(el);_evZoom=el;requestAnimationFrame(()=>requestAnimationFrame(()=>{el.style.left=(rc.width/2-S/2)+'px';el.style.top=(rc.height/2-S/2-60)+'px';el.style.width=S+'px';el.style.height=S+'px';}));
+function evCapTick(now){const c=_evCap;if(!c)return;const[x,y]=evAt(c);c.rect.x=x;c.rect.y=y;
+  if(now-c.t0>=Math.max(T.evCaptureMs||2400,T.evSoloMs||1600)){_evCap=null;evCapSave(c);evZoomStart(c);}} // nothing else happened: pause, and the frame grows into its card
+function evZoomStart(c){const wasP=isPaused;if(!isPaused)togglePause();const rc=wrap.getBoundingClientRect(),cr=canvas.getBoundingClientRect(),k=cr.width/W,{x,y,rw,rh}=c.rect,el=document.createElement('canvas'),ar=rw/rh,SW=320,SH=Math.round(320/ar),cw=canvas.width/W;
+  el.width=SW;el.height=SH;{const g=el.getContext('2d');for(const[ox,oy]of[[0,0],[W,0],[-W,0],[0,H],[0,-H]])g.drawImage(canvas,(x-rw+ox)*cw,(y-rh+oy)*cw,2*rw*cw,2*rh*cw,0,0,SW,SH);} // (the frame as it is now, joined across an edge)
+  el.style.cssText=`position:absolute;z-index:60;left:${cr.left-rc.left+(x-rw)*k}px;top:${cr.top-rc.top+(y-rh)*k}px;width:${2*rw*k}px;height:${2*rh*k}px;border:1px solid rgba(255,255,255,.7);box-shadow:0 0 18px rgba(255,255,255,.35);transition:all ${(T.evZoomMs||700)}ms cubic-bezier(.2,.8,.2,1);pointer-events:none`;
+  wrap.appendChild(el);_evZoom=el;requestAnimationFrame(()=>requestAnimationFrame(()=>{el.style.left=(rc.width/2-SW/2)+'px';el.style.top=(rc.height/2-SH/2-60)+'px';el.style.width=SW+'px';el.style.height=SH+'px';}));
   setTimeout(()=>{el.remove();_evZoom=null;_evHand=[c.id,..._evDesk.filter(i=>i!==c.id)];_evDesk=[];_evOpen=true;_evWasPaused=wasP;showEventCard(c.id,false);evDeskSync();},(T.evZoomMs||700)+40);}
-function evFrameDraw(c2,now){const c=_evCap;if(!c||!c.rect)return;const{x,y,r}=c.rect,em=Math.max(0,1-(now-c.t0)/(T.evEmphMs||500)),a=0.22+0.6*em; // the frame round it: faint, brighter as it starts; sparkles running round its border
-  const box=(ox,oy)=>{c2.save();c2.strokeStyle=`rgba(255,255,255,${a.toFixed(3)})`;c2.lineWidth=1+2*em;c2.shadowColor='rgba(255,255,255,0.8)';c2.shadowBlur=6+14*em;if(c.sz==='f')c2.strokeRect(3,3,W-6,H-6);else c2.strokeRect(x+ox-r,y+oy-r,2*r,2*r);c2.restore();
-    const L=c.sz==='f'?[3,3,W-6,H-6]:[x+ox-r,y+oy-r,2*r,2*r],P=2*(L[2]+L[3]);for(let i=0;i<10;i++){let d=((now/1400+i/10)%1)*P,px,py;if(d<L[2]){px=L[0]+d;py=L[1];}else if((d-=L[2])<L[3]){px=L[0]+L[2];py=L[1]+d;}else if((d-=L[3])<L[2]){px=L[0]+L[2]-d;py=L[1]+L[3];}else{d-=L[2];px=L[0];py=L[1]+L[3]-d;}
+function evFrameDraw(c2,now){const c=_evCap;if(!c||!c.rect)return;const{x,y,rw,rh}=c.rect,em=Math.max(0,1-(now-c.t0)/(T.evEmphMs||500)),a=0.22+0.6*em; // the frame round it (the card's shape): faint, brighter as it starts; sparkles running round its border
+  const box=(ox,oy)=>{const L=c.sz==='f'?[W/2-rw+3,3,2*rw-6,H-6]:[x+ox-rw,y+oy-rh,2*rw,2*rh];c2.save();c2.strokeStyle=`rgba(255,255,255,${a.toFixed(3)})`;c2.lineWidth=1+2*em;c2.shadowColor='rgba(255,255,255,0.8)';c2.shadowBlur=6+14*em;c2.strokeRect(...L);c2.restore();
+    const P=2*(L[2]+L[3]);for(let i=0;i<10;i++){let d=((now/1400+i/10)%1)*P,px,py;if(d<L[2]){px=L[0]+d;py=L[1];}else if((d-=L[2])<L[3]){px=L[0]+L[2];py=L[1]+d;}else if((d-=L[3])<L[2]){px=L[0]+L[2]-d;py=L[1]+L[3];}else{d-=L[2];px=L[0];py=L[1]+L[3]-d;}
       const tw=0.5+0.5*Math.sin(now/90+i*1.7);c2.fillStyle=`rgba(255,255,255,${((0.4+0.6*em)*tw).toFixed(3)})`;c2.beginPath();c2.arc(px,py,1+1.5*tw+2*em,0,6.2832);c2.fill();}};
-  if(c.sz==='f')box(0,0);else wrapCopies(x,y,r,box);}
-function evClipPlay(art,clip){art.innerHTML='';const cv=document.createElement('canvas');cv.width=320;cv.height=320;cv.style.cssText='display:block;position:static;height:100%;max-height:190px;width:auto;aspect-ratio:1/1;background:#000';art.appendChild(cv);const g=cv.getContext('2d'),{x,y}=clip.rect,r=Math.min(clip.rect.r,Math.max(W,H)),N=clip.frames.length,t0=performance.now(),ms=T.evRecMs||66; // the recording: your own moment, played round and round
-  const step=()=>{if(!cv.isConnected){_evPlay=0;return;}const i=Math.floor((performance.now()-t0)/ms)%Math.max(1,N),f=clip.frames[i];if(f){g.fillStyle='#000';g.fillRect(0,0,320,320);g.drawImage(f.cv,(x-r)*f.sx,(y-r)*f.sy,2*r*f.sx,2*r*f.sy,0,0,320,320);}_evPlay=requestAnimationFrame(step);};step();}
+  if(c.sz==='f')box(0,0);else wrapCopies(x,y,Math.max(rw,rh),box);}
+const evRecFor=id=>id&&(_evRecs[id]||null);
+if(!window.__SCENE)IDB.keys().then(ks=>{for(const k of ks)if(typeof k==='string'&&k.indexOf('evrec:')>=0)IDB.get(k.slice(k.indexOf('evrec:'))).then(r=>{if(r&&r.id)_evRecs[r.id]=r;}).catch(()=>{});}).catch(()=>{}); // (your recordings, back from the last time you played)
+function evReplayMount(h,rec){if(!h||h.firstChild)return;const f=document.createElement('iframe'),aw=h.clientWidth||300,ah=h.clientHeight||190,k=Math.max(aw/rec.w,ah/rec.h); // your moment, played again live: a copy of the game at the size it happened (scaled to fill the card, a little cut off if it must)
+  f.style.cssText=`border:0;pointer-events:none;background:#000;position:absolute;left:50%;top:50%;width:${rec.w}px;height:${rec.h}px;transform:translate(-50%,-50%) scale(${k})`;h.style.position='relative';h.style.overflow='hidden';f.srcdoc=liveSrc('replay',rec);h.appendChild(f);}
 function evDeskSync(){let el=document.getElementById('evDesk');const n=new Set([..._evDesk,...evUnread]).size;if(!el){el=document.createElement('button');el.id='evDesk';el.style.cssText='position:absolute;right:12px;bottom:calc(var(--dock-h,0px) + 14px);z-index:30;background:rgba(0,0,0,.75);color:#fff;border:1px solid rgba(255,255,255,.35);border-radius:14px;font:11px monospace;padding:4px 10px;display:none';
     el.onmousedown=e=>e.stopPropagation();el.onclick=e=>{e.stopPropagation();const ids=[...new Set([..._evDesk,...evUnread])].filter(i=>EVENTS.some(v=>v.id===i));if(!ids.length)return;_evDesk=[];_evDeskOpen=true;_evHand=ids;_evAct=0;showEventCard(ids[0],true);};wrap.appendChild(el);}
   el.textContent=txt('ev.desk',n);el.title=txt('ev.desk_tip');el.style.display=n&&!window.__SCENE&&!BUILD?'':'none';el.classList.toggle('new',_evDesk.length>0);}
@@ -12868,9 +12879,9 @@ const TIER=['I','II','III','IV','V'],TIER_COL=['#8b8678','#918a76','#978c71','#9
 const tierOfCost=c=>c<3?0:c<10?1:c<20?2:c<40?3:4,evTier=ev=>ev.tier!=null?ev.tier:EV_TIER[ev.rar]||0;
 function cardHTML(ev,mini){ // the one card format: name bar, art box, type line, text box with facts + flavour
   const t=evTier(ev);
-  return `<div class="mtg${mini?' sm':''}${evUnread.has(ev.id)?' unread':''}" data-ev="${ev.id}" style="--rc:${TIER_COL[t]}"><div class="nm"><b>${gEsc(ev.name)}</b><span class="gem"></span></div><div class="art" data-scene="${ev.scene}">${mini?`<canvas class="rl-m" width="64" height="64" data-k="${ev.ico}"></canvas>`:''}</div><div class="ty"><span>${gEsc(ev.type.replace(/^Event — /,''))}</span><span>Tier ${TIER[t]}</span></div><div class="tx">${(mini?ev.facts().slice(0,1):ev.facts()).map(f=>`<p${ev.fx?' class="fx"':''}>${tvHTML(f)}</p>`).join('')}${ev.flavor?`<p class="fl">${gEsc(ev.flavor)}</p>`:''}</div></div>`; // (small: its first line and its flavour; the rest when it is opened) (fx: the lines are changes to play, set apart from the flavour)
+  return `<div class="mtg${mini?' sm':''}${evUnread.has(ev.id)?' unread':''}" data-ev="${ev.id}" style="--rc:${TIER_COL[t]}"><div class="nm"><b>${gEsc(ev.name)}</b><span class="gem"></span></div><div class="art" data-scene="${ev.scene}" data-ev="${ev.id}">${mini?`<canvas class="rl-m" width="64" height="64" data-k="${ev.ico}"></canvas>`:''}</div><div class="ty"><span>${gEsc(ev.type.replace(/^Event — /,''))}</span><span>Tier ${TIER[t]}</span></div><div class="tx">${(mini?ev.facts().slice(0,1):ev.facts()).map(f=>`<p${ev.fx?' class="fx"':''}>${tvHTML(f)}</p>`).join('')}${ev.flavor?`<p class="fl">${gEsc(ev.flavor)}</p>`:''}</div></div>`; // (small: its first line and its flavour; the rest when it is opened) (fx: the lines are changes to play, set apart from the flavour)
 }
-function mountScene(h,w,hh){if(!h||h.firstChild||document.querySelectorAll('.rl-live iframe,.mtg .art iframe').length>=5)return;const f=document.createElement('iframe'),nm=h.dataset.s||h.dataset.scene;f.style.cssText='border:0;max-width:100%;pointer-events:none;background:#000;border-radius:6px;'+(w?`width:${w}px;height:${hh}px`:'width:100%;height:100%');
+function mountScene(h,w,hh){if(!h||h.firstChild||document.querySelectorAll('.rl-live iframe,.mtg .art iframe').length>=5)return;{const R=(h.dataset.ev||'').split(',').map(evRecFor).find(Boolean);if(R&&!w){evReplayMount(h,R);return;}} /* something you witnessed: your own recording of it, live (a demo only for what you have not) */const f=document.createElement('iframe'),nm=h.dataset.s||h.dataset.scene;f.style.cssText='border:0;max-width:100%;pointer-events:none;background:#000;border-radius:6px;'+(w?`width:${w}px;height:${hh}px`:'width:100%;height:100%');
   if(nm.slice(0,4)==='hub:'){const[sn,dk]=nm.slice(4).split(':');f.src='Surface_Map_HUB.html?v=20261109a&scene='+sn+(sn==='shop'?'&k='+encodeURIComponent(dk||''):'')+'&T='+encodeURIComponent(JSON.stringify(mapSceneT()))+'&D='+encodeURIComponent(JSON.stringify(dk&&DUCK_TYPES[dk]?{[dk]:DUCK_TYPES[dk]}:Object.fromEntries(Object.entries(DUCK_TYPES).slice(0,4))));}else f.srcdoc=liveSrc(nm);h.appendChild(f);} // a Surface Map demo is played by the map itself
 function mapSceneT(){const o={};for(const k in T)if(/^(map|bh|duck|wake|glass|metal|dimGlow|glowHalo|maxSpeed)/.test(k))o[k]=T[k];return o;} // what a map demo needs of the tuners
 function showCardHTML(html){ // a Guide card (an entry or a shop) opened over the Guide, where an event card shows
@@ -12890,7 +12901,7 @@ function showEventCard(id,review){
   ov.innerHTML=`<div class="ev-box">${cardHTML(ev)}<div class="ev-un">${un.length?txt('card.unlocks',gEsc(un.join(' · '))):''}</div>${_evHand.length>1?`<div class="ev-hand">${_evHand.map((h,i)=>i===_evAct?'':cardHTML(EVENTS.find(e=>e.id===h),true)).join('')}</div>`:''}<button id="evOk">${txt(review?'card.close':'card.continue')}</button></div>`;
   ov.style.display='flex';wrap.classList.add('ev-open');
   ov.querySelectorAll('.ev-hand .mtg').forEach(c=>{c.onclick=()=>showEventCard(c.dataset.ev,false);});ov.querySelectorAll('canvas.rl-m').forEach(cv=>rulesDraw(cv,cv.dataset.k));
-  const art=ov.querySelector('.art');if(_evClips[id])evClipPlay(art,_evClips[id]);else{art.dataset.s=ev.scene;mountScene(art);} // its art: the recording of it happening in your session, when there is one (else its demo)
+  const art=ov.querySelector('.art');art.dataset.s=ev.scene;art.dataset.ev=id;mountScene(art); // its art: your recording of it, when there is one (else its demo)
   document.getElementById('evOk').onclick=()=>closeEventCard();
 }
 function shopBackHTML(k){return `<div class="mtg sm back sb"><div class="art"><img class="sign hid" src="shops/sign_${k}.svg" alt=""></div></div>`;} // a shop not yet found: its sign's shape
@@ -12904,7 +12915,7 @@ function shopCardHTML(k,mini){const S=SHOPS[k],seen=evSeen('shop_'+k),t=S.street
   return `<div class="mtg${mini?' sm':' full'}" data-shop="${k}" style="--rc:${TIER_COL[t]}"><div class="nm"><b>${gEsc(S.n)}</b><span class="gem"></span></div><div class="art">${art}</div><div class="ty"><span>Shop · ${S.street?'main street':'pop-up'}</span><span>Tier ${TIER[t]}</span></div><div class="tx"><p>${gEsc(S.tag)}</p>${mini?'':`<p>${gEsc(how)}</p><p>${gEsc(S.about||'')}</p><p><b>Sells</b> (each found by discovery):</p>${items}`}</div></div>`;}
 function closeEventCard(){if(_evDraw)return;
   const ov=document.getElementById('evOverlay');if(ov){ov.querySelectorAll('iframe').forEach(f=>f.remove());ov.style.display='none';}
-  wrap.classList.remove('ev-open');_evOpen=false;_evHand=[];_evDeskOpen=false;if(_evPlay){cancelAnimationFrame(_evPlay);_evPlay=0;}
+  wrap.classList.remove('ev-open');_evOpen=false;_evHand=[];_evDeskOpen=false;
   if(!_evReview&&!_evWasPaused&&isPaused&&!_rulesOpen){togglePause();pauseRampDur=Math.max(pauseRampDur,T.evResumeMs);} // a slow start back, to pick up where you were
   hubOverlayCheck();
 }
@@ -13072,7 +13083,7 @@ function ruleCardHTML(e,mini){ // a Guide entry as a card: its name, art (a live
   if(!mini){tx+=rows.slice(0,1).map(p).join('');if(rows.length>1)tx+=`<div class="rl-x" data-disc="${ids.det}">${rows.slice(1).map(p).join('')}</div>`;
     if(sc.length>1)tx+=`<div class="rl-x" data-disc="${ids.ill}">${sc.slice(1).map(x=>`<span class="rl-live" data-s="${x}"></span>`).join('')}</div>`;
     if(mt.length)tx+=`<div class="rl-x" data-disc="${ids.mat}"><details class="rl-math"><summary>Math (live values)</summary>${mt.map(m=>CONV[m]?`<div class="rl-mh">${gEsc(CONV[m].t)}</div><ul>${CONV[m].f().map(l=>`<li>${tvHTML(l)}</li>`).join('')}</ul>`:'').join('')}</details></div>`;}
-  const art=mini||!sc.length?`<canvas class="rl-m" width="${mini?64:120}" height="${mini?64:120}" data-k="${ico}"></canvas>`:`<div class="art-live" data-disc="${ids.ill}" data-scene="${sc[0]}"></div>`;
+  const art=mini||!sc.length?`<canvas class="rl-m" width="${mini?64:120}" height="${mini?64:120}" data-k="${ico}"></canvas>`:`<div class="art-live" data-disc="${ids.ill}" data-scene="${sc[0]}" data-ev="${[].concat(RULE_EV[id]||[]).join(',')}"></div>`;
   return `<div class="mtg${mini?' sm':' full'}" data-rule="${id}" data-disc="${ids.base}" style="--rc:${TIER_COL[t]}"><div class="nm"><b>${gHi(e[2])}</b><span class="gem"></span></div><div class="art">${art}</div><div class="ty"><span>${gEsc(home)}</span><span>Tier ${TIER[t]}</span></div><div class="tx">${tx}</div></div>`;
 }
 function cardSize(ov){ // every small card the same size: its text box as tall as the longest of them all (every event, Guide entry and shop)
@@ -13685,9 +13696,9 @@ function drawDucks(c,now){
 // drawn by the duck renderer (goodModel in shared.js). A click opens it: what it holds comes out where it is (GOOD_HOLDS: remnants to collect, or a duck), and its
 // packaging floats away. Packaging still here when the surface is cleared never stops the clear: it surfaces with you, as flotsam on the map. A sign is lit and
 // blinks while its shop is open (the map's clock); it is never opened ──
-const GOOD_SHOPS=Object.keys(SHOPS),GOOD_VARIANTS={commodity:['soda','coffee','can',...GOOD_SHOPS.map(sh=>'box:'+sh),'chest'],sign:GOOD_SHOPS.flatMap(sh=>['sign:'+sh,'sign:'+sh+'|lake']),trash:['soda|open','coffee|open','can|open',...GOOD_SHOPS.map(sh=>'box:'+sh+'|open'),'chest|open']}; // Create's three kinds: commodities, signs, trash
+const GOOD_SHOPS=Object.keys(SHOPS),GOOD_VARIANTS={commodity:['soda','coffee','can',...GOOD_SHOPS.map(sh=>'box:'+sh),'chest','chest|lake'],sign:GOOD_SHOPS.flatMap(sh=>['sign:'+sh,'sign:'+sh+'|lake']),trash:['soda|open','coffee|open','can|open',...GOOD_SHOPS.map(sh=>'box:'+sh+'|open'),'chest|open']}; // Create's three kinds: commodities, signs, trash
 for(const t of CREATE_TYPES)if(GOOD_VARIANTS[t.cat])t.variants=GOOD_VARIANTS[t.cat]; // Create → a commodity, a sign or trash, of any kind
-const goodParse=v=>{const[a,st]=String(v).split('|'),[kind,shop]=a.split(':');return{kind,shop:shop||GOOD_SHOP[kind]||(kind==='soda'?String((Math.random()*6)|0):''),open:st==='open',lake:st==='lake'||kind==='chest'};}; // (lake: it floats on the Surface Map's lake — a chest only ever does) // a Create variant → a commodity (a soda's "shop": the effect colour of its can)
+const goodParse=v=>{const[a,st]=String(v).split('|'),[kind,shop]=a.split(':');return{kind,shop:shop||GOOD_SHOP[kind]||(kind==='soda'?String((Math.random()*6)|0):''),open:st==='open',lake:st==='lake'};}; // (lake: it floats on the Surface Map's lake — a chest only ever does) // a Create variant → a commodity (a soda's "shop": the effect colour of its can)
 const GOOD_REM={bright:'white',dim:'brown',neutron:'neutron',magnetic:'magnetic',pulsing:'pulsing'},GOOD_SHOP_HOLDS={bright:{bright:40},dim:{dim:40},neutron:{neutron:2},magnetic:{magnetic:2},pulsing:{pulsing:2},duck:{duck:1},corner:{bright:20},gift:{bright:20},xact:{dim:30},clock:{bright:20}};
 function goodHolds(g){if(g.give)return g.give;return g.kind==='soda'?{pulsing:1}:g.kind==='coffee'?{bright:15}:g.kind==='can'?{duck:1}:g.kind==='box'?GOOD_SHOP_HOLDS[g.shop]||{bright:20}:{};} // what one holds: a delivery box, what was ordered (give)
 const goodName=g=>txt('good.'+g.kind,g.kind==='box'||g.kind==='sign'?(SHOPS[g.shop]||{}).n||'':'')+(g.open?txt('good.opened'):'')+(g.lake&&g.kind!=='chest'?txt('good.on_lake'):'');
@@ -13695,7 +13706,10 @@ const goodType=g=>'good:'+g.kind+':'+(g.shop||'')+':'+(g.kind==='sign'?(g.lit?'l
 let goods=[];
 function spawnGood(x,y,now,g,keep){const a=Math.random()*6.2832,sp=T.duckDrift/60,yaw=Math.random()*6.2832,o={x,y,vx:keep&&g.vx!=null?g.vx:Math.cos(a)*sp,vy:keep&&g.vy!=null?g.vy:Math.sin(a)*sp,q:g.q||quatTurn([0,0,0,1],0.3,yaw,0),spin:g.spin||(Math.random()<0.5?-1:1)*(0.4+Math.random()*0.6),born:now,kind:g.kind,shop:g.shop||'',open:!!g.open,give:g.give||null,ph:Math.random()*6.2832};goods.push(o);return o;}
 function goodAt(mx,my){let best=null,bd=1e9;for(const g of goods){if(g.kind==='sign'||g.open)continue;const d=Math.hypot(_wrapD(mx-g.x,W),_wrapD(my-g.y,H));if(d<T.goodSize*0.55&&d<bd){bd=d;best=g;}}return best;}
-function openGood(g){if(g.open||g.kind==='sign')return;const now=performance.now(),H=goodHolds(g);g.open=true;
+function openGood(g){if(g.open||g.kind==='sign')return;const now=performance.now();
+  if(g.kind==='chest'){const r=chestOpen();if(!r.ok){flashSaveStatus(r.msg);return;}g.open=true;const L=Object.entries(r.got);let i=0;for(const[k,n]of L){earnFx.push({kind:'plus',x:g.x,y:g.y-T.goodSize*0.6-16*i++,text:INV_ICON[k]+' +'+fmtCount(n),born:now,dur:1600});for(let j=0;j<Math.min(8,Math.ceil(n/50));j++)spawnCollectSparks({x:g.x+(Math.random()-0.5)*30,y:g.y+(Math.random()-0.5)*20,remKind:GOOD_REM[k]||'white',isRemnant:true,mass:20,energy:1,r:255,g:240,b:200});} // the lid cracks open, glowing at its seam: its hoard collected as if every gem were clicked
+    flashSaveStatus(txt('chest.opened')+': '+L.map(([k,n])=>fmtCount(n)+' '+(INV_LABEL[k]||k)).join(', '));playGlassTap();g.burn=now+(T.mapChestOpenMs||1600);return;} // then it burns away, as a crate does
+  const H=goodHolds(g);g.open=true;
   for(const k in H){if(k==='duck'){for(let i=0;i<H[k];i++)spawnDuck(g.x+(Math.random()-0.5)*20,g.y+(Math.random()-0.5)*20,now,undefined,true);continue;}
     const rk=GOOD_REM[k];if(!rk)continue;const n=k==='bright'||k==='dim'?Math.max(1,Math.min(8,Math.round(H[k]/10))):H[k],per=k==='bright'||k==='dim'?H[k]/n:1;
     for(let i=0;i<n;i++){const a=i/n*6.2832+Math.random(),p=createRemnantAt(g.x+Math.cos(a)*14,g.y+Math.sin(a)*14,rk);if(p){p.vx=Math.cos(a)*0.6;p.vy=Math.sin(a)*0.6;if(per>1)p.energy=Math.max(p.energy||0,per/10);}}}
@@ -13703,9 +13717,10 @@ function openGood(g){if(g.open||g.kind==='sign')return;const now=performance.now
   playGlassTap();} // opened: it stays, empty, drifting as it was (trash: it surfaces with you from a bright clear; a Dark Remnant or a Rift takes it with everything else)
 function goodStep(now,ts){const bh=blackHole&&!blackHole.complete?blackHole:null;for(let i=goods.length-1;i>=0;i--){const g=goods[i];
     if(bh&&(bh.phase==='active'||(bh.activateR||0)>0)){const v=bhVec(bh,g.x,g.y),d=Math.hypot(v[0],v[1])||1;if(d<(bh.consumeR||0)+T.goodSize*0.3){goods.splice(i,1);continue;}if(bh.phase==='active'||(bh.activateR||0)>=d){const s=Math.min(d,T.blackFlySpeed*ts*0.6);g.x-=v[0]/d*s;g.y-=v[1]/d*s;continue;}} // a Dark Remnant or a Rift draws it in with everything else, and takes it
+    if(g.burn&&now-g.burn>(T.mapChestBurnMs||2600)){goods.splice(i,1);continue;} // (a chest, emptied: burnt away)
     g.x+=g.vx*ts;g.y+=g.vy*ts;g.x=(g.x%W+W)%W;g.y=(g.y%H+H)%H;g.q=quatTurn(g.q,0,g.spin*T.duckSpin/60*ts,0);
     if(g.kind==='sign')g.lit=!!SHOPS[g.shop]&&shopIsOpen(g.shop,runState.clock!=null?runState.clock:12,runState)&&((now/(T.signBlinkMs||700))|0)%4!==3;}} // a sign: lit while its shop is open, blinking (off one beat in four)
-function drawGoods(c,now){for(const g of goods){const age=(now-g.born)/600,pop=age>=1?1:Math.max(0,1+2.7*Math.pow(age-1,3)+1.7*Math.pow(age-1,2)),h=T.goodSize*0.5*pop*(g.kind==='box'||g.kind==='chest'?(T.goodBoxScale||1.4):1),a=1;if(h<0.5||a<=0)continue;
+function drawGoods(c,now){for(const g of goods){const age=(now-g.born)/600,pop=age>=1?1:Math.max(0,1+2.7*Math.pow(age-1,3)+1.7*Math.pow(age-1,2)),h=T.goodSize*0.5*pop*(g.kind==='box'||g.kind==='chest'?(T.goodBoxScale||1.4):1),a=g.burn&&now>g.burn?Math.max(0,1-(now-g.burn)/(T.mapChestBurnMs||2600)):1;if(a<1&&Math.random()<0.4)spawnCollectSparks({x:g.x+(Math.random()-0.5)*h,y:g.y+(Math.random()-0.5)*h*0.6,remKind:'brown',isRemnant:true,mass:5,energy:0.2,r:255,g:140,b:40});if(h<0.5||a<=0)continue;
     if(g.kind==='sign'&&g.lit){c.save();c.globalCompositeOperation='screen';const C=chromaRGB(now,g.ph),gr=c.createRadialGradient(g.x,g.y,0,g.x,g.y,h*2.2);gr.addColorStop(0,`rgba(${C},0.28)`);gr.addColorStop(1,`rgba(${C},0)`);c.fillStyle=gr;c.fillRect(g.x-h*2.2,g.y-h*2.2,h*4.4,h*4.4);c.restore();} // a lit sign's glow
     drawDuck3D(c,goodType(g),g.q,[[g.x,g.y]],h,a,0,null);}}
 function chestOpen(){ // a treasure chest, opened with a Key (no challenge): a hoard of assorted gems — remnants and relics of every kind — counted into the feed like any other collection
@@ -13854,19 +13869,23 @@ Object.assign(RULE_EV,{duck:'duck',duckexo:'duck'});Object.assign(RULE_SCENES,{d
 // the hex is gone: a scar (see riftCell there).
 function bhVec(bh,x,y){if(!bh.rift)return[_wrapD(x-bh.x,W),_wrapD(y-bh.y,H)];const r=bh.rift,s=(x-bh.x)*r.nx+(y-bh.y)*r.ny;return[r.nx*s,r.ny*s];} // from the hole (a Dark Remnant's centre, or the nearest point of a Rift's line) out to (x,y)
 function bhReach(bh){if(!bh.rift)return Math.sqrt(W*W+H*H);let m=0;for(const[x,y]of[[0,0],[W,0],[0,H],[W,H]])m=Math.max(m,Math.abs((x-bh.x)*bh.rift.nx+(y-bh.y)*bh.rift.ny));return m;} // how far its wave runs to cover the screen
-function riftCrackPath(x,y,r,l,P){ // the crack: out both ways from (x,y) along the Rift's line to l px each side, jagged like glass, short splinters off it; at each quarter of the screen it has reached (a stage), a crack branches off at a slight angle (riftForms)
-  P=P||new Path2D();const tx=r.ny,ty=-r.nx,Q=Math.hypot(W,H)/4;
-  for(const sd of[-1,1]){let px=x,py=y;P.moveTo(px,py);for(let d=46,i=0;d<=l;d+=46,i++){const j=(riftJag(i,r.seed+sd)-0.5)*4;px=x+tx*d*sd+r.nx*j;py=y+ty*d*sd+r.ny*j;P.lineTo(px,py);
-      if(riftJag(i+50,r.seed+sd)<0.22){const ba=(riftJag(i+80,r.seed)-0.5)*1.6,bl=8+22*riftJag(i+90,r.seed),bx=tx*sd*Math.cos(ba)-ty*sd*Math.sin(ba),by=tx*sd*Math.sin(ba)+ty*sd*Math.cos(ba);P.lineTo(px+bx*bl,py+by*bl);P.moveTo(px,py);}}
-    for(let s=1;s*Q<l;s++){const d0=s*Q,bl=Math.min(l-d0,Q*0.7),ba=(riftJag(s+200,r.seed+sd)<0.5?-1:1)*(0.12+0.18*riftJag(s+210,r.seed)),bx=tx*sd*Math.cos(ba)-ty*sd*Math.sin(ba),by=tx*sd*Math.sin(ba)+ty*sd*Math.cos(ba),ox=x+tx*d0*sd,oy=y+ty*d0*sd;P.moveTo(ox,oy); // (the branch at this stage)
-      for(let d=30,i=0;d<=bl;d+=30,i++){const j=(riftJag(i+s*31,r.seed-sd)-0.5)*3;P.lineTo(ox+bx*d-by*j,oy+by*d+bx*j);}}}
+function riftCrackPath(x,y,r,n,P){ // the crack, in four stages (n: 0–4, fractional while one runs): from where the mass was, out both ways along the Rift's line to the screen's edges. Each side's way to its
+  // edge is cut in quarters: the first stage runs a quarter of it each way (the whole line's two eighths), and every stage after runs on another quarter from each end, its angle tweaked a few degrees
+  // (Rift stage bend): at the fourth, the eight eighths reach the edges. Jagged like glass, short splinters off it
+  P=P||new Path2D();const tx=r.ny,ty=-r.nx,bend=(T.riftBend!=null?T.riftBend:5)*Math.PI/180;
+  for(const sd of[-1,1]){const dx=tx*sd,dy=ty*sd,toE=Math.min(dx>1e-6?(W-x)/dx:dx<-1e-6?-x/dx:1e9,dy>1e-6?(H-y)/dy:dy<-1e-6?-y/dy:1e9),q=Math.max(10,toE)/4; // (its way to the edge, in quarters)
+    let px=x,py=y,a=0,i=0;P.moveTo(px,py);
+    for(let k=0;k<4&&k<n;k++){if(k)a+=(riftJag(k+300,r.seed+sd)-0.5)*2*bend;const ca=Math.cos(a),sa=Math.sin(a),ux=dx*ca-dy*sa,uy=dx*sa+dy*ca,len=q*Math.min(1,n-k),st=Math.max(6,Math.min(46,len/3));
+      for(let d=st;d<=len+0.01;d+=st,i++){const j=(riftJag(i,r.seed+sd)-0.5)*3,qx=px+ux*Math.min(d,len)-uy*j,qy=py+uy*Math.min(d,len)+ux*j;P.lineTo(qx,qy);
+        if(riftJag(i+50,r.seed+sd)<0.2){const ba=(riftJag(i+80,r.seed)-0.5)*1.6,bl=6+16*riftJag(i+90,r.seed);P.lineTo(qx+(ux*Math.cos(ba)-uy*Math.sin(ba))*bl,qy+(ux*Math.sin(ba)+uy*Math.cos(ba))*bl);P.moveTo(qx,qy);}}
+      px+=ux*len;py+=uy*len;P.lineTo(px,py);}}
   return P;}
 function drawRiftCrack(c,P,now){drawRiftGlow(c,P,now,0.5,0,true);c.save();c.strokeStyle='rgba(255,255,255,0.9)';c.lineWidth=1.2;c.stroke(P);c.restore();}
 function drawRift(c,bh,now){const r=bh.rift,L=Math.hypot(W,H),tx=r.ny,ty=-r.nx;
-  if(bh.phase==='crack'){const u=Math.min(1,(now-bh.crackStart)/Math.max(1,T.riftCrackMs||260));drawRiftCrack(c,riftCrackPath(bh.x,bh.y,r,L*(1-Math.pow(1-u,3))),now);return;} // the crack runs out both ways from where the mass was
+  if(bh.phase==='crack'){const u=Math.min(1,(now-bh.crackStart)/Math.max(1,T.riftCrackMs||260));drawRiftCrack(c,riftCrackPath(bh.x,bh.y,r,4*(1-Math.pow(1-u,3))),now);return;} // the crack runs out both ways from where the mass was
   drawRiftGlow(c,riftStripe(new Path2D(),bh.x-tx*L,bh.y-ty*L,bh.x+tx*L,bh.y+ty*L,Math.max(0.5,bh.consumeR),r.seed,70),now,1);} // open: the stripe (its edges in the pulsing glow)
 function drawRiftWave(c,bh,now){const a=bh.activateR,L=Math.hypot(W,H),bw=Math.max(30,Math.min(150,a*0.2)); // the wave out from a Rift, both sides at once: the white behind it (its exterior whitens, as a bright clear), a white flare and the Dark Remnant's glow along its fronts
-  c.save();c.translate(bh.x,bh.y);c.rotate(bh.rift.a);const g=c.createLinearGradient(0,-a,0,a);g.addColorStop(0,'rgba(255,255,255,0)');g.addColorStop(0.12,'rgba(255,255,255,0.95)');g.addColorStop(0.88,'rgba(255,255,255,0.95)');g.addColorStop(1,'rgba(255,255,255,0)'); // (behind it the surface whitens, as a bright clear's does: only the stripe is black)
+  c.save();c.translate(bh.x,bh.y);c.rotate(bh.rift.a);const g=c.createLinearGradient(0,-a,0,a);const wa=(T.riftWashA!=null?T.riftWashA:0.28).toFixed(3);g.addColorStop(0,'rgba(255,255,255,0)');g.addColorStop(0.12,`rgba(255,255,255,${wa})`);g.addColorStop(0.88,`rgba(255,255,255,${wa})`);g.addColorStop(1,'rgba(255,255,255,0)'); // (behind it the surface whitens, as a bright clear's does: only the stripe is black)
   c.filter=`blur(${T.bhExpandBlur}px)`;c.fillStyle=g;c.fillRect(-L,-a,2*L,2*a);c.filter='none';c.globalCompositeOperation='screen';
   for(const sd of[-1,1]){const y=sd*a,f=c.createLinearGradient(0,y-bw*sd,0,y+bw*0.35*sd);f.addColorStop(0,'rgba(255,255,255,0)');f.addColorStop(0.72,'rgba(255,255,255,0.5)');f.addColorStop(1,'rgba(255,255,255,0)');c.fillStyle=f;c.fillRect(-L,Math.min(y-bw*sd,y+bw*0.35*sd),2*L,bw*1.35);}
   c.globalCompositeOperation='source-over';const P=new Path2D();P.moveTo(-L,-a);P.lineTo(L,-a);P.moveTo(-L,a);P.lineTo(L,a);drawRiftGlow(c,P,now,1,0,true);c.restore();}
@@ -13893,8 +13912,8 @@ function riftCheck(now){
   const cx=sx/best,cy=sy/best,a=Math.random()*Math.PI;logEv('rift: mass '+Math.round(best)+' within '+(2*C)+'px at '+(cx|0)+','+(cy|0)+': a crack');
   riftForms.push({x:cx,y:cy,a,nx:-Math.sin(a),ny:Math.cos(a),seed:Math.random()*100,ks,mass:best,e:se,n:1,t:now,grow:now,seal:false});flashSaveStatus(txt('surf.a_rift_cracks',Math.round(best).toLocaleString()));
 }
-function riftFormsDraw(c,now){const Q=Math.hypot(W,H)/4,ms=Math.max(1,T.riftCrackMs||260); // each forming Rift's crack: a quarter of the screen per crack, running out over Rift crack ms, sealing back over Rift seal ms
-  for(const f of riftForms){const u=f.seal?Math.max(0,1-(now-f.t)/Math.max(1,T.riftSealMs)):Math.min(1,(now-f.grow)/ms),l=Q*(f.n-1+(f.seal?u:1-Math.pow(1-u,3)));if(l>1)drawRiftCrack(c,riftCrackPath(f.x,f.y,f,l),now);}}
+function riftFormsDraw(c,now){const ms=Math.max(1,T.riftCrackMs||260); // each forming Rift's crack: a stage at a time, each running out over Rift crack ms, sealing back over Rift seal ms
+  for(const f of riftForms){const u=f.seal?Math.max(0,1-(now-f.t)/Math.max(1,T.riftSealMs)):Math.min(1,(now-f.grow)/ms),n=f.n-1+(f.seal?u:1-Math.pow(1-u,3));if(n>0.01)drawRiftCrack(c,riftCrackPath(f.x,f.y,f,n),now);}}
 
 SCENES.rift={dur:9000,setup(S){T.riftMass=2650;T.riftR=60;for(let i=0;i<6;i++){const a=i/6*6.2832,r=S.rem(S.W/2+Math.cos(a)*90,S.H/2+Math.sin(a)*70,'brown');r.mass=450;updateCached(r);r.vx=-Math.cos(a)*0.9;r.vy=-Math.sin(a)*0.7;}}}; // dim remnants drift together until their mass tears the surface
 Object.assign(RULE_EV,{rift:'rift'});Object.assign(RULE_SCENES,{rift:['rift']});
