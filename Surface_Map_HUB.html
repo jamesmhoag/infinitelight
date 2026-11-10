@@ -750,12 +750,13 @@ function mapRender(){
     const sp=glowSprite(bl,ba),hs=sp.width/MK/2;mctx.save();mctx.globalCompositeOperation='screen';for(const[x,y,,,,p]of brightOnes){mctx.globalAlpha=p;mctx.drawImage(sp,x-hs,y-hs,hs*2,hs*2);}mctx.restore(); // the blurred glow, drawn once into a sprite
     for(const[x,y,v,st,sw]of brightOnes){if(st!=='#fff'){hexPath(x,y,HEX*0.92);mctx.strokeStyle=st;mctx.lineWidth=sw;mctx.stroke();} // a soft white core (no hard edge); only the player / merge outline stays crisp
 }}
-  // The source: a big white point at the centre, glowing over the surfaces and bleeding into the first ring. When a day ends its rings fall into it one by
+  // The Point (the source): a big white point at the centre in the title splash's chromatic light, glowing over the surfaces and bleeding into the first ring. When a day ends its rings fall into it one by
   // one ('fall': a ring of light closing in, faster as it goes), it flashes ('flash'), and the spill bursts back out to its rings ('burst')
   if(Number.isFinite(MW)){const[cx,cy]=w2s(...a2w(0,0)),g=T.mapSourceGlow!=null?T.mapSourceGlow:1,pul=0.5+0.5*Math.sin(now/900),fx=burstFx,ft=fx?(now-fx.t0)/(fx.dur||1600):1;
     const flare=fx&&ft<1?(fx.kind==='fall'?0.4+0.6*ft*ft:fx.kind==='flash'?2.5*(1-ft):1-ft):0,R=HEX*(2.3+0.25*pul+1.5*flare);
-    if(g>0){mctx.save();mctx.globalCompositeOperation='screen';const gr=mctx.createRadialGradient(cx,cy,0,cx,cy,R);gr.addColorStop(0,`rgba(255,255,255,${Math.min(1,g)})`);gr.addColorStop(0.28,`rgba(255,255,255,${Math.min(1,0.95*g)})`);gr.addColorStop(0.5,`rgba(235,240,255,${0.45*g})`);gr.addColorStop(1,'rgba(220,230,255,0)');
-      mctx.fillStyle=gr;mctx.beginPath();mctx.arc(cx,cy,R,0,6.2832);mctx.fill();mctx.restore();}
+    if(g>0){chromaGlow(mctx,cx,cy,R*1.25,now,Math.min(1.6,g)); // The Point: the title's chromatic light round it, moving and ever changing in vibrancy (chromaGlow)
+      mctx.save();mctx.globalCompositeOperation='screen';const v=chromaVib(now),C=chromaRGB(now,0.5),gr=mctx.createRadialGradient(cx,cy,0,cx,cy,R*0.7);gr.addColorStop(0,`rgba(255,255,255,${Math.min(1,g)})`);gr.addColorStop(0.35,`rgba(255,255,255,${Math.min(1,0.9*g*v)})`);gr.addColorStop(0.7,`rgba(${C},${(0.35*g*v).toFixed(3)})`);gr.addColorStop(1,`rgba(${C},0)`);
+      mctx.fillStyle=gr;mctx.beginPath();mctx.arc(cx,cy,R*0.7,0,6.2832);mctx.fill();mctx.restore();} // its white heart, its edge in the colour it is passing through
     if(fx&&ft<1){
       if(fx.kind==='flash'){mctx.save();mctx.globalCompositeOperation='screen';mctx.fillStyle=`rgba(255,255,255,${(0.95*Math.pow(1-ft,1.5)).toFixed(3)})`;mctx.fillRect(-MW,-MH,MW*3,MH*3);mctx.restore();}
       else{const r0=HEX*1.75*(fx.r||T.mapBurstRings||3)+HEX,r=fx.kind==='fall'?r0*(1-ft*ft):r0*ft; // a fall accelerates in; a burst opens out
@@ -1316,7 +1317,7 @@ function sceneLights(wx,wy,mir,skip){ // the lights round a point of the scene, 
   if(!SCENE&&cam&&currentView!=='level'){
     if(skip!=='spot'){const A=buoyCanDir(now);if(A&&!A.up)add(A.L,T.mapShopLight!=null?T.mapShopLight:1,[1,0.957,0.87],HEX*(T.mapSpotRange||7),A.d,Math.cos((T.mapSpotConeIn!=null?T.mapSpotConeIn:9)*Math.PI/180),Math.cos((T.mapSpotConeOut!=null?T.mapSpotConeOut:22)*Math.PI/180));} // the buoy's can light: a cone, crisp inside, fading to its rim
     if(currentView==='map'&&mX>=0&&!menuOpen&&!shopUI&&overScene()){const[px,py]=unproj(mX,mY);add([px-MW/2,py-MH/2,HEX*(T.mapCursorLightH!=null?T.mapCursorLightH:0.8)],T.mapCursorLightA!=null?T.mapCursorLightA:0.9,[1,0.97,0.92],HEX*(T.mapCursorLightRange||2.6));}} // the cursor's: a lamp just above where it points
-  {const[sx,sy]=w2s(0,0);add([sx-MW/2,sy-MH/2,HEX*0.7],T.mapSourceLight!=null?T.mapSourceLight:1.6,[1,1,1],HEX*(T.mapSourceLightR||3.4));} // the source: a big white light at the centre
+  {const[sx,sy]=w2s(0,0);const C=chromaRGB(performance.now(),0.5);add([sx-MW/2,sy-MH/2,HEX*0.7],T.mapSourceLight!=null?T.mapSourceLight:1.6,C.map(v=>0.55+0.45*v/255),HEX*(T.mapSourceLightR||3.4));} // The Point: a big light at the centre, white tinged with the colour it is passing through
   const B=[];for(const k in cells){const c=cells[k];if(!c.cap||c.kind==='dark')continue;const[bx,by]=a2w(c.q,c.r),d=Math.hypot(bx-wx,by-wy);if(d<HEX*5)B.push([d,bx,by]);}B.sort((a,b)=>a[0]-b[0]); // the bright clears near it: each a soft white light low over its hex
   for(const[,bx,by]of B.slice(0,3)){const[x,y]=w2s(bx,by);add([x-MW/2,y-MH/2,HEX*0.35],T.mapBrightLight!=null?T.mapBrightLight:0.7,[1,1,1],HEX*(T.mapBrightLightR||1.7));}
   L.sort((a,b)=>b.w-a.w);const V=cam.view,R=cam.viewRot,o={ld:new Float32Array(24),lc:new Float32Array(18),ls:new Float32Array(24),lr:new Float32Array(12)},m=mir?-1:1;
