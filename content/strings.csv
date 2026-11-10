@@ -805,6 +805,9 @@ title.who,Continue as…,the title screen,
 title.player,Player {n},the title screen,n = $0 — which player saved here
 title.day,day {n},the title screen,n = $0 — the day their map is on
 title.back,Back,the title screen,
+title.delete,🗑 Delete runs…,the title screen (Continue: which player),
+title.delete_on,Done deleting,the title screen (Continue: delete mode on),
+title.delete_ask,Delete {0}? Click again,"the title screen (delete mode: {0} = the run)",
 mp.title,Play together,Surface Map (playing together),
 mp.invite_btn,Play together (invite),Surface Map (playing together),
 mp.invite,"Room open: the link to send is in the menu (and copied). Up to three friends can join, any time.",Surface Map (playing together),

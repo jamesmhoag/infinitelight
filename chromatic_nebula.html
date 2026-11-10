@@ -119,7 +119,7 @@ button:hover{background:rgba(255,255,255,0.15);}
   <div id="dock" class="bottom"><div id="inventoryPanel"></div><div id="touch-info"></div></div>
   <canvas id="cur"></canvas>
 </div>
-<script src="content.js?v=20261110a"></script><script src="shared.js?v=20261110a"></script>
+<script src="content.js?v=20261110b"></script><script src="shared.js?v=20261110b"></script>
 <script>
 txtApply(); // the page's own labels (content/strings.csv)
 const _SRC=document.documentElement.outerHTML; // kept so the Encyclopedia can run live scenes as embedded copies of the game
@@ -752,8 +752,8 @@ function drawRemnantGlyph(pointsCtx,p,now){
     pointsCtx.beginPath();pointsCtx.arc(p.x,p.y,T.remGlowR,0,6.2832);pointsCtx.fillStyle=`rgba(${rc},1)`;pointsCtx.fill();
   }
   if(!isBlackKind&&!isMagnetic&&(p.enriched||p.magTintCI===undefined&&p.remKind!=='brown')){ // the title splash's chromatic glow: Bright, Neutron and Pulsing ones and every relic in the rainbow (a Pulsing one still on its own beat, pulsePhase)
-    const ph=((p.id||0)*0.618)%1,v=chromaVib(now,ph),R=T.remGlowR*(T.remChromaR||2.2)*(p.remKind==='brown'?Math.max(1,dimDr/Math.max(1,T.remGlowR)):1);
-    pointsCtx.globalAlpha=Math.min(1,T.remGlowA*p.displayA*pulsePhase*v*(p.enriched?1.35:1));pointsCtx.fillStyle=chromaGrad(pointsCtx,p.x,p.y,R,now,ph,1);pointsCtx.beginPath();pointsCtx.arc(p.x,p.y,R,0,6.2832);pointsCtx.fill();
+    const ph=((p.id||0)*0.618)%1,R=T.remGlowR*(T.remChromaR||4)*(p.remKind==='brown'?Math.max(1,dimDr/Math.max(1,T.remGlowR)):1);
+    pointsCtx.globalAlpha=1;chromaGlow(pointsCtx,p.x,p.y,R,now,Math.min(1,(T.remChromaA!=null?T.remChromaA:0.7)*p.displayA*pulsePhase*(p.enriched?1.35:1)),ph); // (the same starlight as the title and The Point: its lobes drifting and blending toward white, its vibrancy breathing)
   }
   pointsCtx.globalCompositeOperation='source-over';pointsCtx.globalAlpha=a;
   if(isMagnetic){
@@ -12555,11 +12555,15 @@ function spawnCollectSparks(p){const now=performance.now(),k=p.remKind||'brown',
     shardFx.push({x:p.x+ex,y:p.y+ey,cx:p.x,cy:p.y-r*0.5,rise:0.01+Math.random()*0.02,vx:0,vy:0,born:now,dur:450+Math.random()*450,s:0.9+Math.random()*1.4,col:cols[i%cols.length],tw:Math.random()*6.28});}}
 function toggleReadout(m){if(m==='tel')toggleTelemetry();else if(m==='risk')toggleRisks();else if(m==='dyn')toggleDynamics();else if(m==='cls')toggleClass();else toggleRadii();updateInventoryUI();}
 function readoutSlotHTML(){const b=(m,l,on)=>`<span data-m="${m}" class="rdb${on?' on':''}">${l}</span>`;return `<div class="slot rd5" data-kind="readouts">${b('tel','T',telemetryOn)}${b('risk','R',risksOn)}${b('dyn','D',dynamicsOn)}${b('cls','C',classOn)}${b('rad','◎',showRadii)}</div>`;}
-function liveSrc(name,rec){return '<!doctype html>'+_SRC.replace('<script>',()=>'<script>window.__SCENE='+JSON.stringify(name)+';'+(rec?'window.__REPLAY='+JSON.stringify(rec).replace(/</g,'\\u003c')+';':'')+'window.__INV='+(rec?rec.inv:(invertMode?1:0))+';window.__T='+JSON.stringify(T)+';<\/script><script>');}
+function liveSrc(name,rec){return '<!doctype html>'+_SRC.replace('<script>',()=>'<script>window.__SCENE='+JSON.stringify(name)+';'+(rec?'window.__REPLAY='+JSON.stringify(rec).replace(/</g,'\\u003c')+';'+(rec.t0?'{const n=performance.now.bind(performance),o='+rec.t0+'-n(),f=window.requestAnimationFrame.bind(window);performance.now=()=>n()+o;window.requestAnimationFrame=c=>f(()=>c(performance.now()));}':''):'')+'window.__INV='+(rec?rec.inv:(invertMode?1:0))+';window.__T='+JSON.stringify(rec&&rec.T||T)+';<\/script><script>');} // (a recording: its clock is the moment's own, so every time in what it saved still holds; its settings are the ones it happened in)
 
 const SCENES={};
 (function(){
-  SCENES.replay={dur:(window.__REPLAY||{}).dur||6000,setup(S){const R=window.__REPLAY||{dorm:[],objs:[]};for(const d of R.dorm)stampSnapshotAt(d,S.W/2+d.dx,S.H/2+d.dy);for(const o of R.objs){const p=stampSnapshotAt(o,S.W/2+o.dx,S.H/2+o.dy);if(!p)continue;p.vx=o.vx||0;p.vy=o.vy||0;p.rot=o.rot||0;if(o.on)S.act(p);}}}; // your moment: what was there, as it was, playing out again
+  SCENES.replay={dur:(window.__REPLAY||{}).dur||6000,setup(S){const R=window.__REPLAY||{dorm:[],objs:[]},cx=S.W/2,cy=S.H/2,put=(o,p)=>{if(p&&o.full){Object.assign(p,o.full,{x:p.x,y:p.y});p.fillDirty=true;}return p;}; // your moment: what was there exactly as it was (life left, wake, drain…), your purse, upgrades and day, then your own input at its own times
+    if(R.purse)Object.assign(inventory,R.purse);for(const u of R.ups||[])discSeen.add(u);if(R.run)Object.assign(runState,R.run);
+    for(const d of R.dorm)put(d,stampSnapshotAt(d,cx+d.dx,cy+d.dy));for(const o of R.objs){const p=put(o,stampSnapshotAt(o,cx+o.dx,cy+o.dy));if(p&&o.on)pressedIDs.add(p.id);}
+    const st=R.st;if(st){mouse.x=cx+st.dx;mouse.y=cy+st.dy;mouseDown=!!st.down;dragMode=!!st.drag;mouseDownAt=st.at;heat.v=st.hv;heat.until=st.hu;}S.k=0;_evReplaySlow=R.cap0?{t0:R.cap0}:null;},
+    tick(S,t,now){const R=window.__REPLAY,I=R&&R.ins;if(!I)return;while(S.k<I.length&&I[S.k].t<=now){const e=I[S.k++],r=canvas.getBoundingClientRect(),o={bubbles:true,cancelable:true,clientX:r.left+S.W/2+e.dx,clientY:r.top+S.H/2+e.dy,button:e.b,buttons:e.bs};canvas.dispatchEvent(e.ty==='wheel'?new WheelEvent('wheel',Object.assign(o,{deltaY:e.d})):new MouseEvent(e.ty,o));}}}; // (each press, move, release, double click, right click and wheel, where and when it was: the cursor goes with it)
   const rv=s=>(Math.random()-0.5)*2*s,TAU=6.2832;
   const R4=(x0,y0,x1,y1)=>[{x:x0,y:y0},{x:x1,y:y0},{x:x1,y:y1},{x:x0,y:y1}];
   const shp=o=>{pushFixed(Object.assign({id:++shapeSeq,closed:false,acc:0,lastSweep:0,broken:{}},o));rebuildGlassList();};
@@ -12726,7 +12730,7 @@ function sceneBoot(name,TT){
     for(const p of active){if(p._keep)p.lifespan=Infinity;if(p._ER)p.cachedER=p._ER;}
     if(S.fuel)for(const k of S.fuel)inventory[k]=Math.max(inventory[k],99);
     if(def.tick)def.tick(S,t,now);
-    if(t>def.dur)start();requestAnimationFrame(tk);};
+    if(t>def.dur){if(name==='replay'){location.reload();return;}start();}requestAnimationFrame(tk);}; // (a recording starts again from the page itself: its clock goes back to the moment)
   requestAnimationFrame(tk);
   rafId=requestAnimationFrame(loop);
 }
@@ -12837,23 +12841,31 @@ function fireEvent(id,at){if(window.__SCENE||BUILD||discSeen.has('ev:'+id)||_evQ
 const EV_FRAME={pigment:'s',point:'s',dim:'s',bright:'s',neutron:'s',magnetic:'s',pulsing:'s',dimrelic:'s',brightrelic:'s',duck:'s',dark:'l',rift:'f'}; // a frame's size: small, for what matters (a remnant left by a nova that covered the screen is still small); large for a Dark Remnant; the whole screen for a Rift
 const EV_UNREAD_KEY='il_ev_unread';let evUnread=new Set();try{evUnread=new Set(JSON.parse(localStorage.getItem(EV_UNREAD_KEY)||'[]'));}catch(e){}
 function evUnreadSave(){try{localStorage.setItem(EV_UNREAD_KEY,JSON.stringify([...evUnread]));}catch(e){}}
-let _evSnaps=[],_evSnapAt=0,_evCap=null,_evZoom=null,_evRecs={},_evDeskOpen=false;
+let _evSnaps=[],_evIn=[],_evReplaySlow=null,_evSnapAt=0,_evCap=null,_evZoom=null,_evRecs={},_evDeskOpen=false;
 // The recording is not pictures: it is the surface's own state (each object as Duplicate copies it, shining or not, and the nebula's particles there),
 // taken Event pre ms before the event, in a frame of the card's own shape round it (unwrapped across the screen's edges: a moment at an edge is one
 // piece). On its card it plays again, live, in a copy of the game at the size it happened and in the settings you play with now: your own moment,
 // as you saw it, and never a picture. It is kept (IndexedDB evrec:<id>) for its card, its Guide entries and the Journal; an event with none yet shows its demo.
 function evFrameR(c){const ar=T.evAspect||1.65,h=c.sz==='f'?H/2:c.sz==='l'?(T.evFrameL||160):(T.evFrameS||55);return{rh:h,rw:Math.min(c.sz==='f'?W/2:W/2,h*ar)};} // its half height and half width (the card's shape; a Rift's: the screen's height, the card's shape across it)
-function evCapSlow(now){const c=_evCap;if(!c)return 0;const u=(now-c.t0)/250;return (T.evSlow!=null?T.evSlow:0.5)*Math.min(1,u);} // (a 50% slow, eased in, for as long as it is captured)
-function evRecord(now){if(window.__SCENE||BUILD||now-_evSnapAt<(T.evSnapMs||250))return;_evSnapAt=now; // the rolling record: what is on the surface, every Event snapshot ms
-  const L=[];for(const o of active){if(o.dying||o.captured||o._bhGone)continue;const q=snapshotForDup(o,false);q.on=pressedIDs.has(o.id)?1:0;L.push(q);}_evSnaps.push({t:now,L});
+function evCapSlow(now){const c=_evCap||_evReplaySlow;if(!c)return 0;const u=(now-c.t0)/250;return (T.evSlow!=null?T.evSlow:0.5)*Math.min(1,u);} // (a 50% slow, eased in, for as long as it is captured)
+const _evSkip=new Set(['id','_pv','fillStr','capturedBy']);
+function evState(o){const s={};for(const k in o){if(_evSkip.has(k))continue;const v=o[k];if(v==null||typeof v!=='object'){if(typeof v!=='function')s[k]=v;continue;} // everything an object is (life left, wake, drain, timers…): its plain values, lists of values and small records of values
+  if(Array.isArray(v)){if(!v.length||typeof v[0]!=='object')s[k]=v.slice();}else if(Object.getPrototypeOf(v)===Object.prototype&&Object.values(v).every(w=>w==null||typeof w!=='object'))s[k]=Object.assign({},v);}return s;}
+function evRecord(now){if(window.__SCENE||BUILD)return;{const lo=(_evCap&&_evCap.snap||_evSnaps[0]||{t:now}).t;while(_evIn.length&&_evIn[0].t<lo)_evIn.shift();}if(now-_evSnapAt<(T.evSnapMs||250))return;_evSnapAt=now; // the rolling record: what is on the surface, every Event snapshot ms (and your input since)
+  const L=[];for(const o of active){if(o.dying||o.captured||o._bhGone)continue;const q=snapshotForDup(o,false);q.full=evState(o);q.on=pressedIDs.has(o.id)?1:0;L.push(q);}
+  _evSnaps.push({t:now,L,st:{x:mouse.x,y:mouse.y,down:mouseDown?1:0,drag:dragMode?1:0,at:mouseDownAt,hv:heat.v,hu:heat.until}});
   const keep=now-(T.evPreMs||600);while(_evSnaps.length>1&&_evSnaps[1].t<=keep)_evSnaps.shift();}
+if(!window.__SCENE)for(const ty of['mousedown','mouseup','mousemove','dblclick','contextmenu','wheel'])document.addEventListener(ty,e=>{if(!wrapRect||BUILD||!e.isTrusted)return;if(ty!=='mousemove'&&e.target!==canvas&&e.target!==wrap)return; // your input as it happened (what the surface itself got): the recording plays it again
+  _evIn.push({t:performance.now(),ty,x:e.clientX-wrapRect.left,y:e.clientY-wrapRect.top,b:e.button||0,bs:e.buttons||0,d:e.deltaY||0});},true);
 function evAt(c){const a=c.at;return[a.x,a.y];}
 function evCapStart(id,at,sz){const now=performance.now();if(_evCap){evCapSave(_evCap);_evDesk.push(_evCap.id);evDeskSync();} // another one during this: it goes to the desk
   _evCap={id,at,sz,t0:now,snap:_evSnaps[0]||null};_evCap.rect=Object.assign({x:at.x,y:at.y},evFrameR(_evCap));playGlassTap();}
 function evCapSave(c){const S=c.snap;if(!S)return;const{x,y,rw,rh}=c.rect,inR=(px,py)=>{const dx=_wrapD(px-x,W),dy=_wrapD(py-y,H);return Math.abs(dx)<=rw+30&&Math.abs(dy)<=rh+30?[dx,dy]:null;}; // (a margin round it: what drifts in shows)
   const objs=[],dorm=[];for(const q of S.L){const d=inR(q.x,q.y);if(d)objs.push(Object.assign({},q,{dx:d[0],dy:d[1]}));}
-  for(const o of dormant){if(!o)continue;const d=inR(o.x,o.y);if(d){const q=snapshotForDup(o,true);q.dx=d[0];q.dy=d[1];dorm.push(q);}}
-  const rec={id:c.id,w:Math.round(2*rw),h:Math.round(2*rh),inv:invertMode?1:0,dur:Math.round(performance.now()-S.t+(T.evReplayTail||900)),objs,dorm,at:Date.now()};_evRecs[c.id]=rec;IDB.put('evrec:'+c.id,rec).catch(()=>{});}
+  for(const o of dormant){if(!o)continue;const d=inR(o.x,o.y);if(d){const q=snapshotForDup(o,true);q.full=evState(o);q.dx=d[0];q.dy=d[1];dorm.push(q);}}
+  const D=(px,py)=>[_wrapD(px-x,W),_wrapD(py-y,H)],ins=_evIn.filter(e=>e.t>=S.t).map(e=>{const d=D(e.x,e.y);return{t:e.t,ty:e.ty,dx:d[0],dy:d[1],b:e.b,bs:e.bs,d:e.d};}),st=S.st&&Object.assign({},S.st,S.st.x<-999?{dx:-9999,dy:-9999}:{dx:D(S.st.x,S.st.y)[0],dy:D(S.st.x,S.st.y)[1]}); // (the cursor off the surface stays off)
+  const rec={id:c.id,w:Math.round(2*rw),h:Math.round(2*rh),inv:invertMode?1:0,dur:Math.round(performance.now()-S.t+(T.evReplayTail||900)),objs,dorm,at:Date.now(),
+    t0:S.t,cap0:c.t0,st,ins,T:Object.assign({},T),purse:Object.assign({},inventory),ups:[...discSeen].filter(d=>d.slice(0,3)==='up:'),run:JSON.parse(JSON.stringify(runState||{}))};_evRecs[c.id]=rec;IDB.put('evrec:'+c.id,rec).catch(()=>{});} // (and everything it ran on: every setting, your purse, upgrades and day)
 let _evDesk=[];
 function evCapTick(now){const c=_evCap;if(!c)return;const[x,y]=evAt(c);c.rect.x=x;c.rect.y=y;
   if(now-c.t0>=Math.max(T.evCaptureMs||2400,T.evSoloMs||1600)){_evCap=null;evCapSave(c);evZoomStart(c);}} // nothing else happened: pause, and the frame grows into its card
@@ -12868,7 +12880,7 @@ function evFrameDraw(c2,now){const c=_evCap;if(!c||!c.rect)return;const{x,y,rw,r
       const tw=0.5+0.5*Math.sin(now/90+i*1.7);c2.fillStyle=`rgba(255,255,255,${((0.4+0.6*em)*tw).toFixed(3)})`;c2.beginPath();c2.arc(px,py,1+1.5*tw+2*em,0,6.2832);c2.fill();}};
   if(c.sz==='f')box(0,0);else wrapCopies(x,y,Math.max(rw,rh),box);}
 const evRecFor=id=>id&&(_evRecs[id]||null);
-if(!window.__SCENE)IDB.keys().then(ks=>{for(const k of ks)if(typeof k==='string'&&k.indexOf('evrec:')>=0)IDB.get(k.slice(k.indexOf('evrec:'))).then(r=>{if(r&&r.id)_evRecs[r.id]=r;}).catch(()=>{});}).catch(()=>{}); // (your recordings, back from the last time you played)
+if(!window.__SCENE)IDB.keys().then(ks=>{const P=IDB.key('evrec:');for(const k of ks)if(typeof k==='string'&&k.startsWith(P))IDB.get(k.slice(k.indexOf('evrec:'))).then(r=>{if(r&&r.id)_evRecs[r.id]=r;}).catch(()=>{});}).catch(()=>{}); // (your recordings, back from the last time you played)
 function evReplayMount(h,rec){if(!h||h.firstChild)return;const f=document.createElement('iframe'),aw=h.clientWidth||300,ah=h.clientHeight||190,k=Math.max(aw/rec.w,ah/rec.h); // your moment, played again live: a copy of the game at the size it happened (scaled to fill the card, a little cut off if it must)
   f.style.cssText=`border:0;pointer-events:none;background:#000;position:absolute;left:50%;top:50%;width:${rec.w}px;height:${rec.h}px;transform:translate(-50%,-50%) scale(${k})`;h.style.position='relative';h.style.overflow='hidden';f.srcdoc=liveSrc('replay',rec);h.appendChild(f);}
 function evDeskSync(){let el=document.getElementById('evDesk');const n=new Set([..._evDesk,...evUnread]).size;if(!el){el=document.createElement('button');el.id='evDesk';el.style.cssText='position:absolute;right:12px;bottom:calc(var(--dock-h,0px) + 14px);z-index:30;background:rgba(0,0,0,.75);color:#fff;border:1px solid rgba(255,255,255,.35);border-radius:14px;font:11px monospace;padding:4px 10px;display:none';
@@ -12885,7 +12897,7 @@ function cardHTML(ev,mini){ // the one card format: name bar, art box, type line
   return `<div class="mtg${mini?' sm':''}${evUnread.has(ev.id)?' unread':''}" data-ev="${ev.id}" style="--rc:${TIER_COL[t]}"><div class="nm"><b>${gEsc(ev.name)}</b><span class="gem"></span></div><div class="art" data-scene="${ev.scene}" data-ev="${ev.id}">${mini?`<canvas class="rl-m" width="64" height="64" data-k="${ev.ico}"></canvas>`:''}</div><div class="ty"><span>${gEsc(ev.type.replace(/^Event — /,''))}</span><span>Tier ${TIER[t]}</span></div><div class="tx">${(mini?ev.facts().slice(0,1):ev.facts()).map(f=>`<p${ev.fx?' class="fx"':''}>${tvHTML(f)}</p>`).join('')}${ev.flavor?`<p class="fl">${gEsc(ev.flavor)}</p>`:''}</div></div>`; // (small: its first line and its flavour; the rest when it is opened) (fx: the lines are changes to play, set apart from the flavour)
 }
 function mountScene(h,w,hh){if(!h||h.firstChild||document.querySelectorAll('.rl-live iframe,.mtg .art iframe').length>=5)return;{const R=(h.dataset.ev||'').split(',').map(evRecFor).find(Boolean);if(R&&!w){evReplayMount(h,R);return;}} /* something you witnessed: your own recording of it, live (a demo only for what you have not) */const f=document.createElement('iframe'),nm=h.dataset.s||h.dataset.scene;f.style.cssText='border:0;max-width:100%;pointer-events:none;background:#000;border-radius:6px;'+(w?`width:${w}px;height:${hh}px`:'width:100%;height:100%');
-  if(nm.slice(0,4)==='hub:'){const[sn,dk]=nm.slice(4).split(':');f.src='Surface_Map_HUB.html?v=20261110a&scene='+sn+(sn==='shop'?'&k='+encodeURIComponent(dk||''):'')+'&T='+encodeURIComponent(JSON.stringify(mapSceneT()))+'&D='+encodeURIComponent(JSON.stringify(dk&&DUCK_TYPES[dk]?{[dk]:DUCK_TYPES[dk]}:Object.fromEntries(Object.entries(DUCK_TYPES).slice(0,4))));}else f.srcdoc=liveSrc(nm);h.appendChild(f);} // a Surface Map demo is played by the map itself
+  if(nm.slice(0,4)==='hub:'){const[sn,dk]=nm.slice(4).split(':');f.src='Surface_Map_HUB.html?v=20261110b&scene='+sn+(sn==='shop'?'&k='+encodeURIComponent(dk||''):'')+'&T='+encodeURIComponent(JSON.stringify(mapSceneT()))+'&D='+encodeURIComponent(JSON.stringify(dk&&DUCK_TYPES[dk]?{[dk]:DUCK_TYPES[dk]}:Object.fromEntries(Object.entries(DUCK_TYPES).slice(0,4))));}else f.srcdoc=liveSrc(nm);h.appendChild(f);} // a Surface Map demo is played by the map itself
 function mapSceneT(){const o={};for(const k in T)if(/^(map|bh|duck|wake|glass|metal|dimGlow|glowHalo|maxSpeed)/.test(k))o[k]=T[k];return o;} // what a map demo needs of the tuners
 function showCardHTML(html){ // a Guide card (an entry or a shop) opened over the Guide, where an event card shows
   guideCSS();_evOpen=true;_evReview=true;const ov=evOverlayEl();ov.innerHTML=`<div class="ev-box">${html}<button id="evOk">${txt('card.close')}</button></div>`;ov.style.display='flex';wrap.classList.add('ev-open');
