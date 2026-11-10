@@ -754,9 +754,9 @@ function mapRender(){
   // one ('fall': a ring of light closing in, faster as it goes), it flashes ('flash'), and the spill bursts back out to its rings ('burst')
   if(Number.isFinite(MW)){const[cx,cy]=w2s(...a2w(0,0)),g=T.mapSourceGlow!=null?T.mapSourceGlow:1,pul=0.5+0.5*Math.sin(now/900),fx=burstFx,ft=fx?(now-fx.t0)/(fx.dur||1600):1;
     const flare=fx&&ft<1?(fx.kind==='fall'?0.4+0.6*ft*ft:fx.kind==='flash'?2.5*(1-ft):1-ft):0,R=HEX*(2.3+0.25*pul+1.5*flare);
-    if(g>0){chromaGlow(mctx,cx,cy,R*1.25,now,Math.min(1.6,g)); // The Point: the title's chromatic light round it, moving and ever changing in vibrancy (chromaGlow)
-      mctx.save();mctx.globalCompositeOperation='screen';const v=chromaVib(now),C=chromaRGB(now,0.5),gr=mctx.createRadialGradient(cx,cy,0,cx,cy,R*0.7);gr.addColorStop(0,`rgba(255,255,255,${Math.min(1,g)})`);gr.addColorStop(0.35,`rgba(255,255,255,${Math.min(1,0.9*g*v)})`);gr.addColorStop(0.7,`rgba(${C},${(0.35*g*v).toFixed(3)})`);gr.addColorStop(1,`rgba(${C},0)`);
-      mctx.fillStyle=gr;mctx.beginPath();mctx.arc(cx,cy,R*0.7,0,6.2832);mctx.fill();mctx.restore();} // its white heart, its edge in the colour it is passing through
+    if(g>0){chromaGlow(mctx,cx,cy,R*1.6,now,Math.min(1.6,g)); // The Point: the title's chromatic light round it, moving and ever changing in vibrancy (chromaGlow)
+      mctx.save();mctx.globalCompositeOperation='screen';const v=chromaVib(now),C=chromaRGB(now,0.5),gr=mctx.createRadialGradient(cx,cy,0,cx,cy,R*0.42);gr.addColorStop(0,`rgba(255,255,255,${Math.min(1,g)})`);gr.addColorStop(0.35,`rgba(255,255,255,${Math.min(1,0.9*g*v)})`);gr.addColorStop(0.7,`rgba(${C},${(0.35*g*v).toFixed(3)})`);gr.addColorStop(1,`rgba(${C},0)`);
+      mctx.fillStyle=gr;mctx.beginPath();mctx.arc(cx,cy,R*0.42,0,6.2832);mctx.fill();mctx.restore();} // its white heart, its edge in the colour it is passing through
     if(fx&&ft<1){
       if(fx.kind==='flash'){mctx.save();mctx.globalCompositeOperation='screen';mctx.fillStyle=`rgba(255,255,255,${(0.95*Math.pow(1-ft,1.5)).toFixed(3)})`;mctx.fillRect(-MW,-MH,MW*3,MH*3);mctx.restore();}
       else{const r0=HEX*1.75*(fx.r||T.mapBurstRings||3)+HEX,r=fx.kind==='fall'?r0*(1-ft*ft):r0*ft; // a fall accelerates in; a burst opens out
