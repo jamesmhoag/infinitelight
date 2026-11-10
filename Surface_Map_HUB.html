@@ -22,7 +22,7 @@ body{background:#050608;overflow:hidden;font-family:'Share Tech Mono',monospace;
 #hinv .dmin{font-size:13px;cursor:pointer}#hinv .dmin>span{opacity:.6}#hinv .dmin:hover>span{opacity:1} /* the feed's ▾ / ▴: a button like the others */
 body.dock-top #hdock{top:0;bottom:auto;flex-direction:column-reverse;border-radius:0 0 8px 8px}#hfeed{cursor:pointer} /* the feed clicked: it and the items go to the top edge (and back), as on a surface */body.dock-min:not(.feed-pop) #hfeed{display:none}body.dock-min #hinv .slot.dmin>*,body.dock-min #hinv .slot.dmin::before{transform:none!important;opacity:1!important} /* (its ▴ stays, to bring the feed back) */ /* the dock's own hide (its ▾): the feed goes, and each item keeps out of the way until pointed at (~ leaves the dock as it is, but for the ▾) */
 body.dock-min:not(.shop-open) #hinv .slot:not(.up):not(:hover)>*,body.dock-min:not(.shop-open) #hinv .slot:not(.up):not(:hover)::before{transform:translateY(130%);opacity:0} /* each item down out of the way until you point at its own place: then it comes up from below */
-body.ui-hidden #hinv .dmin{display:none}#hinv .slot.armed::before{background:rgba(255,220,120,0.28);border-color:rgba(255,220,120,0.8)}#hinv .slot.empty{opacity:0.4}
+#hinv .slot.armed::before{background:rgba(255,220,120,0.28);border-color:rgba(255,220,120,0.8)}#hinv .slot.empty{opacity:0.4}
 #hinv .slot svg{width:18px;height:18px;color:#fff}#hinv .slot b{font-weight:400;margin-top:1px}#hinv .sep{width:6px}
 #hfeed.flash{animation:feedFlash .6s ease-out}@keyframes feedFlash{0%{background:rgba(255,255,255,.35)}100%{background:rgba(0,0,0,.6)}} /* the feed flashes: why that click did nothing */
 #hfeed{font:12px monospace;text-align:center;min-width:420px;height:30px;color:#fff;background:rgba(0,0,0,0.6);padding:3px 14px;display:flex;flex-direction:column;justify-content:center}
@@ -163,7 +163,7 @@ body.shop-open #hdock{z-index:59}#hinv .slot.wal::before{border-color:rgba(255,2
 <div id="veil"></div>
 <div id="bfx"></div>
 <iframe id="neb" data-tt="map.ui.surface"></iframe>
-<script src="content.js?v=20261110d"></script><script src="shared.js?v=20261110d"></script><script src="cabin.js?v=20261110d"></script>
+<script src="content.js?v=20261110e"></script><script src="shared.js?v=20261110e"></script><script src="cabin.js?v=20261110e"></script>
 <script>
 // ╔══════════════════════════════════════════════════════════════════════════════╗
 // ║  MAP ENGINE                                                                 ║
@@ -182,7 +182,7 @@ let playLog=[],clock=3,day=1,pool=6,fresh=true,burstFx=null,dayLog=[],dayCnt={b:
 // // clock: the hour (3 = Twilight … 24 = Midnight, the day's last turn); day: your attempts; pool: what the source put out at its last burst; fresh: no ring added yet since it
 let constel=[],armed=null,weaveSel=[],weaveAsk=null,clearFx={},mergeFx=[],feedMsg={t:'',d:'',at:-1e9}; // constellations {keys,type}; the armed map item; a Weave being drawn; animations; the final count
 const STEP_H=3; // the day: eight turns of three hours
-const CACHE_V='20261110d'; // the build: bump with shared.js's
+const CACHE_V='20261110e'; // the build: bump with shared.js's
 const SCENE=new URLSearchParams(location.search).get('scene'); // a Guide / event demo: the map plays a scripted moment (no surface behind it)
 let phase='move',turnTimer=0,mergeTimer=0;
 let gameOverReason='';
@@ -1194,6 +1194,7 @@ window.addEventListener('message',e=>{
   else if(m.type==='frame'){if(MP.on)netOut({t:'frame',url:m.url});} // my surface, for everyone watching
   else if(m.type==='mpSpend'){if(MP.on)netOut({t:'spend',kind:m.kind,n:m.n},m.pid);} // a friend used their item in my surface: it comes off theirs
   else if(m.type==='mpGot'){if(MP.on)netOut({t:'got',kind:m.kind,n:m.n},m.pid);} // what a friend collected in my surface: theirs
+  else if(m.type==='dockmin')dockMinSet(m.v,true);
   else if(m.type==='ui')document.body.classList.toggle('ui-hidden',!!m.hidden); // ~ on a surface hides the map's time of day over it too
   else if(m.type==='bought')shopBought(m);
   else if(m.type==='picked')shopPicked(m); // the hex is captured right away; the player returns with a right-click
@@ -1584,10 +1585,11 @@ function syncDock(){const box=document.getElementById('hinv');if(!box)return;
   for(const k of [...DOCK_ITEMS,'prism','knot','gate','key','lens'])if((inv[k]||0)!==dockSeen[k]){if(dockSeen[k]!=null)dockUp[k]=performance.now();dockSeen[k]=inv[k]||0;} // a count that changed shows for a while
   dockLinger(performance.now());
   for(const el of box.querySelectorAll('.slot'))if(DOCK_ITEMS.includes(el.dataset.k))el.onclick=()=>armItem(el.dataset.k);
-  box.querySelector('.dmin').onclick=()=>{dockMin=!dockMin;try{localStorage.setItem('il_dockmin',dockMin?'1':'');}catch(e){}document.body.classList.toggle('dock-min',dockMin);dockUp.dmin=performance.now();for(const k of DOCK_ITEMS)dockUp[k]=performance.now();syncDock();};
+  box.querySelector('.dmin').onclick=()=>dockMinSet(!dockMin);
   const fd=document.getElementById('hfeed');if(weaveAsk){fd.innerHTML='<div class="fn">'+txt('map.weave.make')+' '+weaveAsk.map(k=>`<button data-k="${k}">${KIND_NAME[k]}</button>`).join('')+'</div><div class="fd">'+txt('map.weave.cost',weaveSel.length)+'</div>';for(const b of fd.querySelectorAll('button'))b.onclick=()=>makeConstellation(b.dataset.k);}
   else if(fd.querySelector('button'))fd.innerHTML='<div class="fn"></div><div class="fd"></div>';}
 let dockMin=false;try{dockMin=!!localStorage.getItem('il_dockmin');}catch(e){}document.body.classList.toggle('dock-min',dockMin);
+function dockMinSet(v,quiet){dockMin=!!v;try{localStorage.setItem('il_dockmin',dockMin?'1':'');}catch(e){}document.body.classList.toggle('dock-min',dockMin);dockUp.dmin=performance.now();for(const k of DOCK_ITEMS)dockUp[k]=performance.now();syncDock();if(!quiet)neb({cmd:'dockmin',v:dockMin});} // the feed put away or back: here and on the surface alike
 const dockUp={},dockSeen={}; // when each slot was last used or changed: in the reduced dock it stays up a while after (Dock linger ms)
 function dockLinger(now){const ms=T.mapDockLingerMs!=null?T.mapDockLingerMs:2500;for(const el of document.querySelectorAll('#hinv .slot')){const k=el.dataset.k;el.classList.toggle('up',armed===k||now-(dockUp[k]||-1e9)<ms);const f=dockFx[k],on=f&&now-f.at<1400;el.classList.toggle('gain',!!(on&&f.up));el.classList.toggle('spend',!!(on&&!f.up));}}
 function duckUnder(X,Y){let best=null,bd=1e9;for(const d of pond){if(!d._s)continue;const[px,py]=w2s(d.x,d.y),[sx,sy,k]=proj(px,py),r=d._s*k*0.9,dd=Math.hypot(X-sx,Y-sy);if(dd<r&&dd<bd){bd=dd;best=d;}}return best;}
