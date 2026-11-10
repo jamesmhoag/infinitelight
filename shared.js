@@ -362,6 +362,18 @@ function drawWakeShape(c,x,y,fwX,fwY,R,spdRatio,alpha,hi,lo){
 }
 // ── The Dark Remnant's glow ring (shared): the surface draws its Dark Remnant with two of these (drawBlackRemnant), the Surface Map its
 // Dark Remnant hexes with the same two, scaled to the hex (drawDarkRemnantAt) — so they look identical, only smaller. ──
+// ── Chroma: the title splash's chromatic light (its rainbow sweeps turning, drifting and swelling, their vibrancy breathing as its focus does), for
+// anything that shines that way: The Point (the map's centre), remnant and relic glows. One look, one set of tuners (chromaTurnS, chromaBreatheMs) ──
+const CHROMA=[[255,0,0],[255,127,0],[255,255,0],[0,255,0],[0,0,255],[75,0,130],[148,0,211]];
+function chromaRGB(now,ph){const n=CHROMA.length,u=(((now/((T.chromaTurnS||33)*1000)+(ph||0))%1)+1)%1*n,i=u|0,f=u-i,a=CHROMA[i%n],b=CHROMA[(i+1)%n];return a.map((v,k)=>Math.round(v+(b[k]-v)*f));} // the colour it is at now (ph: an object's own place round the wheel)
+function chromaVib(now,ph){const B=T.chromaBreatheMs||9000;return 0.62+0.38*(0.5+0.5*Math.sin(now/B*6.2832+(ph||0)*5.1))*(0.75+0.25*Math.sin(now/(B*1.37)*6.2832+(ph||0)*2.3));} // its vibrancy, ever changing (0.62–1)
+function chromaGrad(c,x,y,R,now,ph,a){const g=c.createRadialGradient(x,y,0,x,y,R),k=a==null?1:a,s=(o,d)=>{const C=chromaRGB(now,(ph||0)+d);g.addColorStop(o,`rgba(${C[0]},${C[1]},${C[2]},${(k*(1-o*0.85)).toFixed(3)})`);};s(0,0);s(0.45,0.18);s(0.8,0.36);g.addColorStop(1,'rgba(0,0,0,0)');return g;} // a glow of R: its colours running outwards round the wheel
+function chromaGlow(c,x,y,R,now,a,ph){ // the title's glow at (x,y): three rainbow sweeps (one backwards), each its own turn, drifting off centre and swelling, softened, screened over the scene
+  if(!(R>0))return;c.save();c.globalCompositeOperation='screen';const t=now/1000,v=chromaVib(now,ph),turn=(T.chromaTurnS||33)*1000;
+  [[1,0.45],[1.09,0.38],[1.21,0.4]].forEach(([sp,al],i)=>{const dx=R*0.14*Math.sin(t/(5+i*1.3)+i*2),dy=R*0.14*Math.cos(t/(6+i)+i),k=R*(1+0.12*Math.sin(t/(7+i*2)+i)),g=typeof c.createConicGradient==='function'?c.createConicGradient((i===1?-1:1)*now/(turn*sp)*6.2832+(ph||0)*6.2832,x+dx,y+dy):null;
+    if(!g){c.fillStyle=chromaGrad(c,x+dx,y+dy,k,now,(ph||0)+i/3,al*a*v);}else{CHROMA.forEach((C,j)=>g.addColorStop(j/CHROMA.length,`rgba(${C[0]},${C[1]},${C[2]},${(al*a*v).toFixed(3)})`));g.addColorStop(1,`rgba(255,0,0,${(al*a*v).toFixed(3)})`);c.fillStyle=g;c.filter=`blur(${Math.max(1,k*0.32).toFixed(1)}px)`;}
+    c.beginPath();c.arc(x+dx,y+dy,k*0.72,0,6.2832);c.fill();c.filter='none';});
+  c.restore();}
 function heartbeatPulse(phase){
   const bump=(center,width,amp)=>{
     let d=phase-center;

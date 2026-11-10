@@ -42,7 +42,7 @@ dimrelic,Dim Relic,Event — Relic,r,relic,relic,"Two Dim Remnants at max size m
 It collects as 100. Two Dim relics meeting become a Dark Remnant.","Two embers, one coal."
 brightrelic,Bright Relic,Event — Relic,r,cryspoint,relic,"A CRYSTALIZE Point burst and left a Bright relic.
 It collects as 100 and never merges: it reflects off other remnants.",Light that kept its edges.
-map,The Surface Map,Event — Surface Map,c,hub:map,particle,"Every hex is a surface spilled from the white source at its centre. Click your hex to enter it.
+map,The Surface Map,Event — Surface Map,c,hub:map,particle,"Every hex is a surface spilled from The Point at its centre. Click your hex to enter it.
 Clear it and the hex is yours. The day runs from Twilight to Midnight.",So many spills. So little time.
 map_clear,Claimed,Event — Surface Map,u,hub:clear,nova,"A cleared hex is yours: white, or dark if a Dark Remnant cleared it.
 Captured hexes next to each other can merge.",One clean surface. The map remembers.
@@ -53,11 +53,11 @@ Someone else was here. There are {letters_total} letters to find; the ones you f
 map_descend,Descent,Event — Surface Map,m,hub:descend,dark,You stepped into the centre. A deeper map begins.,"Under every surface, another."
 map_constellation,Constellation,Event — Surface Map,u,hub:constellation,weave,"A Weave joined bright hexes into a constellation.
 Each time of day it gives you one of its item. A newer one crossing it breaks it.","Light, drawn between lights."
-map_ring,Full Circle,Event — Surface Map,r,hub:ring,nova,"A whole ring of clears, all of one kind, ended the day: the rings beyond it fell into the source.
+map_ring,Full Circle,Event — Surface Map,r,hub:ring,nova,"A whole ring of clears, all of one kind, ended the day: the rings beyond it fell into the Point.
 The ring is used up, the value is shared over what is left inside, and a new day begins at Twilight.",Everything comes back around.
-map_brightstar,Bright Star,Event — Surface Map,m,hub:brightstar,bright,A ring of nothing but bright hexes closed around the source.,A sun made of cleaned surfaces.
-map_darkstar,Dark Star,Event — Surface Map,m,hub:darkstar,dark,A ring of nothing but Dark Remnants closed around the source.,It shines inward.
-map_end,Full Collapse,Event — Ending,r,hub:end,nova,"A full circle at ring 1 or 2, or every hex cleared: everything fell into the source. The run is won.
+map_brightstar,Bright Star,Event — Surface Map,m,hub:brightstar,bright,A ring of nothing but bright hexes closed around the Point.,A sun made of cleaned surfaces.
+map_darkstar,Dark Star,Event — Surface Map,m,hub:darkstar,dark,A ring of nothing but Dark Remnants closed around the Point.,It shines inward.
+map_end,Full Collapse,Event — Ending,r,hub:end,nova,"A full circle at ring 1 or 2, or every hex cleared: everything fell into the Point. The run is won.
 Back at the main menu the days start over. Your items and discoveries are kept.","Every spill, accounted for."
 rift,The Rift,Event — Ending,m,rift,dark,"Mass of {rift_mass} or more gathered in one place and tore the surface open along a line.
 Whatever it opened over was lost; everything else was drawn across to it.

@@ -183,12 +183,12 @@ menu,start,Pause menu (Esc),dim,Esc pauses and opens the menu. ~ (or H) hides th
 Readouts | Switch telemetry, risks, dynamics, class and effect radii.
 Guide | Opens this guide.
 Leave | Quit to the Surface Map or the main menu. An unfinished surface is saved exactly as it is."
-hubmap,surf,Surface Map,particle,A map of hexes around a white source. Every hex is a surface covered in spilled particles.,"Start | At Twilight the source bursts out three rings, every hex at 1.00. You stand beside it.
+hubmap,surf,Surface Map,particle,A map of hexes around The Point. Every hex is a surface covered in spilled particles.,"Start | At Twilight the Point bursts out three rings, every hex at 1.00. You stand beside it.
 Particle layer | An uncleared hex shows the particles still on it, one pattern running on across the hexes. The more value a hex holds, the more of it is covered.
-Value | The open hexes share what the source put out. Locked hexes (next to a bright clear) keep theirs.
+Value | The open hexes share what the Point put out. Locked hexes (next to a bright clear) keep theirs.
 Saved | The map is saved as you go. New map starts the map again but keeps every item you have."
 hubtime,surf,Time of day,nova,Every move is one time of day (clearing a surface takes none).,"The day | Twilight, Dawn, Morning, Midday, Afternoon, Dusk, Evening, Midnight: eight turns. Midnight is the last.
-Next day | After Midnight the rings fall back into the source one by one, faster each time, it flashes and bursts out again: a new day at Twilight. Days count your attempts.
+Next day | After Midnight the rings fall back into the Point one by one, faster each time, it flashes and bursts out again: a new day at Twilight. Days count your attempts.
 Day log | Each day is logged: how it ended (Bright collapse, Dark collapse, or neither at Midnight) and how many bright and dark hexes you cleared.
 Free | A String move takes no time."
 hubcell,surf,Entering a hex,particle,Click your own hex (or press Space) to enter its surface.,"Same surface | A hex always makes the same surface.
@@ -209,7 +209,7 @@ Weave | Joins bright hexes into a constellation (see Constellations)."
 hubconst,surf,Constellations,weave,Join bright hexes with a Weave: each time of day the constellation gives you one of its item.,"Shapes | 3 bright hexes: a Prism. 4: a Gate or a Knot. 5: a Key or a Lens.
 Crossing | A new constellation that crosses an older one breaks the older one. Any number can stand.
 Free moves | A String move takes no time, so it earns nothing."
-hubring,surf,Full circle,nova,A whole ring of clears all of one kind (all bright or all dark) around the source ends the day early. The hexes inside can be any kind.,"Collapse | The rings beyond it fall into the source one by one, faster each time, then a flash; the ring itself is used up and the value is shared over the open hexes inside. A report of the day follows, and a new day starts at Twilight with what you kept.
+hubring,surf,Full circle,nova,A whole ring of clears all of one kind (all bright or all dark) around the Point ends the day early. The hexes inside can be any kind.,"Collapse | The rings beyond it fall into the Point one by one, faster each time, then a flash; the ring itself is used up and the value is shared over the open hexes inside. A report of the day follows, and a new day starts at Twilight with what you kept.
 Stars | A bright ring is a Bright Star; a dark ring, a Dark Star.
 The win | A full circle at ring 1 or 2, or every hex cleared, is a full collapse: everything falls in, the run is won and you return to the main menu. The days start over; your items and discoveries are kept."
 hubdescend,surf,Descend,dark,"Surround the centre with three triangle merges, then step into it.","Deeper | A new, deeper map begins. Your score and items come with you."
@@ -225,16 +225,16 @@ Open | Click it: the cork comes out and the letter inside is unrolled to read. T
 Kept | Every letter you find is kept in the Guide (Letters), a book in the order you found them. Each bottle holds one you have not found, until you have them all.
 Who | Someone else was here before you. Some of them wanted out; some of them left a tip.
 A duck | Now and then a bottle holds a duck instead (Bottle duck chance): opening it adds the duck to your collection."
-hubview,surf,Looking round,particle,"The map follows you, but you can look around.","Drag | Drag to look around. The source always stays in view.
+hubview,surf,Looking round,particle,"The map follows you, but you can look around.","Drag | Drag to look around. The Point always stays in view.
 Right-click | Back to your hex (or puts an item you are holding down).
 Modes | Telemetry shows each hex's value, coverage and ring; Stats shows the frame rate and the grid. ~ (or H) hides every panel."
-shopstreet,shops,Main street,sign:corner,"Shops that stand round the source, always, from the first day.","Hours | Each keeps its own hours and is lit only while it is open. A closed shop can not be entered (a holiday, a dim fortune, closes them a time of day early).
+shopstreet,shops,Main street,sign:corner,"Shops that stand round the Point, always, from the first day.","Hours | Each keeps its own hours and is lit only while it is open. A closed shop can not be entered (a holiday, a dim fortune, closes them a time of day early).
 Discovered | A shop is discovered the first time it opens: one open all day on the first morning, the others at the first hour they open.
 Its card | What each sells and does is on its own card below."
 shoppop,shops,Pop-ups,sign:bright,A cleared surface that collected enough of one thing opens a pop-up shop.,"Ranks | Rank 1, 2 or 3 by how much it collected (each shop's thresholds): the store's size, and how much of its list it carries.
 One of each | A shop that already stands at that rank or better does not open again. A better rank moves it to the new clear and the old one is torn down.
 Order | When a clear earns more than one: first the Duck Shop, then the best-ranked exotic shop (a tie at random), then BRiGHT IDEAS, and last Dim's.
-Where | On its own bright hex. A Dark Remnant clear's pop-up opens on the nearest open bright hex, or a free spot in the source hex.
+Where | On its own bright hex. A Dark Remnant clear's pop-up opens on the nearest open bright hex, or a free spot in the Point hex.
 Again | Every time of day, each cleared surface that earned a pop-up and has none open tries again: a hex a shop moved out of, a dark clear that found no room, a day it was a holiday.
 Stays | A pop-up stays while its clear lasts."
 shopbuy,shops,Buying,sign:xact,Click an open shop to see what it sells.,"Tabs | A shop that takes more than one thing has a tab for each; your purse for the tab shows as a slot in the dock.

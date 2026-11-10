@@ -735,7 +735,7 @@ function drawRemnantGlyph(pointsCtx,p,now){
   // down use the exact same (mass-scaled) size, instead of the glow staying a fixed size while only the disc
   // grew with mass (which used to let a big Dim Remnant's flat disc completely swallow its own fixed-size glow).
   const dimDr=p.remKind==='brown'?Math.max(0.5,massToRadius(p.mass,T.brownMinR,T.brownMaxR,T.dimMassMin,T.dimMassMax)*(p.radMult||1)):0;
-  pointsCtx.globalCompositeOperation='screen';pointsCtx.globalAlpha=T.remGlowA*p.displayA*(isBlackKind?0.5:pulsePhase);
+  pointsCtx.globalCompositeOperation='screen';pointsCtx.globalAlpha=T.remGlowA*p.displayA*(isBlackKind?0.5:pulsePhase)*(isMagnetic?chromaVib(now,((p.id||0)*0.618)%1):1); // (a Magnetic one keeps its two colours, its vibrancy breathing)
   if(isMagnetic){
     // The glow itself is split into the exact two colors this remnant
     // recolors objects to — not a generic white halo — so its effect
@@ -748,8 +748,12 @@ function drawRemnantGlyph(pointsCtx,p,now){
     pointsCtx.fillStyle=`rgb(${oc.r},${oc.g},${oc.b})`;pointsCtx.fill();
   } else if(p.remKind==='brown'){
     drawDimGlow(pointsCtx,p.x,p.y,p.displayA,dimDr);
-  } else {
+  } else if(isBlackKind||p.magTintCI!==undefined){ // (a Dark one, or one a Magnetic has tinted: its colour is what it does)
     pointsCtx.beginPath();pointsCtx.arc(p.x,p.y,T.remGlowR,0,6.2832);pointsCtx.fillStyle=`rgba(${rc},1)`;pointsCtx.fill();
+  }
+  if(!isBlackKind&&!isMagnetic&&(p.enriched||p.magTintCI===undefined&&p.remKind!=='brown')){ // the title splash's chromatic glow: Bright, Neutron and Pulsing ones and every relic in the rainbow (a Pulsing one still on its own beat, pulsePhase)
+    const ph=((p.id||0)*0.618)%1,v=chromaVib(now,ph),R=T.remGlowR*(T.remChromaR||2.2)*(p.remKind==='brown'?Math.max(1,dimDr/Math.max(1,T.remGlowR)):1);
+    pointsCtx.globalAlpha=Math.min(1,T.remGlowA*p.displayA*pulsePhase*v*(p.enriched?1.35:1));pointsCtx.fillStyle=chromaGrad(pointsCtx,p.x,p.y,R,now,ph,1);pointsCtx.beginPath();pointsCtx.arc(p.x,p.y,R,0,6.2832);pointsCtx.fill();
   }
   pointsCtx.globalCompositeOperation='source-over';pointsCtx.globalAlpha=a;
   if(isMagnetic){
@@ -4895,11 +4899,23 @@ function drawStasisTrails(ctx){
       ctx.lineWidth=Math.max(1,R*2*(0.2+0.8*f));ctx.strokeStyle=`rgba(${c.r|0},${c.g|0},${c.b|0},${(0.04+0.45*f*f).toFixed(3)})`;ctx.beginPath();ctx.moveTo(P[2*k-2],P[2*k-1]);ctx.lineTo(P[2*k],P[2*k+1]);ctx.stroke();}
     ctx.restore();}
 }
+let _aoe={t:0,r:0,x:-1,y:-1};
+function drawHoverExtras(ctx,now){ // the hover read-outs for what the point read-outs (drawTelemetry) do not cover: Class names a duck, a container (Crate, Cache, Case, Gate) or a shape under the cursor;
+  // Effect radii (showRadii) show the cursor's own unseen reach: a dab's (click and collect: Touch rad, or the Neutron's Dynamism rad), what it would collect here, and a double click's (out to the farthest of the Max shining nearest it would take, so it changes as you move)
+  if(!(mouse.x>0&&mouse.x<W&&mouse.y>0&&mouse.y<H)||overUI)return;const x=mouse.x,y=mouse.y,lab=(t,px,py,col)=>{ctx.save();ctx.font='10px monospace';ctx.textAlign='center';ctx.textBaseline='bottom';ctx.lineWidth=3;ctx.strokeStyle='rgba(0,0,0,0.7)';ctx.strokeText(t,px,py);ctx.fillStyle=col||'#cfe8ff';ctx.fillText(t,px,py);ctx.restore();};
+  if(classOn&&!_telHover){const d=duckAt(x,y);if(d){const t=DUCK_TYPES[d.type];lab((t&&t.name||d.type)+' '+txt('hover.duck'),d.x,d.y-24);}
+    else{const z=zoneAtPoint(x,y),sh=z&&z.sh;if(sh){const k=sh.cache?'cache':sh.case?'case':sh.crate?'crate':sh.gate?'gate':sh.glass?'glass':'shape';lab(txt('hover.'+k),x,y-26,'#ffd9a0');}}}
+  if(!showRadii)return;ctx.save();ctx.setLineDash([3,4]);ctx.lineWidth=1;
+  const dabR=armedInvItem&&armedInvItem.kind==='neutron'?T.dynamismR:T.touchR;ctx.strokeStyle='rgba(255,255,255,0.55)';ctx.beginPath();ctx.arc(x,y,dabR,0,6.2832);ctx.stroke();lab(txt('hover.dab'),x,y-dabR-2,'#ffffff');
+  const c=!armedInvItem&&collectableAt(x,y);if(c){const R=Math.max(T.touchR,placedRadius(c.p)+2);ctx.setLineDash([]);ctx.strokeStyle='rgba(255,214,110,0.8)';ctx.beginPath();ctx.arc(c.p.x,c.p.y,R,0,6.2832);ctx.stroke();lab(txt('hover.collect'),c.p.x,c.p.y+R+12,'#ffd66e');}
+  if(now-_aoe.t>150||Math.hypot(x-_aoe.x,y-_aoe.y)>12){const L=armedInvItem?gestureNearest(x,y,{},now):dblTargets(x,y).slice(0,Math.max(1,T.maxActivePoints|0)),f=L[L.length-1];_aoe={t:now,x,y,r:f?Math.sqrt(f.d2):0};} // (cached: it looks at every particle)
+  if(_aoe.r>dabR){ctx.setLineDash([1,5]);ctx.strokeStyle='rgba(120,220,255,0.6)';ctx.beginPath();ctx.arc(x,y,_aoe.r,0,6.2832);ctx.stroke();lab(txt('hover.dbl'),x,y-_aoe.r-2,'#78dcff');}
+  ctx.restore();}
 function drawTrailsUnder(ctx){drawDialTrails(ctx);if(timeScale<=0.0005)drawPausePaths(ctx);drawStasisTrails(ctx);} // String, pause and stasis trails sit UNDER the points they belong to
 function drawItemTools(ctx){
   const now=performance.now();
   drawDialLoaded(ctx,now);drawDialMarks(ctx,now);drawKeySeq(ctx,now);
-  drawTelemetry(ctx,now);
+  drawTelemetry(ctx,now);drawHoverExtras(ctx,now);
   for(const h of placedFields){if(h.kind==='dim'){drawWhirlLens(ctx,h,now);drawDepth(ctx,h.x,h.y,fieldR(h),now,1);}else drawFieldRing(ctx,h.x,h.y,fieldR(h),now,1,h.ang);}
   const kind=armedInvItem&&(armedInvItem.kind==='dim'||armedInvItem.kind==='bright')&&!createActive()?armedInvItem.kind:null;
   if(kind&&mouse.x>=0){ // the cursor implies what it will place: a dimmer version of the placed look, and a matching little glyph
@@ -11423,7 +11439,21 @@ function drawPausePaths(ctx,map,tick){
 }
 function ringFillRGB(r,g,b){const k=T.pauseRingFillWhiten;return`${(r+(255-r)*k)|0},${(g+(255-g)*k)|0},${(b+(255-b)*k)|0}`;}
 // One effect ring: a whitened fill under a stroke. PASSIVE rings (ambient range) are thin/dashed/dim; ACTIVE rings are bold and solid.
-function drawEffectRing(ctx,x,y,rad,r,g,b,active,a0,a1){
+function radEase(o,k,v,now){ // an effect radius as drawn: when its scale changes it eases to the new one (growing over Radius grow ms, shrinking over Radius shrink ms, the nova's own pair) rather than jumping; a pigment's starts from 0 (its base: no effect)
+  const S=o._rE||(o._rE={}),e=S[k]||(S[k]={v:0,t:now}),dt=Math.max(0,now-e.t);e.t=now;const ms=v>e.v?T.effRadGrowMs:T.effRadShrinkMs;
+  if(!(ms>0)||dt>1000){e.v=v;return v;}e.v+=(v-e.v)*Math.min(1,1-Math.exp(-dt*4/ms));return Math.abs(e.v-v)<0.25?(e.v=v):e.v;}
+const FLOW_K=['kPush','kFling','kOrbit','kPull','kAttract','kDamp']; // each effect colour's force tuner (THROW, FLING, ORBIT, WHIRL, CATCH, SNARE)
+function flowPts(f,x,y,r,th,L){ // where something at (r, th) from an effect's centre is carried, as a short path: f = an effect colour (0–5), 'grow' / 'shrink' (a Neutron's scaling)
+  const P=[],n=7,at=(rr,tt)=>P.push({x:x+Math.cos(tt)*rr,y:y+Math.sin(tt)*rr});
+  for(let i=0;i<n;i++){const u=i/(n-1);
+    if(f===0||f==='grow')at(r+u*L,th);else if(f===4||f==='shrink')at(r-u*L,th);
+    else if(f===1)at(r+u*L*0.6,th+u*L*0.8/Math.max(1,r));else if(f===3)at(r-u*L*0.6,th+u*L*0.8/Math.max(1,r));
+    else if(f===2)at(r,th+u*L/Math.max(1,r));else{const tx=-Math.sin(th),ty=Math.cos(th),v=(1-u)*L*0.6;P.push({x:x+Math.cos(th)*r+tx*v,y:y+Math.sin(th)*r+ty*v});}} // SNARE: brought to rest where it is
+  return P;}
+function drawEffectFlow(ctx,x,y,rad,f,rgb,a0,a1){ // the direction and magnitude of an effect, inside its ring and in its colour: the same arrows the velocity read-outs draw (drawPredictedPath), their length its force (this colour's K over its range)
+  if(f==null||!(rad>4)||!(T.effFlowN>0))return;const k=typeof f==='number'?T[FLOW_K[f]]/Math.max(1e-6,(f===5?1:0.3)):1,L=rad*(T.effFlowLen||0.3)*Math.max(0.15,Math.min(1,k)),N=Math.max(1,T.effFlowN|0),sp=a0===undefined?6.2832:a1-a0,b0=a0===undefined?0:a0;
+  ctx.save();for(let i=0;i<N;i++){const th=b0+sp*(i+0.5)/N,r=f===4||f===3||f==='shrink'?rad*0.92:rad*(f===2||f===5?0.62:0.3);drawPredictedPath(ctx,flowPts(f,x,y,r,th,L),rgb,0.85,1.2);}ctx.restore();}
+function drawEffectRing(ctx,x,y,rad,r,g,b,active,a0,a1,flow){ // flow: what the effect does (an effect colour 0–5, or 'grow' / 'shrink'): drawn as arrows inside it (drawEffectFlow)
   const zc=zoneClip(ctx,x,y);
   ctx.beginPath();
   if(a0===undefined)ctx.arc(x,y,rad,0,6.2832);else{ctx.moveTo(x,y);ctx.arc(x,y,rad,a0,a1);ctx.closePath();}
@@ -11433,6 +11463,7 @@ function drawEffectRing(ctx,x,y,rad,r,g,b,active,a0,a1){
   ctx.strokeStyle=`rgba(${(r+(255-r)*wk)|0},${(g+(255-g)*wk)|0},${(b+(255-b)*wk)|0},${active?T.pauseRingActiveAlpha:T.pauseRingPassiveAlpha})`;
   ctx.setLineDash(active||T.pauseRingPassiveDash<=0?[]:[T.pauseRingPassiveDash,T.pauseRingPassiveDash]);
   ctx.stroke();ctx.setLineDash([]);
+  if(flow!=null)drawEffectFlow(ctx,x,y,rad,flow,`${(r+(255-r)*wk)|0},${(g+(255-g)*wk)|0},${(b+(255-b)*wk)|0}`,a0,a1);
   if(zc)ctx.restore();
 }
 function drawDialLiveRings(ctx){
@@ -11441,8 +11472,8 @@ function drawDialLiveRings(ctx){
   for(let i=0;i<active.length;i++){
     const p=active[i];
     if(p.isRemnant||!p.collapsed||p.failedCollapse||p.dying||!pointValidNow(p)||((p.blackFx||p.whiteFx)&&!pressedIDs.has(p.id)))continue;
-    const rad=collapsedEffectRadius(p,pressedIDs.has(p.id));
-    if(rad>0)drawEffectRing(ctx,p.x,p.y,rad,p.r,p.g,p.b,false);
+    const rad=radEase(p,'d',collapsedEffectRadius(p,pressedIDs.has(p.id)),performance.now());
+    if(rad>0.5)drawEffectRing(ctx,p.x,p.y,rad,p.r,p.g,p.b,false,undefined,undefined,p.whiteFx||p.blackFx?null:p.ci);
   }
   ctx.restore();
   drawActiveRemnantEffectAreas(ctx);
@@ -11472,14 +11503,14 @@ function drawRadiiRings(ctx){
     } else if(act){
       rad=effRadOf(p);
     }
-    if(rad<=0)continue;
-    drawEffectRing(ctx,p.x,p.y,rad,p.r,p.g,p.b,act);
+    rad=radEase(p,'r',Math.max(0,rad),performance.now());if(rad<=0.5)continue;
+    drawEffectRing(ctx,p.x,p.y,rad,p.r,p.g,p.b,act,undefined,undefined,p.whiteFx||p.blackFx?null:p.ci);
   }
   // Activations queued while paused: shown as active rings, but nothing has actually happened to those objects yet.
   pendingActs.forEach(a=>{ // particles queued for activation (they aren't points yet, so the loop above can't show them)
     if(!a.dorm||!a.on)return;
     const q=a.p,rad=effRadOf(q);
-    drawEffectRing(ctx,a.x,a.y,rad,q.r,q.g,q.b,true);
+    drawEffectRing(ctx,a.x,a.y,rad,q.r,q.g,q.b,true,undefined,undefined,q.ci);
   });
   ctx.restore();
   drawActiveRemnantEffectAreas(ctx);
@@ -11919,15 +11950,15 @@ function drawActiveRemnantEffectAreas(ctx){
     } else if(p.remKind==='neutron'){
       const ntc=p.magTintCI!==undefined?magRGB(curTintCI(p)):{r:190,g:225,b:255},m=p.radMult||1;
       dimRing(p.x,p.y,T.neutronEffRMin*m,ntc);dimRing(p.x,p.y,T.neutronEffRMax*m,ntc); // both ends of its scaling range
-      drawEffectRing(ctx,p.x,p.y,R,ntc.r,ntc.g,ntc.b,p.neutronState==='max');
+      drawEffectRing(ctx,p.x,p.y,radEase(p,'n',R,performance.now()),ntc.r,ntc.g,ntc.b,p.neutronState==='max',undefined,undefined,p.neutronState==='max'?'grow':'shrink');
       if(p.magTintCI!==undefined)tag(p,R,ntc,EFFECT_NAMES[p.magTintCI]);
     } else if(p.remKind==='magnetic'){
       const pc=magRGB(p.magPrimaryCI),oc=magRGB(p.magOppositeCI),a=magAngle(p);
       if(inNeutron){dimRing(p.x,p.y,T.neutronEffRMin,cMin);dimRing(p.x,p.y,T.neutronEffRMax,cMin);}
       {
         const bm=T.magneticEffR*(p.radMult||1);
-        drawEffectRing(ctx,p.x,p.y,bm*(p.halfA||1),pc.r,pc.g,pc.b,false,a,a+Math.PI);
-        drawEffectRing(ctx,p.x,p.y,bm*(p.halfB||1),oc.r,oc.g,oc.b,false,a+Math.PI,a+6.2832);
+        const nw=performance.now();drawEffectRing(ctx,p.x,p.y,radEase(p,'a',bm*(p.halfA||1),nw),pc.r,pc.g,pc.b,false,a,a+Math.PI);
+        drawEffectRing(ctx,p.x,p.y,radEase(p,'b',bm*(p.halfB||1),nw),oc.r,oc.g,oc.b,false,a+Math.PI,a+6.2832);
       }
       tag(p,R,pc,EFFECT_NAMES[p.magPrimaryCI]+' / '+EFFECT_NAMES[p.magOppositeCI]);
     } else if(p.remKind==='pulsing'){
@@ -12736,22 +12767,27 @@ const evSeen=id=>!!window.__SCENE||discSeen.has('ev:'+id);
 const evOk=ev=>!ev||(Array.isArray(ev)?ev.some(evSeen):evSeen(ev));
 const cvn=(v,d)=>+(+v).toFixed(d===undefined?3:d);
 // ── Conversion math: every line is built from the CURRENT tuned values, so the Guide always states the real rule ──
+const TUNE_LABEL={};for(const r of csvRead('tuners'))TUNE_LABEL[r.key]=r.label?r.label+' ('+(r.section||'')+')':'no slider';
+const tvE=(v,names)=>'\u0001'+names+'\u0002'+v+'\u0003'; // a live value in the Guide's math, tagged with the variables it comes from (shown when pointed at: tvHTML)
+function tvHTML(l){ // a math line: each value names its variable and its tuner when pointed at; a number that comes from none is declared hardcoded
+  const hc=t=>gEsc(t).replace(/(^|[^\w.])(\d[\d,]*(?:\.\d+)?)/g,(m,a,v)=>a+`<span class="tv hc" title="${gEsc(txt('guide.math.hardcoded'))}">${v}</span>`);
+  return String(l).split(/\u0001([^\u0002]*)\u0002([^\u0003]*)\u0003/).map((t,i)=>i%3===0?hc(t):i%3===1?null:t).reduce((o,t,i,A)=>{if(i%3===0)o.push(t);else if(i%3===2){const n=A[i-1]||'',ttl=n?n.split(' ').map(k=>k+(TUNE_LABEL[k]?' — tuner: '+TUNE_LABEL[k]:'')+(k==='PIXEL_SIZE'?' — '+txt('guide.math.hardcoded'):'')).join('\n'):txt('guide.math.hardcoded');o.push(`<span class="tv${n?'':' hc'}" title="${gEsc(ttl)}">${gEsc(t)}</span>`);}return o;},[]).join('');}
 const CONV={
- wake:{t:'Particle → Pigment',f:()=>['mass, energy and colour mix are the particle\'s own: nothing is added or lost','it starts at the size it was drawn and grows to the pigment size: radius = '+T.colorMinR+' + ('+T.colorMaxR+' − '+T.colorMinR+') × (1 − (1 − t)^'+T.massCurvePow+'), t = (mass − '+T.pigmentMassMin+') ÷ ('+T.pigmentMassMax+' − '+T.pigmentMassMin+')']},
- pigdeath:{t:'Pigment life and death',f:()=>['life = (mass ÷ energy) × '+T.lifeColor+' ms, never more than '+T.lifeMaxS+' s; it only counts down while the pigment shines','holding the cursor squeezes it: Td = '+T.holdDrainK+' × 704 × life^0.648 ms, and its remaining life follows life × (1 − (t ÷ Td)²)','when it runs out it becomes a Dim Remnant with 100% of its mass, energy and colour mix (no loss)']},
- faildim:{t:'Failed collapse → Dim Remnant',f:()=>['a pigment that is heavy and balanced enough but has energy < '+T.collEnergy+' dims instead of collapsing','it is rebuilt by makeRemnant: mass × '+T.remMassFrac+', energy × '+T.remEnergyFrac+', colour mix × '+T.remMassFrac,'example: mass 300, energy 20 → mass '+cvn(300*T.remMassFrac,1)+', energy '+cvn(20*T.remEnergyFrac,2)]},
- collapse:{t:'Pigment → Point',f:()=>['needs mass > '+T.collMass+' (Mass req)','needs energy ≥ '+T.collEnergy+' (Energy req); less and it dims instead','needs colour balance: every primary ≥ '+T.triadMin+' of the mix and weakest ÷ strongest ≥ '+T.triadBal,'Point radius = '+T.whiteMinR+' + ('+T.whiteMaxR+' − '+T.whiteMinR+') × (1 − (1 − t)^'+T.massCurvePow+'), t = (mass − '+T.brightMassMin+') ÷ ('+T.brightMassMax+' − '+T.brightMassMin+')','Point life = (mass ÷ energy) × '+T.lifeStarK+' ÷ (radius × '+T.lifeStarDiv+') ms, never more than '+T.lifeMaxS+' s, and it always counts down','mass and energy carry over unchanged']},
- pointdeath:{t:'Point → Bright Remnant (+ nova)',f:()=>{const m=300,e=62;return['remnant mass = Point mass × '+T.remMassFrac+' (Remnant mass %), remnant energy = Point energy × '+T.remEnergyFrac+' (Remnant energy %), colour mix × '+T.remMassFrac,'example: a Point with mass '+m+' and energy '+e+' leaves mass '+cvn(m*T.remMassFrac,1)+' and energy '+cvn(e*T.remEnergyFrac,2),'the rest of the energy is not carried over: the nova lays new particles with fresh energy ('+T.particleStartEnergy+' ± '+T.particleEnergyJitter+', ÷ 10) × (1 − distance ÷ radius)²','nova radius = '+T.novaMassBase+' × √mass (at least '+cvn(PIXEL_SIZE*2,1)+' px); total particle mass laid = Point mass (a thin nova fills only its outer ring)','a Point of at least half the Dark Remnant mass ('+Math.round(T.massScaleMax*T.blackMult/2)+') leaves an ACTIVE remnant instead (type chosen as in a fusion: colour balance, then speed and spin)','every nova slows game time: '+T.dilMin+' (smallest) to '+T.dilMax+' (largest), never below ×'+T.dilFloor];}},
- fuse:{t:'Bright + Bright → exotic remnant',f:()=>['they only break apart if combined motion ≥ '+T.remBounceNovaThresh+' (each: speed ÷ '+T.maxSpeed+' + spin ÷ '+T.maxRotSpeed+'); softer hits just bounce','colour balance ≤ '+T.magBalanceLow+' or ≥ '+T.magBalanceHigh+' → Magnetic (≥ '+T.magBWScore+' makes a Black & White one)','otherwise: (faster speed ÷ '+T.maxSpeed+') + (faster spin ÷ '+T.maxRotSpeed+') ≥ '+T.pulseSumThresh+' → Pulsing, else Neutron','leftover remnant: mass × '+T.remMassFrac+', energy × '+T.remEnergyFrac+' of the two combined; the nova is sized from the combined mass']},
- crash:{t:'Active + Active → Dark Remnant',f:()=>['combined motion ≥ '+T.remBounceNovaThresh+' (speed ÷ '+T.maxSpeed+' + spin ÷ '+T.maxRotSpeed+', both objects); softer and they bounce','they are replaced by a nova of the combined mass, then a Dark Remnant']},
- dark:{t:'Dark Remnant',f:()=>['a Point of mass ≥ '+Math.round(T.massScaleMax*T.blackMult)+' (Mass scale max × Mass ×) dies into one','two Points of at least half that mass meeting, two exotic remnants crashing, two relics meeting, or a Key also make one','it grows over '+T.blackGrowMs+' ms, freezes everything, then draws everything in at '+T.blackLaunchPerMs+' objects per ms']},
- relic:{t:'Relics',f:()=>['two Dim Remnants of mass ≥ '+T.dimMassMax+' (Dim max mass) merge: one becomes a relic (enriched) with the combined mass and energy','two relics of that mass meeting make a nova and a Dark Remnant','an ECLIPSE Point that dies leaves an enriched Dim, a CRYSTALIZE Point an enriched Bright; relics are never eaten, merged or damaged and collect as ×100']},
- collect:{t:'Collecting',f:()=>['Bright / Dim: ceil(energy × 10), at least 1; relics ceil(energy × 100)','Neutron / Magnetic / Pulsing remnants: 1 (relics 100), plus +'+Math.ceil(T.statusEnergy*10)+' (relic +'+Math.ceil(T.statusEnergy*100)+') per stacked status','so a remnant with energy '+cvn(2.3,1)+' collects as '+Math.ceil(2.3*10)+' (relic '+Math.ceil(2.3*100)+')']},
- status:{t:'Status energy',f:()=>['a Dim, Bright or relic gains +'+T.statusEnergy+' energy for every new status it picks up: Enlarged, Shrunk, or (Bright only) a colour','an exotic remnant stacks them too, from the other two active types: Enlarged, Shrunk, each colour pair, each Pulsing beat — up to '+T.activeStatusMax,'+'+T.statusEnergy+' energy collects as +'+Math.ceil(T.statusEnergy*10)+' (relic +'+Math.ceil(T.statusEnergy*100)+')']},
- unwind:{t:'Spindle unwind',f:()=>['every '+T.unwindMs+' ms the target gives back '+T.unwindPct+'% of its starting mass as particles, so any size unwinds in '+(Math.ceil(100/T.unwindPct)*T.unwindMs/1000).toFixed(1)+' s','while it unwinds nothing touches it and it touches nothing: no collisions, no effects either way','each lump carries energy = lump mass × (target energy ÷ target mass), so energy is conserved per mass','a still target spreads up to '+T.unwindMaxWidth+' px over '+T.unwindGrowMs+' ms; when its mass is gone it disappears (no remnant)']}
+ wake:{t:'Particle → Pigment',f:()=>['mass, energy and colour mix are the particle\'s own: nothing is added or lost','it starts at the size it was drawn and grows to the pigment size: radius = '+tvE(T.colorMinR,'colorMinR')+' + ('+tvE(T.colorMaxR,'colorMaxR')+' − '+tvE(T.colorMinR,'colorMinR')+') × (1 − (1 − t)^'+tvE(T.massCurvePow,'massCurvePow')+'), t = (mass − '+tvE(T.pigmentMassMin,'pigmentMassMin')+') ÷ ('+tvE(T.pigmentMassMax,'pigmentMassMax')+' − '+tvE(T.pigmentMassMin,'pigmentMassMin')+')']},
+ pigdeath:{t:'Pigment life and death',f:()=>['life = (mass ÷ energy) × '+tvE(T.lifeColor,'lifeColor')+' ms, never more than '+tvE(T.lifeMaxS,'lifeMaxS')+' s; it only counts down while the pigment shines','holding the cursor squeezes it: Td = '+tvE(T.holdDrainK,'holdDrainK')+' × 704 × life^0.648 ms, and its remaining life follows life × (1 − (t ÷ Td)²)','when it runs out it becomes a Dim Remnant with 100% of its mass, energy and colour mix (no loss)']},
+ faildim:{t:'Failed collapse → Dim Remnant',f:()=>['a pigment that is heavy and balanced enough but has energy < '+tvE(T.collEnergy,'collEnergy')+' dims instead of collapsing','it is rebuilt by makeRemnant: mass × '+tvE(T.remMassFrac,'remMassFrac')+', energy × '+tvE(T.remEnergyFrac,'remEnergyFrac')+', colour mix × '+tvE(T.remMassFrac,'remMassFrac'),'example: mass 300, energy 20 → mass '+tvE(cvn(300*T.remMassFrac,1),'remMassFrac')+', energy '+tvE(cvn(20*T.remEnergyFrac,2),'remEnergyFrac')]},
+ collapse:{t:'Pigment → Point',f:()=>['needs mass > '+tvE(T.collMass,'collMass')+' (Mass req)','needs energy ≥ '+tvE(T.collEnergy,'collEnergy')+' (Energy req); less and it dims instead','needs colour balance: every primary ≥ '+tvE(T.triadMin,'triadMin')+' of the mix and weakest ÷ strongest ≥ '+tvE(T.triadBal,'triadBal'),'Point radius = '+tvE(T.whiteMinR,'whiteMinR')+' + ('+tvE(T.whiteMaxR,'whiteMaxR')+' − '+tvE(T.whiteMinR,'whiteMinR')+') × (1 − (1 − t)^'+tvE(T.massCurvePow,'massCurvePow')+'), t = (mass − '+tvE(T.brightMassMin,'brightMassMin')+') ÷ ('+tvE(T.brightMassMax,'brightMassMax')+' − '+tvE(T.brightMassMin,'brightMassMin')+')','Point life = (mass ÷ energy) × '+tvE(T.lifeStarK,'lifeStarK')+' ÷ (radius × '+tvE(T.lifeStarDiv,'lifeStarDiv')+') ms, never more than '+tvE(T.lifeMaxS,'lifeMaxS')+' s, and it always counts down','mass and energy carry over unchanged']},
+ pointdeath:{t:'Point → Bright Remnant (+ nova)',f:()=>{const m=300,e=62;return['remnant mass = Point mass × '+tvE(T.remMassFrac,'remMassFrac')+' (Remnant mass %), remnant energy = Point energy × '+tvE(T.remEnergyFrac,'remEnergyFrac')+' (Remnant energy %), colour mix × '+tvE(T.remMassFrac,'remMassFrac'),'example: a Point with mass '+tvE(m,'')+' and energy '+tvE(e,'')+' leaves mass '+tvE(cvn(m*T.remMassFrac,1),'remMassFrac')+' and energy '+tvE(cvn(e*T.remEnergyFrac,2),'remEnergyFrac'),'the rest of the energy is not carried over: the nova lays new particles with fresh energy ('+tvE(T.particleStartEnergy,'particleStartEnergy')+' ± '+tvE(T.particleEnergyJitter,'particleEnergyJitter')+', ÷ 10) × (1 − distance ÷ radius)²','nova radius = '+tvE(T.novaMassBase,'novaMassBase')+' × √mass (at least '+tvE(cvn(PIXEL_SIZE*2,1),'PIXEL_SIZE')+' px); total particle mass laid = Point mass (a thin nova fills only its outer ring)','a Point of at least half the Dark Remnant mass ('+tvE(Math.round(T.massScaleMax*T.blackMult/2),'blackMult massScaleMax')+') leaves an ACTIVE remnant instead (type chosen as in a fusion: colour balance, then speed and spin)','every nova slows game time: '+tvE(T.dilMin,'dilMin')+' (smallest) to '+tvE(T.dilMax,'dilMax')+' (largest), never below ×'+tvE(T.dilFloor,'dilFloor')];}},
+ fuse:{t:'Bright + Bright → exotic remnant',f:()=>['they only break apart if combined motion ≥ '+tvE(T.remBounceNovaThresh,'remBounceNovaThresh')+' (each: speed ÷ '+tvE(T.maxSpeed,'maxSpeed')+' + spin ÷ '+tvE(T.maxRotSpeed,'maxRotSpeed')+'); softer hits just bounce','colour balance ≤ '+tvE(T.magBalanceLow,'magBalanceLow')+' or ≥ '+tvE(T.magBalanceHigh,'magBalanceHigh')+' → Magnetic (≥ '+tvE(T.magBWScore,'magBWScore')+' makes a Black & White one)','otherwise: (faster speed ÷ '+tvE(T.maxSpeed,'maxSpeed')+') + (faster spin ÷ '+tvE(T.maxRotSpeed,'maxRotSpeed')+') ≥ '+tvE(T.pulseSumThresh,'pulseSumThresh')+' → Pulsing, else Neutron','leftover remnant: mass × '+tvE(T.remMassFrac,'remMassFrac')+', energy × '+tvE(T.remEnergyFrac,'remEnergyFrac')+' of the two combined; the nova is sized from the combined mass']},
+ crash:{t:'Active + Active → Dark Remnant',f:()=>['combined motion ≥ '+tvE(T.remBounceNovaThresh,'remBounceNovaThresh')+' (speed ÷ '+tvE(T.maxSpeed,'maxSpeed')+' + spin ÷ '+tvE(T.maxRotSpeed,'maxRotSpeed')+', both objects); softer and they bounce','they are replaced by a nova of the combined mass, then a Dark Remnant']},
+ dark:{t:'Dark Remnant',f:()=>['a Point of mass ≥ '+tvE(Math.round(T.massScaleMax*T.blackMult),'blackMult massScaleMax')+' (Mass scale max × Mass ×) dies into one','two Points of at least half that mass meeting, two exotic remnants crashing, two relics meeting, or a Key also make one','it grows over '+tvE(T.blackGrowMs,'blackGrowMs')+' ms, freezes everything, then draws everything in at '+tvE(T.blackLaunchPerMs,'blackLaunchPerMs')+' objects per ms']},
+ relic:{t:'Relics',f:()=>['two Dim Remnants of mass ≥ '+tvE(T.dimMassMax,'dimMassMax')+' (Dim max mass) merge: one becomes a relic (enriched) with the combined mass and energy','two relics of that mass meeting make a nova and a Dark Remnant','an ECLIPSE Point that dies leaves an enriched Dim, a CRYSTALIZE Point an enriched Bright; relics are never eaten, merged or damaged and collect as ×100']},
+ collect:{t:'Collecting',f:()=>['Bright / Dim: ceil(energy × 10), at least 1; relics ceil(energy × 100)','Neutron / Magnetic / Pulsing remnants: 1 (relics 100), plus +'+tvE(Math.ceil(T.statusEnergy*10),'statusEnergy')+' (relic +'+tvE(Math.ceil(T.statusEnergy*100),'statusEnergy')+') per stacked status','so a remnant with energy '+tvE(cvn(2.3,1),'')+' collects as '+tvE(Math.ceil(2.3*10),'')+' (relic '+tvE(Math.ceil(2.3*100),'')+')']},
+ status:{t:'Status energy',f:()=>['a Dim, Bright or relic gains +'+tvE(T.statusEnergy,'statusEnergy')+' energy for every new status it picks up: Enlarged, Shrunk, or (Bright only) a colour','an exotic remnant stacks them too, from the other two active types: Enlarged, Shrunk, each colour pair, each Pulsing beat — up to '+tvE(T.activeStatusMax,'activeStatusMax'),'+'+tvE(T.statusEnergy,'statusEnergy')+' energy collects as +'+tvE(Math.ceil(T.statusEnergy*10),'statusEnergy')+' (relic +'+tvE(Math.ceil(T.statusEnergy*100),'statusEnergy')+')']},
+ unwind:{t:'Spindle unwind',f:()=>['every '+tvE(T.unwindMs,'unwindMs')+' ms the target gives back '+tvE(T.unwindPct,'unwindPct')+'% of its starting mass as particles, so any size unwinds in '+tvE((Math.ceil(100/T.unwindPct)*T.unwindMs/1000).toFixed(1),'unwindMs unwindPct')+' s','while it unwinds nothing touches it and it touches nothing: no collisions, no effects either way','each lump carries energy = lump mass × (target energy ÷ target mass), so energy is conserved per mass','a still target spreads up to '+tvE(T.unwindMaxWidth,'unwindMaxWidth')+' px over '+tvE(T.unwindGrowMs,'unwindGrowMs')+' ms; when its mass is gone it disappears (no remnant)']}
 };
 // ── Events: the first time something happens, a card pauses the game and unlocks its Guide entries ──
-const EVENTS=csvRead('events').map(r=>{const f=r.facts.split('\n');return{id:r.id,name:r.name,type:r.type,rar:r.rarity,scene:r.scene,ico:r.icon,facts:()=>f.map(x=>tpl(x)),flavor:r.flavor};}); // content/events.csv (facts: one line each; {…} worked out as it shows)
+const EVENTS=csvRead('events').map(r=>{const f=r.facts.split('\n');return{id:r.id,name:r.name,type:r.type,rar:r.rarity,scene:r.scene,ico:r.icon,facts:()=>f.map(x=>String(x).replace(/\{([^{}]+)\}/g,(m,e)=>{const w=/^\d+$/.test(e)?'':VAL[e]||e,n=[...new Set((String(w).match(/\bT\.(\w+)|runT\('(\w+)'\)/g)||[]).map(v=>v.replace(/^T\.|runT\('|'\)/g,'')))].join(' ');return tvE(tpl(m),n);})),flavor:r.flavor};}); // (each value tagged with the variables it comes from: tvHTML) // content/events.csv (facts: one line each; {…} worked out as it shows)
 let _evQ=[],_evOpen=false,_evWasPaused=false,_evReview=false,_evHand=[],_evAct=0,_evDraw=false; // _evDraw: a Carnival draw is showing (it closes only by picking) // discoveries made together come as a hand: one card shown, the rest to pick
 function fireEvent(id){if(window.__SCENE||BUILD||discSeen.has('ev:'+id)||_evQ.indexOf(id)>=0||!EVENTS.some(e=>e.id===id))return;_evQ.push(id);}
 function eventPump(){if(!_evQ.length||_rulesOpen||_menuOpen||(_evOpen&&!_evHand.length))return;const n=_evHand.length;_evHand.push(..._evQ.splice(0));showEventCard(_evHand[n?_evAct:0],false);} // new ones join an open hand
@@ -12762,7 +12798,7 @@ const TIER=['I','II','III','IV','V'],TIER_COL=['#8b8678','#918a76','#978c71','#9
 const tierOfCost=c=>c<3?0:c<10?1:c<20?2:c<40?3:4,evTier=ev=>ev.tier!=null?ev.tier:EV_TIER[ev.rar]||0;
 function cardHTML(ev,mini){ // the one card format: name bar, art box, type line, text box with facts + flavour
   const t=evTier(ev);
-  return `<div class="mtg${mini?' sm':''}" data-ev="${ev.id}" style="--rc:${TIER_COL[t]}"><div class="nm"><b>${gEsc(ev.name)}</b><span class="gem"></span></div><div class="art" data-scene="${ev.scene}">${mini?`<canvas class="rl-m" width="64" height="64" data-k="${ev.ico}"></canvas>`:''}</div><div class="ty"><span>${gEsc(ev.type.replace(/^Event — /,''))}</span><span>Tier ${TIER[t]}</span></div><div class="tx">${(mini?ev.facts().slice(0,1):ev.facts()).map(f=>`<p${ev.fx?' class="fx"':''}>${gEsc(f)}</p>`).join('')}${ev.flavor?`<p class="fl">${gEsc(ev.flavor)}</p>`:''}</div></div>`; // (small: its first line and its flavour; the rest when it is opened) (fx: the lines are changes to play, set apart from the flavour)
+  return `<div class="mtg${mini?' sm':''}" data-ev="${ev.id}" style="--rc:${TIER_COL[t]}"><div class="nm"><b>${gEsc(ev.name)}</b><span class="gem"></span></div><div class="art" data-scene="${ev.scene}">${mini?`<canvas class="rl-m" width="64" height="64" data-k="${ev.ico}"></canvas>`:''}</div><div class="ty"><span>${gEsc(ev.type.replace(/^Event — /,''))}</span><span>Tier ${TIER[t]}</span></div><div class="tx">${(mini?ev.facts().slice(0,1):ev.facts()).map(f=>`<p${ev.fx?' class="fx"':''}>${tvHTML(f)}</p>`).join('')}${ev.flavor?`<p class="fl">${gEsc(ev.flavor)}</p>`:''}</div></div>`; // (small: its first line and its flavour; the rest when it is opened) (fx: the lines are changes to play, set apart from the flavour)
 }
 function mountScene(h,w,hh){if(!h||h.firstChild||document.querySelectorAll('.rl-live iframe,.mtg .art iframe').length>=5)return;const f=document.createElement('iframe'),nm=h.dataset.s||h.dataset.scene;f.style.cssText='border:0;max-width:100%;pointer-events:none;background:#000;border-radius:6px;'+(w?`width:${w}px;height:${hh}px`:'width:100%;height:100%');
   if(nm.slice(0,4)==='hub:'){const[sn,dk]=nm.slice(4).split(':');f.src='Surface_Map_HUB.html?v=20261105n&scene='+sn+(sn==='shop'?'&k='+encodeURIComponent(dk||''):'')+'&T='+encodeURIComponent(JSON.stringify(mapSceneT()))+'&D='+encodeURIComponent(JSON.stringify(dk&&DUCK_TYPES[dk]?{[dk]:DUCK_TYPES[dk]}:Object.fromEntries(Object.entries(DUCK_TYPES).slice(0,4))));}else f.srcdoc=liveSrc(nm);h.appendChild(f);} // a Surface Map demo is played by the map itself
@@ -12891,7 +12927,7 @@ function mapShow(sel){
   else{const ed=sel.e,ok=discHas('map_'+ed.id),key='e'+ed.id+ok;if(info.dataset.e===key)return;info.dataset.e=key;
     const A=MAP_NODES[ed.a][2],B=MAP_NODES[ed.b][2];
     if(!ok){info.innerHTML=`<h3>${A} → ${B}</h3><p>▒ Undiscovered. Hover this line holding ${fmtCount(discCostOf('map_'+ed.id))} Dim to discover it.</p>`;return;}
-    const m=(ed.conv||[]).map(k=>CONV[k]?`<div class="rl-mh">${gEsc(CONV[k].t)}</div><ul>${CONV[k].f().map(l=>`<li>${gEsc(l)}</li>`).join('')}</ul>`:'').join('');
+    const m=(ed.conv||[]).map(k=>CONV[k]?`<div class="rl-mh">${gEsc(CONV[k].t)}</div><ul>${CONV[k].f().map(l=>`<li>${tvHTML(l)}</li>`).join('')}</ul>`:'').join('');
     info.innerHTML=`<div class="mtg full" style="--rc:${TIER_COL[tierOfCost(ed.cost)]}"><div class="nm"><b>${A} → ${B}</b><span class="gem"></span></div><div class="art"><div class="art-live" data-scene="${ed.scene}"></div></div><div class="ty"><span>Taxonomy · ${gEsc(ed.l)}</span><span>Tier ${TIER[tierOfCost(ed.cost)]}</span></div><div class="tx"><ul>${ed.cond().map(l=>`<li>${gEsc(l)}</li>`).join('')}</ul>${m?`<details class="rl-math"><summary>Math (live values)</summary>${m}</details>`:''}</div></div>`;}
   info.querySelectorAll('canvas.rl-m').forEach(cv=>rulesDraw(cv,cv.dataset.k));applyDisc();const lv=info.querySelector('.art-live');if(lv&&!lv.classList.contains('disc-lock'))mountScene(lv);
 }
@@ -12920,7 +12956,7 @@ function guideCSS(){
 .rl-t{display:flex;flex-direction:column;min-width:0}.rl-t i{font-style:normal;opacity:.8;font-size:12.5px}
 .rl-b{display:none;padding:2px 12px 10px}.rl-c.open .rl-b{display:block}.rl-b p{margin:5px 0}
 .rl-x{margin:4px 0}.rl-live{display:inline-block;vertical-align:top;margin:4px 6px 4px 0;min-width:340px;min-height:200px;background:#000;border-radius:6px}
-.rl-math{margin:4px 0}.rl-mh{font-weight:bold;margin-top:6px}.rl-math ul,#mapInfo ul{margin:3px 0 3px 18px;padding:0}
+.rl-math{margin:4px 0}.rl-mh{font-weight:bold;margin-top:6px}.tv{border-bottom:1px dotted rgba(140,200,255,.7);cursor:help}.tv.hc{border-bottom-color:rgba(255,170,90,.7)}.rl-math ul,#mapInfo ul{margin:3px 0 3px 18px;padding:0}
 
 #wrap.rules-open #cur,#wrap.ev-open #cur,#wrap.menu-open #cur{display:none!important}
 #rulesOverlay canvas.rl-m,#evOverlay canvas.rl-m{position:static!important;display:block}
@@ -12963,7 +12999,7 @@ function ruleCardHTML(e,mini){ // a Guide entry as a card: its name, art (a live
   let tx=`<p>${gHi(e[4])}</p>`;
   if(!mini){tx+=rows.slice(0,1).map(p).join('');if(rows.length>1)tx+=`<div class="rl-x" data-disc="${ids.det}">${rows.slice(1).map(p).join('')}</div>`;
     if(sc.length>1)tx+=`<div class="rl-x" data-disc="${ids.ill}">${sc.slice(1).map(x=>`<span class="rl-live" data-s="${x}"></span>`).join('')}</div>`;
-    if(mt.length)tx+=`<div class="rl-x" data-disc="${ids.mat}"><details class="rl-math"><summary>Math (live values)</summary>${mt.map(m=>CONV[m]?`<div class="rl-mh">${gEsc(CONV[m].t)}</div><ul>${CONV[m].f().map(l=>`<li>${gEsc(l)}</li>`).join('')}</ul>`:'').join('')}</details></div>`;}
+    if(mt.length)tx+=`<div class="rl-x" data-disc="${ids.mat}"><details class="rl-math"><summary>Math (live values)</summary>${mt.map(m=>CONV[m]?`<div class="rl-mh">${gEsc(CONV[m].t)}</div><ul>${CONV[m].f().map(l=>`<li>${tvHTML(l)}</li>`).join('')}</ul>`:'').join('')}</details></div>`;}
   const art=mini||!sc.length?`<canvas class="rl-m" width="${mini?64:120}" height="${mini?64:120}" data-k="${ico}"></canvas>`:`<div class="art-live" data-disc="${ids.ill}" data-scene="${sc[0]}"></div>`;
   return `<div class="mtg${mini?' sm':' full'}" data-rule="${id}" data-disc="${ids.base}" style="--rc:${TIER_COL[t]}"><div class="nm"><b>${gHi(e[2])}</b><span class="gem"></span></div><div class="art">${art}</div><div class="ty"><span>${gEsc(home)}</span><span>Tier ${TIER[t]}</span></div><div class="tx">${tx}</div></div>`;
 }
