@@ -119,7 +119,7 @@ button:hover{background:rgba(255,255,255,0.15);}
   <div id="dock" class="bottom"><div id="inventoryPanel"></div><div id="touch-info"></div></div>
   <canvas id="cur"></canvas>
 </div>
-<script src="content.js?v=20261110e"></script><script src="shared.js?v=20261110e"></script>
+<script src="content.js?v=20261110f"></script><script src="shared.js?v=20261110f"></script>
 <script>
 txtApply(); // the page's own labels (content/strings.csv)
 const _SRC=document.documentElement.outerHTML; // kept so the Encyclopedia can run live scenes as embedded copies of the game
@@ -202,8 +202,8 @@ function syncCursorCanvas(){if(curCanvas.width!==W||curCanvas.height!==H){curCan
 let uiPress=false,cursorUiTarget=false; // a press that began on the interface / whether the cursor is over something clickable there
 let pressConsumed=false; // the press that just used up the armed item's last unit: idle until a NEW click starts
 let overUI=false,hoverInvKind=null,overFeed=false; // pointer is over ANY interface element (scene input is ignored) / inventory slot being hovered (its info shows in the feed)
-let dockMin=false;try{dockMin=!!localStorage.getItem('il_dockmin');}catch(e){}
-function dockMinToggle(v){dockMin=v==null?!dockMin:!!v;try{localStorage.setItem('il_dockmin',dockMin?'1':'');}catch(e){}wrap.classList.toggle('dock-min',dockMin);updateInventoryUI();if(v==null&&HUB)hubPost({type:'dockmin',v:dockMin});}
+let dockMin=ilDockMin();
+function dockMinToggle(v){dockMin=ilDockMin(v==null?!dockMin:!!v);wrap.classList.toggle('dock-min',dockMin);updateInventoryUI();if(v==null&&HUB)hubPost({type:'dockmin',v:dockMin});}
 const wrap=document.getElementById('wrap'),statsEl=document.getElementById('stats'),touchInfoEl=document.getElementById('touch-info'); if(!window.__SCENE){wrap.classList.add('ui-hidden');wrap.classList.toggle('dock-min',dockMin);} // the panels start hidden (~ shows them); the feed shows unless it was put away
 // HEAT: every additional unique selection made by a swipe / double-click / item use adds heat; past T.heatMax the cursor cools down (shut off) for T.heatCooldownMs
 // and then needs a NEW press before it works again. heat.disp is the smoothed amount shown on the cursor (full ring = T.heatMax).
@@ -4532,7 +4532,7 @@ function updateInventoryUI(){
   if(createItemMode){
     for(const k of ['create','entangle'])html+=`<div class="slot create${armedInvItem&&armedInvItem.kind===k?' armed':''}" data-kind="${k}" data-arm="1"><div class="ic">${INV_ICON[k]}</div><div class="cnt">∞</div></div>`; // Create, then Entanglement (the tools for what is there)
   }
-  if(!window.__SCENE)html+=`<div class="slot dmin" data-kind="dmin" onclick="dockMinToggle()" title="${txt(dockMin?'map.dock.show':'map.dock.hide')}"><div class="ic">${dockMin?'▴':'▾'}</div></div>`; // the feed put away (▾) or brought back (▴): the same on the map and every surface
+  if(!window.__SCENE)html+=ilDockArrow(dockMin).replace('class="slot dmin"','class="slot dmin" onclick="dockMinToggle()"'); // the feed put away (▾) or brought back (▴): the same on the map and every surface
   el.innerHTML=html;applyDisc();
 }
 window.armInventoryItem=armInventoryItem;
@@ -12910,7 +12910,7 @@ function cardHTML(ev,mini){ // the one card format: name bar, art box, type line
   return `<div class="mtg${mini?' sm':''}${evUnread.has(ev.id)?' unread':''}" data-ev="${ev.id}" style="--rc:${TIER_COL[t]}"><div class="nm"><b>${gEsc(ev.name)}</b><span class="gem"></span></div><div class="art" data-scene="${ev.scene}" data-ev="${ev.id}">${mini?`<canvas class="rl-m" width="64" height="64" data-k="${ev.ico}"></canvas>`:''}</div><div class="ty"><span>${gEsc(ev.type.replace(/^Event — /,''))}</span><span>Tier ${TIER[t]}</span></div><div class="tx">${(mini?ev.facts().slice(0,1):ev.facts()).map(f=>`<p${ev.fx?' class="fx"':''}>${tvHTML(f)}</p>`).join('')}${ev.flavor?`<p class="fl">${gEsc(ev.flavor)}</p>`:''}</div></div>`; // (small: its first line and its flavour; the rest when it is opened) (fx: the lines are changes to play, set apart from the flavour)
 }
 function mountScene(h,w,hh){if(!h||h.firstChild||document.querySelectorAll('.rl-live iframe,.mtg .art iframe').length>=5)return;{const R=(h.dataset.ev||'').split(',').map(evRecFor).find(Boolean);if(R&&!w){evReplayMount(h,R);return;}} /* something you witnessed: your own recording of it, live (a demo only for what you have not) */const f=document.createElement('iframe'),nm=h.dataset.s||h.dataset.scene;f.style.cssText='border:0;max-width:100%;pointer-events:none;background:#000;border-radius:6px;'+(w?`width:${w}px;height:${hh}px`:'width:100%;height:100%');
-  if(nm.slice(0,4)==='hub:'){const[sn,dk]=nm.slice(4).split(':');f.src='Surface_Map_HUB.html?v=20261110e&scene='+sn+(sn==='shop'?'&k='+encodeURIComponent(dk||''):'')+'&T='+encodeURIComponent(JSON.stringify(mapSceneT()))+'&D='+encodeURIComponent(JSON.stringify(dk&&DUCK_TYPES[dk]?{[dk]:DUCK_TYPES[dk]}:Object.fromEntries(Object.entries(DUCK_TYPES).slice(0,4))));}else f.srcdoc=liveSrc(nm);h.appendChild(f);} // a Surface Map demo is played by the map itself
+  if(nm.slice(0,4)==='hub:'){const[sn,dk]=nm.slice(4).split(':');f.src='Surface_Map_HUB.html?v=20261110f&scene='+sn+(sn==='shop'?'&k='+encodeURIComponent(dk||''):'')+'&T='+encodeURIComponent(JSON.stringify(mapSceneT()))+'&D='+encodeURIComponent(JSON.stringify(dk&&DUCK_TYPES[dk]?{[dk]:DUCK_TYPES[dk]}:Object.fromEntries(Object.entries(DUCK_TYPES).slice(0,4))));}else f.srcdoc=liveSrc(nm);h.appendChild(f);} // a Surface Map demo is played by the map itself
 function mapSceneT(){const o={};for(const k in T)if(/^(map|bh|duck|wake|glass|metal|dimGlow|glowHalo|maxSpeed)/.test(k))o[k]=T[k];return o;} // what a map demo needs of the tuners
 function showCardHTML(html){ // a Guide card (an entry or a shop) opened over the Guide, where an event card shows
   guideCSS();_evOpen=true;_evReview=true;const ov=evOverlayEl();ov.innerHTML=`<div class="ev-box">${html}<button id="evOk">${txt('card.close')}</button></div>`;ov.style.display='flex';wrap.classList.add('ev-open');

@@ -62,6 +62,8 @@ function meshKit(A,fl){ // fl: mirrored left to right (but for what is kept, a s
 const BUOY_SOUV={postcard:6,keychain:5,hat:7,stuffy:8,tshirt:9}; // each souvenir's swatch on it
 const BUOY_SOUV_ICO={postcard:'✉️',keychain:'🔑',hat:'🎩',stuffy:'🧸',tshirt:'👕'}; // each souvenir in Collections
 const BUOY_ICO='<svg viewBox="0 0 22 22" width="16" height="16"><path fill="currentColor" d="M10.2 2h1.6v3h1.4v2.4h-1.4V9h2.4l2.3 6.2H5.5L7.8 9h2.4V7.4H8.8V5h1.4z"/><path fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" d="M2 18.4c2 0 2-1.2 4-1.2s2 1.2 4 1.2 2-1.2 4-1.2 2 1.2 4 1.2 2-1.2 2-1.2"/></svg>'; // the dock's and inventory's slot for your buoy (Status and your collections)
+function ilDockMin(v){if(v!=null)try{localStorage.setItem('il_dockmin',v?'1':'');}catch(e){}try{return !!localStorage.getItem('il_dockmin');}catch(e){return false;}} // the feed put away (▾) or out (▴): one setting for every dock
+const ilDockArrow=on=>`<div class="slot dmin" data-k="dmin" data-kind="dmin" title="${txt(on?'map.dock.show':'map.dock.hide')}"><span class="ic">${on?'▴':'▾'}</span></div>`; // its arrow, the same in every dock
 const TIMES={3:txt('map.twilight'),6:txt('map.dawn'),9:txt('map.morning'),12:txt('map.noon'),15:txt('map.afternoon'),18:txt('map.dusk'),21:txt('map.night'),24:txt('map.midnight')}; // the map's day: eight times, three hours apart (a prefab's times too)
 const SOUV_KEY='il_souvenirs_v1'; // the Gift Shop's souvenirs: kept through every new start
 function souvenirs(){try{return JSON.parse(localStorage.getItem(SOUV_KEY)||'{}')||{};}catch(e){return{};}}
