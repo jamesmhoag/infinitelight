@@ -212,7 +212,6 @@ Free moves | A String move takes no time, so it earns nothing."
 hubring,surf,Full circle,nova,A whole ring of clears all of one kind (all bright or all dark) around the source ends the day early. The hexes inside can be any kind.,"Collapse | The rings beyond it fall into the source one by one, faster each time, then a flash; the ring itself is used up and the value is shared over the open hexes inside. A report of the day follows, and a new day starts at Twilight with what you kept.
 Stars | A bright ring is a Bright Star; a dark ring, a Dark Star.
 The win | A full circle at ring 1 or 2, or every hex cleared, is a full collapse: everything falls in, the run is won and you return to the main menu. The days start over; your items and discoveries are kept."
-hubdecay,surf,Decay,dim,"When the value an open hex gets drops below 0.01, the oldest capture becomes a void.","Game over | No captures left to give up, no turns left, or no moves left."
 hubdescend,surf,Descend,dark,"Surround the centre with three triangle merges, then step into it.","Deeper | A new, deeper map begins. Your score and items come with you."
 hublight,surf,Time of day light,nova,"Ducks, their ripples, wakes and glows are lit by the time of day.","Day | Twilight cools, Dawn rises warm from one side, Midday is high and white, Dusk sets warm on the other, and Midnight is moonlight from overhead.
 Change | At each new hour the light moves round to it, as a hex's new picture eases in (Hex ease ms).
