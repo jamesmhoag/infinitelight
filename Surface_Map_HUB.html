@@ -163,7 +163,7 @@ body.shop-open #hdock{z-index:59}#hinv .slot.wal::before{border-color:rgba(255,2
 <div id="veil"></div>
 <div id="bfx"></div>
 <iframe id="neb" data-tt="map.ui.surface"></iframe>
-<script src="content.js?v=20261109a"></script><script src="shared.js?v=20261109a"></script><script src="cabin.js?v=20261109b"></script>
+<script src="content.js?v=20261109a"></script><script src="shared.js?v=20261109c"></script><script src="cabin.js?v=20261109c"></script>
 <script>
 // ╔══════════════════════════════════════════════════════════════════════════════╗
 // ║  MAP ENGINE                                                                 ║
@@ -966,7 +966,7 @@ function goodsSpawn(now){if(SCENE||parade||pdOn()||water.frac<=0.05)return;if(!g
 function openLakeGood(d){const g=d.good,now=performance.now();ripples.push({x:d.x,y:d.y,t:now,dk:onWhite(d.x,d.y),big:1});
   if(g.kind==='sign'){feed(goodNameM(g),txt('good.sign_d'));return;}
   if(g.kind==='chest'){if(!((inv&&inv.key)||0)&&!TEST.get('free')){if(!d.dunk)d.dunk=now;feed(txt('good.chest'),txt('chest.need_key'),'no');return;}neb({cmd:'chest',id:g.id});return;} // (the surface keeps the purse: it spends the Key and counts the hoard)
-  g.open=true;d.type=goodTypeM(g);d.kick=2;d.dash=now+800;d.leave=now+1200;neb({cmd:'unbox',id:g.id,give:g.give||(g.kind==='soda'?{pulsing:1}:g.kind==='coffee'?{bright:15}:g.kind==='can'?{duck:1}:{[SHOPS[g.shop]&&SHOPS[g.shop].cur||'bright']:20})});}
+  g.open=true;d.type=goodTypeM(g);d.kick=1;neb({cmd:'unbox',id:g.id,give:g.give||(g.kind==='soda'?{pulsing:1}:g.kind==='coffee'?{bright:15}:g.kind==='can'?{duck:1}:{[SHOPS[g.shop]&&SHOPS[g.shop].cur||'bright']:20})});}
 function chestDone(m){const d=pond.find(x=>x.good&&x.good.id===m.id);if(!m.ok){feed(txt('good.chest'),m.msg||'','no');if(d&&!d.dunk)d.dunk=performance.now();return;}
   const now=performance.now(),list=Object.entries(m.got||{});feed(txt('chest.opened'),list.map(([k,n])=>fmtN(n)+' '+k).join(' · '));playRec('🧰 '+txt('chest.opened'),list.map(([k,n])=>n+' '+k).join(', '));
   if(d){d.good.open=true;d.type=goodTypeM(d.good);d.sp=0;for(let i=0;i<14;i++)splashes.push({x:d.x,y:d.y,t:now+i*60,n:6,a:i/14*6.28});setTimeout(()=>{d.burn=performance.now();},T.mapChestOpenMs||1600);}} // the lid cracks open, glowing at its seam, its hoard sparks up into your purse; then the empty chest sinks and burns away
