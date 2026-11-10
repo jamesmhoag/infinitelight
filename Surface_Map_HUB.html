@@ -144,7 +144,7 @@ body.shop-open #hdock{z-index:59}#hinv .slot.wal::before{border-color:rgba(255,2
     <span class="ld" style="background:rgba(0,210,210,0.7)"></span><span data-tx="map.ui.you"></span><br>
     <span class="ld" style="background:rgba(255,255,255,0.9)"></span><span data-tx="map.ui.cleared_bright"></span><br>
     <span class="ld" style="background:#000;border-color:rgba(190,160,250,0.8)"></span><span data-tx="map.ui.cleared_dark_remnant"></span><br>
-    <span class="ld" style="background:rgba(210,175,50,0.2);border-color:rgba(210,175,50,0.5)"></span><span data-tx="map.ui.locked"></span><br>
+    <span class="ld" style="background:rgba(210,175,50,0.2);border-color:rgba(210,175,50,0.5)"></span><span data-tx="map.ui.wound"></span><br>
     <span class="ld" style="background:rgba(180,140,255,0.25);border-color:rgba(180,140,255,0.6)"></span><span data-tx="map.ui.merged"></span><br>
     <span class="ld" style="background:rgba(255,255,255,0.06);border-color:rgba(255,255,255,0.1)"></span><span data-tx="map.ui.void"></span>
   </div>
@@ -163,7 +163,7 @@ body.shop-open #hdock{z-index:59}#hinv .slot.wal::before{border-color:rgba(255,2
 <div id="veil"></div>
 <div id="bfx"></div>
 <iframe id="neb" data-tt="map.ui.surface"></iframe>
-<script src="content.js?v=20261110c"></script><script src="shared.js?v=20261110c"></script><script src="cabin.js?v=20261110c"></script>
+<script src="content.js?v=20261110d"></script><script src="shared.js?v=20261110d"></script><script src="cabin.js?v=20261110d"></script>
 <script>
 // ╔══════════════════════════════════════════════════════════════════════════════╗
 // ║  MAP ENGINE                                                                 ║
@@ -182,7 +182,7 @@ let playLog=[],clock=3,day=1,pool=6,fresh=true,burstFx=null,dayLog=[],dayCnt={b:
 // // clock: the hour (3 = Twilight … 24 = Midnight, the day's last turn); day: your attempts; pool: what the source put out at its last burst; fresh: no ring added yet since it
 let constel=[],armed=null,weaveSel=[],weaveAsk=null,clearFx={},mergeFx=[],feedMsg={t:'',d:'',at:-1e9}; // constellations {keys,type}; the armed map item; a Weave being drawn; animations; the final count
 const STEP_H=3; // the day: eight turns of three hours
-const CACHE_V='20261110c'; // the build: bump with shared.js's
+const CACHE_V='20261110d'; // the build: bump with shared.js's
 const SCENE=new URLSearchParams(location.search).get('scene'); // a Guide / event demo: the map plays a scripted moment (no surface behind it)
 let phase='move',turnTimer=0,mergeTimer=0;
 let gameOverReason='';
@@ -206,27 +206,26 @@ function dist(q1,r1,q2,r2){return(Math.abs(q1-q2)+Math.abs(q1+r1-q2-r2)+Math.abs
 function cellRing(q,r){return Math.max(Math.abs(q),Math.abs(r),Math.abs(q+r));}
 function ring(n){if(!n)return[[0,0]];const res=[];let q=n,r=0;for(let d=0;d<6;d++)for(let i=0;i<n;i++){res.push([q,r]);q+=DIRS[(d+2)%6][0];r+=DIRS[(d+2)%6][1];}return res;}
 function neighbors(q,r){return DIRS.map(([dq,dr])=>[q+dq,r+dr]);}
-function adjCaptured(q,r){for(const[nq,nr]of neighbors(q,r)){const c=cells[K(nq,nr)];if(c&&c.cap&&c.kind!=='dark')return true;}return false;} // only a bright clear locks its neighbours
+function adjCaptured(q,r){for(const[nq,nr]of neighbors(q,r)){const c=cells[K(nq,nr)];if(c&&c.cap&&c.kind!=='dark')return true;}return false;} // (a bright clear keeps the hexes round it when the map draws in)
 
 function retractToTurn(){
   const maxRing=turn;const toRemove=[];
   for(const k in cells){const c=cells[k];if(c.isVoid||cellRing(c.q,c.r)<=maxRing||c.cap||c.isP)continue;toRemove.push(k);}
   const actual=toRemove.filter(k=>!adjCaptured(cells[k].q,cells[k].r));
   for(const k of actual){delete cells[k];totalCells--;}
-  recomputeLocked();
+  
 }
 function addRing(n){for(const[q,r]of ring(n)){const k=K(q,r);if(n>1&&!neighbors(q,r).some(([a,b])=>{const c=cells[K(a,b)];return c&&cellRing(a,b)<n&&!(c.cap&&c.kind==='dark')&&!c.rift;}))continue; // a Dark Remnant clear holds the spill back: nothing spreads past it
-  if(!cells[k]){cells[k]={q,r,v:0,cap:false,capVal:0,isP:false,locked:false,mergeId:null,isVoid:false};totalCells++;}}}
-function recomputeLocked(){for(const k in cells){const c=cells[k];c.locked=(!c.cap&&!c.isVoid&&adjCaptured(c.q,c.r));}}
+  if(!cells[k]){cells[k]={q,r,v:0,cap:false,capVal:0,isP:false,mergeId:null,isVoid:false};totalCells++;}}}
 function dropSession(){ // the unfinished surface is thrown away (values changed, or a new map)
   if(!nebulaCellKey)return;const c=cells[nebulaCellKey];if(c){delete c.shot;delete c._im;}nebulaCellKey=null;neb({cmd:'drop'});
 }
 function redistribute(){
-  recomputeLocked();let exSum=0,exN=0,voidN=0;
-  for(const k in cells){const c=cells[k];if(c.isVoid){voidN++;continue;}if(c.cap){exSum+=c.capVal;exN++;}else if(c.locked||c.full){exSum+=c.v;exN++;}}
+  let exSum=0,exN=0,voidN=0;
+  for(const k in cells){const c=cells[k];if(c.isVoid){voidN++;continue;}if(c.cap){exSum+=c.capVal;exN++;}else if(c.full){exSum+=c.v;exN++;}}
   const freeN=totalCells-exN-voidN;if(freeN<=0)return;
   const pv=(pool-exSum)/freeN;
-  for(const k in cells){const c=cells[k];if(c.isVoid||c.cap||c.locked||c.full)continue;c.v=Math.round(Math.max(0,pv)*10000)/10000;}
+  for(const k in cells){const c=cells[k];if(c.isVoid||c.cap||c.full)continue;c.v=Math.round(Math.max(0,pv)*10000)/10000;}
   dropSession(); // moving resets an unfinished surface
 }
 function detectMerges(){
@@ -242,7 +241,7 @@ function showMergeFlash(t){feed(t);} // (in the feed: nothing is said mid-screen
 function checkVoidAccess(){const vc=cells[K(0,0)];if(!vc||!vc.isVoid){voidOpen=false;return;}const ns=neighbors(0,0);if(!ns.every(([q,r])=>{const c=cells[K(q,r)];return c&&c.cap;})){voidOpen=false;return;}const tri=new Set();for(const[q,r]of ns)for(const g of mergeGroups)if((g.type==='tri'||g.type==='dark3')&&g.cells.includes(K(q,r)))tri.add(g.id);voidOpen=tri.size>=3;}
 function newMap(){flotLake(()=>true); // a new map, a descent and every midnight: the source at the centre bursts out (T.mapBurstRings rings at 1.00), the player beside it
   dropSession();cells={};totalCells=0;captureOrder=[];mergeGroups=[];mergeIdCounter=0;voidOpen=false;phase='move';gameOverReason='';prev={};constel=[];weaveSel=[];weaveAsk=null;armed=null;
-  cells[K(0,0)]={q:0,r:0,v:0,cap:false,capVal:0,isP:false,locked:false,mergeId:null,isVoid:true};totalCells++;
+  cells[K(0,0)]={q:0,r:0,v:0,cap:false,capVal:0,isP:false,mergeId:null,isVoid:true};totalCells++;
   turn=Math.max(1,T.mapBurstRings||3);for(let n=1;n<=turn;n++)addRing(n);pool=0;for(const k in cells)if(!cells[k].isVoid){cells[k].v=1.0;pool+=1;}fresh=true;
   const r1=ring(1),si=Math.floor(Math.random()*r1.length);pQ=r1[si][0];pR=r1[si][1];
   if(MP.on&&MP.role==='host'){const h=mpP('h');if(h){h.q=pQ;h.r=pR;}for(const P of MP.players)if(P.id!=='h'){const sp=mpSpot();P.q=sp[0];P.r=sp[1];}} // (playing together: everyone starts the new day beside the source)
@@ -343,13 +342,13 @@ function riftFxDraw(now){const c=mctx;riftFx=riftFx.filter(f=>f.t0==null||now-f.
 function riftCell(k,ang){ // a Rift tore the surface: the hex is gone (a scar), and the open hexes beside it are brightened, cleared as a bright clear is (their value theirs, kept). Gone at Midnight (a new map)
   const c=cells[k];if(!c||c.cap||c.isVoid)return;const lost=c.v;Object.assign(c,{isVoid:true,v:0,rift:{a:ang||0,t0:performance.now()}});
   for(const[q,r]of neighbors(c.q,c.r)){const nk=K(q,r),n=cells[nk];if(!n||n.isVoid||n.cap)continue;Object.assign(n,{cap:true,capVal:n.v,kind:'bright',shop:null,tally:{}});delete n.shot;delete n._im;dayCnt.b++;score=Math.round((score+n.v)*100)/100;captureOrder.push({keys:[nk],mergeId:null});clearFx[nk]={t0:null};}riftFxAdd(k,[]);
-  pool=Math.max(0,pool-lost);nebulaCellKey=null;phase='captured';recomputeLocked();detectMerges();redistribute();feed(txt('map.rift'),txt('map.rift_tore'));riftEvict(k);dangerift();if(ringCheck()){updateHint();saveMap();return;}updateHint();saveMap();}
+  pool=Math.max(0,pool-lost);nebulaCellKey=null;phase='captured';detectMerges();redistribute();feed(txt('map.rift'),txt('map.rift_tore'));riftEvict(k);dangerift();if(ringCheck()){updateHint();saveMap();return;}updateHint();saveMap();}
 function dangerift(){ // the dim fortune Dangerift (checked after every clear, of any kind): a bright clear beside a Rift is removed, a dark one becomes Rift too, and so on
   if(!runBad(run,'dangerift'))return;let n=0,more=true;const now=performance.now();
   while(more){more=false;for(const k in cells){const c=cells[k];if(!c.rift)continue;for(const[q,r]of neighbors(c.q,c.r)){const nk=K(q,r),d=cells[nk];if(!d||!d.cap||d.isVoid)continue;
     const dark=d.kind==='dark';{const[x,y]=a2w(d.q,d.r),f=riftFx.find(f=>f.k===k)||riftFxAdd(k);if(f)f.from.push({x,y,bright:!dark,shop:!!d.shop});}if(!dark)score=Math.round((score-d.capVal)*100)/100;Object.assign(d,{cap:false,capVal:0,v:0,isVoid:true,shop:null,mergeId:null});delete d.kind;if(dark){d.rift={a:c.rift.a,t0:now};more=true;riftEvict(nk);}
     captureOrder=captureOrder.filter(o=>!o.keys.includes(nk));mergeGroups=mergeGroups.filter(g=>{if(!g.cells.includes(nk))return true;for(const ck of g.cells)if(cells[ck])cells[ck].mergeId=null;return false;});n++;}}} // (a merge it was in comes apart)
-  if(!n)return;checkConstellations();recomputeLocked();redistribute();feed(txt('map.dangerift'),txt('map.dangerift_ate',n,n>1?'s':''));}
+  if(!n)return;checkConstellations();redistribute();feed(txt('map.dangerift'),txt('map.dangerift_ate',n,n>1?'s':''));}
 function riftsDraw(now){ // every Rift's scar, in the Dark Remnant's pulsing glow: alone, a jagged line across its hex at the angle it tore; beside another, the two
   // line up into one edge between them; three that all touch merge into one triangle
   riftFxDraw(now);const rs=Object.keys(cells).filter(k=>cells[k].rift&&!(cells[k].rift.fx!==undefined&&(cells[k].rift.fx===null||now-cells[k].rift.fx<140)));if(!rs.length)return; /* (one still to open, or opening: its effect draws it) */const set=new Set(rs),P=new Path2D(),w=HEX*0.11,ctr=k=>w2s(...a2w(cells[k].q,cells[k].r)),nb=k=>neighbors(cells[k].q,cells[k].r).map(([q,r])=>K(q,r)).filter(n=>set.has(n)),seed=k=>(cells[k].q*7.3+cells[k].r*13.1);
@@ -365,7 +364,7 @@ function completeCaptureForCell(cellKey,kind,tally){
   score=Math.round((score+c.v)*100)/100;
   captureOrder.push({keys:[cellKey],mergeId:null});
   phase='captured';
-  recomputeLocked();
+  
   nebulaCellKey=null;
   detectMerges();dangerift(); // (the dim fortune Dangerift: this clear may be beside a Rift)
   clearFx[cellKey]={t0:null}; // its picture resolves into the clear when the map is next on screen
@@ -413,7 +412,7 @@ function hexInfo(c){ // what hovering a hex tells you
   if(c.isVoid)return[txt('map.void'),txt('map.nothing_left_here')];
   if(c.cap&&c.kind==='dark')return[(g&&g.type==='dark3'?txt('map.great_dark_remnant'):txt('map.dark_remnant_clear')),txt('map.value',(g&&g.type==='dark3'?txt('map.three_swirled_into_one'):txt('map.locks_nothing_the_spill')),c.capVal.toFixed(2))];
   if(c.cap)return[txt('map.bright_clear',(cn.length?txt('map.star',cn.map(x=>x.type).join(', ')):'')),txt('map.locks_its_neighbours_value',c.capVal.toFixed(2),(g?txt('map.merged'):''))];
-  return[txt('map.surface',(c.isP?txt('map.you'):''),c.v.toFixed(2)),txt('map.covered',(c.full?txt('map.wound_up_by_a'):(c.locked?txt('map.locked_by_a_bright'):'')),Math.round(cellCov(c)*100),(k===nebulaCellKey?txt('map.saved_where_you_left'):''))];}
+  return[txt('map.surface',(c.isP?txt('map.you'):''),c.v.toFixed(2)),txt('map.covered',(c.full?txt('map.wound_up_by_a'):''),Math.round(cellCov(c)*100),(k===nebulaCellKey?txt('map.saved_where_you_left'):''))];}
 const ITEM_NOTE={leash:txt('map.unwinds_a_cleared_hex'),dial:txt('map.goes_straight_to_any'),
   weave:txt('map.joins_3_to_5'),prism:txt('map.used_on_a_surface'),
   knot:txt('map.used_on_a_surface_2'),gate:txt('map.used_on_a_surface_3'),
@@ -437,7 +436,7 @@ const riftBetween=(q0,r0,q1,r1)=>hexLine(q0,r0,q1,r1).some(([q,r])=>{const c=cel
 function armItem(kind){if(phase==='ended'||phase==='collapse')return;armed=armed===kind?null:kind;dockUp[kind]=performance.now();weaveSel=[];weaveAsk=null;updateHint();syncDock();}
 function spend(kind,n){if(_mpFor){netOut({t:'spend',kind,n},_mpFor);return;} // (a friend's: off their own)
   inv[kind]=Math.max(0,(inv[kind]||0)-n);neb({cmd:'spend',kind,n});syncDock();}
-function spindleFill(k){ // Spindle on an open hex below 1.00: wound up to 1.00, and held there (like a locked hex) until it is cleared
+function spindleFill(k){ // Spindle on an open hex below 1.00: wound up to 1.00, and held there until it is cleared
   const c=cells[k];if(!c||c.cap||c.isVoid||c.v>=1)return;if((inv.leash||0)<1){feed(txt('map.spindle'),txt('map.you_have_none'),'no');return;}
   spend('leash',1);c.v=1;c.full=true;redistribute();feed(txt('map.spindle'),txt('map.surface_wound_up_to'));updateHint();saveMap();}
 function unclear(k){ // Spindle: a cleared hex back to an open surface (the value spreads over one more hex)
@@ -447,7 +446,7 @@ function unclear(k){ // Spindle: a cleared hex back to an open surface (the valu
   if(g){mergeGroups=mergeGroups.filter(x=>x!==g);for(const gk of g.cells)if(cells[gk])cells[gk].mergeId=null;}
   for(const kk of ks){const q=cells[kk];if(!q)continue;score=Math.round((score-q.capVal)*100)/100;q.unw=q.kind==='dark'?'dark':'bright';q.cap=false;q.capVal=0;q.v=0;delete q.full;clearFx[kk]={t0:performance.now(),un:true,dk:q.kind==='dark'};delete q.kind;}
   captureOrder=captureOrder.map(e=>({keys:e.keys.filter(x=>!ks.includes(x)),mergeId:e.mergeId})).filter(e=>e.keys.length);
-  checkConstellations();recomputeLocked();redistribute();checkVoidAccess();
+  checkConstellations();redistribute();checkVoidAccess();
   feed(txt('map.unwound'),(big?txt('map.the_great_dark_remnant'):txt('map.the_hex_is_a')));updateHint();saveMap();}
 function stringMove(q,r){ // String: straight to any open hex, 1 per hex of distance, no time
   const c=cells[K(q,r)];if(!c||c.cap||c.isVoid||(q===pQ&&r===pR))return;const n=dist(pQ,pR,q,r);
@@ -507,9 +506,9 @@ function shrinkRings(n,P){ // the rings past n close in: ring n+1 becomes ring 1
   mergeGroups=mergeGroups.map(g=>{const c2=mk(g.cells);return c2?Object.assign(g,{cells:c2}):null;}).filter(Boolean);for(const k in cells){const c=cells[k];if(c.mergeId!=null&&!mergeGroups.some(g=>g.id===c.mergeId))c.mergeId=null;}
   captureOrder=captureOrder.map(x=>({keys:x.keys.map(k=>map[k]).filter(Boolean),mergeId:x.mergeId})).filter(x=>x.keys.length);constel=constel.map(c=>{const k2=mk(c.keys);return k2?Object.assign(c,{keys:k2}):null;}).filter(Boolean);
   for(const k in clearFx)if(!cells[k])delete clearFx[k];
-  const m=Math.max(1,P.m-n),h=P.m>n?slotHex(m,P.s,P.p,P.m):slotHex(1,P.s,0,1);[pQ,pR]=cells[K(h[0],h[1])]&&!cells[K(h[0],h[1])].isVoid?h:(ring(1).find(([q,r])=>cells[K(q,r)]&&!cells[K(q,r)].isVoid)||h);if(!cells[K(pQ,pR)])cells[K(pQ,pR)]={q:pQ,r:pR,v:0,cap:false,capVal:0,isP:false,locked:false,mergeId:null,isVoid:false};
+  const m=Math.max(1,P.m-n),h=P.m>n?slotHex(m,P.s,P.p,P.m):slotHex(1,P.s,0,1);[pQ,pR]=cells[K(h[0],h[1])]&&!cells[K(h[0],h[1])].isVoid?h:(ring(1).find(([q,r])=>cells[K(q,r)]&&!cells[K(q,r)].isVoid)||h);if(!cells[K(pQ,pR)])cells[K(pQ,pR)]={q:pQ,r:pR,v:0,cap:false,capVal:0,isP:false,mergeId:null,isVoid:false};
   cells[K(pQ,pR)].isP=true;buoyGo('sail');totalCells=Object.keys(cells).length;turn=Math.max(1,ringMax());fresh=true;
-  checkConstellations();recomputeLocked();redistribute();checkVoidAccess();phase='move';
+  checkConstellations();redistribute();checkVoidAccess();phase='move';
   {const ks=[];for(let i=1;i<=Math.min(3,turn);i++)for(const[q,r]of ring(i))if(cells[K(q,r)])ks.push(K(q,r));camTweenTo(ks.length?ks:['0,0'],900);}
   if(phase==='move'&&!tired()&&!getMoves().length){phase='gameover';gameOverReason=txt('map.go.nomoves');}updateHint();saveMap();}
 let fireworks=[]; // a Win's fireworks: one over each hex of the new spill, its light reflected in the water under it
@@ -720,7 +719,7 @@ function mapRender(){
     else if(bright){fill=isPT?'rgba(225,240,255,0.85)':'rgba(255,255,255,0.92)';stroke=isMerged?'rgba(190,160,250,0.9)':c.isP?'rgba(0,220,220,0.9)':'#fff';sw=c.isP?2.5:1.5;}
     else if(dark){fill='rgba(0,0,0,0.96)';stroke=isMerged?'rgba(190,160,250,0.7)':c.isP?'rgba(0,220,220,0.8)':'rgba(150,130,200,0.5)';sw=c.isP?2.5:1.5;}
     else if(c.isP){fill='rgba(0,185,185,0.10)';stroke='rgba(0,220,220,0.6)';sw=2;}
-    else if(c.locked||c.full){fill=isHov?'rgba(200,165,40,0.14)':'rgba(180,148,35,0.09)';stroke=isHov?'rgba(225,190,55,0.6)':'rgba(210,175,45,0.38)';sw=isHov?1.5:1;}
+    else if(c.full){fill=isHov?'rgba(200,165,40,0.14)':'rgba(180,148,35,0.09)';stroke=isHov?'rgba(225,190,55,0.6)':'rgba(210,175,45,0.38)';sw=isHov?1.5:1;}
     else if(isCand){fill=isHov?'rgba(0,170,170,0.12)':'rgba(18,22,28,0.75)';stroke=isHov?'rgba(0,210,210,0.45)':'rgba(255,255,255,0.14)';sw=isHov?1.5:1;}
     else{fill='rgba(14,17,22,0.75)';stroke='rgba(255,255,255,0.08)';}
 
@@ -739,7 +738,6 @@ function mapRender(){
     else if(cf&&cp>=1)delete clearFx[k];
     if(!d3.has(k)&&!fuse){hexPath(sx,sy,s);mctx.strokeStyle=stroke;mctx.lineWidth=sw;mctx.stroke();}
     if(tgt&&tgt(k)){mctx.save();mctx.setLineDash([HEX*0.12,HEX*0.08]);mctx.lineDashOffset=-now/40;hexPath(sx,sy,s*0.84);mctx.strokeStyle=armed==='weave'&&weaveSel.includes(k)?'rgba(255,220,120,0.95)':'rgba(255,220,120,0.55)';mctx.lineWidth=k===hoverKey?2.5:1.5;mctx.stroke();mctx.restore();}
-    if(c.locked){const d=3.5;mctx.beginPath();mctx.moveTo(sx,sy-HEX*0.28-d);mctx.lineTo(sx+d,sy-HEX*0.28);mctx.lineTo(sx,sy-HEX*0.28+d);mctx.lineTo(sx-d,sy-HEX*0.28);mctx.closePath();mctx.fillStyle='rgba(220,185,50,0.6)';mctx.fill();}
     if(k===nebulaCellKey&&!dive&&currentView==='map'){mctx.font=`${Math.max(8,HEX*0.24)}px 'Share Tech Mono',monospace`;mctx.textAlign='center';mctx.textBaseline='middle';mctx.fillStyle='rgba(0,230,230,0.85)';mctx.fillText('❚❚ saved',sx,sy-HEX*0.5);}
     if(c.isVoid){if(c.q===0&&c.r===0&&voidOpen){mctx.font=`${HEX*0.45}px 'Orbitron',sans-serif`;mctx.textAlign='center';mctx.textBaseline='middle';mctx.fillStyle='rgba(180,140,255,0.5)';mctx.fillText('▽',sx,sy+1);}else if(c.q===0&&c.r===0){mctx.beginPath();mctx.arc(sx,sy,3,0,Math.PI*2);mctx.fillStyle='rgba(255,255,255,0.06)';mctx.fill();}else{const m=4;mctx.strokeStyle='rgba(255,255,255,0.08)';mctx.lineWidth=1;mctx.beginPath();mctx.moveTo(sx-m,sy-m);mctx.lineTo(sx+m,sy+m);mctx.stroke();mctx.beginPath();mctx.moveTo(sx+m,sy-m);mctx.lineTo(sx-m,sy+m);mctx.stroke();}}
     if(bright)brightOnes.push([sx,sy,c.capVal,fuse?'#fff':stroke,sw,cp]); // (a merge's outline is the merge's own) // drawn after the bleed below
@@ -1264,7 +1262,7 @@ function testUnset(k){ // back to an open surface (no clear, no Rift, no shop)
   if(c.cap){const g=c.mergeId!=null?mergeGroups.find(x=>x.id===c.mergeId):null;if(g){mergeGroups=mergeGroups.filter(x=>x!==g);for(const gk of g.cells)if(cells[gk])cells[gk].mergeId=null;}
     score=Math.round((score-c.capVal)*100)/100;clearFx[k]={t0:performance.now(),un:true,dk:c.kind==='dark'};captureOrder=captureOrder.map(e=>({keys:e.keys.filter(x=>x!==k),mergeId:e.mergeId})).filter(e=>e.keys.length);}
   Object.assign(c,{cap:false,capVal:0,v:0});for(const f of ['kind','shop','tally','missed','full','unw'])delete c[f];if(nebulaCellKey===k)dropSession();}
-function testHex(k,kind){const c=cells[k];if(!c)return;const ph=phase;testUnset(k);checkConstellations();recomputeLocked();redistribute();checkVoidAccess();
+function testHex(k,kind){const c=cells[k];if(!c)return;const ph=phase;testUnset(k);checkConstellations();redistribute();checkVoidAccess();
   if(kind==='rift')riftCell(k,Math.random()*Math.PI);else if(kind!=='particles'){completeCaptureForCell(k,kind,{});if(clearFx[k])clearFx[k].t0=performance.now();}
   if(ph==='move'&&phase==='captured')phase='move';feed(txt('test.title'),txt('test.hex_done',c.q,c.r,txt('test.to_'+kind)));updateHint();saveMap();}
 function testShop(k,id,rank){const c=cells[k];if(!c)return;if(!(c.q===0&&c.r===0)&&!isBright(k))testHex(k,'bright'); /* (a shop stands on a bright clear) */
@@ -1284,9 +1282,9 @@ function telemetryLayer(){ // on the plane, over each hex on screen: its value, 
 let _stT=0;
 function statsTick(now){if(!mapMode.stats||now-_stT<250)return;_stT=now; // frames (from the performance log's own record) and the hex grid
   const f=hubPerf.fr.slice(-60),gap=f.length?f.reduce((s,e)=>s+e.gap,0)/f.length:0,wk=f.length?f.reduce((s,e)=>s+e.work,0)/f.length:0,worst=f.reduce((m,e)=>Math.max(m,e.gap),0);
-  let n=0,op=0,lk=0,br=0,dk=0,vd=0,sum=0;for(const k in cells){const c=cells[k];n++;if(c.isVoid)vd++;else if(c.cap){if(c.kind==='dark')dk++;else br++;}else{op++;sum+=c.v;if(c.locked)lk++;}}
+  let n=0,op=0,br=0,dk=0,vd=0,sum=0;for(const k in cells){const c=cells[k];n++;if(c.isVoid)vd++;else if(c.cap){if(c.kind==='dark')dk++;else br++;}else{op++;sum+=c.v;}}
   const shops=Object.keys(shopEls).length,lit=Object.values(shopEls).filter(e=>e.classList.contains('lit')).length;
-  document.getElementById('hstats').textContent=[`${gap?(1000/gap).toFixed(0):'–'} fps · frame ${gap.toFixed(1)} ms · worst ${worst.toFixed(0)} ms`,`map work ${wk.toFixed(1)} ms`,`hexes ${n} · open ${op} (locked ${lk}) · bright ${br} · dark ${dk} · void ${vd}`,
+  document.getElementById('hstats').textContent=[`${gap?(1000/gap).toFixed(0):'–'} fps · frame ${gap.toFixed(1)} ms · worst ${worst.toFixed(0)} ms`,`map work ${wk.toFixed(1)} ms`,`hexes ${n} · open ${op} · bright ${br} · dark ${dk} · void ${vd}`,
     `open value ${sum.toFixed(2)} · avg ${(op?sum/op:0).toFixed(3)} · pool ${(+pool||0).toFixed(2)}`,`rings ${turn} · depth D${depth} · ${clockStr()} · day ${day}`,`pictures ${Object.keys(prev).length} · waiting ${prevPending.size}`,
     `ducks ${pond.length} · shops ${shops} (lit ${lit}) · zoom ${viewZoom.toFixed(2)}`,`plane ${MW}×${MH} ×${MK.toFixed(2)}`].join('\n');}
 function quitMain(){if(MP.on&&MP.role==='guest')netOut({t:'bye'});saveMap();loading('leave',true);setTimeout(()=>location.href='TitleSplash.html',300);}

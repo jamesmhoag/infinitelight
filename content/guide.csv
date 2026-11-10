@@ -197,8 +197,8 @@ Continue | Continue on the main menu goes straight back to a surface you left fr
 hubmove,surf,Moving,pnt,Click a neighbouring hex to move there. Each move takes one time of day.,"Spread | A new ring of hexes is added and the value is shared out again.
 Abandon | Moving away from an unfinished surface throws it away.
 Pass through | You can move through cleared hexes in a straight line."
-hubclear,surf,Clearing a hex,nova,Clean a surface and its hex is captured.,"Bright | Cleared the normal way, the hex turns white and locks its neighbours. Clearing takes no time: only a move does.
-Dark | Cleared by a Dark Remnant, the hex keeps its Dark Remnant. It locks nothing and takes no time, but the spill cannot spread past it.
+hubclear,surf,Clearing a hex,nova,Clean a surface and its hex is captured.,"Bright | Cleared the normal way, the hex turns white. Clearing takes no time: only a move does.
+Dark | Cleared by a Dark Remnant, the hex keeps its Dark Remnant. It takes no time, but the spill cannot spread past it.
 Return | Right-click the SURFACE CLEARED box to return to the map."
 hubmerge,surf,Merges,dark,Captured hexes that touch can merge.,"Triangle | 3 touching captured hexes: one ring less.
 Three Dark | 3 touching Dark Remnant hexes swirl together into one great Dark Remnant: three rings less.
