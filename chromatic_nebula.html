@@ -119,7 +119,7 @@ button:hover{background:rgba(255,255,255,0.15);}
   <div id="dock" class="bottom"><div id="inventoryPanel"></div><div id="touch-info"></div></div>
   <canvas id="cur"></canvas>
 </div>
-<script src="content.js?v=20261110b"></script><script src="shared.js?v=20261110b"></script>
+<script src="content.js?v=20261110c"></script><script src="shared.js?v=20261110c"></script>
 <script>
 txtApply(); // the page's own labels (content/strings.csv)
 const _SRC=document.documentElement.outerHTML; // kept so the Encyclopedia can run live scenes as embedded copies of the game
@@ -2091,12 +2091,12 @@ function runT(k){ // a tuner as today's fortune, daily wonder, Luck Charms and t
 function invMaxFor(kind){if(kind==='key'&&runState.keysGone)return 0;return Math.max(T['invMax'+kind[0].toUpperCase()+kind.slice(1)],shopCap(kind,k=>discSeen.has(k)));} // the tuner, or a bigger cap bought in a shop
 // Adds (or, with a negative amount, spends) units of one inventory kind,
 // clamped between 0 and that kind's current tunable max.
-function addInventory(kind,amount,bought){ // bought: from a shop (no fortune or bonus applies)
+function addInventory(kind,amount,bought,at){ // (at: where it was earned, for its event's frame) // bought: from a shop (no fortune or bonus applies)
   if(amount>0&&!bought&&ACCUM_KINDS.includes(kind)){const b=runState.bonus,x=runState.fortune&&runState.fortune.good&&(FORTUNE_GOOD[runState.fortune.id]||{}).x3; /* (your own fortune only: it is your items) */
     if(b&&b.id==='inf'&&b.item!==kind&&['leash','dial','weave'].includes(kind))return; // an Endless … day: the other two never come
     if(x==='all'||x===kind)amount*=3;} // a good fortune: in threes
   const max=invMaxFor(kind);
-  if(amount>0){invFlash={kind,at:performance.now()};if(kind==='dial')fireEvent('string');else if(kind==='leash')fireEvent('spindle');else if(kind==='weave')fireEvent('weave');else if(kind==='prism'||kind==='knot'||kind==='gate'||kind==='key'||kind==='lens')fireEvent('pat_'+kind);} // holding a Pattern item reveals it, as forming one does
+  if(amount>0){invFlash={kind,at:performance.now()};if(kind==='dial')fireEvent('string',at);else if(kind==='leash')fireEvent('spindle',at);else if(kind==='weave')fireEvent('weave',at);else if(kind==='prism'||kind==='knot'||kind==='gate'||kind==='key'||kind==='lens')fireEvent('pat_'+kind);} // holding a Pattern item reveals it, as forming one does
   inventory[kind]=Math.max(0,Math.min(max,inventory[kind]+amount));
   saveInventory();
   updateInventoryUI();
@@ -2173,7 +2173,7 @@ function updateOrbitAndChase(now,dt){
           ot.windAccum=sgn*needed; // full purse: the completed pass is held and counted the moment there's room
         } else {
           ot.windAccum-=sgn*needed;
-          addInventory('leash',1);ot.doneShow=true; // the counter keeps showing the target until the next first orbit completes
+          addInventory('leash',1,false,A);ot.doneShow=true; // the counter keeps showing the target until the next first orbit completes
           earnFx.push({kind:'dial',center:B,radius:ot.baselineDist,tol:ot.baselineDist*T.orbitDistTolerance+1,path:(ot.path||[]).slice(),val:(+runT('orbitsPerDial').toFixed(1))+' orbits',born:performance.now(),dur:T.earnDialMs});
           playAchievementScale(B.ci,T.volAchieveDial);
           ot.path=[];
@@ -2251,7 +2251,7 @@ function updateWeaves(whites,dt){
     const key=kept.map(q=>q.id).sort((a,b)=>a-b).join();if(wt.key!==key){wt.key=key;wt.ms=0;}wt.members=kept;seen.add(A.id);wt.ms+=dt;
     if(wt.ms>=secs){
       if(inventory.weave>=invMaxFor('weave'))wt.ms=secs;
-      else{wt.ms-=secs;addInventory('weave',1);earnFx.push({kind:'weave',members:kept.slice(),born:performance.now(),dur:T.weaveStarMs});playAchievementScale(A.ci,T.volAchieveLeash);}
+      else{wt.ms-=secs;addInventory('weave',1,false,A);earnFx.push({kind:'weave',members:kept.slice(),born:performance.now(),dur:T.weaveStarMs});playAchievementScale(A.ci,T.volAchieveLeash);}
     }
   }
   for(const k in weaveTrack)if(!seen.has(+k))delete weaveTrack[k];
@@ -2288,7 +2288,7 @@ function updateLeashes(whites,dt){
       if(inventory.dial>=invMaxFor('dial')){lt.ms=needed;} // full purse: held and counted as soon as there's room
       else{
         lt.ms-=needed;lt.doneShow=true;
-        addInventory('dial',1);
+        addInventory('dial',1,false,lt.A);
         earnFx.push({kind:'leash',members:[A,best],radius:bd,val:runT('flockSecondsPerLeash').toFixed(1)+'s',born:performance.now(),dur:T.earnLeashMs});
         playAchievementScale(A.ci,T.volAchieveLeash);
       }
@@ -3064,7 +3064,7 @@ function handleWhiteChainClick(p,now){
     flashSaveStatus((mode==='knot'?txt('surf.knot_mode_needs_a'):txt('surf.connection_submitted_no_matching')));
     return;
   }
-  fireEvent('pat_'+kind);
+  {let x=0,y=0;const a=chain[0];for(const q of chain){x+=_wrapD(q.x-a.x,W);y+=_wrapD(q.y-a.y,H);}fireEvent('pat_'+kind,{x:a.x+x/chain.length,y:a.y+y/chain.length});} // (framed where it was drawn)
   if(inventory[conItem(mode)]<=0){flashSaveStatus(txt('surf.is_empty',INV_LABEL[conItem(mode)]));return;}
   if(mode==='lens'||mode==='gate'){ // a plane piece of lens / a fence: the nodes are consumed and it becomes fixed in shape and place
     addInventory(conItem(mode),-1);
@@ -4127,7 +4127,7 @@ function stepGlobes(dt){
     const gl=sh.globe;if(!gl)continue;const m=sh.wvMembers;
     if(!m||m.some(q=>q.dying||q.captured||active.indexOf(q)<0)){if(m)for(const q of m){q._embed=false;q._glb=false;q.radMult=1;}sh.globe=null;sh.wvMembers=null;continue;}
     gl.phi+=gl.omega*dt;gl.acc+=gl.omega*dt;
-    if(gl.acc>=6.2832){gl.acc-=6.2832;if(inventory.dial<invMaxFor('dial')){addInventory('dial',1);earnFx.push({kind:'plus',x:gl.cx,y:gl.cy,text:INV_ICON.dial+' +1',born:performance.now(),dur:1100});playAchievementScale(m[0].ci,T.volAchieveLeash);}}
+    if(gl.acc>=6.2832){gl.acc-=6.2832;if(inventory.dial<invMaxFor('dial')){addInventory('dial',1,false,{x:gl.cx,y:gl.cy});earnFx.push({kind:'plus',x:gl.cx,y:gl.cy,text:INV_ICON.dial+' +1',born:performance.now(),dur:1100});playAchievementScale(m[0].ci,T.volAchieveLeash);}}
     const ph=[gl.phi-gl.delta/2,gl.phi+gl.delta/2];
     for(let i=0;i<2;i++){const q=m[i],f=ph[i],x=-gl.R*Math.cos(f),sp=gl.omega*16.67*gl.R*Math.sin(f);
       q.x=gl.cx+gl.ux*x;q.y=gl.cy+gl.uy*x;q.vx=gl.ux*sp;q.vy=gl.uy*sp;q.pvx=q.vx;q.pvy=q.vy;q.rot=0;q.radMult=1+0.4*Math.sin(f);q.cachedVR=T.remSize*q.radMult;}
@@ -6301,7 +6301,7 @@ function updateRect(){if(W)fitCanvas();wrapRect=canvas.getBoundingClientRect();}
 window.addEventListener('resize',updateRect);window.addEventListener('scroll',updateRect,true);
 
 // ── Rebuild — initialise GW×GH macro-particle dormant grid ──────────────────────
-function rebuild(seed,pic){ // pic: only a map hex's picture is wanted ({x0,y0,x1,y1}: the part of the surface it shows): just those cells, and no start snapshot
+function rebuild(seed,pic){if(!pic)_evSurfAt=performance.now(); // (a new surface: a recording starts from it) pic: only a map hex's picture is wanted ({x0,y0,x1,y1}: the part of the surface it shows): just those cells, and no start snapshot
   perfWorstEver=null;perfSpikes.length=0; // a fresh start for the worst-frame record
   W=wrap.offsetWidth;H=wrap.offsetHeight;if(!pic||canvas.width!==W||canvas.height!==H){canvas.width=W;canvas.height=H;}updateRect();
   // Grid pitch = the actual space one macro-particle needs: its own diameter
@@ -8624,7 +8624,7 @@ function heldActivateAt(mx,my,heldSeen,now){ // a held press sweeping at (mx,my)
   if(fromDormant){removeDormant(bestIdx,now);initWoken(best,0);active.push(best);}
   best.touchStart=now;
   if(!best.collapsed)best.wakeProgress=0;
-  pressedIDs.add(best.id);lastActivatedId=best.id;totalActivations++;ruleLearn('wipe');if(!best.isRemnant)ruleLearn(pointFxName(best));
+  pressedIDs.add(best.id);lastActivatedId=best.id;totalActivations++;ruleLearn('wipe');if(!best.isRemnant)ruleLearn(pointFxName(best),best);
   if(activationSounds.has('wipe')){if(activationSounds.get('wipe').ci!==best.ci)retuneActivationSound('wipe',best.ci);} // wiping: ONE violin chord that glides to each new colour
   else playViolin(best.ci,best.mass,true,'wipe');
   enforceMaxActivePoints();
@@ -8754,7 +8754,7 @@ function activateAt(mx,my,now,allowToggleOff,exact){
   } else {
     bestP.touchStart=now;
     if(!bestP.collapsed)bestP.wakeProgress=0;
-    pressedIDs.add(bestP.id);ruleLearn(dragMode?'wipe':'dab');if(!bestP.isRemnant)ruleLearn(pointFxName(bestP));
+    pressedIDs.add(bestP.id);ruleLearn(dragMode?'wipe':'dab');if(!bestP.isRemnant)ruleLearn(pointFxName(bestP),bestP);
     lastActivatedId=bestP.id;
     totalActivations++;
     playViolin(bestP.ci,bestP.mass,true,bestP.id); // activate: violin note
@@ -10076,7 +10076,7 @@ function pulseSetActive(q,on,ep){ // switches a point ON (or OFF); already in th
   if(underGlass(q.x,q.y))return; // nothing under a Lens can be activated, by cursor or by beam
   const has=pressedIDs.has(q.id);if(on===has)return;
   if(on&&ep!==undefined){if(q._pulEp===ep)return;q._pulEp=ep;} // once per beam pass: a point the snake already pushed out isn't re-activated until the next first side
-  if(on){q.touchStart=performance.now();if(!q.collapsed)q.wakeProgress=0;pressedIDs.add(q.id);totalActivations++;pulseEnforceCap();if(!q.isRemnant)ruleLearn(pointFxName(q));}
+  if(on){q.touchStart=performance.now();if(!q.collapsed)q.wakeProgress=0;pressedIDs.add(q.id);totalActivations++;pulseEnforceCap();if(!q.isRemnant)ruleLearn(pointFxName(q),q);}
   else{q.touchStart=-1;pressedIDs.delete(q.id);if(lastActivatedId===q.id)lastActivatedId=-1;}
 }
 function curTintCI(p){if(p.magTintCI===undefined)return undefined;if(p.remKind==='pulsing')return pulseTintCI(p,pulsingBeamState(p).side);if(p.remKind==='neutron'&&p.magTintCI2!==undefined&&p.neutronState!=='max')return p.magTintCI2;return p.magTintCI;}
@@ -12555,7 +12555,7 @@ function spawnCollectSparks(p){const now=performance.now(),k=p.remKind||'brown',
     shardFx.push({x:p.x+ex,y:p.y+ey,cx:p.x,cy:p.y-r*0.5,rise:0.01+Math.random()*0.02,vx:0,vy:0,born:now,dur:450+Math.random()*450,s:0.9+Math.random()*1.4,col:cols[i%cols.length],tw:Math.random()*6.28});}}
 function toggleReadout(m){if(m==='tel')toggleTelemetry();else if(m==='risk')toggleRisks();else if(m==='dyn')toggleDynamics();else if(m==='cls')toggleClass();else toggleRadii();updateInventoryUI();}
 function readoutSlotHTML(){const b=(m,l,on)=>`<span data-m="${m}" class="rdb${on?' on':''}">${l}</span>`;return `<div class="slot rd5" data-kind="readouts">${b('tel','T',telemetryOn)}${b('risk','R',risksOn)}${b('dyn','D',dynamicsOn)}${b('cls','C',classOn)}${b('rad','◎',showRadii)}</div>`;}
-function liveSrc(name,rec){return '<!doctype html>'+_SRC.replace('<script>',()=>'<script>window.__SCENE='+JSON.stringify(name)+';'+(rec?'window.__REPLAY='+JSON.stringify(rec).replace(/</g,'\\u003c')+';'+(rec.t0?'{const n=performance.now.bind(performance),o='+rec.t0+'-n(),f=window.requestAnimationFrame.bind(window);performance.now=()=>n()+o;window.requestAnimationFrame=c=>f(()=>c(performance.now()));}':''):'')+'window.__INV='+(rec?rec.inv:(invertMode?1:0))+';window.__T='+JSON.stringify(rec&&rec.T||T)+';<\/script><script>');} // (a recording: its clock is the moment's own, so every time in what it saved still holds; its settings are the ones it happened in)
+function liveSrc(name,rec){return '<!doctype html>'+_SRC.replace('<script>',()=>'<script>window.__SCENE='+JSON.stringify(name)+';'+(rec?'window.__REPLAY='+JSON.stringify(rec).replace(/</g,'\\u003c')+';'+(rec.t0?'{const n=performance.now.bind(performance),T0='+rec.t0+';let g=null;performance.now=()=>g==null?T0:n()+g;window.__clkGo=()=>{g=T0-n();};const f=window.requestAnimationFrame.bind(window);window.requestAnimationFrame=c=>f(()=>c(performance.now()));}':''):'')+'document.documentElement.style.visibility="hidden";'+'window.__INV='+(rec?rec.inv:(invertMode?1:0))+';window.__T='+JSON.stringify(rec&&rec.T||T)+';<\/script><script>');} // (a recording: its clock is the moment's own, so every time in what it saved still holds; its settings are the ones it happened in)
 
 const SCENES={};
 (function(){
@@ -12723,7 +12723,7 @@ function sceneBoot(name,TT){
     earnFx.length=0;constellationFx.length=0;implosions.length=0;dimFlashes.length=0;dialMarks.length=0;dialQueue.length=0;dialLoaded=[];burnFx.length=0;weaveTrack={};keySeq=null;
     for(const k in inventory)inventory[k]=0;
     S.W=W;S.H=H;S.t0=performance.now();S.n++;sceneFocus=[];for(const k of Object.keys(S))if(!CORE.has(k))delete S[k];telemetryOn=dynamicsOn=classOn=showRadii=risksOn=false;discSeen=new Set();itemCacheMode=false;
-    def.setup(S);
+    if(window.__clkGo)window.__clkGo();def.setup(S);document.documentElement.style.visibility=''; // (a recording's clock starts at its moment now, not while the page was loading; nothing shows before the scene is set)
   };
   start();
   const tk=()=>{const now=performance.now(),t=now-S.t0;
@@ -12804,7 +12804,7 @@ const evSeen=id=>!!window.__SCENE||discSeen.has('ev:'+id);
 const evOk=ev=>!ev||(Array.isArray(ev)?ev.some(evSeen):evSeen(ev));
 // A Journal entry is there only once you have done or witnessed what it is about: its event (RULE_EV), or ruleLearn where it happens in play (nothing is given)
 function ruleOk(id){return !!window.__SCENE||BUILD||discSeen.has('g_'+id)||(RULE_EV[id]!=null&&evOk(RULE_EV[id]));}
-function ruleLearn(id){try{if(!id||ruleOk(id))return;const e=RULES.find(x=>x[0]===id);if(!e)return;discSeen.add('g_'+id);saveInventory();flashSaveStatus(txt('guide.learned',e[2]));if(HUB)hubState();}catch(err){}} // (before the Guide exists, on load: learned next time)
+function ruleLearn(id,at){try{if(!id||ruleOk(id))return;const e=RULES.find(x=>x[0]===id);if(!e)return;discSeen.add('g_'+id);if(at)evQuietRec('rl_'+id,at,'l');saveInventory();flashSaveStatus(txt('guide.learned',e[2]));if(HUB)hubState();}catch(err){}} // (before the Guide exists, on load: learned next time)
 const cvn=(v,d)=>+(+v).toFixed(d===undefined?3:d);
 // ── Conversion math: every line is built from the CURRENT tuned values, so the Guide always states the real rule ──
 const TUNE_LABEL={};for(const r of csvRead('tuners'))TUNE_LABEL[r.key]=r.label?r.label+' ('+(r.section||'')+')':'no slider';
@@ -12829,7 +12829,7 @@ const CONV={
 // ── Events: the first time something happens, a card pauses the game and unlocks its Guide entries ──
 const EVENTS=csvRead('events').map(r=>{const f=r.facts.split('\n');return{id:r.id,name:r.name,type:r.type,rar:r.rarity,scene:r.scene,ico:r.icon,facts:()=>f.map(x=>String(x).replace(/\{([^{}]+)\}/g,(m,e)=>{const w=/^\d+$/.test(e)?'':VAL[e]||e,n=[...new Set((String(w).match(/\bT\.(\w+)|runT\('(\w+)'\)/g)||[]).map(v=>v.replace(/^T\.|runT\('|'\)/g,'')))].join(' ');return tvE(tpl(m),n);})),flavor:r.flavor};}); // (each value tagged with the variables it comes from: tvHTML) // content/events.csv (facts: one line each; {…} worked out as it shows)
 let _evQ=[],_evOpen=false,_evWasPaused=false,_evReview=false,_evHand=[],_evAct=0,_evDraw=false; // _evDraw: a Carnival draw is showing (it closes only by picking) // discoveries made together come as a hand: one card shown, the rest to pick
-function fireEvent(id,at){if(window.__SCENE||BUILD||discSeen.has('ev:'+id)||_evQ.indexOf(id)>=0||!EVENTS.some(e=>e.id===id))return;
+function fireEvent(id,at){if(window.__SCENE||BUILD||discSeen.has('ev:'+id)||_evQ.indexOf(id)>=0||!EVENTS.some(e=>e.id===id))return;if(!at&&EV_FRAME[id]==='f')at={x:W/2,y:H/2}; // (the whole surface: its centre)
   discSeen.add('ev:'+id);evUnread.add(id);evUnreadSave();saveInventory();evDeskSync(); // discovered as it happens (the Guide shows it at once); unread until it is looked at, anywhere
   const sz=EV_FRAME[id];if(at&&sz&&!_rulesOpen&&!_menuOpen&&!_evOpen&&!isPaused){evCapStart(id,at,sz);return;}_evQ.push(id);} // where it happened, a capture frames it as it unfolds; anything else is a card at once
 // ── Event capture: the moment an event first happens, the game does not stop at once. A frame (a faint line with sparkles, brighter as it starts) follows it
@@ -12838,10 +12838,11 @@ function fireEvent(id,at){if(window.__SCENE||BUILD||discSeen.has('ev:'+id)||_evQ
 // happens for Event solo ms, the game pauses and the frame grows into the event's card, its art the recording of your own moment. Another event during
 // one sends the first to the discovery desk (its count by the dock) and takes over; after the last, its card shows with the rest in the hand to review.
 // An event is discovered when it happens (the Guide shows it at once); it stays marked unread until it is looked at, anywhere ──
-const EV_FRAME={pigment:'s',point:'s',dim:'s',bright:'s',neutron:'s',magnetic:'s',pulsing:'s',dimrelic:'s',brightrelic:'s',duck:'s',dark:'l',rift:'f'}; // a frame's size: small, for what matters (a remnant left by a nova that covered the screen is still small); large for a Dark Remnant; the whole screen for a Rift
+const EV_FRAME={surface:'f',cleared:'f',pigment:'s',point:'s',dim:'s',bright:'s',neutron:'s',magnetic:'s',pulsing:'s',dimrelic:'s',brightrelic:'s',duck:'s',string:'l',spindle:'l',weave:'l',pat_prism:'l',pat_knot:'l',pat_gate:'l',pat_key:'l',pat_lens:'l',dark:'l',rift:'f'}; // a frame's size: small, for what matters (a remnant left by a nova that covered the screen is still small); large for a Dark Remnant; the whole screen for a Rift
 const EV_UNREAD_KEY='il_ev_unread';let evUnread=new Set();try{evUnread=new Set(JSON.parse(localStorage.getItem(EV_UNREAD_KEY)||'[]'));}catch(e){}
 function evUnreadSave(){try{localStorage.setItem(EV_UNREAD_KEY,JSON.stringify([...evUnread]));}catch(e){}}
-let _evSnaps=[],_evIn=[],_evReplaySlow=null,_evSnapAt=0,_evCap=null,_evZoom=null,_evRecs={},_evDeskOpen=false;
+var _evSurfAt=0; // (var: a surface is built before this part of the page has run)
+let _evSnaps=[],_evIn=[],_evBg=[],_evReplaySlow=null,_evSnapAt=0,_evCap=null,_evZoom=null,_evRecs={},_evDeskOpen=false;
 // The recording is not pictures: it is the surface's own state (each object as Duplicate copies it, shining or not, and the nebula's particles there),
 // taken Event pre ms before the event, in a frame of the card's own shape round it (unwrapped across the screen's edges: a moment at an edge is one
 // piece). On its card it plays again, live, in a copy of the game at the size it happened and in the settings you play with now: your own moment,
@@ -12851,23 +12852,28 @@ function evCapSlow(now){const c=_evCap||_evReplaySlow;if(!c)return 0;const u=(no
 const _evSkip=new Set(['id','_pv','fillStr','capturedBy']);
 function evState(o){const s={};for(const k in o){if(_evSkip.has(k))continue;const v=o[k];if(v==null||typeof v!=='object'){if(typeof v!=='function')s[k]=v;continue;} // everything an object is (life left, wake, drain, timers…): its plain values, lists of values and small records of values
   if(Array.isArray(v)){if(!v.length||typeof v[0]!=='object')s[k]=v.slice();}else if(Object.getPrototypeOf(v)===Object.prototype&&Object.values(v).every(w=>w==null||typeof w!=='object'))s[k]=Object.assign({},v);}return s;}
-function evRecord(now){if(window.__SCENE||BUILD)return;{const lo=(_evCap&&_evCap.snap||_evSnaps[0]||{t:now}).t;while(_evIn.length&&_evIn[0].t<lo)_evIn.shift();}if(now-_evSnapAt<(T.evSnapMs||250))return;_evSnapAt=now; // the rolling record: what is on the surface, every Event snapshot ms (and your input since)
+function evRecord(now,force){if(window.__SCENE||BUILD)return;{let lo=(_evCap&&_evCap.snap||_evSnaps[0]||{t:now}).t;for(const b of _evBg)if(b.snap)lo=Math.min(lo,b.snap.t);while(_evIn.length&&_evIn[0].t<lo)_evIn.shift();}if(!force&&now-_evSnapAt<(T.evSnapMs||250))return;_evSnapAt=now; // the rolling record: what is on the surface, every Event snapshot ms (and your input since)
   const L=[];for(const o of active){if(o.dying||o.captured||o._bhGone)continue;const q=snapshotForDup(o,false);q.full=evState(o);q.on=pressedIDs.has(o.id)?1:0;L.push(q);}
   _evSnaps.push({t:now,L,st:{x:mouse.x,y:mouse.y,down:mouseDown?1:0,drag:dragMode?1:0,at:mouseDownAt,hv:heat.v,hu:heat.until}});
   const keep=now-(T.evPreMs||600);while(_evSnaps.length>1&&_evSnaps[1].t<=keep)_evSnaps.shift();}
 if(!window.__SCENE)for(const ty of['mousedown','mouseup','mousemove','dblclick','contextmenu','wheel'])document.addEventListener(ty,e=>{if(!wrapRect||BUILD||!e.isTrusted)return;if(ty!=='mousemove'&&e.target!==canvas&&e.target!==wrap)return; // your input as it happened (what the surface itself got): the recording plays it again
   _evIn.push({t:performance.now(),ty,x:e.clientX-wrapRect.left,y:e.clientY-wrapRect.top,b:e.button||0,bs:e.buttons||0,d:e.deltaY||0});},true);
-function evAt(c){const a=c.at;return[a.x,a.y];}
+function evCapNew(id,at,sz,now){let S=_evSnaps[0]||null;if(!S||S.t<_evSurfAt){evRecord(now,true);S=_evSnaps[_evSnaps.length-1];} // (a new surface: from the moment it is there, not the one before)
+  const c={id,at,sz,t0:now,snap:S,path:[[now,0,0]],ux:0,uy:0,px:at.x,py:at.y};c.rect=Object.assign({x:at.x,y:at.y},evFrameR(c));return c;}
 function evCapStart(id,at,sz){const now=performance.now();if(_evCap){evCapSave(_evCap);_evDesk.push(_evCap.id);evDeskSync();} // another one during this: it goes to the desk
-  _evCap={id,at,sz,t0:now,snap:_evSnaps[0]||null};_evCap.rect=Object.assign({x:at.x,y:at.y},evFrameR(_evCap));playGlassTap();}
-function evCapSave(c){const S=c.snap;if(!S)return;const{x,y,rw,rh}=c.rect,inR=(px,py)=>{const dx=_wrapD(px-x,W),dy=_wrapD(py-y,H);return Math.abs(dx)<=rw+30&&Math.abs(dy)<=rh+30?[dx,dy]:null;}; // (a margin round it: what drifts in shows)
+  _evCap=evCapNew(id,at,sz,now);playGlassTap();}
+function evQuietRec(id,at,sz){if(window.__SCENE||BUILD||!at||_evRecs[id]||_evBg.some(b=>b.id===id))return;_evBg.push(evCapNew(id,at,sz||'l',performance.now()));} // a Journal entry learned as it happens (an effect at work): recorded the same way, quietly (no card, no slow), for its entry
+function evFollow(c,now){const a=c.at,x=a.x,y=a.y;c.ux+=_wrapD(x-c.px,W);c.uy+=_wrapD(y-c.py,H);c.px=x;c.py=y;c.rect.x=x;c.rect.y=y;const L=c.path[c.path.length-1];if(now-L[0]>=60)c.path.push([now,c.ux,c.uy]);} // the frame keeps on its subject, wherever it goes (its path kept, unwrapped)
+function evCapSave(c){const S=c.snap;if(!S)return;const{rw,rh}=c.rect,P=c.path;let a0=0,a1=0,b0=0,b1=0;for(const q of P){a0=Math.min(a0,q[1]);a1=Math.max(a1,q[1]);b0=Math.min(b0,q[2]);b1=Math.max(b1,q[2]);} // the surface it needs: its frame, wherever its subject went (from where it began to where it ended)
+  const mx=(a0+a1)/2,my=(b0+b1)/2,hw=Math.min(W/2,rw+(a1-a0)/2),hh=Math.min(H/2,rh+(b1-b0)/2),x=((c.px-c.ux+mx)%W+W)%W,y=((c.py-c.uy+my)%H+H)%H,inR=(px,py)=>{const dx=_wrapD(px-x,W),dy=_wrapD(py-y,H);return Math.abs(dx)<=hw+30&&Math.abs(dy)<=hh+30?[dx,dy]:null;}; // (a margin round it: what drifts in shows)
   const objs=[],dorm=[];for(const q of S.L){const d=inR(q.x,q.y);if(d)objs.push(Object.assign({},q,{dx:d[0],dy:d[1]}));}
   for(const o of dormant){if(!o)continue;const d=inR(o.x,o.y);if(d){const q=snapshotForDup(o,true);q.full=evState(o);q.dx=d[0];q.dy=d[1];dorm.push(q);}}
   const D=(px,py)=>[_wrapD(px-x,W),_wrapD(py-y,H)],ins=_evIn.filter(e=>e.t>=S.t).map(e=>{const d=D(e.x,e.y);return{t:e.t,ty:e.ty,dx:d[0],dy:d[1],b:e.b,bs:e.bs,d:e.d};}),st=S.st&&Object.assign({},S.st,S.st.x<-999?{dx:-9999,dy:-9999}:{dx:D(S.st.x,S.st.y)[0],dy:D(S.st.x,S.st.y)[1]}); // (the cursor off the surface stays off)
-  const rec={id:c.id,w:Math.round(2*rw),h:Math.round(2*rh),inv:invertMode?1:0,dur:Math.round(performance.now()-S.t+(T.evReplayTail||900)),objs,dorm,at:Date.now(),
+  const rec={id:c.id,w:Math.round(2*hw),h:Math.round(2*hh),fw:Math.round(2*rw),fh:Math.round(2*rh),path:P.map(q=>[Math.round(q[0]),Math.round(q[1]-mx),Math.round(q[2]-my)]),inv:invertMode?1:0,dur:Math.round(performance.now()-S.t+(T.evReplayTail||900)),objs,dorm,at:Date.now(),
     t0:S.t,cap0:c.t0,st,ins,T:Object.assign({},T),purse:Object.assign({},inventory),ups:[...discSeen].filter(d=>d.slice(0,3)==='up:'),run:JSON.parse(JSON.stringify(runState||{}))};_evRecs[c.id]=rec;IDB.put('evrec:'+c.id,rec).catch(()=>{});} // (and everything it ran on: every setting, your purse, upgrades and day)
 let _evDesk=[];
-function evCapTick(now){const c=_evCap;if(!c)return;const[x,y]=evAt(c);c.rect.x=x;c.rect.y=y;
+function evCapTick(now){for(const b of _evBg){evFollow(b,now);if(now-b.t0>=(T.evCaptureMs||2400)){b.done=1;evCapSave(b);}}_evBg=_evBg.filter(b=>!b.done); // (the quiet ones: saved for their Journal entries)
+  const c=_evCap;if(!c)return;evFollow(c,now);
   if(now-c.t0>=Math.max(T.evCaptureMs||2400,T.evSoloMs||1600)){_evCap=null;evCapSave(c);evZoomStart(c);}} // nothing else happened: pause, and the frame grows into its card
 function evZoomStart(c){const wasP=isPaused;if(!isPaused)togglePause();const rc=wrap.getBoundingClientRect(),cr=canvas.getBoundingClientRect(),k=cr.width/W,{x,y,rw,rh}=c.rect,el=document.createElement('canvas'),ar=rw/rh,SW=320,SH=Math.round(320/ar),cw=canvas.width/W;
   el.width=SW;el.height=SH;{const g=el.getContext('2d');for(const[ox,oy]of[[0,0],[W,0],[-W,0],[0,H],[0,-H]])g.drawImage(canvas,(x-rw+ox)*cw,(y-rh+oy)*cw,2*rw*cw,2*rh*cw,0,0,SW,SH);} // (the frame as it is now, joined across an edge)
@@ -12881,8 +12887,10 @@ function evFrameDraw(c2,now){const c=_evCap;if(!c||!c.rect)return;const{x,y,rw,r
   if(c.sz==='f')box(0,0);else wrapCopies(x,y,Math.max(rw,rh),box);}
 const evRecFor=id=>id&&(_evRecs[id]||null);
 if(!window.__SCENE)IDB.keys().then(ks=>{const P=IDB.key('evrec:');for(const k of ks)if(typeof k==='string'&&k.startsWith(P))IDB.get(k.slice(k.indexOf('evrec:'))).then(r=>{if(r&&r.id)_evRecs[r.id]=r;}).catch(()=>{});}).catch(()=>{}); // (your recordings, back from the last time you played)
-function evReplayMount(h,rec){if(!h||h.firstChild)return;const f=document.createElement('iframe'),aw=h.clientWidth||300,ah=h.clientHeight||190,k=Math.max(aw/rec.w,ah/rec.h); // your moment, played again live: a copy of the game at the size it happened (scaled to fill the card, a little cut off if it must)
-  f.style.cssText=`border:0;pointer-events:none;background:#000;position:absolute;left:50%;top:50%;width:${rec.w}px;height:${rec.h}px;transform:translate(-50%,-50%) scale(${k})`;h.style.position='relative';h.style.overflow='hidden';f.srcdoc=liveSrc('replay',rec);h.appendChild(f);}
+function evReplayMount(h,rec){if(!h||h.firstChild)return;const f=document.createElement('iframe'),aw=h.clientWidth||300,ah=h.clientHeight||190,fw=rec.fw||rec.w,fh=rec.fh||rec.h,k=Math.max(aw/fw,ah/fh),P=rec.path||[[0,0,0]]; // your moment, played again live: a copy of the game at the size it happened (its frame scaled to fill the card, a little cut off if it must), the view keeping on its subject as it moves
+  f.style.cssText=`border:0;pointer-events:none;background:#000;position:absolute;left:0;top:0;width:${rec.w}px;height:${rec.h}px;transform-origin:0 0`;h.style.position='relative';h.style.overflow='hidden';f.srcdoc=liveSrc('replay',rec);h.appendChild(f);
+  const at=t=>{let i=0;while(i<P.length-1&&P[i+1][0]<=t)i++;const A=P[i],B=P[Math.min(i+1,P.length-1)],u=B[0]>A[0]?Math.max(0,Math.min(1,(t-A[0])/(B[0]-A[0]))):0;return[A[1]+(B[1]-A[1])*u,A[2]+(B[2]-A[2])*u];};
+  const pan=()=>{if(!f.isConnected)return;let t=P[0][0];try{t=f.contentWindow.performance.now();}catch(e){}const[dx,dy]=at(t);f.style.transform=`translate(${aw/2-(rec.w/2+dx)*k}px,${ah/2-(rec.h/2+dy)*k}px) scale(${k})`;requestAnimationFrame(pan);};pan();}
 function evDeskSync(){let el=document.getElementById('evDesk');const n=new Set([..._evDesk,...evUnread]).size;if(!el){el=document.createElement('button');el.id='evDesk';el.style.cssText='position:absolute;right:12px;bottom:calc(var(--dock-h,0px) + 14px);z-index:30;background:rgba(0,0,0,.75);color:#fff;border:1px solid rgba(255,255,255,.35);border-radius:14px;font:11px monospace;padding:4px 10px;display:none';
     el.onmousedown=e=>e.stopPropagation();el.onclick=e=>{e.stopPropagation();const ids=[...new Set([..._evDesk,...evUnread])].filter(i=>EVENTS.some(v=>v.id===i));if(!ids.length)return;_evDesk=[];_evDeskOpen=true;_evHand=ids;_evAct=0;showEventCard(ids[0],true);};wrap.appendChild(el);}
   el.textContent=txt('ev.desk',n);el.title=txt('ev.desk_tip');el.style.display=n&&!window.__SCENE&&!BUILD?'':'none';el.classList.toggle('new',_evDesk.length>0);}
@@ -12897,7 +12905,7 @@ function cardHTML(ev,mini){ // the one card format: name bar, art box, type line
   return `<div class="mtg${mini?' sm':''}${evUnread.has(ev.id)?' unread':''}" data-ev="${ev.id}" style="--rc:${TIER_COL[t]}"><div class="nm"><b>${gEsc(ev.name)}</b><span class="gem"></span></div><div class="art" data-scene="${ev.scene}" data-ev="${ev.id}">${mini?`<canvas class="rl-m" width="64" height="64" data-k="${ev.ico}"></canvas>`:''}</div><div class="ty"><span>${gEsc(ev.type.replace(/^Event — /,''))}</span><span>Tier ${TIER[t]}</span></div><div class="tx">${(mini?ev.facts().slice(0,1):ev.facts()).map(f=>`<p${ev.fx?' class="fx"':''}>${tvHTML(f)}</p>`).join('')}${ev.flavor?`<p class="fl">${gEsc(ev.flavor)}</p>`:''}</div></div>`; // (small: its first line and its flavour; the rest when it is opened) (fx: the lines are changes to play, set apart from the flavour)
 }
 function mountScene(h,w,hh){if(!h||h.firstChild||document.querySelectorAll('.rl-live iframe,.mtg .art iframe').length>=5)return;{const R=(h.dataset.ev||'').split(',').map(evRecFor).find(Boolean);if(R&&!w){evReplayMount(h,R);return;}} /* something you witnessed: your own recording of it, live (a demo only for what you have not) */const f=document.createElement('iframe'),nm=h.dataset.s||h.dataset.scene;f.style.cssText='border:0;max-width:100%;pointer-events:none;background:#000;border-radius:6px;'+(w?`width:${w}px;height:${hh}px`:'width:100%;height:100%');
-  if(nm.slice(0,4)==='hub:'){const[sn,dk]=nm.slice(4).split(':');f.src='Surface_Map_HUB.html?v=20261110b&scene='+sn+(sn==='shop'?'&k='+encodeURIComponent(dk||''):'')+'&T='+encodeURIComponent(JSON.stringify(mapSceneT()))+'&D='+encodeURIComponent(JSON.stringify(dk&&DUCK_TYPES[dk]?{[dk]:DUCK_TYPES[dk]}:Object.fromEntries(Object.entries(DUCK_TYPES).slice(0,4))));}else f.srcdoc=liveSrc(nm);h.appendChild(f);} // a Surface Map demo is played by the map itself
+  if(nm.slice(0,4)==='hub:'){const[sn,dk]=nm.slice(4).split(':');f.src='Surface_Map_HUB.html?v=20261110c&scene='+sn+(sn==='shop'?'&k='+encodeURIComponent(dk||''):'')+'&T='+encodeURIComponent(JSON.stringify(mapSceneT()))+'&D='+encodeURIComponent(JSON.stringify(dk&&DUCK_TYPES[dk]?{[dk]:DUCK_TYPES[dk]}:Object.fromEntries(Object.entries(DUCK_TYPES).slice(0,4))));}else f.srcdoc=liveSrc(nm);h.appendChild(f);} // a Surface Map demo is played by the map itself
 function mapSceneT(){const o={};for(const k in T)if(/^(map|bh|duck|wake|glass|metal|dimGlow|glowHalo|maxSpeed)/.test(k))o[k]=T[k];return o;} // what a map demo needs of the tuners
 function showCardHTML(html){ // a Guide card (an entry or a shop) opened over the Guide, where an event card shows
   guideCSS();_evOpen=true;_evReview=true;const ov=evOverlayEl();ov.innerHTML=`<div class="ev-box">${html}<button id="evOk">${txt('card.close')}</button></div>`;ov.style.display='flex';wrap.classList.add('ev-open');
@@ -13098,7 +13106,7 @@ function ruleCardHTML(e,mini){ // a Guide entry as a card: its name, art (a live
   if(!mini){tx+=rows.slice(0,1).map(p).join('');if(rows.length>1)tx+=`<div class="rl-x" data-disc="${ids.det}">${rows.slice(1).map(p).join('')}</div>`;
     if(sc.length>1)tx+=`<div class="rl-x" data-disc="${ids.ill}">${sc.slice(1).map(x=>`<span class="rl-live" data-s="${x}"></span>`).join('')}</div>`;
     if(mt.length)tx+=`<div class="rl-x" data-disc="${ids.mat}"><details class="rl-math"><summary>Math (live values)</summary>${mt.map(m=>CONV[m]?`<div class="rl-mh">${gEsc(CONV[m].t)}</div><ul>${CONV[m].f().map(l=>`<li>${tvHTML(l)}</li>`).join('')}</ul>`:'').join('')}</details></div>`;}
-  const art=mini||!sc.length?`<canvas class="rl-m" width="${mini?64:120}" height="${mini?64:120}" data-k="${ico}"></canvas>`:`<div class="art-live" data-disc="${ids.ill}" data-scene="${sc[0]}" data-ev="${[].concat(RULE_EV[id]||[]).join(',')}"></div>`;
+  const art=mini||!sc.length?`<canvas class="rl-m" width="${mini?64:120}" height="${mini?64:120}" data-k="${ico}"></canvas>`:`<div class="art-live" data-disc="${ids.ill}" data-scene="${sc[0]}" data-ev="${['rl_'+id].concat(RULE_EV[id]||[]).join(',')}"></div>`;
   return `<div class="mtg${mini?' sm':' full'}" data-rule="${id}" style="--rc:${TIER_COL[t]}"><div class="nm"><b>${gHi(e[2])}</b><span class="gem"></span></div><div class="art">${art}</div><div class="ty"><span>${gEsc(home)}</span><span>Tier ${TIER[t]}</span></div><div class="tx">${tx}</div></div>`;
 }
 function cardSize(ov){ // every small card the same size: its text box as tall as the longest of them all (every event, Guide entry and shop)
@@ -13187,7 +13195,7 @@ function closeRules(){
 // runs out from it and reveals it, real (and moving, if it was): until then it passes over everything. Phasing out is the same, backwards.
 // Placed at an edge (Place, Move or Duplicate), it is pushed fully off the screen (Prefab buffer px more) and waits there, shown half see-through
 // with a yellow border, until its motion carries it on; if its motion never would, it is not placed, and the feed says why.
-let preSel=[],preTgt=-1,preDraft={name:'',from:3,to:24,ph:{in:900,out:900,stay:0}},prePick='',phasing=[],edgeQ=[],_preBarK='';
+let preSel=[],preTgt=-1,preDraft={name:'',from:3,to:24,w:1,ph:{at:0,stay:0}},prePick='',phasing=[],edgeQ=[],preLater=[],_preBarK='';
 const PRE_EDGE=24,PH_GROW=0.7;
 const boxTool=()=>createActive()&&(currentType().cat==='inertia'||currentType().cat==='prefab'&&currentVariant()==='select');
 const preTool=()=>createActive()&&currentType().cat==='prefab';
@@ -13220,9 +13228,10 @@ function prePartPlace(c,x,y){ // one part, real, at (x, y) (wrapped onto the sur
   if(c.shape){const sh=Object.assign({},c.shape,{id:++shapeSeq,pts:c.shape.rel.map(r=>({x:x+r.x,y:y+r.y})),holes:c.shape.holesRel?c.shape.holesRel.map(h=>h.map(r=>({x:x+r.x,y:y+r.y}))):undefined,broken:{},acc:0,lastSweep:0});delete sh.rel;delete sh.holesRel;fixedShapes.push(sh);rebuildGlassList();return{shape:sh};}
   if(c.good)return{good:spawnGood(x,y,performance.now(),Object.assign({},c.good,{vx:c.vx||0,vy:c.vy||0}),1)};
   const o=stampSnapshotAt(c.s,x,y);if(!o)return null;o.vx=c.vx||0;o.vy=c.vy||0;return{obj:o};}
-function phaseIn(parts,cx,cy,ph){const now=performance.now();phasing.push({t0:now,items:parts.map(c=>({c,ph:Object.assign({in:900,out:900,stay:0},ph,c.ph||{}),x:cx+c.dx,y:cy+c.dy,st:'in',t0:now,live:null}))});}
+const prePhMs=()=>Math.max(1,T.prefabPhaseMs!=null?T.prefabPhaseMs:900); // how long phasing in (and out) takes: the same for every prefab and part
+function phaseIn(parts,cx,cy,ph){const now=performance.now();phasing.push({t0:now,items:parts.map(c=>{const q=Object.assign({at:0,stay:0},ph,c.ph||{}),at=c.ph&&c.ph.at||0;return{c,ph:q,x:cx+c.dx,y:cy+c.dy,st:at>0?'wait':'in',t0:now+at,live:null};})});} // (a part with its own phase: its appears-at after the prefab's)
 function prePlace(mx,my){const P=buildLib.prefabs[prePick];if(!P){flashSaveStatus(txt('pre.pick_first'));return;}
-  if(nearEdge(mx,my)&&!preStill(P.parts)){edgePlace(P.parts,P,mx,my);return;}phaseIn(P.parts,mx,my,P.ph);}
+  if(nearEdge(mx,my)&&!preStill(P.parts)){edgePlace(P.parts,P,mx,my);return;}phaseIn(P.parts,mx,my,P.ph);} // (placed by hand: it phases in now; on a surface it waits for its appears-at)
 const preStill=parts=>parts.some(c=>c.neb||c.s&&c.s.isDormant); // a prefab with any of the nebula in it never drifts in: it phases in where it is put
 function partsBox(parts){let x0=1e9,y0=1e9,x1=-1e9,y1=-1e9;for(const c of parts){const r=prePartR(c);x0=Math.min(x0,c.dx-r);x1=Math.max(x1,c.dx+r);y0=Math.min(y0,c.dy-r);y1=Math.max(y1,c.dy+r);}return{x0,y0,x1,y1};}
 function edgeEnterT(b,cx,cy,vx,vy){ // frames until a box (b, about (cx, cy)) moving at (vx, vy) first overlaps the screen; null: never
@@ -13234,20 +13243,29 @@ function edgePlace(parts,P,mx,my,quiet){ // placed at an edge: pushed fully off 
   let vx=0,vy=0;for(const c of parts){vx+=c.vx||0;vy+=c.vy||0;}vx/=parts.length;vy/=parts.length;
   if(edgeEnterT(b,cx,cy,vx,vy)==null){if(!quiet)flashSaveStatus(txt(Math.hypot(vx,vy)<1e-6?'pre.never_on_still':'pre.never_on_away'));return false;}
   edgeQ.push({parts:JSON.parse(JSON.stringify(parts)),name:P?P.name:'',cx,cy,vx,vy,in:parts.map(()=>false)});if(!quiet)flashSaveStatus(txt('pre.waits_off'));return true;}
-// A surface started at a time of day (a map hex, or Build mode's Test at a time): by Prefab chance, one prefab whose times include that hour
-// appears. A still one phases in somewhere on the surface (anywhere: it wraps); one that moves may instead drift in from off an edge.
-const prefabLib=()=>Object.assign({},buildContent().prefabs,BUILD?buildLib.prefabs:{}); // (the content files' prefabs; in Build mode, the ones made here too)
+// A surface started at a time of day (a map hex, or Build mode's Test at a time): how many prefabs appear is drawn for that time (Prefabs at <time>:
+// from 0 up to it, each count as likely as (count+1)^Prefab count curve: 0 every count alike, more the more the higher), and which ones by their Value
+// among those whose times include it (no repeats). Each waits for its appears-at (ms from the surface's start; 0 at once), then phases in, tending
+// to the open space where the nebula is thinnest (Prefab open bias; it can still go over the nebula), or, if it moves, may drift in from an edge;
+// it stays for its stay (0: for good) and phases out. Your own prefabs (made in Build mode, kept in this browser) appear with the content files' ones.
+const prefabLib=()=>buildLib.prefabs;
 const prefabAt=(P,h)=>P.from<=P.to?h>=P.from&&h<=P.to:h>=P.from||h<=P.to; // its times include hour h (from – to, across Midnight too)
-function prefabSpawn(h){if(h==null||!(Math.random()<(T.prefabChance!=null?T.prefabChance:0.35)))return null;
-  const L=Object.values(prefabLib()).filter(P=>P.parts&&P.parts.length&&prefabAt(P,h));if(!L.length)return null;const P=L[(Math.random()*L.length)|0];
-  const mv=!preStill(P.parts)&&P.parts.some(c=>Math.hypot(c.vx||0,c.vy||0)>1e-6);
-  if(mv&&Math.random()<0.5)for(let i=0;i<12;i++){const s=(Math.random()*4)|0,u=Math.random(),mx=s===0?2:s===1?W-2:u*W,my=s===2?2:s===3?H-2:u*H;if(edgePlace(P.parts,P,mx,my,true)){logEv('prefab '+P.name+' drifts in');return P;}} // drifting in, from wherever along an edge it would come on
-  phaseIn(P.parts,Math.random()*W,Math.random()*H,P.ph);logEv('prefab '+P.name+' phases in');return P;}
+function prefabCount(h){const mx=Math.max(0,Math.round(T['prefabMax'+h]!=null?T['prefabMax'+h]:1)),cv=T['prefabCurve'+h]!=null?T['prefabCurve'+h]:1.6,w=[];let tot=0;for(let k=0;k<=mx;k++){w.push(Math.pow(k+1,cv));tot+=w[k];}let u=Math.random()*tot;for(let k=0;k<=mx;k++)if((u-=w[k])<0)return k;return mx;} // (e.g. up to 1 at curve 1.6: none 25%, one 75%)
+function preOpenSpot(parts){const b=partsBox(parts),bias=T.prefabOpenBias!=null?T.prefabOpenBias:2,st=Math.max(PIXEL_SIZE,Math.sqrt((b.x1-b.x0)*(b.y1-b.y0)/300)),C=[];let tot=0; // somewhere on the surface, likelier where the nebula is thinnest
+  for(let i=0;i<16;i++){const x=Math.random()*W,y=Math.random()*H;let n=0,m=0;for(let gx=b.x0;gx<=b.x1;gx+=st)for(let gy=b.y0;gy<=b.y1;gy+=st){m++;const X=Math.floor((x+gx-GRID_OX)/PIXEL_SIZE),Y=Math.floor((y+gy-GRID_OY)/PIXEL_SY);if(dormant[((Y%GH+GH)%GH)*GW+((X%GW+GW)%GW)])n++;}const w=Math.pow(1-(m?n/m:0),bias)+0.02;C.push([x,y,w]);tot+=w;}
+  let u=Math.random()*tot;for(const c of C)if((u-=c[2])<0)return c;return C[0];}
+function prefabPut(P){const mv=!preStill(P.parts)&&P.parts.some(c=>Math.hypot(c.vx||0,c.vy||0)>1e-6);
+  if(mv&&Math.random()<0.5)for(let i=0;i<12;i++){const s=(Math.random()*4)|0,u=Math.random(),mx=s===0?2:s===1?W-2:u*W,my=s===2?2:s===3?H-2:u*H;if(edgePlace(P.parts,P,mx,my,true)){logEv('prefab '+P.name+' drifts in');return;}} // drifting in, from wherever along an edge it would come on
+  const[x,y]=preOpenSpot(P.parts);phaseIn(P.parts,x,y,P.ph);logEv('prefab '+P.name+' phases in');}
+function prefabSpawn(h){preLater=[];if(h==null)return[];const L=Object.values(prefabLib()).filter(P=>P.parts&&P.parts.length&&prefabAt(P,h)&&(P.w==null||P.w>0)),out=[],now=performance.now();
+  for(let n=Math.min(prefabCount(h),L.length);n>0;n--){let tot=0;for(const P of L)tot+=P.w==null?1:P.w;let u=Math.random()*tot,i=0;for(;i<L.length-1;i++)if((u-=L[i].w==null?1:L[i].w)<0)break;const P=L.splice(i,1)[0];out.push(P);preLater.push({t:now+(P.ph&&P.ph.at||0),P});} // by their Value, no repeats; each at its own time
+  return out;}
 function preRemove(L){if(!L)return;if(L.good){const i=goods.indexOf(L.good);if(i>=0)goods.splice(i,1);return;}if(L.obj){const i=active.indexOf(L.obj);if(i>=0){pressedIDs.delete(L.obj.id);active.splice(i,1);}else{const j=dormIx(L.obj);if(j>=0)removeDormant(j,performance.now());}}else if(L.shape){const i=fixedShapes.indexOf(L.shape);if(i>=0){fixedShapes.splice(i,1);rebuildGlassList();}}}
 function prefabTick(now,dt){
+  if(preLater.length){const due=preLater.filter(q=>now>=q.t);if(due.length){preLater=preLater.filter(q=>now<q.t);for(const q of due)prefabPut(q.P);}} // (its appears-at come)
   if(BUILD){const k=preTool()?currentVariant()+'|'+preSel.length:'';if(k!==_preBarK){_preBarK=k;buildBar();}} // (the bar's prefab row follows the tool)
   const ts=dt/16.67;
-  for(const R of phasing){for(const it of R.items){const u=(now-it.t0)/Math.max(1,it.st==='out'?it.ph.out:it.ph.in);
+  for(const R of phasing){for(const it of R.items){if(it.st==='wait'){if(now<it.t0)continue;it.st='in';it.t0=now;}const u=(now-it.t0)/prePhMs();
       if(it.st==='in'){if(!it.live){it.x+=(it.c.vx||0)*ts;it.y+=(it.c.vy||0)*ts;if(u>=PH_GROW){it.live=prePartPlace(it.c,it.x,it.y)||{};}} // fully grown: real (moving at once, if it was)
         if(u>=1){it.st='on';it.t0=now;}}
       else if(it.st==='on'){if(it.ph.stay>0&&now-it.t0>=it.ph.stay){const o=it.live&&(it.live.obj||it.live.shape);if(!o&&it.live&&it.live.good){it.x=it.live.good.x;it.y=it.live.good.y;}if(o){const c=it.live.shape?shapeCentroid(o):[o.x,o.y];it.x=c[0];it.y=c[1];}preRemove(it.live);it.live=null;it.st='out';it.t0=now;}} // its stay is over: it phases out
@@ -13259,7 +13277,7 @@ function prefabTick(now,dt){
   edgeQ=edgeQ.filter(E=>E.in.some(v=>!v)&&edgeEnterT(partsBox(E.parts),E.cx,E.cy,E.vx,E.vy)!=null);}
 function prePartPath(c,x,y,k){const P=new Path2D();if(c.shape){c.shape.rel.forEach((q,i)=>P[i?'lineTo':'moveTo'](x+q.x*k,y+q.y*k));if(c.shape.closed)P.closePath();}else P.arc(x,y,Math.max(0.3,prePartR(c)*k),0,6.2832);return P;}
 function prefabDraw(c,now){
-  for(const R of phasing)for(const it of R.items){if(it.st==='on')continue;const u=Math.min(1,(now-it.t0)/Math.max(1,it.st==='out'?it.ph.out:it.ph.in)),f=it.st==='out'?1-u:u,r=prePartR(it.c); // (out: the same, backwards)
+  for(const R of phasing)for(const it of R.items){if(it.st==='on'||it.st==='wait')continue;const u=Math.min(1,(now-it.t0)/prePhMs()),f=it.st==='out'?1-u:u,r=prePartR(it.c); // (out: the same, backwards)
     const o=it.live&&it.live.obj,x=o?o.x:it.x,y=o?o.y:it.y;c.save();
     if(f<PH_GROW){const k=fade(f/PH_GROW),P=prePartPath(it.c,x,y,k);c.fillStyle='#000';c.strokeStyle='#000';c.lineWidth=3;if(it.c.shape&&!it.c.shape.closed)c.stroke(P);else c.fill(P);} // grows from a point, all black
     else{const g=(f-PH_GROW)/(1-PH_GROW),P=prePartPath(it.c,x,y,1);c.globalAlpha=1-g;c.fillStyle='#000';c.strokeStyle='#000';c.lineWidth=3;if(it.c.shape&&!it.c.shape.closed)c.stroke(P);else c.fill(P); // then a white flash runs out from it and reveals it
@@ -13275,18 +13293,18 @@ function prefabDraw(c,now){
   c.setLineDash([]);if(inertBox&&mouseDown&&dragMode){const x=Math.min(inertBox.x0,mouse.x),y=Math.min(inertBox.y0,mouse.y);c.fillStyle='rgba(255,214,60,0.08)';c.fillRect(x,y,Math.abs(mouse.x-inertBox.x0),Math.abs(mouse.y-inertBox.y0));c.strokeStyle='rgba(255,214,60,0.9)';c.setLineDash([5,4]);c.strokeRect(x,y,Math.abs(mouse.x-inertBox.x0),Math.abs(mouse.y-inertBox.y0));}
   c.restore();}
 function preBarHTML(esc){if(!preTool())return'';const v=currentVariant(),tm=sel=>Object.keys(TIMES).map(h=>`<option value="${h}"${+h===sel?' selected':''}>${TIMES[h]}</option>`).join('');
-  if(v==='place'){const ns=Object.keys(buildLib.prefabs).sort();return`<div class="bdRow"><b>${txt('pre.title')}</b><span>${txt('pre.place')}</span><select id="bpPick"><option value="">—</option>${ns.map(n=>`<option value="${esc(n)}"${n===prePick?' selected':''}>${esc(n)} (${TIMES[buildLib.prefabs[n].from]}–${TIMES[buildLib.prefabs[n].to]})</option>`).join('')}</select> <span>${txt('pre.place_hint')}</span><button id="bpDel">${txt('pre.delete')}</button></div>`;}
+  if(v==='place'){const ns=Object.keys(buildLib.prefabs).sort();return`<div class="bdRow"><b>${txt('pre.title')}</b><span>${txt('pre.place')}</span><select id="bpPick"><option value="">—</option>${ns.map(n=>`<option value="${esc(n)}"${n===prePick?' selected':''}>${esc(n)} (${TIMES[buildLib.prefabs[n].from]}–${TIMES[buildLib.prefabs[n].to]}, ${txt('pre.value')} ${buildLib.prefabs[n].w==null?1:buildLib.prefabs[n].w})</option>`).join('')}</select>${buildLib.prefabs[prePick]?` <label>${txt('pre.value')} <input id="bpPVal" type="number" min="0" step="0.5" value="${buildLib.prefabs[prePick].w==null?1:buildLib.prefabs[prePick].w}"></label>`:''} <span>${txt('pre.place_hint')}</span><button id="bpDel">${txt('pre.delete')}</button></div>`;}
   const t=preTgt>=0&&preSel[preTgt],ph=t?Object.assign({},preDraft.ph,t.ph||{}):preDraft.ph;
-  return`<div class="bdRow"><b>${txt('pre.title')}</b><span>${txt('pre.parts',preSel.length)}</span><input id="bpName" maxlength="40" placeholder="${esc(txt('pre.name'))}" value="${esc(preDraft.name)}"><label>${txt('pre.from')} <select id="bpFrom">${tm(preDraft.from)}</select></label><label>${txt('pre.to')} <select id="bpTo">${tm(preDraft.to)}</select></label>
-<span>${txt(t?'pre.phase_part':'pre.phase_whole',preTgt+1)} (ms)</span><label>${txt('pre.in')} <input id="bpIn" type="number" min="0" step="100" value="${ph.in}"></label><label>${txt('pre.out')} <input id="bpOut" type="number" min="0" step="100" value="${ph.out}"></label><label>${txt('pre.stay')} <input id="bpStay" type="number" min="0" step="500" value="${ph.stay}"></label>${t&&t.ph?`<button id="bpClr">${txt('pre.clear_part')}</button>`:''}<button id="bpSave">${txt('pre.save')}</button></div>`;}
+  return`<div class="bdRow"><b>${txt('pre.title')}</b><span>${txt('pre.parts',preSel.length)}</span><input id="bpName" maxlength="40" placeholder="${esc(txt('pre.name'))}" value="${esc(preDraft.name)}"><label title="${esc(txt('pre.value_tip'))}">${txt('pre.value')} <input id="bpVal" type="number" min="0" step="0.5" value="${preDraft.w}"></label><label>${txt('pre.from')} <select id="bpFrom">${tm(preDraft.from)}</select></label><label>${txt('pre.to')} <select id="bpTo">${tm(preDraft.to)}</select></label>
+<span>${txt(t?'pre.phase_part':'pre.phase_whole',preTgt+1)} (ms)</span><label title="${esc(txt('pre.at_tip'))}">${txt('pre.at')} <input id="bpAt" type="number" min="0" step="500" value="${ph.at||0}"></label><label title="${esc(txt('pre.stay_tip'))}">${txt('pre.stay')} <input id="bpStay" type="number" min="0" step="500" value="${ph.stay}"></label>${t&&t.ph?`<button id="bpClr">${txt('pre.clear_part')}</button>`:''}<button id="bpSave">${txt('pre.save')}</button></div>`;}
 function preBarWire($){if(!preTool())return;
-  if($('bpPick')){$('bpPick').onchange=e=>{prePick=e.target.value;};$('bpDel').onclick=async()=>{if(!buildLib.prefabs[prePick])return;if(!confirm(txt('build.delete_ask',prePick)))return;delete buildLib.prefabs[prePick];prePick='';await buildKeep();buildBar();};return;}
+  if($('bpPick')){$('bpPick').onchange=e=>{prePick=e.target.value;buildBar();};if($('bpPVal'))$('bpPVal').onchange=async()=>{const P=buildLib.prefabs[prePick];if(P){P.w=Math.max(0,+$('bpPVal').value||0);await buildKeep();buildBar();}};$('bpDel').onclick=async()=>{if(!buildLib.prefabs[prePick])return;if(!confirm(txt('build.delete_ask',prePick)))return;delete buildLib.prefabs[prePick];prePick='';await buildKeep();buildBar();};return;}
   const t=preTgt>=0&&preSel[preTgt],num=id=>Math.max(0,+$(id).value||0);
   $('bpName').oninput=()=>{preDraft.name=$('bpName').value;};$('bpFrom').onchange=()=>{preDraft.from=+$('bpFrom').value;};$('bpTo').onchange=()=>{preDraft.to=+$('bpTo').value;};
-  for(const[id,k]of[['bpIn','in'],['bpOut','out'],['bpStay','stay']])$(id).onchange=()=>{if(t){t.ph=Object.assign({},t.ph||preDraft.ph);t.ph[k]=num(id);}else preDraft.ph[k]=num(id);}; // the Phaser's target: a part (its own), or the whole prefab
+  $('bpVal').onchange=()=>{preDraft.w=Math.max(0,+$('bpVal').value||0);};for(const[id,k]of[['bpAt','at'],['bpStay','stay']])$(id).onchange=()=>{if(t){t.ph=Object.assign({},t.ph||preDraft.ph);t.ph[k]=num(id);}else preDraft.ph[k]=num(id);}; // the Phaser's target: a part (its own), or the whole prefab
   if($('bpClr'))$('bpClr').onclick=()=>{t.ph=null;buildBar();};
   $('bpSave').onclick=async()=>{const n=preDraft.name.trim();if(!n){flashSaveStatus(txt('build.need_name'));return;}const parts=preCapture();if(!parts){flashSaveStatus(txt('pre.select_hint'));return;}
-    buildLib.prefabs[n]={name:n,from:preDraft.from,to:preDraft.to,ph:Object.assign({},preDraft.ph),parts,at:Date.now()};if(await buildKeep())flashSaveStatus(txt('pre.saved',n,parts.length));prePick=n;buildBar();};}
+    buildLib.prefabs[n]={name:n,from:preDraft.from,to:preDraft.to,w:preDraft.w,ph:Object.assign({},preDraft.ph),parts,at:Date.now()};if(await buildKeep())flashSaveStatus(txt('pre.saved',n,parts.length));prePick=n;buildBar();};}
 // ═════════════════════════ SURFACE MAP LINK, PAUSE MENU & SESSIONS ═════════════════════════
 // Run inside Surface_Map_HUB.html (or the title screen) as chromatic_nebula.html?hub=1. The map sends a hex's level here,
 // and this page reports back when it is cleared (bright → the hex turns white, Dark Remnant → the hex holds a dark remnant).
@@ -13302,6 +13320,7 @@ let buildTest=null,buildDarks=[],buildLib={levels:{},prefabs:{}},buildName='',bu
 const buildDarkR=d=>Math.min(T.whiteEffMax,Math.max(T.whiteEffMin,40))*remEnScaleOf(d.energy||T.collEnergy); // a placed Dark Remnant's size, as it would form
 let _contentLib=null;const buildContent=()=>_contentLib||(_contentLib=(c=>({levels:c.levels||{},prefabs:c.prefabs||{}}))(jsonRead('levels'))); // the levels and prefabs in the content files (read once)
 async function buildLoadLib(){let b=null;try{b=await IDB.get('build');}catch(e){}const c=buildContent();buildLib={levels:Object.assign({},c.levels,b&&b.levels),prefabs:Object.assign({},c.prefabs,b&&b.prefabs)};}
+const _buildReady=window.__SCENE?Promise.resolve():buildLoadLib(); // (your prefabs, for every surface you play, not only in Build mode)
 async function buildKeep(){try{await IDB.put('build',buildLib);}catch(e){flashSaveStatus(txt('surf.save_failed',e.message));return false;}return true;} // (kept in this browser while building)
 function buildLevelData(){const d=JSON.parse(JSON.stringify(serializeMap(true)));delete d.T;d.dormant=buildPack(d.dormant);return{kind:invertMode?'bright':'dark',data:d,darks:buildDarks.map(d=>Object.assign({},d)),edge:JSON.parse(JSON.stringify(edgeQ)),at:Date.now()};} // the surface as it is now: everything on it, its Dark Remnants waiting
 function buildPack(list){if(!list.length)return{tpl:{},rows:[]};const r=v=>typeof v==='number'&&!Number.isInteger(v)?+v.toPrecision(6):v,cl=o=>{const c={};for(const k in o)if(k[0]!=='_')c[k]=Array.isArray(o[k])?o[k].map(r):r(o[k]);return c;},tpl=cl(list[0]),ks=Object.keys(tpl); // the nebula's particles, small: one in full, the rest only what differs from it
@@ -13332,7 +13351,7 @@ function buildBar(){let el=document.getElementById('buildBar');if(!el){el=docume
   $('bdExport').onclick=()=>{saveFile('levels.json',JSON.stringify(buildLib));flashSaveStatus(txt('build.exported',Object.keys(buildLib.levels).length,Object.keys(buildLib.prefabs).length));};
   preBarWire($);}
 function buildPlay(){buildTest=buildLevelData();const P=buildTime?prefabSpawn(buildTime):null;const d=buildDarks[0];if(d){const t=buildDarks.slice();buildDarks=[];triggerBlackRemnant(d.x,d.y,performance.now(),d.mass||T.massScaleMax*T.blackMult,d.energy||T.collEnergy,true);buildDarks=t;} // (true: placed, so never a duck) // Test: the surface played as it would be (a Dark Remnant placed starts; a Rift can form; it can be cleared)
-  if(isPaused)togglePause();flashSaveStatus(buildTime?(P?txt('build.test_prefab',P.name,TIMES[buildTime]):txt('build.test_none',TIMES[buildTime])):txt('build.testing'));} // (at a time of day: which prefab, if any, appeared)
+  if(isPaused)togglePause();flashSaveStatus(buildTime?(P&&P.length?txt('build.test_prefab',P.map(q=>q.name).join(', '),TIMES[buildTime]):txt('build.test_none',TIMES[buildTime])):txt('build.testing'));} // (at a time of day: which prefabs, if any, will appear)
 function buildBack(){const L=buildTest;buildTest=null;if(L)buildApply(L);levelCleared=false;clearInfo=null;flashSaveStatus(txt('build.back_to_build'));} // back to the surface as it was before the test
 var HUB=!window.__SCENE&&window.parent!==window&&/[?&]hub=1/.test(location.search);
 var hubAsleep=false,hubLevel=null,hubOverlay=false,hubShotSize=68,_menuOpen=false,_menuWasPaused=false;
@@ -13398,7 +13417,7 @@ async function hubStartLevel(m){
   let rec=null;if(m.resume){try{rec=await IDB.get('session');}catch(e){}}
   hubLevel={key:m.key,seed:m.seed,cov:m.cov};levelBoost=Math.max(0,+m.boost||0); /* a hex holding more than a full surface: its particles start that much heavier and brighter */if(m.clock!=null)DUCK_SUN=duckSun(m.clock);levelCoverage=m.cov;lvHex=m.q!=null?[m.q,m.r]:null; // (its ducks are lit by the map's time of day; its coverage is the hex's)
   if(rec&&rec.key===m.key&&rec.data){try{restoreSession(rec.data);flashSaveStatus(txt('surf.surface_continued_where_you',m.label));}catch(e){console.error(e);rec=null;}}
-  if(!rec||rec.key!==m.key){if(m.white){if(!invertMode)toggleInvertMode();}else ensureDarkRemnantTheme();rebuild(m.seed);levelCoverage=m.cov;flashSaveStatus(txt('surf.surface',m.label));fireEvent('surface');prefabSpawn(m.clock);goodDrift(performance.now());} // (a new surface: maybe a prefab for this time of day)
+  if(!rec||rec.key!==m.key){if(m.white){if(!invertMode)toggleInvertMode();}else ensureDarkRemnantTheme();rebuild(m.seed);levelCoverage=m.cov;flashSaveStatus(txt('surf.surface',m.label));fireEvent('surface');_buildReady.then(()=>prefabSpawn(m.clock));goodDrift(performance.now());} // (a new surface: maybe a prefab for this time of day)
   hubLevel.key=m.key;if(isPaused)togglePause();
   requestAnimationFrame(()=>requestAnimationFrame(()=>hubPost({type:'levelReady'}))); // drawn: the map's loading screen can go
 }
