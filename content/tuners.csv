@@ -290,7 +290,8 @@ remSize,3,Diamond ◇,1,10,0.5,Remnant — Scale (gameplay: sets actual collisio
 pulseRateMult,1,Pulse rate ×,0.1,5,0.1,Remnant — Visual,theme,,,,Speed multiplier on the Pulsing Remnant's glow-pulse AND triangle-flip animation (they always stay in sync with each other),speed multiplier on the Pulsing Remnant's glow-pulse + triangle-flip animation
 remGlowR,4,Glow rad,0,20,1,Remnant — Visual,theme,,,,Remnant glow radius,
 remGlowA,0.3,Glow α,0,0.6,0.05,Remnant — Visual,theme,,,,Remnant glow alpha,
-remChromaR,2.2,Glow chroma ×,1,6,0.1,Remnant — Visual,theme,,,,"How far a remnant's or relic's chromatic glow reaches, × Glow rad (Bright, Neutron, Pulsing and every relic: the title splash's colours; a Magnetic one keeps its two colours, breathing)",
+remChromaR,4,Glow chroma ×,1,6,0.1,Remnant — Visual,theme,,,,"How far a remnant's or relic's chromatic glow reaches, × Glow rad (Bright, Neutron, Pulsing and every relic: the title splash's colours; a Magnetic one keeps its two colours, breathing)",
+remChromaA,0.7,Glow chroma α,0,1,0.05,Remnant — Visual,theme,,,,"How bright a remnant's or relic's chromatic glow is (the title splash's and The Point's light: its lobes drifting and blending toward white)",
 chromaTurnS,33,Chroma turn s,4,120,1,Remnant — Visual,theme,,,,"Seconds for chromatic light (The Point, remnant and relic glows) to run once round the rainbow, as the title splash's glow turns",
 chromaBreatheMs,9000,Chroma breathe ms,1000,30000,250,Remnant — Visual,theme,,,,"How long chromatic light takes to breathe its vibrancy up and down (ever changing: two rates beating)",
 dimGlowRMult,3,Dim glow radius ×,0,10,0.25,Remnant — Visual,theme,,,,"Dim Remnant glow radius, as a multiplier over the remnant's own current (mass-scaled) radius","Dim Remnant glow radius, as a multiplier over the remnant's OWN current (mass-scaled) radius, so a big Dim Remnant's glow actually grows with it instead of staying a fixed size"
@@ -666,3 +667,6 @@ evEmphMs,500,Event emphasis ms,0,3000,50,Events — capture,theme,,,,How long th
 cabinMoveMs,1400,Below deck move ms,300,5000,100,Surface Map — below deck,map,,,,"How long the climb down the ladder (and back up) takes",
 cabinLook,0.14,Below deck look,0,0.5,0.01,Surface Map — below deck,map,,,,How far the view leans toward the cursor,
 cabinSway,0.018,Below deck sway,0,0.1,0.002,Surface Map — below deck,map,,,,How much the room rocks with the buoy on the water,
+cabinFov,1.5,Below deck field of view,0.8,2.2,0.05,Surface Map — below deck,map,,,,"How wide the view is (radians, before the fisheye)",
+cabinFish,0.35,Below deck fisheye,0,1,0.02,Surface Map — below deck,map,,,,"How much the view bows outward at its edges: more of the room in view (0 = none)",
+cabinPitch,0.26,Below deck look down,0,0.8,0.01,Surface Map — below deck,map,,,,"How far the view looks down at the desk (radians): less puts the desk lower in the view",

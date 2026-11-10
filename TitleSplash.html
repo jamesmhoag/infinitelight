@@ -126,7 +126,7 @@ body{
 .main-menu button{ font:12px/1.5 system-ui,'Inter',sans-serif; letter-spacing:.6px; color:#fff; background:none; border:0; border-radius:0; padding:1px 2px; cursor:pointer; text-align:center; }
 .main-menu button:hover{ background:rgba(255,255,255,0.12); }
 .main-menu button[hidden],#whoList[hidden]{ display:none; }
-#whoList{display:flex;flex-direction:column;gap:1px}#whoList .wh{opacity:.6;text-align:center;font:11px system-ui;margin:2px 0 4px} /* Continue: which player */
+#whoList{display:flex;flex-direction:column;gap:1px}#whoList.del button[data-n]:not([data-n="0"]):not([data-n="del"]){color:#ff8a7a}#whoList [data-ask]{background:rgba(255,80,60,.25)!important}#whoList .wh{opacity:.6;text-align:center;font:11px system-ui;margin:2px 0 4px} /* Continue: which player */
 .disc-lock{ opacity:0!important; }
 #veil{ position:fixed; z-index:120; pointer-events:none; display:none; align-items:center; justify-content:center; background:#000; border:1px solid #333; color:#666; font:10px monospace; border-radius:999px; }
 #neb{ position:fixed; inset:0; width:100%; height:100%; border:0; z-index:200; visibility:hidden; pointer-events:none; background:#000; }
@@ -176,9 +176,9 @@ body{
   </div>
   <div id="veil"></div>
   <!-- The game, loaded hidden: it holds the Guide, the sound setting, the items and the discoveries -->
-  <iframe id="neb" src="chromatic_nebula.html?hub=1&v=20261110a" title="Guide"></iframe>
+  <iframe id="neb" src="chromatic_nebula.html?hub=1&v=20261110b" title="Guide"></iframe>
 
-<script src="content.js?v=20261110a"></script><script src="shared.js?v=20261110a"></script>
+<script src="content.js?v=20261110b"></script><script src="shared.js?v=20261110b"></script>
 <script>
 txtApply();gameCursor({hide:()=>document.getElementById('neb').classList.contains('show')}); // the game's cursor (the Guide over it draws its own)
 // The game's state the title reads (its tuners, purse and discoveries)
@@ -195,11 +195,13 @@ const goMap = (n,q) => { ilProfileUse(n); loading('leave',true); setTimeout(()=>
 const savedOf = n => { try{ return JSON.parse(profileGet(n,MAP_KEY)||'null'); }catch(e){ return null; } };
 const withSaves = () => ilProfiles().filter(n => { const d=savedOf(n); return d && d.cells; });
 if(!contBtn.hidden || withSaves().length) contBtn.hidden = false;
-contBtn.onclick = () => { const L = withSaves(); // more than one player saved here: which one?
-  if(L.length<2){ const n=L[0]||IL_PROFILE, d=savedOf(n); goMap(n, d&&d.session ? '&resume=1' : ''); return; }
-  const w = document.getElementById('whoList'); w.innerHTML = `<div class="wh">${txt('title.who')}</div>` + L.map(n => { const d=savedOf(n); return `<button data-n="${n}">${(profileGet(n,'il_name_v1')||txt('title.player',n)).replace(/[<&]/g,'')} · ${txt('title.day',d.day||1)}</button>`; }).join('') + `<button data-n="0">${txt('title.back')}</button>`;
+contBtn.onclick = e => { const L = withSaves(); // more than one player saved here (or Shift held): which one? Its Delete runs switch clears test runs
+  if(L.length<2&&!e.shiftKey){ const n=L[0]||IL_PROFILE, d=savedOf(n); goMap(n, d&&d.session ? '&resume=1' : ''); return; }
+  const w = document.getElementById('whoList'); w.innerHTML = `<div class="wh">${txt('title.who')}</div>` + L.map(n => { const d=savedOf(n); return `<button data-n="${n}">${(profileGet(n,'il_name_v1')||txt('title.player',n)).replace(/[<&]/g,'')} · ${txt('title.day',d.day||1)}</button>`; }).join('') + `<button data-n="del">${txt('title.delete')}</button><button data-n="0">${txt('title.back')}</button>`;
   for(const b of document.querySelectorAll('.main-menu > button')) b.hidden = true; w.hidden = false;
-  w.onclick = e => { const n = +(e.target.dataset && e.target.dataset.n); if(isNaN(n)) return; if(!n){ location.reload(); return; } const d=savedOf(n); goMap(n, d&&d.session ? '&resume=1' : ''); }; };
+  w.onclick = e => { const b = e.target, k = b.dataset && b.dataset.n; if(k==='del'){ const on = w.classList.toggle('del'); b.textContent = txt(on?'title.delete_on':'title.delete'); for(const x of w.querySelectorAll('button[data-n]'))if(+x.dataset.n>0&&x.dataset.ask){x.textContent=x.dataset.t;delete x.dataset.ask;} return; }
+    if(w.classList.contains('del') && +k>0){ if(!b.dataset.ask){ b.dataset.t=b.textContent; b.dataset.ask=1; b.textContent=txt('title.delete_ask',b.dataset.t); return; } ilProfileDel(+k).then(()=>{ b.remove(); if(!withSaves().length) location.reload(); }); return; } // (in delete mode: a second click on a run deletes it)
+    const n = +k; if(isNaN(n)) return; if(!n){ location.reload(); return; } const d=savedOf(n); goMap(n, d&&d.session ? '&resume=1' : ''); }; };
 document.getElementById('newPlayerBtn').onclick = () => { const n = ilProfileAdd(); goMap(n); }; // a new player: their own save (their name is asked on the map)
 startBtn.onclick = () => {
   if(saved && saved.cells && !confirm('Start a new map? Your items and discoveries are kept.')) return;

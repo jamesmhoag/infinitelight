@@ -7,11 +7,12 @@
 // is chosen on the title screen (Continue asks which, when there is more than one) and kept for this tab (sessionStorage), or ?profile=n.
 const IL_SHARED_KEYS=new Set(['il_profiles','il_dockmin','il_map_modes','il_pondmode','nebula-config']); // (the same for every player: the setup, not the save)
 const IL_PROFILE=(()=>{let p=null;try{p=new URLSearchParams(location.search).get('profile');if(p)sessionStorage.setItem('il_profile',p);else p=sessionStorage.getItem('il_profile');}catch(e){}return Math.max(1,parseInt(p)||1);})();
-const IL_PRE=n=>n>1?'p'+n+':':'',_lsGet=Storage.prototype.getItem,_lsSet=Storage.prototype.setItem;
+const IL_PRE=n=>n>1?'p'+n+':':'',_lsGet=Storage.prototype.getItem,_lsSet=Storage.prototype.setItem,_lsDel=Storage.prototype.removeItem;
 const profileGet=(n,k)=>{try{return _lsGet.call(localStorage,IL_SHARED_KEYS.has(k)?k:IL_PRE(n)+k);}catch(e){return null;}}; // another player's saved value
 if(IL_PROFILE>1){const S=Storage.prototype,w=f=>function(k,...a){return f.call(this,this===window.localStorage&&!IL_SHARED_KEYS.has(k)?IL_PRE(IL_PROFILE)+k:k,...a);};S.getItem=w(S.getItem);S.setItem=w(S.setItem);S.removeItem=w(S.removeItem);}
 function ilProfiles(){let L=[];try{L=JSON.parse(_lsGet.call(localStorage,'il_profiles')||'[]')||[];}catch(e){}if(!L.includes(1))L.unshift(1);return L;} // every player saved here (ids)
 function ilProfileAdd(){const L=ilProfiles(),n=Math.max(...L)+1;L.push(n);try{_lsSet.call(localStorage,'il_profiles',JSON.stringify(L));}catch(e){}return n;}
+function ilProfileDel(n){const P=IL_PRE(n),ks=[];try{for(let i=0;i<localStorage.length;i++){const k=localStorage.key(i);if(!IL_SHARED_KEYS.has(k)&&(P?k.startsWith(P):!/^p\d+:/.test(k)))ks.push(k);}for(const k of ks)_lsDel.call(localStorage,k);if(n>1)_lsSet.call(localStorage,'il_profiles',JSON.stringify(ilProfiles().filter(x=>x!==n)));}catch(e){}return typeof IDB!=='undefined'?IDB.wipe(n).catch(()=>{}):Promise.resolve();} // a player's run gone for good: their saves here, and what is kept for them (recordings, the surface they left)
 function ilProfileUse(n){try{sessionStorage.setItem('il_profile',String(n));}catch(e){}} // (takes effect on the next page)
 function csvParse(t){const rows=[];let row=[],f='',q=false;t=t.replace(/^﻿/,'');
   for(let i=0;i<t.length;i++){const c=t[i];if(q){if(c==='"'){if(t[i+1]==='"'){f+='"';i++;}else q=false;}else f+=c;}else if(c==='"')q=true;else if(c===','){row.push(f);f='';}
