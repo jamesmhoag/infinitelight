@@ -130,3 +130,48 @@ function gameCursor(opt){GC.opt=opt||{};if(GC.cv)return; // opt.hide(el): the pa
   const tick=now=>{requestAnimationFrame(tick);const dp=window.devicePixelRatio||1,w=Math.round(innerWidth*dp),h=Math.round(innerHeight*dp);if(cv.width!==w||cv.height!==h){cv.width=w;cv.height=h;}
     const c=cv.getContext('2d');c.setTransform(dp,0,0,dp,0,0);c.clearRect(0,0,innerWidth,innerHeight);GC.shown=false;
     if(GC.x>=0&&!ask(()=>GC.opt.hide&&GC.opt.hide(GC.el),false)){GC.shown=true;ask(()=>gcDraw(c,GC.st,GC.x,GC.y,ask(()=>GC.opt.act?GC.opt.act(GC.el):gcActEl(GC.el),false),now,ask(()=>GC.opt.col?GC.opt.col(GC.el):null,null)));}};requestAnimationFrame(tick);}
+
+// ═════════════════════════ INK AND NEW (every page) ═════════════════════════
+// What is discovered is written in with the Fountain Pen. inkWrite(el, key): the element is drawn in as you would note it yourself — each letter in turn, each
+// picture (an icon, a canvas, a frame) drawn across, the gold nib going with it (T.inkCharMs a letter, T.inkMaxMs at most; INK.live keeps where each is, so one
+// redrawn while it is written carries on from there). inkStrokes draws a drawing (strokes of points) on a canvas the same way, line by line, shape by shape.
+// What has never been opened, entered or looked at is new (ilNew / ilSee: 'sn:<id>', kept with the discoveries; 'dr:<id>': drawn in once): a button or a
+// tab pulses gold until it is first used (.isnew, the one sign everywhere), a card lies face down until it is turned over (.mtg.fd).
+const INK={live:{},jobs:[],nib:null,at:0};
+const ilQuiet=()=>!!window.__SCENE||(typeof SCENE!=='undefined'&&!!SCENE)||(typeof BUILD!=='undefined'&&!!BUILD); // (a demo, a recording, Build mode: nothing is new there)
+const ilSeenSet=()=>typeof discSeen!=='undefined'?discSeen:typeof disc!=='undefined'?disc:null; // the discoveries (the surface's own, or the map's copy of them)
+const ilNew=id=>{const s=ilSeenSet();return !!s&&!ilQuiet()&&!s.has('sn:'+id);};
+function ilSee(id,pre){const s=ilSeenSet(),k=(pre||'sn:')+id;if(!s||!id||ilQuiet()||s.has(k))return false;s.add(k);if(typeof saveInventory==='function'){saveInventory();if(typeof HUB!=='undefined'&&HUB)hubState();}else if(typeof neb==='function')neb({cmd:'discover',id:k});return true;} // seen (or drawn): kept by the surface
+{const st=document.createElement('style');st.textContent=`.ink-c{-webkit-text-fill-color:transparent;text-shadow:none!important;background:linear-gradient(100deg,currentColor 50%,transparent 50%) 100% 0/220% 100% no-repeat;-webkit-background-clip:text;background-clip:text;animation:inkC var(--d) linear var(--w) forwards}.ink-c.ink-o{-webkit-text-fill-color:currentColor;background:none;opacity:0;animation-name:inkO}
+.ink-v{clip-path:inset(-4px 100% -4px -4px);animation:inkV var(--d) linear var(--w) forwards}@keyframes inkC{to{background-position:0 0}}@keyframes inkO{to{opacity:1}}@keyframes inkV{to{clip-path:inset(-4px -4px -4px -4px)}}
+.isnew{animation:isNew 1.7s ease-in-out infinite}@keyframes isNew{0%,100%{outline:1px solid rgba(255,214,110,.95);outline-offset:1px;box-shadow:0 0 0 0 rgba(255,214,110,.55)}50%{outline:1px solid rgba(255,214,110,.3);outline-offset:1px;box-shadow:0 0 10px 2px rgba(255,214,110,.6)}}
+#inkNib{position:fixed;left:0;top:0;width:30px;height:30px;margin:-29px 0 0 -1px;z-index:2147483600;pointer-events:none;display:none;filter:drop-shadow(1px 2px 2px rgba(0,0,0,.55))}`;(document.head||document.documentElement).appendChild(st);}
+function inkNib(x,y){let n=INK.nib;if(!n){n=INK.nib=document.createElement('div');n.id='inkNib'; // the pen's nib, where it is writing (its tip at x, y); it lifts away when nothing has moved it for a moment
+    n.innerHTML='<svg viewBox="0 0 30 30"><path d="M29 1 20 5 9 16l5 5L25 10z" fill="#f4f1ea" stroke="#8d8a80" stroke-width=".8"/><path d="M9 16 1 29l13-8z" fill="#e2b33c" stroke="#8a6a12" stroke-width=".8"/><path d="M1 29l7-7" stroke="#5a430a" stroke-width=".9"/><circle cx="8.6" cy="21.4" r="1.1" fill="#5a430a"/></svg>';document.body.appendChild(n);}
+  n.style.display='block';n.style.transform=`translate(${x.toFixed(1)}px,${y.toFixed(1)}px) rotate(${(Math.sin(performance.now()/90)*4).toFixed(1)}deg)`;INK.at=performance.now();}
+function inkWrite(el,key,ms){ // el is written in (key: which writing it is; ms: its longest). An element inside with data-ink="<ms>" is drawn by its owner in that time (its window: el._ink = [start, ms])
+  if(!el||el._inkKey===key||!el.getClientRects().length)return false;const t=_gcT(),now=performance.now(),L=INK.live[key]||(INK.live[key]={t0:now}),items=[];el._inkKey=key;
+  const vis=c=>/^(canvas|img|svg|iframe|input|select|hr)$/i.test(c.tagName)||c.classList.contains('art')||c.classList.contains('rl-live');
+  const walk=n=>{for(const c of [...n.childNodes]){if(c.nodeType===3){if(!c.nodeValue.trim())continue;const f=document.createDocumentFragment();
+        for(const ch of c.nodeValue){if(/\s/.test(ch)){f.appendChild(document.createTextNode(ch));continue;}const s=document.createElement('span');s.className='ink-c'+(/\p{Extended_Pictographic}/u.test(ch)?' ink-o':'');s.textContent=ch;f.appendChild(s);items.push([s,1]);}c.replaceWith(f);}
+      else if(c.nodeType===1&&!c.classList.contains('disc-lock')&&!/^(script|style|textarea)$/i.test(c.tagName)){if(c.dataset.ink)items.push([c,0,+c.dataset.ink]);else if(vis(c)){c.classList.add('ink-v');items.push([c,10]);}else walk(c);}}};
+  walk(el);if(!items.length){el.classList.add('ink-v');items.push([el,10]);}
+  const sum=items.reduce((a,i)=>a+i[1],0),per=Math.min(t.inkCharMs||14,(ms||t.inkMaxMs||4200)/Math.max(1,sum));let at=0;
+  for(const i of items){const d=i[2]||i[1]*per;if(i[2])i[0]._ink=[L.t0+at,d];else{i[0].style.setProperty('--d',d.toFixed(0)+'ms');i[0].style.setProperty('--w',(at-(now-L.t0)).toFixed(0)+'ms');}i[1]=at;i[2]=d;at+=d;}
+  INK.jobs.push({key,el,items,t0:L.t0,end:L.t0+at});if(INK.jobs.length===1)requestAnimationFrame(inkTick);return true;}
+function inkTick(now){ // the nib goes with the newest writing; a writing that is done is plain text again
+  for(const j of INK.jobs)if(now>=j.end||!j.el.isConnected){j.done=1;if(now>=j.end)delete INK.live[j.key];for(const[e]of j.items){if(e.classList.contains('ink-c')){if(e.isConnected)e.replaceWith(e.textContent);}else e.classList.remove('ink-v');}if(j.el.isConnected){j.el.normalize();if(now<j.end)j.el._inkKey=null;}}
+  INK.jobs=INK.jobs.filter(j=>!j.done);const j=INK.jobs[INK.jobs.length-1],i=j&&j.items.find(i=>now-j.t0<i[1]+i[2]);
+  if(i&&!i[0]._ink&&now-j.t0>=i[1]){const r=i[0].getBoundingClientRect(),u=(now-j.t0-i[1])/i[2];if(r.width)inkNib(r.left+r.width*u,i[0].classList.contains('ink-c')?r.bottom-r.height*0.2:r.top+r.height*(0.5+0.45*Math.sin(u*31)));}
+  if(INK.nib&&now-INK.at>160)INK.nib.style.display='none';if(INK.jobs.length||INK.nib&&INK.nib.style.display!=='none')requestAnimationFrame(inkTick);}
+function inkDisc(el,id,lock){ // a discoverable element, as applyDisc finds it: written in the first time it shows (found, or free from the start: as the scene is set up), and new until it is first used
+  const s=ilSeenSet();if(!s||lock||ilQuiet()){el.classList.remove('isnew');return 0;}el.classList.toggle('isnew',!s.has('sn:'+id));
+  const ms=el.closest('.bk-p,.mtg')?0:900;if(!s.has('dr:'+id)){if(inkWrite(el,id,ms)){s.add('dr:'+id);return 1;}}else if(INK.live[id])inkWrite(el,id,ms);return 0;} // (a line of a page or a card takes its time; a button is quick)
+addEventListener('pointerdown',e=>{const el=e.target.closest&&e.target.closest('.isnew');if(el&&!el.classList.contains('disc-lock')){el.classList.remove('isnew');ilSee(el.dataset.disc||el.dataset.new);}},true); // first used: no longer new
+function inkStrokes(cv,S,p,a){ // a drawing (S: strokes {p: its points, c: 'r,g,b' its colour (else ink), f: a wash laid in once it is closed, w: its weight}, in units of half the picture's height; a: the picture's width / height), drawn as far as p (0–1) of its length. Returns where the nib is (on screen) while it draws
+  const c=cv.getContext('2d'),w=cv.width,h=cv.height,k=Math.min(w/(2*a),h/2)*0.93;let tot=0;for(const s of S){if(s.l==null){s.l=0.02;for(let i=1;i<s.p.length;i++)s.l+=Math.hypot(s.p[i][0]-s.p[i-1][0],s.p[i][1]-s.p[i-1][1]);}tot+=s.l;}
+  c.setTransform(1,0,0,1,0,0);c.clearRect(0,0,w,h);c.setTransform(k,0,0,k,w/2,h/2);c.lineCap=c.lineJoin='round';let left=p>=1?1e9:p*tot,nib=null;
+  for(const s of S){if(left<=0)break;const f=Math.min(1,left/s.l);left-=s.l;let d=f*(s.l-0.02),e=s.p[0];c.beginPath();c.moveTo(e[0],e[1]);
+    for(let i=1;i<s.p.length&&d>0;i++){const A=s.p[i-1],B=s.p[i],l=Math.hypot(B[0]-A[0],B[1]-A[1])||1e-6,u=Math.min(1,d/l);e=[A[0]+(B[0]-A[0])*u,A[1]+(B[1]-A[1])*u];c.lineTo(e[0],e[1]);d-=l;}
+    if(f>=1&&s.f){c.fillStyle=`rgba(${s.f},0.3)`;c.fill();}c.strokeStyle=s.c?`rgba(${s.c.split(',').map(v=>Math.round(v*0.6)).join()},0.9)`:'rgba(58,44,24,0.9)';c.lineWidth=(s.w||1)*Math.max(1,h/170)/k;c.stroke();if(f<1)nib=e;}
+  if(!nib)return null;const r=cv.getBoundingClientRect();return[r.left+(w/2+nib[0]*k)*r.width/w,r.top+(h/2+nib[1]*k)*r.height/h];}
