@@ -4458,7 +4458,7 @@ function applyDisc(){
 }
 function discReveal(id){ // found: it is written in with the pen, as you would note it yourself (inkWrite; a demo's too)
   discSeen.add(id);saveInventory();if(id.slice(0,2)!=='g_')ruleLearn('discover');applyDisc();
-  if(window.__SCENE)for(const el of document.querySelectorAll('[data-disc="'+id+'"]'))inkWrite(el,id,900);if(window._rulesOpen)rulesRemount();
+  if(window.__SCENE)for(const el of document.querySelectorAll('[data-disc="'+id+'"]'))inkWrite(el,id,900);if(_rulesOpen){const b=document.getElementById('rlBody');if(_rulesMode==='guide'&&b&&jFit(b))return;rulesRemount();}
 }
 function discTick(){ // a locked element is fully covered by a veil showing its cost while hovered; once the cost is met the veil flashes a check, then dissolves into the revealed element
   if(++_discN%20===0)applyDisc();
@@ -4466,13 +4466,13 @@ function discTick(){ // a locked element is fully covered by a veil showing its 
   discHoverId=id;
   if(!id||discSeen.has(id)||!el.classList.contains('disc-lock')){v.style.display='none';_dcMet=null;return;}
   const cost=T['dc_'+id]||0,r=el.getBoundingClientRect(),met=cost>0&&inventory.dim>=cost,now=performance.now();
-  v.style.display='flex';v.style.left=r.left+'px';v.style.top=r.top+'px';v.style.width=r.width+'px';v.style.height=r.height+'px';
-  if(met){if(!_dcMet||_dcMet.id!==id)_dcMet={id,t:now};v.textContent='\u2713 '+fmtCount(cost);v.style.color='#9fd';if(now-_dcMet.t>450){_dcMet=null;v.style.display='none';discReveal(id);}}
-  else{_dcMet=null;v.textContent=fmtCount(cost);v.style.color='#666';}
+  v.style.display='flex';v.style.left=r.left+'px';v.style.top=r.top+'px';v.style.width=r.width+'px';v.style.height=r.height+'px';v.style.fontSize=Math.max(11,Math.min(24,r.height*0.62,r.width/4))+'px';
+  if(met){if(!_dcMet||_dcMet.id!==id)_dcMet={id,t:now};v.textContent='\u2713 '+fmtCount(cost)+' Dim';v.style.color='#2f6b3a';if(now-_dcMet.t>450){_dcMet=null;v.style.display='none';discReveal(id);}}
+  else{_dcMet=null;v.textContent='\u25C7 '+fmtCount(cost)+' Dim';v.style.color='rgba(58,44,24,.7)';}
 }
 let _dcX=-1,_dcY=-1,_dcVeil=null,_dcMet=null;
 document.addEventListener('mousemove',e=>{_dcX=e.clientX;_dcY=e.clientY;},true);
-function discVeil(){if(!_dcVeil){_dcVeil=document.createElement('div');_dcVeil.style.cssText='position:fixed;z-index:70;pointer-events:none;display:none;align-items:center;justify-content:center;background:#000;border:1px solid #333;color:#666;font:10px monospace;box-sizing:border-box;border-radius:4px';document.body.appendChild(_dcVeil);}return _dcVeil;}
+function discVeil(){if(!_dcVeil){_dcVeil=document.createElement('div');_dcVeil.style.cssText="position:fixed;z-index:70;pointer-events:none;display:none;align-items:center;justify-content:center;gap:.3em;background:linear-gradient(90deg,#efe4c6,#f6eed8);border:1.5px dashed rgba(58,44,24,.6);color:#3a2c18;font-family:'Caveat','Segoe Print','Bradley Hand','Chalkboard SE','Comic Sans MS',cursive;box-sizing:border-box;border-radius:4px;box-shadow:0 2px 8px rgba(0,0,0,.35);white-space:nowrap;overflow:hidden";document.body.appendChild(_dcVeil);}return _dcVeil;} // (on the Journal's paper, in its hand)
 function resetDiscoveries(){discSeen=new Set();_discReset=true;saveInventory();applyDisc();flashSaveStatus(txt('surf.discoveries_reset'));}
 window.resetDiscoveries=resetDiscoveries;
 /* Testing: discover everything there is (the interface, object types, events, the Guide and its map), fill every item, and clear the surface as a chosen kind */
@@ -4604,7 +4604,7 @@ function dialOutcome(t,e){
 //  Neutron  : hold = a stationary stasis area; everything in it is frozen (trails shown, lifespans paused), the outside bounces
 //             things off; release and it all moves on. Costs Neutrons every interval
 //  Pulsing  : click / swipe / double-click = everything in reach (particles are woken) gets a random direction + spin (1 each)
-const ITEM_TOOLS=new Set(['dim','bright','magnetic','neutron','pulsing','leash']);
+const ITEM_TOOLS=new Set(['dim','bright','magnetic','neutron','pulsing','leash']),ITEM_RULE={dim:'DEPTH',bright:'BALANCE',neutron:'DYNAMISM',magnetic:'HARMONY',pulsing:'RHYTHM',leash:'Spindle',dial:'String'};
 let _nullNow=0,itemHold=null,itemHoldSeq=0,itemTouched=new Map(),itemPressSeen=-1,itemPressDbl=false,lastItemPressAt=0,lastItemPressX=0,lastItemPressY=0,itemLastT=0;
 function spreadRGB(ci,q){ // a colour effect is applied across the colour's FULL range (each object keeps its own place in it)
   if(q._hueF===undefined)q._hueF=Math.random()-0.5;return ucol((ci+q._hueF)/6,1,0.5);
@@ -4790,7 +4790,7 @@ function placeField(kind,x,y,now){
   playRemnantActionSound(rem,true,1); // placing: that remnant type's place sound
   const h={kind,x,y,id:++itemHoldSeq,acc:0,born:now,R0:R,r0,ang:kind==='bright'?(rem.rotation||0):0};placedFields.push(h);
   if(kind==='bright'){for(let i=0;i<active.length;i++){const p=active[i];if(fieldDist(h,p.x,p.y)<=R)stasisFreeze(p,h.id);}}
-  return true;
+  ruleLearn(ITEM_RULE[kind],{x,y});return true;
 }
 function stepPlacedField(now,dtMs){for(const h of placedFields.slice())stepOneField(h,now,dtMs);}
 function stepOneField(h,now,dtMs){
@@ -4827,7 +4827,7 @@ function handleItemHold(now){
   if(!kind||!mouseDown||uiPress||overUI||blackHole||conMode||pressConsumed||!inSurface||heatBlocked(now)){return;}
   if(!itemGesture||itemGesture.id!==mouseDownAt||itemGesture.kind!==kind){ // a new press = a new gesture
     const dbl=(mouseDownAt-lastItemPressAt<320&&Math.hypot(mouse.x-lastItemPressX,mouse.y-lastItemPressY)<40);
-    lastItemPressAt=mouseDownAt;lastItemPressX=mouse.x;lastItemPressY=mouse.y;itemGesture=newGesture(kind,dbl);
+    lastItemPressAt=mouseDownAt;lastItemPressX=mouse.x;lastItemPressY=mouse.y;itemGesture=newGesture(kind,dbl);ruleLearn(ITEM_RULE[kind],{x:mouse.x,y:mouse.y});
   }
   const g=itemGesture;if(!g.moved&&Math.hypot(mouse.x-g.x0,mouse.y-g.y0)>6)g.moved=true;
   _gKind=kind;gestureStep(kind,mouse.x,mouse.y,g,now);_gKind=null;
@@ -5082,19 +5082,7 @@ function performInventoryDrop(mx,my,now){
       if(placeField(kind,mx,my,now)){if(inventory[kind]<=0)armedInvItem=null;updateInventoryUI();}
       return true;
     }
-    if(kind!=='bright'&&kind!=='dim')return true; // magnetic / pulsing / neutron run from the press itself (handleItemHold); this release is just consumed
-    if(blackHole)return true;
-    if(mx<0||my<0||mx>=W||my>=H||underGlass(mx,my))return true;
-    if(inventory.neutron<T.neutronBurstCost){flashSaveStatus(txt('surf.a_burst_needs_neutrons',T.neutronBurstCost));return true;}
-    addInventory('neutron',-T.neutronBurstCost);
-    // exactly a nova: the same blast, radius-from-mass and outward pulse — it just leaves no nebula particles
-    const synth={x:mx,y:my,vx:0,vy:0,rot:0,rotation:0,pvx:0,pvy:0,mass:Math.max(1,T.neutronBurstMass),energy:Math.max(0.001,T.neutronBurstEnergy),masses:randomColorMasses(),sigR:255,sigG:255,sigB:255,peakEffectR:0};
-    refreshActiveGrid();
-    const debris=triggerNova(synth,now,undefined,true);
-    if(debris)for(const d of debris)active.push(d);
-    playCymbalCrash(synth.mass,T.volCymbal);
-    if(inventory.neutron<=0)armedInvItem=null;updateInventoryUI();
-    return true;
+    return true; // magnetic / pulsing / neutron / Spindle run from the press itself (handleItemHold); this release is just consumed
   }
   if(REMNANT_OF[kind]&&underGlass(mx,my))return true; // items can't be placed on or through a Lens (nothing is spent, nothing is cancelled)
   // An item is only spent once its effect has actually happened. Whenever a rule blocks the effect, the item is
@@ -8316,7 +8304,7 @@ function dialLoad(p){if(!p||dialLoaded.includes(p.id)||dialLoaded.length>=Math.m
 function dialLoadPressed(){for(const p of active)if(pressedIDs.has(p.id)&&dialCandidate(p))dialLoad(p);}
 function dialPick(mx,my){let best=null,bd=1e9;const set=new Set(dialLoaded);for(const p of active){if(!dialCandidate(p)||set.has(p.id))continue;const d=Math.hypot(_wrapD(p.x-mx,W),_wrapD(p.y-my,H));if(d<=T.touchR+(p.displayR||0)&&d<bd){bd=d;best=p;}}return best;}
 function dialNearest(mx,my,n){const set=new Set(dialLoaded),l=[];for(const p of active)if(dialCandidate(p)&&!set.has(p.id))l.push({p,d:Math.hypot(_wrapD(p.x-mx,W),_wrapD(p.y-my,H))});l.sort((a,b)=>a.d-b.d);return l.slice(0,Math.max(0,n)).map(e=>e.p);}
-function dialFire(list,mx,my,mode,now){ // rounds leave one after another (or one at a time when held) and aim at the target
+function dialFire(list,mx,my,mode,now){ruleLearn(ITEM_RULE.dial,{x:mx,y:my}); // rounds leave one after another (or one at a time when held) and aim at the target
   const g={x:mx,y:my},one=mode==='one',gap=one?0:T.dialStaggerMs;
   if(!one){let hm=null,bd=T.stringHomeR;for(const q of active){if(q.dying||q.captured||list.includes(q))continue;const d=Math.hypot(_wrapD(q.x-mx,W),_wrapD(q.y-my,H));if(d<bd){bd=d;hm=q;}}if(hm)g.follow=hm;} // String shots home on whatever they were aimed at
   dialGoal={x:mx,y:my,until:now+T.dialIconMs};lastDialShot=now;dialShotAt=now;dialShotMode=mode==='dbl'?'dbl':one?'hold':'click';
@@ -12706,7 +12694,9 @@ function sceneBoot(name,TT){
     if(S.fuel)for(const k of S.fuel)inventory[k]=Math.max(inventory[k],99);
     if(def.tick)def.tick(S,t,now);
     if(name!=='replay'&&now-skAt>400){skAt=now;const k=evSketch();if(k.some((q,i)=>i&&q[0]!=='cursor'))skL=k;} // what it holds, for its page's drawing: as it ends (the last there was anything to draw)
-    if(t>def.dur){if(name==='replay'){location.reload();return;}window.__evSk=skL||evSketch();start();}requestAnimationFrame(tk);}; // (a recording starts again from the page itself: its clock goes back to the moment)
+    if(t>def.dur&&!S.held){S.held=now;if(name!=='replay')window.__evSk=skL||evSketch();window.__evEnd=now;if(!isPaused)togglePause();} // played out: it holds on its last frame (that frame is what its page's drawing draws)
+    if(S.held&&now-S.held>=(T.evReplayPauseMs!=null?T.evReplayPauseMs:1500)){if(name==='replay'){location.reload();return;}if(isPaused)togglePause();window.__evEnd=0;start();} // then, after a pause, it plays again (a recording from the page itself: its clock goes back to the moment)
+    requestAnimationFrame(tk);};
   requestAnimationFrame(tk);
   rafId=requestAnimationFrame(loop);
 }
@@ -12764,8 +12754,8 @@ function rulesDraw(cv,k){
     }
   }
 }
-let _rulesLoop=0,_bookPg={guide:0,notes:0},_jP=[],_jGo=null,_jNotes={},_evSk={}; // each book's open spread (the Journal, the Letters); the Journal's pages, where to turn to next (a page or a chapter), your own notes on its pages (il_jnotes_v1), and the demos' drawings (evsk)
-try{_jNotes=JSON.parse(localStorage.getItem('il_jnotes_v1')||'{}')||{};}catch(e){}if(!window.__SCENE)IDB.get('evsk').then(r=>{if(r)Object.assign(_evSk,r);}).catch(()=>{});
+let _rulesLoop=0,_bookPg={guide:0,notes:0},_jSpan=new Set(),_jGo=null,_jNotes={},_evSk={},_evStillD={}; // each book's open spread (the Journal, the Letters); the Journal's pages that take both sides of a spread (by notes key: their words did not fit one), where to turn to next (a page, a page's notes key or a chapter), your own notes on its pages (il_jnotes_v1), the demos' drawings (evsk) and their last frames (evstill)
+try{_jNotes=JSON.parse(localStorage.getItem('il_jnotes_v1')||'{}')||{};}catch(e){}if(!window.__SCENE)IDB.get('evsk').then(r=>{if(r)Object.assign(_evSk,r);}).catch(()=>{});if(!window.__SCENE)IDB.get('evstill').then(r=>{if(r)Object.assign(_evStillD,r);}).catch(()=>{});
 const RULE_SCENES={surface:['surface'],goal:['lifecycle'],tips:['cap'],cleared:['cleared'],info:['readouts'],discover:['discover'],cache:['itemcache'],
  dab:['dab'],wipe:['wipe'],mop:['mop'],dbl:['dbl'],heat:['heat'],rclick:['readouts'],shift:['shiftcolor'],
  particle:['wake'],pig:['life_pig','merge'],THROW:['fx0'],FLING:['fx1'],ORBIT:['fx2'],WHIRL:['fx3'],CATCH:['fx4'],SNARE:['fx5'],ECLIPSE:['eclipse','eclpoint'],CRYSTALIZE:['crystal','cryspoint'],
@@ -12781,7 +12771,7 @@ const evSeen=id=>!!window.__SCENE||discSeen.has('ev:'+id);
 const evOk=ev=>!ev||(Array.isArray(ev)?ev.some(evSeen):evSeen(ev));
 // A Journal entry is there only once you have done or witnessed what it is about: its event (RULE_EV), or ruleLearn where it happens in play (nothing is given)
 function ruleOk(id){return !!window.__SCENE||BUILD||discSeen.has('g_'+id)||(RULE_EV[id]!=null&&evOk(RULE_EV[id]));}
-function ruleLearn(id,at){try{if(!id||ruleOk(id))return;const e=RULES.find(x=>x[0]===id);if(!e)return;discSeen.add('g_'+id);if(at)evQuietRec('rl_'+id,at,'l');saveInventory();flashSaveStatus(txt('guide.learned',e[2]));if(HUB)hubState();}catch(err){}} // (before the Guide exists, on load: learned next time)
+function ruleLearn(id,at){try{const e=id&&RULES.find(x=>x[0]===id);if(!e)return;if(at)evQuietRec('rl_'+id,at,'l');if(ruleOk(id))return;discSeen.add('g_'+id);saveInventory();flashSaveStatus(txt('guide.learned',e[2]));if(HUB)hubState();}catch(err){}} // (before the Guide exists, on load: learned next time) (at: where it is at work; every effect is captured the first time it is seen at work, its entry learned or not: evQuietRec keeps one)
 const cvn=(v,d)=>+(+v).toFixed(d===undefined?3:d);
 // ── Conversion math: every line is built from the CURRENT tuned values, so the Guide always states the real rule ──
 const TUNE_LABEL={};for(const r of csvRead('tuners'))TUNE_LABEL[r.key]=r.label?r.label+' ('+(r.section||'')+')':'no slider';
@@ -12804,7 +12794,7 @@ const CONV={
  unwind:{t:'Spindle unwind',f:()=>['every '+tvE(T.unwindMs,'unwindMs')+' ms the target gives back '+tvE(T.unwindPct,'unwindPct')+'% of its starting mass as particles, so any size unwinds in '+tvE((Math.ceil(100/T.unwindPct)*T.unwindMs/1000).toFixed(1),'unwindMs unwindPct')+' s','while it unwinds nothing touches it and it touches nothing: no collisions, no effects either way','each lump carries energy = lump mass × (target energy ÷ target mass), so energy is conserved per mass','a still target spreads up to '+tvE(T.unwindMaxWidth,'unwindMaxWidth')+' px over '+tvE(T.unwindGrowMs,'unwindGrowMs')+' ms; when its mass is gone it disappears (no remnant)']}
 };
 // ── Events: the first time something happens, a card pauses the game and unlocks its Guide entries ──
-const EVENTS=csvRead('events').map(r=>{const f=r.facts.split('\n');return{id:r.id,name:r.name,type:r.type,rar:r.rarity,scene:r.scene,ico:r.icon,facts:()=>f.map(x=>String(x).replace(/\{([^{}]+)\}/g,(m,e)=>{const w=/^\d+$/.test(e)?'':VAL[e]||e,n=[...new Set((String(w).match(/\bT\.(\w+)|runT\('(\w+)'\)/g)||[]).map(v=>v.replace(/^T\.|runT\('|'\)/g,'')))].join(' ');return tvE(tpl(m),n);})),flavor:r.flavor};}); // (each value tagged with the variables it comes from: tvHTML) // content/events.csv (facts: one line each; {…} worked out as it shows)
+const EVENTS=csvRead('events').map(r=>{const f=r.facts.split('\n');return{id:r.id,name:r.name,type:r.type,rar:r.rarity,scene:r.scene,ico:r.icon,facts:()=>f.map(x=>String(x).replace(/\{([^{}]+)\}/g,(m,e)=>{const w=/^\d+$/.test(e)?'':VAL[e]||e,n=[...new Set((String(w).match(/\bT\.(\w+)|runT\('(\w+)'\)/g)||[]).map(v=>v.replace(/^T\.|runT\('|'\)/g,'')))].join(' ');return tvE(tpl(m),n);})),flavor:r.flavor,seen:r.witnessed};}); // (each value tagged with the variables it comes from: tvHTML) // content/events.csv (facts: one line each; {…} worked out as it shows; seen: what was witnessed, its page's first line)
 let _evQ=[],_evOpen=false,_evWasPaused=false,_evReview=false,_evHand=[],_evAct=0,_evDraw=false; // _evDraw: a Carnival draw is showing (it closes only by picking) // discoveries made together come as a hand: one card shown, the rest to pick
 function fireEvent(id,at,src){if(window.__SCENE||BUILD||discSeen.has('ev:'+id)||_evQ.indexOf(id)>=0||!EVENTS.some(e=>e.id===id))return;if(!at&&EV_FRAME[id]==='f')at={x:W/2,y:H/2}; // (the whole surface: its centre)
   discSeen.add('ev:'+id);saveInventory();evDeskSync(); // discovered as it happens (the Journal has it at once); new until it is looked at, anywhere (ilNew)
@@ -12890,9 +12880,12 @@ const gEsc=s=>String(s).replace(/[&<>]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;'}
 // Tiers (instead of rarity): how deep in the game a card sits. Muted tones: a card only explains, it has no use of its own
 const TIER=['I','II','III','IV','V'],TIER_COL=['#8b8678','#918a76','#978c71','#9d8d6b','#a38e64'],EV_TIER={c:0,u:1,r:2,m:3};
 const tierOfCost=c=>c<3?0:c<10?1:c<20?2:c<40?3:4,evTier=ev=>ev.tier!=null?ev.tier:EV_TIER[ev.rar]||0;
-function cardHTML(ev,mini,pg){ // the one card format: name bar, art box, type line, text box with facts + flavour. A new one (never looked at) lies face down until it is turned over (fd); pg: as a page of the Journal (written in there instead)
-  const t=evTier(ev);
-  return `<div class="mtg${mini?' sm':''}${!pg&&discSeen.has('ev:'+ev.id)&&ilNew('ev:'+ev.id)?' fd':''}" data-ev="${ev.id}" data-new="ev:${ev.id}" style="--rc:${TIER_COL[t]}"><div class="nm"><b>${gEsc(ev.name)}</b><span class="gem"></span></div><div class="art" data-scene="${ev.scene}" data-ev="${ev.id}" data-k="${ev.ico}">${mini?evStillHTML([ev.id])||`<canvas class="rl-m" width="64" height="64" data-k="${ev.ico}"></canvas>`:''}</div><div class="ty"><span>${gEsc(ev.type.replace(/^Event — /,''))}</span><span>Tier ${TIER[t]}</span></div><div class="tx">${(mini?ev.facts().slice(0,1):ev.facts()).map(f=>`<p${ev.fx?' class="fx"':''}>${tvHTML(f)}</p>`).join('')}${ev.flavor?`<p class="fl">${gEsc(ev.flavor)}</p>`:''}</div></div>`; // (small: its first line and its flavour; the rest when it is opened) (fx: the lines are changes to play, set apart from the flavour)
+function cardHTML(ev,mini,pg){ // the one card format: name bar, art box, type line, text box with facts + flavour. A new one (never looked at) lies face down until it is turned over (fd). mini: small (true), or only its picture and name (2: as it is witnessed);
+  // pg: as a page of the Journal: its name, picture and what was witnessed (seen), all free once witnessed; its facts and flavour are its details, found with Dim (ev_<id>_d)
+  const t=evTier(ev),sm=mini===true,fx=f=>`<p${ev.fx?' class="fx"':''}>${tvHTML(f)}</p>`,fl=ev.flavor?`<p class="fl">${gEsc(ev.flavor)}</p>`:'';
+  const body=mini===2?'':pg?`<div class="tx">${ev.seen?`<p>${gEsc(ev.seen)}</p>`:''}<div class="rl-x" data-disc="ev_${ev.id}_d">${ev.facts().map(fx).join('')}${fl}</div></div>`
+    :`<div class="ty"><span>${gEsc(ev.type.replace(/^Event — /,''))}</span><span>Tier ${TIER[t]}</span></div><div class="tx">${(sm?ev.facts().slice(0,1):ev.facts()).map(fx).join('')}${fl}</div>`; // (small: its first line and its flavour; the rest when it is opened) (fx: the lines are changes to play, set apart from the flavour)
+  return `<div class="mtg${sm?' sm':mini===2?' pic':''}${!pg&&discSeen.has('ev:'+ev.id)&&ilNew('ev:'+ev.id)?' fd':''}" data-ev="${ev.id}" data-new="ev:${ev.id}" style="--rc:${TIER_COL[t]}"><div class="nm"><b>${gEsc(ev.name)}</b><span class="gem"></span></div><div class="art" data-scene="${ev.scene}" data-ev="${ev.id}" data-k="${ev.ico}">${sm?evStillHTML([ev.id])||`<canvas class="rl-m" width="64" height="64" data-k="${ev.ico}"></canvas>`:''}</div>${body}</div>`;
 }
 function mountScene(h,w,hh){if(!h||h.firstChild||document.querySelectorAll('.rl-live iframe,.mtg .art iframe').length>=5)return;{const R=(h.dataset.ev||'').split(',').map(evRecFor).find(Boolean);if(R&&!w){evReplayMount(h,R);return;}} /* something you witnessed: your own recording of it, live (a demo only for what you have not) */const f=document.createElement('iframe'),nm=h.dataset.s||h.dataset.scene;f.style.cssText='border:0;max-width:100%;pointer-events:none;background:#000;border-radius:6px;'+(w?`width:${w}px;height:${hh}px`:'width:100%;height:100%');
   if(nm.slice(0,4)==='hub:'){const[sn,dk]=nm.slice(4).split(':');f.src='Surface_Map_HUB.html?v=20261111i&scene='+sn+(sn==='shop'?'&k='+encodeURIComponent(dk||''):'')+'&T='+encodeURIComponent(JSON.stringify(mapSceneT()))+'&D='+encodeURIComponent(JSON.stringify(dk&&DUCK_TYPES[dk]?{[dk]:DUCK_TYPES[dk]}:Object.fromEntries(Object.entries(DUCK_TYPES).slice(0,4))));}else f.srcdoc=liveSrc(nm);h.appendChild(f);} // a Surface Map demo is played by the map itself
@@ -12910,8 +12903,7 @@ function showEventCard(id,review){
   if(!review){if(!_evOpen){_evWasPaused=isPaused;if(!isPaused)togglePause();}let nw=0;for(const h of _evHand)if(!discSeen.has('ev:'+h)){discSeen.add('ev:'+h);nw=1;}if(nw)saveInventory();_evAct=Math.max(0,_evHand.indexOf(id));}else if(!_evDeskOpen)_evHand=[];else _evAct=Math.max(0,_evHand.indexOf(id));
   _evOpen=true;_evReview=review;releaseMouseDown(performance.now());uiPress=false;
   const ov=evOverlayEl();ov.querySelectorAll('iframe').forEach(f=>f.remove());
-  const un=RULES.filter(e=>{const v=RULE_EV[e[0]];return Array.isArray(v)?v.includes(id):v===id;}).map(e=>e[2]);
-  ov.innerHTML=`<div class="ev-box">${cardHTML(ev)}<div class="ev-un">${un.length?txt('card.unlocks',gEsc(un.join(' · '))):''}</div>${_evHand.length>1?`<div class="ev-hand">${_evHand.map((h,i)=>i===_evAct?'':cardHTML(EVENTS.find(e=>e.id===h),true)).join('')}</div>`:''}<button id="evOk">${txt(review?'card.close':'card.continue')}</button></div>`;
+  ov.innerHTML=`<div class="ev-box">${cardHTML(ev,2)}${_evHand.length>1?`<div class="ev-hand">${_evHand.map((h,i)=>i===_evAct?'':cardHTML(EVENTS.find(e=>e.id===h),true)).join('')}</div>`:''}<button id="evOk">${txt(review?'card.close':'card.continue')}</button></div>`;
   ov.style.display='flex';wrap.classList.add('ev-open');
   ov.querySelectorAll('.ev-hand .mtg').forEach(c=>{c.onclick=()=>showEventCard(c.dataset.ev,false);});ov.querySelectorAll('canvas.rl-m').forEach(cv=>rulesDraw(cv,cv.dataset.k));
   const art=ov.querySelector('.art');art.dataset.s=ev.scene;art.dataset.ev=id;mountScene(art); // its art: your recording of it, when there is one (else its demo)
@@ -12937,6 +12929,8 @@ function registerGuideDisc(){
   const add=(id,label,cost)=>{if(!('dc_'+id in T))T['dc_'+id]=cost;TUNE_DEFS.push({key:'dc_'+id,label,min:0,max:9999999,step:1,tip:'Dim to hold while hovering to discover this (nothing is spent). 0 = always visible'});};
   TUNE_DEFS.push({sec:'Discoveries — Guide entries (base / details / demo / math)',tab:'discoveries'});
   for(const e of RULES){const b=RULE_TAB_COST[e[1]]||0,L=e[2].slice(0,20);if(e[5].length>1)add('g_'+e[0]+'_d',L+' details',b+3);if(RULE_SCENES[e[0]])add('g_'+e[0]+'_i',L+' demo',b+6);if(RULE_MATH[e[0]])add('g_'+e[0]+'_m',L+' math',b+15);}
+  TUNE_DEFS.push({sec:'Discoveries — Journal events (details)',tab:'discoveries'});
+  for(const e of EVENTS)add('ev_'+e.id+'_d',e.name.slice(0,20)+' details',[3,6,12,24,40][evTier(e)]||3);
   TUNE_DEFS.push({sec:'Discoveries — Lifecycle (things and lines)',tab:'discoveries'});
   for(const id in MAP_NODES)add('mapn_'+id,'Lifecycle: '+MAP_NODES[id][2],MAP_NODES[id][5]);
   for(const ed of MAP_EDGES)add('map_'+ed.id,'Lifecycle: '+MAP_NODES[ed.a][2]+' → '+MAP_NODES[ed.b][2],ed.cost);
@@ -13076,11 +13070,20 @@ function guideCSS(){
 .mtg::before{content:'∞';position:absolute;inset:-3px;border-radius:inherit;border:3px solid var(--rc,#8a7a4a);box-sizing:border-box;display:flex;align-items:center;justify-content:center;font-size:54px;color:var(--rc,#8a7a4a);text-shadow:0 0 14px rgba(255,214,110,.55);background:radial-gradient(circle at 50% 45%,#3a2a48 0,#16111c 60%,#0c0a10 100%);transform:rotateY(180deg) translateZ(1px);backface-visibility:hidden;pointer-events:none}.mtg.fd::before{animation:isNew 1.7s ease-in-out infinite}
 /* the books (the Journal, the Letters): two pages to a spread, handwritten */
 #rulesOverlay,#evOverlay{--hand:'Caveat','Segoe Print','Bradley Hand','Chalkboard SE','Comic Sans MS',cursive}#rlBody.jr{overflow:hidden;display:flex;flex-direction:column;padding:8px 120px 4px 14px}#rulesOverlay:not(.coll) #rlTabs{display:none}
+/* the Journal is just the book on the surface: no menu frame round it, and as big as the screen allows */
+#rulesOverlay:not(.coll){inset:1% 1.5%;background:none;border:0;box-shadow:none}
+#rulesOverlay:not(.coll) #rlHead{position:absolute;top:2px;right:6px;z-index:3;border:0;padding:0;background:none}#rulesOverlay:not(.coll) #rlHead h2{display:none}
+#rulesOverlay:not(.coll) #rlHead button,#rulesOverlay:not(.coll) .bk-nav button{background:#e8dfc4;color:#3a2c18;border:1px solid #6b4a2a;border-radius:7px;font:18px/1.2 var(--hand);padding:3px 14px;opacity:.9}#rulesOverlay:not(.coll) #rlHead button:hover,#rulesOverlay:not(.coll) .bk-nav button:hover{opacity:1;background:#f6eed8}
+#rulesOverlay:not(.coll) .bk-nav{color:#e8dfc4;font:18px var(--hand);text-shadow:0 1px 3px #000}#rulesOverlay:not(.coll) #rlBody.jr{padding:34px 120px 2px 14px}
+.bk.jr{max-width:min(1560px,100%)}.bk.jr .bk-p{font-size:clamp(20px,1.45vw,25px)}.bk.jr .bk-w{font-size:1em;line-height:1.3em;background-size:100% 1.3em;background-image:repeating-linear-gradient(transparent 0 calc(1.3em - 1px),rgba(58,44,24,.16) calc(1.3em - 1px) 1.3em)}
+/* a page never scrolls: one whose words do not fit takes both sides of the spread, its words running on across the gutter */
+.bk-p.sp .bk-c{flex:1 1 0;max-height:none;columns:2;column-gap:60px;column-fill:auto;column-rule:1px solid rgba(58,44,24,.18)}.bk-p.sp .bk-w{flex:0 0 2.6em;min-height:0}.bk-p.sp .mtg .art,.bk-p .mtg .nm{break-inside:avoid}
+#rulesOverlay .bk-p .disc-lock{background:repeating-linear-gradient(-45deg,rgba(58,44,24,.05) 0 6px,rgba(58,44,24,.1) 6px 12px);border:1.5px dashed rgba(58,44,24,.55);border-radius:4px}#rulesOverlay .bk-p .disc-lock::after{color:#3a2c18;font:20px var(--hand);content:'\\25C7  ' attr(data-cost) ' Dim'}
 .bk{display:flex;max-width:820px;margin:8px auto;background:#6b4a2a;padding:10px;border-radius:6px;box-shadow:0 8px 30px rgba(0,0,0,.5);position:relative}
 .bk-p{flex:1 1 0;min-width:0;min-height:320px;box-sizing:border-box;background:linear-gradient(90deg,#efe4c6,#f6eed8);color:#3a2c18;padding:28px 30px 18px;font:20px/1.3 var(--hand);letter-spacing:0;position:relative}.bk-p+.bk-p{background:linear-gradient(90deg,#f6eed8,#efe4c6);border-left:1px solid #c9b88f}.bk-p.wide{flex:2 1 0}
 .bk-f{text-align:right;margin-top:14px;font-size:17px}.bk-n{position:absolute;bottom:3px;left:0;right:0;text-align:center;font-size:14px;opacity:.55}.bk-nav{display:flex;justify-content:center;gap:12px;align-items:center;margin:6px 0}.bk-nav button{background:rgba(128,128,128,.2);color:inherit;border:0;border-radius:6px;padding:5px 14px;cursor:pointer}
 .bk.jr{flex:1 1 auto;min-height:0;width:100%;max-width:1180px;margin:0 auto;box-sizing:border-box}.bk.jr .bk-p{display:flex;flex-direction:column;gap:6px;min-height:0;padding:14px 22px 22px;overflow:hidden}
-.bk-c{flex:0 1 auto;min-height:0;max-height:84%;overflow-y:auto;overflow-x:hidden}.bk-p.wide .bk-c{max-height:90%}
+.bk-c{flex:0 1 auto;min-height:0;max-height:84%;overflow:hidden}.bk-p.wide .bk-c{max-height:90%}
 .bk-w{flex:1 1 0;min-height:52px;width:100%;box-sizing:border-box;resize:none;border:0;outline:0;padding:0 2px;background:repeating-linear-gradient(transparent 0 25px,rgba(58,44,24,.16) 25px 26px);font:20px/26px var(--hand);color:#27407a}.bk-w::placeholder{color:rgba(58,44,24,.28)}
 .bk-h{font:700 34px/1.1 var(--hand);margin:14% 0 8px;text-align:center}.bk-p.un .bk-c::before{content:'?';display:block;text-align:center;font-size:64px;opacity:.16;padding:24px 0}
 .bk-toc a,.bk-ix a{cursor:pointer}.bk-toc a{display:flex;justify-content:space-between;gap:8px;border-bottom:1px dotted rgba(58,44,24,.35)}.bk-toc a:hover,.bk-ix a:hover{color:#27407a}.bk-toc i{font-style:normal}.bk-ix{margin:1px 0}
@@ -13100,7 +13103,7 @@ function guideCSS(){
 #rulesOverlay .disc-lock::after{content:'\\25A2  ' attr(data-cost) ' Dim';position:absolute;inset:0;display:flex;align-items:center;justify-content:center;color:#9aa;font:12px monospace}`;
   document.head.appendChild(st);const l=document.createElement('link');l.rel='stylesheet';l.href='https://fonts.googleapis.com/css2?family=Caveat:wght@400;700&display=swap';document.head.appendChild(l); // (the books' handwriting)
 }
-function ruleCardHTML(e,pg){ // a Journal entry in the card's format: its name, picture (a drawing of its demo or of your own moment; live while pointed at, once discovered), page and tier, then what it is, its details, more demos and the live math
+function ruleCardHTML(e,pg){ // a Journal entry in the card's format: its name, picture (a drawing of its demo or of your own moment; live while pointed at) and what it is, free once learned; then (a card's page line and tier) its details, more demos and the live math
   // (each behind its own discovery). pg: as its page in the Journal (written in there); else a card, face down while it is new
   const id=e[0],ids=ruleIds(id),sc=RULE_SCENES[id]||[],mt=RULE_MATH[id]||[],rows=e[5],t=tierOfCost(RULE_TAB_COST[e[1]]||0),home=(RULE_HOME[e[1]]||[0,''])[1];
   if(!ruleOk(id))return ''; // (not yet learned: its page is still to fill)
@@ -13108,12 +13111,12 @@ function ruleCardHTML(e,pg){ // a Journal entry in the card's format: its name, 
   let tx=`<p>${gEsc(e[4])}</p>`+rows.slice(0,1).map(p).join('');if(rows.length>1)tx+=`<div class="rl-x" data-disc="${ids.det}">${rows.slice(1).map(p).join('')}</div>`;
   if(sc.length>1)tx+=`<div class="rl-x" data-disc="${ids.ill}">${sc.slice(1).map(x=>`<span class="rl-live" data-s="${x}"></span>`).join('')}</div>`;
   if(mt.length)tx+=`<div class="rl-x" data-disc="${ids.mat}"><details class="rl-math"><summary>Math (live values)</summary>${mt.map(m=>CONV[m]?`<div class="rl-mh">${gEsc(CONV[m].t)}</div><ul>${CONV[m].f().map(l=>`<li>${tvHTML(l)}</li>`).join('')}</ul>`:'').join('')}</details></div>`;
-  const evs=['rl_'+id].concat(RULE_EV[id]||[]),art=sc.length?`<div class="art-live" data-disc="${ids.ill}" data-scene="${sc[0]}" data-ev="${evs.join(',')}"></div>`:`<canvas class="rl-m" width="120" height="120" data-k="${ico}"></canvas>`;
-  return `<div class="mtg full${!pg&&ilNew('g_'+id)?' fd':''}" data-rule="${id}" data-new="g_${id}" style="--rc:${TIER_COL[t]}"><div class="nm"><b>${gEsc(e[2])}</b><span class="gem"></span></div><div class="art" data-k="${ico}">${art}</div><div class="ty"><span>${gEsc(home)}</span><span>Tier ${TIER[t]}</span></div><div class="tx">${tx}</div></div>`;
+  const evs=['rl_'+id].concat(RULE_EV[id]||[]),art=sc.length?`<div class="art-live" data-scene="${sc[0]}" data-ev="${evs.join(',')}"></div>`:`<canvas class="rl-m" width="120" height="120" data-k="${ico}"></canvas>`;
+  return `<div class="mtg full${!pg&&ilNew('g_'+id)?' fd':''}" data-rule="${id}" data-new="g_${id}" style="--rc:${TIER_COL[t]}"><div class="nm"><b>${gEsc(e[2])}</b><span class="gem"></span></div><div class="art" data-k="${ico}">${art}</div>${pg?'':`<div class="ty"><span>${gEsc(home)}</span><span>Tier ${TIER[t]}</span></div>`}<div class="tx">${tx}</div></div>`;
 }
 function rulesRemount(){document.querySelectorAll('#evOverlay .art-live,#evOverlay .rl-live,#mapInfo .art-live,.bk-p .rl-live').forEach(h=>{if(!h.closest('.disc-lock')&&!h.classList.contains('disc-lock'))mountScene(h);});document.querySelectorAll('.bk-c>.mtg>.art').forEach(artMount);} // (an open card's demos, once discovered; a page's picture)
 // ── A page's picture: a drawing first. What the scene itself holds as it ends (evSketch: every thing in the frame, where it is, how big, what it is) is drawn again by hand as simple shapes and lines
-// (skStrokes: a ring for a pigment, rays for a Point, a diamond, square or triangle for a remnant, ticks for the spill…), so no two are alike; a new page's is drawn in line by line, shape by shape (inkStrokes). Pointed at, it gives way smoothly to the live
+// (skStrokes: a symbol for every thing there can be: a ring for a pigment, rays for a Point, a diamond, square or triangle for a remnant, ticks for the spill, lines for a joining, a hatched or squared ring for DEPTH or BALANCE, a jag for a rift, sights for a String, a dotted arrow for a chase, a looping one for an orbit, a box for one held still…), so no two are alike; a new page's is drawn in line by line, shape by shape (inkStrokes). Pointed at, it gives way smoothly to the live
 // scene (your own recording of it when you have one, else its demo), played through from its beginning; let go, the drawing comes back. A recording keeps its own ending (rec.sk); a demo's is taken the first time it plays out (_evSk, kept: evsk) ──
 function evSketch(R){R=R||{x:W/2,y:H/2,rw:W/2,rh:H/2};const k=1/R.rh,wr=R.rw<W/2-1||R.rh<H/2-1,L=[],n3=v=>+v.toFixed(3),col=o=>[o.r|0,o.g|0,o.b|0].join(), // what is in a frame, as a drawing's list: [kind, x, y, size, colour, reach, vx, vy] in units of half the frame's height (the first: its width / height)
     at=o=>{const dx=wr?_wrapD(o.x-R.x,W):o.x-R.x,dy=wr?_wrapD(o.y-R.y,H):o.y-R.y;return Math.abs(dx)<=R.rw&&Math.abs(dy)<=R.rh?[n3(dx*k),n3(dy*k)]:null;};
@@ -13121,6 +13124,14 @@ function evSketch(R){R=R||{x:W/2,y:H/2,rw:W/2,rh:H/2};const k=1/R.rh,wr=R.rw<W/2
   for(const sh of fixedShapes){const q=sh.pts.map(at);if(q.every(Boolean))L.push(['shape',0,0,0,sh.closed?1:0,q.flat()]);}
   for(const o of active){const q=at(o);if(!q||o.dying||o._bhGone)continue;const on=!o.isRemnant&&effActive(o);L.push([objKey(o),...q,n3(Math.max(2,pointVisibleRadius(o)||3)*k),col(o),on?n3((o.collapsed&&!o.failedCollapse?collapsedEffectRadius(o,true):effRadOf(o))*k):0,n3((o.vx||0)*k*40),n3((o.vy||0)*k*40)]);}
   for(const d of ducks){const q=at(d);if(q)L.push(['duck',...q,n3(15*((DUCK_TYPES[d.type]||{}).scale||1)*k)]);}
+  for(const b of activeBonds){const q=(b.chain||[]).map(at);if(q.length>1&&q.every(Boolean))L.push(['bond',0,0,0,(b.rgb||[200,200,200]).join(),q.flat(),b.mode||'',b.edges&&b.edges.length>=q.length?1:0]);} // a joining (a Prism, Knot, Gate, Key or Lens being made): its lines
+  for(const h of placedFields){const q=at(h);if(q)L.push(['field_'+h.kind,...q,n3(fieldR(h)*k),fieldRGB(h).join()]);} // a placed DEPTH (dim) or BALANCE (bright)
+  for(const r of riftForms){const q=at(r);if(q)L.push(['rift',...q,n3(Math.min(R.rh*2,90+(r.mass||0)*0.05)*k),0,0,n3(Math.cos(r.a||0)),n3(Math.sin(r.a||0))]);}if(blackHole&&blackHole.rift){const q=at(blackHole),r=blackHole.rift;if(q)L.push(['rift',...q,n3(R.rh*3*k),0,0,n3(r.ny),n3(-r.nx)]);} // a tear: its line
+  for(const m of dialMarks){const q=at(m);if(q)L.push(['target',...q,n3(14*k)]);} // where a String is fired
+  const byId=new Map();for(const o of active)byId.set(o.id,o);
+  for(const id in leashTrack){const A=byId.get(+id),B=A&&byId.get(leashTrack[id].tid),a=A&&at(A),b=B&&at(B);if(a&&b)L.push(['chase',...a,0,0,0,b[0]-a[0],b[1]-a[1]]);} // one following another
+  for(const key in orbitTrack){const[ia,ib]=key.split('_').map(Number),A=byId.get(ia),B=byId.get(ib),a=A&&at(A),b=B&&at(B);if(a&&b&&Math.abs(orbitTrack[key].windAccum||0)>1)L.push(['orbit',...b,n3(Math.hypot(a[0]-b[0],a[1]-b[1]))]);} // one circling another
+  for(const id in weaveTrack){const A=byId.get(+id),a=A&&at(A);if(a&&weaveTrack[id].ms>0)L.push(['still',...a,n3(Math.max(3,pointVisibleRadius(A)||3)*k)]);} // one held still in a Weave
   if(blackHole){const q=at(blackHole);if(q)L.push(['hole',...q,n3(Math.max(8,blackHole.consumeR||0)*k)]);}
   if(mouse.x>=0){const q=at(mouse);if(q)L.push(['cursor',...q,n3((T.cursorBaseR||8)*k)]);}
   return[n3(R.rw/R.rh),...L.sort((a,b)=>(a[0]==='particle')-(b[0]==='particle')||a[1]-b[1])];}
@@ -13135,6 +13146,13 @@ function skStrokes(sk,seed){ // the list as a hand's strokes (each a wobbling li
   for(const[k,x,y,r0,c,er,vx,vy]of sk.slice(1)){const r=Math.max(0.035,r0||0);
     if(k==='particle'){const t=rnd()*6.28,l=0.018+rnd()*0.02;put([[x-Math.cos(t)*l,y-Math.sin(t)*l],[x+Math.cos(t)*l,y+Math.sin(t)*l]],c,null,1.1);continue;}
     if(k==='shape'){const q=er,p=[];for(let i=0;i<q.length;i+=2)p.push([q[i]+j(0.012),q[i+1]+j(0.012)]);if(c)p.push(p[0]);put(p,null,c?'120,110,90':null,1.5);continue;}
+    if(k==='bond'){const q=er,p=[];for(let i=0;i<q.length;i+=2)p.push([q[i]+j(0.01),q[i+1]+j(0.01)]);if(vy)p.push(p[0]);for(let i=1;i<p.length;i++)line(p[i-1][0],p[i-1][1],p[i][0],p[i][1],c,1.3);if(vx==='lens'||vx==='gate'){const cx=p.reduce((s,v)=>s+v[0],0)/p.length,cy=p.reduce((s,v)=>s+v[1],0)/p.length;ring(cx,cy,0.05,null,null,0.7,8);}continue;} // a joining: its lines (a Lens or Gate: an eye at its heart)
+    if(k==='field_dim'||k==='field_bright'){ring(x,y,r,c,null,1.1);ring(x,y,r*0.62,null,null,0.6);if(k==='field_dim')for(let i=-2;i<=2;i++){const u=i/2.6*r,w=Math.sqrt(Math.max(0,r*r*0.38-u*u));line(x+u-w*0.6,y-u-w*0.6,x+u+w*0.6,y-u+w*0.6,null,0.6);}else{poly(x,y,r*0.35,4,0,null,null);}continue;} // DEPTH: a ring hatched; BALANCE: a ring round a still square
+    if(k==='rift'){const ux=vx||1,uy=vy||0,n=9,p=[];for(let i=0;i<=n;i++){const t=(i/n-0.5)*2*r,o=(i%2?1:-1)*0.025*(1+rnd());p.push([x+ux*t-uy*o,y+uy*t+ux*o]);}put(p,null,null,1.5);continue;} // a tear: a jagged line
+    if(k==='target'){ring(x,y,r,null,null,0.9);ring(x,y,r*0.4,null,null,0.7,7);for(const[a0,b0]of[[1,0],[-1,0],[0,1],[0,-1]])line(x+a0*r*0.6,y+b0*r*0.6,x+a0*r*1.5,y+b0*r*1.5,null,0.8);continue;} // where a String is aimed
+    if(k==='chase'){const l=Math.hypot(vx,vy)||1,ux=vx/l,uy=vy/l,n=Math.max(2,Math.round(l/0.06));for(let i=0;i<n;i+=2){const t0=i/n*l,t1=Math.min(l,(i+1)/n*l);line(x+ux*t0,y+uy*t0,x+ux*t1,y+uy*t1,null,0.8);}const ex=x+ux*l*0.8,ey=y+uy*l*0.8;put([[ex-ux*0.05-uy*0.03,ey-uy*0.05+ux*0.03],[ex,ey],[ex-ux*0.05+uy*0.03,ey-uy*0.05-ux*0.03]],null,null,0.8);continue;} // one following another: a dotted line, an arrowhead
+    if(k==='orbit'){const p=[],a0=rnd()*6.28;for(let i=0;i<=30;i++){const t=a0+i/30*5.5;p.push([x+Math.cos(t)*r,y+Math.sin(t)*r]);}put(p,null,null,0.8);const t=a0+5.5,ex=x+Math.cos(t)*r,ey=y+Math.sin(t)*r,tx=-Math.sin(t),ty=Math.cos(t);put([[ex-tx*0.05-ty*0.03,ey-ty*0.05+tx*0.03],[ex,ey],[ex-tx*0.05+ty*0.03,ey-ty*0.05-tx*0.03]],null,null,0.8);continue;} // one circling another: a looping arrow
+    if(k==='still'){poly(x,y,r*2.2,4,0.7854,null,null);continue;} // held still: a box round it
     if(k==='cursor'){ring(x,y,r,null,null,0.8);line(x-r*0.35,y,x+r*0.35,y,null,0.7);line(x,y-r*0.35,x,y+r*0.35,null,0.7);continue;}
     if(k==='duck'){ring(x,y+r*0.25,r*0.8,null,'255,214,60',1.2);ring(x+r*0.55,y-r*0.55,r*0.45,null,'255,214,60',1.2);put([[x+r*0.95,y-r*0.6],[x+r*1.4,y-r*0.45],[x+r*0.95,y-r*0.35]],null,'255,128,10',1.1);line(x+r*0.6,y-r*0.65,x+r*0.62,y-r*0.63,null,1.6);continue;}
     if(k==='hole'||k==='dark'){ring(x,y,r,null,'20,16,30',1.6);for(let i=-3;i<=3;i++){const u=i/3.5*r,w=Math.sqrt(Math.max(0,r*r-u*u));line(x+u-w*0.7,y-u-w*0.7,x+u+w*0.7,y-u+w*0.7,null,0.9);}if(k==='hole'){const p=[];for(let i=0;i<40;i++){const t=i*0.5,q=r*(1.15+i*0.028);p.push([x+Math.cos(t)*q,y+Math.sin(t)*q]);}put(p,null,null,0.7);}continue;}
@@ -13161,39 +13179,48 @@ function artMount(a){const h=a.querySelector('.art-live')||(a.dataset.scene?a:nu
   cv.className='sk';lv.className='lv';cv._seed=seed;a.dataset.ink=T.inkSketchMs||2400;if(h){h.textContent='';lv.dataset.scene=nm;lv.dataset.ev=h.dataset.ev||'';h.appendChild(lv);}a.appendChild(cv);
   const sk=rec?rec.sk:_evSk[nm];cv._glyph=()=>{const g=document.createElement('canvas');g.width=g.height=96;rulesDraw(g,a.dataset.k||'');setTimeout(()=>{cv._S=skImage(g,1)||Object.assign([],{a:1});},350);}; // (a glyph or a sign, or a scene with nothing in it to list: drawn from its picture)
   if(sk&&sk.length>1)cv._S=skStrokes(sk,seed);else if(!sk&&h&&nm.slice(0,4)!=='hub:'){cv._get=rec||nm;mountScene(lv);}else cv._glyph(); // (not drawn yet: its scene plays through once, out of sight, and its ending is taken)
-  if(h){a.onmouseenter=()=>{a.classList.add('live');if(!lv.firstChild)mountScene(lv);};a.onmouseleave=()=>{a.classList.remove('live');if(!cv._get){lv.replaceChildren();lv.style.background='';}};}}
+  if(h){const still=()=>rec&&rec.still||_evStillD[nm]||'',go=()=>{clearTimeout(a._tm);if(!a._hov)return;const now=performance.now(),left=a._ink&&cv._S?a._ink[0]+a._ink[1]-now:0;if(left>0){a._tm=setTimeout(go,left+60);return;} // pointed at: a drawing still being drawn is finished first
+      if(lv.firstChild){a.classList.add('live');return;}const im=still();if(im)lv.style.background=`#000 url(${im}) center/cover no-repeat`;a.classList.add('live'); // then it gives way to the scene's last frame, still (what the drawing was drawn from)
+      a._tm=setTimeout(()=>{if(a._hov&&!lv.firstChild)mountScene(lv);},im?(T.evStillMs!=null?T.evStillMs:700):0);}; // then the scene plays out from its beginning back to that frame; it holds there a while (evReplayPauseMs) and plays again
+    a.onmouseenter=()=>{a._hov=1;go();};a.onmouseleave=()=>{a._hov=0;clearTimeout(a._tm);a.classList.remove('live');if(!cv._get){lv.replaceChildren();lv.style.background='';}};}}
 function skTick(cv,now){const a=cv.parentNode,lv=a.querySelector('.lv'),f=lv&&lv.querySelector('iframe'),dp=Math.min(2,window.devicePixelRatio||1),w=Math.round(a.clientWidth*dp),h=Math.round(a.clientHeight*dp); // a page's drawing, each frame: taken from its scene when that has played out, drawn as far as the pen has got
-  if(cv._get&&f){let sk=null;try{sk=f.contentWindow.__evSk;}catch(e){}if(sk){const g=cv._get;cv._get=null;if(sk.length>1)cv._S=skStrokes(sk,cv._seed);else cv._glyph();if(g.id){g.sk=sk;IDB.put('evrec:'+g.id,g).catch(()=>{});}else{_evSk[g]=sk;IDB.put('evsk',_evSk).catch(()=>{});}
+  if(cv._get&&f){let sk=null;try{sk=f.contentWindow.__evSk;}catch(e){}if(sk){const g=cv._get;cv._get=null;if(sk.length>1)cv._S=skStrokes(sk,cv._seed);else cv._glyph();if(!g.id&&!_evStillD[g])try{const c=f.contentWindow.document.getElementById('c'),q=document.createElement('canvas'),k=Math.min(1,480/(c.width||1));q.width=Math.round(c.width*k);q.height=Math.round(c.height*k);q.getContext('2d').drawImage(c,0,0,q.width,q.height);_evStillD[g]=q.toDataURL('image/jpeg',0.75);IDB.put('evstill',_evStillD).catch(()=>{});}catch(e){} /* (and its last frame, as a still to show before it plays) */if(g.id){g.sk=sk;IDB.put('evrec:'+g.id,g).catch(()=>{});}else{_evSk[g]=sk;IDB.put('evsk',_evSk).catch(()=>{});}
       if(a._ink&&now>a._ink[0])a._ink=[now,a._ink[1]];if(!a.classList.contains('live')){lv.replaceChildren();lv.style.background='';}}}
   if(!cv._S||!w||!h)return;const p=a._ink?Math.max(0,Math.min(1,(now-a._ink[0])/a._ink[1])):1;if(p===cv._p&&cv.width===w)return;if(cv.width!==w||cv.height!==h){cv.width=w;cv.height=h;}cv._p=p;
   const nib=inkStrokes(cv,cv._S,p,cv._S.a);if(nib&&p>0&&!a.classList.contains('live'))inkNib(nib[0],nib[1]);}
 // ── The Journal: a book. Every entry is a page in the card's own format; each chapter opens on a blank page and its chapter page (what it holds, and where); the chapters are marked down the book's side; the Glossary, handwritten as the rest,
 // lists every subject you know with every page that speaks of it. Whatever is left of a page is yours to write on (_jNotes). A page not yet earned is still to fill; a new one is written in as you turn to it ──
-function journalPages(){ // every page, in order: {ch: its chapter, k: its kind, id, key: its discovery (new until its page is turned to), n: its subject, ok: discovered, tx: its words (the Glossary's page references), nk: its notes' key}
-  const P=[],cnt={},ru=ch=>e=>({ch,k:'rule',id:e[0],key:'g_'+e[0],n:e[2],ok:ruleOk(e[0]),tx:[e[2],e[4],...e[5].map(r=>r.join(' '))].join(' ')});
-  for(const[ch,n]of RULE_TABS){if(P.length%2)P.push({ch,k:'blank'});P.push({ch,k:'blank'},{ch,k:'chap',n});
-    if(ch==='map')P.push({ch,k:'map'},{ch,k:'skip'}); // (the lifecycle: one wide page, both sides of the spread)
-    if(ch!=='book')P.push(...RULES.filter(e=>(RULE_HOME[e[1]]||[e[1]])[0]===ch).map(ru(ch)));
-    if(ch==='disc')P.push(...EVENTS.map(e=>({ch,k:'ev',id:e.id,key:'ev:'+e.id,n:e.name,ok:evSeen(e.id),tx:e.name+' '+e.facts().join(' ').replace(/\u0001[^\u0002]*\u0002|\u0003/g,'')+' '+(e.flavor||'')})));
-    if(ch==='shops')P.push(...Object.keys(SHOPS).map(k=>({ch,k:'shop',id:k,key:'ev:shop_'+k,n:SHOPS[k].n,ok:evSeen('shop_'+k),tx:[SHOPS[k].n,SHOPS[k].tag,SHOPS[k].about||''].join(' ')})));
-    if(ch==='book'){const kn=P.map((p,i)=>[p,i+1]).filter(([p])=>p.key&&p.ok),rows=[...new Set(kn.map(([p])=>p.n))].sort((x,y)=>x.localeCompare(y)).map(s=>{const re=new RegExp('(^|[^A-Za-z])'+s.replace(/[.*+?^${}()|[\]\\]/g,'\\$&')+'([^A-Za-z]|$)','i');return[s,kn.filter(([p])=>p.n===s||s.length>2&&re.test(p.tx)).map(q=>q[1])];});
-      for(let i=0;i<Math.max(1,rows.length);i+=15)P.push({ch,k:'idx',rows:rows.slice(i,i+15)});}} // the Glossary: each subject, then every page that speaks of it
-  if(P.length%2)P.push({ch:'book',k:'blank'});for(const p of P){const c=p.ch+'.'+p.k;cnt[c]=(cnt[c]||0)+1;p.nk=p.key||c+cnt[c];}return P;}
-function pageHTML(P,i){const p=P[i];if(!p||p.k==='skip')return ''; // one page: what it holds (the entry's card as a page, the chapter's contents, the Glossary's lines), your notes under it, its number
-  const e=p.k==='rule'?RULES.find(x=>x[0]===p.id):p.k==='ev'?EVENTS.find(x=>x.id===p.id):null,shopId=p.k==='shop'?p.id:p.k==='ev'&&p.id.slice(0,5)==='shop_'?p.id.slice(5):null;
-  const h=p.k==='chap'?`<h2 class="bk-h">${gEsc(p.n)}</h2><p>${txt('journal.ch.'+p.ch)}</p><div class="bk-toc">${P.map((q,j)=>q.ch===p.ch&&q.key?`<a data-pg="${j}"><span>${q.ok?gEsc(q.n):'· · ·'}</span><i>${j+1}</i></a>`:'').join('')}</div>`
+function journalPages(){ // every page, in order: {ch: its chapter, k: its kind, id, key: its discovery (new until its page is turned to), n: its subject, ok: discovered, tx: its words (the Glossary's page references), nk: its notes' key}. Only what is witnessed has a page (none is left to fill)
+  const P=[],cnt={},nk=p=>{const c=p.ch+'.'+p.k;cnt[c]=(cnt[c]||0)+1;return p.nk=p.key||c+cnt[c];},ru=ch=>e=>({ch,k:'rule',id:e[0],key:'g_'+e[0],n:e[2],ok:ruleOk(e[0]),tx:[e[2],e[4],...e[5].map(r=>r.join(' '))].join(' ')}),
+    put=p=>{const w=p.k==='map'||_jSpan.has(nk(p));if(w&&P.length%2)P.push({ch:p.ch,k:'blank'});P.push(p);if(w)P.push({ch:p.ch,k:'skip'});}; // (a page whose words do not fit takes both sides of a spread: the lifecycle map always)
+  for(const[ch,n]of RULE_TABS){const E=ch==='book'?[]:RULES.filter(e=>(RULE_HOME[e[1]]||[e[1]])[0]===ch).map(ru(ch));
+    if(ch==='disc')E.push(...EVENTS.map(e=>({ch,k:'ev',id:e.id,key:'ev:'+e.id,n:e.name,ok:evSeen(e.id),tx:e.name+' '+(e.seen||'')+' '+e.facts().join(' ').replace(/\u0001[^\u0002]*\u0002|\u0003/g,'')+' '+(e.flavor||'')})));
+    if(ch==='shops')E.push(...Object.keys(SHOPS).map(k=>({ch,k:'shop',id:k,key:'ev:shop_'+k,n:SHOPS[k].n,ok:evSeen('shop_'+k),tx:[SHOPS[k].n,SHOPS[k].tag,SHOPS[k].about||''].join(' ')})));
+    const K=E.filter(p=>p.ok);if(!K.length&&ch!=='map'&&ch!=='book')continue; // (a chapter with nothing witnessed yet is not in the book)
+    if(P.length%2)P.push({ch,k:'blank'});if(!_jSpan.has(ch+'.chap1'))P.push({ch,k:'blank'});put({ch,k:'chap',n});if(ch==='map')put({ch,k:'map'});K.forEach(put);
+    if(ch==='book'){const kn=P.map((p,i)=>[p,i+1]).filter(([p])=>p.key),rows=[...new Set(kn.map(([p])=>p.n))].sort((x,y)=>x.localeCompare(y)).map(s=>{const re=new RegExp('(^|[^A-Za-z])'+s.replace(/[.*+?^${}()|[\]\\]/g,'\\$&')+'([^A-Za-z]|$)','i');return[s,kn.filter(([p])=>p.n===s||s.length>2&&re.test(p.tx)).map(q=>q[1])];});
+      for(let i=0;i<Math.max(1,rows.length);i+=15)put({ch,k:'idx',rows:rows.slice(i,i+15)});}} // the Glossary: each subject, then every page that speaks of it
+  if(P.length%2)P.push({ch:'book',k:'blank'});for(const p of P)if(!p.nk)nk(p);return P;}
+function pageHTML(P,i){const p=P[i];if(!p||p.k==='skip')return ''; // one page: what it holds (the entry's card as a page, the chapter's contents, the Glossary's lines), your notes under it, its number (a page over both sides: both numbers)
+  const e=p.k==='rule'?RULES.find(x=>x[0]===p.id):p.k==='ev'?EVENTS.find(x=>x.id===p.id):null,w=(P[i+1]||{}).k==='skip';
+  const h=p.k==='chap'?`<h2 class="bk-h">${gEsc(p.n)}</h2><p>${txt('journal.ch.'+p.ch)}</p><div class="bk-toc">${P.map((q,j)=>q.ch===p.ch&&q.key?`<a data-pg="${j}"><span>${gEsc(q.n)}</span><i>${j+1}</i></a>`:'').join('')}</div>`
     :p.k==='idx'?`<h2 class="bk-h" style="margin-top:0">${gEsc(txt('guide.tab.book'))}</h2>${p.rows.map(r=>`<div class="bk-ix"><b>${gEsc(r[0])}</b> &nbsp;${r[1].map(n=>`<a data-pg="${n-1}">${n}</a>`).join(', ')}</div>`).join('')||`<p>${txt('journal.empty')}</p>`}`
     :p.k==='map'?`<div class="lc"><div class="lc-l"><p class="rl-note">${txt('journal.map')}</p><canvas id="mapCv" width="900" height="500"></canvas></div><div id="mapInfo" class="lc-r" data-e="x"></div></div>`
-    :!p.ok?(shopId?shopBackHTML(shopId):''):p.k==='rule'?ruleCardHTML(e,true):p.k==='ev'?cardHTML(e,false,true):p.k==='shop'?shopCardHTML(p.id):'';
-  return `<div class="bk-p${p.k==='map'?' wide':''}${p.key&&!p.ok?' un':''}"${p.key?` data-key="${p.key}"`:''}><div class="bk-c">${h}</div><textarea class="bk-w" data-nk="${p.nk}" placeholder="${gEsc(txt('journal.notes'))}" spellcheck="false">${gEsc(_jNotes[p.nk]||'')}</textarea><div class="bk-n">${p.k==='map'?(i+1)+' – '+(i+2):i+1}</div></div>`;}
-function journalRender(body){const P=_jP=journalPages(),ns=P.length/2,go=_jGo;_jGo=null;let sp=_bookPg.guide; // the Journal's open spread (turned to a page or a chapter: _jGo)
-  if(go!=null)sp=(typeof go==='number'?go:Math.max(0,P.findIndex(p=>p.ch===go&&p.k==='chap')))>>1;sp=Math.max(0,Math.min(ns-1,sp));const dir=Math.sign(sp-_bookPg.guide);_bookPg.guide=sp;_rulesTab=P[sp*2+1].ch;
-  body.innerHTML=`<div class="bk jr${dir>0?' tf':dir<0?' tb':''}">${pageHTML(P,sp*2)}${pageHTML(P,sp*2+1)}<div class="bk-tabs">${RULE_TABS.map(([k,n])=>`<button data-ch="${k}" class="${k===_rulesTab?'on':''}${P.some(p=>p.ch===k&&p.key&&p.ok&&ilNew(p.key))?' isnew':''}">${n}</button>`).join('')}</div></div><div class="bk-nav"><button id="bkP"${sp?'':' disabled'}>‹ Back</button><span>${sp*2+1} – ${sp*2+2} of ${P.length}</span><button id="bkN"${sp<ns-1?'':' disabled'}>Next ›</button></div>`;
+    :p.k==='rule'?ruleCardHTML(e,true):p.k==='ev'?cardHTML(e,false,true):p.k==='shop'?shopCardHTML(p.id):'';
+  return `<div class="bk-p${w?' wide':''}${w&&p.k!=='map'?' sp':''}"${p.key?` data-key="${p.key}"`:''}><div class="bk-c">${h}</div><textarea class="bk-w" data-nk="${p.nk}" placeholder="${gEsc(txt('journal.notes'))}" spellcheck="false">${gEsc(_jNotes[p.nk]||'')}</textarea><div class="bk-n">${w?(i+1)+' – '+(i+2):i+1}</div></div>`;}
+function jFit(body){ // a book never scrolls: a page whose words do not fit is given the other side of the spread too (its words run on there), and one that still does not fit is written smaller. True: the book is laid out again
+  for(const pe of body.querySelectorAll('.bk-p')){const c=pe.querySelector('.bk-c'),k=(pe.querySelector('.bk-w')||{}).dataset;if(!c||!k||c.querySelector('#mapCv'))continue;const over=()=>c.scrollHeight>c.clientHeight+2||c.scrollWidth>c.clientWidth+2;
+    if(!over())continue;if(!pe.classList.contains('sp')){_jSpan.add(k.nk);_jGo=k.nk;rulesRender();return true;}for(let f=0.95;f>=0.6&&over();f-=0.05)c.style.fontSize=f.toFixed(2)+'em';}return false;}
+function journalRender(body){const P=journalPages(),ns=P.length/2,go=_jGo;_jGo=null;let sp=_bookPg.guide; // the Journal's open spread (turned to a page, a page's notes key or a chapter: _jGo)
+  if(go!=null)sp=(typeof go==='number'?go:Math.max(0,P.findIndex(p=>p.nk===go||p.ch===go&&p.k==='chap')))>>1;sp=Math.max(0,Math.min(ns-1,sp));const dir=Math.sign(sp-_bookPg.guide);_bookPg.guide=sp;_rulesTab=P[sp*2+1].ch;
+  body.innerHTML=`<div class="bk jr${dir>0?' tf':dir<0?' tb':''}">${pageHTML(P,sp*2)}${pageHTML(P,sp*2+1)}<div class="bk-tabs">${RULE_TABS.filter(([k])=>P.some(p=>p.ch===k)).map(([k,n])=>`<button data-ch="${k}" class="${k===_rulesTab?'on':''}${P.some(p=>p.ch===k&&p.key&&ilNew(p.key))?' isnew':''}">${n}</button>`).join('')}</div></div><div class="bk-nav"><button id="bkP"${sp?'':' disabled'}>‹ Back</button><span>${sp*2+1} – ${sp*2+2} of ${P.length}</span><button id="bkN"${sp<ns-1?'':' disabled'}>Next ›</button></div>`;
   body.querySelectorAll('.bk-tabs button').forEach(b=>b.onclick=()=>{_jGo=b.dataset.ch;rulesRender();});body.querySelectorAll('[data-pg]').forEach(l=>l.onclick=()=>{_jGo=+l.dataset.pg;rulesRender();});
   body.querySelectorAll('.bk-w').forEach(t=>{t.oninput=()=>{if(t.value)_jNotes[t.dataset.nk]=t.value;else delete _jNotes[t.dataset.nk];try{localStorage.setItem('il_jnotes_v1',JSON.stringify(_jNotes));}catch(e){}};t.onkeydown=e=>e.stopPropagation();}); // your own notes, on what is left of the page (kept as you write)
   const cv=document.getElementById('mapCv');if(cv){const at=e=>{const r=cv.getBoundingClientRect();return{x:(e.clientX-r.left)*cv.width/r.width,y:(e.clientY-r.top)*cv.height/r.height};};cv.onpointermove=e=>{_mapMouse=at(e);};cv.onpointerleave=()=>{_mapMouse=null;};cv.onpointerdown=e=>{_mapMouse=at(e);_mapSel=mapHit(cv.width,cv.height);};}
-  body.querySelectorAll('canvas.rl-m').forEach(c=>rulesDraw(c,c.dataset.k));body.querySelectorAll('[data-disc]').forEach(el=>el.classList.toggle('disc-lock',!discHas(el.dataset.disc)));rulesRemount();
-  body.querySelectorAll('.bk-p[data-key]:not(.un)').forEach(pe=>{const key=pe.dataset.key;if(ilNew(key)||INK.live['pg:'+key]){inkWrite(pe.querySelector('.bk-c'),'pg:'+key);ilSee(key);}});evDeskSync();} // a new page is written in as you turn to it (and is new no longer)
+  body.querySelectorAll('canvas.rl-m').forEach(c=>rulesDraw(c,c.dataset.k));body.querySelectorAll('[data-disc]').forEach(el=>el.classList.toggle('disc-lock',!discHas(el.dataset.disc)));
+  if(jFit(body))return;body.querySelectorAll('details').forEach(d=>d.ontoggle=()=>jFit(body));if(document.fonts)document.fonts.ready.then(()=>{if(body.isConnected&&_rulesOpen&&_rulesMode==='guide')jFit(body);}); // (opening the math, or the hand's letters arriving, can make a page's words run over)
+  rulesRemount();
+  body.querySelectorAll('.bk-p[data-key]').forEach(pe=>{const key=pe.dataset.key;if(ilNew(key)||INK.live['pg:'+key]){inkWrite(pe.querySelector('.bk-c'),'pg:'+key);ilSee(key);}});evDeskSync();} // a new page is written in as you turn to it (and is new no longer)
 function rulesRender(){
   const body=document.getElementById('rlBody');if(!body)return;guideCSS();
   const ov=document.getElementById('rulesOverlay');ov.classList.toggle('inv',!!invertMode);body.classList.toggle('by',_rulesTab==='buoy');body.classList.toggle('jr',_rulesMode==='guide');
