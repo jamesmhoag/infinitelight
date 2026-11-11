@@ -144,7 +144,7 @@ keyFxMs,3400,Key anim ms,1000,10000,100,Achievements & Pattern — Timing & Feel
 keyFireT,0.5,Key remnant at,0.2,0.9,0.02,Achievements & Pattern — Timing & Feel,gameplay,,,,When (fraction of the Key animation) the Dark Remnant appears — earlier means the key is still shrinking into it,
 feedAlertMs,2200,Alert ms,500,8000,100,Achievements & Pattern — Timing & Feel,gameplay,,,,How long an alert / warning message takes over the feed before it returns to hover / last-shined / hints,how long an alert message takes over the feed
 particleMapAlpha,0.55,Particle map α,0.1,1,0.05,Achievements & Pattern — Timing & Feel,gameplay,,,,Opacity of the particle-map layer when it is shown,"0..1: opacity of the particle-map layer (dimmed so points, paths and rings stay readable)"
-invalidTargetOpacity,0.35,Invalid target opacity,0,1,0.05,Achievements & Pattern — Timing & Feel,gameplay,,,,"Opacity of objects that are NOT a viable target for the armed tool/Pattern mode. 1 = no dimming. The object itself goes dim, but its own active ring/effect glow still shows at full strength — the background is never touched.",0..1: opacity of objects that are NOT a viable target for the armed tool/mode (1 = no dimming at all; the object's own effect ring can still show at full strength on top)
+invalidTargetOpacity,0.35,Invalid target opacity,0,1,0.05,Achievements & Pattern — Timing & Feel,gameplay,,,,"Opacity of objects that are NOT a viable target for the armed tool/Pattern mode, and of everything that is not an event's subject (or what it came of) while it is captured and replayed. 1 = no dimming. The object itself goes dim, but its own active ring/effect glow still shows at full strength — the background is never touched.",0..1: opacity of objects that are NOT a viable target for the armed tool/mode (1 = no dimming at all; the object's own effect ring can still show at full strength on top)
 predictMs,300,Predict ms,100,3000,50,Achievements & Pattern — Timing & Feel,gameplay,,,,How far ahead the combined velocity+rotation predictive path looks,ms: how far ahead the combined velocity+rotation predictive path looks
 predictSteps,40,Predict steps,4,80,2,Achievements & Pattern — Timing & Feel,gameplay,,,,Resolution of the predicted path (more = smoother curve),resolution of the predicted path — more steps = a smoother curve
 lensClicksPerCrack,6,Lens clicks/crack,0,30,1,Achievements & Pattern — Timing & Feel,gameplay,,,,Every N single clicks on a Lens cracks it (0 = off),every N single clicks on a Lens crack it (0 = off)
@@ -673,16 +673,15 @@ mapChestBurnMs,2600,Chest burn ms,500,8000,100,Commodities,map,,,,How long an em
 evSlow,0.5,Event slow,0,0.9,0.05,Events — capture,gameplay,,,,"How much an event's capture slows the game, added to the novas' slows (0.5 = half speed)",
 evPreMs,600,Event pre ms,0,3000,50,Events — capture,gameplay,,,,How much of the moment before an event its recording keeps,
 evCaptureMs,2400,Event capture ms,300,8000,100,Events — capture,gameplay,,,,How long an event is framed and recorded as it unfolds,
-evSoloMs,1600,Event solo ms,0,8000,100,Events — capture,gameplay,,,,"If no other event happens for this long, the game pauses and its frame grows into its card (else it goes to the discovery desk)",
+evSoloMs,1600,Event solo ms,0,8000,100,Events — capture,gameplay,,,,"If no other event happens for this long, the game pauses and its card shows (else it goes to the discovery desk)",
 evSnapMs,250,Event snapshot ms,50,1000,10,Events — capture,gameplay,,,,"How often the surface's state is kept for a recording (the moment before an event, Event pre ms, is played from the nearest)",
 evAspect,1.65,Event frame shape,0.8,2.5,0.05,Events — capture,theme,,,,"A recording's width ÷ its height: the card's own shape, so it fills the card",
-evReplayTail,900,Event replay tail ms,0,5000,100,Events — capture,theme,,,,How long a recording plays on past its capture before it starts again,
+evReplayTail,900,Event replay tail ms,0,5000,100,Events — capture,theme,,,,How long a recording holds on the pause it ends with before it starts again,
 evAdoptR,90,Event follow px,10,400,5,Events,gameplay,,,,"When an event's subject is gone (a point gone nova, a woken particle) or it happened at a place, the frame takes up what came of it within this many px (a remnant first) and follows that",
-evZoomIn,2.2,Event zoom in,1,6,0.1,Events,gameplay,,,,"How far a replay zooms in on a point or remnant as it forms (times its frame)",
-evZoomInMs,1400,Event zoom in ms,100,6000,50,Events,gameplay,,,,"How long that zoom in takes, from when it forms",
+evZoomIn,2.2,Event zoom in,1,6,0.1,Events,gameplay,,,,"How far an event's frame, and its replay, close in on its subject (times its frame; never a whole-surface event)",
+evZoomInMs,1400,Event zoom in ms,100,6000,50,Events,gameplay,,,,"How long that closing in takes, from when it happens",
 evFrameS,55,Event frame small,20,400,5,Events — capture,theme,,,,"Half the size of a small event's frame (most events: what matters is small, whatever went on round it)",
 evFrameL,160,Event frame large,40,1000,10,Events — capture,theme,,,,"Half the size of a large event's frame (a Dark Remnant); a Rift's is the whole screen",
-evZoomMs,700,Event zoom ms,100,3000,50,Events — capture,theme,,,,How long the frame takes to grow into the event's card,
 evEmphMs,500,Event emphasis ms,0,3000,50,Events — capture,theme,,,,How long the frame shines brighter as the event first triggers,
 cabinMoveMs,1400,Below deck move ms,300,5000,100,Surface Map — below deck,map,,,,"How long the climb down the ladder (and back up) takes",
 cabinLook,0.14,Below deck look,0,0.5,0.01,Surface Map — below deck,map,,,,How far the view leans toward the cursor,
@@ -690,7 +689,7 @@ cabinSway,0.018,Below deck sway,0,0.1,0.002,Surface Map — below deck,map,,,,Ho
 cabinFov,1.5,Below deck field of view,0.8,2.2,0.05,Surface Map — below deck,map,,,,"How wide the view is (radians, before the fisheye)",
 cabinFish,0.35,Below deck fisheye,0,1,0.02,Surface Map — below deck,map,,,,"How much the view bows outward at its edges: more of the room in view (0 = none)",
 cabinPitch,0.26,Below deck look down,0,0.8,0.01,Surface Map — below deck,map,,,,"How far the view looks down at the desk (radians): less puts the desk lower in the view",
-cabinBloom,2.2,Below deck bloom,0,6,0.1,Surface Map — below deck,map,,,,"How bright the glow off the tools' white and the hoard is (only what can be seen of them glows; it spreads past them, overlapping to white)",
-cabinBloomR,2.2,Below deck bloom spread,0.5,6,0.1,Surface Map — below deck,map,,,,"How far that glow spreads (see-through at its edges)",
+cabinBloom,2.2,Below deck bloom,0,6,0.1,Surface Map — below deck,map,,,,"How bright the glow off the tools' white and the hoard is (only what can be seen of them glows; it spreads past them, overlapping to white), and the hoard's chromatic glow with it",
+cabinBloomR,2.2,Below deck bloom spread,0.5,6,0.1,Surface Map — below deck,map,,,,"How far that glow spreads (see-through at its edges), the hoard's chromatic glow with it",
 cabinRes,1,Below deck resolution,0.5,2,0.05,Surface Map — below deck,map,,,,"How many pixels below deck is drawn at, times the screen (above 1: smoother edges, slower; below 1: faster, softer)",
 cabinLookDown,0.75,Below deck look down,0,1.4,0.05,Surface Map — below deck,map,,,,"How far the view tips down as the cursor goes toward the bottom (radians at the very bottom): far enough to see the whole desk map from where you stand",
