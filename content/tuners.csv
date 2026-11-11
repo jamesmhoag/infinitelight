@@ -675,6 +675,8 @@ inkCharMs,14,Pen: ms a letter,2,60,1,Events — capture,gameplay,,,,"How long th
 inkMaxMs,4200,Pen: longest writing ms,500,12000,100,Events — capture,gameplay,,,,"The longest a page or a card takes to be written in, however much it holds (a button or a feed line: 900 ms at most)",
 inkSketchMs,2400,Pen: drawing ms,300,8000,100,Events — capture,gameplay,,,,"How long a Journal page's drawing takes to be drawn, line by line",
 evPreMs,600,Event pre ms,0,3000,50,Events — capture,gameplay,,,,How much of the moment before an event its recording keeps,
+evStillMs,700,Picture: still ms,0,4000,50,Events — capture,gameplay,,,,"Pointed at, how long a Journal picture shows its scene's last frame, still, before the scene plays",
+evReplayPauseMs,1500,Scene: pause ms,0,8000,100,Events — capture,gameplay,,,,"How long a live scene (a recording or a demo) holds on its last frame before it plays again",
 evCaptureMs,2400,Event capture ms,300,8000,100,Events — capture,gameplay,,,,How long an event is framed and recorded as it unfolds,
 evSoloMs,1600,Event solo ms,0,8000,100,Events — capture,gameplay,,,,"If no other event happens for this long, the game pauses and its card shows (else it goes to the discovery desk)",
 evSnapMs,250,Event snapshot ms,50,1000,10,Events — capture,gameplay,,,,"How often the surface's state is kept for a recording (the moment before an event, Event pre ms, is played from the nearest)",
