@@ -119,7 +119,7 @@ button:hover{background:rgba(255,255,255,0.15);}
   <div id="dock" class="bottom"><div id="inventoryPanel"></div><div id="touch-info"></div></div>
   <canvas id="cur"></canvas>
 </div>
-<script src="content.js?v=20261110i"></script><script src="shared.js?v=20261110i"></script>
+<script src="content.js?v=20261111i"></script><script src="shared.js?v=20261111i"></script>
 <script>
 txtApply(); // the page's own labels (content/strings.csv)
 const _SRC=document.documentElement.outerHTML; // kept so the Encyclopedia can run live scenes as embedded copies of the game
@@ -285,6 +285,7 @@ let spaceHeld=false;
 document.addEventListener('keydown',e=>{
   const _typing=/INPUT|TEXTAREA|SELECT/.test((e.target&&e.target.tagName)||'');
   if((e.key==='h'||e.key==='H'||e.key==='~'||e.key==='`')&&!e.ctrlKey&&!e.metaKey&&!e.altKey&&!_typing){wrap.classList.toggle('ui-hidden');hubPost({type:'ui',hidden:wrap.classList.contains('ui-hidden')});} // (the map's time of day and panels, over the surface, hide with it) // H or ~: hides / shows the buttons, panels, statistics and the feed — the item inventory (and the map's time of day) stay
+  if(_rulesOpen&&_rulesMode==='guide'&&!_typing&&(e.key==='ArrowLeft'||e.key==='ArrowRight')){_jGo=Math.max(0,_bookPg.guide+(e.key==='ArrowRight'?1:-1))*2;rulesRender();return;} // the Journal's pages turn
   if(e.key==='Escape'&&!_typing){e.preventDefault();toggleGameMenu();return;} // Esc: the pause menu (sound, readouts, guide, quit)
   if(_menuOpen)return; // the pause menu takes no game keys
     if(e.code==='Space'||e.key===' '){
@@ -4432,7 +4433,7 @@ function wheelOnSpeedCtl(e){
 }
 // ── Discoveries: an element is hidden until you hover it while holding at least its Dim cost (nothing is spent). Locked ones show only their cost on hover. ──
 const DISC_MAP=[['#hud button[onclick^="rebuild"]','hud_rebuild'],['#modesbtn','hud_modes'],['#tunebtn','hud_tune'],['#hud button[onclick*="importImage"]','hud_image'],['#hud button[onclick^="clearSourceImage"]','hud_clearimg'],['#pb','mode_pause'],['#tb','mode_trails'],['#mb','mode_sound'],['#pvb','mode_particlemap'],['#cib','mode_create'],['#stb','mode_settle'],['#icb','mode_cache'],['#nsb','mode_shape'],['#cmb','mode_coverage'],['#ivb','mode_invert'],['#rdb','mode_radii'],['#tlb','mode_telemetry'],['#dyb','mode_dynamics'],['#clb','mode_class'],['#modesPanel button[onclick^="clearStage"]','mode_clearstage'],['#modesPanel button[onclick^="saveMap"]','mode_savemap'],['#modesPanel button[onclick*="importMapFile"]','mode_loadmap'],['#stColl','stats_collapse'],['#stLine','stats_line'],['#stLog','stats_log']];
-let discHoverId=null,_discN=0;
+let discHoverId=null,_discN=0,_discOld=false; // _discOld: a save from before things were new (everything it shows is seen already)
 function discCostOf(id){if(BUILD)return 0; // (Build mode: everything is there)
   const p=id.slice(0,3);return (p==='of_'||p==='ot_')?(T['dc_obj_'+id.slice(3)]||0):(T['dc_'+id]||0);}
 function discHas(id){return !!window.__SCENE||discCostOf(id)<=0||discSeen.has(id);}
@@ -4450,16 +4451,14 @@ function feedLock(p){const id='of_'+objKey(p);if(discHas(id))return false;if(pre
 function applyDisc(){
   for(const m of DISC_MAP){const el=document.querySelector(m[0]);if(el)el.dataset.disc=m[1];}
   document.querySelectorAll('#inventoryPanel .slot').forEach(el=>{el.dataset.disc='slot_'+el.dataset.kind;});
-  document.querySelectorAll('[data-disc]').forEach(el=>{const id=el.dataset.disc,cost=BUILD?0:T['dc_'+id]||0,lock=cost>0&&!discSeen.has(id);el.classList.toggle('disc-lock',lock);if(lock)el.dataset.cost=fmtCount(cost);});
+  const old=_discOld&&!!document.querySelector('#inventoryPanel .slot'),tel=!ilQuiet()&&Object.keys(T).some(k=>k.slice(0,7)==='dc_obj_'&&discSeen.has('sn:of_'+k.slice(7))&&discHas('ot_'+k.slice(7))&&!discSeen.has('sn:ot_'+k.slice(7)));let ch=0; // tel: a kind of thing you have met whose telemetry you have not looked at yet (the read-outs' slot says so: not each button)
+  document.querySelectorAll('[data-disc]').forEach(el=>{const id=el.dataset.disc,cost=BUILD?0:T['dc_'+id]||0,lock=cost>0&&!discSeen.has(id);el.classList.toggle('disc-lock',lock);if(lock)el.dataset.cost=fmtCount(cost);
+    if(old&&!lock){discSeen.add('sn:'+id);discSeen.add('dr:'+id);ch=1;}ch|=inkDisc(el,id,lock);});{const rs=document.querySelector('.slot.rd5');if(rs)rs.classList.toggle('isnew',tel);} // found (or free from the start): written in the first time it shows, and new until it is first used (inkDisc, content.js)
+  if(old)_discOld=false;if(ch)saveInventory();
 }
-function discReveal(id){
-  discSeen.add(id);saveInventory();if(id.slice(0,2)!=='g_')ruleLearn('discover');
-  const el=document.querySelector('[data-disc="'+id+'"]');
-  if(el){const r=el.getBoundingClientRect(),wr=wrap.getBoundingClientRect(),n=Math.min(45,Math.max(8,Math.round(r.width*r.height/50)));
-    for(let i=0;i<n;i++){const p=document.createElement('div'),x=r.left-wr.left+Math.random()*r.width,y=r.top-wr.top+Math.random()*r.height;
-      p.style.cssText='position:absolute;z-index:45;pointer-events:none;width:3px;height:3px;background:#555;left:'+x+'px;top:'+y+'px;opacity:1;transition:transform .9s ease-out,opacity .9s ease-out;';wrap.appendChild(p);
-      requestAnimationFrame(()=>requestAnimationFrame(()=>{p.style.transform='translate('+((Math.random()-0.5)*50)+'px,'+((Math.random()-0.7)*50)+'px)';p.style.opacity='0';}));setTimeout(()=>p.remove(),1000);}}
-  applyDisc();if(window._rulesOpen)rulesRemount();
+function discReveal(id){ // found: it is written in with the pen, as you would note it yourself (inkWrite; a demo's too)
+  discSeen.add(id);saveInventory();if(id.slice(0,2)!=='g_')ruleLearn('discover');applyDisc();
+  if(window.__SCENE)for(const el of document.querySelectorAll('[data-disc="'+id+'"]'))inkWrite(el,id,900);if(window._rulesOpen)rulesRemount();
 }
 function discTick(){ // a locked element is fully covered by a veil showing its cost while hovered; once the cost is met the veil flashes a check, then dissolves into the revealed element
   if(++_discN%20===0)applyDisc();
@@ -9409,7 +9408,7 @@ function drawTelemetry(ctx,now){ // Telemetry = motion · Dynamics = mass/energy
     const p=e.p;if(e.a<=0.02&&!e.on||p.dying||p.captured){telMap.delete(k);continue;}
     const dx=_wrapD(p.x-mouse.x,W),dy=_wrapD(p.y-mouse.y,H),ang=Math.atan2(dy,dx),R0=22,rP=placedRadius(p)||PIXEL_DIAM*0.5,gr=e.grey;
     ctx.globalAlpha=Math.max(0,Math.min(1,e.a));
-    {const tk=e.px?'particle':objKey(p),tid='ot_'+tk;if(!discHas(tid)){if(!((h&&h.id===p.id)||effActive(p))||!discTry(tid)){ctx.textAlign='center';ctx.fillStyle='#8a8f98';ctx.fillText('▒ '+fmtCount(discCostOf(tid))+' Dim',p.x,p.y-(placedRadius(p)||5)-8);continue;}}}
+    {const tk=e.px?'particle':objKey(p),tid='ot_'+tk;if(!discHas(tid)){if(!((h&&h.id===p.id)||effActive(p))||!discTry(tid)){ctx.textAlign='center';ctx.fillStyle='#8a8f98';ctx.fillText('▒ '+fmtCount(discCostOf(tid))+' Dim',p.x,p.y-(placedRadius(p)||5)-8);continue;}}if(ilSee(tid))applyDisc();} // (its telemetry, looked at: no longer new on the read-outs' slot)
     if(telemetryOn&&!e.px&&(p.vx||p.vy||p.rot)){ctx.save();drawPredictedPath(ctx,predictPath(p.x,p.y,p.vx||0,p.vy||0,p.rot||0),'120,220,255',1,1.4);ctx.restore();}
     if(mouse.x>=0&&e.link){ctx.strokeStyle='rgba(120,220,255,0.45)';ctx.lineWidth=1;ctx.beginPath();ctx.moveTo(mouse.x+Math.cos(ang)*R0,mouse.y+Math.sin(ang)*R0);ctx.lineTo(p.x-Math.cos(ang)*(rP+2),p.y-Math.sin(ang)*(rP+2));ctx.stroke();}
     const rows=[],cols=[],G='#8a8f98',rk=riskOf(p);e.bar=undefined;
@@ -10969,13 +10968,16 @@ function _textI(c,t,x,y,stroke){
 function fillTextI(c,t,x,y){_textI(c,t,x,y,false);}
 function strokeTextI(c,t,x,y){_textI(c,t,x,y,true);}
 window.ilHint=(a,b)=>HUB?hubPost({type:'hint',a,b}):flashSaveStatus(a+' · '+b); // a menu button's bracketed context, in the feed (content.js parenHints)
-function setFeed(n,d,color){
+const _feedNew={};
+function setFeed(n,d,color,key){ // key: what it tells of (a kind of thing's feed). Shown for the first time it is new: written in, and marked (.isnew) until it has been up a moment
+  const nw=!!key&&ilNew(key),now=performance.now();touchInfoEl.classList.toggle('isnew',nw);if(nw){if(!_feedNew[key])_feedNew[key]=now;else if(now-_feedNew[key]>1800)ilSee(key);}
   if(n===_feedN&&d===_feedD&&color===_feedC)return;
   _feedN=n;_feedD=d;_feedC=color;
   touchInfoEl.style.color=color;
   touchInfoEl.innerHTML='<div class="fn"></div>'+(d?'<div class="fd"></div>':'');
   touchInfoEl.firstChild.innerHTML=iconHTML(n);
   if(d)touchInfoEl.lastChild.textContent=d;
+  if(nw||key&&INK.live[key]){touchInfoEl._inkKey=null;inkWrite(touchInfoEl,key,900);}
 }
 function invHoverParts(kind,worst){
   if(kind==='guide')return[txt('surf.i_guide'),txt('surf.rules_the_object_map')];
@@ -11087,11 +11089,11 @@ function updateInfoAndStats(now,hoverObj){
     if(lp&&lp.isRemnant){
       const ACTIVE_KIND_LABEL={neutron:'\uE005 neutron remnant',magnetic:'\uE003 magnetic remnant',pulsing:'\uE004 pulsing remnant'};
       const kindLabel=ACTIVE_KIND_LABEL[lp.remKind]||(lp.remKind==='brown'?(lp.enriched?'\uE001 enriched dim remnant':'\uE001 dim remnant'):(lp.remKind==='black'?'● dark remnant':(lp.enriched?'\uE002 enriched bright remnant':'\uE002 bright remnant')));
-      setFeed(kindLabel,txt('surf.mass_energy',remnantEffectText(lp),massVal,ti.energy.toFixed(4),mo,lifeStr),'rgba(255,255,255,0.92)');
+      setFeed(kindLabel,txt('surf.mass_energy',remnantEffectText(lp),massVal,ti.energy.toFixed(4),mo,lifeStr),'rgba(255,255,255,0.92)','of_'+objKey(infoSrc));
     } else {
-      if(ti._p.failedCollapse){setFeed(txt('surf.dim_remnant'),txt('surf.mass_energy_2',massVal,ti.energy.toFixed(4),mo,lifeStr),'rgba(255,255,255,0.92)');}
+      if(ti._p.failedCollapse){setFeed(txt('surf.dim_remnant'),txt('surf.mass_energy_2',massVal,ti.energy.toFixed(4),mo,lifeStr),'rgba(255,255,255,0.92)','of_'+objKey(infoSrc));}
       else {const label=ti.collapsed?'★ Point ':'Pigment ';
-      setFeed(label+pointFxName(ti._p),txt('surf.mass_energy_r_px',massVal,ti.energy.toFixed(4),ti.curR|0,ti.eR|0,mo,lifeStr),'rgba(255,255,255,0.92)');}
+      setFeed(label+pointFxName(ti._p),txt('surf.mass_energy_r_px',massVal,ti.energy.toFixed(4),ti.curR|0,ti.eR|0,mo,lifeStr),'rgba(255,255,255,0.92)','of_'+objKey(infoSrc));}
     }
   } else if(!overUI&&conMode&&(()=>{const t=conEdgeTarget(mouse.x,mouse.y);if(!t)return false;
       const c=(CON_RGB[conKind==='leash'?'gate':conKind]||[255,255,255]).join(',');
@@ -12536,7 +12538,7 @@ const SCENES={};
     if(R.purse)Object.assign(inventory,R.purse);for(const u of R.ups||[])discSeen.add(u);if(R.run)Object.assign(runState,R.run);
     {const pf=T.paintFadeFrames;T.paintFadeFrames=0;for(const d of R.dorm)put(d,stampSnapshotAt(d,cx+d.dx,cy+d.dy));T.paintFadeFrames=pf;} /* (the nebula as it was, there from the first picture: it does not fade in as paint does) */const ids=new Set();R.objs.forEach((o,i)=>{const p=put(o,stampSnapshotAt(o,cx+o.dx,cy+o.dy));if(p&&o.on)pressedIDs.add(p.id);if(p&&(R.src||[]).indexOf(i)>=0)ids.add(p.id);}); // (ids: what its subject came of, lit from the start)
     const st=R.st;if(st){mouse.x=cx+st.dx;mouse.y=cy+st.dy;mouseDown=!!st.down;dragMode=!!st.drag;mouseDownAt=st.at;heat.v=st.hv;heat.until=st.hu;}S.k=0;{const P=(R.path||[[0,0,0]])[0],x=cx+P[1],y=cy+P[2];_evRep=R.cap0?{rep:1,sz:EV_FRAME[R.id]||'l',quiet:R.id.slice(0,3)==='rl_',t0:R.cap0,at:{x,y},px:x,py:y,ux:0,uy:0,ids,rect:{}}:null;}}, // (its capture again: the same slow, the same dimming, and its subject followed here as play followed it)
-    tick(S,t,now){const R=window.__REPLAY,I=R&&R.ins||[],c=_evRep;if(c&&now>=c.t0){if(c.id0==null)c.id0=R.obj===0?pidCounter:0;evFollow(c,now);}window.__evU=c?[c.ux,c.uy]:[0,0];if(R&&R.end&&now>=R.end&&!isPaused)togglePause(); /* where its subject has gone since it began (the card's view keeps on it); at its capture's end it slows to a pause, as play did, and holds there */while(S.k<I.length&&I[S.k].t<=now){const e=I[S.k++],r=canvas.getBoundingClientRect(),o={bubbles:true,cancelable:true,clientX:r.left+S.W/2+e.dx,clientY:r.top+S.H/2+e.dy,button:e.b,buttons:e.bs};canvas.dispatchEvent(e.ty==='wheel'?new WheelEvent('wheel',Object.assign(o,{deltaY:e.d})):new MouseEvent(e.ty,o));}}}; // (each press, move, release, double click, right click and wheel, where and when it was: the cursor goes with it)
+    tick(S,t,now){const R=window.__REPLAY,I=R&&R.ins||[],c=_evRep;if(c&&now>=c.t0){if(c.id0==null)c.id0=R.obj===0?pidCounter:0;evFollow(c,now);}window.__evU=c?[c.ux,c.uy]:[0,0];if(R&&R.end&&now>=R.end&&!isPaused){togglePause();if(!window.__evSk)window.__evSk=evSketch(c&&c.rect);} /* (a recording from before drawings were kept: its ending is taken here, for its page) */ /* where its subject has gone since it began (the card's view keeps on it); at its capture's end it slows to a pause, as play did, and holds there */while(S.k<I.length&&I[S.k].t<=now){const e=I[S.k++],r=canvas.getBoundingClientRect(),o={bubbles:true,cancelable:true,clientX:r.left+S.W/2+e.dx,clientY:r.top+S.H/2+e.dy,button:e.b,buttons:e.bs};canvas.dispatchEvent(e.ty==='wheel'?new WheelEvent('wheel',Object.assign(o,{deltaY:e.d})):new MouseEvent(e.ty,o));}}}; // (each press, move, release, double click, right click and wheel, where and when it was: the cursor goes with it)
   const rv=s=>(Math.random()-0.5)*2*s,TAU=6.2832;
   const R4=(x0,y0,x1,y1)=>[{x:x0,y:y0},{x:x1,y:y0},{x:x1,y:y1},{x:x0,y:y1}];
   const shp=o=>{pushFixed(Object.assign({id:++shapeSeq,closed:false,acc:0,lastSweep:0,broken:{}},o));rebuildGlassList();};
@@ -12698,19 +12700,20 @@ function sceneBoot(name,TT){
     S.W=W;S.H=H;S.t0=performance.now();S.n++;sceneFocus=[];for(const k of Object.keys(S))if(!CORE.has(k))delete S[k];telemetryOn=dynamicsOn=classOn=showRadii=risksOn=false;discSeen=new Set();itemCacheMode=false;
     if(window.__clkGo)window.__clkGo();def.setup(S);document.documentElement.style.visibility=''; // (a recording's clock starts at its moment now, not while the page was loading; nothing shows before the scene is set)
   };
-  start();
+  start();let skL=null,skAt=0;
   const tk=()=>{const now=performance.now(),t=now-S.t0;
     for(const p of active){if(p._keep)p.lifespan=Infinity;if(p._ER)p.cachedER=p._ER;}
     if(S.fuel)for(const k of S.fuel)inventory[k]=Math.max(inventory[k],99);
     if(def.tick)def.tick(S,t,now);
-    if(t>def.dur){if(name==='replay'){location.reload();return;}start();}requestAnimationFrame(tk);}; // (a recording starts again from the page itself: its clock goes back to the moment)
+    if(name!=='replay'&&now-skAt>400){skAt=now;const k=evSketch();if(k.some((q,i)=>i&&q[0]!=='cursor'))skL=k;} // what it holds, for its page's drawing: as it ends (the last there was anything to draw)
+    if(t>def.dur){if(name==='replay'){location.reload();return;}window.__evSk=skL||evSketch();start();}requestAnimationFrame(tk);}; // (a recording starts again from the page itself: its clock goes back to the moment)
   requestAnimationFrame(tk);
   rafId=requestAnimationFrame(loop);
 }
 
 // ═════════════════════════ RULES MENU ═════════════════════════
-// A tabbed, plain-language guide. Every entry has a small live rendering (it follows the Invert setting) and the Encyclopedia tab lists every entry.
-let _rulesOpen=false,_rulesWasPaused=false,_rulesTab='disc',_rulesFilter='',_rulesMode='guide',_rulesLast={guide:'disc',coll:'buoy'};
+// The Journal: a book in plain language. Every entry is a page with a drawing of its moment (live while it is pointed at), its chapters are marked down its side, and its Glossary lists every subject with its pages.
+let _rulesOpen=false,_rulesWasPaused=false,_rulesTab='disc',_rulesMode='guide',_rulesLast={guide:'disc',coll:'buoy'};
 window._rulesOpen=false;
 const RULE_TABS=['disc','map','items','shapes','surf','shops','ducks','book'].map(k=>[k,txt('guide.tab.'+k)]); // (their names: content/strings.csv)
 const COLL_TABS=['buoy','coll','mshops','notes','souv'].map(k=>[k,txt('coll.tab.'+k)]); // Status and your collections (your buoy, or its slot in the inventory): the same menu as the Guide, its own tabs
@@ -12761,7 +12764,8 @@ function rulesDraw(cv,k){
     }
   }
 }
-let _rulesLoop=0,_bookPg=0; // (the Letters book's open spread)
+let _rulesLoop=0,_bookPg={guide:0,notes:0},_jP=[],_jGo=null,_jNotes={},_evSk={}; // each book's open spread (the Journal, the Letters); the Journal's pages, where to turn to next (a page or a chapter), your own notes on its pages (il_jnotes_v1), and the demos' drawings (evsk)
+try{_jNotes=JSON.parse(localStorage.getItem('il_jnotes_v1')||'{}')||{};}catch(e){}if(!window.__SCENE)IDB.get('evsk').then(r=>{if(r)Object.assign(_evSk,r);}).catch(()=>{});
 const RULE_SCENES={surface:['surface'],goal:['lifecycle'],tips:['cap'],cleared:['cleared'],info:['readouts'],discover:['discover'],cache:['itemcache'],
  dab:['dab'],wipe:['wipe'],mop:['mop'],dbl:['dbl'],heat:['heat'],rclick:['readouts'],shift:['shiftcolor'],
  particle:['wake'],pig:['life_pig','merge'],THROW:['fx0'],FLING:['fx1'],ORBIT:['fx2'],WHIRL:['fx3'],CATCH:['fx4'],SNARE:['fx5'],ECLIPSE:['eclipse','eclpoint'],CRYSTALIZE:['crystal','cryspoint'],
@@ -12803,7 +12807,7 @@ const CONV={
 const EVENTS=csvRead('events').map(r=>{const f=r.facts.split('\n');return{id:r.id,name:r.name,type:r.type,rar:r.rarity,scene:r.scene,ico:r.icon,facts:()=>f.map(x=>String(x).replace(/\{([^{}]+)\}/g,(m,e)=>{const w=/^\d+$/.test(e)?'':VAL[e]||e,n=[...new Set((String(w).match(/\bT\.(\w+)|runT\('(\w+)'\)/g)||[]).map(v=>v.replace(/^T\.|runT\('|'\)/g,'')))].join(' ');return tvE(tpl(m),n);})),flavor:r.flavor};}); // (each value tagged with the variables it comes from: tvHTML) // content/events.csv (facts: one line each; {…} worked out as it shows)
 let _evQ=[],_evOpen=false,_evWasPaused=false,_evReview=false,_evHand=[],_evAct=0,_evDraw=false; // _evDraw: a Carnival draw is showing (it closes only by picking) // discoveries made together come as a hand: one card shown, the rest to pick
 function fireEvent(id,at,src){if(window.__SCENE||BUILD||discSeen.has('ev:'+id)||_evQ.indexOf(id)>=0||!EVENTS.some(e=>e.id===id))return;if(!at&&EV_FRAME[id]==='f')at={x:W/2,y:H/2}; // (the whole surface: its centre)
-  discSeen.add('ev:'+id);evUnread.add(id);evUnreadSave();saveInventory();evDeskSync(); // discovered as it happens (the Guide shows it at once); unread until it is looked at, anywhere
+  discSeen.add('ev:'+id);saveInventory();evDeskSync(); // discovered as it happens (the Journal has it at once); new until it is looked at, anywhere (ilNew)
   const sz=EV_FRAME[id];if(at&&sz&&!_rulesOpen&&!_menuOpen&&!_evOpen&&!isPaused){evCapStart(id,at,sz,src);return;}_evQ.push(id);} // where it happened, a capture frames it as it unfolds (src: what its subject came of: the Point a remnant formed from, the two that merged, a Pattern's Points); anything else is a card at once
 // ── Event capture: the moment an event first happens, the game does not stop at once. A frame (a faint line with sparkles, brighter as it starts) follows it
 // round the surface (wrapping with it), sized by its kind (EV_FRAME: small for a pigment or Point, large for a Dark Remnant or a nova, the whole screen for a
@@ -12812,8 +12816,13 @@ function fireEvent(id,at,src){if(window.__SCENE||BUILD||discSeen.has('ev:'+id)||
 // one sends the first to the discovery desk (its count by the dock) and takes over; after the last, its card shows with the rest in the hand to review.
 // An event is discovered when it happens (the Guide shows it at once); it stays marked unread until it is looked at, anywhere ──
 const EV_FRAME={surface:'f',cleared:'f',pigment:'s',point:'s',dim:'s',bright:'s',neutron:'s',magnetic:'s',pulsing:'s',dimrelic:'s',brightrelic:'s',duck:'s',string:'l',spindle:'l',weave:'l',pat_prism:'l',pat_knot:'l',pat_gate:'l',pat_key:'l',pat_lens:'l',dark:'l',rift:'f'}; // a frame's size: small, for what matters (a remnant left by a nova that covered the screen is still small); large for a Dark Remnant; the whole screen for a Rift
-const EV_UNREAD_KEY='il_ev_unread';let evUnread=new Set();try{evUnread=new Set(JSON.parse(localStorage.getItem(EV_UNREAD_KEY)||'[]'));}catch(e){}
-function evUnreadSave(){try{localStorage.setItem(EV_UNREAD_KEY,JSON.stringify([...evUnread]));}catch(e){}}
+// What is new (never opened, entered or looked at) is kept with the discoveries: 'sn:<id>' once seen, 'dr:<id>' once drawn in (ilNew, ilSee, inkDisc: content.js). A save from before that
+// has seen all it had found (but the events it had left unread), so nothing it knows is written in or marked again
+if(!window.__SCENE&&!discSeen.has('sn:')){let un=[];try{un=JSON.parse(localStorage.getItem('il_ev_unread')||'[]');localStorage.removeItem('il_ev_unread');}catch(e){}
+  if(discSeen.size){_discOld=true;for(const d of [...discSeen])if(d.slice(0,3)!=='ev:'||!un.includes(d.slice(3))){discSeen.add('sn:'+d);discSeen.add('dr:'+d);}for(const e of RULES)if(ruleOk(e[0]))discSeen.add('sn:g_'+e[0]);
+    for(const k in T)if(k.slice(0,3)==='dc_'&&!T[k]){const id=k.slice(3),o=id.slice(0,4)==='obj_';for(const q of o?['of_'+id.slice(4),'ot_'+id.slice(4)]:[id]){discSeen.add('sn:'+q);discSeen.add('dr:'+q);}}}
+  discSeen.add('sn:');saveInventory();}
+const evNew=()=>EVENTS.filter(e=>discSeen.has('ev:'+e.id)&&ilNew('ev:'+e.id)).map(e=>e.id); // the events found and not yet looked at
 var _evSurfAt=0; // (var: a surface is built before this part of the page has run)
 const _evDC=new WeakMap(); // (each nebula particle's record, made once: they keep still until woken)
 var _evRep=null,_evCap=null; // an event's capture, as it is played again (in a recording's own copy of the game) and as it happens (var: the draw asks after them before this part of the page has run)
@@ -12852,7 +12861,7 @@ function evStill(c){const{x,y,rw,rh}=c.rect,k=canvas.width/W,w=Math.max(4,rw-4),
 function evCapSave(c){const S=c.snap;if(!S)return;const{rw,rh}=evFrameR(c),cx=W/2,cy=H/2,now=performance.now(); // the whole surface as it was (everything on it: what comes into the frame or leaves it, and what acts on it from outside it, plays out too); the frame follows its subject over it
   const objs=S.L.map(q=>Object.assign({},q,{dx:q.x-cx,dy:q.y-cy})),dorm=(S.D||[]).map(q=>Object.assign({},q,{dx:q.x-cx,dy:q.y-cy}));
   const ins=_evIn.filter(e=>e.t>=S.t).map(e=>({t:e.t,ty:e.ty,dx:e.x-cx,dy:e.y-cy,b:e.b,bs:e.bs,d:e.d})),st=S.st&&Object.assign({},S.st,S.st.x<-999?{dx:-9999,dy:-9999}:{dx:S.st.x-cx,dy:S.st.y-cy}); // (the cursor off the surface stays off)
-  const rec={id:c.id,w:Math.round(W),h:Math.round(H),fw:Math.round(2*rw),fh:Math.round(2*rh),path:[[Math.round(c.t0),Math.round(c.x0-cx),Math.round(c.y0-cy)]],obj:c.obj,src:S.L.map((q,i)=>c.ids.has(q.oid)?i:-1).filter(i=>i>=0),still:evStill(c),inv:invertMode?1:0,end:Math.round(now),dur:Math.round(now-S.t+(T.evReplayTail||900)),objs,dorm,at:Date.now(), // (path: where its subject was as it began; obj: a thing, not a place; src: which of objs it came of; still: how it ended; end: when)
+  const rec={id:c.id,w:Math.round(W),h:Math.round(H),fw:Math.round(2*rw),fh:Math.round(2*rh),path:[[Math.round(c.t0),Math.round(c.x0-cx),Math.round(c.y0-cy)]],obj:c.obj,src:S.L.map((q,i)=>c.ids.has(q.oid)?i:-1).filter(i=>i>=0),still:evStill(c),sk:evSketch(c.rect),inv:invertMode?1:0,end:Math.round(now),dur:Math.round(now-S.t+(T.evReplayTail||900)),objs,dorm,at:Date.now(), // (path: where its subject was as it began; obj: a thing, not a place; src: which of objs it came of; still: how it ended; sk: what was in its frame then, for its page's drawing; end: when)
     t0:S.t,cap0:c.t0,st,ins,T:Object.assign({},T),purse:Object.assign({},inventory),ups:[...discSeen].filter(d=>d.slice(0,3)==='up:'),run:JSON.parse(JSON.stringify(runState||{}))};_evRecs[c.id]=rec;IDB.put('evrec:'+c.id,rec).catch(()=>{});} // (and everything it ran on: every setting, your purse, upgrades and day)
 let _evDesk=[];
 function evCapTick(now){for(const b of _evBg){evFollow(b,now);if(now-b.t0>=(T.evCaptureMs||2400)){b.done=1;evCapSave(b);}}_evBg=_evBg.filter(b=>!b.done); // (the quiet ones: saved for their Journal entries)
@@ -12873,33 +12882,32 @@ function evReplayMount(h,rec){if(!h||h.firstChild)return;const f=document.create
     const kk=k*evZoomK(c,w.performance.now()),tx=rec.w/2+P[1]+w.__evU[0],ty=rec.h/2+P[2]+w.__evU[1],e=w===last?0.18:1;last=w;X+=(tx-X)*e;Y+=(ty-Y)*e;const mx=(X%rec.w+rec.w)%rec.w,my=(Y%rec.h+rec.h)%rec.h; // (the view eases after its subject: no jolt when the frame takes up what came of it)
     g.setTransform(1,0,0,1,0,0);g.fillStyle=rec.inv?'#fff':'#000';g.fillRect(0,0,v.width,v.height);
     for(const ox of[-rec.w,0,rec.w])for(const oy of[-rec.h,0,rec.h]){const L=aw/2+(ox-mx)*kk,U=ah/2+(oy-my)*kk;if(L>=aw||U>=ah||L+rec.w*kk<=0||U+rec.h*kk<=0)continue;g.setTransform(kk*dp,0,0,kk*dp,L*dp,U*dp);g.drawImage(cv,0,0,rec.w,rec.h);if(cu&&cu.width&&w.getComputedStyle(cu).display!=='none')g.drawImage(cu,0,0,rec.w,rec.h);}};pan();}
-function evDeskSync(){let el=document.getElementById('evDesk');const n=new Set([..._evDesk,...evUnread]).size;if(!el){el=document.createElement('button');el.id='evDesk';el.style.cssText='position:absolute;right:12px;bottom:calc(var(--dock-h,0px) + 14px);z-index:30;background:rgba(0,0,0,.75);color:#fff;border:1px solid rgba(255,255,255,.35);border-radius:14px;font:11px monospace;padding:4px 10px;display:none';
-    el.onmousedown=e=>e.stopPropagation();el.onclick=e=>{e.stopPropagation();const ids=[...new Set([..._evDesk,...evUnread])].filter(i=>EVENTS.some(v=>v.id===i));if(!ids.length)return;_evDesk=[];_evDeskOpen=true;_evHand=ids;_evAct=0;showEventCard(ids[0],true);};wrap.appendChild(el);}
+function evDeskSync(){let el=document.getElementById('evDesk');const n=new Set([..._evDesk,...evNew()]).size;if(!el){el=document.createElement('button');el.id='evDesk';el.style.cssText='position:absolute;right:12px;bottom:calc(var(--dock-h,0px) + 14px);z-index:30;background:rgba(0,0,0,.75);color:#fff;border:1px solid rgba(255,255,255,.35);border-radius:14px;font:11px monospace;padding:4px 10px;display:none';
+    el.onmousedown=e=>e.stopPropagation();el.onclick=e=>{e.stopPropagation();const ids=[...new Set([..._evDesk,...evNew()])].filter(i=>EVENTS.some(v=>v.id===i));if(!ids.length)return;_evDesk=[];_evDeskOpen=true;_evHand=ids;_evAct=0;showEventCard(ids[0],true);};wrap.appendChild(el);}
   el.textContent=txt('ev.desk',n);el.title=txt('ev.desk_tip');el.style.display=n&&!window.__SCENE&&!BUILD?'':'none';el.classList.toggle('new',_evDesk.length>0);}
 function eventPump(){evCapTick(performance.now());if(!_evQ.length||_evCap||_rulesOpen||_menuOpen||(_evOpen&&!_evHand.length))return;const n=_evHand.length;_evHand.push(..._evQ.splice(0));showEventCard(_evHand[n?_evAct:0],false);} // new ones join an open hand
 const gEsc=s=>String(s).replace(/[&<>]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[c]));
-function gHi(t){const e=gEsc(t),f=gEsc(_rulesFilter.trim());if(!f)return e;return e.split(new RegExp('('+f.replace(/[.*+?^${}()|[\]\\]/g,'\\$&')+')','gi')).map((x,i)=>i%2?'<mark>'+x+'</mark>':x).join('');}
 // Tiers (instead of rarity): how deep in the game a card sits. Muted tones: a card only explains, it has no use of its own
 const TIER=['I','II','III','IV','V'],TIER_COL=['#8b8678','#918a76','#978c71','#9d8d6b','#a38e64'],EV_TIER={c:0,u:1,r:2,m:3};
 const tierOfCost=c=>c<3?0:c<10?1:c<20?2:c<40?3:4,evTier=ev=>ev.tier!=null?ev.tier:EV_TIER[ev.rar]||0;
-function cardHTML(ev,mini){ // the one card format: name bar, art box, type line, text box with facts + flavour
+function cardHTML(ev,mini,pg){ // the one card format: name bar, art box, type line, text box with facts + flavour. A new one (never looked at) lies face down until it is turned over (fd); pg: as a page of the Journal (written in there instead)
   const t=evTier(ev);
-  return `<div class="mtg${mini?' sm':''}${evUnread.has(ev.id)?' unread':''}" data-ev="${ev.id}" style="--rc:${TIER_COL[t]}"><div class="nm"><b>${gEsc(ev.name)}</b><span class="gem"></span></div><div class="art" data-scene="${ev.scene}" data-ev="${ev.id}">${mini?evStillHTML([ev.id])||`<canvas class="rl-m" width="64" height="64" data-k="${ev.ico}"></canvas>`:''}</div><div class="ty"><span>${gEsc(ev.type.replace(/^Event — /,''))}</span><span>Tier ${TIER[t]}</span></div><div class="tx">${(mini?ev.facts().slice(0,1):ev.facts()).map(f=>`<p${ev.fx?' class="fx"':''}>${tvHTML(f)}</p>`).join('')}${ev.flavor?`<p class="fl">${gEsc(ev.flavor)}</p>`:''}</div></div>`; // (small: its first line and its flavour; the rest when it is opened) (fx: the lines are changes to play, set apart from the flavour)
+  return `<div class="mtg${mini?' sm':''}${!pg&&discSeen.has('ev:'+ev.id)&&ilNew('ev:'+ev.id)?' fd':''}" data-ev="${ev.id}" data-new="ev:${ev.id}" style="--rc:${TIER_COL[t]}"><div class="nm"><b>${gEsc(ev.name)}</b><span class="gem"></span></div><div class="art" data-scene="${ev.scene}" data-ev="${ev.id}" data-k="${ev.ico}">${mini?evStillHTML([ev.id])||`<canvas class="rl-m" width="64" height="64" data-k="${ev.ico}"></canvas>`:''}</div><div class="ty"><span>${gEsc(ev.type.replace(/^Event — /,''))}</span><span>Tier ${TIER[t]}</span></div><div class="tx">${(mini?ev.facts().slice(0,1):ev.facts()).map(f=>`<p${ev.fx?' class="fx"':''}>${tvHTML(f)}</p>`).join('')}${ev.flavor?`<p class="fl">${gEsc(ev.flavor)}</p>`:''}</div></div>`; // (small: its first line and its flavour; the rest when it is opened) (fx: the lines are changes to play, set apart from the flavour)
 }
 function mountScene(h,w,hh){if(!h||h.firstChild||document.querySelectorAll('.rl-live iframe,.mtg .art iframe').length>=5)return;{const R=(h.dataset.ev||'').split(',').map(evRecFor).find(Boolean);if(R&&!w){evReplayMount(h,R);return;}} /* something you witnessed: your own recording of it, live (a demo only for what you have not) */const f=document.createElement('iframe'),nm=h.dataset.s||h.dataset.scene;f.style.cssText='border:0;max-width:100%;pointer-events:none;background:#000;border-radius:6px;'+(w?`width:${w}px;height:${hh}px`:'width:100%;height:100%');
-  if(nm.slice(0,4)==='hub:'){const[sn,dk]=nm.slice(4).split(':');f.src='Surface_Map_HUB.html?v=20261110i&scene='+sn+(sn==='shop'?'&k='+encodeURIComponent(dk||''):'')+'&T='+encodeURIComponent(JSON.stringify(mapSceneT()))+'&D='+encodeURIComponent(JSON.stringify(dk&&DUCK_TYPES[dk]?{[dk]:DUCK_TYPES[dk]}:Object.fromEntries(Object.entries(DUCK_TYPES).slice(0,4))));}else f.srcdoc=liveSrc(nm);h.appendChild(f);} // a Surface Map demo is played by the map itself
+  if(nm.slice(0,4)==='hub:'){const[sn,dk]=nm.slice(4).split(':');f.src='Surface_Map_HUB.html?v=20261111i&scene='+sn+(sn==='shop'?'&k='+encodeURIComponent(dk||''):'')+'&T='+encodeURIComponent(JSON.stringify(mapSceneT()))+'&D='+encodeURIComponent(JSON.stringify(dk&&DUCK_TYPES[dk]?{[dk]:DUCK_TYPES[dk]}:Object.fromEntries(Object.entries(DUCK_TYPES).slice(0,4))));}else f.srcdoc=liveSrc(nm);h.appendChild(f);} // a Surface Map demo is played by the map itself
 function mapSceneT(){const o={};for(const k in T)if(/^(map|bh|duck|wake|glass|metal|dimGlow|glowHalo|maxSpeed)/.test(k))o[k]=T[k];return o;} // what a map demo needs of the tuners
 function showCardHTML(html){ // a Guide card (an entry or a shop) opened over the Guide, where an event card shows
   guideCSS();_evOpen=true;_evReview=true;const ov=evOverlayEl();ov.innerHTML=`<div class="ev-box">${html}<button id="evOk">${txt('card.close')}</button></div>`;ov.style.display='flex';wrap.classList.add('ev-open');
-  ov.querySelectorAll('canvas.rl-m').forEach(cv=>rulesDraw(cv,cv.dataset.k));applyDisc();rulesRemount();document.getElementById('evOk').onclick=()=>closeEventCard();
-  ov.querySelectorAll('.ctabs span').forEach(t=>t.onclick=()=>{ov.querySelectorAll('.ctabs span').forEach(x=>x.classList.toggle('on',x===t));ov.querySelectorAll('.clist').forEach(l=>l.style.display=l.dataset.t===t.dataset.t?'':'none');});} // a shop card's currency tabs
+  ov.querySelectorAll('canvas.rl-m').forEach(cv=>rulesDraw(cv,cv.dataset.k));applyDisc();rulesRemount();document.getElementById('evOk').onclick=()=>closeEventCard();}
+document.addEventListener('click',e=>{const c=e.target.closest&&e.target.closest('.mtg.fd');if(!c||c.closest('.ev-hand'))return;e.stopPropagation();e.preventDefault();c.classList.remove('fd');ilSee(c.dataset.new);evDeskSync();},true); // a new card lies face down: a click turns it over, and it is seen (in a hand, a click picks it up first)
+document.addEventListener('click',e=>{const t=e.target.closest&&e.target.closest('.ctabs span');if(!t)return;const b=t.closest('.mtg');b.querySelectorAll('.ctabs span').forEach(x=>x.classList.toggle('on',x===t));b.querySelectorAll('.clist').forEach(l=>l.style.display=l.dataset.t===t.dataset.t?'':'none');}); // a shop's currency tabs, on its card or its page
 function evOverlayEl(){let ov=document.getElementById('evOverlay');
   if(!ov){ov=document.createElement('div');ov.id='evOverlay';wrap.appendChild(ov);for(const t of ['mousedown','mouseup','click','dblclick'])ov.addEventListener(t,e=>e.stopPropagation());ov.addEventListener('contextmenu',e=>{e.stopPropagation();e.preventDefault();});ov.addEventListener('wheel',e=>e.stopPropagation(),{passive:true});}
   return ov;}
 function showEventCard(id,review){
   const ev=EVENTS.find(e=>e.id===id);if(!ev)return;guideCSS();
   if(!review){if(!_evOpen){_evWasPaused=isPaused;if(!isPaused)togglePause();}let nw=0;for(const h of _evHand)if(!discSeen.has('ev:'+h)){discSeen.add('ev:'+h);nw=1;}if(nw)saveInventory();_evAct=Math.max(0,_evHand.indexOf(id));}else if(!_evDeskOpen)_evHand=[];else _evAct=Math.max(0,_evHand.indexOf(id));
-  if(evUnread.delete(id)){evUnreadSave();evDeskSync();} // looked at: read (in any place it shows)
   _evOpen=true;_evReview=review;releaseMouseDown(performance.now());uiPress=false;
   const ov=evOverlayEl();ov.querySelectorAll('iframe').forEach(f=>f.remove());
   const un=RULES.filter(e=>{const v=RULE_EV[e[0]];return Array.isArray(v)?v.includes(id):v===id;}).map(e=>e[2]);
@@ -12909,15 +12917,14 @@ function showEventCard(id,review){
   const art=ov.querySelector('.art');art.dataset.s=ev.scene;art.dataset.ev=id;mountScene(art); // its art: your recording of it, when there is one (else its demo)
   document.getElementById('evOk').onclick=()=>closeEventCard();
 }
-function shopBackHTML(k){return `<div class="mtg sm back sb"><div class="art"><img class="sign hid" src="shops/sign_${k}.svg" alt=""></div></div>`;} // a shop not yet found: its sign's shape
-function shopCardHTML(k,mini){const S=SHOPS[k],seen=evSeen('shop_'+k),t=S.street?0:SHOP_TIER(k)===0?2:1,f=n=>(+n).toLocaleString('en-US');
-  if(!seen)return mini?shopBackHTML(k):'';
+function shopBackHTML(k){return `<div class="mtg back sb"><div class="art"><img class="sign hid" src="shops/sign_${k}.svg" alt=""></div></div>`;} // a shop not yet found: its sign's shape
+function shopCardHTML(k){const S=SHOPS[k],t=S.street?0:SHOP_TIER(k)===0?2:1,f=n=>(+n).toLocaleString('en-US'); // a shop's page: what it is, when it opens, what it sells
+  if(!evSeen('shop_'+k))return shopBackHTML(k);
   const hrs=S.open==null||S.open<=0&&S.close>=27?'Open all day':'Open '+(TIMES[S.open]||'')+' – '+(TIMES[S.close]||''),how=S.street?hrs+' · on main street, round the source'
     :hrs+' · a pop-up: opens on a cleared surface that collected '+S.cur+' (rank 1 at '+f(T[shopTK(S.cur)+1])+', rank 2 at '+f(T[shopTK(S.cur)+2])+', rank 3 at '+f(T[shopTK(S.cur)+3])+'). A bigger rank carries more.';
   const its=SHOP_ITEMS.filter(i=>i.shop===k),cu=i=>i.fx.souv?'souvenirs':KIND_NAME[i.cur]||i.cur,curs=[...new Set(its.map(cu))]; // a tab for each thing it takes
   const items=(curs.length>1?'<div class="ctabs">'+curs.map((c,j)=>`<span class="${j?'':'on'}" data-t="${j}">${gEsc(c)}</span>`).join('')+'</div>':'')+curs.map((c,j)=>`<div class="clist" data-t="${j}"${j?' style="display:none"':''}>`+its.filter(i=>cu(i)===c).map(i=>`<div class="si" data-disc="si_${i.id}"><span>${gEsc(i.n)}${S.street?'':' <i>(rank '+i.r+')</i>'}</span><b>${f(i.cost)}</b></div>`).join('')+'</div>').join('');
-  const art=mini?`<img class="sign" src="shops/sign_${k}.svg" alt="">`:`<div class="art-live" data-scene="hub:shop:${k}"></div>`;
-  return `<div class="mtg${mini?' sm':' full'}" data-shop="${k}" style="--rc:${TIER_COL[t]}"><div class="nm"><b>${gEsc(S.n)}</b><span class="gem"></span></div><div class="art">${art}</div><div class="ty"><span>Shop · ${S.street?'main street':'pop-up'}</span><span>Tier ${TIER[t]}</span></div><div class="tx"><p>${gEsc(S.tag)}</p>${mini?'':`<p>${gEsc(how)}</p><p>${gEsc(S.about||'')}</p><p><b>Sells</b> (each found by discovery):</p>${items}`}</div></div>`;}
+  return `<div class="mtg full" data-shop="${k}" style="--rc:${TIER_COL[t]}"><div class="nm"><b>${gEsc(S.n)}</b><span class="gem"></span></div><div class="art" data-k="sign:${k}"><div class="art-live" data-scene="hub:shop:${k}"></div></div><div class="ty"><span>Shop · ${S.street?'main street':'pop-up'}</span><span>Tier ${TIER[t]}</span></div><div class="tx"><p>${gEsc(S.tag)}</p><p>${gEsc(how)}</p><p>${gEsc(S.about||'')}</p><p><b>Sells</b> (each found by discovery):</p>${items}</div></div>`;}
 function closeEventCard(){if(_evDraw)return;
   const ov=document.getElementById('evOverlay');if(ov){ov.querySelectorAll('iframe').forEach(f=>f.remove());ov.style.display='none';}
   wrap.classList.remove('ev-open');_evOpen=false;_evHand=[];_evDeskOpen=false;
@@ -13010,7 +13017,7 @@ function mapShow(sel){
     if(!kn){info.innerHTML='<h3>?</h3><p class="rl-note">Not met yet. It appears here once it has happened on a surface.</p>';return;}
     if(!ok){info.innerHTML=`<h3>${gEsc(n[2])}</h3><p>▒ Undiscovered. Hover it holding ${fmtCount(discCostOf('mapn_'+id))} Dim to discover it.</p>`;return;}
     const r=RULES.find(e=>e[0]===n[4]),lines=d=>MAP_EDGES.filter(e=>(d?e.a:e.b)===id&&evOk(MAP_NODES[d?e.b:e.a][3])).map(e=>MAP_NODES[d?e.b:e.a][2]+' ('+e.l+')'),from=lines(false),to=lines(true);
-    info.innerHTML=(r?ruleCardHTML(Object.assign([],r,{2:n[2]}),false):`<h3>${gEsc(n[2])}</h3>`)+`${from.length?`<p><b>Comes from:</b> ${gEsc(from.join(' · '))}</p>`:''}${to.length?`<p><b>Becomes:</b> ${gEsc(to.join(' · '))}</p>`:''}`;}
+    info.innerHTML=(r?ruleCardHTML(Object.assign([],r,{2:n[2]}),true):`<h3>${gEsc(n[2])}</h3>`)+`${from.length?`<p><b>Comes from:</b> ${gEsc(from.join(' · '))}</p>`:''}${to.length?`<p><b>Becomes:</b> ${gEsc(to.join(' · '))}</p>`:''}`;}
   else{const ed=sel.e,ok=discHas('map_'+ed.id),key='e'+ed.id+ok;if(info.dataset.e===key)return;info.dataset.e=key;
     const A=MAP_NODES[ed.a][2],B=MAP_NODES[ed.b][2];
     if(!ok){info.innerHTML=`<h3>${A} → ${B}</h3><p>▒ Undiscovered. Hover this line holding ${fmtCount(discCostOf('map_'+ed.id))} Dim to discover it.</p>`;return;}
@@ -13018,11 +13025,11 @@ function mapShow(sel){
     info.innerHTML=`<div class="mtg full" style="--rc:${TIER_COL[tierOfCost(ed.cost)]}"><div class="nm"><b>${A} → ${B}</b><span class="gem"></span></div><div class="art"><div class="art-live" data-scene="${ed.scene}"></div></div><div class="ty"><span>Taxonomy · ${gEsc(ed.l)}</span><span>Tier ${TIER[tierOfCost(ed.cost)]}</span></div><div class="tx"><ul>${ed.cond().map(l=>`<li>${gEsc(l)}</li>`).join('')}</ul>${m?`<details class="rl-math"><summary>Math (live values)</summary>${m}</details>`:''}</div></div>`;}
   info.querySelectorAll('canvas.rl-m').forEach(cv=>rulesDraw(cv,cv.dataset.k));applyDisc();const lv=info.querySelector('.art-live');if(lv&&!lv.classList.contains('disc-lock'))mountScene(lv);
 }
-// ── Guide rendering: collapsed cards in a grid, the open one spans the row ──
+// ── Guide rendering: the cards' and the books' looks ──
 function guideCSS(){
   if(document.getElementById('guideCss'))return;const st=document.createElement('style');st.id='guideCss';
   st.textContent=`
-.mtg.unread .nm b::after{content:' ●';color:#ffd66e;font-size:.8em} #evDesk.new{border-color:#ffd66e;box-shadow:0 0 10px rgba(255,214,110,.5)}
+#evDesk.new{border-color:#ffd66e;box-shadow:0 0 10px rgba(255,214,110,.5)}
 #rulesOverlay{position:absolute;inset:2% 4%;z-index:60;display:flex;flex-direction:column;background:rgba(0,0,0,.96);color:#fff;border:1px solid #fff;border-radius:0;font:13px/1.5 system-ui,'Inter',sans-serif;letter-spacing:.4px;box-shadow:0 10px 50px rgba(0,0,0,.6);overflow:hidden} /* as the main and shop menus: black, a white line, plain type */
 #rulesOverlay.coll{left:auto;right:2%;max-width:96%;top:calc(2% + var(--dkT,0px));bottom:calc(2% + var(--dkB,0px))} /* (over the map: clear of its feed and items, at whichever edge they are) */html.see,html.see body,html.see #wrap{background:transparent!important}#rulesOverlay.coll .bk{max-width:100%}
 #rulesOverlay.inv{background:rgba(255,255,255,.97);color:#000;border-color:#000}
@@ -13036,19 +13043,12 @@ function guideCSS(){
 #rlTabs button.on{opacity:1;border-color:currentColor;background:rgba(128,128,128,.22);font-weight:600} /* the open tab, as a shop's open currency tab */
 #rlBody{flex:1 1 auto;overflow-y:auto;overflow-x:hidden;padding:10px 14px 20px;overflow-wrap:anywhere}#rlBody.by{overflow:hidden;padding-bottom:10px;min-height:0}.byL{display:flex;gap:16px;height:100%}#rlBody .byV{flex:2 1 0;min-width:0;position:relative}#rlBody #buoyView{position:absolute;left:0;top:0;width:100%;height:100%;display:block;touch-action:none;cursor:grab}.byR{flex:1 1 0;min-width:0;overflow-y:auto;padding:0 14px 20px 2px}.byR .stt td:first-child{white-space:normal;width:6.2em;min-width:6.2em}.byTod .gbtn{padding:1px 7px;font-size:11px;min-width:0}@media (max-width:720px){.byL{flex-direction:column}.byV{flex:0 0 55%}} /* the Buoy page (its right column clears its own scrollbar) */
 .rl-note{opacity:.75;margin:2px 0 10px}
-.rl-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:9px;align-items:start}
-.rl-c{border:1px solid rgba(128,128,128,.4);border-radius:0;background:transparent;overflow:hidden}.rl-c:hover{border-color:rgba(128,128,128,.8)}
-.rl-c.open{grid-column:1/-1}
-.rl-h{display:flex;align-items:center;gap:10px;padding:7px 9px;cursor:pointer}
 .rl-m{width:48px;height:48px;border-radius:8px;flex:0 0 48px;background:#05060a}
-.rl-t{display:flex;flex-direction:column;min-width:0}.rl-t i{font-style:normal;opacity:.8;font-size:12.5px}
-.rl-b{display:none;padding:2px 12px 10px}.rl-c.open .rl-b{display:block}.rl-b p{margin:5px 0}
 .rl-x{margin:4px 0}.rl-live{display:inline-block;vertical-align:top;margin:4px 6px 4px 0;min-width:340px;min-height:200px;background:#000;border-radius:6px}
 .rl-math{margin:4px 0}.rl-mh{font-weight:bold;margin-top:6px}.tv{border-bottom:1px dotted rgba(140,200,255,.7);cursor:help}.tv.hc{border-bottom-color:rgba(255,170,90,.7)}.rl-math ul,#mapInfo ul{margin:3px 0 3px 18px;padding:0}
 
 #wrap.rules-open #cur,#wrap.ev-open #cur,#wrap.menu-open #cur{display:none!important}
 #rulesOverlay canvas.rl-m,#evOverlay canvas.rl-m{position:static!important;display:block}
-#rlFind{width:100%;box-sizing:border-box;padding:6px 10px;border-radius:0;border:1px solid rgba(128,128,128,.55);background:transparent;color:inherit;font:13px system-ui,'Inter',sans-serif;letter-spacing:.4px;margin-bottom:8px}
 #mapCv{position:relative;left:auto;top:auto;width:100%;display:block;border-radius:8px;background:#05060a;touch-action:none}.lc{display:flex;gap:14px;align-items:flex-start}.lc-l{flex:1 1 auto;min-width:0}.lc-r{flex:0 0 450px;position:sticky;top:0;max-height:calc(100vh - 170px);overflow:auto}#mapInfo h3{margin:4px 0}#mapInfo .rl-live{margin:6px 0}@media (max-width:820px){.lc{flex-direction:column}.lc-r{flex-basis:auto;position:static;max-height:none;width:100%}}
 .mtg{width:300px;border-radius:14px;padding:8px;background:linear-gradient(#2c2618,#17130c);border:3px solid var(--rc,#8a7a4a);color:#eee;font-family:Georgia,serif;box-sizing:border-box;box-shadow:0 0 18px rgba(0,0,0,.6)}
 .mtg .nm{display:flex;justify-content:space-between;align-items:center;padding:3px 8px;background:#3a3222;border:1px solid var(--rc);border-radius:6px;font-size:16px}
@@ -13057,7 +13057,6 @@ function guideCSS(){
 .mtg .ty{display:flex;justify-content:space-between;gap:6px;padding:2px 8px;font-size:12px;background:#3a3222;border:1px solid var(--rc);border-radius:6px}.mtg .ty span{white-space:nowrap}.mtg .ty span:first-child{min-width:0;overflow:hidden;text-overflow:ellipsis}
 .mtg .tx{background:#e8dfc4;color:#222;border-radius:4px;padding:7px 9px;margin-top:6px;font-size:12.5px;min-height:110px}.mtg .tx p{margin:4px 0}.mtg .fl{font-style:italic;opacity:.75;border-top:1px solid #0003;padding-top:4px}
 .mtg.sm{width:210px;font-size:11px}.mtg.sm .art{height:80px}.mtg.sm .tx{min-height:0;font-size:11px}.mtg.back{height:230px;display:flex;align-items:center;justify-content:center;font-size:44px;opacity:.5;background:#222}
-.ev-grid{display:flex;flex-wrap:wrap;gap:12px}
 #evOverlay{position:absolute;inset:0;z-index:70;display:none;align-items:center;justify-content:center;background:rgba(0,0,0,.72)}
 .ev-box{display:flex;flex-direction:column;align-items:center;gap:8px;max-height:96%;overflow:auto}.ev-box .mtg{width:min(340px,86vw)}.ev-un{color:#cfd6e4;font:12px system-ui;max-width:340px;text-align:center}.ev-draw{display:flex;gap:12px;justify-content:center;flex-wrap:wrap;max-width:94vw}.ev-draw .mtg.sm{width:180px;transition:transform .15s}.ev-draw .mtg.sm:hover{transform:translateY(-6px)}
 .mtg.cb{opacity:1;border:2px solid var(--rc);border-radius:8px;background:radial-gradient(circle at 50% 45%,#3a2a48 0,#16111c 60%,#0c0a10 100%),repeating-linear-gradient(45deg,#1a1622 0 6px,#221c2c 6px 12px)}
@@ -13068,59 +13067,145 @@ function guideCSS(){
 #evOverlay{padding:58px 0 112px;box-sizing:border-box} /* a card fits between the bar along the top and the dock and feed along the bottom: never over them */
 .ev-box{position:relative;overflow:visible!important;max-height:100%;min-height:0}.ev-box>.mtg{display:flex;flex-direction:column;max-height:calc(100vh - 210px);min-height:0}.ev-box>.mtg .art{flex:0 1 auto;min-height:70px}.ev-box>.mtg .tx{flex:1 1 auto;min-height:0;overflow:auto} /* (its text scrolls inside it, the card never longer) */
 @media (max-width:640px){#evOk{position:static;margin:0}}
-.rl-cards{display:flex;flex-wrap:wrap;gap:12px;align-items:flex-start}.rl-sec{margin:16px 0 8px;font-size:15px}.mtg.sm{cursor:pointer}.mtg.sm .tx p{margin:2px 0}
+.rl-cards{display:flex;flex-wrap:wrap;gap:12px;align-items:flex-start}.mtg.sm{cursor:pointer}.mtg.sm .tx p{margin:2px 0}
 .ev-box .mtg.full{width:min(440px,92vw)}.mtg.full .art{height:190px}.mtg .art-live{width:100%;height:100%}.mtg.full .tx{max-height:none}.mtg .tx .rl-live{display:block;min-width:0;width:100%;height:170px;min-height:0;margin:6px 0}
 .mtg .art img.still{width:100%;height:100%;object-fit:cover;display:block}.mtg .art img.sign{max-width:86%;max-height:86%;object-fit:contain}.mtg .art img.sign.hid{filter:brightness(0) drop-shadow(0 0 1px rgba(210,210,220,.75))}.mtg .tx .si{display:flex;justify-content:space-between;gap:8px}.mtg .tx .si b{font-weight:400}.ctabs{display:flex;gap:4px;flex-wrap:wrap;margin:4px 0}.ctabs span{border:1px solid #0004;border-radius:4px;padding:0 6px;font-size:11px;cursor:pointer!important;opacity:.6}.ctabs span.on{opacity:1;background:#0001;border-color:#000a}
-#rulesOverlay .mtg.sm .tx{height:var(--smtx,auto);overflow:hidden}#rulesOverlay .mtg.sm.back{height:var(--smh,230px)}#rulesOverlay .mtg.sm{min-height:var(--smh,0)}.mtg.sm .nm b{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+#rulesOverlay .mtg.sm.back,#rulesOverlay .mtg.sm.sv{height:150px}.mtg.sm .nm b{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+/* a new card lies face down (fd): its back shows until a click turns it over */
+.mtg{position:relative;transform-style:preserve-3d;transition:transform .6s cubic-bezier(.3,.7,.3,1)}.mtg>*{backface-visibility:hidden}.mtg.fd{transform:rotateY(180deg);cursor:pointer}
+.mtg::before{content:'∞';position:absolute;inset:-3px;border-radius:inherit;border:3px solid var(--rc,#8a7a4a);box-sizing:border-box;display:flex;align-items:center;justify-content:center;font-size:54px;color:var(--rc,#8a7a4a);text-shadow:0 0 14px rgba(255,214,110,.55);background:radial-gradient(circle at 50% 45%,#3a2a48 0,#16111c 60%,#0c0a10 100%);transform:rotateY(180deg) translateZ(1px);backface-visibility:hidden;pointer-events:none}.mtg.fd::before{animation:isNew 1.7s ease-in-out infinite}
+/* the books (the Journal, the Letters): two pages to a spread, handwritten */
+#rulesOverlay,#evOverlay{--hand:'Caveat','Segoe Print','Bradley Hand','Chalkboard SE','Comic Sans MS',cursive}#rlBody.jr{overflow:hidden;display:flex;flex-direction:column;padding:8px 120px 4px 14px}#rulesOverlay:not(.coll) #rlTabs{display:none}
+.bk{display:flex;max-width:820px;margin:8px auto;background:#6b4a2a;padding:10px;border-radius:6px;box-shadow:0 8px 30px rgba(0,0,0,.5);position:relative}
+.bk-p{flex:1 1 0;min-width:0;min-height:320px;box-sizing:border-box;background:linear-gradient(90deg,#efe4c6,#f6eed8);color:#3a2c18;padding:28px 30px 18px;font:20px/1.3 var(--hand);letter-spacing:0;position:relative}.bk-p+.bk-p{background:linear-gradient(90deg,#f6eed8,#efe4c6);border-left:1px solid #c9b88f}.bk-p.wide{flex:2 1 0}
+.bk-f{text-align:right;margin-top:14px;font-size:17px}.bk-n{position:absolute;bottom:3px;left:0;right:0;text-align:center;font-size:14px;opacity:.55}.bk-nav{display:flex;justify-content:center;gap:12px;align-items:center;margin:6px 0}.bk-nav button{background:rgba(128,128,128,.2);color:inherit;border:0;border-radius:6px;padding:5px 14px;cursor:pointer}
+.bk.jr{flex:1 1 auto;min-height:0;width:100%;max-width:1180px;margin:0 auto;box-sizing:border-box}.bk.jr .bk-p{display:flex;flex-direction:column;gap:6px;min-height:0;padding:14px 22px 22px;overflow:hidden}
+.bk-c{flex:0 1 auto;min-height:0;max-height:84%;overflow-y:auto;overflow-x:hidden}.bk-p.wide .bk-c{max-height:90%}
+.bk-w{flex:1 1 0;min-height:52px;width:100%;box-sizing:border-box;resize:none;border:0;outline:0;padding:0 2px;background:repeating-linear-gradient(transparent 0 25px,rgba(58,44,24,.16) 25px 26px);font:20px/26px var(--hand);color:#27407a}.bk-w::placeholder{color:rgba(58,44,24,.28)}
+.bk-h{font:700 34px/1.1 var(--hand);margin:14% 0 8px;text-align:center}.bk-p.un .bk-c::before{content:'?';display:block;text-align:center;font-size:64px;opacity:.16;padding:24px 0}
+.bk-toc a,.bk-ix a{cursor:pointer}.bk-toc a{display:flex;justify-content:space-between;gap:8px;border-bottom:1px dotted rgba(58,44,24,.35)}.bk-toc a:hover,.bk-ix a:hover{color:#27407a}.bk-toc i{font-style:normal}.bk-ix{margin:1px 0}
+.bk-tabs{position:absolute;left:100%;top:12px;display:flex;flex-direction:column;gap:5px;align-items:flex-start}.bk-tabs button{background:#e8dfc4;color:#3a2c18;border:1px solid #6b4a2a;border-left:0;border-radius:0 7px 7px 0;padding:3px 10px 3px 7px;font:17px/1.2 var(--hand);white-space:nowrap;cursor:pointer;opacity:.8}.bk-tabs button.on{opacity:1;padding-left:15px;font-weight:700;background:#f6eed8}
+.bk.tf .bk-p:nth-child(2){animation:bkT .38s ease-out;transform-origin:left center}.bk.tb .bk-p:first-child{animation:bkT .38s ease-out;transform-origin:right center;--ry:80deg}@keyframes bkT{from{transform:perspective(1800px) rotateY(var(--ry,-80deg));filter:brightness(.6)}to{transform:none}}
+/* a page: the card's own format (name, picture, page line, text), in ink on the paper */
+.bk-p .mtg{width:auto!important;max-height:none;border:0;border-radius:0;padding:0;background:none;color:inherit;font:inherit;box-shadow:none;cursor:default}.bk-p .mtg::before{display:none}
+.bk-p .mtg .nm{background:none;border:0;border-bottom:1.5px solid currentColor;border-radius:0;padding:0 2px;font:700 27px/1.15 var(--hand)}.bk-p .mtg .gem{display:none}
+.bk-p .mtg .art{height:clamp(120px,25vh,220px);border:1.5px solid rgba(58,44,24,.7);background:#f3ead0;position:relative;margin:6px 0 4px}.bk-p .mtg .ty{background:none;border:0;padding:0 2px;font-size:16px;opacity:.7}
+.bk-p .mtg .tx{background:none;color:inherit;padding:2px;margin:0;font-size:inherit;min-height:0}.bk-p .mtg .tx p.fx{font:inherit;background:none;border-left:2px solid currentColor;color:inherit}.bk-p .mtg.back{height:auto;opacity:.3;display:block}.bk-p .mtg.back .art{border-style:dashed}
+.bk-p .art canvas.sk{position:absolute!important;inset:0;width:100%;height:100%;background:#f3ead0;transition:opacity .55s ease .2s;z-index:2}.bk-p .art.live canvas.sk{opacity:0}.bk-p .art .lv,.bk-p .art>.art-live{position:absolute;inset:0;width:auto;height:auto}.bk-p .art .lv:not(:empty){background:#000}
+.bk-p .lc-r{flex:0 0 42%;position:static;max-height:none}#rulesOverlay .bk-p .disc-lock{background:rgba(58,44,24,.08);border-color:rgba(58,44,24,.5)}#rulesOverlay .bk-p .disc-lock::after{color:#3a2c18}.bk-p .rl-note{opacity:.8;margin:2px 0 6px}
 #evOverlay .disc-lock{opacity:1!important;position:relative;min-height:28px;background:#000;border:1px dashed #555;border-radius:6px;overflow:hidden}#evOverlay .disc-lock>*{visibility:hidden}
 #evOverlay .disc-lock::after{content:'\\25A2  ' attr(data-cost) ' Dim';position:absolute;inset:0;display:flex;align-items:center;justify-content:center;color:#9aa;font:12px monospace}
 #rulesOverlay .disc-lock{opacity:1!important;position:relative;min-height:30px;background:#000;border:1px dashed #555;border-radius:8px;overflow:hidden}
 #rulesOverlay .disc-lock>*{visibility:hidden}
 #rulesOverlay .disc-lock::after{content:'\\25A2  ' attr(data-cost) ' Dim';position:absolute;inset:0;display:flex;align-items:center;justify-content:center;color:#9aa;font:12px monospace}`;
-  document.head.appendChild(st);
+  document.head.appendChild(st);const l=document.createElement('link');l.rel='stylesheet';l.href='https://fonts.googleapis.com/css2?family=Caveat:wght@400;700&display=swap';document.head.appendChild(l); // (the books' handwriting)
 }
-function ruleCardHTML(e,mini){ // a Guide entry as a card: its name, art (a live demo, once discovered), page and tier, then what it is, its details, more demos and the live math
-  // (each behind its own discovery, as before). mini: the small card in a page's grid (click it for the whole card)
+function ruleCardHTML(e,pg){ // a Journal entry in the card's format: its name, picture (a drawing of its demo or of your own moment; live while pointed at, once discovered), page and tier, then what it is, its details, more demos and the live math
+  // (each behind its own discovery). pg: as its page in the Journal (written in there); else a card, face down while it is new
   const id=e[0],ids=ruleIds(id),sc=RULE_SCENES[id]||[],mt=RULE_MATH[id]||[],rows=e[5],t=tierOfCost(RULE_TAB_COST[e[1]]||0),home=(RULE_HOME[e[1]]||[0,''])[1];
-  if(!ruleOk(id))return mini?'<div class="mtg sm back">?</div>':''; // (not yet learned: face down)
-  const ico=['THROW','FLING','ORBIT','WHIRL','CATCH','SNARE'].includes(id)?id:(({pig:'point',pnt:'bright'})[e[3]]||e[3]),p=r=>`<p><b>${gHi(r[0])}:</b> ${gHi(r[1])}</p>`;
-  let tx=`<p>${gHi(e[4])}</p>`;
-  if(!mini){tx+=rows.slice(0,1).map(p).join('');if(rows.length>1)tx+=`<div class="rl-x" data-disc="${ids.det}">${rows.slice(1).map(p).join('')}</div>`;
-    if(sc.length>1)tx+=`<div class="rl-x" data-disc="${ids.ill}">${sc.slice(1).map(x=>`<span class="rl-live" data-s="${x}"></span>`).join('')}</div>`;
-    if(mt.length)tx+=`<div class="rl-x" data-disc="${ids.mat}"><details class="rl-math"><summary>Math (live values)</summary>${mt.map(m=>CONV[m]?`<div class="rl-mh">${gEsc(CONV[m].t)}</div><ul>${CONV[m].f().map(l=>`<li>${tvHTML(l)}</li>`).join('')}</ul>`:'').join('')}</details></div>`;}
-  const evs=['rl_'+id].concat(RULE_EV[id]||[]),art=mini||!sc.length?mini&&evStillHTML(evs)||`<canvas class="rl-m" width="${mini?64:120}" height="${mini?64:120}" data-k="${ico}"></canvas>`:`<div class="art-live" data-disc="${ids.ill}" data-scene="${sc[0]}" data-ev="${evs.join(',')}"></div>`; // (small: the still of your own recording of it, when there is one; else its glyph)
-  return `<div class="mtg${mini?' sm':' full'}" data-rule="${id}" style="--rc:${TIER_COL[t]}"><div class="nm"><b>${gHi(e[2])}</b><span class="gem"></span></div><div class="art">${art}</div><div class="ty"><span>${gEsc(home)}</span><span>Tier ${TIER[t]}</span></div><div class="tx">${tx}</div></div>`;
+  if(!ruleOk(id))return ''; // (not yet learned: its page is still to fill)
+  const ico=['THROW','FLING','ORBIT','WHIRL','CATCH','SNARE'].includes(id)?id:(({pig:'point',pnt:'bright'})[e[3]]||e[3]),p=r=>`<p><b>${gEsc(r[0])}:</b> ${gEsc(r[1])}</p>`;
+  let tx=`<p>${gEsc(e[4])}</p>`+rows.slice(0,1).map(p).join('');if(rows.length>1)tx+=`<div class="rl-x" data-disc="${ids.det}">${rows.slice(1).map(p).join('')}</div>`;
+  if(sc.length>1)tx+=`<div class="rl-x" data-disc="${ids.ill}">${sc.slice(1).map(x=>`<span class="rl-live" data-s="${x}"></span>`).join('')}</div>`;
+  if(mt.length)tx+=`<div class="rl-x" data-disc="${ids.mat}"><details class="rl-math"><summary>Math (live values)</summary>${mt.map(m=>CONV[m]?`<div class="rl-mh">${gEsc(CONV[m].t)}</div><ul>${CONV[m].f().map(l=>`<li>${tvHTML(l)}</li>`).join('')}</ul>`:'').join('')}</details></div>`;
+  const evs=['rl_'+id].concat(RULE_EV[id]||[]),art=sc.length?`<div class="art-live" data-disc="${ids.ill}" data-scene="${sc[0]}" data-ev="${evs.join(',')}"></div>`:`<canvas class="rl-m" width="120" height="120" data-k="${ico}"></canvas>`;
+  return `<div class="mtg full${!pg&&ilNew('g_'+id)?' fd':''}" data-rule="${id}" data-new="g_${id}" style="--rc:${TIER_COL[t]}"><div class="nm"><b>${gEsc(e[2])}</b><span class="gem"></span></div><div class="art" data-k="${ico}">${art}</div><div class="ty"><span>${gEsc(home)}</span><span>Tier ${TIER[t]}</span></div><div class="tx">${tx}</div></div>`;
 }
-function cardSize(ov){ // every small card the same size: its text box as tall as the longest of them all (every event, Guide entry and shop)
-  const m=document.createElement('div');m.style.cssText='position:absolute;left:-9999px;top:0;visibility:hidden;width:2000px';m.className='rl-cards';
-  m.innerHTML=EVENTS.map(e=>cardHTML(e,true)).join('')+RULES.map(e=>ruleCardHTML(e,true)).join('')+Object.keys(SHOPS).map(k=>shopCardHTML(k,true)).join('');ov.style.removeProperty('--smtx');ov.appendChild(m);
-  let h=0,ch=0;m.querySelectorAll('.mtg.sm:not(.back)').forEach(c=>{const t=c.querySelector('.tx');if(t)h=Math.max(h,t.offsetHeight);});ov.style.setProperty('--smtx',h+'px');m.querySelectorAll('.mtg.sm:not(.back)').forEach(c=>ch=Math.max(ch,c.offsetHeight));ov.style.setProperty('--smh',ch+'px');m.remove();}
-function rulesRemount(){document.querySelectorAll('#evOverlay .art-live,#evOverlay .rl-live,#mapInfo .art-live').forEach(h=>{if(!h.closest('.disc-lock')&&!h.classList.contains('disc-lock'))mountScene(h);});} // (an open card's demos, once discovered)
+function rulesRemount(){document.querySelectorAll('#evOverlay .art-live,#evOverlay .rl-live,#mapInfo .art-live,.bk-p .rl-live').forEach(h=>{if(!h.closest('.disc-lock')&&!h.classList.contains('disc-lock'))mountScene(h);});document.querySelectorAll('.bk-c>.mtg>.art').forEach(artMount);} // (an open card's demos, once discovered; a page's picture)
+// ── A page's picture: a drawing first. What the scene itself holds as it ends (evSketch: every thing in the frame, where it is, how big, what it is) is drawn again by hand as simple shapes and lines
+// (skStrokes: a ring for a pigment, rays for a Point, a diamond, square or triangle for a remnant, ticks for the spill…), so no two are alike; a new page's is drawn in line by line, shape by shape (inkStrokes). Pointed at, it gives way smoothly to the live
+// scene (your own recording of it when you have one, else its demo), played through from its beginning; let go, the drawing comes back. A recording keeps its own ending (rec.sk); a demo's is taken the first time it plays out (_evSk, kept: evsk) ──
+function evSketch(R){R=R||{x:W/2,y:H/2,rw:W/2,rh:H/2};const k=1/R.rh,wr=R.rw<W/2-1||R.rh<H/2-1,L=[],n3=v=>+v.toFixed(3),col=o=>[o.r|0,o.g|0,o.b|0].join(), // what is in a frame, as a drawing's list: [kind, x, y, size, colour, reach, vx, vy] in units of half the frame's height (the first: its width / height)
+    at=o=>{const dx=wr?_wrapD(o.x-R.x,W):o.x-R.x,dy=wr?_wrapD(o.y-R.y,H):o.y-R.y;return Math.abs(dx)<=R.rw&&Math.abs(dy)<=R.rh?[n3(dx*k),n3(dy*k)]:null;};
+  const D=dormant.filter(o=>o&&at(o)),st=Math.ceil(D.length/220)||1;for(let i=0;i<D.length;i+=st)L.push(['particle',...at(D[i]),0,col(D[i])]);
+  for(const sh of fixedShapes){const q=sh.pts.map(at);if(q.every(Boolean))L.push(['shape',0,0,0,sh.closed?1:0,q.flat()]);}
+  for(const o of active){const q=at(o);if(!q||o.dying||o._bhGone)continue;const on=!o.isRemnant&&effActive(o);L.push([objKey(o),...q,n3(Math.max(2,pointVisibleRadius(o)||3)*k),col(o),on?n3((o.collapsed&&!o.failedCollapse?collapsedEffectRadius(o,true):effRadOf(o))*k):0,n3((o.vx||0)*k*40),n3((o.vy||0)*k*40)]);}
+  for(const d of ducks){const q=at(d);if(q)L.push(['duck',...q,n3(15*((DUCK_TYPES[d.type]||{}).scale||1)*k)]);}
+  if(blackHole){const q=at(blackHole);if(q)L.push(['hole',...q,n3(Math.max(8,blackHole.consumeR||0)*k)]);}
+  if(mouse.x>=0){const q=at(mouse);if(q)L.push(['cursor',...q,n3((T.cursorBaseR||8)*k)]);}
+  return[n3(R.rw/R.rh),...L.sort((a,b)=>(a[0]==='particle')-(b[0]==='particle')||a[1]-b[1])];}
+function skStrokes(sk,seed){ // the list as a hand's strokes (each a wobbling line of points; inkStrokes draws them): never twice the same (seed: its page)
+  let h=2166136261;for(const c of String(seed))h=Math.imul(h^c.charCodeAt(0),16777619);const rnd=()=>{h=Math.imul(h^h>>>15,2246822507);h=Math.imul(h^h>>>13,3266489909);return((h^=h>>>16)>>>0)/4294967296;},j=v=>(rnd()-0.5)*v;
+  const a=sk[0],S=[],put=(p,c,f,w)=>S.push({p,c,f,w}),line=(x0,y0,x1,y1,c,w)=>{const l=Math.hypot(x1-x0,y1-y0);put([[x0,y0],[(x0+x1)/2+j(l*0.06),(y0+y1)/2+j(l*0.06)],[x1,y1]],c,null,w);},
+    ring=(x,y,r,c,f,w,n0)=>{const n=n0||Math.max(8,Math.round(10+r*40)),a0=rnd()*6.28,p=[];for(let i=0;i<=n+1;i++){const t=a0+i/n*6.2832,q=r*(1+j(0.09));p.push([x+Math.cos(t)*q,y+Math.sin(t)*q]);}put(p,c,f,w);},
+    poly=(x,y,r,n,rot,c,f)=>{const p=[];for(let i=0;i<=n;i++){const t=rot+i/n*6.2832;p.push([x+Math.cos(t)*r*(1+j(0.08)),y+Math.sin(t)*r*(1+j(0.08))]);}p[n]=p[0];put(p,c,f,1.2);},
+    dash=(x,y,r,c)=>{const n=Math.max(6,Math.round(r*22));for(let i=0;i<n;i++){const t=i/n*6.2832+j(0.05),u=t+3.6/n,q=r*(1+j(0.03));put([[x+Math.cos(t)*q,y+Math.sin(t)*q],[x+Math.cos((t+u)/2)*q,y+Math.sin((t+u)/2)*q],[x+Math.cos(u)*q,y+Math.sin(u)*q]],c,null,0.7);}},
+    rays=(x,y,r0,r1,n,c)=>{for(let i=0;i<n;i++){const t=i/n*6.2832+j(0.2);line(x+Math.cos(t)*r0,y+Math.sin(t)*r0,x+Math.cos(t)*r1*(1+j(0.3)),y+Math.sin(t)*r1*(1+j(0.3)),c,0.8);}};
+  put([[-a,-1],[a+j(0.02),-1+j(0.02)],[a+j(0.02),1],[-a,1+j(0.02)],[-a,-1.02]],null,null,1.3); // its frame first
+  for(const[k,x,y,r0,c,er,vx,vy]of sk.slice(1)){const r=Math.max(0.035,r0||0);
+    if(k==='particle'){const t=rnd()*6.28,l=0.018+rnd()*0.02;put([[x-Math.cos(t)*l,y-Math.sin(t)*l],[x+Math.cos(t)*l,y+Math.sin(t)*l]],c,null,1.1);continue;}
+    if(k==='shape'){const q=er,p=[];for(let i=0;i<q.length;i+=2)p.push([q[i]+j(0.012),q[i+1]+j(0.012)]);if(c)p.push(p[0]);put(p,null,c?'120,110,90':null,1.5);continue;}
+    if(k==='cursor'){ring(x,y,r,null,null,0.8);line(x-r*0.35,y,x+r*0.35,y,null,0.7);line(x,y-r*0.35,x,y+r*0.35,null,0.7);continue;}
+    if(k==='duck'){ring(x,y+r*0.25,r*0.8,null,'255,214,60',1.2);ring(x+r*0.55,y-r*0.55,r*0.45,null,'255,214,60',1.2);put([[x+r*0.95,y-r*0.6],[x+r*1.4,y-r*0.45],[x+r*0.95,y-r*0.35]],null,'255,128,10',1.1);line(x+r*0.6,y-r*0.65,x+r*0.62,y-r*0.63,null,1.6);continue;}
+    if(k==='hole'||k==='dark'){ring(x,y,r,null,'20,16,30',1.6);for(let i=-3;i<=3;i++){const u=i/3.5*r,w=Math.sqrt(Math.max(0,r*r-u*u));line(x+u-w*0.7,y-u-w*0.7,x+u+w*0.7,y-u+w*0.7,null,0.9);}if(k==='hole'){const p=[];for(let i=0;i<40;i++){const t=i*0.5,q=r*(1.15+i*0.028);p.push([x+Math.cos(t)*q,y+Math.sin(t)*q]);}put(p,null,null,0.7);}continue;}
+    if(er>r)dash(x,y,er,c);
+    if(k==='pigment'||k==='eclipse'||k==='crystal'||k==='point'){ring(x,y,r,null,k==='eclipse'?'20,16,30':c,k==='point'?1.6:1.2);if(k==='point'){ring(x,y,r*0.45,null,null,0.9,7);rays(x,y,r*1.25,r*1.9,8,c);}}
+    else if(k==='dim'){ring(x,y,r,null,c,1.1);line(x-r*0.5,y-r*0.5,x+r*0.5,y+r*0.5,null,0.8);}
+    else if(k==='bright'){poly(x,y,r*1.25,4,-1.5708,null,'255,255,255');rays(x,y,r*1.6,r*2.3,4,null);}
+    else if(k==='neutron'){poly(x,y,r*1.3,4,0.7854,null,c);}
+    else if(k==='magnetic'){poly(x,y,r*1.3,4,-1.5708,null,c);line(x-r*1.3,y,x+r*1.3,y,null,1);}
+    else if(k==='pulsing'){poly(x,y,r*1.35,3,-1.5708,null,c);}
+    else if(k==='relic'){poly(x,y,r*1.1,4,0.7854,null,c);poly(x,y,r*1.8,4,0.7854,'255,150,95',null);}
+    else ring(x,y,r,null,c,1.1);
+    const v=Math.hypot(vx||0,vy||0);if(v>0.04){const m=Math.min(0.5,v),ux=vx/v,uy=vy/v,x0=x+ux*r*1.3,y0=y+uy*r*1.3,x1=x0+ux*m,y1=y0+uy*m;line(x0,y0,x1,y1,null,0.8);put([[x1-ux*0.05-uy*0.03,y1-uy*0.05+ux*0.03],[x1,y1],[x1-ux*0.05+uy*0.03,y1-uy*0.05-ux*0.03]],null,null,0.8);}} // (where it was going)
+  return Object.assign(S,{a});}
+function skImage(im,a){ // a picture with nothing to list (a glyph, a shop's sign, a map demo), as a drawing: hatched across wherever it stands out from its ground, crossed where it stands out most
+  const n=46,m=Math.max(8,Math.round(n/a)),cv=document.createElement('canvas'),c=cv.getContext('2d');cv.width=n;cv.height=m;let d;try{c.drawImage(im,0,0,n,m);d=c.getImageData(0,0,n,m).data;}catch(e){return null;}
+  const lum=i=>d[i*4+3]<250?d[i*4+3]*0.6:(d[i*4]*0.3+d[i*4+1]*0.59+d[i*4+2]*0.11),g=lum(0),v=(x,y)=>x<0||y<0||x>=n||y>=m?0:Math.abs(lum(y*n+x)-g),S=[],X=x=>(x/n*2-1)*a,Y=y=>y/m*2-1,jt=()=>(Math.random()-0.5)*0.012;
+  S.push({p:[[-a,-1],[a,-1],[a,1],[-a,1],[-a,-1.02]],w:1.3});
+  for(let y=0;y<m;y++)for(let x=0,x0=-1;x<=n;x++){const on=v(x,y)>38;if(on&&x0<0)x0=x;if(!on&&x0>=0){const i=y*n+((x0+x)>>1);S.push({p:[[X(x0),Y(y+0.5)+jt()],[X((x0+x)/2),Y(y+0.5)+jt()],[X(x),Y(y+0.5)+jt()]],c:d[i*4+3]>250?[d[i*4],d[i*4+1],d[i*4+2]].join():null,w:0.9});x0=-1;}}
+  for(let x=0;x<n;x+=2)for(let y=0,y0=-1;y<=m;y++){const on=v(x,y)>140;if(on&&y0<0)y0=y;if(!on&&y0>=0){S.push({p:[[X(x+0.5)+jt(),Y(y0)],[X(x+0.5)+jt(),Y(y)]],w:0.7});y0=-1;}}
+  return Object.assign(S,{a});}
+function artMount(a){const h=a.querySelector('.art-live')||(a.dataset.scene?a:null);if(a._sk||h&&h.closest('.disc-lock'))return; // a page's picture is set up: its drawing over its live scene (lv)
+  const cv=a._sk=document.createElement('canvas'),lv=document.createElement('div'),nm=h?h.dataset.s||h.dataset.scene:'',rec=h&&(h.dataset.ev||'').split(',').map(evRecFor).find(Boolean),pg=a.closest('.bk-p'),seed=(pg&&pg.dataset.key)+(rec?rec.at:'');
+  cv.className='sk';lv.className='lv';cv._seed=seed;a.dataset.ink=T.inkSketchMs||2400;if(h){h.textContent='';lv.dataset.scene=nm;lv.dataset.ev=h.dataset.ev||'';h.appendChild(lv);}a.appendChild(cv);
+  const sk=rec?rec.sk:_evSk[nm];cv._glyph=()=>{const g=document.createElement('canvas');g.width=g.height=96;rulesDraw(g,a.dataset.k||'');setTimeout(()=>{cv._S=skImage(g,1)||Object.assign([],{a:1});},350);}; // (a glyph or a sign, or a scene with nothing in it to list: drawn from its picture)
+  if(sk&&sk.length>1)cv._S=skStrokes(sk,seed);else if(!sk&&h&&nm.slice(0,4)!=='hub:'){cv._get=rec||nm;mountScene(lv);}else cv._glyph(); // (not drawn yet: its scene plays through once, out of sight, and its ending is taken)
+  if(h){a.onmouseenter=()=>{a.classList.add('live');if(!lv.firstChild)mountScene(lv);};a.onmouseleave=()=>{a.classList.remove('live');if(!cv._get){lv.replaceChildren();lv.style.background='';}};}}
+function skTick(cv,now){const a=cv.parentNode,lv=a.querySelector('.lv'),f=lv&&lv.querySelector('iframe'),dp=Math.min(2,window.devicePixelRatio||1),w=Math.round(a.clientWidth*dp),h=Math.round(a.clientHeight*dp); // a page's drawing, each frame: taken from its scene when that has played out, drawn as far as the pen has got
+  if(cv._get&&f){let sk=null;try{sk=f.contentWindow.__evSk;}catch(e){}if(sk){const g=cv._get;cv._get=null;if(sk.length>1)cv._S=skStrokes(sk,cv._seed);else cv._glyph();if(g.id){g.sk=sk;IDB.put('evrec:'+g.id,g).catch(()=>{});}else{_evSk[g]=sk;IDB.put('evsk',_evSk).catch(()=>{});}
+      if(a._ink&&now>a._ink[0])a._ink=[now,a._ink[1]];if(!a.classList.contains('live')){lv.replaceChildren();lv.style.background='';}}}
+  if(!cv._S||!w||!h)return;const p=a._ink?Math.max(0,Math.min(1,(now-a._ink[0])/a._ink[1])):1;if(p===cv._p&&cv.width===w)return;if(cv.width!==w||cv.height!==h){cv.width=w;cv.height=h;}cv._p=p;
+  const nib=inkStrokes(cv,cv._S,p,cv._S.a);if(nib&&p>0&&!a.classList.contains('live'))inkNib(nib[0],nib[1]);}
+// ── The Journal: a book. Every entry is a page in the card's own format; each chapter opens on a blank page and its chapter page (what it holds, and where); the chapters are marked down the book's side; the Glossary, handwritten as the rest,
+// lists every subject you know with every page that speaks of it. Whatever is left of a page is yours to write on (_jNotes). A page not yet earned is still to fill; a new one is written in as you turn to it ──
+function journalPages(){ // every page, in order: {ch: its chapter, k: its kind, id, key: its discovery (new until its page is turned to), n: its subject, ok: discovered, tx: its words (the Glossary's page references), nk: its notes' key}
+  const P=[],cnt={},ru=ch=>e=>({ch,k:'rule',id:e[0],key:'g_'+e[0],n:e[2],ok:ruleOk(e[0]),tx:[e[2],e[4],...e[5].map(r=>r.join(' '))].join(' ')});
+  for(const[ch,n]of RULE_TABS){if(P.length%2)P.push({ch,k:'blank'});P.push({ch,k:'blank'},{ch,k:'chap',n});
+    if(ch==='map')P.push({ch,k:'map'},{ch,k:'skip'}); // (the lifecycle: one wide page, both sides of the spread)
+    if(ch!=='book')P.push(...RULES.filter(e=>(RULE_HOME[e[1]]||[e[1]])[0]===ch).map(ru(ch)));
+    if(ch==='disc')P.push(...EVENTS.map(e=>({ch,k:'ev',id:e.id,key:'ev:'+e.id,n:e.name,ok:evSeen(e.id),tx:e.name+' '+e.facts().join(' ').replace(/\u0001[^\u0002]*\u0002|\u0003/g,'')+' '+(e.flavor||'')})));
+    if(ch==='shops')P.push(...Object.keys(SHOPS).map(k=>({ch,k:'shop',id:k,key:'ev:shop_'+k,n:SHOPS[k].n,ok:evSeen('shop_'+k),tx:[SHOPS[k].n,SHOPS[k].tag,SHOPS[k].about||''].join(' ')})));
+    if(ch==='book'){const kn=P.map((p,i)=>[p,i+1]).filter(([p])=>p.key&&p.ok),rows=[...new Set(kn.map(([p])=>p.n))].sort((x,y)=>x.localeCompare(y)).map(s=>{const re=new RegExp('(^|[^A-Za-z])'+s.replace(/[.*+?^${}()|[\]\\]/g,'\\$&')+'([^A-Za-z]|$)','i');return[s,kn.filter(([p])=>p.n===s||s.length>2&&re.test(p.tx)).map(q=>q[1])];});
+      for(let i=0;i<Math.max(1,rows.length);i+=15)P.push({ch,k:'idx',rows:rows.slice(i,i+15)});}} // the Glossary: each subject, then every page that speaks of it
+  if(P.length%2)P.push({ch:'book',k:'blank'});for(const p of P){const c=p.ch+'.'+p.k;cnt[c]=(cnt[c]||0)+1;p.nk=p.key||c+cnt[c];}return P;}
+function pageHTML(P,i){const p=P[i];if(!p||p.k==='skip')return ''; // one page: what it holds (the entry's card as a page, the chapter's contents, the Glossary's lines), your notes under it, its number
+  const e=p.k==='rule'?RULES.find(x=>x[0]===p.id):p.k==='ev'?EVENTS.find(x=>x.id===p.id):null,shopId=p.k==='shop'?p.id:p.k==='ev'&&p.id.slice(0,5)==='shop_'?p.id.slice(5):null;
+  const h=p.k==='chap'?`<h2 class="bk-h">${gEsc(p.n)}</h2><p>${txt('journal.ch.'+p.ch)}</p><div class="bk-toc">${P.map((q,j)=>q.ch===p.ch&&q.key?`<a data-pg="${j}"><span>${q.ok?gEsc(q.n):'· · ·'}</span><i>${j+1}</i></a>`:'').join('')}</div>`
+    :p.k==='idx'?`<h2 class="bk-h" style="margin-top:0">${gEsc(txt('guide.tab.book'))}</h2>${p.rows.map(r=>`<div class="bk-ix"><b>${gEsc(r[0])}</b> &nbsp;${r[1].map(n=>`<a data-pg="${n-1}">${n}</a>`).join(', ')}</div>`).join('')||`<p>${txt('journal.empty')}</p>`}`
+    :p.k==='map'?`<div class="lc"><div class="lc-l"><p class="rl-note">${txt('journal.map')}</p><canvas id="mapCv" width="900" height="500"></canvas></div><div id="mapInfo" class="lc-r" data-e="x"></div></div>`
+    :!p.ok?(shopId?shopBackHTML(shopId):''):p.k==='rule'?ruleCardHTML(e,true):p.k==='ev'?cardHTML(e,false,true):p.k==='shop'?shopCardHTML(p.id):'';
+  return `<div class="bk-p${p.k==='map'?' wide':''}${p.key&&!p.ok?' un':''}"${p.key?` data-key="${p.key}"`:''}><div class="bk-c">${h}</div><textarea class="bk-w" data-nk="${p.nk}" placeholder="${gEsc(txt('journal.notes'))}" spellcheck="false">${gEsc(_jNotes[p.nk]||'')}</textarea><div class="bk-n">${p.k==='map'?(i+1)+' – '+(i+2):i+1}</div></div>`;}
+function journalRender(body){const P=_jP=journalPages(),ns=P.length/2,go=_jGo;_jGo=null;let sp=_bookPg.guide; // the Journal's open spread (turned to a page or a chapter: _jGo)
+  if(go!=null)sp=(typeof go==='number'?go:Math.max(0,P.findIndex(p=>p.ch===go&&p.k==='chap')))>>1;sp=Math.max(0,Math.min(ns-1,sp));const dir=Math.sign(sp-_bookPg.guide);_bookPg.guide=sp;_rulesTab=P[sp*2+1].ch;
+  body.innerHTML=`<div class="bk jr${dir>0?' tf':dir<0?' tb':''}">${pageHTML(P,sp*2)}${pageHTML(P,sp*2+1)}<div class="bk-tabs">${RULE_TABS.map(([k,n])=>`<button data-ch="${k}" class="${k===_rulesTab?'on':''}${P.some(p=>p.ch===k&&p.key&&p.ok&&ilNew(p.key))?' isnew':''}">${n}</button>`).join('')}</div></div><div class="bk-nav"><button id="bkP"${sp?'':' disabled'}>‹ Back</button><span>${sp*2+1} – ${sp*2+2} of ${P.length}</span><button id="bkN"${sp<ns-1?'':' disabled'}>Next ›</button></div>`;
+  body.querySelectorAll('.bk-tabs button').forEach(b=>b.onclick=()=>{_jGo=b.dataset.ch;rulesRender();});body.querySelectorAll('[data-pg]').forEach(l=>l.onclick=()=>{_jGo=+l.dataset.pg;rulesRender();});
+  body.querySelectorAll('.bk-w').forEach(t=>{t.oninput=()=>{if(t.value)_jNotes[t.dataset.nk]=t.value;else delete _jNotes[t.dataset.nk];try{localStorage.setItem('il_jnotes_v1',JSON.stringify(_jNotes));}catch(e){}};t.onkeydown=e=>e.stopPropagation();}); // your own notes, on what is left of the page (kept as you write)
+  const cv=document.getElementById('mapCv');if(cv){const at=e=>{const r=cv.getBoundingClientRect();return{x:(e.clientX-r.left)*cv.width/r.width,y:(e.clientY-r.top)*cv.height/r.height};};cv.onpointermove=e=>{_mapMouse=at(e);};cv.onpointerleave=()=>{_mapMouse=null;};cv.onpointerdown=e=>{_mapMouse=at(e);_mapSel=mapHit(cv.width,cv.height);};}
+  body.querySelectorAll('canvas.rl-m').forEach(c=>rulesDraw(c,c.dataset.k));body.querySelectorAll('[data-disc]').forEach(el=>el.classList.toggle('disc-lock',!discHas(el.dataset.disc)));rulesRemount();
+  body.querySelectorAll('.bk-p[data-key]:not(.un)').forEach(pe=>{const key=pe.dataset.key;if(ilNew(key)||INK.live['pg:'+key]){inkWrite(pe.querySelector('.bk-c'),'pg:'+key);ilSee(key);}});evDeskSync();} // a new page is written in as you turn to it (and is new no longer)
 function rulesRender(){
   const body=document.getElementById('rlBody');if(!body)return;guideCSS();
-  const ov=document.getElementById('rulesOverlay');ov.classList.toggle('inv',!!invertMode);body.classList.toggle('by',_rulesTab==='buoy');
+  const ov=document.getElementById('rulesOverlay');ov.classList.toggle('inv',!!invertMode);body.classList.toggle('by',_rulesTab==='buoy');body.classList.toggle('jr',_rulesMode==='guide');
   document.querySelectorAll('#rlTabs button').forEach(b=>b.classList.toggle('on',b.dataset.t===_rulesTab));
-  const cards=l=>'<div class="rl-cards">'+l.map(e=>ruleCardHTML(e,true)).join('')+'</div>',sec=(h,b)=>`<h3 class="rl-sec">${h}</h3>`+b; // a page: a grid of small cards
-  if(_rulesTab==='map'){
-    body.innerHTML='<div class="lc"><div class="lc-l"><p class="rl-note">Every kind of thing and what it can become (its cards are below the map). Hover a thing or a line to see it beside the map; click to keep it there. Lines you have not discovered are dashed.</p><canvas id="mapCv" width="900" height="500"></canvas></div><div id="mapInfo" class="lc-r" data-e="x"></div></div>';
-    const cv=document.getElementById('mapCv'),at=e=>{const r=cv.getBoundingClientRect();return{x:(e.clientX-r.left)*cv.width/r.width,y:(e.clientY-r.top)*cv.height/r.height};};
-    cv.onpointermove=e=>{_mapMouse=at(e);};cv.onpointerleave=()=>{_mapMouse=null;};cv.onpointerdown=e=>{_mapMouse=at(e);_mapSel=mapHit(cv.width,cv.height);};
-    body.insertAdjacentHTML('beforeend','<h3 class="rl-sec">Everything in the taxonomy</h3>'+cards(RULES.filter(e=>RULE_HOME[e[1]]&&RULE_HOME[e[1]][0]==='map')));
-  } else if(_rulesTab==='notes'){ // the letters from the bottles on the lake, collected in the order they were found: a book, two to a spread
-    let rd=[];try{rd=JSON.parse(localStorage.getItem('il_letters_v1')||'[]')||[];}catch(e){}rd=rd.filter(i=>LETTERS[i]);const n=rd.length,sp=Math.max(0,Math.min(_bookPg,Math.ceil(n/2)-1));_bookPg=sp;
+  if(_rulesMode==='guide')journalRender(body);
+  else if(_rulesTab==='notes'){ // the letters from the bottles on the lake, collected in the order they were found: a book, two to a spread
+    let rd=[];try{rd=JSON.parse(localStorage.getItem('il_letters_v1')||'[]')||[];}catch(e){}rd=rd.filter(i=>LETTERS[i]);const n=rd.length,sp=Math.max(0,Math.min(_bookPg.notes,Math.ceil(n/2)-1));_bookPg.notes=sp;
     const pg=j=>{const i=rd[sp*2+j];return `<div class="bk-p">${i==null?'':`<div class="bk-t">${gEsc(LETTERS[i].t)}</div><div class="bk-f">${gEsc(LETTERS[i].f)}</div><div class="bk-n">${sp*2+j+1}</div>`}</div>`;};
-    body.innerHTML=`<style>.bk{display:flex;max-width:820px;margin:8px auto;background:#6b4a2a;padding:10px;border-radius:6px;box-shadow:0 8px 30px rgba(0,0,0,.5)}.bk-p{flex:1;min-height:320px;background:linear-gradient(90deg,#efe4c6,#f6eed8);color:#3a2c18;padding:28px 30px 18px;font:italic 16px/1.6 Georgia,serif;position:relative}.bk-p+.bk-p{background:linear-gradient(90deg,#f6eed8,#efe4c6);border-left:1px solid #c9b88f}
-.bk-f{text-align:right;margin-top:14px;font-size:14px}.bk-n{position:absolute;bottom:8px;left:0;right:0;text-align:center;font:11px system-ui;opacity:.5;font-style:normal}.bk-nav{display:flex;justify-content:center;gap:12px;align-items:center;margin:6px 0}.bk-nav button{background:rgba(128,128,128,.2);color:inherit;border:0;border-radius:6px;padding:5px 14px;cursor:pointer}</style>
-<p class="rl-note">Letters from the bottles that float onto the lake: ${n} of ${LETTERS.length} found. Open a bottle on the Surface Map to find another.</p>`+
+    body.innerHTML=`<p class="rl-note">Letters from the bottles that float onto the lake: ${n} of ${LETTERS.length} found. Open a bottle on the Surface Map to find another.</p>`+
       (n?`<div class="bk">${pg(0)}${pg(1)}</div><div class="bk-nav"><button id="bkP"${sp?'':' disabled'}>‹ Back</button><span>${sp*2+1}–${Math.min(n,sp*2+2)} of ${n}</span><button id="bkN"${sp*2+2<n?'':' disabled'}>Next ›</button></div>`:'<div class="bk"><div class="bk-p"><div class="bk-t">No letters yet.</div></div><div class="bk-p"></div></div>');
-    const bp=document.getElementById('bkP'),bn=document.getElementById('bkN');if(bp)bp.onclick=()=>{_bookPg--;rulesRender();};if(bn)bn.onclick=()=>{_bookPg++;rulesRender();};
-  } else if(_rulesTab==='disc'){ // how to play, how to clean up, and what has happened: everything here is discovered, then reviewed as a card
-    body.innerHTML='<p class="rl-note">Everything you have discovered, as cards: how to play, how to clean up, and the events you have witnessed. Click a card to see it whole; face-down cards are still to come.</p>'+
-      sec('How to play',cards(RULES.filter(e=>e[1]==='start')))+sec('How to clean up',cards(RULES.filter(e=>e[1]==='touch')))+
-      sec('Events','<div class="ev-grid">'+EVENTS.map(ev=>evSeen(ev.id)?cardHTML(ev,true):ev.id.slice(0,5)==='shop_'?shopBackHTML(ev.id.slice(5)):'<div class="mtg sm back">?</div>').join('')+'</div>');
-  } else if(_rulesTab==='shops'){
-    body.innerHTML='<p class="rl-note">Main street round the source, and the pop-ups a cleared surface can open. A shop is discovered the first time it opens; until then only the shape of its sign shows.</p>'+sec('How shops work',cards(RULES.filter(e=>e[1]==='shops')))+sec('The shops','<div class="rl-cards">'+Object.keys(SHOPS).map(k=>shopCardHTML(k,true)).join('')+'</div>');
-  } else if(_rulesTab==='coll'){body.innerHTML='';body.insertAdjacentHTML('beforeend',duckCollectionHTML());const sw=document.getElementById('pondSw');if(sw)sw.onclick=e=>{const m=e.target.dataset&&e.target.dataset.pm;if(!m)return;_pondMode=m;try{localStorage.setItem('il_pondmode',_pondMode);}catch(e){}rulesRender();};
+  }
+  else if(_rulesTab==='coll'){body.innerHTML='';body.insertAdjacentHTML('beforeend',duckCollectionHTML());const sw=document.getElementById('pondSw');if(sw)sw.onclick=e=>{const m=e.target.dataset&&e.target.dataset.pm;if(!m)return;_pondMode=m;try{localStorage.setItem('il_pondmode',_pondMode);}catch(e){}rulesRender();};
   } else if(_rulesTab==='buoy'){let nm='',cl=BUOY_COLS[0];try{nm=localStorage.getItem('il_name_v1')||'';cl=localStorage.getItem('il_buoycol_v1')||cl;}catch(e){} // your buoy: its name and its colour (the map's own keys)
     const sy=(body.querySelector('.byR')||{}).scrollTop||0; // the page: your buoy big on the left, two thirds wide and tall; on the right its name, colour and status, in one column that scrolls
     body.innerHTML=`<div class="byL"><div class="byV"><canvas id="buoyView"></canvas></div><div class="byR"><p><input id="byName" maxlength="20" value="${gEsc(nm)}" style="background:transparent;color:inherit;border:1px solid currentColor;padding:4px 8px;font:inherit;width:100%;box-sizing:border-box"></p><div class="ncols" style="display:grid;grid-template-columns:repeat(6,1fr);gap:6px">${BUOY_COL_ORDER.map(i=>BUOY_COLS[i]).map(c=>`<span data-c="${c}" style="aspect-ratio:1;cursor:pointer;background:${litCol(c)};border:1px solid rgba(128,128,128,.6);box-sizing:border-box;${c===cl?'outline:2px solid currentColor;outline-offset:2px':''}"></span>`).join('')}</div><div class="byTod" style="display:flex;flex-wrap:wrap;gap:2px 8px;margin-top:8px;font-size:11px">${Object.keys(TIMES).map(h=>`<button class="gbtn sub" data-h="${h}"${+h===viewTod()?' style="text-decoration:underline"':''}>${TIMES[h]}</button>`).join('')}</div>`+STATUS_CSS+`<div class="stg" style="font-size:15px;margin-top:16px">${txt('coll.tab.status')} <span id="bySub">${['now','hist'].map(t=>`<button class="gbtn sub" data-s="${t}"${t===_buoySub?' style="text-decoration:underline"':''}>${txt('coll.buoy.'+t)}</button>`).join(' ')}</span></div>`+(_buoySub==='now'?statusHTML(statusData(),1):buoyHistHTML())+`</div></div>`;buoyViewMount();body.querySelector('.byR').scrollTop=sy;
@@ -13133,19 +13218,16 @@ function rulesRender(){
     body.querySelectorAll('[data-shopv]').forEach(el=>el.onclick=e=>{e.stopPropagation();openShopViewer(el.dataset.shopv);});
   } else if(_rulesTab==='souv'){const sv=souvenirs(),L=SHOP_ITEMS.filter(i=>i.fx.souv); // the Gift Shop's souvenirs: kept through every new start, and hung on your buoy
     body.innerHTML=`<p class="rl-note">${txt('coll.souv.note')}</p><div class="rl-cards">`+L.map(i=>(sv[i.id]||0)>0?`<div class="mtg sm sv"><div class="sv-i">${BUOY_SOUV_ICO[i.id]||'★'}</div><b>${gEsc(i.n)}</b><span>× ${sv[i.id]}</span></div>`:'<div class="mtg sm back">?</div>').join('')+'</div>'+(L.some(i=>sv[i.id]>0)?'':`<p class="rl-note">${txt('coll.souv.none')}</p>`);
-  } else if(_rulesTab==='book'){const f=_rulesFilter.trim().toLowerCase(),list=RULES.slice().sort((a,b)=>a[2].localeCompare(b[2])).filter(e=>!f||(e[2]+' '+e[4]+' '+e[5].map(r=>r[1]).join(' ')).toLowerCase().includes(f));
-    body.innerHTML=`<input id="rlFind" type="search" placeholder="Find a word…" value="${_rulesFilter.replace(/"/g,'&quot;')}"><p class="rl-note">Every object, item and shape in the game, A to Z.</p>`+cards(list);
-      const fi=document.getElementById('rlFind');fi.addEventListener('input',()=>{_rulesFilter=fi.value;const pos=fi.selectionStart;rulesRender();const n=document.getElementById('rlFind');n.focus();n.setSelectionRange(pos,pos);});
-  } else body.innerHTML=(RULE_BLURB[_rulesTab]?`<p class="rl-note">${RULE_BLURB[_rulesTab]}</p>`:'')+cards(RULES.filter(e=>e[1]===_rulesTab))+(_rulesTab==='coll'?duckCollectionHTML():'');
-  body.querySelectorAll('canvas.rl-m').forEach(cv=>rulesDraw(cv,cv.dataset.k));duckPondMount();
-  applyDisc();cardSize(ov);
+  }
+  const bp=document.getElementById('bkP'),bn=document.getElementById('bkN'),bk=_rulesMode==='guide'?'guide':'notes';if(bp)bp.onclick=()=>{_bookPg[bk]--;rulesRender();};if(bn)bn.onclick=()=>{_bookPg[bk]++;rulesRender();}; // a book's pages turn (the Journal's, the Letters')
+  if(_rulesMode!=='guide')body.querySelectorAll('canvas.rl-m').forEach(cv=>rulesDraw(cv,cv.dataset.k));duckPondMount();
+  applyDisc();
   if(!_rulesLoop)_rulesLoop=requestAnimationFrame(rulesTick);body.scrollTop=0;
 }
-function rulesTick(now){if(!_rulesOpen){_rulesLoop=0;return;}if(_rulesTab==='map')mapDraw(now);if(_rulesTab==='coll')duckPondDraw(now);if(_rulesTab==='buoy')buoyViewDraw(now);_rulesLoop=requestAnimationFrame(rulesTick);}
-const RULE_BLURB={surf:'The Surface Map: the hexes round the source, the day, the lake and how to look around.',start:'Welcome! Tap a card to open it. Tap again to close it.',touch:'Particles are spilled on the surface. These are the ways to shine them off and clean up the spill.',things:'The glowing bits everything starts as. Each colour does a different job.',bright:'The big, bright and dark things that grow from points.',rem:'What is left behind. Click them to collect.',items:'Things you can hold and use. Each costs 1 per use unless it says so.',shapes:'Walls, boxes and loops you can build.'};
+function rulesTick(now){if(!_rulesOpen){_rulesLoop=0;return;}if(_rulesMode==='guide'){mapDraw(now);document.querySelectorAll('.bk-p canvas.sk').forEach(c=>skTick(c,now));} /* the Journal: its lifecycle page, and each picture's drawing */if(_rulesTab==='coll')duckPondDraw(now);if(_rulesTab==='buoy')buoyViewDraw(now);_rulesLoop=requestAnimationFrame(rulesTick);}
 function openCollections(tab){openRules('coll',tab);} // Status, ducks, letters and souvenirs
 function openRules(mode,tab){mode=mode==='coll'?'coll':'guide';if(tab==='status')tab='buoy'; /* (Status is on the Buoy page) */const tabs=mode==='coll'?COLL_TABS:RULE_TABS;
-  if(_rulesOpen&&_rulesMode===mode&&!tab)return;_rulesLast[_rulesMode]=_rulesTab;_rulesMode=mode;_rulesTab=tab&&tabs.some(t=>t[0]===tab)?tab:tabs.some(t=>t[0]===_rulesLast[mode])?_rulesLast[mode]:tabs[0][0];
+  if(_rulesOpen&&_rulesMode===mode&&!tab)return;_rulesLast[_rulesMode]=_rulesTab;_rulesMode=mode;_rulesTab=tab&&tabs.some(t=>t[0]===tab)?tab:tabs.some(t=>t[0]===_rulesLast[mode])?_rulesLast[mode]:tabs[0][0];if(mode==='guide'&&tab)_jGo=_rulesTab; // (the Journal opened at a chapter)
   if(_rulesOpen){rulesHead();rulesRender();return;}_rulesOpen=true;window._rulesOpen=true;guideCSS();wrap.classList.add('rules-open');_rulesWasPaused=isPaused;if(!isPaused)togglePause();
   let ov=document.getElementById('rulesOverlay');
   if(!ov){
@@ -13155,9 +13237,6 @@ function openRules(mode,tab){mode=mode==='coll'?'coll':'guide';if(tab==='status'
     ov.addEventListener('mousedown',e=>e.stopPropagation());ov.addEventListener('mouseup',e=>e.stopPropagation());ov.addEventListener('contextmenu',e=>e.stopPropagation());ov.addEventListener('wheel',e=>e.stopPropagation(),{passive:true});
     document.getElementById('rlClose').addEventListener('click',closeRules);document.getElementById('rlInv').addEventListener('click',()=>{toggleInvertMode();rulesRender();});
     document.getElementById('rlTabs').addEventListener('click',e=>{const b=e.target.closest('button');if(b){_rulesTab=b.dataset.t;rulesRender();}});
-    document.getElementById('rlBody').addEventListener('click',e=>{
-      const c=e.target.closest('.mtg.sm');if(!c||c.closest('.disc-lock')||c.classList.contains('back'))return;
-      if(c.dataset.ev)showEventCard(c.dataset.ev,true);else if(c.dataset.rule)showCardHTML(ruleCardHTML(RULES.find(x=>x[0]===c.dataset.rule),false));else if(c.dataset.shop)showCardHTML(shopCardHTML(c.dataset.shop,false));});
   }
   ov.style.display='flex';rulesHead();rulesRender();
 }
@@ -13483,7 +13562,7 @@ function showDraw(){ // a Carnival draw, over the map: three cards to pick from 
   const d=runState.draw;if(!d)return;guideCSS();_evOpen=true;_evReview=true;_evDraw=true;const ov=evOverlayEl();ov.querySelectorAll('iframe').forEach(f=>f.remove());
   const back=i=>`<div class="mtg sm back cb" data-i="${i}" style="--rc:${TIER_COL[d.kind==='secret'?3:1]}"><div class="cq">${d.kind==='secret'?'✦':'☾'}</div></div>`;
   ov.innerHTML=`<div class="ev-box"><div class="ev-un dt">${txt('card.draw.'+d.kind)}</div><div class="ev-draw">${d.cards.map((c,i)=>d.kind==='daily'?cardHTML(drawEv('daily',c),true).replace('class="mtg sm"','class="mtg sm" data-i="'+i+'"'):back(i)).join('')}</div></div>`;
-  ov.style.display='flex';wrap.classList.add('ev-open');ov.querySelectorAll('canvas.rl-m').forEach(cv=>rulesDraw(cv,cv.dataset.k));cardSize(ov);
+  ov.style.display='flex';wrap.classList.add('ev-open');ov.querySelectorAll('canvas.rl-m').forEach(cv=>rulesDraw(cv,cv.dataset.k));
   ov.querySelectorAll('.ev-draw .mtg').forEach(el=>el.onclick=()=>{_evDraw=false;hubPost(Object.assign({type:'picked'},shopPick(+el.dataset.i)));hubState();});}
 document.addEventListener('visibilitychange',()=>{if(document.hidden&&HUB&&hubLevel&&!hubAsleep)saveSession();}); // closing the tab mid-surface keeps it
 // ── Play together: a friend joins this surface from a link (join.html). Their browser shows this canvas as a video and sends their pointer;
@@ -13588,7 +13667,6 @@ function closeGameMenu(){
 }
 // ── The Surface Map in the Guide ──
 RULE_TAB_COST.surf=5;
-RULE_BLURB.surf='The map of surfaces. Every hex is a spill to clean up.';
 
 Object.assign(RULE_EV,{hublake:'duck'}); // (hublight, hubview, shopbuy: learned where they happen, on the map)Object.assign(RULE_SCENES,{shopstreet:['hub:street'],shoppop:['hub:shops']});
 // ── a shop's event: the first time you go into it (its card then shows in the Guide, with what it sells) ──
@@ -13873,7 +13951,7 @@ function buoyViewDraw(now){const V=buoyV;if(!V||!V.cv.isConnected){buoyV=null;re
 SCENES.duck={dur:6500,setup(S){S.ps=[];S.ring(6,30,60,(x,y,i)=>S.ps.push(S.pig(x,y,i,10)));},
   tick(S,t,now){if(!S.fired&&t>700){S.fired=1;S.d=spawnDuck(S.W/2,S.H/2,now,DUCK_IDS[(S.n-1)%DUCK_IDS.length]);S.d.vx=S.d.vy=0;}
     if(S.d&&!S.shot&&t>1700){S.shot=1;for(const p of S.ps){const dx=S.d.x-p.x,dy=S.d.y-p.y,l=Math.hypot(dx,dy)||1;p.vx=dx/l*1.6;p.vy=dy/l*1.6;}}}}; // pigments thrown at it bounce off; it squeaks and tumbles
-RULE_TAB_COST.ducks=0;RULE_BLURB.ducks='Rubber ducks you have collected. Each type you find joins the collection.';
+RULE_TAB_COST.ducks=0;
 
 Object.assign(RULE_EV,{duck:'duck'}); // (duckexo: learned when an exotic one comes out)Object.assign(RULE_SCENES,{duck:['duck']});
 // ═════════════════════════ RIFT ═════════════════════════

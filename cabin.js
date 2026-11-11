@@ -23,7 +23,8 @@ function cabinOpen(){if(CABIN.on||!nebReady||currentView!=='map'||shopUI)return;
 function cabinClose(){if(!CABIN.on||CABIN.dir<0)return;CABIN.dir=-1;CABIN.t0=performance.now();const ms=T.cabinMoveMs||1400;setTimeout(()=>{CABIN.cv.style.opacity=CABIN.ov.style.opacity='0';},ms*0.55);
   setTimeout(()=>{CABIN.on=false;CABIN.cv.style.display=CABIN.ov.style.display='none';if(currentView==='cabin')currentView='map';buoy.dunk={t0:performance.now(),d:-1,ms:700};startMapLoop();updateHint();},ms*0.55+500);} // up the ladder, out of the hatch: your buoy bobs as you come up
 function cabinBack(){if(CABIN.on&&currentView==='map'){currentView='cabin';updateHint();}} // (a menu closed: back in the cabin)
-function cabinClick(){const h=CABIN.hov;if(!h)return;const d=CABIN_DO[h];if(d==='up'){cabinClose();return;}if(d==='guide'){currentView='map';openGuide();return;}if(d){currentView='map';openCollections(d);return;}}
+function cabinClick(){const h=CABIN.hov;if(!h)return;ilSee('cab_'+h);const d=CABIN_DO[h]; // (its first click: seen, no longer new)
+  if(d==='up'){cabinClose();return;}if(d==='guide'){currentView='map';openGuide();return;}if(d){currentView='map';openCollections(d);return;}}
 function cabinInfo(id){const n=k=>Math.floor(inv&&inv[k]||0).toLocaleString('en-US'),f=r=>{const F=r&&(FORTUNE_ROWS[(r.good?'good:':'dim:')+r.id]||{});return r?(F.name||r.id):txt('cabin.none');};
   switch(id){case 'ink':return[txt('cabin.ink'),txt('cabin.ink_d',n('dim'))];case 'chest':return[txt('cabin.chest'),txt('cabin.chest_d',n('bright'),n('neutron'),n('magnetic'),n('pulsing'))];
     case 'cards':return[txt('cabin.cards'),txt('cabin.cards_d',f(run&&run.prevFortune),f(run&&run.fortune),run&&run.dimDone&&run.dimDone.fortune?f(run.dimNext):txt('cabin.untold'))];
@@ -140,7 +141,7 @@ const CAB_VS=`attribute vec3 aP,aN;attribute vec2 aU;attribute float aM,aI;unifo
 void main(){vP=aP;vN=aN;vU=aU;vM=aM;vI=aI;vL=uLVP*vec4(aP,1.);gl_Position=uVP*vec4(aP,1.);}`;
 const CAB_FS=`#extension GL_OES_standard_derivatives : enable
 precision highp float;varying vec3 vP,vN;varying vec2 vU;varying float vM,vI;varying vec4 vL;
-uniform vec3 uEye,uLp[7],uLc[7],uSky,uChroma;uniform float uT,uHov;uniform sampler2D uAt,uPool,uSh;
+uniform vec3 uEye,uLp[7],uLc[7],uSky,uChroma;uniform float uT,uHov,uNew;uniform sampler2D uAt,uPool,uSh;
 float h2(vec2 p){return fract(sin(dot(p,vec2(127.1,311.7)))*43758.5453);}
 float n2(vec2 p){vec2 i=floor(p),f=fract(p);f=f*f*(3.-2.*f);return mix(mix(h2(i),h2(i+vec2(1,0)),f.x),mix(h2(i+vec2(0,1)),h2(i+vec2(1,1)),f.x),f.y);}
 float fbm(vec2 p){float s=0.,a=.5;for(int i=0;i<4;i++){s+=a*n2(p);p*=2.03;a*=.5;}return s;}
@@ -184,7 +185,8 @@ void main(){int m=int(vM+.5);vec3 N=normalize(vN),V=normalize(uEye-vP);if(dot(N,
  for(int i=0;i<7;i++){vec3 L=uLp[i]-vP;float d=length(L);L/=d;float att=1./(1.+d*d*.9);float df=max(dot(N,L),0.);vec3 Hh=normalize(L+V);float s=pow(max(dot(N,Hh),0.),sh)*sp;float k=i==0?mix(shd,1.,ns):1.;
   vec3 sc=met>.5?base:vec3(1.);col+=k*att*uLc[i]*(base*df*(1.-met*.6)+sc*s*(df>0.?1.:0.));}
  float fr=pow(1.-max(dot(N,V),0.),4.);col+=fr*(met>.5?base*.25:vec3(.04))+(met>.5?base*vec3(.09,.07,.05):vec3(0.)); // (metal catches the room's warm light from everywhere)
- gl_FragColor=vec4(pow(col,vec3(.9)),hv+(m==3?.24:0.));}`;
+ gl_FragColor=vec4(pow(col,vec3(.9)),hv+(m==3?.24:0.));
+ if(mod(floor(uNew/exp2(vI-1.)),2.)>.5)gl_FragColor.rgb+=vec3(1.,.84,.43)*(.09+.09*sin(uT*3.7));}`; // (uNew: a bit for each thing never yet clicked: it pulses gold, as every new button does)
 const CAB_SVS=`attribute vec3 aP;attribute float aM;uniform mat4 uLVP;varying float vZ;void main(){if(abs(aM-3.)<.5||abs(aM-14.)<.5){gl_Position=vec4(0.,0.,2.,1.);vZ=1.;return;}vec4 p=uLVP*vec4(aP,1.);gl_Position=p;vZ=p.z/p.w*.5+.5;}`; // (the tools' glowing white casts no shadow)
 // the picture, last: the room seen a little fisheye (more of it in view, the edges drawn in), and what the cursor is on outlined
 const CAB_PVS=`attribute vec2 aQ;varying vec2 vQ;void main(){vQ=aQ;gl_Position=vec4(aQ,0.,1.);}`;
@@ -268,7 +270,7 @@ function cabinFrame(now){const gl=CABIN.gl,cv=CABIN.cv,dpr=Math.min(2,window.dev
   gl.enable(gl.DEPTH_TEST);gl.disable(gl.CULL_FACE);if((CABIN.shN=(CABIN.shN||0)+1)%3===1){gl.bindFramebuffer(gl.FRAMEBUFFER,CABIN.fb);gl.viewport(0,0,1024,1024);gl.clearColor(1,1,1,1);gl.clear(gl.COLOR_BUFFER_BIT|gl.DEPTH_BUFFER_BIT);gl.useProgram(CABIN.SP);gl.uniformMatrix4fv(gl.getUniformLocation(CABIN.SP,'uLVP'),false,LVP);for(const B of all)cabDraw(CABIN.SP,B,[['aP',3,0],['aM',1,8]]);} // (its light keeps still: its shadows drawn every third frame)
   gl.bindFramebuffer(gl.FRAMEBUFFER,CABIN.pf.fb);gl.viewport(0,0,PW,PH);gl.clearColor(0.03,0.025,0.035,1);gl.clear(gl.COLOR_BUFFER_BIT|gl.DEPTH_BUFFER_BIT);const P=CABIN.P;gl.useProgram(P);const u=n=>gl.getUniformLocation(P,n);
   gl.uniformMatrix4fv(u('uVP'),false,C.VP);gl.uniformMatrix4fv(u('uLVP'),false,LVP);gl.uniform3fv(u('uEye'),C.p);gl.uniform3fv(u('uLp'),Ls.flatMap(l=>l[0]));gl.uniform3fv(u('uLc'),Ls.flatMap(l=>l[1]));const sk=duckSun(_sunH).c;gl.uniform3fv(u('uSky'),sk.map(v=>v*0.55));gl.uniform3fv(u('uChroma'),chromaRGB(now,0.2).map(v=>v/255));gl.uniform1f(u('uT'),now/1000);
-  const h=CABIN.dir>0&&now-CABIN.t0>(T.cabinMoveMs||1400)?cabPick(C,CABIN.mx,CABIN.my,W,H):null;if(h!==CABIN.hov){CABIN.hov=h;updateHint();}gl.uniform1f(u('uHov'),h?CAB_OBJ.indexOf(h)+1:0); // every face of what the cursor is on lights up
+  const h=CABIN.dir>0&&now-CABIN.t0>(T.cabinMoveMs||1400)?cabPick(C,CABIN.mx,CABIN.my,W,H):null;if(h!==CABIN.hov){CABIN.hov=h;updateHint();}gl.uniform1f(u('uHov'),h?CAB_OBJ.indexOf(h)+1:0);gl.uniform1f(u('uNew'),CAB_OBJ.reduce((a,k,i)=>a+(ilNew('cab_'+k)?2**i:0),0)); // every face of what the cursor is on lights up
   [[CABIN.tAt,'uAt'],[CABIN.tPool,'uPool'],[CABIN.tSh,'uSh']].forEach(([t,n],i)=>{gl.activeTexture(gl.TEXTURE0+i);gl.bindTexture(gl.TEXTURE_2D,t);gl.uniform1i(u(n),i);});gl.activeTexture(gl.TEXTURE0);
   for(const B of all)cabDraw(P,B,A);
   {gl.disable(gl.DEPTH_TEST);for(let l=0;l<8;l++)gl.disableVertexAttribArray(l);const pf=CABIN.pf,quad=Pg=>{gl.bindBuffer(gl.ARRAY_BUFFER,CABIN.qb);const l=gl.getAttribLocation(Pg,'aQ');gl.enableVertexAttribArray(l);gl.vertexAttribPointer(l,2,gl.FLOAT,false,8,0);gl.drawArrays(gl.TRIANGLES,0,3);};
