@@ -418,12 +418,14 @@ function drawWakeShape(c,x,y,fwX,fwY,R,spdRatio,alpha,hi,lo){
 const CHROMA=[[255,0,0],[255,127,0],[255,255,0],[0,255,0],[0,0,255],[75,0,130],[148,0,211]];
 function chromaRGB(now,ph){const n=CHROMA.length,u=(((now/((T.chromaTurnS||33)*1000)+(ph||0))%1)+1)%1*n,i=u|0,f=u-i,a=CHROMA[i%n],b=CHROMA[(i+1)%n];return a.map((v,k)=>Math.round(v+(b[k]-v)*f));} // the colour it is at now (ph: an object's own place round the wheel)
 function chromaVib(now,ph){const B=T.chromaBreatheMs||9000;return 0.62+0.38*(0.5+0.5*Math.sin(now/B*6.2832+(ph||0)*5.1))*(0.75+0.25*Math.sin(now/(B*1.37)*6.2832+(ph||0)*2.3));} // its vibrancy, ever changing (0.62–1)
-function chromaGlow(c,x,y,R,now,a,ph){ // the title's light at (x,y), as starlight: six bright, saturated lobes (the rainbow's colours, each turning to the next over Chroma turn s) drifting round a white-hot heart,
-  // added together (lighter), so where they overlap they blend toward white as real light does; each swells and fades on its own beat (its vibrancy ever changing)
-  if(!(R>0))return;c.save();c.globalCompositeOperation='lighter';const t=now/1000,v=chromaVib(now,ph),n=6;
-  for(let i=0;i<n;i++){const ang=t*(0.11+0.04*i)*(i%2?-1:1)+i*6.2832/n+(ph||0)*6.2832,off=R*(0.22+0.1*Math.sin(t*(0.5+0.13*i)+i*1.7)),cx=x+Math.cos(ang)*off,cy=y+Math.sin(ang)*off,r=R*(0.55+0.12*Math.sin(t*(0.7+0.09*i)+i)),C=chromaRGB(now,(ph||0)+i/n),al=Math.min(1,a*v*(0.55+0.25*Math.sin(t*(0.9+0.2*i)+i*2.1)));
-    const g=c.createRadialGradient(cx,cy,0,cx,cy,r);g.addColorStop(0,`rgba(${C[0]},${C[1]},${C[2]},${al.toFixed(3)})`);g.addColorStop(0.45,`rgba(${C[0]},${C[1]},${C[2]},${(al*0.45).toFixed(3)})`);g.addColorStop(1,`rgba(${C[0]},${C[1]},${C[2]},0)`);c.fillStyle=g;c.fillRect(cx-r,cy-r,2*r,2*r);}
-  const h=c.createRadialGradient(x,y,0,x,y,R*0.4);h.addColorStop(0,`rgba(255,255,255,${Math.min(1,a).toFixed(3)})`);h.addColorStop(1,'rgba(255,255,255,0)');c.fillStyle=h;c.fillRect(x-R*0.4,y-R*0.4,R*0.8,R*0.8); // its white-hot heart
+function chromaLobes(x,y,R,now,a,ph,k){ // the title's light at (x,y), as starlight: six bright, saturated lobes (the rainbow's colours, each turning to the next over Chroma turn s) drifting round a white-hot heart, each swelling and fading on its own beat (its vibrancy ever changing).
+  // Each: [x, y, radius, colour, alpha]; the last is its heart. One list for everything that shines this way: chromaGlow paints it on a canvas, the cabin's picture pass adds it up in its shader (k: what one unit of R is across and down there, where the two differ)
+  const t=now/1000,v=chromaVib(now,ph),n=6,L=[],kx=k?k[0]:1,ky=k?k[1]:1;
+  for(let i=0;i<n;i++){const ang=t*(0.11+0.04*i)*(i%2?-1:1)+i*6.2832/n+(ph||0)*6.2832,off=R*(0.22+0.1*Math.sin(t*(0.5+0.13*i)+i*1.7));L.push([x+Math.cos(ang)*off/kx,y+Math.sin(ang)*off/ky,R*(0.55+0.12*Math.sin(t*(0.7+0.09*i)+i)),chromaRGB(now,(ph||0)+i/n),Math.min(1,a*v*(0.55+0.25*Math.sin(t*(0.9+0.2*i)+i*2.1)))]);}
+  L.push([x,y,R*0.4,[255,255,255],Math.min(1,a)]);return L;}
+function chromaGlow(c,x,y,R,now,a,ph){ // …painted: added together (lighter), so where they overlap they blend toward white as real light does
+  if(!(R>0))return;c.save();c.globalCompositeOperation='lighter';
+  chromaLobes(x,y,R,now,a,ph).forEach(([cx,cy,r,C,al],i,L)=>{const g=c.createRadialGradient(cx,cy,0,cx,cy,r);g.addColorStop(0,`rgba(${C},${al.toFixed(3)})`);if(i<L.length-1)g.addColorStop(0.45,`rgba(${C},${(al*0.45).toFixed(3)})`);g.addColorStop(1,`rgba(${C},0)`);c.fillStyle=g;c.fillRect(cx-r,cy-r,2*r,2*r);});
   c.restore();}
 function heartbeatPulse(phase){
   const bump=(center,width,amp)=>{

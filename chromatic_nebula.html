@@ -119,7 +119,7 @@ button:hover{background:rgba(255,255,255,0.15);}
   <div id="dock" class="bottom"><div id="inventoryPanel"></div><div id="touch-info"></div></div>
   <canvas id="cur"></canvas>
 </div>
-<script src="content.js?v=20261110h"></script><script src="shared.js?v=20261110h"></script>
+<script src="content.js?v=20261110i"></script><script src="shared.js?v=20261110i"></script>
 <script>
 txtApply(); // the page's own labels (content/strings.csv)
 const _SRC=document.documentElement.outerHTML; // kept so the Encyclopedia can run live scenes as embedded copies of the game
@@ -679,7 +679,7 @@ function remnantEffectText(p){
 function isIdleRemnant(p){return p.isRemnant&&!p.vx&&!p.vy&&!p.rot&&!p.isActiveRemnant&&(p.remKind==='white'||p.remKind==='brown')&&!p.dying&&!p.captured&&!p._embed;}
 let _idleCv=null,_idleCtx=null,_idleSig=null,_idleKey='',_idleTW=0,_idleTH=0,_idleB=null,_idleList=[];
 const IDLE_TILE=128,IDLE_MIN=24;
-function drawRemnantLive(p,now){const rr=pointVisibleRadius(p)*1.6+3;wrapCopies(p.x,p.y,rr,(ox,oy)=>{if(ox||oy){pointsCtx.save();pointsCtx.translate(ox,oy);drawRemnantGlyph(pointsCtx,p,now);pointsCtx.restore();}else drawRemnantGlyph(pointsCtx,p,now);});}
+function drawRemnantLive(p,now){const rr=Math.max(pointVisibleRadius(p)*1.6+3,T.remGlowR*(T.remChromaR||4));wrapCopies(p.x,p.y,rr,(ox,oy)=>{if(ox||oy){pointsCtx.save();pointsCtx.translate(ox,oy);drawRemnantGlyph(pointsCtx,p,now);pointsCtx.restore();}else drawRemnantGlyph(pointsCtx,p,now);});}
 function drawRemnantsPass(now,n){
   pointsCtx.save();pointsCtx.globalCompositeOperation='source-over';pointsCtx.globalAlpha=1;
   const idle=_idleList;idle.length=0;
@@ -1581,7 +1581,6 @@ function drawBrownGlows(ctx,now){
   ctx.filter='none';ctx.globalAlpha=1;ctx.globalCompositeOperation='source-over';
   ctx.restore();
 }
-let birthCanvas=null,birthCtx=null; // cross-fade blurred→sharp for newly woken points
 
 // Scale-invariant glow: a radial falloff that starts at the object's own edge (R) and reaches zero (mult-1)*R further out,
 // with that thickness capped at glowMaxR — the same look at every size, drawn without blur so it can never read as a 2nd disc.
@@ -1994,7 +1993,7 @@ function makeRemnant(source,kind,now){
     p.magOppositeCI=(p.magPrimaryCI+3)%6;
     if(kind==='magnetic'&&sumMasses(masses)>0&&balanceScore(masses)>=T.magBWScore)p.magBW=true; // a highly balanced Bright dims into a BLACK & WHITE Magnetic: CRYSTALIZE one side, ECLIPSE the other
   }
-  fireEvent(({brown:'dim',white:'bright',neutron:'neutron',magnetic:'magnetic',pulsing:'pulsing'})[kind],p);
+  fireEvent(({brown:'dim',white:'bright',neutron:'neutron',magnetic:'magnetic',pulsing:'pulsing'})[kind],p,[source]);
   return p;
 }
 
@@ -3066,7 +3065,7 @@ function handleWhiteChainClick(p,now){
     flashSaveStatus((mode==='knot'?txt('surf.knot_mode_needs_a'):txt('surf.connection_submitted_no_matching')));
     return;
   }
-  {let x=0,y=0;const a=chain[0];for(const q of chain){x+=_wrapD(q.x-a.x,W);y+=_wrapD(q.y-a.y,H);}fireEvent('pat_'+kind,{x:a.x+x/chain.length,y:a.y+y/chain.length});} // (framed where it was drawn)
+  {let x=0,y=0;const a=chain[0];for(const q of chain){x+=_wrapD(q.x-a.x,W);y+=_wrapD(q.y-a.y,H);}fireEvent('pat_'+kind,{x:a.x+x/chain.length,y:a.y+y/chain.length},chain);} // (framed where it was drawn; the Points it was drawn through are its source)
   if(inventory[conItem(mode)]<=0){flashSaveStatus(txt('surf.is_empty',INV_LABEL[conItem(mode)]));return;}
   if(mode==='lens'||mode==='gate'){ // a plane piece of lens / a fence: the nodes are consumed and it becomes fixed in shape and place
     addInventory(conItem(mode),-1);
@@ -9744,7 +9743,7 @@ _pm('point-update');
       }
       if(a.isRemnant&&b.isRemnant&&a.remKind==='brown'&&b.remKind==='brown'&&Math.min(ra,rb)>=T.brownMaxR*0.999){ // two Dim remnants at max radius (as drawn, an Enlarged status included) form a relic; two max relics nova + nebula, then a Dark Remnant
   if(a.enriched&&b.enriched){const cm=a.mass+b.mass,ce=a.energy+b.energy,cx=(a.x+b.x)*0.5,cy=(a.y+b.y)*0.5,deb=triggerNova({x:cx,y:cy,vx:0,vy:0,rot:0,rotation:0,pvx:0,pvy:0,mass:cm,energy:ce,masses:[1,1,1,1,1,1],sigR:60,sigG:60,sigB:70,peakEffectR:0},now,T.whiteEffMax);if(deb)for(let di=0;di<deb.length;di++)newRemnants.push(deb[di]);if(!blackHole)triggerBlackRemnant(cx,cy,now,Math.max(cm,T.massScaleMax*T.blackMult),ce);dead[i]=1;dead[j]=1;break;}
-  if(!a.enriched&&!b.enriched){const k0=bigger(a,b,ra,rb),o=k0===a?b:a;k0.enriched=true;k0.mass+=o.mass;for(let k=0;k<6;k++)k0.masses[k]+=o.masses[k];k0.energy+=o.energy;k0.vx=(a.vx+b.vx)/2;k0.vy=(a.vy+b.vy)/2;fireEvent('dimrelic',k0);if(k0===a){dead[j]=1;continue;}dead[i]=1;break;}
+  if(!a.enriched&&!b.enriched){const k0=bigger(a,b,ra,rb),o=k0===a?b:a;k0.enriched=true;k0.mass+=o.mass;for(let k=0;k<6;k++)k0.masses[k]+=o.masses[k];k0.energy+=o.energy;k0.vx=(a.vx+b.vx)/2;k0.vy=(a.vy+b.vy)/2;fireEvent('dimrelic',k0,[a,b]);if(k0===a){dead[j]=1;continue;}dead[i]=1;break;}
 }
       if((a.enriched||b.enriched)&&a.isRemnant&&b.isRemnant&&a.remKind!=='brown'&&b.remKind!=='brown'&&a.remKind!=='black'&&b.remKind!=='black'){bounceRemnants(a,b,ra,rb);continue;} // a relic REFLECTS off every other Bright / exotic remnant or relic (momentum only: no damage, no merge)
       if(a.enriched||b.enriched)continue; // an ENRICHED remnant is never consumed, never merges and takes no damage from any collision (not even with its own kind)
@@ -10002,7 +10001,7 @@ _pm('collisions');
           if(fxDie){
             // CRYSTALIZE always leaves a Bright remnant, ECLIPSE always a Dim one — an ENRICHED one when it was a Point.
             if(!blackHole){
-              const rem=makeRemnant(p,fxDie);rem.enriched=!!(p.collapsed&&!p.failedCollapse);if(rem.enriched)fireEvent(fxDie==='brown'?'dimrelic':'brightrelic',rem);
+              const rem=makeRemnant(p,fxDie);rem.enriched=!!(p.collapsed&&!p.failedCollapse);if(rem.enriched)fireEvent(fxDie==='brown'?'dimrelic':'brightrelic',rem,[p]);
               if(fxDie==='brown'){rem.mass=p.mass;rem.energy=p.energy;for(let k=0;k<6;k++)rem.masses[k]=p.masses[k];rem.ci=dominantCI(rem.masses);rem.balance=balanceScore(rem.masses);}
               newRemnants.push(rem);
             }
@@ -10164,7 +10163,7 @@ function nebBlurLayers(src,dw,dh,now){ // the two blurred halo passes live in ca
         if(nebPadCv.width!==w+2*pad||nebPadCv.height!==h+2*pad){nebPadCv.width=w+2*pad;nebPadCv.height=h+2*pad;}
         const pc=nebPadCv.getContext('2d');pc.setTransform(1,0,0,1,0,0);pc.filter='none';pc.clearRect(0,0,nebPadCv.width,nebPadCv.height);pc.imageSmoothingEnabled=true;
         for(let oy=-1;oy<=1;oy++)for(let ox=-1;ox<=1;ox++)pc.drawImage(src,0,0,GW*NEB_SS,GH*NEB_SS,pad+ox*w,pad+oy*h,w,h);
-        c.imageSmoothingEnabled=true;c.filter=`blur(${bl*sc}px)`;c.drawImage(nebPadCv,pad,pad,w,h,0,0,w,h);c.filter='none'; // (the filter blurs the padded copy; only its middle lands in the layer)
+        c.imageSmoothingEnabled=true;c.filter=`blur(${bl*sc}px)`;c.drawImage(nebPadCv,-pad,-pad);c.filter='none'; // (the whole padded copy is drawn, blurred, its middle landing in the layer: cut to its middle first, the blur would have nothing past the edge to take in, and the surface's two sides would not meet)
       }};
     pass(nebB1,T.nebBlur);pass(nebB2,T.nebBlur2);
   }
@@ -10244,7 +10243,7 @@ function renderWorld(now,suppressGlow,asPlay){
     // Dormant macro-particles are never a valid target for a dial/prism/knot tool, a Pattern-in-progress, or a paused
     // collect-hold — same states that already dim non-viable active points (toolInvalidDimActive). The particle map itself
     // should read as visibly inert then too, not stay at its normal resting opacity as if it were still interactive.
-    const mapInvalidDim=toolInvalidDimActive()?T.invalidTargetOpacity:1;
+    const mapInvalidDim=1-(1-T.invalidTargetOpacity)*toolInvalidDimActive();
     // The grid is floor(W/PIXEL_SIZE) cells, so it is up to one cell short of the screen on each axis. The world wraps, so the strip the grid leaves
     // over is filled with the cells from the opposite edge (the very cells a point would wrap onto): the map always covers all of W×H.
     const blit=(img,sw,sh,pad)=>{
@@ -10373,41 +10372,11 @@ function renderWorld(now,suppressGlow,asPlay){
         if(drawR<0.2)continue;
         if(be<1){ // …and starts blurred: a soft halo that sharpens as it grows
           const soft=1-be,sc2=pointVisibleRGB(p),sr=qGlow(Math.max(2,drawR*(1+1.2*soft))),sp2=glowSprite(1,sc2.r|0,sc2.g|0,sc2.b|0,0,sr);
-          pointsCtx.globalAlpha=soft*0.9*capShrink;pointsCtx.drawImage(sp2.cv,p.x-sp2.m,p.y-sp2.m);
+          pointsCtx.globalAlpha=soft*0.9*capShrink;wrapCopies(p.x,p.y,sp2.m,(ox,oy)=>pointsCtx.drawImage(sp2.cv,p.x+ox-sp2.m,p.y+oy-sp2.m)); // (across an edge too, as its body is)
         }
         pointsCtx.globalAlpha=be*capShrink;
         pointsCtx.fillStyle=p.fillStr;wrapCopies(p.x,p.y,drawR,(ox,oy)=>{pointsCtx.beginPath();pointsCtx.arc(p.x+ox,p.y+oy,drawR,0,6.2832);pointsCtx.fill();});
         pointsCtx.globalAlpha=1;
-      }
-    }
-    // Birth blur pass: draw the blurred complement of each newborn colored point.
-    // Uses birthCanvas so the blur applies uniformly, matching the nebula layer feel.
-    // As birthProgress → 1 each particle's contribution here → 0 (fully sharp).
-    {
-      let anyBirth=false;
-      for(let i=0;i<n;i++){const p=active[i];if(p.birthProgress<1&&!p.collapsed&&!p.failedCollapse&&!p.isRemnant&&!p.dying){anyBirth=true;break;}}
-      if(false&&anyBirth){ // (disabled: the particle's own nebula fade IS the blurred half of the cross-fade — drawing a second blurred copy doubled the brightness)
-        if(!birthCanvas){birthCanvas=document.createElement('canvas');birthCtx=birthCanvas.getContext('2d');}
-        if(birthCanvas.width!==W||birthCanvas.height!==H){birthCanvas.width=W;birthCanvas.height=H;}
-        birthCtx.clearRect(0,0,W,H);
-        for(let i=0;i<n;i++){
-          const p=active[i];
-          if(p.birthProgress>=1||p.collapsed||p.failedCollapse||p.isRemnant||p.dying||p.captured)continue;
-          const blurFrac=1-p.birthProgress;if(blurFrac<0.01)continue;
-          const R=Math.max(0.5,p.displayR);
-          if(p.fillDirty)updateFill(p);
-          birthCtx.globalAlpha=blurFrac;
-          birthCtx.fillStyle=p.fillStr;wrapCopies(p.x,p.y,R,(ox,oy)=>{birthCtx.beginPath();birthCtx.arc(p.x+ox,p.y+oy,R,0,6.2832);birthCtx.fill();});
-        }
-        // Birth blur: same 3-pass composite as the nebula layer so newborn
-        // points are visually indistinguishable from dormant macro-particles at birth.
-        pointsCtx.save();
-        pointsCtx.imageSmoothingEnabled=true;pointsCtx.imageSmoothingQuality='high';
-        if(T.nebBlur>0){pointsCtx.globalAlpha=T.nebAlpha1;pointsCtx.filter=`blur(${T.nebBlur}px)`;pointsCtx.drawImage(birthCanvas,0,0);}
-        if(T.nebBlur2>0){pointsCtx.globalAlpha=T.nebAlpha2;pointsCtx.filter=`blur(${T.nebBlur2}px)`;pointsCtx.drawImage(birthCanvas,0,0);}
-        if(T.nebAlpha3>0){pointsCtx.globalAlpha=T.nebAlpha3;pointsCtx.filter='none';pointsCtx.drawImage(birthCanvas,0,0);}
-        pointsCtx.filter='none';pointsCtx.globalAlpha=1;
-        pointsCtx.restore();
       }
     }
     let hasWhite=false;
@@ -10453,14 +10422,14 @@ function renderWorld(now,suppressGlow,asPlay){
     // ring still draws at full strength on top afterward — the object
     // itself reads dim, but its ring stays fully useful for planning.
     if(toolInvalidDimActive()){
-      const dimA=Math.max(0,Math.min(1,1-T.invalidTargetOpacity));
+      const dimA=Math.max(0,Math.min(1,(1-T.invalidTargetOpacity)*toolInvalidDimActive()));
       if(dimA>0.001){
         pointsCtx.save();pointsCtx.globalCompositeOperation='destination-out';pointsCtx.fillStyle=`rgba(0,0,0,${dimA})`;
         for(let i=0;i<n;i++){
           const p=active[i];
           if(pointValidNow(p))continue;
           const R=Math.max(1,pointVisibleRadius(p)*1.15);
-          pointsCtx.beginPath();pointsCtx.arc(p.x,p.y,R,0,6.2832);pointsCtx.fill();
+          wrapCopies(p.x,p.y,R,(ox,oy)=>{pointsCtx.beginPath();pointsCtx.arc(p.x+ox,p.y+oy,R,0,6.2832);pointsCtx.fill();});
         }
         pointsCtx.restore();
       }
@@ -11344,7 +11313,7 @@ function dialNoChange(p,e){ // would the current dial mode leave this object exa
 }
 function isCollectable(p){return !!collectKindOf(p);}
 function fieldArmed(){return !!(armedInvItem&&(armedInvItem.kind==='dim'||armedInvItem.kind==='bright')&&!createActive());}
-function toolInvalidDimActive(){return conLevel>0.001||(collectHold&&isPaused)||fieldArmed();} // (arming an item no longer dims anything) // now applies whether paused or not
+function toolInvalidDimActive(){return conLevel>0.001||(collectHold&&isPaused)||fieldArmed()?1:evDim(performance.now());} // how far what is not a target is dimmed, 0–1 (arming an item no longer dims anything; applies whether paused or not). An event's capture, and its replay, dim this same way everything that is not its subject or its subject's source: only how things are drawn, never how they move or meet
 // Prism targets: a plain Point, a Bright ('white') remnant, or any Active remnant (Neutron/Magnetic/Pulsing).
 // Dim (brown/dim), Dark (black) remnants and ordinary pigments are never valid — same as before.
 function prismValidTarget(p){return (p.collapsed&&!p.failedCollapse&&!p.isRemnant)||(p.isRemnant&&(p.remKind==='white'||p.isActiveRemnant));}
@@ -11356,7 +11325,8 @@ function toolValidPoint(kind,p){
   return true;
 }
 // Is this object a valid target for whatever mode / tool is active? (Everything is valid when none is.)
-function pointValidNow(p){if(fieldArmed())return p.isRemnant&&p.remKind===(armedInvItem.kind==='dim'?'brown':'white')&&!p.dying&&!p.captured; // DEPTH / BALANCE: only the remnant it consumes stands out
+function pointValidNow(p){{const c=_evCap||_evRep;if(c&&c.sz!=='f')return c.ids.has(p.id);} // an event being captured (or played again): only its subject and what it came of stand out
+  if(fieldArmed())return p.isRemnant&&p.remKind===(armedInvItem.kind==='dim'?'brown':'white')&&!p.dying&&!p.captured; // DEPTH / BALANCE: only the remnant it consumes stands out
  
   if(collectHold&&isPaused)return isCollectable(p)&&!p.dying&&!p.captured; // hold-collecting: only remnants stand out
   const k=armedTool();
@@ -11436,10 +11406,10 @@ function drawMotionGlow(ctx){
   ctx.save();ctx.globalCompositeOperation='screen';
   for(const L of list){
     const gx=L.x,gy=L.y,Rg=L.R,rgb=`${L.r|0},${L.g|0},${L.b|0}`;
-    if(Rg<=180){const sp=glowSprite(1,L.r|0,L.g|0,L.b|0,0,qGlow(Math.max(2,Rg)));ctx.globalAlpha=L.a;ctx.drawImage(sp.cv,gx-sp.m,gy-sp.m);ctx.globalAlpha=1;}
-    else{const g=ctx.createRadialGradient(gx,gy,0,gx,gy,Rg);
+    if(Rg<=180){const sp=glowSprite(1,L.r|0,L.g|0,L.b|0,0,qGlow(Math.max(2,Rg)));ctx.globalAlpha=L.a;wrapCopies(gx,gy,sp.m,(ox,oy)=>ctx.drawImage(sp.cv,gx+ox-sp.m,gy+oy-sp.m));ctx.globalAlpha=1;} // (across an edge too: a glow at the surface's edge carries on at the opposite one, as its object does)
+    else wrapCopies(gx,gy,Rg,(ox,oy)=>{const g=ctx.createRadialGradient(gx+ox,gy+oy,0,gx+ox,gy+oy,Rg);
       g.addColorStop(0,`rgba(${rgb},${L.a.toFixed(3)})`);g.addColorStop(0.55,`rgba(${rgb},${(L.a*0.4).toFixed(3)})`);g.addColorStop(1,`rgba(${rgb},0)`);
-      ctx.fillStyle=g;ctx.beginPath();ctx.arc(gx,gy,Rg,0,6.2832);ctx.fill();}
+      ctx.fillStyle=g;ctx.beginPath();ctx.arc(gx+ox,gy+oy,Rg,0,6.2832);ctx.fill();});
   }
   ctx.restore();
 }function dialTailAlpha(p){ // a String launch's tail holds while the launch lasts, then interpolates away as its effect begins to fade
@@ -12474,7 +12444,7 @@ function draw(now){
   _dialTargets=computeDialTargets();gateSwipeTick();
   // The world is ALWAYS rendered live (glows, pulses, fades, state changes all keep animating on real time);
   // pausing only stops the simulation itself (timeScale 0), it no longer freezes the picture.
-  renderWorld(now,false);drawDucks(ctx,now);drawGoods(ctx,now);evRecord(now);evFrameDraw(ctx,now);
+  renderWorld(now,false);{const c=_evCap||_evRep,k=1-(1-T.invalidTargetOpacity)*evDim(now);ctx.save();if(!c||ducks.indexOf(c.at)<0)ctx.globalAlpha=k;drawDucks(ctx,now);ctx.globalAlpha=k;drawGoods(ctx,now);ctx.restore();}evRecord(now);evFrameDraw(ctx,now); // (ducks and goods dim with everything else round an event's subject, unless a duck is the subject)
   if(timeScale>0.0005)drawMotionGlow(ctx); // (fully paused, the pause paths show motion instead)
   const gateA=drawGateRewind(ctx,now); // during a Gate rewind: the old picture dissolving over the restored world
   if(timeScale<=0.0005){ctx.save();ctx.globalAlpha=gateA;drawPauseGuideRings(ctx,now);ctx.restore();} // effect-radius outlines + predicted motion paths, only at a full stop
@@ -12564,9 +12534,9 @@ const SCENES={};
 (function(){
   SCENES.replay={dur:(window.__REPLAY||{}).dur||6000,setup(S){const R=window.__REPLAY||{dorm:[],objs:[]},cx=S.W/2,cy=S.H/2,put=(o,p)=>{if(p&&o.full){Object.assign(p,o.full,{x:p.x,y:p.y});p.fillDirty=true;}return p;}; // your moment: what was there exactly as it was (life left, wake, drain…), your purse, upgrades and day, then your own input at its own times
     if(R.purse)Object.assign(inventory,R.purse);for(const u of R.ups||[])discSeen.add(u);if(R.run)Object.assign(runState,R.run);
-    for(const d of R.dorm)put(d,stampSnapshotAt(d,cx+d.dx,cy+d.dy));for(const o of R.objs){const p=put(o,stampSnapshotAt(o,cx+o.dx,cy+o.dy));if(p&&o.on)pressedIDs.add(p.id);}
-    const st=R.st;if(st){mouse.x=cx+st.dx;mouse.y=cy+st.dy;mouseDown=!!st.down;dragMode=!!st.drag;mouseDownAt=st.at;heat.v=st.hv;heat.until=st.hu;}S.k=0;_evReplaySlow=R.cap0?{t0:R.cap0}:null;},
-    tick(S,t,now){const R=window.__REPLAY,I=R&&R.ins;if(!I)return;while(S.k<I.length&&I[S.k].t<=now){const e=I[S.k++],r=canvas.getBoundingClientRect(),o={bubbles:true,cancelable:true,clientX:r.left+S.W/2+e.dx,clientY:r.top+S.H/2+e.dy,button:e.b,buttons:e.bs};canvas.dispatchEvent(e.ty==='wheel'?new WheelEvent('wheel',Object.assign(o,{deltaY:e.d})):new MouseEvent(e.ty,o));}}}; // (each press, move, release, double click, right click and wheel, where and when it was: the cursor goes with it)
+    {const pf=T.paintFadeFrames;T.paintFadeFrames=0;for(const d of R.dorm)put(d,stampSnapshotAt(d,cx+d.dx,cy+d.dy));T.paintFadeFrames=pf;} /* (the nebula as it was, there from the first picture: it does not fade in as paint does) */const ids=new Set();R.objs.forEach((o,i)=>{const p=put(o,stampSnapshotAt(o,cx+o.dx,cy+o.dy));if(p&&o.on)pressedIDs.add(p.id);if(p&&(R.src||[]).indexOf(i)>=0)ids.add(p.id);}); // (ids: what its subject came of, lit from the start)
+    const st=R.st;if(st){mouse.x=cx+st.dx;mouse.y=cy+st.dy;mouseDown=!!st.down;dragMode=!!st.drag;mouseDownAt=st.at;heat.v=st.hv;heat.until=st.hu;}S.k=0;{const P=(R.path||[[0,0,0]])[0],x=cx+P[1],y=cy+P[2];_evRep=R.cap0?{rep:1,sz:EV_FRAME[R.id]||'l',quiet:R.id.slice(0,3)==='rl_',t0:R.cap0,at:{x,y},px:x,py:y,ux:0,uy:0,ids,rect:{}}:null;}}, // (its capture again: the same slow, the same dimming, and its subject followed here as play followed it)
+    tick(S,t,now){const R=window.__REPLAY,I=R&&R.ins||[],c=_evRep;if(c&&now>=c.t0){if(c.id0==null)c.id0=R.obj===0?pidCounter:0;evFollow(c,now);}window.__evU=c?[c.ux,c.uy]:[0,0];if(R&&R.end&&now>=R.end&&!isPaused)togglePause(); /* where its subject has gone since it began (the card's view keeps on it); at its capture's end it slows to a pause, as play did, and holds there */while(S.k<I.length&&I[S.k].t<=now){const e=I[S.k++],r=canvas.getBoundingClientRect(),o={bubbles:true,cancelable:true,clientX:r.left+S.W/2+e.dx,clientY:r.top+S.H/2+e.dy,button:e.b,buttons:e.bs};canvas.dispatchEvent(e.ty==='wheel'?new WheelEvent('wheel',Object.assign(o,{deltaY:e.d})):new MouseEvent(e.ty,o));}}}; // (each press, move, release, double click, right click and wheel, where and when it was: the cursor goes with it)
   const rv=s=>(Math.random()-0.5)*2*s,TAU=6.2832;
   const R4=(x0,y0,x1,y1)=>[{x:x0,y:y0},{x:x1,y:y0},{x:x1,y:y1},{x:x0,y:y1}];
   const shp=o=>{pushFixed(Object.assign({id:++shapeSeq,closed:false,acc:0,lastSweep:0,broken:{}},o));rebuildGlassList();};
@@ -12832,9 +12802,9 @@ const CONV={
 // ── Events: the first time something happens, a card pauses the game and unlocks its Guide entries ──
 const EVENTS=csvRead('events').map(r=>{const f=r.facts.split('\n');return{id:r.id,name:r.name,type:r.type,rar:r.rarity,scene:r.scene,ico:r.icon,facts:()=>f.map(x=>String(x).replace(/\{([^{}]+)\}/g,(m,e)=>{const w=/^\d+$/.test(e)?'':VAL[e]||e,n=[...new Set((String(w).match(/\bT\.(\w+)|runT\('(\w+)'\)/g)||[]).map(v=>v.replace(/^T\.|runT\('|'\)/g,'')))].join(' ');return tvE(tpl(m),n);})),flavor:r.flavor};}); // (each value tagged with the variables it comes from: tvHTML) // content/events.csv (facts: one line each; {…} worked out as it shows)
 let _evQ=[],_evOpen=false,_evWasPaused=false,_evReview=false,_evHand=[],_evAct=0,_evDraw=false; // _evDraw: a Carnival draw is showing (it closes only by picking) // discoveries made together come as a hand: one card shown, the rest to pick
-function fireEvent(id,at){if(window.__SCENE||BUILD||discSeen.has('ev:'+id)||_evQ.indexOf(id)>=0||!EVENTS.some(e=>e.id===id))return;if(!at&&EV_FRAME[id]==='f')at={x:W/2,y:H/2}; // (the whole surface: its centre)
+function fireEvent(id,at,src){if(window.__SCENE||BUILD||discSeen.has('ev:'+id)||_evQ.indexOf(id)>=0||!EVENTS.some(e=>e.id===id))return;if(!at&&EV_FRAME[id]==='f')at={x:W/2,y:H/2}; // (the whole surface: its centre)
   discSeen.add('ev:'+id);evUnread.add(id);evUnreadSave();saveInventory();evDeskSync(); // discovered as it happens (the Guide shows it at once); unread until it is looked at, anywhere
-  const sz=EV_FRAME[id];if(at&&sz&&!_rulesOpen&&!_menuOpen&&!_evOpen&&!isPaused){evCapStart(id,at,sz);return;}_evQ.push(id);} // where it happened, a capture frames it as it unfolds; anything else is a card at once
+  const sz=EV_FRAME[id];if(at&&sz&&!_rulesOpen&&!_menuOpen&&!_evOpen&&!isPaused){evCapStart(id,at,sz,src);return;}_evQ.push(id);} // where it happened, a capture frames it as it unfolds (src: what its subject came of: the Point a remnant formed from, the two that merged, a Pattern's Points); anything else is a card at once
 // ── Event capture: the moment an event first happens, the game does not stop at once. A frame (a faint line with sparkles, brighter as it starts) follows it
 // round the surface (wrapping with it), sized by its kind (EV_FRAME: small for a pigment or Point, large for a Dark Remnant or a nova, the whole screen for a
 // Rift), the game slows by Event slow (with the novas' slows) and the scene is recorded (a rolling recording keeps Event pre ms before it). If nothing else
@@ -12846,63 +12816,67 @@ const EV_UNREAD_KEY='il_ev_unread';let evUnread=new Set();try{evUnread=new Set(J
 function evUnreadSave(){try{localStorage.setItem(EV_UNREAD_KEY,JSON.stringify([...evUnread]));}catch(e){}}
 var _evSurfAt=0; // (var: a surface is built before this part of the page has run)
 const _evDC=new WeakMap(); // (each nebula particle's record, made once: they keep still until woken)
-let _evSnaps=[],_evIn=[],_evBg=[],_evReplaySlow=null,_evSnapAt=0,_evCap=null,_evZoom=null,_evRecs={},_evDeskOpen=false;
+var _evRep=null,_evCap=null; // an event's capture, as it is played again (in a recording's own copy of the game) and as it happens (var: the draw asks after them before this part of the page has run)
+let _evSnaps=[],_evIn=[],_evBg=[],_evSnapAt=0,_evRecs={},_evDeskOpen=false;
 // The recording is not pictures: it is the surface's own state (each object as Duplicate copies it, shining or not, and the nebula's particles there),
 // taken Event pre ms before the event, in a frame of the card's own shape round it (unwrapped across the screen's edges: a moment at an edge is one
-// piece). On its card it plays again, live, in a copy of the game at the size it happened and in the settings you play with now: your own moment,
-// as you saw it, and never a picture. It is kept (IndexedDB evrec:<id>) for its card, its Guide entries and the Journal; an event with none yet shows its demo.
+// piece). On its card it plays again, live, in a copy of the game at the size it happened and in the settings it happened in: your own moment,
+// as you saw it. It is kept (IndexedDB evrec:<id>) for its card, its Guide entries and the Journal, with a still of how it ended (what its small card shows, at rest); an event with none yet shows its demo.
 function evFrameR(c){const ar=T.evAspect||1.65,h=c.sz==='f'?H/2:c.sz==='l'?(T.evFrameL||160):(T.evFrameS||55);return{rh:h,rw:Math.min(c.sz==='f'?W/2:W/2,h*ar)};} // its half height and half width (the card's shape; a Rift's: the screen's height, the card's shape across it)
-function evCapSlow(now){const c=_evCap||_evReplaySlow;if(!c)return 0;const u=(now-c.t0)/250;return (T.evSlow!=null?T.evSlow:0.5)*Math.min(1,u);} // (a 50% slow, eased in, for as long as it is captured)
+function evRamp(c,now,ms){return Math.max(0,Math.min(1,(now-c.t0)/ms));} // how far into its capture, 0–1 over ms (0 in the moment before it: a recording plays that at the speed it happened)
+function evCapSlow(now){const c=_evCap||_evRep;return c&&!c.quiet?(T.evSlow!=null?T.evSlow:0.5)*evRamp(c,now,250):0;} // (a 50% slow, eased in, for as long as it is captured; never for one recorded quietly, which play did not slow)
+function evDim(now){const c=_evCap||_evRep;return !c||c.sz==='f'?0:c.rep&&c.ids.size?1:evRamp(c,now,250);} // how far everything but its subject and its subject's source is dimmed (toolInvalidDimActive: the tools' own way), eased in as it starts; played again, from the start when what it came of is known; never for the whole surface
+function evZoomK(c,now){const u=evRamp(c,now,T.evZoomInMs||1400);return c.sz==='f'?1:1+((T.evZoomIn||2.2)-1)*u*u*(3-2*u);} // how far in on its subject: every event starts at its frame's full size (small or large) and closes in on what happened, the frame in play and the view of its replay alike (but the whole surface)
 const _evSkip=new Set(['id','_pv','fillStr','capturedBy']);
 function evState(o){const s={};for(const k in o){if(_evSkip.has(k))continue;const v=o[k];if(v==null||typeof v!=='object'){if(typeof v!=='function')s[k]=v;continue;} // everything an object is (life left, wake, drain, timers…): its plain values, lists of values and small records of values
   if(Array.isArray(v)){if(!v.length||typeof v[0]!=='object')s[k]=v.slice();}else if(Object.getPrototypeOf(v)===Object.prototype&&Object.values(v).every(w=>w==null||typeof w!=='object'))s[k]=Object.assign({},v);}return s;}
 function evRecord(now,force){if(window.__SCENE||BUILD)return;{let lo=(_evCap&&_evCap.snap||_evSnaps[0]||{t:now}).t;for(const b of _evBg)if(b.snap)lo=Math.min(lo,b.snap.t);while(_evIn.length&&_evIn[0].t<lo)_evIn.shift();}if(!force&&now-_evSnapAt<(T.evSnapMs||250))return;_evSnapAt=now; // the rolling record: what is on the surface, every Event snapshot ms (and your input since)
-  const L=[];for(const o of active){if(o.dying||o.captured||o._bhGone)continue;const q=snapshotForDup(o,false);q.full=evState(o);q.on=pressedIDs.has(o.id)?1:0;L.push(q);}
+  const L=[];for(const o of active){if(o.dying||o.captured||o._bhGone)continue;const q=snapshotForDup(o,false);q.full=evState(o);q.on=pressedIDs.has(o.id)?1:0;q.oid=o.id;L.push(q);} // (oid: which one it was, to tell a recording what its subject came of)
   let n=0,id0=-1,id1=-1;for(const o of dormant)if(o){n++;if(id0<0)id0=o.id;id1=o.id;}const P=_evSnaps[_evSnaps.length-1],D=P&&P.Dk===n+':'+id0+':'+id1?P.D:dormant.filter(Boolean).map(o=>{let q=_evDC.get(o);if(!q){q=snapshotForDup(o,true);q.full=evState(o);_evDC.set(o,q);}return q;}); // (the nebula as it was then: a particle you wake is still in it)
   _evSnaps.push({t:now,L,D,Dk:n+':'+id0+':'+id1,st:{x:mouse.x,y:mouse.y,down:mouseDown?1:0,drag:dragMode?1:0,at:mouseDownAt,hv:heat.v,hu:heat.until}});
   const keep=now-(T.evPreMs||600);while(_evSnaps.length>1&&_evSnaps[1].t<=keep)_evSnaps.shift();}
 if(!window.__SCENE)for(const ty of['mousedown','mouseup','mousemove','dblclick','contextmenu','wheel'])document.addEventListener(ty,e=>{if(!wrapRect||BUILD||!e.isTrusted)return;if(ty!=='mousemove'&&e.target!==canvas&&e.target!==wrap)return; // your input as it happened (what the surface itself got): the recording plays it again
   _evIn.push({t:performance.now(),ty,x:e.clientX-wrapRect.left,y:e.clientY-wrapRect.top,b:e.button||0,bs:e.buttons||0,d:e.deltaY||0});},true);
-function evCapNew(id,at,sz,now){let S=_evSnaps[0]||null;if(!S||S.t<_evSurfAt){evRecord(now,true);S=_evSnaps[_evSnaps.length-1];} // (a new surface: from the moment it is there, not the one before)
-  const c={id,at,sz,t0:now,snap:S,path:[[now,0,0]],ux:0,uy:0,px:at.x,py:at.y,id0:pidCounter};c.rect=Object.assign({x:at.x,y:at.y},evFrameR(c));return c;}
-function evCapStart(id,at,sz){const now=performance.now();if(_evCap){evCapSave(_evCap);_evDesk.push(_evCap.id);evDeskSync();} // another one during this: it goes to the desk
-  _evCap=evCapNew(id,at,sz,now);playGlassTap();}
-function evQuietRec(id,at,sz){if(window.__SCENE||BUILD||!at||_evRecs[id]||_evBg.some(b=>b.id===id))return;_evBg.push(evCapNew(id,at,sz||'l',performance.now()));} // a Journal entry learned as it happens (an effect at work): recorded the same way, quietly (no card, no slow), for its entry
+function evCapNew(id,at,sz,now,src){let S=_evSnaps[0]||null;if(!S||S.t<_evSurfAt){evRecord(now,true);S=_evSnaps[_evSnaps.length-1];} // (a new surface: from the moment it is there, not the one before)
+  const c={id,at,sz,t0:now,snap:S,ux:0,uy:0,px:at.x,py:at.y,x0:at.x,y0:at.y,id0:pidCounter,obj:at.id!=null?1:0,ids:new Set((src||[]).filter(Boolean).map(o=>o.id))};c.rect=Object.assign({x:at.x,y:at.y},evFrameR(c)); // ids: its subject and what it came of (all that is not dimmed)
+  if(c.obj)c.ids.add(at.id);else if(!src){const R=T.evAdoptR!=null?T.evAdoptR:90;for(const o of active)if(_wrapD(o.x-at.x,W)**2+_wrapD(o.y-at.y,H)**2<R*R)c.ids.add(o.id);} // (a place with nothing named: what was there)
+  return c;}
+function evCapStart(id,at,sz,src){const now=performance.now();if(_evCap){evCapSave(_evCap);_evDesk.push(_evCap.id);evDeskSync();} // another one during this: it goes to the desk
+  _evCap=evCapNew(id,at,sz,now,src);playGlassTap();}
+function evQuietRec(id,at,sz){if(window.__SCENE||BUILD||!at||_evRecs[id]||_evBg.some(b=>b.id===id))return;_evBg.push(evCapNew(id,at,sz||'l',performance.now()));} // a Journal entry learned as it happens (an effect at work): recorded the same way, quietly (no card, no slow, nothing dimmed), for its entry
 const evLive=o=>!!o&&o.id!=null&&(active.indexOf(o)>=0&&!o.dying&&!o._bhGone||dormIx(o)>=0); // a thing still there (not a place, nor one gone)
-function evFollow(c,now){if(!evLive(c.at)){const R=T.evAdoptR!=null?T.evAdoptR:90;let b=null,bd=R*R;for(const o of active){if(o.id<c.id0||o.dying)continue;const dx=_wrapD(o.x-c.px,W),dy=_wrapD(o.y-c.py,H),d=dx*dx+dy*dy;if(d<bd||b&&!b.isRemnant&&o.isRemnant&&d<R*R){bd=d;b=o;}}if(b)c.at=b;} // its subject gone, or a place: what came of it there (the remnant a point became, the pigment a click woke…; a remnant first) is followed from then on
-  const a=c.at,x=a.x,y=a.y;c.ux+=_wrapD(x-c.px,W);c.uy+=_wrapD(y-c.py,H);c.px=x;c.py=y;c.rect.x=x;c.rect.y=y;const L=c.path[c.path.length-1];if(now-L[0]>=60)c.path.push([now,c.ux,c.uy]);} // the frame keeps on its subject, wherever it goes (its path kept, unwrapped)
-const EV_ZOOM=new Set(['point','dim','bright','neutron','magnetic','pulsing','dimrelic','brightrelic']); // the events the replay zooms in on as they form (a point, a remnant)
-function evCapSave(c){const S=c.snap;if(!S)return;const{rw,rh}=c.rect,cx=W/2,cy=H/2; // the whole surface as it was (everything on it: what comes into the frame or leaves it, and what acts on it from outside it, plays out too); the frame follows its subject over it
+function evFollow(c,now){if(!evLive(c.at)&&ducks.indexOf(c.at)<0){const R=T.evAdoptR!=null?T.evAdoptR:90;let b=null,bd=R*R;for(const o of active){if(o.id<c.id0||o.dying)continue;const dx=_wrapD(o.x-c.px,W),dy=_wrapD(o.y-c.py,H),d=dx*dx+dy*dy;if(d<bd||b&&!b.isRemnant&&o.isRemnant&&d<R*R){bd=d;b=o;}}if(b){c.at=b;c.ids.add(b.id);}} // its subject gone, or a place: what came of it there (the remnant a point became, the pigment a click woke…; a remnant first) is followed from then on, and stands out with it
+  const a=c.at,x=a.x,y=a.y,z=evZoomK(c,now),B=evFrameR(c);if(a.id!=null)c.ids.add(a.id);c.ux+=_wrapD(x-c.px,W);c.uy+=_wrapD(y-c.py,H);c.px=x;c.py=y;Object.assign(c.rect,{x,y,rw:B.rw/z,rh:B.rh/z});} // the frame keeps on its subject, wherever it goes (how far, unwrapped: across an edge it is one journey), closing in on it
+function evStill(c){const{x,y,rw,rh}=c.rect,k=canvas.width/W,w=Math.max(4,rw-4),h=Math.max(4,rh-4),el=document.createElement('canvas'),g=el.getContext('2d');el.width=320;el.height=Math.round(320*h/w); // how it ended: what is in its frame now (just inside its line), joined across the surface's edges and corners
+  for(const ox of[-W,0,W])for(const oy of[-H,0,H])if(x-w+ox<W&&x+w+ox>0&&y-h+oy<H&&y+h+oy>0)g.drawImage(canvas,(x-w+ox)*k,(y-h+oy)*k,2*w*k,2*h*k,0,0,el.width,el.height);try{return el.toDataURL('image/jpeg',0.82);}catch(e){return '';}}
+function evCapSave(c){const S=c.snap;if(!S)return;const{rw,rh}=evFrameR(c),cx=W/2,cy=H/2,now=performance.now(); // the whole surface as it was (everything on it: what comes into the frame or leaves it, and what acts on it from outside it, plays out too); the frame follows its subject over it
   const objs=S.L.map(q=>Object.assign({},q,{dx:q.x-cx,dy:q.y-cy})),dorm=(S.D||[]).map(q=>Object.assign({},q,{dx:q.x-cx,dy:q.y-cy}));
-  const x0=c.px-c.ux,y0=c.py-c.uy,path=c.path.map(q=>[Math.round(q[0]),Math.round(((x0+q[1])%W+W)%W-cx),Math.round(((y0+q[2])%H+H)%H-cy)]); // (where its subject was, on the surface)
   const ins=_evIn.filter(e=>e.t>=S.t).map(e=>({t:e.t,ty:e.ty,dx:e.x-cx,dy:e.y-cy,b:e.b,bs:e.bs,d:e.d})),st=S.st&&Object.assign({},S.st,S.st.x<-999?{dx:-9999,dy:-9999}:{dx:S.st.x-cx,dy:S.st.y-cy}); // (the cursor off the surface stays off)
-  const rec={id:c.id,w:Math.round(W),h:Math.round(H),fw:Math.round(2*rw),fh:Math.round(2*rh),path,zoom:EV_ZOOM.has(c.id)?1:0,inv:invertMode?1:0,dur:Math.round(performance.now()-S.t+(T.evReplayTail||900)),objs,dorm,at:Date.now(),
+  const rec={id:c.id,w:Math.round(W),h:Math.round(H),fw:Math.round(2*rw),fh:Math.round(2*rh),path:[[Math.round(c.t0),Math.round(c.x0-cx),Math.round(c.y0-cy)]],obj:c.obj,src:S.L.map((q,i)=>c.ids.has(q.oid)?i:-1).filter(i=>i>=0),still:evStill(c),inv:invertMode?1:0,end:Math.round(now),dur:Math.round(now-S.t+(T.evReplayTail||900)),objs,dorm,at:Date.now(), // (path: where its subject was as it began; obj: a thing, not a place; src: which of objs it came of; still: how it ended; end: when)
     t0:S.t,cap0:c.t0,st,ins,T:Object.assign({},T),purse:Object.assign({},inventory),ups:[...discSeen].filter(d=>d.slice(0,3)==='up:'),run:JSON.parse(JSON.stringify(runState||{}))};_evRecs[c.id]=rec;IDB.put('evrec:'+c.id,rec).catch(()=>{});} // (and everything it ran on: every setting, your purse, upgrades and day)
 let _evDesk=[];
 function evCapTick(now){for(const b of _evBg){evFollow(b,now);if(now-b.t0>=(T.evCaptureMs||2400)){b.done=1;evCapSave(b);}}_evBg=_evBg.filter(b=>!b.done); // (the quiet ones: saved for their Journal entries)
   const c=_evCap;if(!c)return;evFollow(c,now);
-  if(now-c.t0>=Math.max(T.evCaptureMs||2400,T.evSoloMs||1600)){_evCap=null;evCapSave(c);evZoomStart(c);}} // nothing else happened: pause, and the frame grows into its card
-function evZoomStart(c){const wasP=isPaused;if(!isPaused)togglePause();const rc=wrap.getBoundingClientRect(),cr=canvas.getBoundingClientRect(),k=cr.width/W,{x,y,rw,rh}=c.rect,el=document.createElement('canvas'),ar=rw/rh,SW=320,SH=Math.round(320/ar),cw=canvas.width/W;
-  el.width=SW;el.height=SH;{const g=el.getContext('2d');for(const[ox,oy]of[[0,0],[W,0],[-W,0],[0,H],[0,-H]])g.drawImage(canvas,(x-rw+ox)*cw,(y-rh+oy)*cw,2*rw*cw,2*rh*cw,0,0,SW,SH);} // (the frame as it is now, joined across an edge)
-  el.style.cssText=`position:absolute;z-index:60;left:${cr.left-rc.left+(x-rw)*k}px;top:${cr.top-rc.top+(y-rh)*k}px;width:${2*rw*k}px;height:${2*rh*k}px;border:1px solid rgba(255,255,255,.7);box-shadow:0 0 18px rgba(255,255,255,.35);transition:all ${(T.evZoomMs||700)}ms cubic-bezier(.2,.8,.2,1);pointer-events:none`;
-  wrap.appendChild(el);_evZoom=el;requestAnimationFrame(()=>requestAnimationFrame(()=>{el.style.left=(rc.width/2-SW/2)+'px';el.style.top=(rc.height/2-SH/2-60)+'px';el.style.width=SW+'px';el.style.height=SH+'px';}));
-  setTimeout(()=>{el.remove();_evZoom=null;_evHand=[c.id,..._evDesk.filter(i=>i!==c.id)];_evDesk=[];_evOpen=true;_evWasPaused=wasP;showEventCard(c.id,false);evDeskSync();},(T.evZoomMs||700)+40);}
+  if(now-c.t0>=Math.max(T.evCaptureMs||2400,T.evSoloMs||1600)){_evCap=null;evCapSave(c);_evHand=[c.id,..._evDesk.filter(i=>i!==c.id)];_evDesk=[];showEventCard(c.id,false);evDeskSync();}} // nothing else happened: it is kept as it is now (its still), the game pauses and its card shows, the rest of the desk in its hand
 function evFrameDraw(c2,now){const c=_evCap;if(!c||!c.rect)return;const{x,y,rw,rh}=c.rect,em=Math.max(0,1-(now-c.t0)/(T.evEmphMs||500)),a=0.22+0.6*em; // the frame round it (the card's shape): faint, brighter as it starts; sparkles running round its border
   const box=(ox,oy)=>{const L=c.sz==='f'?[W/2-rw+3,3,2*rw-6,H-6]:[x+ox-rw,y+oy-rh,2*rw,2*rh];c2.save();c2.strokeStyle=`rgba(255,255,255,${a.toFixed(3)})`;c2.lineWidth=1+2*em;c2.shadowColor='rgba(255,255,255,0.8)';c2.shadowBlur=6+14*em;c2.strokeRect(...L);c2.restore();
     const P=2*(L[2]+L[3]);for(let i=0;i<10;i++){let d=((now/1400+i/10)%1)*P,px,py;if(d<L[2]){px=L[0]+d;py=L[1];}else if((d-=L[2])<L[3]){px=L[0]+L[2];py=L[1]+d;}else if((d-=L[3])<L[2]){px=L[0]+L[2]-d;py=L[1]+L[3];}else{d-=L[2];px=L[0];py=L[1]+L[3]-d;}
       const tw=0.5+0.5*Math.sin(now/90+i*1.7);c2.fillStyle=`rgba(255,255,255,${((0.4+0.6*em)*tw).toFixed(3)})`;c2.beginPath();c2.arc(px,py,1+1.5*tw+2*em,0,6.2832);c2.fill();}};
   if(c.sz==='f')box(0,0);else wrapCopies(x,y,Math.max(rw,rh),box);}
-const evRecFor=id=>id&&(_evRecs[id]||null);
+const evRecFor=id=>id&&(_evRecs[id]||null),evStillHTML=ids=>{const R=ids.map(evRecFor).find(r=>r&&r.still);return R?`<img class="still" src="${R.still}" alt="">`:'';}; // a recording; and its still as a picture (a small card's art, at rest)
 if(!window.__SCENE)IDB.keys().then(ks=>{const P=IDB.key('evrec:');for(const k of ks)if(typeof k==='string'&&k.startsWith(P))IDB.get(k.slice(k.indexOf('evrec:'))).then(r=>{if(r&&r.id)_evRecs[r.id]=r;}).catch(()=>{});}).catch(()=>{}); // (your recordings, back from the last time you played)
-function evReplayMount(h,rec){if(!h||h.firstChild)return;const f=document.createElement('iframe'),aw=h.clientWidth||300,ah=h.clientHeight||190,fw=rec.fw||rec.w,fh=rec.fh||rec.h,k=Math.max(aw/fw,ah/fh),P=rec.path||[[0,0,0]]; // your moment, played again live: a copy of the game at the size it happened (its frame scaled to fill the card, a little cut off if it must), the view keeping on its subject as it moves
-  f.style.cssText=`border:0;pointer-events:none;background:#000;position:absolute;left:0;top:0;width:${rec.w}px;height:${rec.h}px;transform-origin:0 0`;h.style.position='relative';h.style.overflow='hidden';f.srcdoc=liveSrc('replay',rec);h.appendChild(f);
-  const at=t=>{let i=0;while(i<P.length-1&&P[i+1][0]<=t)i++;const A=P[i],B=P[Math.min(i+1,P.length-1)],u=B[0]>A[0]?Math.max(0,Math.min(1,(t-A[0])/(B[0]-A[0]))):0;return[A[1]+(B[1]-A[1])*u,A[2]+(B[2]-A[2])*u];};
-  const pan=()=>{if(!f.isConnected)return;let t=P[0][0];try{t=f.contentWindow.performance.now();}catch(e){}const[dx,dy]=at(t),u=rec.zoom&&rec.cap0?Math.max(0,Math.min(1,(t-rec.cap0)/(T.evZoomInMs||1400))):0,kk=k*(1+((T.evZoomIn||2.2)-1)*u*u*(3-2*u)),vw=aw/kk/2,vh=ah/kk/2,X=Math.max(vw,Math.min(rec.w-vw,rec.w/2+dx)),Y=Math.max(vh,Math.min(rec.h-vh,rec.h/2+dy)); // (zooming in on a point or a remnant as it forms; never past the surface's edge)
-    f.style.transform=`translate(${aw/2-X*kk}px,${ah/2-Y*kk}px) scale(${kk})`;requestAnimationFrame(pan);};pan();}
+function evReplayMount(h,rec){if(!h||h.firstChild)return;const f=document.createElement('iframe'),v=document.createElement('canvas'),g=v.getContext('2d'),aw=h.clientWidth||300,ah=h.clientHeight||190,dp=Math.min(2,window.devicePixelRatio||1),k=Math.max(aw/(rec.fw||rec.w),ah/(rec.fh||rec.h)),P=(rec.path||[[0,0,0]])[0],c={sz:EV_FRAME[rec.id]||'l',t0:rec.cap0||0};let X=0,Y=0,last=null;
+  // your moment, played again live: a copy of the game at the size it happened plays it out of sight (its frame scaled to fill the card), and this canvas is the view of it. It keeps on the subject wherever it goes (the copy follows it as play did, and says where), the surface joined round it across its edges and corners: a subject at an edge sits in the middle like any other, and one that crosses an edge is never lost
+  f.style.cssText=`border:0;pointer-events:none;position:absolute;left:0;top:0;width:${rec.w}px;height:${rec.h}px;opacity:0`;v.width=Math.round(aw*dp);v.height=Math.round(ah*dp);v.style.cssText='position:absolute;left:0;top:0;width:100%;height:100%';h.style.position='relative';h.style.overflow='hidden';if(rec.still)h.style.background=`#000 url(${rec.still}) center/cover no-repeat`; // (its still shows until it plays)
+  f.srcdoc=liveSrc('replay',rec);h.appendChild(f);h.appendChild(v);
+  const pan=()=>{if(!f.isConnected){v.remove();return;}requestAnimationFrame(pan);let w=null,cv=null,cu=null;try{w=f.contentWindow;cv=w.document.getElementById('c');cu=w.document.getElementById('cur');}catch(e){}if(!cv||!w.__evU||!cv.width||w.performance.now()<rec.t0+100)return; // (as it starts again its last picture, the pause it ended on, stays until the first of the new one)
+    const kk=k*evZoomK(c,w.performance.now()),tx=rec.w/2+P[1]+w.__evU[0],ty=rec.h/2+P[2]+w.__evU[1],e=w===last?0.18:1;last=w;X+=(tx-X)*e;Y+=(ty-Y)*e;const mx=(X%rec.w+rec.w)%rec.w,my=(Y%rec.h+rec.h)%rec.h; // (the view eases after its subject: no jolt when the frame takes up what came of it)
+    g.setTransform(1,0,0,1,0,0);g.fillStyle=rec.inv?'#fff':'#000';g.fillRect(0,0,v.width,v.height);
+    for(const ox of[-rec.w,0,rec.w])for(const oy of[-rec.h,0,rec.h]){const L=aw/2+(ox-mx)*kk,U=ah/2+(oy-my)*kk;if(L>=aw||U>=ah||L+rec.w*kk<=0||U+rec.h*kk<=0)continue;g.setTransform(kk*dp,0,0,kk*dp,L*dp,U*dp);g.drawImage(cv,0,0,rec.w,rec.h);if(cu&&cu.width&&w.getComputedStyle(cu).display!=='none')g.drawImage(cu,0,0,rec.w,rec.h);}};pan();}
 function evDeskSync(){let el=document.getElementById('evDesk');const n=new Set([..._evDesk,...evUnread]).size;if(!el){el=document.createElement('button');el.id='evDesk';el.style.cssText='position:absolute;right:12px;bottom:calc(var(--dock-h,0px) + 14px);z-index:30;background:rgba(0,0,0,.75);color:#fff;border:1px solid rgba(255,255,255,.35);border-radius:14px;font:11px monospace;padding:4px 10px;display:none';
     el.onmousedown=e=>e.stopPropagation();el.onclick=e=>{e.stopPropagation();const ids=[...new Set([..._evDesk,...evUnread])].filter(i=>EVENTS.some(v=>v.id===i));if(!ids.length)return;_evDesk=[];_evDeskOpen=true;_evHand=ids;_evAct=0;showEventCard(ids[0],true);};wrap.appendChild(el);}
   el.textContent=txt('ev.desk',n);el.title=txt('ev.desk_tip');el.style.display=n&&!window.__SCENE&&!BUILD?'':'none';el.classList.toggle('new',_evDesk.length>0);}
-function eventPump(){evCapTick(performance.now());if(!_evQ.length||_evCap||_evZoom||_rulesOpen||_menuOpen||(_evOpen&&!_evHand.length))return;const n=_evHand.length;_evHand.push(..._evQ.splice(0));showEventCard(_evHand[n?_evAct:0],false);} // new ones join an open hand
+function eventPump(){evCapTick(performance.now());if(!_evQ.length||_evCap||_rulesOpen||_menuOpen||(_evOpen&&!_evHand.length))return;const n=_evHand.length;_evHand.push(..._evQ.splice(0));showEventCard(_evHand[n?_evAct:0],false);} // new ones join an open hand
 const gEsc=s=>String(s).replace(/[&<>]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[c]));
 function gHi(t){const e=gEsc(t),f=gEsc(_rulesFilter.trim());if(!f)return e;return e.split(new RegExp('('+f.replace(/[.*+?^${}()|[\]\\]/g,'\\$&')+')','gi')).map((x,i)=>i%2?'<mark>'+x+'</mark>':x).join('');}
 // Tiers (instead of rarity): how deep in the game a card sits. Muted tones: a card only explains, it has no use of its own
@@ -12910,10 +12884,10 @@ const TIER=['I','II','III','IV','V'],TIER_COL=['#8b8678','#918a76','#978c71','#9
 const tierOfCost=c=>c<3?0:c<10?1:c<20?2:c<40?3:4,evTier=ev=>ev.tier!=null?ev.tier:EV_TIER[ev.rar]||0;
 function cardHTML(ev,mini){ // the one card format: name bar, art box, type line, text box with facts + flavour
   const t=evTier(ev);
-  return `<div class="mtg${mini?' sm':''}${evUnread.has(ev.id)?' unread':''}" data-ev="${ev.id}" style="--rc:${TIER_COL[t]}"><div class="nm"><b>${gEsc(ev.name)}</b><span class="gem"></span></div><div class="art" data-scene="${ev.scene}" data-ev="${ev.id}">${mini?`<canvas class="rl-m" width="64" height="64" data-k="${ev.ico}"></canvas>`:''}</div><div class="ty"><span>${gEsc(ev.type.replace(/^Event — /,''))}</span><span>Tier ${TIER[t]}</span></div><div class="tx">${(mini?ev.facts().slice(0,1):ev.facts()).map(f=>`<p${ev.fx?' class="fx"':''}>${tvHTML(f)}</p>`).join('')}${ev.flavor?`<p class="fl">${gEsc(ev.flavor)}</p>`:''}</div></div>`; // (small: its first line and its flavour; the rest when it is opened) (fx: the lines are changes to play, set apart from the flavour)
+  return `<div class="mtg${mini?' sm':''}${evUnread.has(ev.id)?' unread':''}" data-ev="${ev.id}" style="--rc:${TIER_COL[t]}"><div class="nm"><b>${gEsc(ev.name)}</b><span class="gem"></span></div><div class="art" data-scene="${ev.scene}" data-ev="${ev.id}">${mini?evStillHTML([ev.id])||`<canvas class="rl-m" width="64" height="64" data-k="${ev.ico}"></canvas>`:''}</div><div class="ty"><span>${gEsc(ev.type.replace(/^Event — /,''))}</span><span>Tier ${TIER[t]}</span></div><div class="tx">${(mini?ev.facts().slice(0,1):ev.facts()).map(f=>`<p${ev.fx?' class="fx"':''}>${tvHTML(f)}</p>`).join('')}${ev.flavor?`<p class="fl">${gEsc(ev.flavor)}</p>`:''}</div></div>`; // (small: its first line and its flavour; the rest when it is opened) (fx: the lines are changes to play, set apart from the flavour)
 }
 function mountScene(h,w,hh){if(!h||h.firstChild||document.querySelectorAll('.rl-live iframe,.mtg .art iframe').length>=5)return;{const R=(h.dataset.ev||'').split(',').map(evRecFor).find(Boolean);if(R&&!w){evReplayMount(h,R);return;}} /* something you witnessed: your own recording of it, live (a demo only for what you have not) */const f=document.createElement('iframe'),nm=h.dataset.s||h.dataset.scene;f.style.cssText='border:0;max-width:100%;pointer-events:none;background:#000;border-radius:6px;'+(w?`width:${w}px;height:${hh}px`:'width:100%;height:100%');
-  if(nm.slice(0,4)==='hub:'){const[sn,dk]=nm.slice(4).split(':');f.src='Surface_Map_HUB.html?v=20261110h&scene='+sn+(sn==='shop'?'&k='+encodeURIComponent(dk||''):'')+'&T='+encodeURIComponent(JSON.stringify(mapSceneT()))+'&D='+encodeURIComponent(JSON.stringify(dk&&DUCK_TYPES[dk]?{[dk]:DUCK_TYPES[dk]}:Object.fromEntries(Object.entries(DUCK_TYPES).slice(0,4))));}else f.srcdoc=liveSrc(nm);h.appendChild(f);} // a Surface Map demo is played by the map itself
+  if(nm.slice(0,4)==='hub:'){const[sn,dk]=nm.slice(4).split(':');f.src='Surface_Map_HUB.html?v=20261110i&scene='+sn+(sn==='shop'?'&k='+encodeURIComponent(dk||''):'')+'&T='+encodeURIComponent(JSON.stringify(mapSceneT()))+'&D='+encodeURIComponent(JSON.stringify(dk&&DUCK_TYPES[dk]?{[dk]:DUCK_TYPES[dk]}:Object.fromEntries(Object.entries(DUCK_TYPES).slice(0,4))));}else f.srcdoc=liveSrc(nm);h.appendChild(f);} // a Surface Map demo is played by the map itself
 function mapSceneT(){const o={};for(const k in T)if(/^(map|bh|duck|wake|glass|metal|dimGlow|glowHalo|maxSpeed)/.test(k))o[k]=T[k];return o;} // what a map demo needs of the tuners
 function showCardHTML(html){ // a Guide card (an entry or a shop) opened over the Guide, where an event card shows
   guideCSS();_evOpen=true;_evReview=true;const ov=evOverlayEl();ov.innerHTML=`<div class="ev-box">${html}<button id="evOk">${txt('card.close')}</button></div>`;ov.style.display='flex';wrap.classList.add('ev-open');
@@ -13096,7 +13070,7 @@ function guideCSS(){
 @media (max-width:640px){#evOk{position:static;margin:0}}
 .rl-cards{display:flex;flex-wrap:wrap;gap:12px;align-items:flex-start}.rl-sec{margin:16px 0 8px;font-size:15px}.mtg.sm{cursor:pointer}.mtg.sm .tx p{margin:2px 0}
 .ev-box .mtg.full{width:min(440px,92vw)}.mtg.full .art{height:190px}.mtg .art-live{width:100%;height:100%}.mtg.full .tx{max-height:none}.mtg .tx .rl-live{display:block;min-width:0;width:100%;height:170px;min-height:0;margin:6px 0}
-.mtg .art img.sign{max-width:86%;max-height:86%;object-fit:contain}.mtg .art img.sign.hid{filter:brightness(0) drop-shadow(0 0 1px rgba(210,210,220,.75))}.mtg .tx .si{display:flex;justify-content:space-between;gap:8px}.mtg .tx .si b{font-weight:400}.ctabs{display:flex;gap:4px;flex-wrap:wrap;margin:4px 0}.ctabs span{border:1px solid #0004;border-radius:4px;padding:0 6px;font-size:11px;cursor:pointer!important;opacity:.6}.ctabs span.on{opacity:1;background:#0001;border-color:#000a}
+.mtg .art img.still{width:100%;height:100%;object-fit:cover;display:block}.mtg .art img.sign{max-width:86%;max-height:86%;object-fit:contain}.mtg .art img.sign.hid{filter:brightness(0) drop-shadow(0 0 1px rgba(210,210,220,.75))}.mtg .tx .si{display:flex;justify-content:space-between;gap:8px}.mtg .tx .si b{font-weight:400}.ctabs{display:flex;gap:4px;flex-wrap:wrap;margin:4px 0}.ctabs span{border:1px solid #0004;border-radius:4px;padding:0 6px;font-size:11px;cursor:pointer!important;opacity:.6}.ctabs span.on{opacity:1;background:#0001;border-color:#000a}
 #rulesOverlay .mtg.sm .tx{height:var(--smtx,auto);overflow:hidden}#rulesOverlay .mtg.sm.back{height:var(--smh,230px)}#rulesOverlay .mtg.sm{min-height:var(--smh,0)}.mtg.sm .nm b{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 #evOverlay .disc-lock{opacity:1!important;position:relative;min-height:28px;background:#000;border:1px dashed #555;border-radius:6px;overflow:hidden}#evOverlay .disc-lock>*{visibility:hidden}
 #evOverlay .disc-lock::after{content:'\\25A2  ' attr(data-cost) ' Dim';position:absolute;inset:0;display:flex;align-items:center;justify-content:center;color:#9aa;font:12px monospace}
@@ -13114,7 +13088,7 @@ function ruleCardHTML(e,mini){ // a Guide entry as a card: its name, art (a live
   if(!mini){tx+=rows.slice(0,1).map(p).join('');if(rows.length>1)tx+=`<div class="rl-x" data-disc="${ids.det}">${rows.slice(1).map(p).join('')}</div>`;
     if(sc.length>1)tx+=`<div class="rl-x" data-disc="${ids.ill}">${sc.slice(1).map(x=>`<span class="rl-live" data-s="${x}"></span>`).join('')}</div>`;
     if(mt.length)tx+=`<div class="rl-x" data-disc="${ids.mat}"><details class="rl-math"><summary>Math (live values)</summary>${mt.map(m=>CONV[m]?`<div class="rl-mh">${gEsc(CONV[m].t)}</div><ul>${CONV[m].f().map(l=>`<li>${tvHTML(l)}</li>`).join('')}</ul>`:'').join('')}</details></div>`;}
-  const art=mini||!sc.length?`<canvas class="rl-m" width="${mini?64:120}" height="${mini?64:120}" data-k="${ico}"></canvas>`:`<div class="art-live" data-disc="${ids.ill}" data-scene="${sc[0]}" data-ev="${['rl_'+id].concat(RULE_EV[id]||[]).join(',')}"></div>`;
+  const evs=['rl_'+id].concat(RULE_EV[id]||[]),art=mini||!sc.length?mini&&evStillHTML(evs)||`<canvas class="rl-m" width="${mini?64:120}" height="${mini?64:120}" data-k="${ico}"></canvas>`:`<div class="art-live" data-disc="${ids.ill}" data-scene="${sc[0]}" data-ev="${evs.join(',')}"></div>`; // (small: the still of your own recording of it, when there is one; else its glyph)
   return `<div class="mtg${mini?' sm':' full'}" data-rule="${id}" style="--rc:${TIER_COL[t]}"><div class="nm"><b>${gHi(e[2])}</b><span class="gem"></span></div><div class="art">${art}</div><div class="ty"><span>${gEsc(home)}</span><span>Tier ${TIER[t]}</span></div><div class="tx">${tx}</div></div>`;
 }
 function cardSize(ov){ // every small card the same size: its text box as tall as the longest of them all (every event, Guide entry and shop)
