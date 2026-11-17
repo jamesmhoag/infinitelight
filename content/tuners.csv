@@ -43,6 +43,10 @@ cursorStainSmooth,0.35,Stain smoothing,0.05,1,0.05,Cursor,theme,,,,"How closely 
 cursorStainHide,4,Stain under,0,12,0.5,Cursor,theme,,,,How strongly particles cover the stain (× their brightness): 0 = drawn over everything; higher = it shows only where the ground is bare,"how strongly particles cover the stain (× their brightness): higher, it shows only on bare ground"
 cursorIdleAlphaMult,0.5,Idle α ×,0,1,0.05,Cursor,theme,,,,Alpha multiplier when not hovering a target,0..1: overall alpha multiplier applied when not hovering a target
 cursorIdleBorderDark,0.4,Idle dark,0,1,0.05,Cursor,theme,,,,How far the idle ring color is mixed toward black,0..1: how far the ring/edge color is mixed toward black when not hovering a target
+cursorNibOn,1,Pen nib,0,1,1,Cursor,theme,,,,"The plain cursor carries the Fountain Pen's nib, its lens showing what is under it (0: off)",
+cursorNibLen,40,Nib length,16,90,1,Cursor,theme,,,,"px: from the ring to the end of the nib's cut-off shaft",
+cursorNibLens,13,Nib lens rad,6,30,1,Cursor,theme,,,,"px: the lens in the nib's shaft",
+cursorNibZoom,2.4,Nib zoom,1,6,0.1,Cursor,theme,,,,"How much the nib's lens magnifies what is under the cursor",
 pauseStopMs,650,Stop ms,0,3000,50,Pause,gameplay,,,,Time to ramp from full speed down to a full stop when pausing,ms: ramp time from full speed down to a full stop
 pauseResumeMs,650,Resume ms,0,3000,50,Pause,gameplay,,,,Time to ramp from a full stop back up to full speed when resuming,ms: ramp time from a full stop back up to full speed
 evResumeMs,1800,After a card ms,0,6000,100,Pause,gameplay,,,,"Time to ramp back up to full speed after closing a discovery card (slower, to pick up where you were)",ms: the slower ramp back up after a discovery card closes
