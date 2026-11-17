@@ -163,7 +163,7 @@ body.shop-open #hdock{z-index:59}#hinv .slot.wal::before{border-color:rgba(255,2
 <div id="veil"></div>
 <div id="bfx"></div>
 <iframe id="neb" data-tt="map.ui.surface"></iframe>
-<script src="content.js?v=20261117u"></script><script src="shared.js?v=20261117u"></script><script src="cabin.js?v=20261117u"></script>
+<script src="content.js?v=20261117v"></script><script src="shared.js?v=20261117v"></script><script src="cabin.js?v=20261117v"></script>
 <script>
 // ╔══════════════════════════════════════════════════════════════════════════════╗
 // ║  MAP ENGINE                                                                 ║
@@ -182,7 +182,7 @@ let playLog=[],clock=3,day=1,pool=6,burstFx=null,dayLog=[],dayCnt={b:0,d:0},pend
 // // clock: the hour (3 = Twilight … 24 = Midnight, the day's last turn); day: your attempts; pool: what the source put out at its last burst; fresh: no ring added yet since it
 let constel=[],armed=null,weaveSel=[],weaveAsk=null,clearFx={},mergeFx=[],feedMsg={t:'',d:'',at:-1e9}; // constellations {keys,type}; the armed map item; a Weave being drawn; animations; the final count
 const STEP_H=3; // the day: eight turns of three hours
-const CACHE_V='20261117u'; // the build: bump with shared.js's
+const CACHE_V='20261117v'; // the build: bump with shared.js's
 const SCENE=new URLSearchParams(location.search).get('scene'); // a Guide / event demo: the map plays a scripted moment (no surface behind it)
 let phase='move',turnTimer=0,mergeTimer=0;
 let gameOverReason='';
@@ -204,6 +204,7 @@ const s2w=(sx,sy)=>[sx+camX-MW/2,sy+camY-MH/2];
 function p2a(sx,sy){const[wx,wy]=s2w(sx,sy);const q=(Math.sqrt(3)/3*wx-1/3*wy)/HEX,r=(2/3*wy)/HEX;const s=-q-r;let rq=Math.round(q),rr=Math.round(r),rs=Math.round(s);const dq=Math.abs(rq-q),dr=Math.abs(rr-r),ds=Math.abs(rs-s);if(dq>dr&&dq>ds)rq=-rr-rs;else if(dr>ds)rr=-rq-rs;return[rq,rr];}
 function dist(q1,r1,q2,r2){return(Math.abs(q1-q2)+Math.abs(q1+r1-q2-r2)+Math.abs(r1-r2))/2}
 function cellRing(q,r){return Math.max(Math.abs(q),Math.abs(r),Math.abs(q+r));}
+const hexD=(a,b)=>cellRing(a.q-b.q,a.r-b.r),here=()=>({q:pQ,r:pR}); // hexes apart; where your buoy is
 function ring(n){if(!n)return[[0,0]];const res=[];let q=n,r=0;for(let d=0;d<6;d++)for(let i=0;i<n;i++){res.push([q,r]);q+=DIRS[(d+2)%6][0];r+=DIRS[(d+2)%6][1];}return res;}
 function neighbors(q,r){return DIRS.map(([dq,dr])=>[q+dq,r+dr]);}
 function adjCaptured(q,r){for(const[nq,nr]of neighbors(q,r)){const c=cells[K(nq,nr)];if(c&&c.cap&&c.kind!=='dark')return true;}return false;} // (a bright clear keeps the hexes round it when the map draws in)
@@ -570,6 +571,7 @@ function wreckCheck(){if(SCENE||MP.on||!buoyKit)return[];const C=kitCounts(buoyK
   const p=Math.min(T.mapWreckMax!=null?T.mapWreckMax:0.9,cellRing(pQ,pR)*(T.mapWreckPerRing!=null?T.mapWreckPerRing:0.12)),lost=on.filter(()=>Math.random()<p);
   if(!lost.length)return[];for(const m of lost)buoyKit.slots[m.s][m.i]=null;kitSave(buoyKit);neb({cmd:'lose',ids:lost.map(m=>m.id)});return lost.map(m=>m.id);}
 function endDay(){ // Midnight passed: it all falls into the source (the outer rings first, each faster), a flash, and a new spill at Twilight
+  {const n=Object.values(cells).filter(c=>c.flot&&c.flot.give).length;if(n)feed(txt('good.ring_lost'),txt('good.ring_lost_d',n),'no');} // orders not opened: lost as it falls
   pendingEnd={how:'midnight',n:0,win:false,lost:wreckCheck()};phase='collapse';armed=null;weaveSel=[];weaveAsk=null;dropSession();
   const base=T.mapCollapseMs||1400;let t=0;for(let i=ringMax(),j=0;i>0;i--,j++){const dur=Math.max(110,base*0.55*Math.pow(0.7,j)),ri=i;at(t,()=>fallRing(ri,dur));t+=dur;}
   at(t,()=>{burstFx={t0:performance.now(),kind:'flash',dur:700};});at(t+420,finishDay);
@@ -902,7 +904,7 @@ document.addEventListener('click',e=>{if(currentView!=='map'||menuOpen||shopUI||
 document.addEventListener('click',e=>{ // a lake duck clicked (even under a read-out like the legend): dunked, it comes back up — and the click goes no further
   if(drag&&drag.moved)return;if(currentView!=='map'||menuOpen||shopUI||!(e.target===sc||(e.target.closest&&!e.target.closest('button,.slot,.shop,input,select,#hdock,#tuneP,#mModes,#shop,#menu,#day-report,#letter,#nameAsk'))))return;
   if(!SCENE&&buoyHit(e.clientX,e.clientY)){e.stopPropagation();cabinOpen();return;} // your buoy: down its hatch, below deck (cabin.js), where Status and your collections open from what is in the cabin
-  const du=duckUnder(e.clientX,e.clientY);if(!du||du.dunk)return;e.stopPropagation();if(du.bottle&&!du.empty){openBottle(du);return;}if(du.good&&!du.good.open&&!du.flot){openLakeGood(du);return;}
+  const du=duckUnder(e.clientX,e.clientY);if(!du||du.dunk)return;e.stopPropagation();if(du.bottle&&!du.empty){openBottle(du);return;}if(du.good&&!du.good.open&&du.flot&&hexD(cells[du.flot],here())>1){feed(goodNameM(du.good),txt('good.ring_far'),'no');return;}if(du.good&&!du.good.open){openLakeGood(du);return;}
   du.dunk=performance.now();ripples.push({x:du.x,y:du.y,t:du.dunk,dk:onWhite(du.x,du.y),big:1});neb({cmd:'quack',type:du.type,v:1});},true);
 document.addEventListener('keydown',e=>{if(currentView==='cabin'){if(e.key==='Escape'){e.preventDefault();cabinClose();}return;} // below deck: Esc climbs back up
   if(document.getElementById('nameAsk').classList.contains('show'))return; // naming your buoy: Enter sets it
@@ -993,7 +995,7 @@ function bottleFill(){ // what a bottle holds, decided as it floats in: a letter
 // cleared surface) is on a random hex; nothing moves into it; it drifts a hex outwards (the way the spill spreads) after every move, and onto the lake
 // off the edge or when its hexes fall in (a collapse, a new spill), where it floats off like a bottle ──
 let goodSeq=0,goodNext=0,chestNext=0;
-const goodNameM=g=>txt('good.'+g.kind,g.kind==='box'||g.kind==='sign'?(SHOPS[g.shop]||{}).n||'':''),goodTypeM=g=>'good:'+g.kind+':'+(g.shop||'')+':'+(g.kind==='sign'?(shopIsOpen(g.shop,clock,run)&&((performance.now()/(T.signBlinkMs||700))|0)%4!==3?'lit':'off'):g.open?'open':g.kind==='chest'?'shut':'');
+const goodNameM=g=>txt('good.'+g.kind,g.kind==='box'||g.kind==='sign'?(SHOPS[g.shop]||{}).n||'':''),goodTypeM=g=>'good:'+g.kind+':'+(g.shop||'')+':'+(g.kind==='sign'?(shopIsOpen(g.shop,clock,run)&&((performance.now()/(T.signBlinkMs||700))|0)%4!==3?'lit':'off'):g.open?'open':g.give?'ring':g.kind==='chest'?'shut':'');
 function lakeGood(g,now,up){g=Object.assign({id:++goodSeq},g);if(!water.pts.length){const[x,y]=a2w(pQ,pR);water.pts.push([x+HEX*3,y]);}
   const P=water.pts[(Math.random()*water.pts.length)|0],d={type:goodTypeM(g),good:g,x:P[0],y:P[1],hd:Math.random()*6.2832,sp:up?0:0.45,cur:(Math.random()-0.5)*0.004,next:now+2000,born:now,splash:!!up,seen:!!up,lastRip:0,ph:Math.random()*6.28};
   if(!up){const[bx,by]=a2w(pQ,pR),dx=d.x-bx,dy=d.y-by,l=Math.hypot(dx,dy)||1;d.hd=Math.atan2(-dy,-dx);for(let k=0;k<60;k++){d.x+=dx/l*HEX*0.5;d.y+=dy/l*HEX*0.5;const[X,Y]=w2sc(d.x,d.y);if(offView(X,Y,HEX*1.2)||!isWater(d.x,d.y))break;}} // a delivery: in from off the screen, heading for your buoy
@@ -1004,19 +1006,24 @@ function goodsSpawn(now){if(SCENE||parade||pdOn()||water.frac<=0.05)return;if(!g
 function openLakeGood(d){const g=d.good,now=performance.now();ripples.push({x:d.x,y:d.y,t:now,dk:onWhite(d.x,d.y),big:1});
   if(g.kind==='sign'){feed(goodNameM(g),txt('good.sign_d'));return;}
   if(g.kind==='chest'){if(!((inv&&inv.key)||0)&&!TEST.get('free')){if(!d.dunk)d.dunk=now;feed(txt('good.chest'),txt('chest.need_key'),'no');return;}neb({cmd:'chest',id:g.id});return;} // (the surface keeps the purse: it spends the Key and counts the hoard)
+  if(g.kind==='box'&&SHOPS[g.shop]&&!g.give&&!disc.has('cat:'+g.shop))catTake(g.shop); // a box from a shop: its catalogue inside
+  if(d.flot&&cells[d.flot]){delete cells[d.flot].flot.give;for(let i=0;i<8;i++)splashes.push({x:d.x,y:d.y,t:now+i*70,n:4,a:i/8*6.28});saveMap();} // an order: its life preserver sinks; the box stays, trash on its hex
   g.open=true;d.type=goodTypeM(g);d.kick=1;neb({cmd:'unbox',id:g.id,give:g.give||(g.kind==='soda'?{pulsing:1}:g.kind==='coffee'?{bright:15}:g.kind==='can'?{duck:1}:{[SHOPS[g.shop]&&SHOPS[g.shop].cur||'bright']:20})});}
 function chestDone(m){const d=pond.find(x=>x.good&&x.good.id===m.id);if(!m.ok){feed(txt('good.chest'),m.msg||'','no');if(d&&!d.dunk)d.dunk=performance.now();return;}
   const now=performance.now(),list=Object.entries(m.got||{});feed(txt('chest.opened'),list.map(([k,n])=>fmtN(n)+' '+k).join(' · '));playRec('🧰 '+txt('chest.opened'),list.map(([k,n])=>n+' '+k).join(', '));
   if(d){d.good.open=true;d.type=goodTypeM(d.good);d.sp=0;for(let i=0;i<14;i++)splashes.push({x:d.x,y:d.y,t:now+i*60,n:6,a:i/14*6.28});setTimeout(()=>{d.burn=performance.now();},T.mapChestOpenMs||1600);}} // the lid cracks open, glowing at its seam, its hoard sparks up into your purse; then the empty chest sinks and burns away
-function flotPut(g){const free=Object.keys(cells).filter(k=>{const c=cells[k];return!c.isVoid&&!c.flot&&!c.shop&&!c.isP&&!(c.q===pQ&&c.r===pR);});if(!free.length){lakeGood(Object.assign({},g,{open:true}),performance.now());return;}
-  const k=free[(Math.random()*free.length)|0],c=cells[k];c.flot={kind:g.kind,shop:g.shop||''};const[x,y]=a2w(c.q,c.r);pond.push({type:goodTypeM(Object.assign({open:true},c.flot)),good:Object.assign({open:true},c.flot),flot:k,x,y,hd:Math.random()*6.28,sp:0,cur:0,next:1e15,born:performance.now(),seen:true,lastRip:0,ph:Math.random()*6.28});feed(txt('good.flotsam'),txt('good.flotsam_d',c.q,c.r));saveMap();}
+function flotPut(g,at){const free=Object.keys(cells).filter(k=>{const c=cells[k];return!c.isVoid&&!c.flot&&!c.shop&&!c.isP&&!(c.q===pQ&&c.r===pR);});if(!free.length){lakeGood(Object.assign({},g,{open:!g.give}),performance.now());return;} // at: an order, put out from its shop's hex (the free hex nearest it, then nearest you)
+  const k=at?free.sort((a,b)=>hexD(cells[a],at)-hexD(cells[b],at)||hexD(cells[a],here())-hexD(cells[b],here()))[0]:free[(Math.random()*free.length)|0],c=cells[k];c.flot=g.give?{kind:g.kind,shop:g.shop||'',give:g.give,id:Date.now()}:{kind:g.kind,shop:g.shop||''};flotPond(k);if(!g.give)feed(txt('good.flotsam'),txt('good.flotsam_d',c.q,c.r));saveMap();}
+function flotPond(k){const c=cells[k],[x,y]=a2w(c.q,c.r),g=Object.assign({open:!c.flot.give},c.flot);pond.push({type:goodTypeM(g),good:g,flot:k,x,y,hd:Math.random()*6.28,sp:0,cur:0,next:1e15,born:performance.now(),seen:true,lastRip:0,ph:Math.random()*6.28});} // flotsam (or an order on its life preserver) on its hex
 function flotDrift(){ // after your move: each piece of flotsam drifts a hex outwards, the way the spill spreads from the Point; off the edge it goes onto the lake
   const ks=Object.keys(cells).filter(k=>cells[k].flot).sort((a,b)=>cellRing(cells[b].q,cells[b].r)-cellRing(cells[a].q,cells[a].r));
-  for(const k of ks){const c=cells[k],[x,y]=a2w(c.q,c.r),l=Math.hypot(x,y)||1;let best=null,bd=-2;for(const[q,r]of neighbors(c.q,c.r)){const[nx,ny]=a2w(q,r),dd=((nx-x)*x+(ny-y)*y)/(l*Math.hypot(nx-x,ny-y));if(dd>bd){bd=dd;best=[q,r];}}
+  for(const k of ks){const c=cells[k],[x,y]=a2w(c.q,c.r),l=Math.hypot(x,y)||1;
+    if(c.flot.give){const d0=hexD(c,here()),nk=neighbors(c.q,c.r).map(a=>K(...a)).find(k2=>{const n=cells[k2];return n&&!n.flot&&!n.isP&&!n.isVoid&&k2!==K(pQ,pR)&&hexD(n,here())<d0;});if(d0>1&&nk){cells[nk].flot=c.flot;delete c.flot;const p=pond.find(d=>d.flot===k);if(p)p.flot=nk;}continue;} // an order on its life preserver: a hex nearer you (beside you: it waits to be opened)
+    let best=null,bd=-2;for(const[q,r]of neighbors(c.q,c.r)){const[nx,ny]=a2w(q,r),dd=((nx-x)*x+(ny-y)*y)/(l*Math.hypot(nx-x,ny-y));if(dd>bd){bd=dd;best=[q,r];}}
     const nk=best&&K(...best),n=nk&&cells[nk];if(!n){const p=pond.find(d=>d.flot===k);if(p){delete p.flot;p.leave=performance.now();}delete c.flot;continue;} // off the spill: onto the lake, floating off
     if(n.flot||n.isP||n.isVoid||K(pQ,pR)===nk)continue;n.flot=c.flot;delete c.flot;const p=pond.find(d=>d.flot===k);if(p)p.flot=nk;}}
-function flotLake(sel){for(const k in cells){const c=cells[k];if(!c.flot||!sel(k))continue;const p=pond.find(d=>d.flot===k);if(p){delete p.flot;p.leave=performance.now()+800;}delete c.flot;}} // its hexes fall in: it floats on the lake like a bottle, off the screen or sinking
-function flotSync(){for(const k in cells){const c=cells[k];if(c.flot&&!pond.some(d=>d.flot===k)){const[x,y]=a2w(c.q,c.r);pond.push({type:goodTypeM(Object.assign({open:true},c.flot)),good:Object.assign({open:true},c.flot),flot:k,x,y,hd:0,sp:0,cur:0,next:1e15,born:performance.now(),seen:true,lastRip:0,ph:Math.random()*6.28});}}} // (the map shows: its flotsam on its hexes)
+function flotLake(sel){for(const k in cells){const c=cells[k];if(!c.flot||!sel(k))continue;const p=pond.find(d=>d.flot===k);if(p){delete p.flot;if(c.flot.give)p.burn=performance.now();else p.leave=performance.now()+800;}delete c.flot;}} // (an order not opened: it sinks, lost) // its hexes fall in: it floats on the lake like a bottle, off the screen or sinking
+function flotSync(){for(const k in cells)if(cells[k].flot&&!pond.some(d=>d.flot===k))flotPond(k);} // (the map shows: its flotsam on its hexes)
 let pondAsk=[]; // ducks made on a surface (Create → Duck on the pond), put on the lake once the map is showing
 function pondPut(type,x,y,now){pond.push({type,x,y,hd:Math.random()*6.2832,sp:0,cur:0,next:now+1500,born:now,splash:true,seen:true,lastRip:0,ph:Math.random()*6.28});ripples.push({x,y,t:now,dk:onWhite(x,y),big:1});} // a duck bobbing up out of the water there
 function openBottle(d){ // clicked: the cork comes out and the letter is unrolled to read (one you have not read yet, while there are any)
@@ -1104,7 +1111,7 @@ function pondStep(now){
   goodsSpawn(now);
   pond=pond.filter(d=>{
     if(d.good&&d.good.kind==='sign')d.type=goodTypeM(d.good); // a sign on the lake: lit and blinking while its shop is open
-    if(d.flot){const c=cells[d.flot];if(!c||!c.flot)return false;const[x,y]=a2w(c.q,c.r);d.x+=(x-d.x)*0.04*dt;d.y+=(y-d.y)*0.04*dt;d.hd+=0.002*dt;d._s=HEX*0.62*(T.mapGoodScale||0.7);return true;} // flotsam on its hex: it drifts to it, turning slowly
+    if(d.flot){const c=cells[d.flot];if(!c||!c.flot){if(d.good.give&&!d.good.open){delete d.flot;d.burn=now;return true;}return false;} /* (its hex fell in, an order on it: it sinks, lost) */const[x,y]=a2w(c.q,c.r);d.x+=(x-d.x)*0.04*dt;d.y+=(y-d.y)*0.04*dt;d.hd+=0.002*dt;d._s=HEX*0.62*(T.mapGoodScale||0.7);return true;} // flotsam on its hex: it drifts to it, turning slowly
     if(d.burn){const u=(now-d.burn)/(T.mapChestBurnMs||2600);d._sink=Math.min(1,u)*0.8;d.fade=Math.max(0,1-u);if(u>=1)return false;if(Math.random()<0.3)splashes.push({x:d.x,y:d.y,t:now,n:2,a:Math.random()*6.28});d._s=HEX*0.62*(T.mapGoodScale||0.7);return true;} // an emptied chest: it sinks and burns away as a crate does
     if(d.held||d.seek){const t=d.bottle?{scale:1.4}:d.good?{scale:T.mapGoodScale||0.7}:DUCK_TYPES[d.type]||{};d._s=HEX*0.62*(t.scale||1)/(t.head?1.25:1);d._sink=1;d.sp=0;d.dunk=0;d.spin=null; // carried under the water (it goes where the cursor does), or let go under a shop: it slides on out from under it, then comes up
       if(d.seek){const s=shopUnder(d.x,d.y);if(s){let dx=d.x-s.wx,dy=d.y-s.wy,l=Math.hypot(dx,dy);if(l<1e-3){dx=d.x||1;dy=d.y;l=Math.hypot(dx,dy)||1;}d.x+=dx/l*2.2*dt;d.y+=dy/l*2.2*dt;}else{d.seek=0;d.riseAt=now;}} /* (away from that shop) */
@@ -1462,10 +1469,18 @@ function openShop(key){const el=shopEls[key],s=el&&el._s;if(!s||phase==='collaps
   if(!s.lit){shopTap(s); // a tap on its glass
     const g=runGood(run);if(!(g&&(FORTUNE_GOOD[g.id]||{}).knock)){if(tapN<5)feed(txt('map.is_closed',SHOPS[s.id].n),txt('map.open',shopHours(s.id),(runBad(run,'holiday')?txt('map.a_holiday_it_closes'):'')));return;}
     feed(txt('map.tap.knock',SHOPS[s.id].n),txt('map.tap.knock2'),'tap');} // Friendly Neighborhood (a good fortune): a knock opens it up
+  if(s.id!=='gift'&&!shopHere(key)){feed(SHOPS[s.id].n,txt(disc.has('cat:'+s.id)?'map.cat.far_has':'map.cat.far'),'no');return;} // too far: go beside it, or order from its catalogue (the desk drawer, below deck)
+  if(s.id!=='gift'&&!SCENE&&!disc.has('cat:'+s.id))catTake(s.id); // (its catalogue: taken on the way in)
   shopUI={id:s.id,rank:s.rank||3,exit:s.id==='gift',key};renderShop();hubEvent('shop_'+s.id);}
+// Catalogues: one for each shop, taken from its counter the first time you are in, or found in a box from it on the lake; kept in the desk drawer below deck.
+// Ordering from one: what it gives floats to you on a life preserver from that shop (flotPut), a hex a time of day (flotDrift); open it beside it
+function catTake(id){disc.add('cat:'+id);neb({cmd:'discover',id:'cat:'+id});feed(txt('map.cat.took',SHOPS[id].n),txt('map.cat.took_d'));}
+function drawerOpen(){shopUI={drawer:true,id:null};renderShop();}
+function catOpen(id){const s=shopList().find(x=>x.id===id);if(!s){feed(SHOPS[id].n,txt('map.cat.away'),'no');return;}shopUI={id,rank:s.rank||3,key:s.key,cat:true};renderShop();}
 function closeShop(){if(shopUI&&shopUI.gift){quitMain();return;} // leaving the Gift Shop: the run is over
   shopUI=null;renderShop();evPump();}
 function shopRows(){const u=shopUI,has=k=>disc.has(k);
+  if(u.drawer){const cs=Object.keys(SHOPS).filter(id=>has('cat:'+id));return cs.length?cs.map(id=>({c:1,n:SHOPS[id].n,sub:shopList().some(x=>x.id===id)?SHOPS[id].tag:txt('map.cat.away'),go:()=>catOpen(id)})):[{c:1,n:txt('map.cat.none'),sub:txt('map.cat.none_d'),go:closeShop}];}
   if(u.exit)return[{c:1,n:txt('map.gift.yes'),sub:txt('map.gift.yessub'),go:giftEnter},{c:1,n:txt('map.gift.no'),sub:txt('map.gift.nosub'),go:closeShop}];
   if(u.pick)return Object.keys(DUCK_TYPES).map(t=>({n:duckStar(DUCK_TYPES[t])+DUCK_TYPES[t].name,p:'× '+(duckLog[t]||0),go:()=>shopBuy(shopItem('pickduck'),t)}));
   const ducks=Object.values(duckLog).reduce((a,b)=>a+(b|0),0),souv=souvenirs();
@@ -1483,15 +1498,15 @@ let shopHover=null; // the item under the cursor: its details go to the feed, so
 function renderShop(){const el=document.getElementById('shop');if(SCENE)requestAnimationFrame(()=>{const b=el.querySelector('.sbox');if(b){b.style.transform='';const k=Math.min(1,innerHeight*0.94/b.offsetHeight,innerWidth*0.94/b.offsetWidth);b.style.transform='scale('+k.toFixed(3)+')';}}); // (a card's demo: the list scaled to fit its frame)
   el.classList.toggle('show',!!shopUI&&currentView!=='overlay'); // (hidden while a card the shop gave is showing)
   document.body.classList.toggle('shop-open',!!shopUI);if(!shopUI){syncDock();document.body.classList.remove('focus-clock','focus-items');return;}
-  const u=shopUI,S=SHOPS[u.id],all=shopRows(),curs=[...new Set(all.filter(r=>r.cur).map(r=>r.cur))];if(!curs.includes(u.tab))u.tab=curs.includes(S.cur)?S.cur:curs[0];
-  const rows=u.pick||u.exit?all:all.filter(r=>r.cur===u.tab); // the whole list: a long one makes the shop taller
-  const art=el.querySelector('.sart'),sp=shopSprite(u.id,S.street?(S.bk||'s'):SHOP_RANK_BLD[u.rank-1],true,0,true,false),card=el.querySelector('.scard');
-  if(sp){const w=Math.min(150,sp.width*0.45),h=w*sp.height/sp.width;art.width=sp.width;art.height=sp.height;art.style.width=w+'px';art.style.height=h+'px';{const ax=art.getContext('2d');ax.drawImage(sp,0,0);if(sp._glow){ax.globalCompositeOperation='lighter';ax.drawImage(sp._glow,0,0);ax.globalCompositeOperation='source-over';}}}
+  const u=shopUI,S=SHOPS[u.id]||{},all=shopRows(),hd=u.exit?['map.exit','map.gift.ask']:u.pick?['map.pick_a_duck','map.ninety_nine_ducks_for']:u.drawer?['map.cat.drawer','map.cat.drawer_d']:null,curs=[...new Set(all.filter(r=>r.cur).map(r=>r.cur))];if(!curs.includes(u.tab))u.tab=curs.includes(S.cur)?S.cur:curs[0];
+  const rows=hd?all:all.filter(r=>r.cur===u.tab); // the whole list: a long one makes the shop taller
+  const art=el.querySelector('.sart'),sp=u.id&&shopSprite(u.id,S.street?(S.bk||'s'):SHOP_RANK_BLD[u.rank-1],true,0,true,false),card=el.querySelector('.scard');
+  art.style.display=sp?'':'none';if(sp){const w=Math.min(150,sp.width*0.45),h=w*sp.height/sp.width;art.width=sp.width;art.height=sp.height;art.style.width=w+'px';art.style.height=h+'px';{const ax=art.getContext('2d');ax.drawImage(sp,0,0);if(sp._glow){ax.globalCompositeOperation='lighter';ax.drawImage(sp._glow,0,0);ax.globalCompositeOperation='source-over';}}}
   shopHover=null;syncDock(); // the wallet slot for the tab shown, in the dock
   document.body.classList.toggle('focus-clock',u.id==='clock');document.body.classList.toggle('focus-items',u.id==='corner'); // what the shop works on, over the dimmed map
-  const st=el.querySelector('.sstat');st.style.display=u.exit?'none':'';st.innerHTML=STATUS_CSS+'<div class="sth">'+txt('map.shop.status')+'</div>'+statusHTML(runStatus);{const now={};for(const tr of st.querySelectorAll('tr')){const td=tr.children;if(td.length<2)continue;const k=td[0].textContent,v=td[1].textContent;now[k]=v;if(_stPrev&&_stPrev[k]!=null&&_stPrev[k]!==v)tr.classList.add('chg');}_stPrev=now;} // a value that just changed (a purchase, a card) lights up
-  card.innerHTML=`<h2>${(u.exit?txt('map.exit'):(u.pick?txt('map.pick_a_duck'):S.n))}</h2><div class="stag">${(u.exit?txt('map.gift.ask'):(u.pick?txt('map.ninety_nine_ducks_for'):S.tag))}</div>`+
-    (curs.length&&!u.pick&&!u.exit?'<div class="stabs">'+curs.map(c=>`<span class="${c===u.tab?'on':''}" data-t="${c}">${curIcon(c)}</span>`).join('')+'</div>':'')+'<div class="srows">'+ // a tab for each thing it takes, by its symbol (one alone stays as the open tab)
+  const st=el.querySelector('.sstat');st.style.display=u.exit||u.drawer?'none':'';st.innerHTML=STATUS_CSS+'<div class="sth">'+txt('map.shop.status')+'</div>'+statusHTML(runStatus);{const now={};for(const tr of st.querySelectorAll('tr')){const td=tr.children;if(td.length<2)continue;const k=td[0].textContent,v=td[1].textContent;now[k]=v;if(_stPrev&&_stPrev[k]!=null&&_stPrev[k]!==v)tr.classList.add('chg');}_stPrev=now;} // a value that just changed (a purchase, a card) lights up
+  card.innerHTML=`<h2>${hd?txt(hd[0]):S.n}</h2><div class="stag">${hd?txt(hd[1]):S.tag+(u.cat?' · '+txt('map.cat.ordering'):'')}</div>`+
+    (curs.length&&!hd?'<div class="stabs">'+curs.map(c=>`<span class="${c===u.tab?'on':''}" data-t="${c}">${curIcon(c)}</span>`).join('')+'</div>':'')+'<div class="srows">'+ // a tab for each thing it takes, by its symbol (one alone stays as the open tab)
     rows.map((r,i)=>r.c?`<div class="srow c" data-i="${i}"><span>${r.n}<br>${r.sub}</span></div>`:
       `<div class="srow${r.poor?' poor':''}${r.own?' own':''}${r.it&&shopFlash&&shopFlash.id===r.it.id&&performance.now()-shopFlash.at<1500?' just'+(shopFlash.ok?'':' no'):''}" data-i="${i}"${r.disc?` data-disc="${r.disc}" data-hov`:''}><span>${r.n}</span><b>${r.p}</b></div>`).join('')+'</div>';
   const pr=rows;
@@ -1502,8 +1517,9 @@ function shopBuy(it,arg){hubLearn('shopbuy');
   if(it.fx.souv){const pr=shopPrice(it,run);if(giftWallet<pr){feed(it.n,txt('map.you_need_bright',fmtN(it.cost)));return;}giftWallet-=pr;const sv=souvenirs();sv[it.id]=(sv[it.id]||0)+1;try{localStorage.setItem(SOUV_KEY,JSON.stringify(sv));}catch(e){}feed(txt('map.souvenir',it.n),txt('map.kept_whatever_comes_next'));renderShop();return;}
   if(it.fx.water&&fridgeCap()>0&&fridge>=fridgeCap()){feed(it.n,txt('map.water.fridge_full',fridgeCap()),'no');return;} // (the fridge is full)
   if(it.fx.water&&!fridgeCap()&&bottleAt===day*24+clock){feed(it.n,txt('map.water.one_a_time'),'no');return;} // (one drink a time of day)
-  buySnap={had:buyTake(),it,at:performance.now()};neb({cmd:'buy',id:it.id,arg,ship:shopUI&&!shopHere(shopUI.key)?1:0});} // (a shop you are not at: what it gives comes in a box, delivered on the lake)
-const shopHere=key=>cells[key]?key===K(pQ,pR):cellRing(pQ,pR)<=1; // you are at a shop: on its hex (a pop-up), or beside the Point (main street and the Point's own pop-ups)
+  buySnap={had:buyTake(),it,at:performance.now()};neb({cmd:'buy',id:it.id,arg,ship:shopUI&&shopUI.cat?1:0});} // (from its catalogue: what it gives floats to you from the shop, in a box on a life preserver)
+const shopHere=key=>SCENE||(cells[key]?hexD(cells[key],here())<=1:cellRing(pQ,pR)<=1); // you are at a shop: on or beside its hex (a pop-up), or on or beside the Point (main street and the Point's own pop-ups)
+const shopHex=key=>cells[key]?{q:cells[key].q,r:cells[key].r}:{q:0,r:0}; // the hex a shop is in (main street and the Point's pop-ups: the Point)
 let buySnap=null,shopFlash=null,_stPrev=null; // a purchase on its way (what you had, so what it spent and gave shows once the surface answers); the row last bought; the Status values last shown
 const BUY_KINDS=['bright','dim','neutron','magnetic','pulsing','duck','leash','dial','weave','prism','knot','gate','key','lens'],dockFx={};
 function buyTake(){const o={};for(const k of BUY_KINDS)o[k]=shopWallet(k);return o;}
@@ -1512,7 +1528,7 @@ function buyShow(){ // what a purchase did, everywhere it shows: the feed sums i
   for(const k of BUY_KINDS){const d=got[k]-had[k];if(!d)continue;(d<0?gone:came).push((d<0?'−':'+')+fmtN(Math.abs(d))+' '+curName(k));dockFx[k]={at:now,up:d>0};dockUp[k]=now;
     const el=document.querySelector('#hinv .slot[data-k="'+k+'"]');if(el&&lay){const r=el.getBoundingClientRect(),i=document.createElement('i');i.className=d>0?'up':'dn';i.textContent=(d<0?'−':'+')+fmtN(Math.abs(d));i.style.left=(r.left+r.width/2)+'px';i.style.top=(r.top-6)+'px';lay.appendChild(i);setTimeout(()=>i.remove(),1600);}}
   if(gone.length||came.length)feed(txt('map.buy.title',b.it.n),[...gone,...came].join(' · '));syncDock();}
-function shopBought(m){const it=shopItem(m.id);if(!it)return;if(m.ok&&it.fx.wake){wakeFor=day+1;feed(txt('map.sleep.call'),txt('map.sleep.call_d'));saveMap();}if(m.ok&&it.fx.water){if(fridgeCap()>0){fridge=Math.min(fridgeCap(),fridge+1);feed(txt('map.water.bottle'),txt('map.water.in_fridge',fridge,fridgeCap()));}else{bottle=1;bottleAt=day*24+clock;feed(txt('map.water.bottle'),txt('map.water.bottle_d'));}syncDock();saveMap();} // (a fridge: kept cold, not drunk)if(m.ok&&m.ship){lakeGood({kind:'box',shop:it.shop,give:m.ship},performance.now());feed(txt('good.ordered',it.n),txt('good.ordered_d',SHOPS[it.shop].n));}shopFlash={id:m.id,at:performance.now(),ok:!!m.ok};if(!m.ok)buySnap=null;feed((m.ok?txt('map.bought',m.msg):it.n),m.ok?SHOPS[it.shop].n:m.msg);
+function shopBought(m){const it=shopItem(m.id);if(!it)return;if(m.ok&&it.fx.wake){wakeFor=day+1;feed(txt('map.sleep.call'),txt('map.sleep.call_d'));saveMap();}if(m.ok&&it.fx.water){if(fridgeCap()>0){fridge=Math.min(fridgeCap(),fridge+1);feed(txt('map.water.bottle'),txt('map.water.in_fridge',fridge,fridgeCap()));}else{bottle=1;bottleAt=day*24+clock;feed(txt('map.water.bottle'),txt('map.water.bottle_d'));}syncDock();saveMap();} /* (a fridge: kept cold, not drunk) */if(m.ok&&m.ship){flotPut({kind:'box',shop:it.shop,give:m.ship},shopHex(shopUI&&shopUI.key));feed(txt('good.ordered',it.n),txt('good.ordered_d',SHOPS[it.shop].n));}shopFlash={id:m.id,at:performance.now(),ok:!!m.ok};if(!m.ok)buySnap=null;feed((m.ok?txt('map.bought',m.msg):it.n),m.ok?SHOPS[it.shop].n:m.msg);
   if(m.ok&&(it.fx.clock==='yesterday'||it.fx.clock==='tomorrow')){if(MP.role==='guest')mpSend('clock',{clock:it.fx.clock});else timeTravel(it.fx.clock);}
   else if(m.ok&&it.fx.clock&&MP.role==='guest')mpSend('clock',{clock:it.fx.clock});else if(m.ok&&it.fx.clock){timeShift(it.fx.clock);showTurn();const tl=document.getElementById('turn-label');tl.classList.add('bought');setTimeout(()=>tl.classList.remove('bought'),1800);updateHint();saveMap();} // the Clock smith turns the day's clock
   if(m.ok&&m.draw){document.getElementById('shop').classList.remove('show');currentView='overlay';showNeb(true);} // a Carnival card: the surface shows the draw (and the card picked) over the map; the shop comes back when it closes
@@ -1653,7 +1669,7 @@ function feedTick(now){{const dk=document.getElementById('hdock'),r=dk&&dk.getBo
   const slot=over&&over.closest&&over.closest('#hinv .slot');
   if(now-feedMsg.at<3500){a=feedMsg.t;b=feedMsg.d;}
   else if(slot){[a,b]=itemInfo(slot.dataset.k);}
-  else if(shopUI){[a,b]=shopHover||[SHOPS[shopUI.id].n,shopUI.exit?'':txt('map.shop.point')];}
+  else if(shopUI){[a,b]=shopHover||[shopUI.drawer?txt('map.cat.drawer'):SHOPS[shopUI.id].n,shopUI.exit||shopUI.drawer?'':txt('map.shop.point')];}
   else if(onMap&&shopAt(mX,mY)){[a,b]=shopInfo(shopAt(mX,mY).dataset.key);}
   else if(du&&du.bottle){a=txt(du.empty?'map.bottle.empty':'map.bottle.full');b=txt(du.empty?'map.bottle.emptyinfo':'map.bottle.fullinfo');}
   else if(du&&du.pd&&pday){a=txt('map.pday.hover',pday.ducks.length);b=pday.ducks.map(k=>(DUCK_TYPES[k]||{}).name).join(' · ');}
