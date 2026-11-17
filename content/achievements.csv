@@ -1,0 +1,6 @@
+id,name,stat,at,unlocks,note
+bright_5,Five Bright,collect:bright,5,shop:bright,"BRiGHT IDEAS can open once you have collected 5 Bright Remnants"
+bright_500,Five Hundred Bright,collect:bright,500,item:pure_bright,"Pure Brightness is sold at BRiGHT IDEAS once you have collected 500 Bright Remnants"
+clears_10,Ten Clears,bright,10,disc:mode_trails,"Trails mode (Modes) is found once you have cleared 10 surfaces bright"
+duck_1,First Duck,duck,1,,"Your first rubber duck"
+corner_1000,A Regular,spend:corner,1000,,"1,000 spent at the Corner Store"

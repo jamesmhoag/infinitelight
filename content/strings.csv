@@ -1096,3 +1096,7 @@ cabin.none,no fortune,Below deck,
 cabin.nogl,This browser cannot draw the cabin (no WebGL).,Below deck,
 surf.create.sign,"Sign: {0} — click to place it (a shop's own signage, ripped off its building; lit and blinking while the shop is open)",Create tool,
 surf.create.trash,"Trash: {0} — click to place it (it drifts; a bright clear brings it up with you, a Dark Remnant or a Rift takes it)",Create tool,
+ach.reached,"Achievement: {name} — {unlocks}",Achievements,"name = $0 — the achievement
+unlocks = $1 — what it unlocks"
+ach.milestone,a milestone,Achievements,said when an achievement unlocks nothing
+ach.needs,Needs the achievement {name},Achievements,name = $0 — the achievement still needed

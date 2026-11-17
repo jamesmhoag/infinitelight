@@ -120,7 +120,7 @@ button:hover{background:rgba(255,255,255,0.15);}
   <div id="dock" class="bottom"><div id="inventoryPanel"></div><div id="touch-info"></div></div>
   <canvas id="cur"></canvas>
 </div>
-<script src="content.js?v=20261117m"></script><script src="shared.js?v=20261117m"></script>
+<script src="content.js?v=20261117n"></script><script src="shared.js?v=20261117n"></script>
 <script>
 txtApply(); // the page's own labels (content/strings.csv)
 const _SRC=document.documentElement.outerHTML; // kept so the Encyclopedia can run live scenes as embedded copies of the game
@@ -443,7 +443,8 @@ let baseScale=1,dilations=[],dilLast=0,dilSlow=0,risksOn=false,_glAt=0,_bhSF=-1,
 TUNE_DEFS.push({sec:txt('tune.sec.popranks'),tab:'map'});
 for(const id in SHOPS){const S=SHOPS[id];if(S.street)continue;for(let i=1;i<=3;i++){const k=shopTK(S.cur)+i;T[k]=S.at[i-1];TUNE_DEFS.push({key:k,label:txt('tune.poprank.label',S.n.slice(0,18),i),min:0,max:9999999,step:1,tip:txt('tune.poprank.tip',S.cur,i,S.n)});}} // (their defaults: content/shops.csv)
 let tuneTab='gameplay',tuneFilter='';
-const tuneTabs=()=>{const all=[...new Set(TUNE_DEFS.map(d=>d.tab).filter(Boolean))],P=['theme','gameplay','sounds','map','discoveries'];return all.sort((a,b)=>(P.indexOf(a)+99)%99-(P.indexOf(b)+99)%99);}; // (in this order, any other after)
+TUNE_DEFS.push({sec:'Achievements — the count each needs',tab:'achievements'});for(const a of ACH){T['ach_'+a.id]=a.at;TUNE_DEFS.push({key:'ach_'+a.id,label:a.n,min:0,max:1e9,step:1,tip:a.stat+' ≥ this: '+(a.un.length?'unlocks '+a.un.map(u=>u.k+' '+u.id).join(', '):'(a milestone: unlocks nothing)')+(a.note?' · '+a.note:'')});}
+const tuneTabs=()=>{const all=[...new Set(TUNE_DEFS.map(d=>d.tab).filter(Boolean))],P=['theme','gameplay','sounds','map','discoveries','achievements'];return all.sort((a,b)=>(P.indexOf(a)+99)%99-(P.indexOf(b)+99)%99);}; // (in this order, any other after)
 function setTuneTab(t){tuneTab=t;buildTunePanel();}
 window.setTuneTab=setTuneTab;
 function buildTunePanel(){
@@ -2043,6 +2044,7 @@ let invDisabled=new Set(),invDisableMode=false,discSeen=new Set(),shopLog={},lif
 let ducks=[],duckLog={},duckLuck={d:0,e:0},runState=runFresh(); // rubber ducks on this surface / the duck collection (type → count, saved with the inventory) / failed tries since the last duck (d) and the last exotic (e): each adds T.duckLuckStep to its chance (saved, so it carries across surfaces and days)
 let invFlash={kind:null,at:0};   // last slot that gained an item (its icon pulses)
 let earnFx=[],constellationFx=[]; // real-time visual effects (see drawEarnFx / drawConstellationFx)
+setTimeout(()=>{try{achCheck(null);}catch(e){console.warn('achievements',e);}},0); // once everything is up: anything reached already (counts from the map, a threshold tuned lower)
 (function loadInventory(){
   try{
     const raw=localStorage.getItem(INV_STORAGE_KEY);
@@ -2073,6 +2075,12 @@ function cycleKeyRing(){if(keyShapes.length>1)keyShapes.push(keyShapes.shift());
 // merged in — discoveries are a union and duck counts the larger — so one copy can never write away what another found. It is backed up in
 // IndexedDB too, so a full or cleared localStorage loses nothing.
 let _discReset=false;
+function stat(k,n){if(window.__SCENE||BUILD||!k)return;n=n==null?1:n;if(!(n>0))return;lifeLog[k]=(lifeLog[k]||0)+n;achCheck(k);} // a lifetime counter (the life log), and any achievement it reaches
+function achCheck(k){let any=false;for(const a of ACH){if(k&&a.stat!==k)continue;const at=T['ach_'+a.id]!=null?T['ach_'+a.id]:a.at;if(!(at>0)||discSeen.has('ach:'+a.id)||(lifeLog[a.stat]||0)<at)continue;
+    discSeen.add('ach:'+a.id);any=true;for(const u of a.un)if(u.k==='disc')discSeen.add(u.id); // reached: what it unlocks (an interface element: found)
+    flashSaveStatus(txt('ach.reached',a.n,a.un.length?a.un.map(achUnName).join(', '):txt('ach.milestone')));logEv('achievement '+a.id);}
+  if(any){saveInventory();applyDisc();if(HUB)hubState();}return any;}
+function achUnName(u){if(u.k==='shop')return (SHOPS[u.id]||{}).n||u.id;if(u.k==='item'){const it=shopItem(u.id);return it?it.n:u.id;}if(u.k==='disc'){const d=DISC_ALL.find(x=>x[0]===u.id);return d?d[1]:u.id;}return u.id;}
 function invPayload(){return Object.assign({},inventory,{disabled:[...invDisabled],discovered:[...discSeen],buys:shopLog,life:lifeLog,ducks:duckLog,luck:duckLuck,run:runState,at:Date.now()});}
 function invMerge(saved){if(!saved)return false;let ch=false;const rk=_discReset==='all'||_discReset==='ducks'; // _discReset: true (discoveries reset), 'ducks' (ducks spent in a shop), 'all' (the Gift Shop wipe): what this save must not merge back
   if((_discReset!==true&&_discReset!=='all')&&Array.isArray(saved.discovered))for(const d of saved.discovered)if(!discSeen.has(d)){discSeen.add(d);ch=true;}
@@ -2113,7 +2121,7 @@ function addInventory(kind,amount,bought,at){ // (at: where it was earned, for i
     if(x==='all'||x===kind)amount*=3;} // a good fortune: in threes
   const max=invMaxFor(kind);
   if(amount>0){invFlash={kind,at:performance.now()};if(kind==='dial')fireEvent('string',at);else if(kind==='leash')fireEvent('spindle',at);else if(kind==='weave')fireEvent('weave',at);else if(kind==='prism'||kind==='knot'||kind==='gate'||kind==='key'||kind==='lens')fireEvent('pat_'+kind);} // holding a Pattern item reveals it, as forming one does
-  inventory[kind]=Math.max(0,Math.min(max,inventory[kind]+amount));
+  const was=inventory[kind];inventory[kind]=Math.max(0,Math.min(max,inventory[kind]+amount));const dn=inventory[kind]-was;if(dn>0&&!bought)stat('earn:'+kind,dn);else if(dn<0)stat('use:'+kind,-dn); // (lifetime: earned, not bought; used)
   saveInventory();
   updateInventoryUI();
 }
@@ -5287,6 +5295,7 @@ function collectRemnant(c){
   const idx=active.indexOf(c.p);if(idx>=0)active.splice(idx,1);
   pressedIDs.delete(c.p.id);if(lastActivatedId===c.p.id)lastActivatedId=-1;
   // Bright / Dim remnants are worth 10× their energy, rounded up (0.823 → 9, 0.0003 → 1); Neutron, Magnetic and Pulsing always count 1
+  if(!_collectFor)stat('collect:'+c.kind); // (lifetime: remnants of each kind collected)
   const per=remnantValue(c.p,c.kind),got=_collectFor?per:boomBust(Math.min(per,Math.max(1,invMaxFor(c.kind)-inventory[c.kind]))); // (a Boom or Bust day: ×5 or nothing)
   if(_collectFor)mpGot(c.kind,got);else{addInventory(c.kind,got);surfaceTally[c.kind]=(surfaceTally[c.kind]||0)+got;if(MP.live)MP.score.host+=got;} // a second player's pickup is theirs
   if(_batchSnd){}else if(collectHold&&collectSeen.size>1)playScaleStep();else{const cp=c.p.remKind?c.p:Object.assign({},c.p,{remKind:'brown'});_playRemnantActionSoundInner(cp,false,1);} // exactly the tuner's pickup sound for that remnant type
@@ -12956,7 +12965,7 @@ const CONV={
 // ── Events: the first time something happens, a card pauses the game and unlocks its Guide entries ──
 const EVENTS=csvRead('events').map(r=>{const f=r.facts.split('\n');return{id:r.id,name:r.name,type:r.type,rar:r.rarity,scene:r.scene,ico:r.icon,facts:()=>f.map(x=>String(x).replace(/\{([^{}]+)\}/g,(m,e)=>{const w=/^\d+$/.test(e)?'':VAL[e]||e,n=[...new Set((String(w).match(/\bT\.(\w+)|runT\('(\w+)'\)/g)||[]).map(v=>v.replace(/^T\.|runT\('|'\)/g,'')))].join(' ');return tvE(tpl(m),n);})),flavor:r.flavor,seen:r.witnessed};}); // (each value tagged with the variables it comes from: tvHTML) // content/events.csv (facts: one line each; {…} worked out as it shows; seen: what was witnessed, its page's first line)
 let _evQ=[],_evOpen=false,_evPausedIt=false,_evReview=false,_evHand=[],_evAct=0,_evDraw=false; // _evDraw: a Carnival draw is showing (it closes only by picking) // discoveries made together come as a hand: one card shown, the rest to pick
-function fireEvent(id,at,src){if(window.__SCENE||BUILD||discSeen.has('ev:'+id)||_evQ.indexOf(id)>=0||!EVENTS.some(e=>e.id===id))return;if(!at&&EV_FRAME[id]==='f')at={x:W/2,y:H/2}; // (the whole surface: its centre)
+function fireEvent(id,at,src){if(!window.__SCENE&&!BUILD)stat('ev:'+id);if(window.__SCENE||BUILD||discSeen.has('ev:'+id)||_evQ.indexOf(id)>=0||!EVENTS.some(e=>e.id===id))return;if(!at&&EV_FRAME[id]==='f')at={x:W/2,y:H/2}; // (the whole surface: its centre)
   discSeen.add('ev:'+id);saveInventory();evDeskSync(); // discovered as it happens (the Journal has it at once); new until it is looked at, anywhere (ilNew)
   const sz=EV_FRAME[id];if(at&&sz&&!_rulesOpen&&!_menuOpen&&!_evOpen&&!isPaused){evCapStart(id,at,sz,src);return;}_evQ.push(id);} // where it happened, a capture frames it as it unfolds (src: what its subject came of: the Point a remnant formed from, the two that merged, a Pattern's Points); anything else is a card at once
 // ── Event capture: the moment an event first happens, the game does not stop at once. A frame (a faint line with sparkles, brighter as it starts) follows it
@@ -13048,7 +13057,7 @@ function cardHTML(ev,mini,pg){ // the one card format: name bar, art box, type l
   return `<div class="mtg${sm?' sm':mini===2?' pic':''}${!pg&&discSeen.has('ev:'+ev.id)&&ilNew('ev:'+ev.id)?' fd':''}" data-ev="${ev.id}" data-new="ev:${ev.id}" style="--rc:${TIER_COL[t]}"><div class="nm"><b>${gEsc(ev.name)}</b><span class="gem"></span></div><div class="art" data-scene="${ev.scene}" data-ev="${ev.id}" data-k="${ev.ico}">${sm?evStillHTML([ev.id])||`<canvas class="rl-m" width="64" height="64" data-k="${ev.ico}"></canvas>`:''}</div>${body}</div>`;
 }
 function mountScene(h,w,hh){if(!h||h.firstChild||document.querySelectorAll('.rl-live iframe:not(.held),.mtg .art iframe:not(.held)').length>=5)return; /* (a page's picture holding on its last frame does not count) */{const R=(h.dataset.ev||'').split(',').map(evRecFor).find(Boolean);if(R&&!w){evReplayMount(h,R);return;}} /* something you witnessed: your own recording of it, live (a demo only for what you have not) */const f=document.createElement('iframe'),nm=h.dataset.s||h.dataset.scene;f.style.cssText='border:0;max-width:100%;pointer-events:none;background:#000;border-radius:6px;'+(w?`width:${w}px;height:${hh}px`:'width:100%;height:100%');
-  if(nm.slice(0,4)==='hub:'){const[sn,dk]=nm.slice(4).split(':');f.src='Surface_Map_HUB.html?v=20261117m&scene='+sn+(sn==='shop'?'&k='+encodeURIComponent(dk||''):'')+'&T='+encodeURIComponent(JSON.stringify(mapSceneT()))+'&D='+encodeURIComponent(JSON.stringify(dk&&DUCK_TYPES[dk]?{[dk]:DUCK_TYPES[dk]}:Object.fromEntries(Object.entries(DUCK_TYPES).slice(0,4))));}else{f.srcdoc=liveSrc(nm,null,h.dataset.hold);if(h.dataset.hold)f.className='held';}h.appendChild(f);} // a Surface Map demo is played by the map itself
+  if(nm.slice(0,4)==='hub:'){const[sn,dk]=nm.slice(4).split(':');f.src='Surface_Map_HUB.html?v=20261117n&scene='+sn+(sn==='shop'?'&k='+encodeURIComponent(dk||''):'')+'&T='+encodeURIComponent(JSON.stringify(mapSceneT()))+'&D='+encodeURIComponent(JSON.stringify(dk&&DUCK_TYPES[dk]?{[dk]:DUCK_TYPES[dk]}:Object.fromEntries(Object.entries(DUCK_TYPES).slice(0,4))));}else{f.srcdoc=liveSrc(nm,null,h.dataset.hold);if(h.dataset.hold)f.className='held';}h.appendChild(f);} // a Surface Map demo is played by the map itself
 function mapSceneT(){const o={};for(const k in T)if(/^(map|bh|duck|wake|glass|metal|dimGlow|glowHalo|maxSpeed)/.test(k))o[k]=T[k];return o;} // what a map demo needs of the tuners
 function showCardHTML(html){ // a Guide card (an entry or a shop) opened over the Guide, where an event card shows
   guideCSS();if(!_evOpen)_evPausedIt=false;_evOpen=true;_evReview=true;const ov=evOverlayEl();ov.innerHTML=`<div class="ev-box">${html}<button id="evOk">${txt('card.close')}</button></div>`;ov.style.display='flex';wrap.classList.add('ev-open');
@@ -13742,7 +13751,7 @@ window.addEventListener('message',e=>{
 // ── Shops (shared.js SHOP_ITEMS): the price is paid from the purse (or the duck collection, most-held kind first), then what was bought is handed over ──
 function spendDucks(n,pool){for(let i=0;i<n;i++){const k=pool.reduce((a,b)=>(duckLog[b]||0)>(duckLog[a]||0)?b:a,pool[0]);if(!k||!(duckLog[k]>0))return false;if(!--duckLog[k])delete duckLog[k];}return true;}
 function shopBuy(id,arg,ship){ // ship: bought from a shop you are not at: what it gives is sent in a box (opened on the lake: 'unbox')
-  const it=shopItem(id),has=k=>discSeen.has(k);if(!it||it.fx.souv)return{ok:0,msg:'Not for sale here'};const fx=it.fx,own=Object.keys(duckLog).filter(k=>duckLog[k]>0);
+  const it=shopItem(id),has=k=>discSeen.has(k);if(!it||it.fx.souv)return{ok:0,msg:'Not for sale here'};{const a=achLocked('item',id,has);if(a)return{ok:0,msg:txt('ach.needs',a.n)};}const fx=it.fx,own=Object.keys(duckLog).filter(k=>duckLog[k]>0);
   if(shopOnce(it)&&has('up:'+id))return{ok:0,msg:'Already yours'};if(it.req&&!has('up:'+it.req))return{ok:0,msg:'Needs '+shopItem(it.req).n+' first'};if(!shopLeft(it,runState))return{ok:0,msg:'Sold out'};
   if(fx.give)for(const k in fx.give)if(invFull(k))return{ok:0,msg:'Your purse is full ('+fmtCount(invMaxFor(k))+' '+k+')'};
   if(fx.draw&&(runState.dimDone||{})[fx.draw])return{ok:0,msg:it.n+' is once a day: come back tomorrow'};const cost=shopPrice(it,runState),sec=fx.draw==='secret'?secretCards():null;if(sec&&!sec.length)return{ok:0,msg:'No secrets left to tell'};
@@ -13751,6 +13760,7 @@ function shopBuy(id,arg,ship){ // ship: bought from a shop you are not at: what 
   if(fx.duck==='exotic'){const by={};for(const k of own)by[DUCK_TYPES[k].axis]=(by[DUCK_TYPES[k].axis]||0)+duckLog[k];axis=Object.keys(by).sort((a,b)=>by[b]-by[a])[0];if(!TEST.get('free')&&(!axis||by[axis]<it.cost))return{ok:0,msg:'You need '+it.cost+' ducks of one kind'};pool=own.filter(k=>DUCK_TYPES[k].axis===axis);}
   if(it.cur==='duck'){if(TEST.get('free')){}else if(own.reduce((s,k)=>s+duckLog[k],0)<it.cost)return{ok:0,msg:'You need '+it.cost+' duck'+(it.cost>1?'s':'')};spendDucks(it.cost,pool);if(!_discReset)_discReset='ducks';}
   else{if((inventory[it.cur]||0)<cost)return{ok:0,msg:'You need '+cost.toLocaleString('en-US')+' '+it.cur};inventory[it.cur]-=cost;}
+  stat('buy:'+it.shop);stat('spend:'+it.shop,it.cur==='duck'?it.cost:cost); // (lifetime: purchases at each shop, and what was spent there)
   let got=it.n;
   if(fx.give){if(ship)ship=Object.assign({},fx.give);else for(const k in fx.give)addInventory(k,fx.give[k],true);}else ship=null;
   if(fx.xbuy||fx.xsell){const n=xactGets(it,runState),k=fx.xbuy||'bright';addInventory(k,n,true);got=fmtCount(n)+' '+(KIND_NAME[k]||k);} // XACT change
@@ -13993,7 +14003,7 @@ function duckAt(mx,my){if(!ducks.length||mx<0)return null;let best=null,bd=1e9;
   for(const d of ducks){const dx=_wrapD(mx-d.x,W),dy=_wrapD(my-d.y,H),q=dx*dx+dy*dy,H0=d._hull;
     const hit=H0?!!duckHullHit(H0,dx,dy,4):q<Math.pow(duckSizeOf(d)*0.5,2);if(hit&&q<bd){bd=q;best=d;}}return best;}
 function duckInfo(d){const v=DUCK_TYPES[d.type];return[duckStar(v)+v.name,txt('surf.collected_click_to_collect',v.axis,v.detail?': '+v.detail:'',(v.rare?txt('surf.rare_exotic'):(d.type==='classic'?txt('surf.classic'):txt('surf.exotic'))),duckLog[d.type]||0)];}
-function collectDuck(d,silent){const i=ducks.indexOf(d);if(i<0)return;ducks.splice(i,1);duckLog[d.type]=(duckLog[d.type]||0)+1;surfaceTally.duck=(surfaceTally.duck||0)+1;saveInventory();
+function collectDuck(d,silent){const i=ducks.indexOf(d);if(i<0)return;stat('duck');ducks.splice(i,1);duckLog[d.type]=(duckLog[d.type]||0)+1;surfaceTally.duck=(surfaceTally.duck||0)+1;saveInventory();
   if(!silent){const v=DUCK_TYPES[d.type];earnFx.push({kind:'plus',x:d.x,y:d.y-duckSizeOf(d)*0.6,text:'🦆 '+v.name,born:performance.now(),dur:1400});flashSaveStatus(txt('surf.collected',v.name,duckLog[d.type]));}}
 function collectAllDucks(){for(const d of ducks.slice())collectDuck(d,true);}
 function drawDucks(c,now){
@@ -14017,7 +14027,7 @@ const goodType=g=>'good:'+g.kind+':'+(g.shop||'')+':'+(g.kind==='sign'?(g.lit?'l
 let goods=[];
 function spawnGood(x,y,now,g,keep){const a=Math.random()*6.2832,sp=T.duckDrift/60,yaw=Math.random()*6.2832,o={x,y,vx:keep&&g.vx!=null?g.vx:Math.cos(a)*sp,vy:keep&&g.vy!=null?g.vy:Math.sin(a)*sp,q:g.q||quatTurn([0,0,0,1],0.3,yaw,0),spin:g.spin||(Math.random()<0.5?-1:1)*(0.4+Math.random()*0.6),born:now,kind:g.kind,shop:g.shop||'',open:!!g.open,give:g.give||null,ph:Math.random()*6.2832};goods.push(o);return o;}
 function goodAt(mx,my){let best=null,bd=1e9;for(const g of goods){if(g.kind==='sign'||g.open)continue;const d=Math.hypot(_wrapD(mx-g.x,W),_wrapD(my-g.y,H));if(d<T.goodSize*0.55&&d<bd){bd=d;best=g;}}return best;}
-function openGood(g){if(g.open||g.kind==='sign')return;const now=performance.now();
+function openGood(g){if(g.open||g.kind==='sign')return;stat('good:'+g.kind);const now=performance.now();
   if(g.kind==='chest'){const r=chestOpen();if(!r.ok){flashSaveStatus(r.msg);return;}g.open=true;const L=Object.entries(r.got);let i=0;for(const[k,n]of L){earnFx.push({kind:'plus',x:g.x,y:g.y-T.goodSize*0.6-16*i++,text:INV_ICON[k]+' +'+fmtCount(n),born:now,dur:1600});for(let j=0;j<Math.min(8,Math.ceil(n/50));j++)spawnCollectSparks({x:g.x+(Math.random()-0.5)*30,y:g.y+(Math.random()-0.5)*20,remKind:GOOD_REM[k]||'white',isRemnant:true,mass:20,energy:1,r:255,g:240,b:200});} // the lid cracks open, glowing at its seam: its hoard collected as if every gem were clicked
     flashSaveStatus(txt('chest.opened')+': '+L.map(([k,n])=>fmtCount(n)+' '+(INV_LABEL[k]||k)).join(', '));playGlassTap();g.burn=now+(T.mapChestOpenMs||1600);return;} // then it burns away, as a crate does
   const H=goodHolds(g);g.open=true;
