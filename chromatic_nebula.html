@@ -119,7 +119,7 @@ button:hover{background:rgba(255,255,255,0.15);}
   <div id="dock" class="bottom"><div id="inventoryPanel"></div><div id="touch-info"></div></div>
   <canvas id="cur"></canvas>
 </div>
-<script src="content.js?v=20261117c"></script><script src="shared.js?v=20261117c"></script>
+<script src="content.js?v=20261117d"></script><script src="shared.js?v=20261117d"></script>
 <script>
 txtApply(); // the page's own labels (content/strings.csv)
 const _SRC=document.documentElement.outerHTML; // kept so the Encyclopedia can run live scenes as embedded copies of the game
@@ -7882,7 +7882,7 @@ function selArea(test,parts){ // everything inside an area (test(x,y)): objects,
   for(const sh of fixedShapes){if(!inertShapeOk(sh)||inertHas(sh)>=0)continue;const c=shapeCentroid(sh);if(test(c[0],c[1])){inertSel.push({obj:sh,shape:true});n++;}}
   if(parts)for(let i=0;i<dormant.length;i++){const d=dormant[i];if(d&&!d.isRemnant&&test(d.x,d.y)&&!underGlass(d.x,d.y))n+=selAdd(d,true);}
   return n;}
-function selSaid(n){flashSaveStatus(txt(n?'surf.select.added':'surf.select.none',n,inertSel.length));}
+function selSaid(n){flashSaveStatus(txt(n?'surf.select.added':'surf.select.none',n,inertSel.length));selPanel();}
 function selClick(mx,my){ // a click: the object there joins the selection; with nodes, a click in space places a node (on the first again: the shape closes)
   const h=hitTestAnyObjectForDup(mx,my),hs=h?null:inertShapeAt(mx,my);
   if(currentVariant()==='nodes'&&(selNodes.length||(!h&&!hs))){
@@ -7899,9 +7899,9 @@ function selSame(mx,my){ // a double click: every object of the same exact type 
 function selRight(mx,my){ // right click: the object there leaves the selection; on nothing, the selection is cleared (an empty one: the tool is put away)
   if(selNodes.length){selNodes=[];return true;}
   const h=hitTestAnyObjectForDup(mx,my),o=h?h.obj:inertShapeAt(mx,my),i=o?inertHas(o):-1;
-  if(i>=0){inertSel.splice(i,1);flashSaveStatus(txt('surf.select.removed',inertSel.length));return true;}
+  if(i>=0){inertSel.splice(i,1);flashSaveStatus(txt('surf.select.removed',inertSel.length));selPanel();return true;}
   if(o)return true; // (on an object not selected: nothing)
-  if(inertSel.length){inertSel=[];flashSaveStatus(txt('surf.select.cleared'));return true;}
+  if(inertSel.length){inertSel=[];flashSaveStatus(txt('surf.select.cleared'));selPanel();return true;}
   return false;}
 function selWipe(mx,my){const R=T.touchR;let n=0;for(const p of active){const dx=_wrapD(p.x-mx,W),dy=_wrapD(p.y-my,H);if(dx*dx+dy*dy<=R*R)n+=selAdd(p,false);}const h=hitTestAnyObjectForDup(mx,my);if(h&&h.isDormant)n+=selAdd(h.obj,true);return n;} // a wipe: what the cursor passes over
 function drawSelection(ctx){ // the selection's marks (Select and the Inertializer), and Select's shape in progress
@@ -9169,9 +9169,30 @@ function shapeOverGlass(d,mx,my){for(const r of d.rel)if(underGlass(mx+r.x,my+r.
 const NEXT={on:true,mass:null,energy:null,bal:[1,1,1,1,1,1],useBal:false,give:0,giveKind:'bright',made:null}; // on from the start; mass / energy null: as the game makes it (made: the last thing Create made, whose own values the empty boxes show)
 const nextDef=k=>{const top=Math.max(1,runT('riftMass')||T.darkMass);return k==='mass'?{min:0.01,max:top,step:0.01}:{min:0.001,max:top,step:0.001};}; // (the whole range the game has: up to Rift mass, where a Rift would start to form; energy capped the same)
 function nextMade(o,cat){if(!o)return o;if(!NEXT.on||NEXT.mass==null||NEXT.energy==null){NEXT.made={mass:o.mass,energy:o.energy};nextShowMade();}if(!NEXT.on)return o;
-  if(NEXT.mass!=null)o.mass=tuneSnap(nextDef('mass'),NEXT.mass);if(NEXT.energy!=null)o.energy=tuneSnap(nextDef('energy'),NEXT.energy);
-  if(NEXT.useBal&&o.masses&&!o.whiteFx){const t=NEXT.bal.reduce((a,b)=>a+b,0)||1;o.masses=NEXT.bal.map(v=>v/t*o.mass);if(typeof balanceScore==='function')o.balance=balanceScore(o.masses);}
-  if(typeof updateCached==='function')updateCached(o);o.fillDirty=true;return o;}
+  return objSet(o,{mass:NEXT.mass,energy:NEXT.energy,bal:NEXT.useBal?NEXT.bal:null},!!o.isDormant||dormant[dormIdxOf(o)]===o);}
+function objSet(o,v,dorm){ // sets an object's mass, energy and / or colour balance (null: left as it is), keeping what it is: its colour masses scale with its mass, and a new balance gives it the colour, effect and look of that balance
+  if(v.mass!=null){const m=tuneSnap(nextDef('mass'),v.mass),k=o.mass>0?m/o.mass:0;if(o.masses)o.masses=k?o.masses.map(x=>x*k):o.masses.map(()=>m/6);o.mass=m;}
+  if(v.energy!=null)o.energy=tuneSnap(nextDef('energy'),v.energy);
+  if(v.bal&&o.masses&&!o.whiteFx&&!o.blackFx&&!o.isRemnant){const t=v.bal.reduce((a,b)=>a+b,0)||1;o.masses=v.bal.map(x=>x/t*o.mass);o.balance=balanceScore(o.masses);o.ci=dominantCI(o.masses);const rgb=compositeRGB(o.masses);o.r=rgb.r;o.g=rgb.g;o.b=rgb.b;if(o.dr!=null){o.dr=o.r;o.dg=o.g;o.db=o.b;}}
+  updateCached(o);o.fillDirty=true;if(dorm)nebPaint(o);return o;}
+// ── The selection, in the Build menu: what is selected, and its mass, energy and colour set on all of it at once. A box shows the value they share, or is empty (mixed) ──
+function selVals(){const objs=inertSel.filter(e=>!e.shape&&selAlive(e)).map(e=>e.obj),same=f=>{if(!objs.length)return null;const a=f(objs[0]);if(a==null)return null;for(const o of objs){const b=f(o);if(b==null||Math.abs(b-a)>Math.max(1e-6,Math.abs(a)*1e-4))return null;}return a;};
+  const fr=i=>o=>o.masses&&!o.isRemnant&&!o.whiteFx&&!o.blackFx&&o.mass>0?o.masses[i]/o.mass:null;
+  return{objs,mass:same(o=>o.mass),energy:same(o=>o.energy),bal:[0,1,2,3,4,5].map(i=>same(fr(i)))};}
+function selApply(v,i){ // v: {mass} / {energy} / {ch:i, val}: one colour set to that share on every object, the others keeping their proportions
+  let n=0;for(const e of inertSel){if(e.shape||!selAlive(e))continue;const o=e.obj;
+    if(v.ch!=null){if(!o.masses||o.isRemnant||o.whiteFx||o.blackFx)continue;const t=o.mass||1,f=o.masses.map(x=>x/t),rest=f.reduce((a,b,j)=>j===v.ch?a:a+b,0),w=Math.max(0,Math.min(1,v.val));objSet(o,{bal:f.map((x,j)=>j===v.ch?w:(rest>0?x/rest*(1-w):(1-w)/5))},!!e.isDormant);}
+    else objSet(o,v,!!e.isDormant);n++;}
+  flashSaveStatus(txt('build.sel_set',n));selPanel();}
+function selPanel(){const el=document.getElementById('selRow');if(!el)return;selPrune();const V=selVals();
+  if(!V.objs.length){el.innerHTML=`<b>${txt('build.sel')}</b><span>${txt('build.sel_none')}</span>`;return;}
+  const cnt={};let M=0,E0=Infinity,E1=0,S=0;for(const e of inertSel){if(e.shape||!selAlive(e))continue;const o=e.obj,k=e.isDormant?'particle':objKey(o);cnt[k]=(cnt[k]||0)+1;M+=o.mass||0;E0=Math.min(E0,o.energy||0);E1=Math.max(E1,o.energy||0);S+=Math.hypot(o.vx||0,o.vy||0);}
+  const shapes=inertSel.length-V.objs.length;
+  el.innerHTML=`<b>${txt('build.sel')} · ${inertSel.length}</b><span>${Object.entries(cnt).map(([k,c])=>c+' '+k).join(' · ')}${shapes?' · '+shapes+' '+txt('build.sel_shapes'):''}</span><span>${txt('build.sel_tel',tuneFmt(M,0.01),tuneFmt(E0,0.001),tuneFmt(E1,0.001),(S/V.objs.length).toFixed(2))}</span>
+<label>${txt('build.next_mass')}<span id="slM"></span></label><label>${txt('build.next_energy')}<span id="slE"></span></label>${[0,1,2,3,4,5].map(i=>`<label><i style="color:${EFFECT_HEX[i]}">${EFFECT_NAMES[i]}</i><span id="slC${i}"></span></label>`).join('')}`;
+  const box=(id,d,get,set)=>{const b=tuneValInput({...d,empty:true,ph:()=>txt('build.sel_mixed')},get,v=>{if(v!=null)set(v);});b.title=txt('build.sel_box');document.getElementById(id).appendChild(b);};
+  box('slM',nextDef('mass'),()=>V.mass,v=>selApply({mass:v}));box('slE',nextDef('energy'),()=>V.energy,v=>selApply({energy:v}));
+  for(let i=0;i<6;i++)box('slC'+i,{min:0,max:1,step:0.01},()=>V.bal[i],v=>selApply({ch:i,val:v}));}
 function nextShowMade(){for(const id of ['nxM','nxE']){const el=document.querySelector('#'+id+' .tval');if(el&&el._show&&document.activeElement!==el)el._show();}} // the empty boxes show what was made last
 function nextBarHTML(esc){const sl=(id,v,a,b,st,l)=>`<label>${l}<span class="nxS"><input type="range" id="${id}" min="${a}" max="${b}" step="${st}" value="${v}"><b id="${id}v"></b></span></label>`; // (slider and typed value in a fixed-width pair: a value of a different length no longer shifts the slider)
   return `<div class="bdRow"><b>${txt('build.next')}</b><label>${txt('build.next_on')}<input type="checkbox" id="nxOn"${NEXT.on?' checked':''}></label><label>${txt('build.next_mass')}<span id="nxM"></span></label><label>${txt('build.next_energy')}<span id="nxE"></span></label>
@@ -12960,7 +12981,7 @@ function cardHTML(ev,mini,pg){ // the one card format: name bar, art box, type l
   return `<div class="mtg${sm?' sm':mini===2?' pic':''}${!pg&&discSeen.has('ev:'+ev.id)&&ilNew('ev:'+ev.id)?' fd':''}" data-ev="${ev.id}" data-new="ev:${ev.id}" style="--rc:${TIER_COL[t]}"><div class="nm"><b>${gEsc(ev.name)}</b><span class="gem"></span></div><div class="art" data-scene="${ev.scene}" data-ev="${ev.id}" data-k="${ev.ico}">${sm?evStillHTML([ev.id])||`<canvas class="rl-m" width="64" height="64" data-k="${ev.ico}"></canvas>`:''}</div>${body}</div>`;
 }
 function mountScene(h,w,hh){if(!h||h.firstChild||document.querySelectorAll('.rl-live iframe:not(.held),.mtg .art iframe:not(.held)').length>=5)return; /* (a page's picture holding on its last frame does not count) */{const R=(h.dataset.ev||'').split(',').map(evRecFor).find(Boolean);if(R&&!w){evReplayMount(h,R);return;}} /* something you witnessed: your own recording of it, live (a demo only for what you have not) */const f=document.createElement('iframe'),nm=h.dataset.s||h.dataset.scene;f.style.cssText='border:0;max-width:100%;pointer-events:none;background:#000;border-radius:6px;'+(w?`width:${w}px;height:${hh}px`:'width:100%;height:100%');
-  if(nm.slice(0,4)==='hub:'){const[sn,dk]=nm.slice(4).split(':');f.src='Surface_Map_HUB.html?v=20261117c&scene='+sn+(sn==='shop'?'&k='+encodeURIComponent(dk||''):'')+'&T='+encodeURIComponent(JSON.stringify(mapSceneT()))+'&D='+encodeURIComponent(JSON.stringify(dk&&DUCK_TYPES[dk]?{[dk]:DUCK_TYPES[dk]}:Object.fromEntries(Object.entries(DUCK_TYPES).slice(0,4))));}else{f.srcdoc=liveSrc(nm,null,h.dataset.hold);if(h.dataset.hold)f.className='held';}h.appendChild(f);} // a Surface Map demo is played by the map itself
+  if(nm.slice(0,4)==='hub:'){const[sn,dk]=nm.slice(4).split(':');f.src='Surface_Map_HUB.html?v=20261117d&scene='+sn+(sn==='shop'?'&k='+encodeURIComponent(dk||''):'')+'&T='+encodeURIComponent(JSON.stringify(mapSceneT()))+'&D='+encodeURIComponent(JSON.stringify(dk&&DUCK_TYPES[dk]?{[dk]:DUCK_TYPES[dk]}:Object.fromEntries(Object.entries(DUCK_TYPES).slice(0,4))));}else{f.srcdoc=liveSrc(nm,null,h.dataset.hold);if(h.dataset.hold)f.className='held';}h.appendChild(f);} // a Surface Map demo is played by the map itself
 function mapSceneT(){const o={};for(const k in T)if(/^(map|bh|duck|wake|glass|metal|dimGlow|glowHalo|maxSpeed)/.test(k))o[k]=T[k];return o;} // what a map demo needs of the tuners
 function showCardHTML(html){ // a Guide card (an entry or a shop) opened over the Guide, where an event card shows
   guideCSS();if(!_evOpen)_evPausedIt=false;_evOpen=true;_evReview=true;const ov=evOverlayEl();ov.innerHTML=`<div class="ev-box">${html}<button id="evOk">${txt('card.close')}</button></div>`;ov.style.display='flex';wrap.classList.add('ev-open');
@@ -13503,7 +13524,7 @@ function buildBar(){let el=document.getElementById('buildBar');if(!el){el=docume
   el.innerHTML=`<b>${txt('build.title')}</b><input id="bdName" maxlength="40" placeholder="${esc(txt('build.name'))}" value="${esc(buildName)}"><button id="bdSave">${txt('build.save')}</button>
 <select id="bdLoad"><option value="">${txt('build.load')}</option>${names.map(n=>`<option value="${esc(n)}">${esc(n)}${buildLib.levels[n].kind==='bright'?' ○':' ●'}</option>`).join('')}</select>
 <button id="bdNew">${txt('build.new')}</button><button id="bdBlank">${txt('build.blank')}</button><button id="bdTest"${buildTest?' class="on"':''}>${txt(buildTest?'build.back':'build.test')}</button><select id="bdTime" title="${esc(txt('build.test_time_tip'))}"><option value="0">${txt('build.test_no_time')}</option>${Object.keys(TIMES).map(h=>`<option value="${h}"${+h===buildTime?' selected':''}>${TIMES[h]}</option>`).join('')}</select>
-<button id="bdDel">${txt('build.delete')}</button><button id="bdExport">${txt('build.export')}</button>${preBarHTML(esc)}${nextBarHTML(esc)}`;nextBarWire();
+<button id="bdDel">${txt('build.delete')}</button><button id="bdExport">${txt('build.export')}</button>${preBarHTML(esc)}${nextBarHTML(esc)}<div class="bdRow" id="selRow"></div>`;nextBarWire();selPanel();
   const $=id=>document.getElementById(id),nm=()=>$('bdName').value.trim();$('bdName').oninput=()=>{buildName=$('bdName').value;};
   $('bdSave').onclick=async()=>{const n=nm();if(!n){flashSaveStatus(txt('build.need_name'));return;}if(buildTest){flashSaveStatus(txt('build.not_while_testing'));return;}buildLib.levels[n]=Object.assign({name:n},buildLevelData());if(await buildKeep())flashSaveStatus(txt('build.saved',n));buildName=n;buildBar();};
   $('bdLoad').onchange=e=>{const n=e.target.value;if(!n||!buildLib.levels[n])return;if(buildTest)buildBack();buildApply(buildLib.levels[n]);buildName=n;flashSaveStatus(txt('build.loaded',n));buildBar();};

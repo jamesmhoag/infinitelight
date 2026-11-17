@@ -1011,6 +1011,16 @@ build.next_energy,Energy,Build menu,
 build.next_balance,Exact colour balance,Build menu,
 build.next_holds,A package holds,Build menu,
 build.next_as_made,"Left empty, Create makes it as the game does (the grey number is the last one made). Type a value to use it instead.",Build menu,"the Mass and Energy boxes' tooltip"
+build.sel,Selection,Build menu,
+build.sel_none,"Nothing selected: Entanglement → Select picks what to set here.",Build menu,
+build.sel_shapes,shapes,Build menu,
+build.sel_tel,"Σ mass {mass} · energy {emin} – {emax} · mean speed {speed}",Build menu,"mass = $0 — their total mass
+emin = $1 — the lowest energy
+emax = $2 — the highest energy
+speed = $3 — their mean speed"
+build.sel_mixed,mixed,Build menu,shown in a Selection box when the selected objects differ
+build.sel_box,"The value every selected object shares (empty: they differ). Type one to set it on all of them.",Build menu,the Selection boxes' tooltip
+build.sel_set,"Set on {count} selected.",Build menu,count = $0 — objects changed
 ev.desk,✦ {0} to review,Events,
 ev.desk_tip,"Discoveries you have not looked at yet: events captured while another was happening, and any still new. Click to review them.",Events,
 journal.notes,"your notes…",the Journal,
