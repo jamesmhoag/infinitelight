@@ -163,7 +163,7 @@ body.shop-open #hdock{z-index:59}#hinv .slot.wal::before{border-color:rgba(255,2
 <div id="veil"></div>
 <div id="bfx"></div>
 <iframe id="neb" data-tt="map.ui.surface"></iframe>
-<script src="content.js?v=20261118f"></script><script src="shared.js?v=20261118f"></script><script src="cabin.js?v=20261118f"></script><script src="music.js?v=20261118f"></script>
+<script src="content.js?v=20261118g"></script><script src="shared.js?v=20261118g"></script><script src="cabin.js?v=20261118g"></script><script src="music.js?v=20261118g"></script>
 <script>
 // ╔══════════════════════════════════════════════════════════════════════════════╗
 // ║  MAP ENGINE                                                                 ║
@@ -182,7 +182,7 @@ let playLog=[],clock=3,day=1,pool=6,burstFx=null,dayLog=[],dayCnt={b:0,d:0},pend
 // // clock: the hour (3 = Twilight … 24 = Midnight, the day's last turn); day: your attempts; pool: what the source put out at its last burst; fresh: no ring added yet since it
 let constel=[],armed=null,weaveSel=[],weaveAsk=null,clearFx={},mergeFx=[],feedMsg={t:'',d:'',at:-1e9}; // constellations {keys,type}; the armed map item; a Weave being drawn; animations; the final count
 const STEP_H=3; // the day: eight turns of three hours
-const CACHE_V='20261118f'; // the build: bump with shared.js's
+const CACHE_V='20261118g'; // the build: bump with shared.js's
 const SCENE=new URLSearchParams(location.search).get('scene'); // a Guide / event demo: the map plays a scripted moment (no surface behind it)
 let phase='move',turnTimer=0,mergeTimer=0;
 let gameOverReason='';
@@ -240,10 +240,11 @@ function detectMerges(){
 function consolidateCaptures(mk,mid){const ks=new Set(mk);const tr=[];const ac=new Set();for(let i=0;i<captureOrder.length;i++){const e=captureOrder[i];if(e.keys.some(k=>ks.has(k))){tr.push(i);for(const k of e.keys)ac.add(k);}}for(const k of mk)ac.add(k);for(let i=tr.length-1;i>=0;i--)captureOrder.splice(tr[i],1);captureOrder.push({keys:[...ac],mergeId:mid});}
 function showMergeFlash(t){feed(t);} // (in the feed: nothing is said mid-screen)
 function checkVoidAccess(){const vc=cells[K(0,0)];if(!vc||!vc.isVoid){voidOpen=false;return;}const ns=neighbors(0,0);if(!ns.every(([q,r])=>{const c=cells[K(q,r)];return c&&c.cap;})){voidOpen=false;return;}const tri=new Set();for(const[q,r]of ns)for(const g of mergeGroups)if((g.type==='tri'||g.type==='dark3')&&g.cells.includes(K(q,r)))tri.add(g.id);voidOpen=tri.size>=3;}
-function newMap(){flotLake(()=>true); // a new map, a descent and every midnight: the source at the centre bursts out (T.mapBurstRings rings at 1.00), the player beside it
+const MAP_POOL=36; // what the spill holds: at Twilight the source bursts into ring 1, its six hexes at 6.00 each; a ring more each time of day spreads it thinner (Dawn: two rings at 2.00, Morning: three at 1.00)
+function newMap(rings){flotLake(()=>true); // a new map, a descent and every midnight: the source at the centre bursts out into ring 1 (rings: a demo's own), the player beside it
   dropSession();cells={};totalCells=0;captureOrder=[];mergeGroups=[];mergeIdCounter=0;voidOpen=false;phase='move';gameOverReason='';prev={};constel=[];weaveSel=[];weaveAsk=null;armed=null;
   cells[K(0,0)]={q:0,r:0,v:0,cap:false,capVal:0,isP:false,mergeId:null,isVoid:true};totalCells++;
-  turn=Math.max(1,T.mapBurstRings||3);for(let n=1;n<=turn;n++)addRing(n);pool=0;for(const k in cells)if(!cells[k].isVoid){cells[k].v=1.0;pool+=1;}
+  turn=Math.max(1,rings||1);for(let n=1;n<=turn;n++)addRing(n);pool=MAP_POOL;const N=totalCells-1;for(const k in cells)if(!cells[k].isVoid)cells[k].v=Math.round(MAP_POOL/N*10000)/10000;
   const r1=ring(1),si=Math.floor(Math.random()*r1.length);pQ=r1[si][0];pR=r1[si][1];
   if(MP.on&&MP.role==='host'){const h=mpP('h');if(h){h.q=pQ;h.r=pR;}for(const P of MP.players)if(P.id!=='h'){const sp=mpSpot();P.q=sp[0];P.r=sp[1];}} // (playing together: everyone starts the new day beside the source)
   cells[K(pQ,pR)].isP=true;burstFx={t0:performance.now(),kind:'burst'};
@@ -575,7 +576,7 @@ function endDay(){ // Midnight passed: it all falls into the source (the outer r
   pendingEnd={how:'midnight',n:0,win:false,lost:wreckCheck()};phase='collapse';armed=null;weaveSel=[];weaveAsk=null;dropSession();
   const base=T.mapCollapseMs||1400;let t=0;for(let i=ringMax(),j=0;i>0;i--,j++){const dur=Math.max(110,base*0.55*Math.pow(0.7,j)),ri=i;at(t,()=>fallRing(ri,dur));t+=dur;}
   at(t,()=>{burstFx={t0:performance.now(),kind:'flash',dur:700};});at(t+420,finishDay);
-  {const R=Math.max(1,T.mapBurstRings||3),ks=[];for(let i=1;i<=R;i++)for(const[q,r]of ring(i))ks.push(K(q,r));camTweenTo(ks,t+420);}
+  {const R=1,ks=[];for(let i=1;i<=R;i++)for(const[q,r]of ring(i))ks.push(K(q,r));camTweenTo(ks,t+420);}
   feed(txt('map.midnight'),txt('map.the_spill_falls_back'));showTurn();updateHint();saveMap();}
 function fallRing(i,dur){ // one ring falls into the source
   for(const k of Object.keys(cells)){const c=cells[k];if(!c.isVoid&&cellRing(c.q,c.r)===i){delete cells[k];totalCells--;}}
@@ -800,7 +801,7 @@ function mapRender(){
       mctx.fillStyle=gr;mctx.beginPath();mctx.arc(cx,cy,R*0.42,0,6.2832);mctx.fill();mctx.restore();} // its white heart, its edge in the colour it is passing through
     if(fx&&ft<1){
       if(fx.kind==='flash'){mctx.save();mctx.globalCompositeOperation='screen';mctx.fillStyle=`rgba(255,255,255,${(0.95*Math.pow(1-ft,1.5)).toFixed(3)})`;mctx.fillRect(-MW,-MH,MW*3,MH*3);mctx.restore();}
-      else{const r0=HEX*1.75*(fx.r||T.mapBurstRings||3)+HEX,r=fx.kind==='fall'?r0*(1-ft*ft):r0*ft; // a fall accelerates in; a burst opens out
+      else{const r0=HEX*1.75*(fx.r||turn||1)+HEX,r=fx.kind==='fall'?r0*(1-ft*ft):r0*ft; // a fall accelerates in; a burst opens out
         mctx.save();mctx.globalCompositeOperation='screen';mctx.strokeStyle=`rgba(255,255,255,${0.8*(1-ft*0.6)})`;mctx.lineWidth=HEX*0.35;mctx.filter=`blur(${HEX*0.15}px)`;mctx.beginPath();mctx.arc(cx,cy,Math.max(1,r),0,6.2832);mctx.stroke();mctx.restore();}}
     else if(fx&&ft>=1)burstFx=null;}
   // Merge visuals
@@ -1716,7 +1717,7 @@ function sceneField(){if(_sf)return _sf;const S=512,cv=document.createElement('c
 const sceneCap=(k,kind)=>{const c=cells[k];if(!c||c.cap)return;c.cap=true;c.capVal=c.v;c.kind=kind;clearFx[k]={t0:performance.now()};}; // a clear, shown as it resolves
 const at=(ms,fn)=>sceneTimers.push(setTimeout(fn,ms));let sceneTimers=[];
 let sceneShopAt=null; // (the shop demo's hex: a pop-up's bright clear, or main street)
-function sceneReset(rings){sceneTimers.forEach(clearTimeout);sceneTimers=[];hubPop=[null,null];const br=T.mapBurstRings;T.mapBurstRings=rings||br||3;score=0;depth=0;clock=3;day=1;pendingEnd=null;newMap();T.mapBurstRings=br;clearFx={};mergeFx=[];
+function sceneReset(rings){sceneTimers.forEach(clearTimeout);sceneTimers=[];hubPop=[null,null];score=0;depth=0;clock=3;day=1;pendingEnd=null;newMap(rings||3);clearFx={};mergeFx=[];
   const o=cells[K(pQ,pR)];if(o)o.isP=false;pQ=1;pR=-1;cells[K(1,-1)].isP=true;camX=camTX=0;camY=camTY=0;}
 const SCENES={
   map(){sceneReset();viewZoom=1;at(3000,()=>{camTX=camTY=0;});return 6000;}, // the source bursts out its rings (a new map each time round)
