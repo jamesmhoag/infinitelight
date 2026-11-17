@@ -92,6 +92,9 @@ w_lens_s,neutron,Wrap Lens with item shapes,500000,bright,3,,"{""up"":1}",,,
 radii,neutron,Protractor,2000,,2,,"{""disc"":""mode_radii""}",,,"A gadget for your shelf: effect radii (Modes → Radii, and the R read-out)"
 spectro,neutron,Spectrometer,1000,,1,,"{""disc"":""mode_class""}",,,"A gadget for your shelf: class, what each thing is (Modes → Class, and the C read-out)"
 camera,neutron,Camera,5000,,3,,"{""disc"":""mode_dynamics""}",,,"A gadget for your shelf: dynamics, mass and energy (Modes → Dynamics, and the D read-out)"
+needle,neutron,Needle,250,,1,,"{""up"":1}",,,"Gear for below deck (comically large): you see Spindles coming, the laps of a point circling a still one"
+spool,neutron,Spool of chromatic yarn,250,,1,,"{""up"":1}",,,"Gear for below deck: you see Strings coming, how long a point has held its chase"
+loom,neutron,Weaving Loom,1000,,2,,"{""up"":1}",,,"Gear for below deck: you see Patterns coming, the star of points holding still for a Weave, drawn in as it holds"
 pure_neu,neutron,Pure Density,9999,,3,,"{""up"":1}",,,
 d_neu,neutron,Random Duck Variant,9999,,3,,"{""duck"":""Size""}",,,A size variant (dupes possible)
 act5,line,Active maximum 1>5,10,magnetic,1,,"{""up"":1}",,,
