@@ -120,7 +120,7 @@ button:hover{background:rgba(255,255,255,0.15);}
   <div id="dock" class="bottom"><div id="inventoryPanel"></div><div id="touch-info"></div></div>
   <canvas id="cur"></canvas>
 </div>
-<script src="content.js?v=20261118h"></script><script src="shared.js?v=20261118h"></script>
+<script src="content.js?v=20261118i"></script><script src="shared.js?v=20261118i"></script>
 <script>
 txtApply(); // the page's own labels (content/strings.csv)
 const _SRC=document.documentElement.outerHTML; // kept so the Encyclopedia can run live scenes as embedded copies of the game
@@ -5347,7 +5347,7 @@ function tryPickupRemnant(mx,my){
 // surface (a ripple as it enters), scoops the remnant and comes up again (a ripple as it leaves): the remnant is collected as the scoop completes (Net scoop ms,
 // at its deepest), with the same effect as ever. A double click slashes in a hoop Net double × the reach wide and scoops every remnant of that kind within it.
 // Holding and wiping drags the dipped hoop, the net trailing behind, the surface rippling steadily. Under the surface the hoop and net are dimmed (Net under α)
-const NET={dips:[],rip:[],lastRip:0,trail:[]};
+const NET={dips:[],rip:[],lastRip:0,trail:[]},netCol=now=>chromaRGB(now).map(v=>Math.round(246+(v-246)*0.08)).join(); // the net: white, with a breath of the chromatic wheel (as the Net below deck)
 function netRipple(x,y,R,a){NET.rip.push({x,y,R,a:a||1,t0:performance.now()});}
 function netScoop(cs,x,y,R,dbl){const now=performance.now(),list=cs.filter(c=>c&&c.p&&!c.p._collected&&!c.p._netAt);if(!list.length)return false;
   for(const c of list)c.p._netAt=now;NET.dips.push({x,y,R,dbl,cs:list,t0:now,done:false});netRipple(x,y,R,1);return true;}
@@ -10974,10 +10974,10 @@ function drawSymbolFor(cx,x,y,cR,sp,holdT){
     cx.fillText(sp.rem>0?String(sp.rem):'⟲',x,y+cR*0.8);
   } else if((sp.type==='collect'||sp.type==='hold')&&T.netOn){ // the net: hanging from the hoop (hover), or dipped and dragged (holding, wiping)
     const hold=sp.type==='hold',ua=T.netUnderA!=null?T.netUnderA:0.45;
-    if(!hold)netHoop(cx,x,y,cR,1,0,1,sp.rgb,1.1+0.4*clickK); // (hanging well below the hoop, so it reads as a net)
+    if(!hold)netHoop(cx,x,y,cR,1,0,1,netCol(performance.now()),1.1+0.4*clickK); // (hanging well below the hoop, so it reads as a net)
     else{const tr=NET.trail,last=tr[tr.length-1],now=performance.now();if(!last||Math.hypot(x-last[0],y-last[1])>2)tr.push([x,y]);while(tr.length>8)tr.shift();
       let dx=0,dy=1;if(tr.length>2){const f=tr[0];const vx=f[0]-x,vy=f[1]-y,l=Math.hypot(vx,vy);if(l>3){dx=vx/l;dy=vy/l;}}
-      netHoop(cx,x,y,cR,0.22,Math.atan2(dy,dx)-Math.PI/2,ua,sp.rgb,1.4,null); // (turned so the net trails behind the way it is being dragged)
+      netHoop(cx,x,y,cR,0.22,Math.atan2(dy,dx)-Math.PI/2,ua,netCol(now),1.4,null); // (turned so the net trails behind the way it is being dragged)
       if(now-NET.lastRip>140&&last&&Math.hypot(x-last[0],y-last[1])>1){NET.lastRip=now;netRipple(x,y,cR,0.5);}}
     if(sp.p)drawCollectPreview(cx,sp.p,x,y,heldK,clickK);
   } else if(sp.type==='collect'||sp.type==='hold'){
@@ -11081,14 +11081,15 @@ function computeHoverAndCursor(now){
     // Darken interior — gives the ring/dot contrast when hovering over
     // highly saturated nebula colors instead of just blending in.
     const itemRing=!!(armedInvItem&&!heatLocked&&!inCreate&&ITEM_TOOLS.has(armedInvItem.kind)&&armedInvItem.kind!=='leash'); // a remnant item's own ring replaces the standard ring + centre dot
-    cursorTrailRecord(mouse.x,mouse.y,now,!overUI&&mouseInBounds);cursorBase(cx,mouse.x,mouse.y,cR,dimA,tintK,edgeCol,cLw); // (shared.js: the same cursor, and its trail, on the Surface Map)
+    const wipe=collectHold&&T.netOn; // wiping with the net: its hoop, on edge, is the ring (no flat ring as well)
+    cursorTrailRecord(mouse.x,mouse.y,now,!overUI&&mouseInBounds);if(!wipe)cursorBase(cx,mouse.x,mouse.y,cR,dimA,tintK,edgeCol,cLw); // (shared.js: the same cursor, and its trail, on the Surface Map)
     if(itemRing){const ac0=armedCursorRGB();drawItemRing(cx,mouse.x,mouse.y,cR,armedInvItem.kind,armedInvItem.effect||0,`${ac0.r|0},${ac0.g|0},${ac0.b|0}`,dimA,cLw,now,Math.max(0,holdT));}
-    else cursorRing(cx,mouse.x,mouse.y,cR,dimA,edgeCol,cLw);
+    else if(!wipe)cursorRing(cx,mouse.x,mouse.y,cR,dimA,edgeCol,cLw);
     drawHeatArc(cx,mouse.x,mouse.y,cR,now,heat); // heat (or the cooldown draining) runs round the inside of the ring
     // Center dot, with its own small glow
     if(!itemRing)cursorDot(cx,mouse.x,mouse.y,dimA,edgeCol);
     if(T.cursorNibOn&&!armedInvItem&&!inCreate&&!conMode&&!collectHold&&!heatLocked&&mouseInBounds&&!overUI)cursorNib(cx,mouse.x,mouse.y,cR,dimA,canvas,W,H,T); // the plain cursor: the pen's nib, with its lens
-    netTick(now);netDraw(cx,now,cR,'120,255,190'); // the net's scoops and ripples
+    netTick(now);netDraw(cx,now,cR,netCol(now)); // the net's scoops and ripples
     if(hoverObj){const hi=buildInfoFor(hoverObj,now);if(hi.scale>0){cx.beginPath();cx.arc(mouse.x,mouse.y,Math.max(0,hi.curR),0,6.2832);cx.strokeStyle=`rgba(${hi.r},${hi.g},${hi.b},${(hi.scale*10|0)/100})`;cx.lineWidth=0.75;cx.stroke();}}
     let symCol=edgeCol;
     if(armedInvItem&&!inCreate){const ac=armedCursorRGB();symCol=`${ac.r|0},${ac.g|0},${ac.b|0}`;} // the ring is the standard cursor; only the item's symbol carries the item colour
@@ -13079,7 +13080,7 @@ function cardHTML(ev,mini,pg){ // the one card format: name bar, art box, type l
   return `<div class="mtg${sm?' sm':mini===2?' pic':''}${!pg&&discSeen.has('ev:'+ev.id)&&ilNew('ev:'+ev.id)?' fd':''}" data-ev="${ev.id}" data-new="ev:${ev.id}" style="--rc:${TIER_COL[t]}"><div class="nm"><b>${gEsc(ev.name)}</b><span class="gem"></span></div><div class="art" data-scene="${ev.scene}" data-ev="${ev.id}" data-k="${ev.ico}">${sm?evStillHTML([ev.id])||`<canvas class="rl-m" width="64" height="64" data-k="${ev.ico}"></canvas>`:''}</div>${body}</div>`;
 }
 function mountScene(h,w,hh){if(!h||h.firstChild||document.querySelectorAll('.rl-live iframe:not(.held),.mtg .art iframe:not(.held)').length>=5)return; /* (a page's picture holding on its last frame does not count) */{const R=(h.dataset.ev||'').split(',').map(evRecFor).find(Boolean);if(R&&!w){evReplayMount(h,R);return;}} /* something you witnessed: your own recording of it, live (a demo only for what you have not) */const f=document.createElement('iframe'),nm=h.dataset.s||h.dataset.scene;f.style.cssText='border:0;max-width:100%;pointer-events:none;background:#000;border-radius:6px;'+(w?`width:${w}px;height:${hh}px`:'width:100%;height:100%');
-  if(nm.slice(0,4)==='hub:'){const[sn,dk]=nm.slice(4).split(':');f.src='Surface_Map_HUB.html?v=20261118h&scene='+sn+(sn==='shop'?'&k='+encodeURIComponent(dk||''):'')+'&T='+encodeURIComponent(JSON.stringify(mapSceneT()))+'&D='+encodeURIComponent(JSON.stringify(dk&&DUCK_TYPES[dk]?{[dk]:DUCK_TYPES[dk]}:Object.fromEntries(Object.entries(DUCK_TYPES).slice(0,4))));}else{f.srcdoc=liveSrc(nm,null,h.dataset.hold);if(h.dataset.hold)f.className='held';}h.appendChild(f);} // a Surface Map demo is played by the map itself
+  if(nm.slice(0,4)==='hub:'){const[sn,dk]=nm.slice(4).split(':');f.src='Surface_Map_HUB.html?v=20261118i&scene='+sn+(sn==='shop'?'&k='+encodeURIComponent(dk||''):'')+'&T='+encodeURIComponent(JSON.stringify(mapSceneT()))+'&D='+encodeURIComponent(JSON.stringify(dk&&DUCK_TYPES[dk]?{[dk]:DUCK_TYPES[dk]}:Object.fromEntries(Object.entries(DUCK_TYPES).slice(0,4))));}else{f.srcdoc=liveSrc(nm,null,h.dataset.hold);if(h.dataset.hold)f.className='held';}h.appendChild(f);} // a Surface Map demo is played by the map itself
 function mapSceneT(){const o={};for(const k in T)if(/^(map|bh|duck|wake|glass|metal|dimGlow|glowHalo|maxSpeed)/.test(k))o[k]=T[k];return o;} // what a map demo needs of the tuners
 function showCardHTML(html){ // a Guide card (an entry or a shop) opened over the Guide, where an event card shows
   guideCSS();if(!_evOpen)_evPausedIt=false;_evOpen=true;_evReview=true;const ov=evOverlayEl();ov.innerHTML=`<div class="ev-box">${html}<button id="evOk">${txt('card.close')}</button></div>`;ov.style.display='flex';wrap.classList.add('ev-open');
