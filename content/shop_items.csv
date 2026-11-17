@@ -14,6 +14,8 @@ afternoon,clock,Afternoon,2000,,1,,"{""clock"":15}",,,"Each time of day away cos
 dusk,clock,Dusk,2000,,1,,"{""clock"":18}",,,"Each time of day away costs more (×2, ×3, ×5, ×8, ×13, ×21, ×34)"
 night,clock,Evening,2000,,1,,"{""clock"":21}",,,"Each time of day away costs more (×2, ×3, ×5, ×8, ×13, ×21, ×34)"
 midnight,clock,Midnight,2000,,1,,"{""clock"":24}",,,"Each time of day away costs more (×2, ×3, ×5, ×8, ×13, ×21, ×34)"
+alarm,clock,Alarm clock,5000,,1,,"{""up"":1}",,,"Kept (on your gadget shelf): Rest any time, and sleep two times of day"
+wakecall,clock,Wake-up call,150,,1,,"{""wake"":1}",,,"Tomorrow you wake at Dawn instead of Morning"
 yesterday,clock,"Yesterday, this time",250000,,1,,"{""clock"":""yesterday""}",,,The map back as it was at the start of this time of day yesterday (you where you were)
 tomorrow,clock,"Tomorrow, this time",250000,,1,,"{""clock"":""tomorrow""}",,,"A clean new map, a day on, at this time of day, before any move (you beside main street)"
 xb_dim_100,xact,Dim,100,bright,1,,"{""xbuy"":""dim""}",,,
