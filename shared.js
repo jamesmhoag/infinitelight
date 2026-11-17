@@ -515,9 +515,10 @@ function riftPoly(P,pts,w,seed){ // a jagged filled polygon (three scars merged 
   const out=[];pts.forEach((a,j)=>{const b=pts[(j+1)%pts.length],L=Math.hypot(b[0]-a[0],b[1]-a[1]),n=Math.max(2,Math.ceil(L/28)),nx=-(b[1]-a[1])/L,ny=(b[0]-a[0])/L;
     for(let i=0;i<n;i++){const u=i/n,o=w*(riftJag(i+j*97,seed)-0.5)*0.7;out.push([a[0]+(b[0]-a[0])*u+nx*o,a[1]+(b[1]-a[1])*u+ny*o]);}});
   P.moveTo(...out[0]);for(const p of out)P.lineTo(...p);P.closePath();return P;}
+const DARK_RING_COLS=['255,150,40','255,120,20']; // the Dark Remnant's two glowing rings (a Rift's edges too; the journal's drawings wash in them)
 function drawRiftGlow(c,P,now,k,ph,line){ // P's outline in the Dark Remnant's pulsing glow (its two rings' widths, blurs and heartbeat; k scales them), then P filled pure black (line: a crack, only stroked)
   if(T.bhRingBeatMs>0){const o=ph||0;c.save();c.globalCompositeOperation='lighter';c.lineJoin='round';
-    for(const[bl,al,wd,bm,pa,off,col]of[[T.bhBlurWide,T.bhAlphaWide,T.bhRingWidth,T.bhRingBeatMs,T.bhRingPulseAmt,0,'255,150,40'],[T.bhRing2BlurMid,T.bhRing2AlphaMid,T.bhRing2Width,T.bhRing2BeatMs,T.bhRing2PulseAmt,0.5,'255,120,20']]){
+    for(const[bl,al,wd,bm,pa,off,col]of[[T.bhBlurWide,T.bhAlphaWide,T.bhRingWidth,T.bhRingBeatMs,T.bhRingPulseAmt,0,DARK_RING_COLS[0]],[T.bhRing2BlurMid,T.bhRing2AlphaMid,T.bhRing2Width,T.bhRing2BeatMs,T.bhRing2PulseAmt,0.5,DARK_RING_COLS[1]]]){
       const pu=heartbeatPulse((((now+o)%bm)/bm+off)%1)*pa;c.filter=bl>0?`blur(${Math.max(0.5,bl*k).toFixed(1)}px)`:'none';c.globalAlpha=Math.min(1,(al||0.6)*(1+pu*0.6));c.strokeStyle=`rgb(${col})`;c.lineWidth=Math.max(1,wd*k*(1+pu));c.stroke(P);}
     c.restore();}
   if(!line){c.fillStyle='#000';c.fill(P);}}
