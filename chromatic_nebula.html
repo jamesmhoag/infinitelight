@@ -119,7 +119,7 @@ button:hover{background:rgba(255,255,255,0.15);}
   <div id="dock" class="bottom"><div id="inventoryPanel"></div><div id="touch-info"></div></div>
   <canvas id="cur"></canvas>
 </div>
-<script src="content.js?v=20261116a"></script><script src="shared.js?v=20261116a"></script>
+<script src="content.js?v=20261116b"></script><script src="shared.js?v=20261116b"></script>
 <script>
 txtApply(); // the page's own labels (content/strings.csv)
 const _SRC=document.documentElement.outerHTML; // kept so the Encyclopedia can run live scenes as embedded copies of the game
@@ -5338,6 +5338,7 @@ function checkLevelClear(now){
   if(active.length>0)simulationStarted=true;
   if(blackHole){
     if(!blackHole.complete)return; // still consuming — not cleared yet
+    if(BUILD){if(invertMode!==blackHole.inv)toggleInvertMode();blackHole=null;simulationStarted=false;const dk=document.getElementById('dock');if(dk)dk.classList.remove('dr-hidden');flashSaveStatus(txt('build.dark_done'));return;} // a Build test: it has taken everything on the surface and goes; the surface is not cleared (no Surface Clear, the test plays on) and keeps the colour it had
     if(dormantCount>gateDormantCount())return; // the void's reach hasn't (yet) covered all remaining nebula — not cleared
     levelCleared=true;breakAllCreations(now);
     clearInfo={type:'black',timeMs:now-levelStartTime,clicks:totalActivations,
@@ -5412,7 +5413,7 @@ function triggerBlackRemnant(x,y,now,mass,energy,fromGate,rift){ // rift: a Rift
   if(asDuck){spawnDuck(x,y,now);return;} // the nova still fires; the surface carries on
   const targetR=Math.min(T.whiteEffMax,Math.max(T.whiteEffMin,40))*remEnScaleOf(energy);
   if(!rift)fireEvent('dark',{x,y});
-  blackHole={x,y,targetR,consumeR:0,waveR:0,growStart:now,phase:'grow',activateR:0,scoreMass:0,scoreEnergy:0,collapsedMass:mass||0,collapsedEnergy:energy||0,complete:false,wakes:[],impacts:[]};
+  blackHole={x,y,targetR,consumeR:0,waveR:0,growStart:now,phase:'grow',activateR:0,scoreMass:0,scoreEnergy:0,collapsedMass:mass||0,collapsedEnergy:energy||0,complete:false,wakes:[],impacts:[],inv:invertMode};
   if(fromGate==='nogrow')blackHole.growStart=now-T.blackGrowMs-1; // released from a Gate: already full size, no re-appearing
   if(rift){const f=rift.a!=null,a=f?rift.a:Math.random()*Math.PI,w0=T.riftWMin||40,w=w0+Math.random()*Math.max(0,(T.riftWMax||80)-w0);Object.assign(blackHole,{rift:{a,nx:-Math.sin(a),ny:Math.cos(a),seed:f?rift.seed:Math.random()*100},targetR:w/2,phase:f?'grow':'crack',crackStart:now});} // (rift: a crack that formed (riftForms) opens along its own line at once) // a Rift: a line across the screen at a random angle (through where the mass was), its black stripe 40–80 px wide
   else blackHole._spawnPurge=true; // applied at the start of the next Dark Remnant update (this can be called mid collision pass, where `active` must not shrink)
@@ -5617,7 +5618,7 @@ function processBlackRemnant(now,dt){
     if(!orphan){
       let anyDormantLeft=false;
       if(active.length===0)forEachDormant(bh.x|0,bh.y|0,bh.rift?Math.sqrt(W*W+H*H):bh.activateR,()=>{anyDormantLeft=true;});
-      if(active.length===0&&bh.wakes.length===0&&!anyDormantLeft&&!ducks.length){bh.complete=true;ensureDarkRemnantTheme();purgeAfterBlack();}
+      if(active.length===0&&bh.wakes.length===0&&!anyDormantLeft&&!ducks.length){bh.complete=true;if(!BUILD)ensureDarkRemnantTheme();purgeAfterBlack();}
     }
   }
 }
@@ -6312,7 +6313,7 @@ function rebuild(seed,pic){if(!pic)_evSurfAt=performance.now(); // (a new surfac
   nebData=nebImgData.data;nebData32=new Uint32Array(nebData.buffer);
   nebDirty=false;
   dormant=new Array(GW*GH).fill(null);voidLocked=new Uint8Array(GW*GH);settleFades.length=0;glideById.clear();interpList.length=0;interpByCell.clear();transitions.length=0;pausePaths.clear();orbitTrack={};leashTrack={};
-  active=[];pressedIDs.clear();lastActivatedId=-1;pidCounter=0;maxWhites=0;fpsCount=0;fpsLast=performance.now();dispersions.length=0;flashes.length=0;blackHole=null;riftForms=[];
+  active=[];pressedIDs.clear();lastActivatedId=-1;pidCounter=0;maxWhites=0;fpsCount=0;fpsLast=performance.now();dispersions.length=0;flashes.length=0;blackHole=null;riftForms=[];buildDarks=[];
   levelCleared=false;clearInfo=null;totalActivations=0;levelStartTime=performance.now();simulationStarted=false;surfaceTally={};surfaceLost={};goods.length=0;ducks.length=0;
   {const dockEl=document.getElementById('dock');if(dockEl)dockEl.classList.remove('dr-hidden');}
   buildSeed=typeof seed==='number'?seed:(hubLevel?hubLevel.seed:Math.random()*100);lvOff=lvHex?mapFieldOff(lvHex[0],lvHex[1]):null;
@@ -6463,7 +6464,7 @@ function clearStage(){
   nebData=nebImgData.data;nebData32=new Uint32Array(nebData.buffer);
   nebDirty=false;
   dormant=new Array(GW*GH).fill(null);voidLocked=new Uint8Array(GW*GH);dormantCount=0;settleFades.length=0;glideById.clear();interpList.length=0;interpByCell.clear();transitions.length=0;pausePaths.clear();orbitTrack={};leashTrack={};
-  active=[];pressedIDs.clear();lastActivatedId=-1;pidCounter=0;maxWhites=0;fpsCount=0;fpsLast=performance.now();dispersions.length=0;flashes.length=0;blackHole=null;riftForms=[];
+  active=[];pressedIDs.clear();lastActivatedId=-1;pidCounter=0;maxWhites=0;fpsCount=0;fpsLast=performance.now();dispersions.length=0;flashes.length=0;blackHole=null;riftForms=[];buildDarks=[];
   levelCleared=false;clearInfo=null;totalActivations=0;levelStartTime=performance.now();simulationStarted=false;surfaceTally={};surfaceLost={};goods.length=0;ducks.length=0;
   {const dockEl=document.getElementById('dock');if(dockEl)dockEl.classList.remove('dr-hidden');}
   buildSeed=Math.random()*100;
@@ -10574,7 +10575,9 @@ function renderWorld(now,suppressGlow,asPlay){
   // The cursor/hover/info overlay is drawn separately by the caller (see
   // draw() below) so a snapshot taken for the pause freeze never has a
   // "ghost" cursor baked into it at the old mouse position.
-  drawBlackRemnant(ctx,now);riftFormsDraw(ctx,now);prefabDraw(ctx,now);if(BUILD&&!buildTest)for(const d of buildDarks)drawDarkRemnantAt(ctx,d.x,d.y,buildDarkR(d),now,1); // (Build mode: the Dark Remnants placed, waiting)
+  drawBlackRemnant(ctx,now);riftFormsDraw(ctx,now);prefabDraw(ctx,now);if(BUILD&&!buildTest&&buildDarks.length){const done=new Set(); // (Build mode: the Dark Remnants placed, waiting) a Dark Remnant's cost is its two glow rings, each blurred twice: every size is drawn once a frame, then stamped for each one of that size
+    for(const d of buildDarks){const R=Math.round(buildDarkR(d)),h=Math.ceil(R+Math.max(T.bhRingWidth*(1+T.bhRingPulseAmt),T.bhRing2Width*(1+T.bhRing2PulseAmt))*2+Math.max(T.bhRingSwayR,T.bhRing2SwayR)+Math.max(T.bhBlurWide,T.bhBlurMid,T.bhRing2BlurWide,T.bhRing2BlurMid)*3+4);let cv=buildDarkCv.get(R);if(!cv)buildDarkCv.set(R,cv=document.createElement('canvas'));
+      if(!done.has(R)){done.add(R);if(cv.width!==h*2)cv.width=cv.height=h*2;const c=cv.getContext('2d');c.clearRect(0,0,h*2,h*2);drawDarkRemnantAt(c,h,h,R,now,1);}ctx.drawImage(cv,d.x-h,d.y-h);}}
   drawClearOverlay(ctx,now);
 }
 
@@ -12889,7 +12892,7 @@ function cardHTML(ev,mini,pg){ // the one card format: name bar, art box, type l
   return `<div class="mtg${sm?' sm':mini===2?' pic':''}${!pg&&discSeen.has('ev:'+ev.id)&&ilNew('ev:'+ev.id)?' fd':''}" data-ev="${ev.id}" data-new="ev:${ev.id}" style="--rc:${TIER_COL[t]}"><div class="nm"><b>${gEsc(ev.name)}</b><span class="gem"></span></div><div class="art" data-scene="${ev.scene}" data-ev="${ev.id}" data-k="${ev.ico}">${sm?evStillHTML([ev.id])||`<canvas class="rl-m" width="64" height="64" data-k="${ev.ico}"></canvas>`:''}</div>${body}</div>`;
 }
 function mountScene(h,w,hh){if(!h||h.firstChild||document.querySelectorAll('.rl-live iframe:not(.held),.mtg .art iframe:not(.held)').length>=5)return; /* (a page's picture holding on its last frame does not count) */{const R=(h.dataset.ev||'').split(',').map(evRecFor).find(Boolean);if(R&&!w){evReplayMount(h,R);return;}} /* something you witnessed: your own recording of it, live (a demo only for what you have not) */const f=document.createElement('iframe'),nm=h.dataset.s||h.dataset.scene;f.style.cssText='border:0;max-width:100%;pointer-events:none;background:#000;border-radius:6px;'+(w?`width:${w}px;height:${hh}px`:'width:100%;height:100%');
-  if(nm.slice(0,4)==='hub:'){const[sn,dk]=nm.slice(4).split(':');f.src='Surface_Map_HUB.html?v=20261116a&scene='+sn+(sn==='shop'?'&k='+encodeURIComponent(dk||''):'')+'&T='+encodeURIComponent(JSON.stringify(mapSceneT()))+'&D='+encodeURIComponent(JSON.stringify(dk&&DUCK_TYPES[dk]?{[dk]:DUCK_TYPES[dk]}:Object.fromEntries(Object.entries(DUCK_TYPES).slice(0,4))));}else{f.srcdoc=liveSrc(nm,null,h.dataset.hold);if(h.dataset.hold)f.className='held';}h.appendChild(f);} // a Surface Map demo is played by the map itself
+  if(nm.slice(0,4)==='hub:'){const[sn,dk]=nm.slice(4).split(':');f.src='Surface_Map_HUB.html?v=20261116b&scene='+sn+(sn==='shop'?'&k='+encodeURIComponent(dk||''):'')+'&T='+encodeURIComponent(JSON.stringify(mapSceneT()))+'&D='+encodeURIComponent(JSON.stringify(dk&&DUCK_TYPES[dk]?{[dk]:DUCK_TYPES[dk]}:Object.fromEntries(Object.entries(DUCK_TYPES).slice(0,4))));}else{f.srcdoc=liveSrc(nm,null,h.dataset.hold);if(h.dataset.hold)f.className='held';}h.appendChild(f);} // a Surface Map demo is played by the map itself
 function mapSceneT(){const o={};for(const k in T)if(/^(map|bh|duck|wake|glass|metal|dimGlow|glowHalo|maxSpeed)/.test(k))o[k]=T[k];return o;} // what a map demo needs of the tuners
 function showCardHTML(html){ // a Guide card (an entry or a shop) opened over the Guide, where an event card shows
   guideCSS();if(!_evOpen)_evPausedIt=false;_evOpen=true;_evReview=true;const ov=evOverlayEl();ov.innerHTML=`<div class="ev-box">${html}<button id="evOk">${txt('card.close')}</button></div>`;ov.style.display='flex';wrap.classList.add('ev-open');
@@ -13409,7 +13412,7 @@ function preBarWire($){if(!preTool())return;
 // browser (IndexedDB 'build'); Export downloads every one as content/levels.json, which the game reads as it loads (jsonRead). Its ducks are
 // part of the level: collectable when it is played.
 var BUILD=!window.__SCENE&&/[?&]build=1/.test(location.search);
-let buildTest=null,buildDarks=[],buildLib={levels:{},prefabs:{}},buildName='',buildTime=0;
+let buildTest=null,buildDarks=[],buildDarkCv=new Map(),buildLib={levels:{},prefabs:{}},buildName='',buildTime=0;
 const buildDarkR=d=>Math.min(T.whiteEffMax,Math.max(T.whiteEffMin,40))*remEnScaleOf(d.energy||T.collEnergy); // a placed Dark Remnant's size, as it would form
 let _contentLib=null;const buildContent=()=>_contentLib||(_contentLib=(c=>({levels:c.levels||{},prefabs:c.prefabs||{}}))(jsonRead('levels'))); // the levels and prefabs in the content files (read once)
 async function buildLoadLib(){let b=null;try{b=await IDB.get('build');}catch(e){}const c=buildContent();buildLib={levels:Object.assign({},c.levels,b&&b.levels),prefabs:Object.assign({},c.prefabs,b&&b.prefabs)};}
@@ -13436,8 +13439,8 @@ function buildBar(){let el=document.getElementById('buildBar');if(!el){el=docume
   const $=id=>document.getElementById(id),nm=()=>$('bdName').value.trim();$('bdName').oninput=()=>{buildName=$('bdName').value;};
   $('bdSave').onclick=async()=>{const n=nm();if(!n){flashSaveStatus(txt('build.need_name'));return;}if(buildTest){flashSaveStatus(txt('build.not_while_testing'));return;}buildLib.levels[n]=Object.assign({name:n},buildLevelData());if(await buildKeep())flashSaveStatus(txt('build.saved',n));buildName=n;buildBar();};
   $('bdLoad').onchange=e=>{const n=e.target.value;if(!n||!buildLib.levels[n])return;if(buildTest)buildBack();buildApply(buildLib.levels[n]);buildName=n;flashSaveStatus(txt('build.loaded',n));buildBar();};
-  $('bdNew').onclick=()=>{if(buildTest)buildBack();rebuild();buildDarks=[];edgeQ=[];phasing=[];buildName='';buildBar();};
-  $('bdBlank').onclick=()=>{if(buildTest)buildBack();clearStage();buildDarks=[];edgeQ=[];phasing=[];buildBar();};
+  $('bdNew').onclick=()=>{if(buildTest)buildBack();rebuild();edgeQ=[];phasing=[];buildName='';buildBar();};
+  $('bdBlank').onclick=()=>{if(buildTest)buildBack();clearStage();edgeQ=[];phasing=[];buildBar();};
   $('bdTime').onchange=e=>{buildTime=+e.target.value;};
   $('bdTest').onclick=()=>{if(buildTest)buildBack();else buildPlay();buildBar();};
   $('bdDel').onclick=async()=>{const n=nm();if(!buildLib.levels[n]){flashSaveStatus(txt('build.no_such',n));return;}if(!confirm(txt('build.delete_ask',n)))return;delete buildLib.levels[n];if(await buildKeep())flashSaveStatus(txt('build.deleted',n));buildBar();};

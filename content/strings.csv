@@ -753,6 +753,7 @@ prefabs = $1 — how many prefabs"
 build.testing,Testing: the surface plays as it would in a game (it can be cleared). Back to build puts it back.,Build mode,
 build.back_to_build,Back to the surface as it was.,Build mode,
 build.dark_placed,"A Dark Remnant, placed: it waits until the surface is tested.",Build mode,
+build.dark_done,"The Dark Remnant has taken everything: the surface plays on, as it was.",Build mode,
 build.surface_tool,Surface: {kind} (click to turn the surface {kind}),Build mode (Create),kind = $0 — dark or bright
 build.dark,dark,Build mode (Create),
 build.bright,bright,Build mode (Create),
