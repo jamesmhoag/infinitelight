@@ -1,4 +1,5 @@
 id,shop,name,cost,currency,rank,stock,effect,requires,discover_dim,note
+water,corner,Bottle of water,49,,1,,"{""water"":1}",,,"Drunk as you buy it: your next move is on it, not the barrel (one a time of day)"
 spindle,corner,Spindle,199,,1,,"{""give"":{""leash"":1}}",,,
 string,corner,String,299,,1,,"{""give"":{""dial"":1}}",,,
 weave,corner,Weave,599,,1,,"{""give"":{""weave"":1}}",,10,

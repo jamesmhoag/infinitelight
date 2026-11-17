@@ -163,7 +163,7 @@ body.shop-open #hdock{z-index:59}#hinv .slot.wal::before{border-color:rgba(255,2
 <div id="veil"></div>
 <div id="bfx"></div>
 <iframe id="neb" data-tt="map.ui.surface"></iframe>
-<script src="content.js?v=20261117n"></script><script src="shared.js?v=20261117n"></script><script src="cabin.js?v=20261117n"></script>
+<script src="content.js?v=20261117o"></script><script src="shared.js?v=20261117o"></script><script src="cabin.js?v=20261117o"></script>
 <script>
 // ╔══════════════════════════════════════════════════════════════════════════════╗
 // ║  MAP ENGINE                                                                 ║
@@ -182,7 +182,7 @@ let playLog=[],clock=3,day=1,pool=6,burstFx=null,dayLog=[],dayCnt={b:0,d:0},pend
 // // clock: the hour (3 = Twilight … 24 = Midnight, the day's last turn); day: your attempts; pool: what the source put out at its last burst; fresh: no ring added yet since it
 let constel=[],armed=null,weaveSel=[],weaveAsk=null,clearFx={},mergeFx=[],feedMsg={t:'',d:'',at:-1e9}; // constellations {keys,type}; the armed map item; a Weave being drawn; animations; the final count
 const STEP_H=3; // the day: eight turns of three hours
-const CACHE_V='20261117n'; // the build: bump with shared.js's
+const CACHE_V='20261117o'; // the build: bump with shared.js's
 const SCENE=new URLSearchParams(location.search).get('scene'); // a Guide / event demo: the map plays a scripted moment (no surface behind it)
 let phase='move',turnTimer=0,mergeTimer=0;
 let gameOverReason='';
@@ -289,7 +289,7 @@ function focusCam(a,move){if(_mpFor)return; // (a friend's move: the host's view
   if(a)buoy.follow=true;camTX=wx;camTY=wy;if(!a){camX=camTX;camY=camTY;}}
 function initGame(){ // a new map: score and depth start over; items, resources and discoveries live in the surface's save and are kept
   neb({cmd:'day',day:1,newRun:true});hubPop=[null,null];score=0;depth=0;clock=3;_sunH=3;_sun={from:3,to:3,t0:0};day=1;dayLog=[];playLog=[];dayCnt={b:0,d:0};pendingEnd=null;newMap();
-  showTurn();mapResize();focusCam(false);updateHint();saveMap();
+  drinks=waterMax();bottle=0;bottleAt=-1;showTurn();mapResize();focusCam(false);updateHint();saveMap();
 }
 function advanceTurn(){ // time moves on (a move) by one time of day; the spill spreads a ring (from the very first move)
   if(mpPass()){updateHint();return;}
@@ -297,12 +297,16 @@ function advanceTurn(){ // time moves on (a move) by one time of day; the spill 
   awardConstellations();freedShops();clock+=STEP_H;
   if(clock>24){clock=24;endDay('midnight',0);return;} // after Midnight: the day ends (the new day starts once it has all fallen in)
   turn++;addRing(turn);redistribute();checkVoidAccess();flotDrift();showTurn();}
-const canRest=()=>(MP.on?mpMine():tired())&&currentView==='map'&&!menuOpen&&!shopUI&&phase!=='collapse'&&phase!=='ended'&&phase!=='gameover'; // Midnight, on the map: the day can be ended (Rest is the only way: no moves at Midnight)
-function rest(){if(!canRest())return;if(tired()){buoy.dunk={t0:performance.now(),d:1,ms:900};buoy.rested=true;}if(MP.role==='guest'){mpSend('rest');return;}advanceTurn();updateHint();saveMap();} // (at Midnight it sinks to sleep, and bobs up in the morning) // Rest: the day ends at Midnight without a move, after any last thing (a shop, an item) you wanted to do
+const canRest=()=>(MP.on?mpMine():(tired()||dry()&&(phase==='move'||phase==='captured')))&&currentView==='map'&&!menuOpen&&!shopUI&&phase!=='collapse'&&phase!=='ended'&&phase!=='gameover'; // Midnight, on the map: the day can be ended (Rest is the only way: no moves at Midnight)
+function rest(){if(!canRest())return;if(!tired()&&dry()&&MP.role!=='guest'){restTide();return;}if(tired()){buoy.dunk={t0:performance.now(),d:1,ms:900};buoy.rested=true;}if(MP.role==='guest'){mpSend('rest');return;}advanceTurn();updateHint();saveMap();} // (at Midnight it sinks to sleep, and bobs up in the morning) // Rest: the day ends at Midnight without a move, after any last thing (a shop, an item) you wanted to do
 const clockStr=(h=clock)=>TIMES[h]||TIMES[Math.max(3,Math.floor(h/3)*3)]||TIMES[3];
 function showTurn(){neb({cmd:'clock',clock,day});mapHistKeep();if(buoy.rested&&clock<24){buoy.rested=false;buoy.under=false;buoy.dunk={t0:performance.now()+400,d:-1,ms:900};} // morning: up again // (the surface's run: a Daily Wonder ends at its time)
   const el=document.getElementById('turn-label');turnLabel(el);el.classList.add('show');clearTimeout(turnTimer);turnTimer=setTimeout(()=>el.classList.remove('show'),1200);} // (always shown; it glows when the time changes)
 
+function restTide(){ // resting with the barrel dry: a time of day passes and the tide carries you a hex toward the Point (if a hex that way can be entered), where you can drink again
+  const r0=cellRing(pQ,pR);let best=null;for(const m of getMoves()){if(!cells[K(m.q,m.r)]||cells[K(m.q,m.r)].isVoid)continue;const r=cellRing(m.q,m.r);if(r<r0&&(!best||r<best.r))best={q:m.q,r:m.r,rr:r};}
+  if(best){const ok=cells[K(pQ,pR)];if(ok)ok.isP=false;pQ=best.q;pR=best.r;cells[K(pQ,pR)].isP=true;buoyGo('sail');focusCam(true,1);feed(txt('map.water.tide'),txt('map.water.tide_d'));}else feed(txt('map.water.rest'),txt('map.water.rest_d'));
+  advanceTurn();waterNear();updateHint();saveMap();}
 function getMoves(){
   const out=[];
   for(const[dq,dr]of DIRS){let q=pQ+dq,r=pR+dr;const c=cells[K(q,r)];if(!c||pdHas(K(q,r))||c.flot)continue; // (a hex the Parade Day parade is in, or flotsam floats on: not moved into)
@@ -360,7 +364,7 @@ function riftsDraw(now){ // every Rift's scar, in the Dark Remnant's pulsing glo
   drawRiftGlow(mctx,P,now,HEX/160);}
 function completeCaptureForCell(cellKey,kind,tally){
   const c=cells[cellKey];if(!c||c.cap)return;
-  c.cap=true;c.capVal=c.v;c.kind=kind;c.shop=null;c.tally=tally||{};popPlace(cellKey);delete c.shot;delete c._im;if(kind==='dark')dayCnt.d++;else dayCnt.b++;
+  c.cap=true;c.capVal=c.v;c.kind=kind;c.shop=null;c.tally=tally||{};popPlace(cellKey);if(kind!=='dark')waterFill('clear');delete c.shot;delete c._im;if(kind==='dark')dayCnt.d++;else dayCnt.b++;
   score=Math.round((score+c.v)*100)/100;
   captureOrder.push({keys:[cellKey],mergeId:null});
   phase='captured';
@@ -373,13 +377,22 @@ function completeCaptureForCell(cellKey,kind,tally){
   updateHint();hubEvent('map_clear');saveMap();
 }
 const tired=()=>clock===24&&!SCENE; // Midnight: no more moves (Rest ends the day)
+// Fresh water: the barrel holds Water max (6); every move drinks one. It is filled again by a bright clear, and whenever you are beside a bright hex or the Point.
+// A bottle of drinks (the Corner Store) is drunk as you buy it: your next move drinks that instead of the barrel (or lets you move with the barrel dry) — one a time of
+// day. Out of drinks you cannot move: Rest, and the tide carries you a hex toward the Point (a time of day passes)
+let drinks=null,bottle=0,bottleAt=-1;const waterMax=()=>Math.max(1,Math.round(T.mapWaterMax||6));if(drinks==null)drinks=waterMax();
+const dry=()=>!SCENE&&!MP.on&&drinks<=0&&!bottle; // out of water: no moves until you rest (playing together: water is not kept yet)
+function waterFill(why){if(drinks>=waterMax())return;drinks=waterMax();if(why)feed(txt('map.water.filled'),txt('map.water.filled_'+why,drinks));syncDock();}
+function waterNear(){if(pQ===0&&pR===0||neighbors(pQ,pR).some(([q,r])=>(q===0&&r===0)||isBright(K(q,r))))waterFill('near');} // beside a bright hex or the Point: the barrel is filled
+function waterDrink(){if(SCENE||MP.on)return;if(bottle){bottle=0;}else drinks=Math.max(0,drinks-1);syncDock();}
 function doMove(tq,tr){
   if(phase==='gameover'||phase==='collapse')return;if(tired()){feed(txt('map.too_tired_to_move'),txt('map.rest_under_midnight_to'),'no');return;}
+  if(dry()){feed(txt('map.water.out'),txt('map.water.out_d'),'no');return;}
   hubLearn('hubmove');hubLearn('hubtime');hubLearn('hublight');
   const tc=cells[K(tq,tr)];
   if(tc&&tc.isVoid&&voidOpen&&tq===0&&tr===0){const ok=cells[K(pQ,pR)];if(ok)ok.isP=false;descendDepth();return;}
   const ok=cells[K(pQ,pR)];if(ok)ok.isP=false;
-  playRec('⛵ '+tq+','+tr,'from '+pQ+','+pR+(tc.kind?' · '+tc.kind:''),'move');pQ=tq;pR=tr;tc.isP=true;buoyGo('sail');focusCam(true,1);
+  playRec('⛵ '+tq+','+tr,'from '+pQ+','+pR+(tc.kind?' · '+tc.kind:''),'move');pQ=tq;pR=tr;tc.isP=true;buoyGo('sail');focusCam(true,1);waterDrink();waterNear(); // (a move drinks; beside bright or the Point, the barrel fills)
   advanceTurn();if(!MP.on&&runBad(run,'slowmove')&&phase!=='collapse'&&phase!=='gameover')advanceTurn();if(phase==='collapse'){updateHint();saveMap();return;}if(phase!=='gameover')phase='move';
   if(phase==='move'&&!tired()&&!getMoves().length){phase='gameover';gameOverReason=txt('map.go.nomoves');}
   updateHint();saveMap();
@@ -392,6 +405,7 @@ function updateHint(){ // the feed's resting line: what you can do now
   else if(phase==='gameover'){a=txt('map.game_over',gameOverReason);b=txt('map.a_new_map_keeps');}
   else if(phase==='captured'){a=(tired()?txt('map.cleared_too_tired_to'):txt('map.cleared'));b=(tired()?txt('map.rest_under_midnight_to'):txt('map.move_on'));}
   else if(phase==='collapse'){a=(pendingEnd?txt('map.midnight'):fireworks.length?txt('map.win'):txt('map.collapsing'));b=(pendingEnd?txt('map.the_rings_fall_into'):txt('map.close_the_report_to'));}
+  else if(dry()&&(phase==='move'||phase==='captured')&&!tired()){a=txt('map.water.out');b=txt('map.water.out_d');}
   else if(armed==='weave'){a=txt('map.weave_click_bright_hexes');b=(weaveSel.length?txt('map.chosen',weaveSel.length):txt('map.right_click_esc_or'));}
   else if(armed==='dial'){a=txt('map.string_click_any_open');b=txt('map.1_string_per_hex');}
   else if(armed==='leash'){a=txt('map.spindle_click_a_cleared');b=txt('map.a_great_dark_remnant');}
@@ -1122,14 +1136,14 @@ function saveMap(){
   if(SCENE)return; // a demo never touches your map
   if(MP.on){if(MP.role==='guest')return;mpSync();} // (playing together: the host's map is everyone's; a friend's own map is left as it was)
   const out={};for(const k in cells){const c=Object.assign({},cells[k]);delete c._im;out[k]=c;}
-  const rec=()=>JSON.stringify({v:3,hist:mapHist,cells:out,turn,clock,day,pool,constel,dayLog,dayCnt,pendingEnd,score,pQ,pR,totalCells,phase,depth,gameOverReason,captureOrder,mergeGroups,mergeIdCounter,voidOpen,hubPop,playLog,session:nebulaCellKey});
+  const rec=()=>JSON.stringify({v:3,hist:mapHist,cells:out,turn,clock,day,pool,constel,dayLog,dayCnt,pendingEnd,score,pQ,pR,totalCells,phase,depth,gameOverReason,captureOrder,mergeGroups,mergeIdCounter,voidOpen,hubPop,playLog,session:nebulaCellKey,drinks,bottle,bottleAt});
   try{localStorage.setItem(MAP_KEY,rec());}catch(e){for(const k in out)delete out[k].shot;try{localStorage.setItem(MAP_KEY,rec());}catch(x){}} // full: an unfinished hex's picture is the first thing to go
 }
 function loadMap(){
   let d=null;try{d=JSON.parse(localStorage.getItem(MAP_KEY)||'null');}catch(e){}
   if(!d||!d.cells)return false;
   if(d.v!==3)return false; // a map from before the times of day starts over
-  ({cells,turn,clock,day,pool,constel,dayLog,dayCnt,pendingEnd,score,pQ,pR,totalCells,phase,depth,gameOverReason,captureOrder,mergeGroups,mergeIdCounter,voidOpen}=d);mapHist=d.hist||{};playLog=d.playLog||[];if(phase==='collapse'&&!d.pendingEnd){phase='move';for(const k in cells)delete cells[k].stain;} /* (left mid-collapse: it is over) */nebulaCellKey=d.session||null;hubPop=d.hubPop||[null,null];_sunH=clock;_sun={from:clock,to:clock,t0:0};dayLog=dayLog||[];dayCnt=dayCnt||{b:0,d:0};
+  ({cells,turn,clock,day,pool,constel,dayLog,dayCnt,pendingEnd,score,pQ,pR,totalCells,phase,depth,gameOverReason,captureOrder,mergeGroups,mergeIdCounter,voidOpen}=d);mapHist=d.hist||{};playLog=d.playLog||[];if(phase==='collapse'&&!d.pendingEnd){phase='move';for(const k in cells)delete cells[k].stain;} /* (left mid-collapse: it is over) */nebulaCellKey=d.session||null;hubPop=d.hubPop||[null,null];drinks=d.drinks!=null?d.drinks:waterMax();bottle=d.bottle||0;bottleAt=d.bottleAt!=null?d.bottleAt:-1;_sunH=clock;_sun={from:clock,to:clock,t0:0};dayLog=dayLog||[];dayCnt=dayCnt||{b:0,d:0};
   if(pendingEnd)finishDay();else if(phase==='collapse')phase='move';else if(phase==='ended')showDayReport(); // a day left falling in finishes at once; a won run shows its report
   mapResize();focusCam(false);updateHint();return true;
 }
@@ -1455,6 +1469,7 @@ function renderShop(){const el=document.getElementById('shop');if(SCENE)requestA
   applyDisc();}
 function shopBuy(it,arg){hubLearn('shopbuy');
   if(it.fx.souv){const pr=shopPrice(it,run);if(giftWallet<pr){feed(it.n,txt('map.you_need_bright',fmtN(it.cost)));return;}giftWallet-=pr;const sv=souvenirs();sv[it.id]=(sv[it.id]||0)+1;try{localStorage.setItem(SOUV_KEY,JSON.stringify(sv));}catch(e){}feed(txt('map.souvenir',it.n),txt('map.kept_whatever_comes_next'));renderShop();return;}
+  if(it.fx.water&&bottleAt===day*24+clock){feed(it.n,txt('map.water.one_a_time'),'no');return;} // (one drink a time of day)
   buySnap={had:buyTake(),it,at:performance.now()};neb({cmd:'buy',id:it.id,arg,ship:shopUI&&!shopHere(shopUI.key)?1:0});} // (a shop you are not at: what it gives comes in a box, delivered on the lake)
 const shopHere=key=>cells[key]?key===K(pQ,pR):cellRing(pQ,pR)<=1; // you are at a shop: on its hex (a pop-up), or beside the Point (main street and the Point's own pop-ups)
 let buySnap=null,shopFlash=null,_stPrev=null; // a purchase on its way (what you had, so what it spent and gave shows once the surface answers); the row last bought; the Status values last shown
@@ -1465,7 +1480,7 @@ function buyShow(){ // what a purchase did, everywhere it shows: the feed sums i
   for(const k of BUY_KINDS){const d=got[k]-had[k];if(!d)continue;(d<0?gone:came).push((d<0?'−':'+')+fmtN(Math.abs(d))+' '+curName(k));dockFx[k]={at:now,up:d>0};dockUp[k]=now;
     const el=document.querySelector('#hinv .slot[data-k="'+k+'"]');if(el&&lay){const r=el.getBoundingClientRect(),i=document.createElement('i');i.className=d>0?'up':'dn';i.textContent=(d<0?'−':'+')+fmtN(Math.abs(d));i.style.left=(r.left+r.width/2)+'px';i.style.top=(r.top-6)+'px';lay.appendChild(i);setTimeout(()=>i.remove(),1600);}}
   if(gone.length||came.length)feed(txt('map.buy.title',b.it.n),[...gone,...came].join(' · '));syncDock();}
-function shopBought(m){const it=shopItem(m.id);if(!it)return;if(m.ok&&m.ship){lakeGood({kind:'box',shop:it.shop,give:m.ship},performance.now());feed(txt('good.ordered',it.n),txt('good.ordered_d',SHOPS[it.shop].n));}shopFlash={id:m.id,at:performance.now(),ok:!!m.ok};if(!m.ok)buySnap=null;feed((m.ok?txt('map.bought',m.msg):it.n),m.ok?SHOPS[it.shop].n:m.msg);
+function shopBought(m){const it=shopItem(m.id);if(!it)return;if(m.ok&&it.fx.water){bottle=1;bottleAt=day*24+clock;feed(txt('map.water.bottle'),txt('map.water.bottle_d'));syncDock();saveMap();}if(m.ok&&m.ship){lakeGood({kind:'box',shop:it.shop,give:m.ship},performance.now());feed(txt('good.ordered',it.n),txt('good.ordered_d',SHOPS[it.shop].n));}shopFlash={id:m.id,at:performance.now(),ok:!!m.ok};if(!m.ok)buySnap=null;feed((m.ok?txt('map.bought',m.msg):it.n),m.ok?SHOPS[it.shop].n:m.msg);
   if(m.ok&&(it.fx.clock==='yesterday'||it.fx.clock==='tomorrow')){if(MP.role==='guest')mpSend('clock',{clock:it.fx.clock});else timeTravel(it.fx.clock);}
   else if(m.ok&&it.fx.clock&&MP.role==='guest')mpSend('clock',{clock:it.fx.clock});else if(m.ok&&it.fx.clock){clock=it.fx.clock;showTurn();const tl=document.getElementById('turn-label');tl.classList.add('bought');setTimeout(()=>tl.classList.remove('bought'),1800);updateHint();saveMap();} // the Clock smith turns the day's clock
   if(m.ok&&m.draw){document.getElementById('shop').classList.remove('show');currentView='overlay';showNeb(true);} // a Carnival card: the surface shows the draw (and the card picked) over the map; the shop comes back when it closes
@@ -1582,6 +1597,7 @@ function syncDock(){const box=document.getElementById('hinv');if(!box)return;
   box.innerHTML=DOCK_ITEMS.map(k=>`<div class="slot${armed===k?' armed':''}${(inv[k]||0)<=0?' empty':nw(k)}" data-k="${k}" data-new="hk_${k}" title="${KIND_NAME[k]}">${icons[k]||KIND_NAME[k][0]}<b>${inv[k]||0}</b></div>`).join('')+
     '<div class="sep"></div>'+['prism','knot','gate','key','lens'].filter(k=>(inv[k]||0)>0).map(k=>`<div class="slot empty" data-k="${k}" title="${KIND_NAME[k]} (earned)">${icons[k]||KIND_NAME[k][0]}<b>${inv[k]}</b></div>`).join('')+
     (shopUI?'<div class="sep"></div>'+(shopUI.gift?['gift']:['bright','dim','neutron','magnetic','pulsing','duck']).map(c=>`<div class="slot${c===shopUI.tab?' wal':''}" data-k="${c}" title="${curName(c)}">${curIcon(c)}<b>${fmtN(shopWallet(c))}</b></div>`).join(''):''); // in a shop: every purse, the open tab's lit
+  if(!SCENE)box.insertAdjacentHTML('afterbegin',`<div class="slot water${dry()?' empty':''}" data-k="drinks" title="${txt('map.water.slot',drinks,waterMax())}${bottle?' · '+txt('map.water.slot_bottle'):''}"><svg viewBox="0 0 22 22" width="18" height="18"><path d="M11 2C8 7 5 10.5 5 14a6 6 0 0 0 12 0c0-3.5-3-7-6-12z" fill="${bottle?'#9fe6ff':'currentColor'}" opacity=".9"/></svg><b>${drinks}${bottle?'+1':''}</b></div><div class="sep"></div>`); // the fresh drinks barrel (and a bottle, drunk, waiting for your next move)
   box.insertAdjacentHTML('beforeend',`<div class="slot buoy${nw('buoy')}" data-k="buoy" data-new="hk_buoy" title="${txt('map.buoy.deck')}">${BUOY_ICO}</div>`);box.querySelector('.buoy').onclick=()=>currentView==='cabin'?cabinClose():cabinOpen(); // your buoy: below deck, or back up (its Status is the mirror there)
   box.insertAdjacentHTML('beforeend',ilDockArrow(dockMin));
   for(const k of [...DOCK_ITEMS,'prism','knot','gate','key','lens'])if((inv[k]||0)!==dockSeen[k]){if(dockSeen[k]!=null)dockUp[k]=performance.now();dockSeen[k]=inv[k]||0;} // a count that changed shows for a while
