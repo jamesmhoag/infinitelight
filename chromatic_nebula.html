@@ -120,7 +120,7 @@ button:hover{background:rgba(255,255,255,0.15);}
   <div id="dock" class="bottom"><div id="inventoryPanel"></div><div id="touch-info"></div></div>
   <canvas id="cur"></canvas>
 </div>
-<script src="content.js?v=20261117g"></script><script src="shared.js?v=20261117g"></script>
+<script src="content.js?v=20261117h"></script><script src="shared.js?v=20261117h"></script>
 <script>
 txtApply(); // the page's own labels (content/strings.csv)
 const _SRC=document.documentElement.outerHTML; // kept so the Encyclopedia can run live scenes as embedded copies of the game
@@ -4356,8 +4356,13 @@ function gateDefaultCursor(){return gateStates.length;} // arming defaults to th
 // The Create item: infinite, only present while the "Create item" mode is on. While it is armed the create tool is live
 // (middle-click steps the type, wheel the colour/kind); putting it away (click again / right-click) returns the normal cursor.
 let createItemMode=false; // (on in Build mode only)
-function createActive(){return !!(armedInvItem&&(armedInvItem.kind==='create'||armedInvItem.kind==='entangle'));} // Create, or Entanglement: the tools for what is already there (they share the type list, each its own part of it)
-const POST_CATS=new Set(['inertia','select','prefab','duplicate','remove']),toolHas=(kind,cat)=>cat!=='standard'&&(kind==='entangle')===POST_CATS.has(cat); // Entanglement: the Inertializer, Select, Prefab, Duplicate (Copy, Move, Repurpose) and Remove; Create: the rest
+function createActive(){return !!(armedInvItem&&CREATE_KINDS.includes(armedInvItem.kind));} // Elements, Shapes, Commodities or Entanglement: the Build tools (they share the type list, each its own part of it)
+const CREATE_KINDS=['create','shapes','goods','entangle'],TOOL_CATS={ // each Build tool's part of the type list (middle click steps through its own types; the wheel, a type's kinds)
+  create:new Set(['particle','point','star','remnant']), // Elements: particles, pigments, Points, remnants and relics
+  shapes:new Set(['shape_barrier','shape_gate','shape_port','shape_glass','shape_pane','shape_prism','shape_knot','shape_leash','surface']), // Shapes: what has an inside — barriers, crates, gates, cases, caches, ports, pits, windows, mirrors, lenses, panes, the Pattern shapes (nodes and edges), and the surface itself
+  goods:new Set(['commodity','sign','trash','duck_space','duck_pond']), // Commodities: physical things — ducks, what the shops sell, their signs, trash
+  entangle:new Set(['inertia','select','prefab','duplicate','remove'])}, // Entanglement: what is already there
+  toolHas=(kind,cat)=>!!(TOOL_CATS[kind]&&TOOL_CATS[kind].has(cat)); // Entanglement: the Inertializer, Select, Prefab, Duplicate (Copy, Move, Repurpose) and Remove; Create: the rest
 const _toolType={};
 function armInventoryItem(kind){
   if(kind==='cache-disable'){invDisableMode=!invDisableMode;updateInventoryUI();flashSaveStatus((invDisableMode?txt('surf.disable_mode_click_an'):txt('surf.disable_mode_off')));return;}
@@ -4374,7 +4379,7 @@ function armInventoryItem(kind){
   }
   if(conMode)setConMode(false); // picking any other item leaves Pattern mode (it doesn't just get ignored)
   whiteChain.length=0; // choosing an item abandons an unfinished Pattern (nothing is left dimmed or waiting)
-  if(kind==='create'||kind==='entangle'){
+  if(CREATE_KINDS.includes(kind)){
     if(!createItemMode)return;
     if(armedInvItem&&armedInvItem.kind===kind)armedInvItem=null;
     else{if(createActive())_toolType[armedInvItem.kind]=typeIdx;armedInvItem={kind,effect:0};whiteChain.length=0;resetDupState();if(_toolType[kind]!=null)typeIdx=_toolType[kind];if(!toolHas(kind,currentType().cat))typeIdx=CREATE_TYPES.findIndex(t=>toolHas(kind,t.cat));playItemSelectSound();} // (each tool comes back to the type it was on)
@@ -4411,10 +4416,10 @@ function adjustArmedItemEffect(delta){
   updateInventoryUI();
 }
 const ICO_REV={'\uE001':'dim','\uE002':'bright','\uE003':'magnetic','\uE004':'pulsing','\uE005':'neutron','\uE006':'dial','\uE007':'leash','\uE008':'prism','\uE009':'gate','\uE00A':'knot','\uE00B':'key','\uE00C':'lens'};
-const INV_ICON={create:'✚',entangle:'⧉',dim:'\uE001',bright:'\uE002',magnetic:'\uE003',pulsing:'\uE004',neutron:'\uE005',dial:'\uE006',leash:'\uE007',prism:'\uE008',gate:'\uE009',knot:'\uE00A',key:'\uE00B',lens:'\uE00C'};
-const INV_LABEL={create:txt('surf.create'),entangle:txt('surf.entangle'),bright:txt('surf.balance'),dim:txt('surf.depth'),neutron:txt('surf.dynamism'),magnetic:txt('surf.harmony'),pulsing:txt('surf.rhythm'),dial:txt('surf.string'),leash:txt('surf.spindle'),prism:txt('surf.prism'),gate:txt('surf.gate'),knot:txt('surf.knot'),key:txt('surf.key'),lens:txt('surf.lens')};
+const INV_ICON={create:'✚',shapes:'⬡',goods:'❖',entangle:'⧉',dim:'\uE001',bright:'\uE002',magnetic:'\uE003',pulsing:'\uE004',neutron:'\uE005',dial:'\uE006',leash:'\uE007',prism:'\uE008',gate:'\uE009',knot:'\uE00A',key:'\uE00B',lens:'\uE00C'};
+const INV_LABEL={create:txt('surf.create'),shapes:txt('surf.shapes'),goods:txt('surf.goods'),entangle:txt('surf.entangle'),bright:txt('surf.balance'),dim:txt('surf.depth'),neutron:txt('surf.dynamism'),magnetic:txt('surf.harmony'),pulsing:txt('surf.rhythm'),dial:txt('surf.string'),leash:txt('surf.spindle'),prism:txt('surf.prism'),gate:txt('surf.gate'),knot:txt('surf.knot'),key:txt('surf.key'),lens:txt('surf.lens')};
 const INV_DESC={
-  create:txt('surf.places_particles_points_and'),entangle:txt('surf.entangle_desc'),
+  create:txt('surf.places_particles_points_and'),shapes:txt('surf.shapes_desc'),goods:txt('surf.goods_desc'),entangle:txt('surf.entangle_desc'),
   neutron:txt('surf.click_swipe_double_click'),
   dim:txt('surf.click_a_dim_remnant'),
   bright:txt('surf.click_a_bright_remnant'),
@@ -4543,14 +4548,14 @@ function updateInventoryUI(){
     <div class="slot cache" data-kind="cache-fill" data-arm="1"><div class="ic">⤒</div><div class="cnt">fill</div></div>`)+`<div class="slot cache${invDisableMode?' armed':''}" data-kind="cache-disable" data-arm="1"><div class="ic">⦸</div><div class="cnt">off</div></div>`;
   }
   if(createItemMode&&showBuild){
-    for(const k of ['create','entangle'])html+=`<div class="slot create${armedInvItem&&armedInvItem.kind===k?' armed':''}" data-kind="${k}" data-arm="1"><div class="ic">${INV_ICON[k]}</div><div class="cnt">∞</div></div>`; // Create, then Entanglement (the tools for what is there)
+    for(const k of CREATE_KINDS)html+=`<div class="slot create${armedInvItem&&armedInvItem.kind===k?' armed':''}" data-kind="${k}" data-arm="1"><div class="ic">${INV_ICON[k]}</div><div class="cnt">∞</div></div>`; // Create, then Entanglement (the tools for what is there)
   }
   if(!window.__SCENE)html+=ilDockArrow(dockMin).replace('class="slot dmin"','class="slot dmin" onclick="dockMinToggle()"'); // the feed put away (▾) or brought back (▴): the same on the map and every surface
   el.innerHTML=html;applyDisc();
 }
 let dockSet='build';try{dockSet=localStorage.getItem('il_dockset')==='std'?'std':'build';}catch(e){} // Build mode's dock: its own tools ('build') or the standard items ('std'), remembered in this browser
 function dockSetToggle(){dockSet=dockSet==='build'?'std':'build';try{localStorage.setItem('il_dockset',dockSet);}catch(e){}
-  if(armedInvItem&&((dockSet==='std')===(armedInvItem.kind==='create'||armedInvItem.kind==='entangle'||String(armedInvItem.kind).startsWith('cache'))))armedInvItem=null; // the tool held goes when its set is put away
+  if(armedInvItem&&((dockSet==='std')===(CREATE_KINDS.includes(armedInvItem.kind)||String(armedInvItem.kind).startsWith('cache'))))armedInvItem=null; // the tool held goes when its set is put away
   if(conMode&&dockSet==='build')setConMode(false);updateInventoryUI();}
 window.dockSetToggle=dockSetToggle;
 window.armInventoryItem=armInventoryItem;
@@ -11084,7 +11089,7 @@ function invHoverParts(kind,worst){
   if(kind==='cache-clear')return[txt('surf.clear_items'),txt('surf.removes_every_item_from')];
   if(kind==='cache-fill')return[txt('surf.fill_items'),txt('surf.fills_every_item_to')];
   if(kind==='cache-disable')return[txt('surf.disable_items'),txt('surf.toggle_then_click_items')];
-  if(kind==='create'||kind==='entangle')return[INV_ICON[kind]+' '+INV_LABEL[kind],INV_DESC[kind]+' · ∞ / ∞'];
+  if(CREATE_KINDS.includes(kind))return[INV_ICON[kind]+' '+INV_LABEL[kind],INV_DESC[kind]+' · ∞ / ∞'];
   const cm=worst?'99 / 99':inventory[kind]+' / '+invMaxFor(kind);
   return[INV_ICON[kind]+' '+INV_LABEL[kind],INV_DESC[kind]+' · '+cm];
 }
@@ -11093,7 +11098,7 @@ function computeFeedWidth(){
   const N=['★ Point '+nm,'Pigment '+nm,'\uE003 magnetic remnant','click to shine · right-click to stop all shining','x'.repeat(70)];
   const D=['mass 999999 · energy 0.0000 · r=999/999px · v=0.00 · rot=0.000 · life 999.9m','placing → mass 999999 · energy 0.0000  ·  hovering → mass 999999 · energy 0.0000'];
   for(const k of INV_KINDS){const pr=invHoverParts(k,true);N.push(pr[0]);D.push(pr[1]);}
-  for(const k of ['create','entangle','cache-clear','cache-fill']){const pr=invHoverParts(k,true);N.push(pr[0]);D.push(pr[1]);}
+  for(const k of [...CREATE_KINDS,'cache-clear','cache-fill']){const pr=invHoverParts(k,true);N.push(pr[0]);D.push(pr[1]);}
   const si=typeIdx,sv=variantIdxByType.slice();
   for(let ti=0;ti<CREATE_TYPES.length;ti++){typeIdx=ti;for(let vi=0;vi<CREATE_TYPES[ti].variants.length;vi++){variantIdxByType[ti]=vi;N.push(INV_ICON.create+' '+createLabel());}}
   typeIdx=si;variantIdxByType=sv;
@@ -11149,7 +11154,7 @@ function updateInfoAndStats(now,hoverObj){
       const hoverStr=`hovering → mass ${Math.round(hoverObj.mass)} · energy ${hi.energy.toFixed(4)}`;
       d=d?d+'  ·  '+hoverStr:hoverStr;
     }
-    setFeed(INV_ICON[armedInvItem&&armedInvItem.kind==='entangle'?'entangle':'create']+' '+createLabel(),d,'rgba(255,255,255,0.92)');
+    setFeed(INV_ICON[armedInvItem&&CREATE_KINDS.includes(armedInvItem.kind)?armedInvItem.kind:'create']+' '+createLabel(),d,'rgba(255,255,255,0.92)');
   } else if(armedInvItem&&armedInvItem.kind==='prism'&&hoverObj&&prismValidTarget(hoverObj)){
     // Prism, hovering a valid target: show both what it currently is AND the active-word it will become, e.g.
     // "Orbit → Attract" — not just its current state, which is all the generic info readout below shows.
@@ -12999,7 +13004,7 @@ function cardHTML(ev,mini,pg){ // the one card format: name bar, art box, type l
   return `<div class="mtg${sm?' sm':mini===2?' pic':''}${!pg&&discSeen.has('ev:'+ev.id)&&ilNew('ev:'+ev.id)?' fd':''}" data-ev="${ev.id}" data-new="ev:${ev.id}" style="--rc:${TIER_COL[t]}"><div class="nm"><b>${gEsc(ev.name)}</b><span class="gem"></span></div><div class="art" data-scene="${ev.scene}" data-ev="${ev.id}" data-k="${ev.ico}">${sm?evStillHTML([ev.id])||`<canvas class="rl-m" width="64" height="64" data-k="${ev.ico}"></canvas>`:''}</div>${body}</div>`;
 }
 function mountScene(h,w,hh){if(!h||h.firstChild||document.querySelectorAll('.rl-live iframe:not(.held),.mtg .art iframe:not(.held)').length>=5)return; /* (a page's picture holding on its last frame does not count) */{const R=(h.dataset.ev||'').split(',').map(evRecFor).find(Boolean);if(R&&!w){evReplayMount(h,R);return;}} /* something you witnessed: your own recording of it, live (a demo only for what you have not) */const f=document.createElement('iframe'),nm=h.dataset.s||h.dataset.scene;f.style.cssText='border:0;max-width:100%;pointer-events:none;background:#000;border-radius:6px;'+(w?`width:${w}px;height:${hh}px`:'width:100%;height:100%');
-  if(nm.slice(0,4)==='hub:'){const[sn,dk]=nm.slice(4).split(':');f.src='Surface_Map_HUB.html?v=20261117g&scene='+sn+(sn==='shop'?'&k='+encodeURIComponent(dk||''):'')+'&T='+encodeURIComponent(JSON.stringify(mapSceneT()))+'&D='+encodeURIComponent(JSON.stringify(dk&&DUCK_TYPES[dk]?{[dk]:DUCK_TYPES[dk]}:Object.fromEntries(Object.entries(DUCK_TYPES).slice(0,4))));}else{f.srcdoc=liveSrc(nm,null,h.dataset.hold);if(h.dataset.hold)f.className='held';}h.appendChild(f);} // a Surface Map demo is played by the map itself
+  if(nm.slice(0,4)==='hub:'){const[sn,dk]=nm.slice(4).split(':');f.src='Surface_Map_HUB.html?v=20261117h&scene='+sn+(sn==='shop'?'&k='+encodeURIComponent(dk||''):'')+'&T='+encodeURIComponent(JSON.stringify(mapSceneT()))+'&D='+encodeURIComponent(JSON.stringify(dk&&DUCK_TYPES[dk]?{[dk]:DUCK_TYPES[dk]}:Object.fromEntries(Object.entries(DUCK_TYPES).slice(0,4))));}else{f.srcdoc=liveSrc(nm,null,h.dataset.hold);if(h.dataset.hold)f.className='held';}h.appendChild(f);} // a Surface Map demo is played by the map itself
 function mapSceneT(){const o={};for(const k in T)if(/^(map|bh|duck|wake|glass|metal|dimGlow|glowHalo|maxSpeed)/.test(k))o[k]=T[k];return o;} // what a map demo needs of the tuners
 function showCardHTML(html){ // a Guide card (an entry or a shop) opened over the Guide, where an event card shows
   guideCSS();if(!_evOpen)_evPausedIt=false;_evOpen=true;_evReview=true;const ov=evOverlayEl();ov.innerHTML=`<div class="ev-box">${html}<button id="evOk">${txt('card.close')}</button></div>`;ov.style.display='flex';wrap.classList.add('ev-open');
