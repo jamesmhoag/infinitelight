@@ -1147,3 +1147,6 @@ map.anchor.held,Anchored,Surface Map (anchor),
 map.anchor.held_d,"The tide cannot carry you: raise the anchor to drift in",Surface Map (anchor),
 map.anchor.raised,Anchor up,Surface Map (anchor),
 map.anchor.raised_d,Moving raises it,Surface Map (anchor),
+map.wreck.tossed,You were tossed and turned all night,Surface Map (wrecks),
+map.wreck.lost,"Lost overboard: {items}. Buy them again to have them back.",Surface Map (wrecks),items = $0 — what went overboard
+map.wreck.manifest,"Wrecked at Midnight · lost overboard: {items}",Surface Map (wrecks),items = $0 — what went overboard (the day's log)
