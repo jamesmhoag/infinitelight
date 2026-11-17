@@ -407,6 +407,14 @@ leashDistTol,0.1,String dist tol,0.02,1,0.02,Inventory,gameplay,,,,How much the 
 leashShowDelayMs,1000,String show ms,0,5000,100,Inventory,gameplay,,,,How long a leash candidate must have been holding before its indicator starts to appear,leash candidate indicator delay / fade-in · how far off a point's heading its target may sit · how much the following distance may vary
 leashFadeInMs,100,String fade ms,0,5000,100,Inventory,gameplay,,,,How long the leash indicator takes to fade in once it starts to appear,leash candidate indicator delay / fade-in · how far off a point's heading its target may sit · how much the following distance may vary
 invMaxWeave,10,Max Weave,0,99,1,Inventory,gameplay,,,,Purse cap for collected Weaves,
+chestOn,1,Chest,0,1,1,Inventory,gameplay,,,,"1: remnants are held in the treasure chest (its capacities below, bought at BRiGHT IDEAS); 0: the Max tuners above",
+chestStart,999,Chest start,1,9999999,1,Inventory,gameplay,,,,"The starting chest: Bright, Dim and exotic remnants share this much, each at the value it was collected at",
+chestRem,999,Chest remnants,1,9999999,1,Inventory,gameplay,,,,"Compartmented chest: Bright and Dim hold this much each",
+chestExo,99,Chest exotic,1,9999999,1,Inventory,gameplay,,,,"Compartmented chest: each exotic remnant holds this much",
+chestExoUp,999,Chest exotic up,1,9999999,1,Inventory,gameplay,,,,"Exotic compartments: each exotic remnant holds this much",
+chestBriUp,99999,Chest bright up,1,9999999,1,Inventory,gameplay,,,,"Bright compartments: Bright and Dim hold this much each",
+chestEnergyMult,10,Chest energy ×,1,100,1,Inventory,gameplay,,,,"Energy Value: every capacity × this",
+chestVaultMult,10,Chest vault ×,1,100,1,Inventory,gameplay,,,,"Bright vault: Bright × this again",
 stringHomeR,60,String homing R,0,300,5,Inventory,gameplay,,,,String shots lock onto the nearest object within this distance of where they were aimed and keep following it (0 = off),Spindle unwind: mass per tick · ms per tick · widest spread · ms still to reach it
 unwindPct,5,Unwind % per tick,0.5,50,0.5,Inventory,gameplay,,,,Spindle: share of its starting mass a Point / Pigment gives back each tick — every size unwinds in the same time (100 ÷ % ticks × tick ms),Spindle unwind: mass per tick · ms per tick · widest spread · ms still to reach it
 unwindMs,200,Unwind tick ms,1,1000,1,Inventory,gameplay,,,,Spindle: ms per unwind tick,Spindle unwind: mass per tick · ms per tick · widest spread · ms still to reach it

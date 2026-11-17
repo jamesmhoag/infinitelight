@@ -120,7 +120,7 @@ button:hover{background:rgba(255,255,255,0.15);}
   <div id="dock" class="bottom"><div id="inventoryPanel"></div><div id="touch-info"></div></div>
   <canvas id="cur"></canvas>
 </div>
-<script src="content.js?v=20261117t"></script><script src="shared.js?v=20261117t"></script>
+<script src="content.js?v=20261117u"></script><script src="shared.js?v=20261117u"></script>
 <script>
 txtApply(); // the page's own labels (content/strings.csv)
 const _SRC=document.documentElement.outerHTML; // kept so the Encyclopedia can run live scenes as embedded copies of the game
@@ -2112,7 +2112,15 @@ function runT(k){ // a tuner as today's fortune, daily wonder, Luck Charms and t
   if(k==='orbitsPerDial'||k==='weaveMinPoints')return v+(runBad(r,'laps')?1:0);if(k==='flockSecondsPerLeash'||k==='weaveSeconds')return v+(runBad(r,'slow')?1:0);
   if(k==='riftMass')return v>0&&runBad(r,'rift')?Math.max(1000,v-10000):v;return v;}
 function invFull(kind){return !BUILD&&inventory[kind]>=invMaxFor(kind);} // a purse with no room left: nothing more of that kind is collected, earned or bought. Never in Build mode, where every item is endless: collecting and earning still happen there, so nothing on a surface is out of reach
-function invMaxFor(kind){if(kind==='key'&&runState.keysGone)return 0;return Math.max(T['invMax'+kind[0].toUpperCase()+kind.slice(1)],shopCap(kind,k=>discSeen.has(k)));} // the tuner, or a bigger cap bought in a shop
+// The treasure chest (Chest on): the remnants you hold (Bright, Dim, Neutron, Magnetic, Pulsing, each at the value it was collected at) share one chest of Chest
+// start (999). BRiGHT IDEAS sells its compartments (each kind its own: Bright and Dim Chest remnants, each exotic Chest exotic), then bigger ones (exotics Chest
+// exotic up, Bright and Dim Chest bright up), Energy Value (every capacity × Chest energy ×) and the Bright vault (Bright × Chest vault × again)
+const CHEST_KINDS=['bright','dim','neutron','magnetic','pulsing'];
+function chestHas(id){return discSeen.has('up:'+id);}
+function chestCap(kind){const m=(chestHas('chest_energy')?(T.chestEnergyMult||10):1)*(kind==='bright'&&chestHas('chest_vault')?(T.chestVaultMult||10):1),ex=kind!=='bright'&&kind!=='dim';
+  if(!chestHas('chest_comp')){const S=Math.round((T.chestStart||999)*m);let o=0;for(const k of CHEST_KINDS)if(k!==kind)o+=inventory[k]||0;return Math.max(0,S-o);} // one chest, shared: what is left of it, plus what this kind already holds
+  return Math.round((ex?(chestHas('chest_exo')?T.chestExoUp||999:T.chestExo||99):(chestHas('chest_bri')?T.chestBriUp||99999:T.chestRem||999))*m);}
+function invMaxFor(kind){if(kind==='key'&&runState.keysGone)return 0;if(T.chestOn&&!BUILD&&CHEST_KINDS.includes(kind))return chestCap(kind);return Math.max(T['invMax'+kind[0].toUpperCase()+kind.slice(1)],shopCap(kind,k=>discSeen.has(k)));} // the tuner, or a bigger cap bought in a shop
 // Adds (or, with a negative amount, spends) units of one inventory kind,
 // clamped between 0 and that kind's current tunable max.
 function addInventory(kind,amount,bought,at){ // (at: where it was earned, for its event's frame) // bought: from a shop (no fortune or bonus applies)
@@ -2121,7 +2129,7 @@ function addInventory(kind,amount,bought,at){ // (at: where it was earned, for i
     if(x==='all'||x===kind)amount*=3;} // a good fortune: in threes
   const max=invMaxFor(kind);
   if(amount>0){invFlash={kind,at:performance.now()};if(kind==='dial')fireEvent('string',at);else if(kind==='leash')fireEvent('spindle',at);else if(kind==='weave')fireEvent('weave',at);else if(kind==='prism'||kind==='knot'||kind==='gate'||kind==='key'||kind==='lens')fireEvent('pat_'+kind);} // holding a Pattern item reveals it, as forming one does
-  const was=inventory[kind];inventory[kind]=Math.max(0,Math.min(max,inventory[kind]+amount));const dn=inventory[kind]-was;if(dn>0&&!bought)stat('earn:'+kind,dn);else if(dn<0)stat('use:'+kind,-dn); // (lifetime: earned, not bought; used)
+  const was=inventory[kind];inventory[kind]=Math.max(0,Math.min(Math.max(max,was),inventory[kind]+amount)); // (more than the cap already held, as from before a smaller chest: kept, never cut down; it just cannot grow)const dn=inventory[kind]-was;if(dn>0&&!bought)stat('earn:'+kind,dn);else if(dn<0)stat('use:'+kind,-dn); // (lifetime: earned, not bought; used)
   saveInventory();
   updateInventoryUI();
 }
@@ -13057,7 +13065,7 @@ function cardHTML(ev,mini,pg){ // the one card format: name bar, art box, type l
   return `<div class="mtg${sm?' sm':mini===2?' pic':''}${!pg&&discSeen.has('ev:'+ev.id)&&ilNew('ev:'+ev.id)?' fd':''}" data-ev="${ev.id}" data-new="ev:${ev.id}" style="--rc:${TIER_COL[t]}"><div class="nm"><b>${gEsc(ev.name)}</b><span class="gem"></span></div><div class="art" data-scene="${ev.scene}" data-ev="${ev.id}" data-k="${ev.ico}">${sm?evStillHTML([ev.id])||`<canvas class="rl-m" width="64" height="64" data-k="${ev.ico}"></canvas>`:''}</div>${body}</div>`;
 }
 function mountScene(h,w,hh){if(!h||h.firstChild||document.querySelectorAll('.rl-live iframe:not(.held),.mtg .art iframe:not(.held)').length>=5)return; /* (a page's picture holding on its last frame does not count) */{const R=(h.dataset.ev||'').split(',').map(evRecFor).find(Boolean);if(R&&!w){evReplayMount(h,R);return;}} /* something you witnessed: your own recording of it, live (a demo only for what you have not) */const f=document.createElement('iframe'),nm=h.dataset.s||h.dataset.scene;f.style.cssText='border:0;max-width:100%;pointer-events:none;background:#000;border-radius:6px;'+(w?`width:${w}px;height:${hh}px`:'width:100%;height:100%');
-  if(nm.slice(0,4)==='hub:'){const[sn,dk]=nm.slice(4).split(':');f.src='Surface_Map_HUB.html?v=20261117t&scene='+sn+(sn==='shop'?'&k='+encodeURIComponent(dk||''):'')+'&T='+encodeURIComponent(JSON.stringify(mapSceneT()))+'&D='+encodeURIComponent(JSON.stringify(dk&&DUCK_TYPES[dk]?{[dk]:DUCK_TYPES[dk]}:Object.fromEntries(Object.entries(DUCK_TYPES).slice(0,4))));}else{f.srcdoc=liveSrc(nm,null,h.dataset.hold);if(h.dataset.hold)f.className='held';}h.appendChild(f);} // a Surface Map demo is played by the map itself
+  if(nm.slice(0,4)==='hub:'){const[sn,dk]=nm.slice(4).split(':');f.src='Surface_Map_HUB.html?v=20261117u&scene='+sn+(sn==='shop'?'&k='+encodeURIComponent(dk||''):'')+'&T='+encodeURIComponent(JSON.stringify(mapSceneT()))+'&D='+encodeURIComponent(JSON.stringify(dk&&DUCK_TYPES[dk]?{[dk]:DUCK_TYPES[dk]}:Object.fromEntries(Object.entries(DUCK_TYPES).slice(0,4))));}else{f.srcdoc=liveSrc(nm,null,h.dataset.hold);if(h.dataset.hold)f.className='held';}h.appendChild(f);} // a Surface Map demo is played by the map itself
 function mapSceneT(){const o={};for(const k in T)if(/^(map|bh|duck|wake|glass|metal|dimGlow|glowHalo|maxSpeed)/.test(k))o[k]=T[k];return o;} // what a map demo needs of the tuners
 function showCardHTML(html){ // a Guide card (an entry or a shop) opened over the Guide, where an event card shows
   guideCSS();if(!_evOpen)_evPausedIt=false;_evOpen=true;_evReview=true;const ov=evOverlayEl();ov.innerHTML=`<div class="ev-box">${html}<button id="evOk">${txt('card.close')}</button></div>`;ov.style.display='flex';wrap.classList.add('ev-open');
