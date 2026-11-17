@@ -15,7 +15,7 @@
 const CABIN={on:false,t0:0,dir:1,cv:null,ov:null,gl:null,hov:null,mx:null,my:null,atlasAt:0,shotAt:0};
 const CABIN_A=3,CABIN_H=2.7,CABIN_RV=CABIN_A/Math.cos(Math.PI/6),CABIN_POOL=[0,0.5,1.28],CAB_CHEST={x:2.21,z:-1.36,a:Math.PI/2,y:0.52,lid:0.6},CAB_TOOL={a:0.35,net:[-1.35,-1.88],pen:[-1.65,-1.77]}; // the tools: their heading (from the desk out over the pool) and where each handle ends; the room: its apothem, height, corner radius; the pool (x, z, radius); the chest: where it stands, its heading, how high its stand lifts it, how far its lid stands open (radians)
 const CAB_HOARD=[CAB_CHEST.x-0.04,CAB_CHEST.y+0.61,CAB_CHEST.z]; // the heart of the chest's hoard (its light, and the middle of its glow)
-const CABIN_DO={ladder:'up',mirror:'buoy',storage:'buoy:kit',journal:'guide'}; // what a click opens (anything else: what it is, in the feed)
+const CABIN_DO={ladder:'up',mirror:'buoy',storage:'buoy:kit',journal:'guide',desk:'drawer'}; // what a click opens (anything else: what it is, in the feed)
 const CAB_OBJ=['ladder','desk','map','day','cards','ink','journal','pen','net','chest','storage','mirror','barrel','hammock','loom','shelf','candle','pool','porthole'];
 const CM={slab:25,wood:0,dark:1,brass:2,white:3,leather:4,canvas:5,glass:6,mirror:7,atlas:8,flame:9,iron:10,rope:11,paint:12,gem:13,net:14,sky:15,wax:16,gold:17,decal:18,pool:19,hatch:20,parch:21,bottle:22,water:23,steel:24};
 const GADGETS=['telem','spectro','radii','camera','alarm'],gadgetOwned=id=>!!(typeof disc!=='undefined'&&disc.has('up:'+id)),gadgetSig=()=>GADGETS.map(id=>gadgetOwned(id)?1:0).join('');
@@ -25,11 +25,11 @@ function cabinClose(){if(!CABIN.on||CABIN.dir<0)return;CABIN.dir=-1;CABIN.t0=per
   setTimeout(()=>{CABIN.on=false;CABIN.cv.style.display=CABIN.ov.style.display='none';if(currentView==='cabin')currentView='map';buoy.dunk={t0:performance.now(),d:-1,ms:700};startMapLoop();updateHint();},ms*0.55+500);} // up the ladder, out of the hatch: your buoy bobs as you come up
 function cabinBack(){if(CABIN.on&&currentView==='map'){currentView='cabin';updateHint();}} // (a menu closed: back in the cabin)
 function cabinClick(){const h=CABIN.hov;if(!h)return;ilSee('cab_'+h);const d=CABIN_DO[h]; // (its first click: seen, no longer new)
-  if(d==='up'){cabinClose();return;}if(d==='guide'){currentView='map';openGuide();return;}if(d){currentView='map';openCollections(d);return;}}
+  if(d==='up'){cabinClose();return;}if(d==='guide'){currentView='map';openGuide();return;}if(d==='drawer'){cabinClose();drawerOpen();return;} /* its drawer: your shop catalogues */if(d){currentView='map';openCollections(d);return;}}
 function cabinInfo(id){const n=k=>Math.floor(inv&&inv[k]||0).toLocaleString('en-US'),f=r=>{const F=r&&(FORTUNE_ROWS[(r.good?'good:':'dim:')+r.id]||{});return r?(F.name||r.id):txt('cabin.none');};
   switch(id){case 'ink':return[txt('cabin.ink'),txt('cabin.ink_d',n('dim'))];case 'chest':return[txt('cabin.chest'),txt('cabin.chest_d',n('bright'),n('neutron'),n('magnetic'),n('pulsing'))];
     case 'cards':return[txt('cabin.cards'),txt('cabin.cards_d',f(run&&run.prevFortune),f(run&&run.fortune),run&&run.dimDone&&run.dimDone.fortune?f(run.dimNext):txt('cabin.untold'))];
-    case 'day':return[txt('cabin.tod',clockStr(),day),txt('cabin.tod_d',CAB_HRS.filter(h=>h>clock).length)];case 'map':case 'desk':return[txt('cabin.desk'),txt('cabin.desk_d',dayCnt.b,dayCnt.d)];
+    case 'day':return[txt('cabin.tod',clockStr(),day),txt('cabin.tod_d',CAB_HRS.filter(h=>h>clock).length)];case 'map':case 'desk':return[txt('cabin.desk'),txt('cabin.desk_d',dayCnt.b,dayCnt.d,Object.keys(SHOPS).filter(k=>disc.has('cat:'+k)).length)];
     default:return[txt('cabin.'+id),txt('cabin.'+id+'_d')];}}
 const cabinHint=()=>CABIN.hov?cabinInfo(CABIN.hov):[txt('cabin.title'),txt('cabin.hint')]; // the feed's resting line below deck (never the surface's)
 // ── geometry: smooth parts, each vertex its position, normal, uv, material and the thing it belongs to ──
