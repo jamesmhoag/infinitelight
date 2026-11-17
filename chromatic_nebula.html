@@ -119,7 +119,7 @@ button:hover{background:rgba(255,255,255,0.15);}
   <div id="dock" class="bottom"><div id="inventoryPanel"></div><div id="touch-info"></div></div>
   <canvas id="cur"></canvas>
 </div>
-<script src="content.js?v=20261116g"></script><script src="shared.js?v=20261116g"></script>
+<script src="content.js?v=20261117a"></script><script src="shared.js?v=20261117a"></script>
 <script>
 txtApply(); // the page's own labels (content/strings.csv)
 const _SRC=document.documentElement.outerHTML; // kept so the Encyclopedia can run live scenes as embedded copies of the game
@@ -1624,9 +1624,9 @@ const _glowSprites=new Map();
 function glowSprite(kind,r,g,b,R,o){ // kind 0: falloff starting at radius R · kind 1: soft dot. Colours are quantised so a handful of sprites serve every light.
   const rq=Math.min(255,((r>>3)<<3)+4),gq=Math.min(255,((g>>3)<<3)+4),bq=Math.min(255,((b>>3)<<3)+4);
   const key=kind+'|'+rq+','+gq+','+bq+'|'+R+'|'+o;
-  let sp=_glowSprites.get(key);if(sp)return sp;
-  if(_glowSprites.size>600)_glowSprites.clear();
-  const d=o*2+2,cv=document.createElement('canvas');cv.width=cv.height=d;
+  let sp=_glowSprites.get(key);if(sp){_glowSprites.delete(key);_glowSprites.set(key,sp);return sp;} // (in use: moved to the back of the line, so it is the last to go)
+  let cv=null;if(_glowSprites.size>=600){const old=_glowSprites.keys().next().value;cv=_glowSprites.get(old).cv;_glowSprites.delete(old);} // full: the sprite unused longest gives up its canvas. Throwing canvases away (as clearing the whole cache did) is what made the browser's garbage collection freeze the game for 100 ms+
+  const d=o*2+2;if(!cv)cv=document.createElement('canvas');cv.width=cv.height=d; // (setting the size also clears it)
   const c=cv.getContext('2d'),m=d/2,gr=c.createRadialGradient(m,m,kind===0?R:0,m,m,o);
   if(kind===0){gr.addColorStop(0,`rgba(${rq},${gq},${bq},1)`);gr.addColorStop(0.45,`rgba(${rq},${gq},${bq},0.35)`);gr.addColorStop(1,`rgba(${rq},${gq},${bq},0)`);}
   else{gr.addColorStop(0,`rgba(${rq},${gq},${bq},1)`);gr.addColorStop(0.55,`rgba(${rq},${gq},${bq},0.4)`);gr.addColorStop(1,`rgba(${rq},${gq},${bq},0)`);}
@@ -1639,9 +1639,9 @@ function glowGrad(c,x,y,R,mult,rgb,alpha){
   if(alpha<=0.003)return;R=Math.max(0.5,R);
   const ext=Math.max(0.5,mult-1)*Math.min(R,T.glowMaxR),o=R+ext,al=Math.min(1,alpha);
   const sa=c.globalAlpha;
-  if(o<=180){
-    const p3=rgb.split(','),sp=glowSprite(0,+p3[0]|0,+p3[1]|0,+p3[2]|0,Math.round(R),Math.max(Math.round(R)+1,Math.round(o)));
-    c.globalAlpha=al;wrapCopies(x,y,o,(ox,oy)=>c.drawImage(sp.cv,x+ox-sp.m,y+oy-sp.m));c.globalAlpha=sa;return;
+  if(o<=180){ // a sprite of the next size step up (qGlow), its falloff starting at the same fraction of it (in 16ths), drawn scaled to exactly this size: a few sprites serve every size
+    const p3=rgb.split(','),oq=qGlow(o),Rq=Math.min(oq-1,Math.round(R/o*16)*oq/16),sp=glowSprite(0,+p3[0]|0,+p3[1]|0,+p3[2]|0,Rq,oq),k=o/oq,hm=sp.m*k,dd=hm*2;
+    c.globalAlpha=al;wrapCopies(x,y,o,(ox,oy)=>c.drawImage(sp.cv,x+ox-hm,y+oy-hm,dd,dd));c.globalAlpha=sa;return;
   }
   c.globalAlpha=1;
   wrapCopies(x,y,o,(ox,oy)=>{
@@ -12904,7 +12904,7 @@ function cardHTML(ev,mini,pg){ // the one card format: name bar, art box, type l
   return `<div class="mtg${sm?' sm':mini===2?' pic':''}${!pg&&discSeen.has('ev:'+ev.id)&&ilNew('ev:'+ev.id)?' fd':''}" data-ev="${ev.id}" data-new="ev:${ev.id}" style="--rc:${TIER_COL[t]}"><div class="nm"><b>${gEsc(ev.name)}</b><span class="gem"></span></div><div class="art" data-scene="${ev.scene}" data-ev="${ev.id}" data-k="${ev.ico}">${sm?evStillHTML([ev.id])||`<canvas class="rl-m" width="64" height="64" data-k="${ev.ico}"></canvas>`:''}</div>${body}</div>`;
 }
 function mountScene(h,w,hh){if(!h||h.firstChild||document.querySelectorAll('.rl-live iframe:not(.held),.mtg .art iframe:not(.held)').length>=5)return; /* (a page's picture holding on its last frame does not count) */{const R=(h.dataset.ev||'').split(',').map(evRecFor).find(Boolean);if(R&&!w){evReplayMount(h,R);return;}} /* something you witnessed: your own recording of it, live (a demo only for what you have not) */const f=document.createElement('iframe'),nm=h.dataset.s||h.dataset.scene;f.style.cssText='border:0;max-width:100%;pointer-events:none;background:#000;border-radius:6px;'+(w?`width:${w}px;height:${hh}px`:'width:100%;height:100%');
-  if(nm.slice(0,4)==='hub:'){const[sn,dk]=nm.slice(4).split(':');f.src='Surface_Map_HUB.html?v=20261116g&scene='+sn+(sn==='shop'?'&k='+encodeURIComponent(dk||''):'')+'&T='+encodeURIComponent(JSON.stringify(mapSceneT()))+'&D='+encodeURIComponent(JSON.stringify(dk&&DUCK_TYPES[dk]?{[dk]:DUCK_TYPES[dk]}:Object.fromEntries(Object.entries(DUCK_TYPES).slice(0,4))));}else{f.srcdoc=liveSrc(nm,null,h.dataset.hold);if(h.dataset.hold)f.className='held';}h.appendChild(f);} // a Surface Map demo is played by the map itself
+  if(nm.slice(0,4)==='hub:'){const[sn,dk]=nm.slice(4).split(':');f.src='Surface_Map_HUB.html?v=20261117a&scene='+sn+(sn==='shop'?'&k='+encodeURIComponent(dk||''):'')+'&T='+encodeURIComponent(JSON.stringify(mapSceneT()))+'&D='+encodeURIComponent(JSON.stringify(dk&&DUCK_TYPES[dk]?{[dk]:DUCK_TYPES[dk]}:Object.fromEntries(Object.entries(DUCK_TYPES).slice(0,4))));}else{f.srcdoc=liveSrc(nm,null,h.dataset.hold);if(h.dataset.hold)f.className='held';}h.appendChild(f);} // a Surface Map demo is played by the map itself
 function mapSceneT(){const o={};for(const k in T)if(/^(map|bh|duck|wake|glass|metal|dimGlow|glowHalo|maxSpeed)/.test(k))o[k]=T[k];return o;} // what a map demo needs of the tuners
 function showCardHTML(html){ // a Guide card (an entry or a shop) opened over the Guide, where an event card shows
   guideCSS();if(!_evOpen)_evPausedIt=false;_evOpen=true;_evReview=true;const ov=evOverlayEl();ov.innerHTML=`<div class="ev-box">${html}<button id="evOk">${txt('card.close')}</button></div>`;ov.style.display='flex';wrap.classList.add('ev-open');
