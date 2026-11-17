@@ -1015,6 +1015,10 @@ build.dock_build,"The dock shows Build mode's tools (Create, Entanglement, the i
 build.dock_std,"The dock shows the standard items. Click for Build mode's tools.",Build mode,the dock toggle's tooltip
 build.dock_build_s,build,Build mode,under the dock toggle
 build.dock_std_s,items,Build mode,under the dock toggle
+build.play,Play: {state},Build mode (Modes),state = $0 — ON or OFF
+build.play_tip,"On: clicks play the surface as in a game. Off: with nothing held, a click selects (drag to wipe-select, double click for every one alike, right click to drop one or clear). A Test always plays.",Build mode (Modes),
+build.play_on_said,"Play on: clicks play the surface.",Build mode,
+build.play_off_said,"Play off: clicks select.",Build mode,
 build.sel,Selection,Build menu,
 build.sel_none,"Nothing selected: Entanglement → Select picks what to set here.",Build menu,
 build.sel_shapes,shapes,Build menu,

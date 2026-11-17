@@ -98,6 +98,7 @@ button:hover{background:rgba(255,255,255,0.15);}
     <button id="tlb" onclick="toggleTelemetry()" data-tx="surf.ui.telemetry_off"></button>
     <button id="dyb" onclick="toggleDynamics()" data-tx="surf.ui.dynamics_off"></button>
     <button id="clb" onclick="toggleClass()" data-tx="surf.ui.class_off"></button>
+    <button id="bpb" onclick="toggleBuildPlay()" style="display:none"></button>
     <div class="div"></div>
     <button onclick="clearStage()" data-tx="surf.ui.clear_stage"></button>
     <button onclick="saveMap()" data-tx="surf.ui.save_map"></button>
@@ -119,7 +120,7 @@ button:hover{background:rgba(255,255,255,0.15);}
   <div id="dock" class="bottom"><div id="inventoryPanel"></div><div id="touch-info"></div></div>
   <canvas id="cur"></canvas>
 </div>
-<script src="content.js?v=20261117f"></script><script src="shared.js?v=20261117f"></script>
+<script src="content.js?v=20261117g"></script><script src="shared.js?v=20261117g"></script>
 <script>
 txtApply(); // the page's own labels (content/strings.csv)
 const _SRC=document.documentElement.outerHTML; // kept so the Encyclopedia can run live scenes as embedded copies of the game
@@ -4444,7 +4445,7 @@ function wheelOnSpeedCtl(e){
   wheelSpeedStep(e.deltaY>0?1:-1,performance.now());
 }
 // ── Discoveries: an element is hidden until you hover it while holding at least its Dim cost (nothing is spent). Locked ones show only their cost on hover. ──
-const DISC_MAP=[['#hud button[onclick^="rebuild"]','hud_rebuild'],['#modesbtn','hud_modes'],['#tunebtn','hud_tune'],['#hud button[onclick*="importImage"]','hud_image'],['#hud button[onclick^="clearSourceImage"]','hud_clearimg'],['#pb','mode_pause'],['#tb','mode_trails'],['#mb','mode_sound'],['#pvb','mode_particlemap'],['#cib','mode_create'],['#stb','mode_settle'],['#icb','mode_cache'],['#nsb','mode_shape'],['#cmb','mode_coverage'],['#ivb','mode_invert'],['#rdb','mode_radii'],['#tlb','mode_telemetry'],['#dyb','mode_dynamics'],['#clb','mode_class'],['#modesPanel button[onclick^="clearStage"]','mode_clearstage'],['#modesPanel button[onclick^="saveMap"]','mode_savemap'],['#modesPanel button[onclick*="importMapFile"]','mode_loadmap'],['#stColl','stats_collapse'],['#stLine','stats_line'],['#stLog','stats_log']];
+const DISC_MAP=[['#hud button[onclick^="rebuild"]','hud_rebuild'],['#modesbtn','hud_modes'],['#tunebtn','hud_tune'],['#hud button[onclick*="importImage"]','hud_image'],['#hud button[onclick^="clearSourceImage"]','hud_clearimg'],['#pb','mode_pause'],['#bpb','mode_play'],['#tb','mode_trails'],['#mb','mode_sound'],['#pvb','mode_particlemap'],['#cib','mode_create'],['#stb','mode_settle'],['#icb','mode_cache'],['#nsb','mode_shape'],['#cmb','mode_coverage'],['#ivb','mode_invert'],['#rdb','mode_radii'],['#tlb','mode_telemetry'],['#dyb','mode_dynamics'],['#clb','mode_class'],['#modesPanel button[onclick^="clearStage"]','mode_clearstage'],['#modesPanel button[onclick^="saveMap"]','mode_savemap'],['#modesPanel button[onclick*="importMapFile"]','mode_loadmap'],['#stColl','stats_collapse'],['#stLine','stats_line'],['#stLog','stats_log']];
 let discHoverId=null,_discN=0,_discOld=false; // _discOld: a save from before things were new (everything it shows is seen already)
 function discCostOf(id){if(BUILD)return 0; // (Build mode: everything is there)
   const p=id.slice(0,3);return (p==='of_'||p==='ot_')?(T['dc_obj_'+id.slice(3)]||0):(T['dc_'+id]||0);}
@@ -7879,7 +7880,14 @@ function liftSources(){
 // Max rot spd). Clicking empty space applies it to every selected object, exactly like a Pulsing remnant's base effect (vx, vy, rot).
 // Fixed shapes and anything under a Lens / Gate fill can never be selected.
 let inertSel=[],inertBox=null,inertRot=0; // inertSel: THE selection ({obj, isDormant} or {obj, shape}), made by Select or the Inertializer
-let selNodes=[],selCircle=null; // Select's shape in progress: its nodes (nodes), or a circle's centre (circle)
+let selNodes=[],selCircle=null;
+let buildPlayOn=false; // Build mode's Play (Modes): on, a click plays the surface as in a game; off (the default), with nothing held, a click selects (as Select's wipe). A Test always plays
+const buildSel=()=>BUILD&&!buildTest&&!buildPlayOn&&!armedInvItem&&!conMode; // Build mode, Play off, nothing held: clicks select
+const selTool=()=>buildSel()||createActive()&&currentType().cat==='select'; // Select's clicks: the tool, or Build mode with Play off
+const selVar=()=>createActive()?currentVariant():'wipe';
+function toggleBuildPlay(){buildPlayOn=!buildPlayOn;if(buildPlayOn){selNodes=[];selCircle=null;}updateBuildPlayBtn();flashSaveStatus(txt(buildPlayOn?'build.play_on_said':'build.play_off_said'));}
+function updateBuildPlayBtn(){const b=document.getElementById('bpb');if(!b)return;b.style.display=BUILD?'':'none';b.textContent=txt('build.play',txt(buildPlayOn?'surf.on':'surf.off'));b.title=txt('build.play_tip');b.classList.toggle('on',buildPlayOn);}
+window.toggleBuildPlay=toggleBuildPlay; // Select's shape in progress: its nodes (nodes), or a circle's centre (circle)
 function selKind(o){return objKey(o)+'|'+(o.isRemnant?'':(o.whiteFx?'w':o.blackFx?'b':o.ci));} // the exact type and variation (a double click selects every one alike)
 function selAlive(e){const o=e.obj;if(e.shape)return fixedShapes.indexOf(o)>=0;if(e.isDormant)return dormant[dormIdxOf(o)]===o;return !o.captured&&!o.dying&&!o._collected;}
 function selPrune(){if(!inertSel.length)return;const live=new Set(active);inertSel=inertSel.filter(e=>e.shape||e.isDormant?selAlive(e):live.has(e.obj)&&selAlive(e));}
@@ -7892,7 +7900,7 @@ function selArea(test,parts){ // everything inside an area (test(x,y)): objects,
 function selSaid(n){flashSaveStatus(txt(n?'surf.select.added':'surf.select.none',n,inertSel.length));selPanel();}
 function selClick(mx,my){ // a click: the object there joins the selection; with nodes, a click in space places a node (on the first again: the shape closes)
   const h=hitTestAnyObjectForDup(mx,my),hs=h?null:inertShapeAt(mx,my);
-  if(currentVariant()==='nodes'&&(selNodes.length||(!h&&!hs))){
+  if(selVar()==='nodes'&&(selNodes.length||(!h&&!hs))){
     if(selNodes.length>=3&&Math.hypot(mx-selNodes[0].x,my-selNodes[0].y)<=T.conCloseSnapR){const P=selNodes;selNodes=[];selSaid(selArea((x,y)=>pointInPolyXY(x,y,P),true));return;}
     selNodes.push({x:mx,y:my});return;}
   if(h){selSaid(selAdd(h.obj,h.isDormant));return;}
@@ -7913,14 +7921,14 @@ function selRight(mx,my){ // right click: the object there leaves the selection;
   return false;}
 function selWipe(mx,my){const R=T.touchR;let n=0;for(const p of active){const dx=_wrapD(p.x-mx,W),dy=_wrapD(p.y-my,H);if(dx*dx+dy*dy<=R*R)n+=selAdd(p,false);}const h=hitTestAnyObjectForDup(mx,my);if(h&&h.isDormant)n+=selAdd(h.obj,true);return n;} // a wipe: what the cursor passes over
 function drawSelection(ctx){ // the selection's marks (Select and the Inertializer), and Select's shape in progress
-  const t=createActive()&&currentType().cat;if(t!=='select'&&t!=='inertia')return;selPrune();
+  const t=selTool()?'select':createActive()&&currentType().cat;if(t!=='select'&&t!=='inertia')return;selPrune();
   const inv=!!invertMode,col=inv?'20,90,140':'120,220,255';ctx.save();ctx.lineWidth=1.2;ctx.setLineDash([3,3]);ctx.strokeStyle=`rgba(${col},0.9)`;
   ctx.beginPath();for(const e of inertSel){const o=e.obj;
     if(e.shape){const Pp=o.pts;ctx.moveTo(Pp[0].x,Pp[0].y);for(let i=1;i<Pp.length;i++)ctx.lineTo(Pp[i].x,Pp[i].y);if(o.closed)ctx.lineTo(Pp[0].x,Pp[0].y);continue;}
     if(e.isDormant){const hw=PIXEL_SIZE*0.42;ctx.rect(o.x-hw,o.y-hw,hw*2,hw*2);continue;}
     const r=Math.max(6,placedRadius(o)+4);ctx.moveTo(o.x+r,o.y);ctx.arc(o.x,o.y,r,0,6.2832);}
   ctx.stroke();ctx.setLineDash([]);
-  if(t==='select'&&mouse.x>=0){const v=currentVariant();ctx.strokeStyle=`rgba(${col},0.9)`;ctx.fillStyle=`rgba(${col},0.10)`;
+  if(t==='select'&&mouse.x>=0){const v=selVar();ctx.strokeStyle=`rgba(${col},0.9)`;ctx.fillStyle=`rgba(${col},0.10)`;
     if(selCircle&&mouseDown&&dragMode){const r=Math.hypot(mouse.x-selCircle.x,mouse.y-selCircle.y);ctx.beginPath();ctx.arc(selCircle.x,selCircle.y,r,0,6.2832);ctx.fill();ctx.setLineDash([5,4]);ctx.stroke();ctx.setLineDash([]);}
     if(v==='nodes'&&selNodes.length){ctx.beginPath();ctx.moveTo(selNodes[0].x,selNodes[0].y);for(const q of selNodes)ctx.lineTo(q.x,q.y);ctx.lineTo(mouse.x,mouse.y);ctx.setLineDash([5,4]);ctx.stroke();ctx.setLineDash([]);
       for(const q of selNodes){ctx.beginPath();ctx.arc(q.x,q.y,3,0,6.2832);ctx.fill();ctx.stroke();}
@@ -8281,7 +8289,7 @@ let _holdDrainUsed=false;
 // is gone at t=Td, where Td = 0.704·life^0.648 seconds (≈2s for a 5s life, ≈10s for a 60s life). A point keeps what it has drained if it is deselected
 // or the selection changes mid-hold; releasing the button ends the drain for every point.
 function holdDrainOn(){
-  if(!mouseDown||uiPress||overUI||pressConsumed||conMode||collectHold||blackHole||downOnRemnant||armedInvItem||createActive())return false;
+  if(!mouseDown||uiPress||overUI||pressConsumed||conMode||collectHold||blackHole||downOnRemnant||armedInvItem||createActive()||buildSel())return false;
   return performance.now()-mouseDownAt>=HOLD_CHARGE_DELAY_MS;
 }
 // Feeding a Point (create tool hold-charge / click) grows its radius with the mass fed in, at the same per-mass rate
@@ -8402,7 +8410,7 @@ function handleDialHold(now){ // queued rounds, a pending lone-dab fire, loading
   lastDialShot=now;_dialHoldCall=true;performInventoryDrop(mouse.x,mouse.y,now);_dialHoldCall=false;
 }
 function handleHoldCharge(now){
-  if(createActive()&&(isShapeCat(currentType().cat)||currentType().cat==='remove'||currentType().cat==='inertia'||currentType().cat==='select'||currentType().cat==='prefab')){holdCharging=false;return;}
+  if(buildSel()||createActive()&&(isShapeCat(currentType().cat)||currentType().cat==='remove'||currentType().cat==='inertia'||currentType().cat==='select'||currentType().cat==='prefab')){holdCharging=false;return;}
   if(!mouseDown||dragMode||uiPress||overUI||pressConsumed||conMode||(isPaused&&!createActive())||(downOnRemnant&&!createActive())||(armedInvItem&&!createActive())||(!createActive()&&pressedIDs.size>0)){ // (with something activated, a basic hold drains instead — see holdDrainMul)
     if(holdCharging){holdCharging=false;holdChargeObj=null;}
     return;
@@ -8451,7 +8459,7 @@ wrap.addEventListener('mousemove',e=>{
   }
   if(armedInvItem&&(ITEM_TOOLS.has(armedInvItem.kind)||armedInvItem.kind==='dial')&&!createActive())return; // these tools run from the held press (handleItemHold / handleDialHold), not from swipe-activation
   if(boxTool()){inertBox={x0:downX,y0:downY};return;} // drag = box select (the Inertializer, Select's box, and a prefab's parts)
-  if(createActive()&&currentType().cat==='select'){const v=currentVariant();if(v==='circle'){if(!selCircle)selCircle={x:downX,y:downY};}else if(v==='wipe'){selWipe(mouse.x,mouse.y);}return;} // Select: a circle from where the drag began, or a wipe over what the cursor passes
+  if(selTool()){const v=selVar();if(v==='circle'){if(!selCircle)selCircle={x:downX,y:downY};}else if(v==='wipe'){selWipe(mouse.x,mouse.y);}return;} // Select: a circle from where the drag began, or a wipe over what the cursor passes
   if(createActive()&&isShapeCat(currentType().cat)){ // hold + swipe: drag out a rectangle (wheel toggles an ellipse)
     if(!shapeRect)shapeRect={x0:downX,y0:downY,ellipse:false};
     return;
@@ -8644,7 +8652,7 @@ function handleInventoryPaint(now){
 }
 function handleHeldActivation(now){
   if(heatBlocked(now))return;
-  if(blackHole||collectHold||!mouseDown||uiPress||overUI||pressConsumed||conMode||!dragMode||createActive()||armedInvItem)return;
+  if(blackHole||collectHold||!mouseDown||uiPress||overUI||pressConsumed||conMode||!dragMode||createActive()||armedInvItem||buildSel())return; // (Build mode, Play off: the sweep selects instead)
   heldActivateAt(mouse.x,mouse.y,heldSeen,now);}
 function heldActivateAt(mx,my,heldSeen,now){ // a held press sweeping at (mx,my): wakes the nearest thing under it not yet seen this press (the host's press, or a second player's)
   if(mx<0||my<0||mx>=W||my>=H)return;
@@ -9250,7 +9258,7 @@ wrap.addEventListener('mousedown',e=>{
   cursorClickAt=performance.now();
   mouseDownAt=cursorClickAt;dragMode=false;_holdDrainUsed=false;heldSeen.clear();paintSeen.clear();paintActive=false;
   downX=e.clientX-wrapRect.left;downY=e.clientY-wrapRect.top;
-  downOnRemnant=((!armedInvItem||armedInvItem.kind==='magnetic'||armedInvItem.kind==='pulsing'||armedInvItem.kind==='neutron'||armedInvItem.kind==='dial')&&!createActive()&&!conMode)?collectableAt(downX,downY):null; // a press that starts ON a remnant may become hold-collect
+  downOnRemnant=((!armedInvItem||armedInvItem.kind==='magnetic'||armedInvItem.kind==='pulsing'||armedInvItem.kind==='neutron'||armedInvItem.kind==='dial')&&!createActive()&&!conMode&&!buildSel())?collectableAt(downX,downY):null; // a press that starts ON a remnant may become hold-collect
   collectHold=false;collectSeen.clear();
   // No hit-test / activation here — a plain click resolves on mouseup (once
   // we know it never turned into a drag); a drag resolves point-by-point as
@@ -9263,7 +9271,7 @@ wrap.addEventListener('mouseup',e=>{
   if(overUI||pressConsumed){releaseMouseDown(performance.now());dragMode=false;paintActive=false;return;} // released over the interface: never resolves onto what's underneath
   if(_holdDrainUsed){_holdDrainUsed=false;releaseMouseDown(performance.now());dragMode=false;paintActive=false;return;} // end of a draining hold: nothing else happens on release
   if(mouseDown&&dragMode&&shapeRect){finishShapeRect(e.clientX-wrapRect.left,e.clientY-wrapRect.top);releaseMouseDown(performance.now());dragMode=false;paintActive=false;return;}
-  if(mouseDown&&dragMode&&createActive()&&currentType().cat==='select'&&!boxTool()){const mx=e.clientX-wrapRect.left,my=e.clientY-wrapRect.top;
+  if(mouseDown&&dragMode&&selTool()&&!boxTool()){const mx=e.clientX-wrapRect.left,my=e.clientY-wrapRect.top;
     if(selCircle){const c=selCircle,r=Math.hypot(mx-c.x,my-c.y);selCircle=null;selSaid(selArea((x,y)=>Math.hypot(_wrapD(x-c.x,W),_wrapD(y-c.y,H))<=r,true));}else selSaid(0||selWipe(mx,my));
     releaseMouseDown(performance.now());dragMode=false;paintActive=false;return;}
   if(mouseDown&&dragMode&&boxTool()){(currentType().cat==='prefab'?preFinishBox:inertFinishBox)(e.clientX-wrapRect.left,e.clientY-wrapRect.top);releaseMouseDown(performance.now());dragMode=false;paintActive=false;return;}
@@ -9328,7 +9336,7 @@ wrap.addEventListener('mouseup',e=>{
     } else if(tryPickupRemnant(mx,my)){
       // a plain click directly on a (non-dark) remnant picked it up into the inventory
     } else {
-      telDbl={t:performance.now(),x:mx,y:my};activateAt(mx,my,performance.now(),true);
+      if(buildSel())selClick(mx,my);else{telDbl={t:performance.now(),x:mx,y:my};activateAt(mx,my,performance.now(),true);}
     }
   }
   releaseMouseDown(performance.now());dragMode=false;paintActive=false;
@@ -9346,7 +9354,7 @@ document.addEventListener('dblclick',e=>{ // double-click the String item: arm i
 });
 wrap.addEventListener('dblclick',e=>{
   if(performance.now()-lastCollectDoneAt<700)return; // a double-click that collected is never also a group-activate / deactivate
-  if(!overUI&&createActive()&&currentType().cat==='select'){selSame(e.clientX-wrapRect.left,e.clientY-wrapRect.top);return;} // Select: every one of the same type and variation
+  if(!overUI&&selTool()){selSame(e.clientX-wrapRect.left,e.clientY-wrapRect.top);return;} // Select: every one of the same type and variation
   if(overUI||pressConsumed||uiPress||collectHold||blackHole||conMode||armedInvItem||createActive())return;
   const mx=e.clientX-wrapRect.left,my=e.clientY-wrapRect.top;
   autoSelectClosestTargets(mx,my,performance.now());ruleLearn('dbl');
@@ -9384,6 +9392,7 @@ wrap.addEventListener('contextmenu',e=>{
     if(createActive()&&currentType().cat==='inertia'&&(inertSel.length||inertBox||inertRot)){inertSel=[];inertBox=null;inertRot=0;cursorRClickAt=performance.now();return;}
     armedInvItem=null;updateInventoryUI();return;
   }
+  if(buildSel()&&selRight(mouse.x,mouse.y)){cursorRClickAt=performance.now();return;} // Build mode, Play off: right click drops one from the selection, or clears it
   if(levelCleared){if(HUB){hubPost({type:'return'});hubIdle();return;}rebuild();return;}
   if(!pressedIDs.size&&!pendingActs.size){cycleReadouts();cursorRClickAt=performance.now();return;}
   // Deactivating a whole batch at once should only sound one terminating
@@ -12990,7 +12999,7 @@ function cardHTML(ev,mini,pg){ // the one card format: name bar, art box, type l
   return `<div class="mtg${sm?' sm':mini===2?' pic':''}${!pg&&discSeen.has('ev:'+ev.id)&&ilNew('ev:'+ev.id)?' fd':''}" data-ev="${ev.id}" data-new="ev:${ev.id}" style="--rc:${TIER_COL[t]}"><div class="nm"><b>${gEsc(ev.name)}</b><span class="gem"></span></div><div class="art" data-scene="${ev.scene}" data-ev="${ev.id}" data-k="${ev.ico}">${sm?evStillHTML([ev.id])||`<canvas class="rl-m" width="64" height="64" data-k="${ev.ico}"></canvas>`:''}</div>${body}</div>`;
 }
 function mountScene(h,w,hh){if(!h||h.firstChild||document.querySelectorAll('.rl-live iframe:not(.held),.mtg .art iframe:not(.held)').length>=5)return; /* (a page's picture holding on its last frame does not count) */{const R=(h.dataset.ev||'').split(',').map(evRecFor).find(Boolean);if(R&&!w){evReplayMount(h,R);return;}} /* something you witnessed: your own recording of it, live (a demo only for what you have not) */const f=document.createElement('iframe'),nm=h.dataset.s||h.dataset.scene;f.style.cssText='border:0;max-width:100%;pointer-events:none;background:#000;border-radius:6px;'+(w?`width:${w}px;height:${hh}px`:'width:100%;height:100%');
-  if(nm.slice(0,4)==='hub:'){const[sn,dk]=nm.slice(4).split(':');f.src='Surface_Map_HUB.html?v=20261117f&scene='+sn+(sn==='shop'?'&k='+encodeURIComponent(dk||''):'')+'&T='+encodeURIComponent(JSON.stringify(mapSceneT()))+'&D='+encodeURIComponent(JSON.stringify(dk&&DUCK_TYPES[dk]?{[dk]:DUCK_TYPES[dk]}:Object.fromEntries(Object.entries(DUCK_TYPES).slice(0,4))));}else{f.srcdoc=liveSrc(nm,null,h.dataset.hold);if(h.dataset.hold)f.className='held';}h.appendChild(f);} // a Surface Map demo is played by the map itself
+  if(nm.slice(0,4)==='hub:'){const[sn,dk]=nm.slice(4).split(':');f.src='Surface_Map_HUB.html?v=20261117g&scene='+sn+(sn==='shop'?'&k='+encodeURIComponent(dk||''):'')+'&T='+encodeURIComponent(JSON.stringify(mapSceneT()))+'&D='+encodeURIComponent(JSON.stringify(dk&&DUCK_TYPES[dk]?{[dk]:DUCK_TYPES[dk]}:Object.fromEntries(Object.entries(DUCK_TYPES).slice(0,4))));}else{f.srcdoc=liveSrc(nm,null,h.dataset.hold);if(h.dataset.hold)f.className='held';}h.appendChild(f);} // a Surface Map demo is played by the map itself
 function mapSceneT(){const o={};for(const k in T)if(/^(map|bh|duck|wake|glass|metal|dimGlow|glowHalo|maxSpeed)/.test(k))o[k]=T[k];return o;} // what a map demo needs of the tuners
 function showCardHTML(html){ // a Guide card (an entry or a shop) opened over the Guide, where an event card shows
   guideCSS();if(!_evOpen)_evPausedIt=false;_evOpen=true;_evReview=true;const ov=evOverlayEl();ov.innerHTML=`<div class="ev-box">${html}<button id="evOk">${txt('card.close')}</button></div>`;ov.style.display='flex';wrap.classList.add('ev-open');
@@ -13545,7 +13554,7 @@ function buildPack(list){if(!list.length)return{tpl:{},rows:[]};const r=v=>typeo
   return{tpl,rows:list.map(o=>{const c=cl(o),d={};for(const k in c)if(JSON.stringify(c[k])!==JSON.stringify(tpl[k]))d[k]=c[k];for(const k of ks)if(!(k in c))d[k]=null;return d;})};}
 const buildUnpack=p=>Array.isArray(p)?p:(p.rows||[]).map(d=>{const o=Object.assign({},p.tpl,d);for(const k in d)if(d[k]===null)delete o[k];return o;});
 function buildApply(L){restoreSession(Object.assign({},L.data,{dormant:buildUnpack(L.data.dormant)}));buildDarks=(L.darks||[]).map(d=>Object.assign({},d));edgeQ=JSON.parse(JSON.stringify(L.edge||[]));phasing=[];if((L.kind==='bright')!==!!invertMode)toggleInvertMode();updateInventoryUI();} // a level back on the surface, exactly as it was saved
-function buildStart(){createItemMode=true;itemCacheMode=true;document.body.classList.add('build');wrap.classList.remove('ui-hidden'); /* (the surface's own panels, as on any surface: every tuner, the modes, the stats and the log) */
+function buildStart(){createItemMode=true;setTimeout(updateBuildPlayBtn,0);itemCacheMode=true;document.body.classList.add('build');wrap.classList.remove('ui-hidden'); /* (the surface's own panels, as on any surface: every tuner, the modes, the stats and the log) */
   {const hud=document.getElementById('hud'),b=document.createElement('button');b.id='bdHud';b.textContent=txt('build.menu');b.onclick=toggleBuild;hud.insertBefore(b,hud.firstChild);} /* the Build menu: a button at the top left like Modes and Tune, its menu under it as theirs are */buildLoadLib().then(buildBar);updateInventoryUI();flashSaveStatus(txt('build.welcome'));}
 function buildBar(){let el=document.getElementById('buildBar');if(!el){el=document.createElement('div');el.id='buildBar';(document.getElementById('wrap')||document.body).appendChild(el);
     const st=document.createElement('style');st.textContent=`#buildBar{position:absolute;top:calc(36px + var(--hud-dy,0px));left:10px;width:220px;max-height:calc(100vh - 50px - var(--dock-h,0px));overflow-y:auto;box-sizing:border-box;background:rgba(0,0,0,0.88);border:1px solid rgba(255,255,255,0.12);border-radius:6px;z-index:20;display:none;padding:6px;color:#fff;font:11px/1.4 monospace} /* as the Modes and Tune panels: under its button, one column */
