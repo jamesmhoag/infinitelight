@@ -119,7 +119,7 @@ button:hover{background:rgba(255,255,255,0.15);}
   <div id="dock" class="bottom"><div id="inventoryPanel"></div><div id="touch-info"></div></div>
   <canvas id="cur"></canvas>
 </div>
-<script src="content.js?v=20261117a"></script><script src="shared.js?v=20261117a"></script>
+<script src="content.js?v=20261117b"></script><script src="shared.js?v=20261117b"></script>
 <script>
 txtApply(); // the page's own labels (content/strings.csv)
 const _SRC=document.documentElement.outerHTML; // kept so the Encyclopedia can run live scenes as embedded copies of the game
@@ -9120,20 +9120,23 @@ function placeDupShape(mx,my){
 function shapeOverGlass(d,mx,my){for(const r of d.rel)if(underGlass(mx+r.x,my+r.y))return true;return false;}
 // ── Next made (Build menu): what Create makes next, tuned within the game's own ranges — its mass and energy, its exact colour balance (a particle, a pigment,
 // a Point, a remnant or a relic), and what a package holds (a commodity's contents). Off: everything is made as it always is ──
-const NEXT={on:false,mass:null,energy:null,bal:[1,1,1,1,1,1],useBal:false,give:0,giveKind:'bright'};
+const NEXT={on:true,mass:null,energy:null,bal:[1,1,1,1,1,1],useBal:false,give:0,giveKind:'bright',made:null}; // on from the start; mass / energy null: as the game makes it (made: the last thing Create made, whose own values the empty boxes show)
 const nextDef=k=>{const top=Math.max(1,runT('riftMass')||T.darkMass);return k==='mass'?{min:0.01,max:top,step:0.01}:{min:0.001,max:top,step:0.001};}; // (the whole range the game has: up to Rift mass, where a Rift would start to form; energy capped the same)
-function nextMade(o,cat){if(!o||!NEXT.on)return o;
+function nextMade(o,cat){if(!o)return o;if(!NEXT.on||NEXT.mass==null||NEXT.energy==null){NEXT.made={mass:o.mass,energy:o.energy};nextShowMade();}if(!NEXT.on)return o;
   if(NEXT.mass!=null)o.mass=tuneSnap(nextDef('mass'),NEXT.mass);if(NEXT.energy!=null)o.energy=tuneSnap(nextDef('energy'),NEXT.energy);
   if(NEXT.useBal&&o.masses&&!o.whiteFx){const t=NEXT.bal.reduce((a,b)=>a+b,0)||1;o.masses=NEXT.bal.map(v=>v/t*o.mass);if(typeof balanceScore==='function')o.balance=balanceScore(o.masses);}
   if(typeof updateCached==='function')updateCached(o);o.fillDirty=true;return o;}
-function nextBarHTML(esc){const sl=(id,v,a,b,st,l)=>`<label>${l}<input type="range" id="${id}" min="${a}" max="${b}" step="${st}" value="${v}"><span id="${id}v">${v}</span></label>`;
+function nextShowMade(){for(const id of ['nxM','nxE']){const el=document.querySelector('#'+id+' .tval');if(el&&el._show&&document.activeElement!==el)el._show();}} // the empty boxes show what was made last
+function nextBarHTML(esc){const sl=(id,v,a,b,st,l)=>`<label>${l}<span class="nxS"><input type="range" id="${id}" min="${a}" max="${b}" step="${st}" value="${v}"><b id="${id}v"></b></span></label>`; // (slider and typed value in a fixed-width pair: a value of a different length no longer shifts the slider)
   return `<div class="bdRow"><b>${txt('build.next')}</b><label>${txt('build.next_on')}<input type="checkbox" id="nxOn"${NEXT.on?' checked':''}></label><label>${txt('build.next_mass')}<span id="nxM"></span></label><label>${txt('build.next_energy')}<span id="nxE"></span></label>
 <label>${txt('build.next_balance')}<input type="checkbox" id="nxB"${NEXT.useBal?' checked':''}></label>${NEXT.bal.map((v,i)=>sl('nxC'+i,v,0,1,0.01,`<i style="color:${EFFECT_HEX[i]}">${esc(EFFECT_NAMES[i])}</i>`)).join('')}
 <label>${txt('build.next_holds')}<input type="number" id="nxG" min="0" max="100000" value="${NEXT.give}"></label><select id="nxK">${['bright','dim','neutron','magnetic','pulsing','duck'].map(k=>`<option value="${k}"${k===NEXT.giveKind?' selected':''}>${esc(INV_LABEL[k]||k)}</option>`).join('')}</select></div>`;}
-function nextBarWire(){const $=id=>document.getElementById(id);if(!$('nxOn'))return;const sv=(id,f)=>{$(id).oninput=()=>{f(+$(id).value);const v=$(id+'v');if(v)v.textContent=$(id).value;};};
-  if(NEXT.mass==null)NEXT.mass=T.collMass;if(NEXT.energy==null)NEXT.energy=T.collEnergy;$('nxM').appendChild(tuneValInput(nextDef('mass'),()=>NEXT.mass,v=>{NEXT.mass=v;}));$('nxE').appendChild(tuneValInput(nextDef('energy'),()=>NEXT.energy,v=>{NEXT.energy=v;})); // typed, as a Tune menu value: corrected into range and onto its step
+function nextBarWire(){const $=id=>document.getElementById(id);if(!$('nxOn'))return;const balD={min:0,max:1,step:0.01};
+  const sv=(id,i)=>{const r=$(id),box=tuneValInput(balD,()=>NEXT.bal[i],v=>{NEXT.bal[i]=v;r.value=v;NEXT.useBal=true;$('nxB').checked=true;});$(id+'v').replaceWith(box);r.oninput=()=>{NEXT.bal[i]=+r.value;NEXT.useBal=true;$('nxB').checked=true;box._show();};}; // a colour moved or typed: the exact balance is used (it did nothing until its box was ticked)
+  const asMade=k=>({...nextDef(k),empty:true,ph:()=>NEXT.made?tuneFmt(NEXT.made[k],nextDef(k).step):''}); // left empty: as the game makes it; the box shows the last one made
+  for(const [id,k] of [['nxM','mass'],['nxE','energy']]){const box=tuneValInput(asMade(k),()=>NEXT[k],v=>{NEXT[k]=v;});box.title=txt('build.next_as_made');$(id).appendChild(box);} // typed, as a Tune menu value: corrected into range and onto its step
   $('nxOn').onchange=()=>{NEXT.on=$('nxOn').checked;};$('nxB').onchange=()=>{NEXT.useBal=$('nxB').checked;};
-  for(let i=0;i<6;i++)sv('nxC'+i,v=>NEXT.bal[i]=v);$('nxG').oninput=()=>{NEXT.give=Math.max(0,+$('nxG').value||0);};$('nxK').onchange=()=>{NEXT.giveKind=$('nxK').value;};}
+  for(let i=0;i<6;i++)sv('nxC'+i,i);$('nxG').oninput=()=>{NEXT.give=Math.max(0,+$('nxG').value||0);};$('nxK').onchange=()=>{NEXT.giveKind=$('nxK').value;};}
 function createAt(mx,my){
   const t=currentType(),variant=currentVariant();
   if(t.cat==='standard')return null;
@@ -12904,7 +12907,7 @@ function cardHTML(ev,mini,pg){ // the one card format: name bar, art box, type l
   return `<div class="mtg${sm?' sm':mini===2?' pic':''}${!pg&&discSeen.has('ev:'+ev.id)&&ilNew('ev:'+ev.id)?' fd':''}" data-ev="${ev.id}" data-new="ev:${ev.id}" style="--rc:${TIER_COL[t]}"><div class="nm"><b>${gEsc(ev.name)}</b><span class="gem"></span></div><div class="art" data-scene="${ev.scene}" data-ev="${ev.id}" data-k="${ev.ico}">${sm?evStillHTML([ev.id])||`<canvas class="rl-m" width="64" height="64" data-k="${ev.ico}"></canvas>`:''}</div>${body}</div>`;
 }
 function mountScene(h,w,hh){if(!h||h.firstChild||document.querySelectorAll('.rl-live iframe:not(.held),.mtg .art iframe:not(.held)').length>=5)return; /* (a page's picture holding on its last frame does not count) */{const R=(h.dataset.ev||'').split(',').map(evRecFor).find(Boolean);if(R&&!w){evReplayMount(h,R);return;}} /* something you witnessed: your own recording of it, live (a demo only for what you have not) */const f=document.createElement('iframe'),nm=h.dataset.s||h.dataset.scene;f.style.cssText='border:0;max-width:100%;pointer-events:none;background:#000;border-radius:6px;'+(w?`width:${w}px;height:${hh}px`:'width:100%;height:100%');
-  if(nm.slice(0,4)==='hub:'){const[sn,dk]=nm.slice(4).split(':');f.src='Surface_Map_HUB.html?v=20261117a&scene='+sn+(sn==='shop'?'&k='+encodeURIComponent(dk||''):'')+'&T='+encodeURIComponent(JSON.stringify(mapSceneT()))+'&D='+encodeURIComponent(JSON.stringify(dk&&DUCK_TYPES[dk]?{[dk]:DUCK_TYPES[dk]}:Object.fromEntries(Object.entries(DUCK_TYPES).slice(0,4))));}else{f.srcdoc=liveSrc(nm,null,h.dataset.hold);if(h.dataset.hold)f.className='held';}h.appendChild(f);} // a Surface Map demo is played by the map itself
+  if(nm.slice(0,4)==='hub:'){const[sn,dk]=nm.slice(4).split(':');f.src='Surface_Map_HUB.html?v=20261117b&scene='+sn+(sn==='shop'?'&k='+encodeURIComponent(dk||''):'')+'&T='+encodeURIComponent(JSON.stringify(mapSceneT()))+'&D='+encodeURIComponent(JSON.stringify(dk&&DUCK_TYPES[dk]?{[dk]:DUCK_TYPES[dk]}:Object.fromEntries(Object.entries(DUCK_TYPES).slice(0,4))));}else{f.srcdoc=liveSrc(nm,null,h.dataset.hold);if(h.dataset.hold)f.className='held';}h.appendChild(f);} // a Surface Map demo is played by the map itself
 function mapSceneT(){const o={};for(const k in T)if(/^(map|bh|duck|wake|glass|metal|dimGlow|glowHalo|maxSpeed)/.test(k))o[k]=T[k];return o;} // what a map demo needs of the tuners
 function showCardHTML(html){ // a Guide card (an entry or a shop) opened over the Guide, where an event card shows
   guideCSS();if(!_evOpen)_evPausedIt=false;_evOpen=true;_evReview=true;const ov=evOverlayEl();ov.innerHTML=`<div class="ev-box">${html}<button id="evOk">${txt('card.close')}</button></div>`;ov.style.display='flex';wrap.classList.add('ev-open');
@@ -13441,7 +13444,7 @@ function buildBar(){let el=document.getElementById('buildBar');if(!el){el=docume
     const st=document.createElement('style');st.textContent=`#buildBar{position:absolute;top:calc(36px + var(--hud-dy,0px));left:10px;width:220px;max-height:calc(100vh - 50px - var(--dock-h,0px));overflow-y:auto;box-sizing:border-box;background:rgba(0,0,0,0.88);border:1px solid rgba(255,255,255,0.12);border-radius:6px;z-index:20;display:none;padding:6px;color:#fff;font:11px/1.4 monospace} /* as the Modes and Tune panels: under its button, one column */
 #buildBar.open{display:block}#buildBar button{display:block;width:100%;margin:3px 0;text-align:left}#buildBar button.on{background:rgba(255,255,255,0.22);border-color:rgba(255,255,255,0.5)}
 #buildBar b{display:block;font:9px/1 monospace;color:rgba(255,255,255,0.35);text-transform:uppercase;letter-spacing:1px;margin:6px 0 3px}#buildBar input,#buildBar select{display:block;width:100%;box-sizing:border-box;margin:3px 0;background:rgba(0,0,0,0.7);color:#fff;border:0.5px solid rgba(255,255,255,0.2);border-radius:5px;font:11px monospace;padding:3px 6px}
-#buildBar .bdRow{border-top:1px solid rgba(255,255,255,0.06);margin-top:6px;padding-top:2px}#buildBar .bdRow span{display:block;opacity:.6;margin:2px 0}#buildBar .bdRow label{display:flex;align-items:center;justify-content:space-between;gap:6px;margin:3px 0}#buildBar .bdRow label input,#buildBar .bdRow label select{width:auto;max-width:110px;margin:0}`;document.head.appendChild(st);
+#buildBar .bdRow{border-top:1px solid rgba(255,255,255,0.06);margin-top:6px;padding-top:2px}#buildBar .bdRow span{display:block;opacity:.6;margin:2px 0}#buildBar .bdRow label{display:flex;align-items:center;justify-content:space-between;gap:6px;margin:3px 0}#buildBar .bdRow label input,#buildBar .bdRow label select{width:auto;max-width:110px;margin:0}#buildBar .bdRow .nxS{display:flex;align-items:center;gap:6px;margin:0;opacity:1}#buildBar .bdRow .nxS input[type=range]{width:96px;flex:none}#buildBar .bdRow .tval{width:84px;flex:none;font:10px monospace;text-align:right;background:rgba(255,255,255,0.06);color:inherit;border:1px solid rgba(255,255,255,0.15);border-radius:2px;padding:2px 3px}#buildBar .bdRow .nxS .tval{width:40px}`;document.head.appendChild(st);
     for(const ev of['mousedown','mouseup','click','wheel','contextmenu'])el.addEventListener(ev,e=>e.stopPropagation());el.addEventListener('keydown',e=>e.stopPropagation());}
   const names=Object.keys(buildLib.levels).sort(),esc=v=>String(v).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
   el.innerHTML=`<b>${txt('build.title')}</b><input id="bdName" maxlength="40" placeholder="${esc(txt('build.name'))}" value="${esc(buildName)}"><button id="bdSave">${txt('build.save')}</button>
