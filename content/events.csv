@@ -64,3 +64,21 @@ Whatever it opened over was lost; everything else was drawn across to it.
 On the Surface Map the hex is gone: a scar, and the hexes beside it drained.",Too much light in one place.,"Too much gathered in one place, and the surface tore open along a line."
 duck,Rubber Duck,Event — Duck,r,duck,duck:classic,"A Dark Remnant came out as a rubber duck. The surface carries on.
 Click it to add it to your collection (Guide → Ducks).",Squeak.,"Something went dark, and out of it came a rubber duck."
+fx_throw,Thrown,Event — Effect,c,fx0,point,"A THROW pigment or Point pushes everything in its ring straight out.
+The more energy it has, the harder it throws.",It did not ask. It simply pushed.,Everything in its ring was pushed straight away from it.
+fx_fling,Flung,Event — Effect,c,fx1,point,"A FLING pigment or Point sends what it catches round it in a widening spiral, out and away.","Round once, for the speed. Then gone.",What it caught swung round it and spun away outward.
+fx_orbit,In Orbit,Event — Effect,c,fx2,point,"An ORBIT pigment or Point holds what it catches circling at the distance it took hold.
+Several together share their pull.",It found its distance and kept it.,"What it caught began to circle it, and stayed."
+fx_whirl,Whirled In,Event — Effect,c,fx3,point,"A WHIRL pigment or Point draws what it catches round and in, in a tightening spiral.",Closer with every turn.,What it caught spiralled in towards it.
+fx_catch,Caught,Event — Effect,c,fx4,point,A CATCH pigment or Point pulls everything in its ring straight in.,Everything comes home eventually.,Everything in its ring was drawn straight in to it.
+fx_snare,Snared,Event — Effect,c,fx5,point,A SNARE pigment or Point brakes what is in its ring: speed and spin bleed away.,Stillness is a kind of trap.,"Everything in its ring slowed, and stopped turning."
+fx_eclipse,Eclipsed,Event — Effect,u,eclipse,point,An ECLIPSE turns what it touches black: it becomes ECLIPSE too.,Darkness is catching.,"What it touched went black, and became like it."
+fx_crystalize,Crystalized,Event — Effect,u,crystal,point,A CRYSTALIZE turns what it touches white: it becomes CRYSTALIZE too.,"Light is catching, too.","What it touched went white, and became like it."
+fx_enlarge,Enlarged,Event — Effect,r,neutron,neutron,"A Neutron Remnant breathes: what is in its range is Enlarged while it is big, Shrunk while it is small.
+A remnant gains energy for each new status.",Bigger. Smaller. Bigger.,"Something in a Neutron Remnant's range grew, then shrank, as it breathed."
+fx_tint,Recoloured,Event — Effect,r,magnetic,magnetic,"Each half of a Magnetic Remnant turns what it touches to its own colour.
+A remnant gains energy for each new colour.","Two colours, and nothing in between.",Something a Magnetic Remnant touched took on its colour.
+fx_pulse,In Rhythm,Event — Effect,r,pulsing,pulsing,"A Pulsing Remnant gives its pulse to the Neutron and Magnetic Remnants in its field: they breathe and turn with its beat.
+A remnant gains energy for the pulse.",It keeps time. Now so does everything near it.,A Neutron or Magnetic Remnant in a Pulsing Remnant's field began to pulse with it.
+fx_depth,Depth,Event — Effect,u,depth,dim,"DEPTH (a Dim Remnant) placed: a WHIRL field that holds what enters it, spinning, at a cost of Dim.",It goes down further than it looks.,"A Dim Remnant's field opened, and what entered it spun."
+fx_balance,Balance,Event — Effect,u,balance,brem,"BALANCE (a Bright Remnant) placed: a field of stasis. What is inside stays exactly as it is, at a cost of Bright.",Nothing moves. Nothing needs to.,"A Bright Remnant's field opened, and what was inside stood still."
