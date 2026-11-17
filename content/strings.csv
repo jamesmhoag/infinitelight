@@ -858,7 +858,7 @@ value.dim_mass_pct,Math.round(T.remMassFrac*100),values (shared: any text can us
 value.dim_energy_pct,Math.round(T.remEnergyFrac*100),values (shared: any text can use {dim_energy_pct}),% of its energy a failed collapse keeps
 value.collapse_mass,T.collMass,values (shared: any text can use {collapse_mass}),mass a pigment needs to collapse into a Point
 value.collapse_energy,T.collEnergy,values (shared: any text can use {collapse_energy}),energy a pigment needs to collapse into a Point
-value.dark_mass,Math.round(T.massScaleMax*T.blackMult),values (shared: any text can use {dark_mass}),mass that makes a Dark Remnant
+value.dark_mass,Math.round(T.darkMass),values (shared: any text can use {dark_mass}),mass that makes a Dark Remnant
 value.spindle_orbits,runT('orbitsPerDial'),values (shared: any text can use {spindle_orbits}),orbits a Spindle needs (today: with any fortune)
 value.string_seconds,runT('flockSecondsPerLeash'),values (shared: any text can use {string_seconds}),seconds a String needs (today)
 value.weave_seconds,runT('weaveSeconds'),values (shared: any text can use {weave_seconds}),seconds a Weave needs (today)

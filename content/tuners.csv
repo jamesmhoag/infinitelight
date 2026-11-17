@@ -183,13 +183,12 @@ triadMin,0.01,Triad min,0,0.2,0.01,Collapse Triggers,gameplay,,,,Min per-primary
 collMass,202,Mass req,0,500,1,Collapse Triggers,gameplay,,,,Min mass for collapse,
 collEnergy,1,Energy req,0,10,0.1,Collapse Triggers,gameplay,,,,Min energy for white (below=brown),
 mergeAbsorb,1,Feed absorb %,0,1,0.01,Energy & Merge,gameplay,,,,Energy kept when feeding on inert dust/dormant material (NOT a live-object merge — those always conserve 100% of both objects' energy),
-massScaleMin,1,Min mass (shared fallback),1,50,1,Mass → Size Curve,gameplay,,,,"Mass at/below which every object sits at its own min radius — only actually used now by any type that leaves its own mass-domain override below at its default; also still the reference ""mass scale"" for other systems (e.g. the Dark Remnant's mass threshold)","mass at/below which every object sits at its min radius (fallback for any type below that doesn't set its own mass domain; also still used as the general ""mass scale"" reference elsewhere, e.g. the Dark Remnant threshold)"
+massScaleMin,1,Min mass (shared fallback),1,50,1,Mass → Size Curve,gameplay,,,,"Mass at/below which every object sits at its own min radius — only actually used now by any type that leaves its own mass-domain override below at its default","mass at/below which every object sits at its min radius (fallback for any type below that doesn't set its own mass domain)"
 massScaleMax,4030,Max mass (shared fallback),10,5000,10,Mass → Size Curve,gameplay,,,,Mass at/above which every object sits at its own max radius — see Min mass note,mass at/above which every object sits at its max radius (see massScaleMin note)
 massCurvePow,1.7,Curve taper,1,4,0.1,Mass → Size Curve,gameplay,,,,"Shape between min and max mass: 1 = straight linear, higher = mostly linear early then tapers off approaching the max",>1 = mostly linear then taper near the cap; 1 = straight linear
 pigmentMassMin,13,Pigment min mass,1,200,1,Mass → Size Curve,gameplay,,,,Mass at/below which a Pigment sits at its own min radius (Pigm min/max below),
 pigmentMassMax,1300,Pigment max mass,10,5000,10,Mass → Size Curve,gameplay,,,,Mass at/above which a Pigment sits at its own max radius,
 brightMassMin,126,Bright min mass,1,200,1,Mass → Size Curve,gameplay,,,,Mass at/below which a Bright (collapsed) point sits at its own min radius (both visual size and effect range),
-brightMassMax,4160,Bright max mass,10,5000,10,Mass → Size Curve,gameplay,,,,Mass at/above which a Point sits at its own max radius,
 dimMassMin,30,Dim min mass,1,200,1,Mass → Size Curve,gameplay,,,,Mass at/below which a Dim Remnant sits at its own min radius,
 dimMassMax,5000,Dim max mass,10,5000,10,Mass → Size Curve,gameplay,,,,Mass at/above which a Dim Remnant sits at its own max radius,
 dimFormMs,450,Dim form ms,100,2000,50,Animation,theme,,,,How long the inward flash lasts when a point dims into a Dim Remnant,ms: the inward flash when a point dims into a Dim Remnant
@@ -418,7 +417,7 @@ blackLaunchPerMs,1,DR launch /ms,0.05,20,0.05,Dark Remnant — Behavior,gameplay
 blackFlySpeed,20,DR fly speed,1,60,1,Dark Remnant — Behavior,gameplay,,,,Speed of an object launched into the Dark Remnant,px per step a launched object travels toward the void
 blackSpeed,10,Expand spd,1,10,0.5,Dark Remnant — Behavior,gameplay,,,,Radius expansion px/frame,
 blackMaxActive,250,Max drawn-in,10,2000,10,Dark Remnant — Behavior,gameplay,,,,"Caps how many dormant particles the Dark Remnant pulls into play at once during the draw-in/consume phase. Once that many are active, another is only drawn in once one of the current ones has actually been consumed — a straight 1-out-1-in swap, not the whole remaining field flooding in at once.",cap on simultaneously-drawn-in points during the Dark Remnant's active/consume phase — refilled 1-for-1 as each is consumed
-blackMult,21,Mass ×,1,500,1,Dark Remnant — Behavior,gameplay,,,,Threshold = maxRadiusMass × this,
+darkMass,84630,Dark Remnant mass,1000,1000000,10,Dark Remnant — Behavior,gameplay,,,,"The one mass every Point outcome comes from. This mass: a Point dies into a Dark Remnant. Half: a Point dies into an exotic remnant, and two meeting make a Dark Remnant. A quarter: a Point is at its max radius (it dies into a Bright Remnant), and two meeting make an exotic remnant. Risks: WARNING from a quarter, DANGER from half","a Point of this mass dies into a Dark Remnant; /2: dies into an exotic remnant; /4: a Point's max radius mass, and what two Points each need to collide into an exotic remnant (a Dark Remnant when their sum reaches this)"
 blackGrowMs,1500,Grow ms,0,3000,100,Dark Remnant — Behavior,gameplay,,,,Point -> full scale duration before it starts affecting the scene,ms: single point -> derived full scale before it starts affecting the scene
 bhThemeFlashMs,380,Theme flash ms,0,2000,50,Dark Remnant — Behavior,gameplay,,,,Dark→light theme-shift flash once the darkness fully covers the screen and starts drawing everything in,ms: the dark→light theme-shift flash once the darkness finishes covering the screen and the draw-in wave begins
 bhBlurWide,1,Blur wide,0,24,1,Dark Remnant — Glow,theme,,,,Wide glow blur radius on the black remnant (px),wide blur (px) — matches nebBlur by default so it blends like the nebula
@@ -527,8 +526,6 @@ dilMin,0.05,Dilation min nova,0,0.5,0.01,Time dilation & Risks,gameplay,,,,Game-
 dilMax,0.5,Dilation max nova,0,0.9,0.01,Time dilation & Risks,gameplay,,,,Game-speed reduction of a max-scale nova; scales linearly between min and max,
 dilFloor,0.25,Dilation floor,0.05,1,0.05,Time dilation & Risks,gameplay,,,,Stacked novas never slow the game below this speed (0.25 = at most 75% slow),
 dilFadeMs,250,Dilation release ms,0,1500,50,Time dilation & Risks,gameplay,,,,"Once a nova's timer (Nova fresh grace) has passed, its slow eases out over this long (game time)",
-riskWarnMass,68000,Risk WARNING mass,1,5000,10,Time dilation & Risks,gameplay,,,,Points above this mass show a blinking WARNING (default: half the Dark Remnant formation mass),
-riskDangerMass,136000,Risk DANGER mass,1,400000,100,Time dilation & Risks,gameplay,,,,Points above this mass show DANGER,
 cacheKeyR,16,Cache keyhole pane R,6,40,1,Time dilation & Risks,gameplay,,,,Radius of the central keyhole glass pane of a Cache,
 masterVol,0.7,Master volume,0,1,0.05,Master volume,sounds,,,,Overall volume (also in the Esc menu),
 duckChance,0.25,Duck chance,0,1,0.01,Ducks,gameplay,,,,Chance a Dark Remnant comes out as a duck instead (the surface then carries on),
