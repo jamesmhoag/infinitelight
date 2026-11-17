@@ -163,7 +163,7 @@ body.shop-open #hdock{z-index:59}#hinv .slot.wal::before{border-color:rgba(255,2
 <div id="veil"></div>
 <div id="bfx"></div>
 <iframe id="neb" data-tt="map.ui.surface"></iframe>
-<script src="content.js?v=20261117w"></script><script src="shared.js?v=20261117w"></script><script src="cabin.js?v=20261117w"></script>
+<script src="content.js?v=20261117x"></script><script src="shared.js?v=20261117x"></script><script src="cabin.js?v=20261117x"></script><script src="music.js?v=20261117x"></script>
 <script>
 // ╔══════════════════════════════════════════════════════════════════════════════╗
 // ║  MAP ENGINE                                                                 ║
@@ -182,7 +182,7 @@ let playLog=[],clock=3,day=1,pool=6,burstFx=null,dayLog=[],dayCnt={b:0,d:0},pend
 // // clock: the hour (3 = Twilight … 24 = Midnight, the day's last turn); day: your attempts; pool: what the source put out at its last burst; fresh: no ring added yet since it
 let constel=[],armed=null,weaveSel=[],weaveAsk=null,clearFx={},mergeFx=[],feedMsg={t:'',d:'',at:-1e9}; // constellations {keys,type}; the armed map item; a Weave being drawn; animations; the final count
 const STEP_H=3; // the day: eight turns of three hours
-const CACHE_V='20261117w'; // the build: bump with shared.js's
+const CACHE_V='20261117x'; // the build: bump with shared.js's
 const SCENE=new URLSearchParams(location.search).get('scene'); // a Guide / event demo: the map plays a scripted moment (no surface behind it)
 let phase='move',turnTimer=0,mergeTimer=0;
 let gameOverReason='';
@@ -1007,6 +1007,7 @@ function openLakeGood(d){const g=d.good,now=performance.now();ripples.push({x:d.
   if(g.kind==='sign'){feed(goodNameM(g),txt('good.sign_d'));return;}
   if(g.kind==='chest'){if(!((inv&&inv.key)||0)&&!TEST.get('free')){if(!d.dunk)d.dunk=now;feed(txt('good.chest'),txt('chest.need_key'),'no');return;}neb({cmd:'chest',id:g.id});return;} // (the surface keeps the purse: it spends the Key and counts the hoard)
   if(g.kind==='box'&&SHOPS[g.shop]&&!g.give&&!disc.has('cat:'+g.shop))catTake(g.shop); // a box from a shop: its catalogue inside
+  if(!g.give&&g.kind!=='chest'&&Math.random()<(T.recFind!=null?T.recFind:0.12)){const L=RECORDS.filter(r=>r.g!=='hybrid'&&!disc.has('up:'+r.id)),r=L[(Math.random()*L.length)|0];if(r){disc.add('up:'+r.id);neb({cmd:'discover',id:'up:'+r.id});feed(txt('map.rec.found',r.n),txt('map.rec.g_'+r.g));}} // a record in the trash
   if(d.flot&&cells[d.flot]){delete cells[d.flot].flot.give;for(let i=0;i<8;i++)splashes.push({x:d.x,y:d.y,t:now+i*70,n:4,a:i/8*6.28});saveMap();} // an order: its life preserver sinks; the box stays, trash on its hex
   g.open=true;d.type=goodTypeM(g);d.kick=1;neb({cmd:'unbox',id:g.id,give:g.give||(g.kind==='soda'?{pulsing:1}:g.kind==='coffee'?{bright:15}:g.kind==='can'?{duck:1}:{[SHOPS[g.shop]&&SHOPS[g.shop].cur||'bright']:20})});}
 function chestDone(m){const d=pond.find(x=>x.good&&x.good.id===m.id);if(!m.ok){feed(txt('good.chest'),m.msg||'','no');if(d&&!d.dunk)d.dunk=performance.now();return;}
@@ -1188,7 +1189,7 @@ function loadMap(){
   let d=null;try{d=JSON.parse(localStorage.getItem(MAP_KEY)||'null');}catch(e){}
   if(!d||!d.cells)return false;
   if(d.v!==3)return false; // a map from before the times of day starts over
-  ({cells,turn,clock,day,pool,constel,dayLog,dayCnt,pendingEnd,score,pQ,pR,totalCells,phase,depth,gameOverReason,captureOrder,mergeGroups,mergeIdCounter,voidOpen}=d);mapHist=d.hist||{};playLog=d.playLog||[];if(phase==='collapse'&&!d.pendingEnd){phase='move';for(const k in cells)delete cells[k].stain;} /* (left mid-collapse: it is over) */nebulaCellKey=d.session||null;hubPop=d.hubPop||[null,null];drinks=d.drinks!=null?d.drinks:waterMax();bottle=d.bottle||0;bottleAt=d.bottleAt!=null?d.bottleAt:-1;fridge=d.fridge||0;droneDay=d.droneDay||0;asleep=d.asleep||null;wakeFor=d.wakeFor!=null?d.wakeFor:-1;if(asleep&&!pendingEnd){buoy.rested=true;setTimeout(sleepStep,1200);} // (left asleep: the sleep goes on)_sunH=clock;_sun={from:clock,to:clock,t0:0};dayLog=dayLog||[];dayCnt=dayCnt||{b:0,d:0};
+  ({cells,turn,clock,day,pool,constel,dayLog,dayCnt,pendingEnd,score,pQ,pR,totalCells,phase,depth,gameOverReason,captureOrder,mergeGroups,mergeIdCounter,voidOpen}=d);mapHist=d.hist||{};playLog=d.playLog||[];if(phase==='collapse'&&!d.pendingEnd){phase='move';for(const k in cells)delete cells[k].stain;} /* (left mid-collapse: it is over) */nebulaCellKey=d.session||null;hubPop=d.hubPop||[null,null];drinks=d.drinks!=null?d.drinks:waterMax();bottle=d.bottle||0;bottleAt=d.bottleAt!=null?d.bottleAt:-1;fridge=d.fridge||0;droneDay=d.droneDay||0;asleep=d.asleep||null;wakeFor=d.wakeFor!=null?d.wakeFor:-1;if(asleep&&!pendingEnd){buoy.rested=true;setTimeout(sleepStep,1200);} /* (left asleep: the sleep goes on) */_sunH=clock;_sun={from:clock,to:clock,t0:0};dayLog=dayLog||[];dayCnt=dayCnt||{b:0,d:0};
   if(pendingEnd)finishDay();else if(phase==='collapse')phase='move';else if(phase==='ended')showDayReport(); // a day left falling in finishes at once; a won run shows its report
   mapResize();focusCam(false);updateHint();return true;
 }
@@ -1486,10 +1487,18 @@ function openShop(key){const el=shopEls[key],s=el&&el._s;if(!s||phase==='collaps
 // Ordering from one: what it gives floats to you on a life preserver from that shop (flotPut), a hex a time of day (flotDrift); open it beside it
 function catTake(id){disc.add('cat:'+id);neb({cmd:'discover',id:'cat:'+id});feed(txt('map.cat.took',SHOPS[id].n),txt('map.cat.took_d'));}
 function drawerOpen(){shopUI={drawer:true,id:null};renderShop();}
+// The record player (a starting item on a mast mount, music.js): its dock slot lists the records you own; one clicked plays (again: stops); a record plays
+// 48 bars, then the next you own. Mounted and on, it starts with your first click on the map (a browser plays sound only after one)
+const recPlayer=()=>!!(buoyKit&&buoyKit.slots.mast.slice(0,kitCounts(buoyKit).mast).includes('record')&&disc.has('up:record')),recMine=()=>RECORDS.filter(r=>recOwned(r,k=>disc.has(k)));
+function recordsOpen(){shopUI={records:true,id:null};renderShop();}
+function recPlay(id){if(MUSIC.cur&&MUSIC.cur.id===id&&MUSIC.pref.on)musicStop();else{musicPlay(id);feed('♪ '+RECORDS.find(r=>r.id===id).n,txt('map.rec.g_'+RECORDS.find(r=>r.id===id).g));}if(shopUI&&shopUI.records)renderShop();syncDock();}
+MUSIC.next=()=>{const L=recMine(),i=L.findIndex(r=>r===MUSIC.cur);if(L.length&&recPlayer())musicPlay(L[(i+1)%L.length].id);else musicStop();syncDock();};
+addEventListener('pointerdown',()=>{if(!MUSIC.cur&&MUSIC.pref.on&&recPlayer()&&!SCENE){const L=recMine();if(L.length)musicPlay((L.find(r=>r.id===MUSIC.pref.id)||L[0]).id);syncDock();}},true);
 function catOpen(id){const s=shopList().find(x=>x.id===id);if(!s){feed(SHOPS[id].n,txt('map.cat.away'),'no');return;}shopUI={id,rank:s.rank||3,key:s.key,cat:true};renderShop();}
 function closeShop(){if(shopUI&&shopUI.gift){quitMain();return;} // leaving the Gift Shop: the run is over
   if(drone&&drone.open&&!drone.back)drone.back=performance.now(); /* (the drone: home again) */shopUI=null;renderShop();evPump();}
 function shopRows(){const u=shopUI,has=k=>disc.has(k);
+  if(u.records)return recMine().map(r=>({c:1,n:(MUSIC.cur===r&&MUSIC.pref.on?'▶ ':'')+r.n,sub:txt('map.rec.g_'+r.g)+' · '+r.bpm+' bpm',go:()=>recPlay(r.id)}));
   if(u.drawer){const cs=Object.keys(SHOPS).filter(id=>has('cat:'+id));return cs.length?cs.map(id=>({c:1,n:SHOPS[id].n,sub:shopList().some(x=>x.id===id)?SHOPS[id].tag:txt('map.cat.away'),go:()=>catOpen(id)})):[{c:1,n:txt('map.cat.none'),sub:txt('map.cat.none_d'),go:closeShop}];}
   if(u.exit)return[{c:1,n:txt('map.gift.yes'),sub:txt('map.gift.yessub'),go:giftEnter},{c:1,n:txt('map.gift.no'),sub:txt('map.gift.nosub'),go:closeShop}];
   if(u.pick)return Object.keys(DUCK_TYPES).map(t=>({n:duckStar(DUCK_TYPES[t])+DUCK_TYPES[t].name,p:'× '+(duckLog[t]||0),go:()=>shopBuy(shopItem('pickduck'),t)}));
@@ -1508,13 +1517,13 @@ let shopHover=null; // the item under the cursor: its details go to the feed, so
 function renderShop(){const el=document.getElementById('shop');if(SCENE)requestAnimationFrame(()=>{const b=el.querySelector('.sbox');if(b){b.style.transform='';const k=Math.min(1,innerHeight*0.94/b.offsetHeight,innerWidth*0.94/b.offsetWidth);b.style.transform='scale('+k.toFixed(3)+')';}}); // (a card's demo: the list scaled to fit its frame)
   el.classList.toggle('show',!!shopUI&&currentView!=='overlay'); // (hidden while a card the shop gave is showing)
   document.body.classList.toggle('shop-open',!!shopUI);if(!shopUI){syncDock();document.body.classList.remove('focus-clock','focus-items');return;}
-  const u=shopUI,S=SHOPS[u.id]||{},all=shopRows(),hd=u.exit?['map.exit','map.gift.ask']:u.pick?['map.pick_a_duck','map.ninety_nine_ducks_for']:u.drawer?['map.cat.drawer','map.cat.drawer_d']:null,curs=[...new Set(all.filter(r=>r.cur).map(r=>r.cur))];if(!curs.includes(u.tab))u.tab=curs.includes(S.cur)?S.cur:curs[0];
+  const u=shopUI,S=SHOPS[u.id]||{},all=shopRows(),hd=u.exit?['map.exit','map.gift.ask']:u.pick?['map.pick_a_duck','map.ninety_nine_ducks_for']:u.drawer?['map.cat.drawer','map.cat.drawer_d']:u.records?['map.rec.title','map.rec.d']:null,curs=[...new Set(all.filter(r=>r.cur).map(r=>r.cur))];if(!curs.includes(u.tab))u.tab=curs.includes(S.cur)?S.cur:curs[0];
   const rows=hd?all:all.filter(r=>r.cur===u.tab); // the whole list: a long one makes the shop taller
   const art=el.querySelector('.sart'),sp=u.id&&shopSprite(u.id,S.street?(S.bk||'s'):SHOP_RANK_BLD[u.rank-1],true,0,true,false),card=el.querySelector('.scard');
   art.style.display=sp?'':'none';if(sp){const w=Math.min(150,sp.width*0.45),h=w*sp.height/sp.width;art.width=sp.width;art.height=sp.height;art.style.width=w+'px';art.style.height=h+'px';{const ax=art.getContext('2d');ax.drawImage(sp,0,0);if(sp._glow){ax.globalCompositeOperation='lighter';ax.drawImage(sp._glow,0,0);ax.globalCompositeOperation='source-over';}}}
   shopHover=null;syncDock(); // the wallet slot for the tab shown, in the dock
   document.body.classList.toggle('focus-clock',u.id==='clock');document.body.classList.toggle('focus-items',u.id==='corner'); // what the shop works on, over the dimmed map
-  const st=el.querySelector('.sstat');st.style.display=u.exit||u.drawer?'none':'';st.innerHTML=STATUS_CSS+'<div class="sth">'+txt('map.shop.status')+'</div>'+statusHTML(runStatus);{const now={};for(const tr of st.querySelectorAll('tr')){const td=tr.children;if(td.length<2)continue;const k=td[0].textContent,v=td[1].textContent;now[k]=v;if(_stPrev&&_stPrev[k]!=null&&_stPrev[k]!==v)tr.classList.add('chg');}_stPrev=now;} // a value that just changed (a purchase, a card) lights up
+  const st=el.querySelector('.sstat');st.style.display=u.exit||!u.id?'none':'';st.innerHTML=STATUS_CSS+'<div class="sth">'+txt('map.shop.status')+'</div>'+statusHTML(runStatus);{const now={};for(const tr of st.querySelectorAll('tr')){const td=tr.children;if(td.length<2)continue;const k=td[0].textContent,v=td[1].textContent;now[k]=v;if(_stPrev&&_stPrev[k]!=null&&_stPrev[k]!==v)tr.classList.add('chg');}_stPrev=now;} // a value that just changed (a purchase, a card) lights up
   card.innerHTML=`<h2>${hd?txt(hd[0]):S.n}</h2><div class="stag">${hd?txt(hd[1]):S.tag+(u.cat?' · '+txt('map.cat.ordering'):'')}</div>`+
     (curs.length&&!hd?'<div class="stabs">'+curs.map(c=>`<span class="${c===u.tab?'on':''}" data-t="${c}">${curIcon(c)}</span>`).join('')+'</div>':'')+'<div class="srows">'+ // a tab for each thing it takes, by its symbol (one alone stays as the open tab)
     rows.map((r,i)=>r.c?`<div class="srow c" data-i="${i}"><span>${r.n}<br>${r.sub}</span></div>`:
@@ -1656,6 +1665,7 @@ function syncDock(){const box=document.getElementById('hinv');if(!box)return;
     '<div class="sep"></div>'+['prism','knot','gate','key','lens'].filter(k=>(inv[k]||0)>0).map(k=>`<div class="slot empty" data-k="${k}" title="${KIND_NAME[k]} (earned)">${icons[k]||KIND_NAME[k][0]}<b>${inv[k]}</b></div>`).join('')+
     (shopUI?'<div class="sep"></div>'+(shopUI.gift?['gift']:['bright','dim','neutron','magnetic','pulsing','duck']).map(c=>`<div class="slot${c===shopUI.tab?' wal':''}" data-k="${c}" title="${curName(c)}">${curIcon(c)}<b>${fmtN(shopWallet(c))}</b></div>`).join(''):''); // in a shop: every purse, the open tab's lit
   if(!SCENE&&buoyKit&&buoyKit.slots.hull.slice(0,kitCounts(buoyKit).hull).some(id=>{const it=shopItem(id);return it&&it.fx.anchor;}))box.insertAdjacentHTML('afterbegin',`<div class="slot anchor${anchored()?' armed':''}" data-k="anchor" title="${txt(anchored()?'map.anchor.down':'map.anchor.up')}" onclick="anchorSet(!anchored())">⚓<b>${txt(anchored()?'map.anchor.down_s':'map.anchor.up_s')}</b></div>`); // the anchor: down (the tide holds off) or up
+  if(!SCENE&&recPlayer())box.insertAdjacentHTML('afterbegin',`<div class="slot rec${MUSIC.cur&&MUSIC.pref.on?' armed':''}" data-k="rec" title="${txt('map.rec.slot',MUSIC.cur?MUSIC.cur.n:txt('map.rec.off'))}" onclick="recordsOpen()">♪<b>${MUSIC.cur?txt('map.rec.on_s'):txt('map.rec.off_s')}</b></div>`); // the record player: your records
   if(!SCENE)box.insertAdjacentHTML('afterbegin',`<div class="slot water${dry()?' empty':''}" data-k="drinks" title="${txt('map.water.slot',drinks,waterMax())}${bottle?' · '+txt('map.water.slot_bottle'):''}"><svg viewBox="0 0 22 22" width="18" height="18"><path d="M11 2C8 7 5 10.5 5 14a6 6 0 0 0 12 0c0-3.5-3-7-6-12z" fill="${bottle?'#9fe6ff':'currentColor'}" opacity=".9"/></svg><b>${drinks}${bottle?'+1':''}${fridge?' ❄'+fridge:''}</b></div><div class="sep"></div>`);box.querySelector('.slot.water').onclick=fridgeDrink; // the fresh drinks barrel (and a bottle, drunk, waiting for your next move)
   box.insertAdjacentHTML('beforeend',`<div class="slot buoy${nw('buoy')}" data-k="buoy" data-new="hk_buoy" title="${txt('map.buoy.deck')}">${BUOY_ICO}</div>`);box.querySelector('.buoy').onclick=()=>currentView==='cabin'?cabinClose():cabinOpen(); // your buoy: below deck, or back up (its Status is the mirror there)
   box.insertAdjacentHTML('beforeend',ilDockArrow(dockMin));
@@ -1679,7 +1689,7 @@ function feedTick(now){{const dk=document.getElementById('hdock'),r=dk&&dk.getBo
   const slot=over&&over.closest&&over.closest('#hinv .slot');
   if(now-feedMsg.at<3500){a=feedMsg.t;b=feedMsg.d;}
   else if(slot){[a,b]=itemInfo(slot.dataset.k);}
-  else if(shopUI){[a,b]=shopHover||[shopUI.drawer?txt('map.cat.drawer'):SHOPS[shopUI.id].n,shopUI.exit||shopUI.drawer?'':txt('map.shop.point')];}
+  else if(shopUI){[a,b]=shopHover||[shopUI.id?SHOPS[shopUI.id].n:txt(shopUI.records?'map.rec.title':'map.cat.drawer'),shopUI.exit||!shopUI.id?'':txt('map.shop.point')];}
   else if(onMap&&shopAt(mX,mY)){[a,b]=shopInfo(shopAt(mX,mY).dataset.key);}
   else if(du&&du.bottle){a=txt(du.empty?'map.bottle.empty':'map.bottle.full');b=txt(du.empty?'map.bottle.emptyinfo':'map.bottle.fullinfo');}
   else if(du&&du.pd&&pday){a=txt('map.pday.hover',pday.ducks.length);b=pday.ducks.map(k=>(DUCK_TYPES[k]||{}).name).join(' · ');}

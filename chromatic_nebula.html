@@ -120,7 +120,7 @@ button:hover{background:rgba(255,255,255,0.15);}
   <div id="dock" class="bottom"><div id="inventoryPanel"></div><div id="touch-info"></div></div>
   <canvas id="cur"></canvas>
 </div>
-<script src="content.js?v=20261117w"></script><script src="shared.js?v=20261117w"></script>
+<script src="content.js?v=20261117x"></script><script src="shared.js?v=20261117x"></script>
 <script>
 txtApply(); // the page's own labels (content/strings.csv)
 const _SRC=document.documentElement.outerHTML; // kept so the Encyclopedia can run live scenes as embedded copies of the game
@@ -2040,7 +2040,7 @@ const INV_STORAGE_KEY='chromaticNebulaInventory_v1';
 let gateFx=null,keyFx=null; // the Gate's rewind transition / the Key's insert-twist-collapse animation (real-time, see draw())
 let keyShapes=[];        // one entry per Key in the purse, oldest first — each remembers the Pattern that formed it
 let inventory={bright:0,dim:0,neutron:0,magnetic:0,pulsing:0,dial:0,leash:0,prism:0,gate:0,knot:0,key:0,lens:0,weave:0};
-let invDisabled=new Set(),invDisableMode=false,discSeen=new Set(),shopLog={},lifeLog={runs:0,days:0,bright:0,dark:0,rift:0},mapHist=null,_buoySub='now'; // lifeLog: every run there has been (runs begun, days, surfaces cleared of each kind); mapHist: this run, as the map last told it; shopLog: what you have bought, item → how many (Collections → Shops)
+let invDisabled=new Set(),invDisableMode=false,discSeen=startItems(new Set()),shopLog={},lifeLog={runs:0,days:0,bright:0,dark:0,rift:0},mapHist=null,_buoySub='now'; // lifeLog: every run there has been (runs begun, days, surfaces cleared of each kind); mapHist: this run, as the map last told it; shopLog: what you have bought, item → how many (Collections → Shops)
 let ducks=[],duckLog={},duckLuck={d:0,e:0},runState=runFresh(); // rubber ducks on this surface / the duck collection (type → count, saved with the inventory) / failed tries since the last duck (d) and the last exotic (e): each adds T.duckLuckStep to its chance (saved, so it carries across surfaces and days)
 let invFlash={kind:null,at:0};   // last slot that gained an item (its icon pulses)
 let earnFx=[],constellationFx=[]; // real-time visual effects (see drawEarnFx / drawConstellationFx)
@@ -2050,7 +2050,7 @@ setTimeout(()=>{try{achCheck(null);}catch(e){console.warn('achievements',e);}},0
     const raw=localStorage.getItem(INV_STORAGE_KEY);
     if(raw){const saved=JSON.parse(raw);for(const k of INV_KINDS)if(typeof saved[k]==='number')inventory[k]=saved[k];
     if(Array.isArray(saved.disabled))invDisabled=new Set(saved.disabled);
-    if(Array.isArray(saved.discovered))discSeen=new Set(saved.discovered);
+    if(Array.isArray(saved.discovered))discSeen=new Set(saved.discovered);startItems(discSeen);
     if(saved.ducks&&typeof saved.ducks==='object')duckLog=saved.ducks;if(saved.buys&&typeof saved.buys==='object')shopLog=saved.buys;if(saved.life&&typeof saved.life==='object')lifeLog=Object.assign(lifeLog,saved.life);
     if(saved.luck)duckLuck=Object.assign({d:0,e:0},saved.luck);
     if(saved.run)runState=Object.assign(runFresh(),saved.run);
@@ -2129,7 +2129,7 @@ function addInventory(kind,amount,bought,at){ // (at: where it was earned, for i
     if(x==='all'||x===kind)amount*=3;} // a good fortune: in threes
   const max=invMaxFor(kind);
   if(amount>0){invFlash={kind,at:performance.now()};if(kind==='dial')fireEvent('string',at);else if(kind==='leash')fireEvent('spindle',at);else if(kind==='weave')fireEvent('weave',at);else if(kind==='prism'||kind==='knot'||kind==='gate'||kind==='key'||kind==='lens')fireEvent('pat_'+kind);} // holding a Pattern item reveals it, as forming one does
-  const was=inventory[kind];inventory[kind]=Math.max(0,Math.min(Math.max(max,was),inventory[kind]+amount)); // (more than the cap already held, as from before a smaller chest: kept, never cut down; it just cannot grow)const dn=inventory[kind]-was;if(dn>0&&!bought)stat('earn:'+kind,dn);else if(dn<0)stat('use:'+kind,-dn); // (lifetime: earned, not bought; used)
+  const was=inventory[kind];inventory[kind]=Math.max(0,Math.min(Math.max(max,was),inventory[kind]+amount)); /* (more than the cap already held, as from before a smaller chest: kept, never cut down; it just cannot grow) */const dn=inventory[kind]-was;if(dn>0&&!bought)stat('earn:'+kind,dn);else if(dn<0)stat('use:'+kind,-dn); // (lifetime: earned, not bought; used)
   saveInventory();
   updateInventoryUI();
 }
@@ -4508,7 +4508,7 @@ function discTick(){ // a locked element is fully covered by a veil showing its 
 let _dcX=-1,_dcY=-1,_dcVeil=null,_dcMet=null;
 document.addEventListener('mousemove',e=>{_dcX=e.clientX;_dcY=e.clientY;},true);
 function discVeil(){if(!_dcVeil){_dcVeil=document.createElement('div');_dcVeil.style.cssText="position:fixed;z-index:70;pointer-events:none;display:none;align-items:center;justify-content:center;gap:.3em;background:linear-gradient(90deg,#efe4c6,#f6eed8);border:1.5px dashed rgba(58,44,24,.6);color:#3a2c18;font-family:'Caveat','Segoe Print','Bradley Hand','Chalkboard SE','Comic Sans MS',cursive;box-sizing:border-box;border-radius:4px;box-shadow:0 2px 8px rgba(0,0,0,.35);white-space:nowrap;overflow:hidden";document.body.appendChild(_dcVeil);}return _dcVeil;} // (on the Journal's paper, in its hand)
-function resetDiscoveries(){discSeen=new Set();_discReset=true;saveInventory();applyDisc();flashSaveStatus(txt('surf.discoveries_reset'));}
+function resetDiscoveries(){discSeen=startItems(new Set());_discReset=true;saveInventory();applyDisc();flashSaveStatus(txt('surf.discoveries_reset'));}
 window.resetDiscoveries=resetDiscoveries;
 /* Testing: discover everything there is (the interface, object types, events, the Guide and its map), fill every item, and clear the surface as a chosen kind */
 function discAll(){for(const d of DISC_ALL)discSeen.add(d[0]);for(const k in T)if(k.slice(0,3)==='dc_'){const id=k.slice(3);if(id.slice(0,4)==='obj_'){discSeen.add('of_'+id.slice(4));discSeen.add('ot_'+id.slice(4));}else discSeen.add(id);}
@@ -4519,7 +4519,7 @@ const TEST_SNAP='il_test_snap_inv';
 function testOn(){try{if(!localStorage.getItem(TEST_SNAP))localStorage.setItem(TEST_SNAP,JSON.stringify(Object.assign(invPayload(),{keyShapes})));}catch(e){} /* (once: the save as it was before testing) */
   TEST.set('mode',1);TEST.set('free',1);discAll();unlockAll();testFill();testSync();}
 function testOff(){let s=null;try{s=JSON.parse(localStorage.getItem(TEST_SNAP)||'null');}catch(e){}TEST.set('mode',0);TEST.set('free',0);
-  if(s){for(const k of INV_KINDS)inventory[k]=typeof s[k]==='number'?s[k]:0;invDisabled=new Set(s.disabled||[]);discSeen=new Set(s.discovered||[]);duckLog=s.ducks||{};duckLuck=Object.assign({d:0,e:0},s.luck||{});runState=Object.assign(runFresh(),s.run||{});keyShapes=s.keyShapes||[];shopLog=s.buys||{};lifeLog=Object.assign({runs:0,days:0,bright:0,dark:0,rift:0},s.life||{});
+  if(s){for(const k of INV_KINDS)inventory[k]=typeof s[k]==='number'?s[k]:0;invDisabled=new Set(s.disabled||[]);discSeen=startItems(new Set(s.discovered||[]));duckLog=s.ducks||{};duckLuck=Object.assign({d:0,e:0},s.luck||{});runState=Object.assign(runFresh(),s.run||{});keyShapes=s.keyShapes||[];shopLog=s.buys||{};lifeLog=Object.assign({runs:0,days:0,bright:0,dark:0,rift:0},s.life||{});
     _discReset='all';saveInventory();} /* (nothing merged back: the save is exactly as it was) */
   try{localStorage.removeItem(TEST_SNAP);}catch(e){}applyDisc();updateInventoryUI();testSync();if(HUB)hubPost({type:'testRestored'});else location.reload();}
 function testMode(){if(HUB){hubPost({type:'testMode'});return;}if(TEST.get('mode'))testOff();else testOn();} // (on the map, the map runs it: its own save is snapshotted too)
@@ -13065,7 +13065,7 @@ function cardHTML(ev,mini,pg){ // the one card format: name bar, art box, type l
   return `<div class="mtg${sm?' sm':mini===2?' pic':''}${!pg&&discSeen.has('ev:'+ev.id)&&ilNew('ev:'+ev.id)?' fd':''}" data-ev="${ev.id}" data-new="ev:${ev.id}" style="--rc:${TIER_COL[t]}"><div class="nm"><b>${gEsc(ev.name)}</b><span class="gem"></span></div><div class="art" data-scene="${ev.scene}" data-ev="${ev.id}" data-k="${ev.ico}">${sm?evStillHTML([ev.id])||`<canvas class="rl-m" width="64" height="64" data-k="${ev.ico}"></canvas>`:''}</div>${body}</div>`;
 }
 function mountScene(h,w,hh){if(!h||h.firstChild||document.querySelectorAll('.rl-live iframe:not(.held),.mtg .art iframe:not(.held)').length>=5)return; /* (a page's picture holding on its last frame does not count) */{const R=(h.dataset.ev||'').split(',').map(evRecFor).find(Boolean);if(R&&!w){evReplayMount(h,R);return;}} /* something you witnessed: your own recording of it, live (a demo only for what you have not) */const f=document.createElement('iframe'),nm=h.dataset.s||h.dataset.scene;f.style.cssText='border:0;max-width:100%;pointer-events:none;background:#000;border-radius:6px;'+(w?`width:${w}px;height:${hh}px`:'width:100%;height:100%');
-  if(nm.slice(0,4)==='hub:'){const[sn,dk]=nm.slice(4).split(':');f.src='Surface_Map_HUB.html?v=20261117w&scene='+sn+(sn==='shop'?'&k='+encodeURIComponent(dk||''):'')+'&T='+encodeURIComponent(JSON.stringify(mapSceneT()))+'&D='+encodeURIComponent(JSON.stringify(dk&&DUCK_TYPES[dk]?{[dk]:DUCK_TYPES[dk]}:Object.fromEntries(Object.entries(DUCK_TYPES).slice(0,4))));}else{f.srcdoc=liveSrc(nm,null,h.dataset.hold);if(h.dataset.hold)f.className='held';}h.appendChild(f);} // a Surface Map demo is played by the map itself
+  if(nm.slice(0,4)==='hub:'){const[sn,dk]=nm.slice(4).split(':');f.src='Surface_Map_HUB.html?v=20261117x&scene='+sn+(sn==='shop'?'&k='+encodeURIComponent(dk||''):'')+'&T='+encodeURIComponent(JSON.stringify(mapSceneT()))+'&D='+encodeURIComponent(JSON.stringify(dk&&DUCK_TYPES[dk]?{[dk]:DUCK_TYPES[dk]}:Object.fromEntries(Object.entries(DUCK_TYPES).slice(0,4))));}else{f.srcdoc=liveSrc(nm,null,h.dataset.hold);if(h.dataset.hold)f.className='held';}h.appendChild(f);} // a Surface Map demo is played by the map itself
 function mapSceneT(){const o={};for(const k in T)if(/^(map|bh|duck|wake|glass|metal|dimGlow|glowHalo|maxSpeed)/.test(k))o[k]=T[k];return o;} // what a map demo needs of the tuners
 function showCardHTML(html){ // a Guide card (an entry or a shop) opened over the Guide, where an event card shows
   guideCSS();if(!_evOpen)_evPausedIt=false;_evOpen=true;_evReview=true;const ov=evOverlayEl();ov.innerHTML=`<div class="ev-box">${html}<button id="evOk">${txt('card.close')}</button></div>`;ov.style.display='flex';wrap.classList.add('ev-open');
@@ -13747,7 +13747,7 @@ window.addEventListener('message',e=>{
   else if(m.cmd==='buy'){const r=shopBuy(m.id,m.arg,m.ship);hubPost(Object.assign({type:'bought',id:m.id},r));if(r.draw){hubOverlay_(true);showDraw();}hubState();} // a Carnival card: the draw shows here, over the map
   else if(m.cmd==='lose'){for(const id of m.ids||[])discSeen.delete('up:'+id);_discReset=true;saveInventory();if(HUB)hubState();} // a wreck: what went overboard is no longer yours (this save is what holds: what it no longer has is not merged back)
   else if(m.cmd==='day'){if(m.newRun){runState=runFresh();lifeLog.runs++;}else if(m.day!==runState.day){lifeLog.days++;Object.assign(runState,{prevFortune:runState.fortune||null,fortune:runState.dimNext||null,dimNext:null,charm:0,draw:null,dimDone:{}});fortuneStart();}runState.day=m.day;runState.clock=3;runExpire(); /* (yesterday's dim fortune is today's; a Daily Wonder runs on to its time) */saveInventory();updateInventoryUI();hubState();} // a new day: today's fortune, bonus and Luck Charms are over // a shop on the map: this pays and hands it over
-  else if(m.cmd==='wipe'){for(const k of INV_KINDS)inventory[k]=0;duckLog={};duckLuck={d:0,e:0};runState=runFresh();discSeen=new Set();invDisabled=new Set();keyShapes=[];_discReset='all';IDB.del('session').catch(()=>{});saveInventory();updateInventoryUI();applyDisc();hubState();} // the Gift Shop: everything goes
+  else if(m.cmd==='wipe'){for(const k of INV_KINDS)inventory[k]=0;duckLog={};duckLuck={d:0,e:0};runState=runFresh();discSeen=startItems(new Set());invDisabled=new Set();keyShapes=[];_discReset='all';IDB.del('session').catch(()=>{});saveInventory();updateInventoryUI();applyDisc();hubState();} // the Gift Shop: everything goes
   else if(m.cmd==='state')hubState('state',true);
   else if(m.cmd==='remote')remoteOn(m); // a map player's pointer on this surface
   else if(m.cmd==='remoteClear')REMOTES.clear();
@@ -13904,7 +13904,7 @@ function closeGameMenu(){
 // ── The Surface Map in the Guide ──
 RULE_TAB_COST.surf=5;
 
-Object.assign(RULE_EV,{hublake:'duck'}); // (hublight, hubview, shopbuy: learned where they happen, on the map)Object.assign(RULE_SCENES,{shopstreet:['hub:street'],shoppop:['hub:shops']});
+Object.assign(RULE_EV,{hublake:'duck'}); /* (hublight, hubview, shopbuy: learned where they happen, on the map) */Object.assign(RULE_SCENES,{shopstreet:['hub:street'],shoppop:['hub:shops']});
 // ── a shop's event: the first time you go into it (its card then shows in the Guide, with what it sells) ──
 {const at=EVENTS.findIndex(e=>e.id==='brightrelic')+1,sh=[];for(const k in SHOPS){const S=SHOPS[k];sh.push({id:'shop_'+k,name:S.n,type:txt('ev.shop.type'),rar:S.street?'c':'u',scene:'hub:shop:'+k,ico:'sign:'+k,
   facts:()=>[S.street?txt('ev.shop.street'):txt('ev.shop.popup',S.cur),S.about||'',txt('ev.shop.card')],flavor:S.tag});}EVENTS.splice(at,0,...sh);} // a shop's first opening (its text: content/strings.csv)
@@ -14201,7 +14201,7 @@ SCENES.duck={dur:6500,setup(S){S.ps=[];S.ring(6,30,60,(x,y,i)=>S.ps.push(S.pig(x
     if(S.d&&!S.shot&&t>1700){S.shot=1;for(const p of S.ps){const dx=S.d.x-p.x,dy=S.d.y-p.y,l=Math.hypot(dx,dy)||1;p.vx=dx/l*1.6;p.vy=dy/l*1.6;}}}}; // pigments thrown at it bounce off; it squeaks and tumbles
 RULE_TAB_COST.ducks=0;
 
-Object.assign(RULE_EV,{duck:'duck'}); // (duckexo: learned when an exotic one comes out)Object.assign(RULE_SCENES,{duck:['duck']});
+Object.assign(RULE_EV,{duck:'duck'}); /* (duckexo: learned when an exotic one comes out) */Object.assign(RULE_SCENES,{duck:['duck']});
 // ═════════════════════════ RIFT ═════════════════════════
 // The mechanics trend toward ever more mass in fewer places. A Rift (a Tear): when the mass of everything on the surface inside one
 // area — any 2×2 block of Rift-area cells — reaches Rift mass, the surface tears there and a Dark Remnant forms at that mass's centre.

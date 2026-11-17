@@ -81,7 +81,9 @@ function buoyColHint(c){const i=BUOY_COLS.indexOf(c);if(i<0)return null;return[B
 // in the Mirror (Status → Mounts) and seen on the buoy wherever it shows; stowed below deck when not mounted
 const KIT_KEY='il_buoykit_v1',KIT_PARTS=['float','mast','light'],KIT_SLOTS=['hull','mast','top'];
 const HULL_MAT={wood:'#8a5a32',metal:'#9aa3ad',glass:'#bfe8ff',gold:'#e0b040',ice:'#dff6ff',dim:'#3a2630',bright:'#fffbe8',chromatic:'#c08cff'};
-function kitGet(){let k=null;try{k=JSON.parse(localStorage.getItem(KIT_KEY)||'null');}catch(e){}k=k&&typeof k==='object'?k:{};k.parts=Object.assign({float:'basic',mast:'basic',light:'basic'},k.parts||{});k.slots=k.slots||{};
+const START_ITEMS=['record']; // what every player starts with (up:<id>, once: st:<id> marks it given, so one lost overboard stays lost)
+function startItems(S){for(const id of START_ITEMS)if(!S.has('st:'+id)){S.add('st:'+id);S.add('up:'+id);}return S;}
+function kitGet(){let k=null;try{k=JSON.parse(localStorage.getItem(KIT_KEY)||'null');}catch(e){}k=k&&typeof k==='object'?k:{slots:{mast:['record']}}; /* (a new buoy: the record player on its first mast mount) */k.parts=Object.assign({float:'basic',mast:'basic',light:'basic'},k.parts||{});k.slots=k.slots||{};
   for(const s of KIT_SLOTS)k.slots[s]=Array.isArray(k.slots[s])?k.slots[s]:[];k.anchor=k.anchor!==false;return k;} // (anchor: down, when an anchor is mounted)
 function kitSave(k){try{localStorage.setItem(KIT_KEY,JSON.stringify(k));}catch(e){}}
 function kitPart(k,p){const id=k.parts[p];return id&&id!=='basic'?shopItem(id)||null:null;}
@@ -105,6 +107,7 @@ function buoyModel(name,souv,col,kit){ // name: up to 20 characters; souv: (kept
       if(L==='anchor'){beam([x,y+0.12*s,z],[x,y-0.18*s,z],0.025*s,2);beam([x-0.1*s,y-0.14*s,z],[x+0.1*s,y-0.14*s,z],0.025*s,2);box(x-0.04*s,y+0.1*s,z-0.04*s,x+0.04*s,y+0.16*s,z+0.04*s,5);}
       else if(L==='rudder'){beam([x,y+0.1*s,z],[x,y-0.2*s,z],0.02*s,2);box(x-0.015*s,y-0.22*s,z-0.12*s,x+0.015*s,y-0.02*s,z+0.02*s,8);}
       else if(L==='motor'){box(x-0.08*s,y-0.02*s,z-0.08*s,x+0.08*s,y+0.14*s,z+0.08*s,2);beam([x,y-0.02*s,z],[x,y-0.24*s,z],0.02*s,2);}
+      else if(L==='record'){box(x-0.09*s,y-0.03*s,z-0.09*s,x+0.09*s,y+0.02*s,z+0.09*s,6);box(x-0.075*s,y+0.02*s,z-0.075*s,x+0.075*s,y+0.028*s,z+0.075*s,1);beam([x+0.07*s,y+0.04*s,z+0.07*s],[x+0.01*s,y+0.04*s,z-0.02*s],0.008*s,2);} // a little turntable: its plinth, a record on it, its tone arm
       else if(L==='drone'){box(x-0.07*s,y,z-0.07*s,x+0.07*s,y+0.04*s,z+0.07*s,5);for(const[i,j]of[[1,1],[1,-1],[-1,1],[-1,-1]]){beam([x,y+0.02*s,z],[x+i*0.13*s,y+0.03*s,z+j*0.13*s],0.012*s,2);box(x+i*0.13*s-0.05*s,y+0.05*s,z+j*0.13*s-0.05*s,x+i*0.13*s+0.05*s,y+0.055*s,z+j*0.13*s+0.05*s,1);}} // a little quadcopter, its four rotors
       else if(L==='flag'){beam([x,y,z],[x,y+0.35*s,z],0.015*s,2);box(x,y+0.2*s,z-0.01*s,x+0.22*s,y+0.34*s,z+0.01*s,9);}
       else box(x-0.06*s,y-0.06*s,z-0.06*s,x+0.06*s,y+0.06*s,z+0.06*s,it&&it.fx.col!=null?it.fx.col:6);};

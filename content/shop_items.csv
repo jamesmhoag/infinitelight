@@ -154,3 +154,14 @@ chest_bri,bright,Bright compartments,20000,bright,2,,"{""up"":1}",chest_comp,,"B
 chest_energy,bright,Energy Value,250000,bright,3,,"{""up"":1}",chest_comp,,Every capacity of your chest × 10
 chest_vault,bright,Bright vault,5000000,bright,3,,"{""up"":1}",chest_energy,,Bright holds × 10 again
 drone,hull,Drone,40000,bright,2,,"{""up"":1,""mount"":""top"",""look"":""drone"",""drone"":1}",,,"Top mount. Click a shop you are not beside: it flies there and you shop as if you were (once a day; it must be home before it flies again)"
+record,pulsing,Record player,100,,1,,"{""up"":1,""mount"":""mast"",""look"":""record""}",,,"Mast mount. Plays your records (the dock's ♪); comes with its own album, Infinite Light. Every buoy starts with one"
+rec_e1,pulsing,"Record: Pulse Width",25,,1,,"{""up"":1,""record"":1}",record,,"EDM, 128 bpm: plays on your record player"
+rec_e2,pulsing,"Record: Neutron Drop",25,,1,,"{""up"":1,""record"":1}",record,,"EDM, 126 bpm: plays on your record player"
+rec_e3,pulsing,"Record: Magnetic North",25,,1,,"{""up"":1,""record"":1}",record,,"EDM, 124 bpm: plays on your record player"
+rec_e4,pulsing,"Record: Strobe Lake",25,,1,,"{""up"":1,""record"":1}",record,,"EDM, 130 bpm: plays on your record player"
+rec_e5,pulsing,"Record: Duck Bass",25,,1,,"{""up"":1,""record"":1}",record,,"EDM, 122 bpm: plays on your record player"
+rec_s1,hull,"Record: Nocturne for a Buoy",5000,bright,1,,"{""up"":1,""record"":1}",record,,"Symphony, 72 bpm: plays on your record player"
+rec_s2,hull,"Record: Lantern Waltz",5000,bright,1,,"{""up"":1,""record"":1}",record,,"Symphony, 84 bpm: plays on your record player"
+rec_s3,hull,"Record: Adagio of the Spill",5000,bright,1,,"{""up"":1,""record"":1}",record,,"Symphony, 60 bpm: plays on your record player"
+rec_s4,hull,"Record: Hull Overture",5000,bright,1,,"{""up"":1,""record"":1}",record,,"Symphony, 96 bpm: plays on your record player"
+rec_s5,hull,"Record: Dim Carnival Suite",5000,bright,1,,"{""up"":1,""record"":1}",record,,"Symphony, 90 bpm: plays on your record player"
