@@ -51,9 +51,6 @@ cl4,bright,Constellation light limit 3>4,3000,,1,,"{""up"":1}",,,Constellations 
 sh4,bright,Item shape light limit 3>4,5000,,1,,"{""up"":1}",,,"Item shapes: Prisms, Knots, Lens and Gates"
 c_gate,bright,Gates on the Center,1000,pulsing,1,,"{""up"":1}",,,
 cap_gate,bright,Max Gates 1>5,200,neutron,1,,"{""cap"":{""gate"":5}}",,,
-cap_mag1,bright,Max Magnetics 99>999,50,magnetic,1,,"{""cap"":{""magnetic"":999}}",,,
-cap_neu1,bright,Max Neutrons 99>999,50,neutron,1,,"{""cap"":{""neutron"":999}}",,,
-cap_pul1,bright,Max Pulsings 99>999,50,pulsing,1,,"{""cap"":{""pulsing"":999}}",,,
 p_dim,bright,Dim as an item from the pouch,100,magnetic,1,,"{""up"":1}",,,
 p_bright,bright,Bright as an item from the pouch,100,magnetic,1,,"{""up"":1}",,,
 cl5,bright,Constellation light limit 4>5,30000,,2,,"{""up"":1}",cl4,,
@@ -84,17 +81,12 @@ secret,dim,A Card of Secrets,50,bright,1,,"{""draw"":""secret""}",,,Pick one of 
 fortune,dim,Fortune Telling,200,bright,1,,"{""draw"":""fortune""}",,,"Pick one of three face-down cards: a good fortune or a dim one (50 / 50), for tomorrow · once a day"
 wonder,dim,A Daily Wonder,2000,bright,1,,"{""draw"":""daily""}",,,"Draw three powerful bonuses, each with a catch, and keep one for a full day (until this time of day tomorrow) · once a day"
 cap_dial1,neutron,Max Strings 5>10,10,,1,,"{""cap"":{""dial"":10}}",,,
-cap_dim1,neutron,"Max Faint 9,999>999,999",50,,1,,"{""cap"":{""dim"":999999}}",,,
-cap_bri1,neutron,"Max Bright 9,999>999,999",50,,1,,"{""cap"":{""bright"":999999}}",,,
 cap_knot,neutron,Max Knots 1>5,100,,1,,"{""cap"":{""knot"":5}}",,,
 s_knot,neutron,Knots on Sectors,100,pulsing,1,,"{""up"":1}",,,
 s_lens,neutron,Lens on Sectors,200,,2,,"{""up"":1}",,,
 cap_lens,neutron,Max Lens 1>5,200,,2,,"{""cap"":{""lens"":5}}",,,
-cap_neu2,neutron,"Max Neutrons 999>9,999",500,,2,,"{""cap"":{""neutron"":9999}}",cap_neu1,,
 c_knot,neutron,Knots on the Center,1000,pulsing,2,,"{""up"":1}",,,
 p_neu,neutron,Neutron as an item from the pouch,500,magnetic,2,,"{""up"":1}",,,
-cap_dim2,neutron,"Max Faint 999,999>9,999,999",1000,,3,,"{""cap"":{""dim"":9999999}}",cap_dim1,,
-cap_bri2,neutron,"Max Bright 999,999>9,999,999",1000,,3,,"{""cap"":{""bright"":9999999}}",cap_bri1,,
 c_lens,neutron,Lens on the Center,2000,,3,,"{""up"":1}",,,
 w_lens_s,neutron,Wrap Lens with item shapes,500000,bright,3,,"{""up"":1}",,,
 radii,neutron,Protractor,2000,,2,,"{""disc"":""mode_radii""}",,,"A gadget for your shelf: effect radii (Modes → Radii, and the R read-out)"
@@ -109,7 +101,6 @@ s_prism,magnetic,Prisms on Sectors,50,,1,,"{""up"":1}",,,
 act15,line,Active maximum 5>15,100,magnetic,2,,"{""up"":1}",act5,,
 cap_prism,magnetic,Max Prisms 1>5,500,,2,,"{""cap"":{""prism"":5}}",,,
 p_mag,magnetic,Magnetic as an item from the pouch,500,,2,,"{""up"":1}",,,
-cap_mag2,magnetic,"Max Magnetics 999>9,999",500,,2,,"{""cap"":{""magnetic"":9999}}",cap_mag1,,
 c_prism,magnetic,Prisms on the Center,500,,2,,"{""up"":1}",,,
 act20,line,Active maximum 15>20,1000,magnetic,3,,"{""up"":1}",act15,,
 dk_hue,magnetic,Dark Remnant takes the predominant hue,2000,,3,,"{""up"":1}",,,
@@ -124,7 +115,6 @@ s_gate,pulsing,Gates on Sectors,200,,2,,"{""up"":1}",,,
 c_leash,pulsing,Spindles on the Center,300,,2,,"{""up"":1}",,,
 s_key,pulsing,Keys on Sectors,500,,2,,"{""up"":1}",,,
 cap_leash1,pulsing,Max Spindles 5>10,500,,2,,"{""cap"":{""leash"":10}}",,,
-cap_pul2,pulsing,"Max Pulsings 999>9,999",500,,2,,"{""cap"":{""pulsing"":9999}}",cap_pul1,,
 cap_dial2,pulsing,Max Strings 10>50,100,,2,,"{""cap"":{""dial"":50}}",cap_dial1,,
 autofire,pulsing,String auto-fire,10000,,3,,"{""up"":1}",,,
 rapid,pulsing,String rapid fire rate,10000,,3,,"{""up"":1}",,,
@@ -158,3 +148,8 @@ anchor,magnetic,Anchor,25,magnetic,1,,"{""up"":1,""mount"":""hull"",""look"":""a
 fridge,magnetic,Mini fridge,40,magnetic,1,,"{""up"":1,""fridge"":3}",,,"Kept below deck: bottles of water you buy go in it (it holds 3), not down you. A move with the barrel dry takes one; click the water in the dock to drink one now"
 rudder,magnetic,Rudder,50,magnetic,2,,"{""up"":1,""mount"":""hull"",""look"":""rudder"",""rudder"":1}",,,Hull mount. Keeps your buoy from wrecking (wrecks: to come)
 motor,magnetic,Motor,100,magnetic,3,,"{""up"":1,""mount"":""hull"",""look"":""motor"",""motor"":1}",,,Hull mount. Keeps your buoy from wrecking (wrecks: to come)
+chest_comp,bright,Compartmented chest,500,bright,1,,"{""up"":1}",,,"Each remnant its own compartment: Bright and Dim 999 each, each exotic 99 (instead of 999 shared)"
+chest_exo,bright,Exotic compartments,5000,bright,2,,"{""up"":1}",chest_comp,,Each exotic remnant's compartment holds 999
+chest_bri,bright,Bright compartments,20000,bright,2,,"{""up"":1}",chest_comp,,"Bright and Dim compartments hold 99,999 each"
+chest_energy,bright,Energy Value,250000,bright,3,,"{""up"":1}",chest_comp,,Every capacity of your chest × 10
+chest_vault,bright,Bright vault,5000000,bright,3,,"{""up"":1}",chest_energy,,Bright holds × 10 again
