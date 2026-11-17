@@ -163,7 +163,7 @@ body.shop-open #hdock{z-index:59}#hinv .slot.wal::before{border-color:rgba(255,2
 <div id="veil"></div>
 <div id="bfx"></div>
 <iframe id="neb" data-tt="map.ui.surface"></iframe>
-<script src="content.js?v=20261117p"></script><script src="shared.js?v=20261117p"></script><script src="cabin.js?v=20261117p"></script>
+<script src="content.js?v=20261117q"></script><script src="shared.js?v=20261117q"></script><script src="cabin.js?v=20261117q"></script>
 <script>
 // ╔══════════════════════════════════════════════════════════════════════════════╗
 // ║  MAP ENGINE                                                                 ║
@@ -182,7 +182,7 @@ let playLog=[],clock=3,day=1,pool=6,burstFx=null,dayLog=[],dayCnt={b:0,d:0},pend
 // // clock: the hour (3 = Twilight … 24 = Midnight, the day's last turn); day: your attempts; pool: what the source put out at its last burst; fresh: no ring added yet since it
 let constel=[],armed=null,weaveSel=[],weaveAsk=null,clearFx={},mergeFx=[],feedMsg={t:'',d:'',at:-1e9}; // constellations {keys,type}; the armed map item; a Weave being drawn; animations; the final count
 const STEP_H=3; // the day: eight turns of three hours
-const CACHE_V='20261117p'; // the build: bump with shared.js's
+const CACHE_V='20261117q'; // the build: bump with shared.js's
 const SCENE=new URLSearchParams(location.search).get('scene'); // a Guide / event demo: the map plays a scripted moment (no surface behind it)
 let phase='move',turnTimer=0,mergeTimer=0;
 let gameOverReason='';
@@ -303,7 +303,10 @@ const clockStr=(h=clock)=>TIMES[h]||TIMES[Math.max(3,Math.floor(h/3)*3)]||TIMES[
 function showTurn(){neb({cmd:'clock',clock,day});mapHistKeep();if(buoy.rested&&clock<24&&!asleep){buoy.rested=false;buoy.under=false;buoy.dunk={t0:performance.now()+400,d:-1,ms:900};} // morning: up again // (the surface's run: a Daily Wonder ends at its time)
   const el=document.getElementById('turn-label');turnLabel(el);el.classList.add('show');clearTimeout(turnTimer);turnTimer=setTimeout(()=>el.classList.remove('show'),1200);} // (always shown; it glows when the time changes)
 
+function anchored(){return !!(buoyKit&&buoyKit.anchor&&buoyKit.slots.hull.slice(0,kitCounts(buoyKit).hull).some(id=>{const it=shopItem(id);return it&&it.fx.anchor;}));} // an anchor on the hull mount, and down
+function anchorSet(down){if(!buoyKit)return;buoyKit.anchor=down;kitSave(buoyKit);syncDock();}
 function restTide(){ // resting with the barrel dry: a time of day passes and the tide carries you a hex toward the Point (if a hex that way can be entered), where you can drink again
+  if(anchored()){feed(txt('map.anchor.held'),txt('map.anchor.held_d'));advanceTurn();waterNear();updateHint();saveMap();return;} // anchored: the tide cannot carry you; a time of day passes where you are
   const r0=cellRing(pQ,pR);let best=null;for(const m of getMoves()){if(!cells[K(m.q,m.r)]||cells[K(m.q,m.r)].isVoid)continue;const r=cellRing(m.q,m.r);if(r<r0&&(!best||r<best.r))best={q:m.q,r:m.r,rr:r};}
   if(best){const ok=cells[K(pQ,pR)];if(ok)ok.isP=false;pQ=best.q;pR=best.r;cells[K(pQ,pR)].isP=true;buoyGo('sail');focusCam(true,1);feed(txt('map.water.tide'),txt('map.water.tide_d'));}else feed(txt('map.water.rest'),txt('map.water.rest_d'));
   advanceTurn();waterNear();updateHint();saveMap();}
@@ -397,6 +400,7 @@ function doMove(tq,tr){
   if(phase==='gameover'||phase==='collapse')return;if(tired()){feed(txt('map.too_tired_to_move'),txt('map.rest_under_midnight_to'),'no');return;}
   if(asleep){feed(txt('map.sleep.asleep'),txt('map.sleep.until',clockStr(asleep.until)),'no');return;}
   if(dry()){feed(txt('map.water.out'),txt('map.water.out_d'),'no');return;}
+  if(anchored()){anchorSet(false);feed(txt('map.anchor.raised'),txt('map.anchor.raised_d'));} // (moving raises it)
   hubLearn('hubmove');hubLearn('hubtime');hubLearn('hublight');
   const tc=cells[K(tq,tr)];
   if(tc&&tc.isVoid&&voidOpen&&tq===0&&tr===0){const ok=cells[K(pQ,pR)];if(ok)ok.isP=false;descendDepth();return;}
@@ -1019,7 +1023,7 @@ const LETTER_KEY='il_letters_v1';
 // ── The player's buoy: on the hex you stand on, floating half under its surface; it bobs and turns slowly, ripples the water, and its spot light sweeps
 // round the hexes next to it, clockwise (or onto the hex you point at, where you could move or use an item). A move sails it over (a wake behind it);
 // a String fires it there like a Point. Its sign carries your name; your souvenirs hang on it. Clicking it opens Status and your collections.
-const NAME_KEY='il_name_v1',BCOL_KEY='il_buoycol_v1';let playerName='',buoyCol=BUOY_COLS[0];function buoyLoad(){try{playerName=localStorage.getItem(NAME_KEY)||'';buoyCol=localStorage.getItem(BCOL_KEY)||BUOY_COLS[0];}catch(e){}}buoyLoad(); // your name and your buoy's colour (Status & collections → Buoy changes them)
+const NAME_KEY='il_name_v1',BCOL_KEY='il_buoycol_v1';let playerName='',buoyCol=BUOY_COLS[0],buoyKit=null;function buoyLoad(){try{playerName=localStorage.getItem(NAME_KEY)||'';buoyCol=localStorage.getItem(BCOL_KEY)||BUOY_COLS[0];}catch(e){}buoyKit=kitGet();}buoyLoad(); // your name and your buoy's colour (Status & collections → Buoy changes them)
 const BUOY_SIZE=0.55,buoys=[]; // every buoy on the map: yours first (friends' join it, each its own {name, x, y, …})
 const buoy={x:0,y:0,yaw:0,spin:0,mv:null,trail:null,ripAt:0,spot:{a:0,d:1},touch:0,hd:0};buoys.push(buoy);
 function buoyColours(box){box.innerHTML=BUOY_COL_ORDER.map(i=>BUOY_COLS[i]).map(c=>`<span data-c="${c}" style="background:${c}"${c===buoyCol?' class="on"':''}></span>`).join('');box.onpointerover=e=>{const h=buoyColHint(e.target.dataset&&e.target.dataset.c);if(h)feed(h[0],h[1],'hint');};box.onclick=e=>{const c=e.target.dataset&&e.target.dataset.c;if(!c)return;buoyCol=c;try{localStorage.setItem(BCOL_KEY,c);}catch(e){}buoyColours(box);};} // the colours to pick from (shared.js BUOY_COLS)
@@ -1055,7 +1059,7 @@ function buoyPlane(now){ // on the plane, under it: its spot light, its ripples,
   if(buoy.mv&&!buoy.mv.fire){const ink=onWhite(buoy.x,buoy.y)?[20,24,32]:sunInk();drawWakeShape(c,bx,by,Math.cos(buoy.hd),Math.sin(buoy.hd),HEX*0.4,0.7,0.4,ink,ink);if(now-(buoy.lastRip||0)>180){buoy.lastRip=now;ripples.push({x:buoy.x,y:buoy.y,t:now,dk:onWhite(buoy.x,buoy.y)});}}
   if(buoy.trail){const t=(now-buoy.trail.t0)/700;if(t>=1)buoy.trail=null;else{const[ax,ay]=w2s(buoy.trail.x0,buoy.trail.y0);c.save();c.globalCompositeOperation='screen';c.lineCap='round';c.strokeStyle=`rgba(255,250,235,${(0.8*(1-t)).toFixed(3)})`;c.lineWidth=HEX*0.12*(1-t)+1;c.filter=`blur(${(HEX*0.04).toFixed(1)}px)`;c.beginPath();c.moveTo(ax,ay);c.lineTo(bx,by);c.stroke();c.restore();}}} // a String's shot: a streak, like a Point fired
 function buoySouv(){const sv=souvenirs();return SHOP_ITEMS.filter(i=>i.fx.souv&&(sv[i.id]||0)>0).map(i=>i.id);} // the souvenirs kept, one of each kind
-function buoyDraw(now,mirror){drawDuckScene(G3.duck,buoyModel(playerName,buoySouv(),buoyCol),buoyOpts(now,mirror));{const o=buoyCan(now,mirror);if(o)drawDuckScene(G3.duck,buoyCanModel(),o);} // (its can light, turned to its spot)
+function buoyDraw(now,mirror){drawDuckScene(G3.duck,buoyModel(playerName,buoySouv(),buoyCol,buoyKit),buoyOpts(now,mirror));{const o=buoyCan(now,mirror);if(o)drawDuckScene(G3.duck,buoyCanModel(),o);} // (its can light, turned to its spot)
   if(MP.on)for(const P of MP.players){if(P.id===MP.me)continue;const b=MP.ob[P.id];if(b&&b.x!=null)drawDuckScene(G3.duck,buoyModel(P.name,[],P.col),buoyOpts(now,mirror,b));}} // (playing together: everyone else's buoy, on their hex) // the buoy, then its sign (facing you)
 function buoyFrame(now,b){b=b||buoy; // how it floats now: its turn, a slow rocking sway (its up tipped, about an axis that wanders round), its bob; and where its lantern is
   const size=HEX*BUOY_SIZE,f=[Math.cos(b.yaw),Math.sin(b.yaw)],ph=b.ph||0,sw=(T.mapBuoySway!=null?T.mapBuoySway:0.09)*(Math.sin(now/1300+ph)+0.35*Math.sin(now/610+1.7+ph))+Math.min(0.12,(b.spin||0)*1.5),ua=now/3700+ph,u=[Math.cos(ua),Math.sin(ua),0],cs=Math.cos(sw),sn=Math.sin(sw);
@@ -1457,7 +1461,9 @@ function shopRows(){const u=shopUI,has=k=>disc.has(k);
   return SHOP_ITEMS.filter(i=>i.shop===u.id&&i.r<=u.rank&&(!i.req||has('up:'+i.req))&&!achLocked('item',i.id,has)&&!(i.fx.draw==='secret'&&run.secrets===0)&&i.fx.clock!==clock&&!(i.fx.clock==='yesterday'&&day<=1)).map(i=>{ /* (the time you are at is not for sale; yesterday only when there was one) */const own=shopOnce(i)&&has('up:'+i.id),held=i.fx.souv?giftWallet:i.cur==='duck'?ducks:(inv[i.cur]||0);
     const pr=shopPrice(i,Object.assign({},run,{clock})),done=!!(i.fx.draw&&(run.dimDone||{})[i.fx.draw]),left=shopLeft(i,Object.assign({},run,{clock,day})),out=!own&&!left;
     const noTime=i.fx.clock!=null&&runBonus(run,'xup'),xg=(i.fx.xbuy||i.fx.xsell)?fmtN(xactGets(i,Object.assign({},run,{clock}))):null,nm=xg?xg+' <i class="scur">'+curIcon(i.fx.xbuy||'bright')+'</i>':i.n,fn=xg?xg+' '+i.n:i.n; // (XACT: how many you get, at today's rates, by the currency's symbol; fn: said in the feed)
-    return{it:i,cur:shopCur(i),n:nm,fn,p:own?txt('map.shop.yours'):out?txt('map.shop.soldout'):done?txt('map.shop.tomorrow'):noTime?txt('map.shop.notoday'):fmtN(pr),own:own||out||done||noTime,poor:!own&&held<pr,disc:'si_'+i.id,note:(i.note?i.note+' · ':'')+(i.stock&&!own?txt('map.shop.left',left,i.stock)+' · ':'')+(i.fx.up?txt('map.shop.upsoon'):i.fx.souv?txt('map.shop.souvkept',souv[i.id]||0):'')||'',
+    const fit=own&&i.fx.part&&buoyKit&&buoyKit.parts[i.fx.part]!==i.id; // a part you own, not fitted: fitted again here, free (only Custom Hulls changes parts)
+    if(fit)return{it:i,cur:shopCur(i),n:nm,fn,p:txt('map.shop.fit'),own:false,poor:false,disc:'si_'+i.id,note:txt('map.shop.fit_d'),go:()=>{const k=kitGet();k.parts[i.fx.part]=i.id;kitSave(k);buoyLoad();feed(txt('map.shop.fitted',i.n),SHOPS[i.shop].n);renderShop();}};
+    return{it:i,cur:shopCur(i),n:nm,fn,p:own?txt(i.fx.part&&buoyKit&&buoyKit.parts[i.fx.part]===i.id?'map.shop.fitted_now':'map.shop.yours'):out?txt('map.shop.soldout'):done?txt('map.shop.tomorrow'):noTime?txt('map.shop.notoday'):fmtN(pr),own:own||out||done||noTime,poor:!own&&held<pr,disc:'si_'+i.id,note:(i.note?i.note+' · ':'')+(i.stock&&!own?txt('map.shop.left',left,i.stock)+' · ':'')+(i.fx.up?txt('map.shop.upsoon'):i.fx.souv?txt('map.shop.souvkept',souv[i.id]||0):'')||'',
       go:()=>i.fx.duck==='pick'?(shopUI.pick=true,renderShop()):shopBuy(i)};});}
 const curName=c=>c==='gift'?txt('map.cur.gift'):c==='duck'?txt('map.cur.duck'):KIND_NAME[c]||c,curIcon=c=>icons[c==='gift'?'bright':c]||(c==='duck'?DUCK_ICO:curName(c)[0]); // a currency's name (for the feed) and symbol
 const shopCur=i=>i.fx.souv?'gift':i.cur; // what an item is paid with (souvenirs: your last Bright)
@@ -1611,6 +1617,7 @@ function syncDock(){const box=document.getElementById('hinv');if(!box)return;
   box.innerHTML=DOCK_ITEMS.map(k=>`<div class="slot${armed===k?' armed':''}${(inv[k]||0)<=0?' empty':nw(k)}" data-k="${k}" data-new="hk_${k}" title="${KIND_NAME[k]}">${icons[k]||KIND_NAME[k][0]}<b>${inv[k]||0}</b></div>`).join('')+
     '<div class="sep"></div>'+['prism','knot','gate','key','lens'].filter(k=>(inv[k]||0)>0).map(k=>`<div class="slot empty" data-k="${k}" title="${KIND_NAME[k]} (earned)">${icons[k]||KIND_NAME[k][0]}<b>${inv[k]}</b></div>`).join('')+
     (shopUI?'<div class="sep"></div>'+(shopUI.gift?['gift']:['bright','dim','neutron','magnetic','pulsing','duck']).map(c=>`<div class="slot${c===shopUI.tab?' wal':''}" data-k="${c}" title="${curName(c)}">${curIcon(c)}<b>${fmtN(shopWallet(c))}</b></div>`).join(''):''); // in a shop: every purse, the open tab's lit
+  if(!SCENE&&buoyKit&&buoyKit.slots.hull.slice(0,kitCounts(buoyKit).hull).some(id=>{const it=shopItem(id);return it&&it.fx.anchor;}))box.insertAdjacentHTML('afterbegin',`<div class="slot anchor${anchored()?' armed':''}" data-k="anchor" title="${txt(anchored()?'map.anchor.down':'map.anchor.up')}" onclick="anchorSet(!anchored())">⚓<b>${txt(anchored()?'map.anchor.down_s':'map.anchor.up_s')}</b></div>`); // the anchor: down (the tide holds off) or up
   if(!SCENE)box.insertAdjacentHTML('afterbegin',`<div class="slot water${dry()?' empty':''}" data-k="drinks" title="${txt('map.water.slot',drinks,waterMax())}${bottle?' · '+txt('map.water.slot_bottle'):''}"><svg viewBox="0 0 22 22" width="18" height="18"><path d="M11 2C8 7 5 10.5 5 14a6 6 0 0 0 12 0c0-3.5-3-7-6-12z" fill="${bottle?'#9fe6ff':'currentColor'}" opacity=".9"/></svg><b>${drinks}${bottle?'+1':''}</b></div><div class="sep"></div>`); // the fresh drinks barrel (and a bottle, drunk, waiting for your next move)
   box.insertAdjacentHTML('beforeend',`<div class="slot buoy${nw('buoy')}" data-k="buoy" data-new="hk_buoy" title="${txt('map.buoy.deck')}">${BUOY_ICO}</div>`);box.querySelector('.buoy').onclick=()=>currentView==='cabin'?cabinClose():cabinOpen(); // your buoy: below deck, or back up (its Status is the mirror there)
   box.insertAdjacentHTML('beforeend',ilDockArrow(dockMin));

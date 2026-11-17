@@ -15,7 +15,7 @@
 const CABIN={on:false,t0:0,dir:1,cv:null,ov:null,gl:null,hov:null,mx:null,my:null,atlasAt:0,shotAt:0};
 const CABIN_A=3,CABIN_H=2.7,CABIN_RV=CABIN_A/Math.cos(Math.PI/6),CABIN_POOL=[0,0.5,1.28],CAB_CHEST={x:2.21,z:-1.36,a:Math.PI/2,y:0.52,lid:0.6},CAB_TOOL={a:0.35,net:[-1.35,-1.88],pen:[-1.65,-1.77]}; // the tools: their heading (from the desk out over the pool) and where each handle ends; the room: its apothem, height, corner radius; the pool (x, z, radius); the chest: where it stands, its heading, how high its stand lifts it, how far its lid stands open (radians)
 const CAB_HOARD=[CAB_CHEST.x-0.04,CAB_CHEST.y+0.61,CAB_CHEST.z]; // the heart of the chest's hoard (its light, and the middle of its glow)
-const CABIN_DO={ladder:'up',mirror:'buoy',storage:'buoy',journal:'guide'}; // what a click opens (anything else: what it is, in the feed)
+const CABIN_DO={ladder:'up',mirror:'buoy',storage:'buoy:kit',journal:'guide'}; // what a click opens (anything else: what it is, in the feed)
 const CAB_OBJ=['ladder','desk','map','day','cards','ink','journal','pen','net','chest','storage','mirror','barrel','hammock','loom','shelf','candle','pool','porthole'];
 const CM={slab:25,wood:0,dark:1,brass:2,white:3,leather:4,canvas:5,glass:6,mirror:7,atlas:8,flame:9,iron:10,rope:11,paint:12,gem:13,net:14,sky:15,wax:16,gold:17,decal:18,pool:19,hatch:20,parch:21,bottle:22,water:23,steel:24};
 function cabinOpen(){if(CABIN.on||!nebReady||currentView!=='map'||shopUI)return;buoy.dip=performance.now();
