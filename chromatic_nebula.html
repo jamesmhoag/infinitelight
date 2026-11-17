@@ -119,7 +119,7 @@ button:hover{background:rgba(255,255,255,0.15);}
   <div id="dock" class="bottom"><div id="inventoryPanel"></div><div id="touch-info"></div></div>
   <canvas id="cur"></canvas>
 </div>
-<script src="content.js?v=20261111i"></script><script src="shared.js?v=20261111i"></script>
+<script src="content.js?v=20261116a"></script><script src="shared.js?v=20261116a"></script>
 <script>
 txtApply(); // the page's own labels (content/strings.csv)
 const _SRC=document.documentElement.outerHTML; // kept so the Encyclopedia can run live scenes as embedded copies of the game
@@ -1047,13 +1047,13 @@ function calcVR(mass){return massToRadius(mass,T.colorMinR,T.colorMaxR,T.pigment
 // layered on top for tuning feel independent of the shared curve. Uses the
 // same Bright mass domain as the visual radius above (one object type, one
 // mass domain — just two different output ranges for "how big" vs "how far its effect reaches").
-function effectMassR(mass){return massToRadius(mass,T.vRadBase,T.whiteEffMax,T.brightMassMin,T.brightMassMax)*T.massEffPow;}
+function effectMassR(mass){return massToRadius(mass,T.vRadBase,T.whiteEffMax,T.brightMassMin,T.darkMass/4)*T.massEffPow;}
 
 function tryCollapse(p,triggerR){
   if(!isCollapseEligible(p))return;
   if(p.energy>=T.collEnergy){
     p.collapsed=true;p.failedCollapse=false;p.wakeProgress=0;
-    p.collapsedRadius=massToRadius(p.mass,T.whiteMinR,T.whiteMaxR,T.brightMassMin,T.brightMassMax);
+    p.collapsedRadius=massToRadius(p.mass,T.whiteMinR,T.whiteMaxR,T.brightMassMin,T.darkMass/4);
     const rgb=compositeRGB(p.masses);p.sigR=rgb.r;p.sigG=rgb.g;p.sigB=rgb.b;p.displayR=p.collapsedRadius;
     if(p.whiteFx||p.blackFx)enforceFx(p);
     p.collapseBirth=performance.now();
@@ -2225,7 +2225,7 @@ function processUnwinds(now,dt){
       const old=p.mass;p.mass=old-spend;const f=p.mass/old;for(let k=0;k<6;k++)p.masses[k]*=f;
     }
     if(p.mass<=1e-4){active.splice(i,1);pressedIDs.delete(p.id);continue;}
-    if(p.collapsed&&!p.failedCollapse)p.collapsedRadius=massToRadius(p.mass,T.whiteMinR,T.whiteMaxR,T.brightMassMin,T.brightMassMax);else updateCached(p);
+    if(p.collapsed&&!p.failedCollapse)p.collapsedRadius=massToRadius(p.mass,T.whiteMinR,T.whiteMaxR,T.brightMassMin,T.darkMass/4);else updateCached(p);
     p.fillDirty=true;
   }
   if(any)flushParticlePaints();
@@ -4492,7 +4492,7 @@ function testFill(){for(const k in inventory)inventory[k]=Math.max(inventory[k]|
 function testClear(kind){if(levelCleared)return;const now=performance.now();simulationStarted=true;
   if(kind==='bright'){const keep=[];_dormantInstant=true;for(let i=0;i<dormant.length;i++){const p=dormant[i];if(!p)continue;if(keep.length<12&&Math.random()<0.02)keep.push([p.x,p.y]);removeDormant(i,now);}_dormantInstant=false; /* every particle goes; a few bright remnants are left where some were, and the clear is the usual one */
     for(let i=active.length-1;i>=0;i--)if(!active[i].isRemnant){pressedIDs.delete(active[i].id);active.splice(i,1);}for(const q of keep)createRemnantAt(q[0],q[1],'white');return;}
-  if(blackHole)return;triggerBlackRemnant(W/2,H/2,now,T.massScaleMax*T.blackMult,T.collEnergy,true,kind==='rift');} /* dark / rift: one placed at the centre (never a duck), and it clears as it always does */
+  if(blackHole)return;triggerBlackRemnant(W/2,H/2,now,T.darkMass,T.collEnergy,true,kind==='rift');} /* dark / rift: one placed at the centre (never a duck), and it clears as it always does */
 window.discAll=discAll;window.testFill=testFill;window.testClear=testClear;window.testFree=testFree;window.testMode=testMode;window.unlockAll=unlockAll;testSync();
 for(const ev of ['mousedown','mouseup','click','dblclick','contextmenu','wheel'])document.addEventListener(ev,e=>{const el=e.target.closest&&e.target.closest('.disc-lock');if(el){e.stopPropagation();e.preventDefault();}},true); // an undiscovered element cannot be used
 function updateInventoryUI(){
@@ -4779,7 +4779,7 @@ function placeField(kind,x,y,now){
   let rem=null,bd=1e9;
   for(const q of active){if(!q.isRemnant||q.remKind!==(kind==='dim'?'brown':'white')||q._embed||q.dying||q.captured||q._stasis)continue;const d=Math.hypot(_wrapD(q.x-x,W),_wrapD(q.y-y,H));if(d<=Math.max(T.touchR,placedRadius(q)+2)&&d<bd){bd=d;rem=q;}}
   if(!rem){flashSaveStatus(txt('surf.under_the_cursor_it',(kind==='dim'?txt('surf.depth_needs_a_dim'):txt('surf.balance_needs_a_bright'))));return false;}
-  const R=kind==='dim'?massToRadius(rem.mass,T.dimWhirlRMin,T.dimWhirlR,T.dimMassMin,T.dimMassMax):massToRadius(rem.mass,T.brightStasisRMin,T.brightStasisR,T.brightMassMin,T.brightMassMax),r0=Math.max(1,placedRadius(rem));
+  const R=kind==='dim'?massToRadius(rem.mass,T.dimWhirlRMin,T.dimWhirlR,T.dimMassMin,T.dimMassMax):massToRadius(rem.mass,T.brightStasisRMin,T.brightStasisR,T.brightMassMin,T.darkMass/4),r0=Math.max(1,placedRadius(rem));
   x=rem.x;y=rem.y;
   logEv('placed '+kind+' field at '+(x|0)+','+(y|0));
   for(const h of placedFields.slice())if(fieldDist(h,x,y)<fieldR(h)+R)destroyFieldObj(h,now); // fields cannot overlap: the newest destroys whatever it is placed on
@@ -5406,7 +5406,7 @@ function triggerBlackRemnant(x,y,now,mass,energy,fromGate,rift){ // rift: a Rift
   const canDuck=!fromGate&&!rift&&!window.__SCENE&&(dormantCount>0||active.some(q=>!q.isRemnant&&!q.dying&&!q.captured&&Math.hypot(q.x-x,q.y-y)>60)),asDuck=canDuck&&(!!runState.next||Math.random()<runT('duckChance')+duckLuck.d*runT('duckLuckStep')); // a duck instead — only while the surface still has something to play
   if(canDuck){duckLuck.d=asDuck?0:duckLuck.d+1;saveInventory();} // a miss makes the next one likelier; a duck rebases it
   if(fromGate!=='nogrow'&&!rift&&!(performance.now()-_lastNovaAt<400&&Math.hypot(_lastNovaX-x,_lastNovaY-y)<250)){ // every Dark Remnant begins with a nova (mergers and deaths already fired theirs)
-    const nm=Math.min(mass||0,T.massScaleMax*T.blackMult),synthN={x,y,vx:0,vy:0,rot:0,rotation:0,pvx:0,pvy:0,mass:Math.max(1,nm),energy:Math.max(0.001,Math.min(energy||0.5,5)),masses:randomColorMasses(),sigR:255,sigG:255,sigB:255,peakEffectR:0};
+    const nm=Math.min(mass||0,T.darkMass),synthN={x,y,vx:0,vy:0,rot:0,rotation:0,pvx:0,pvy:0,mass:Math.max(1,nm),energy:Math.max(0.001,Math.min(energy||0.5,5)),masses:randomColorMasses(),sigR:255,sigG:255,sigB:255,peakEffectR:0};
     const deb=triggerNova(synthN,now,undefined,true);if(deb)for(const d of deb)active.push(d);
   }
   if(asDuck){spawnDuck(x,y,now);return;} // the nova still fires; the surface carries on
@@ -5427,7 +5427,7 @@ function triggerBlackRemnant(x,y,now,mass,energy,fromGate,rift){ // rift: a Rift
   playOrchestraFinale(mass,energy); // whole orchestra, one big harmonized final note
 }
 function checkBlackRemnantByMass(mass){
-  return mass>=T.massScaleMax*T.blackMult;
+  return mass>=T.darkMass;
 }
 function checkBlackRemnant(p){
   if(!p.collapsed||p.failedCollapse||p.isRemnant)return false;
@@ -6215,7 +6215,7 @@ function makeMaxBrightPoint(x,y,vx,vy,now){
   for(let k=0;k<6;k++){w[k]=Math.random()*0.55;}
   w[primary]=0.6+Math.random()*0.8;
   for(let k=0;k<6;k++)sum+=w[k];
-  const maxMass=T.massScaleMax*T.blackMult*0.5; // half of the mass that would form a Dark Remnant
+  const maxMass=T.darkMass/4; // the mass a Point is at its max radius: a quarter of the Dark Remnant mass
   const masses=w.map(v=>v/sum*maxMass);
   const rgb=compositeRGB(masses);
   const ci=dominantCI(masses);
@@ -8040,7 +8040,7 @@ function previewCreateMassEnergy(){
   if(t.cat==='particle')return {mass:T.particleStartMass,energy:T.particleStartEnergy};
   if(t.cat==='point')return{mass:T.particleStartMass,energy:T.particleStartEnergy/10};
   if(t.cat==='star')return{mass:T.collMass+Math.max(0.01,T.collMass*0.001),energy:Math.max(0.0001,T.particleStartEnergy/10)};
-  if(t.cat==='remnant')return variant==='black'?{mass:T.massScaleMax*T.blackMult,energy:T.collEnergy}:((variant==='brown'||variant==='edim')?{mass:T.collMass,energy:T.collEnergy}:{mass:T.remPlaceMass,energy:T.remPlaceEnergy});
+  if(t.cat==='remnant')return variant==='black'?{mass:T.darkMass,energy:T.collEnergy}:((variant==='brown'||variant==='edim')?{mass:T.collMass,energy:T.collEnergy}:{mass:T.remPlaceMass,energy:T.remPlaceEnergy});
   if(t.cat==='duplicate'){
     if(!dupTemplate)return null;
     let mass=0,energy=0;for(const d of dupTemplate){mass+=d.mass;energy+=d.energy;}
@@ -8933,7 +8933,7 @@ function createRemnantAt(mx,my,kind){
   if(underGlass(mx,my))return null;
   if(kind==='black'){
     if(blackHole){flashSaveStatus(txt('surf.a_dark_remnant_is'));return null;}
-    const mass=T.massScaleMax*T.blackMult;
+    const mass=T.darkMass;
     triggerBlackRemnant(mx,my,performance.now(),mass,T.collEnergy);
     return null; // not a chargeable "object" — it's the singleton endgame event
   }
@@ -8985,7 +8985,7 @@ function boostCreateTarget(p){
   if(!p.isRemnant){
     if(p.collapsed&&!p.failedCollapse){
       growBrightFromFeed(p,0);
-      p.collapsedRadius=Math.max(p.collapsedRadius,massToRadius(p.mass,T.whiteMinR,T.whiteMaxR,T.brightMassMin,T.brightMassMax));
+      p.collapsedRadius=Math.max(p.collapsedRadius,massToRadius(p.mass,T.whiteMinR,T.whiteMaxR,T.brightMassMin,T.darkMass/4));
       p.displayR=Math.max(p.displayR||0,p.collapsedRadius);
     } else {
       updateCached(p);
@@ -9063,7 +9063,7 @@ function stampSnapshotAt(s,px,py){ // realise ONE exact copy (type, colour mix, 
         obj.ci=s.ci;obj.rotation=s.rotation;obj.rot=s.rot;obj.failedCollapse=s.failedCollapse;
         if(s.collapsed){obj.sigR=s.sigR;obj.sigG=s.sigG;obj.sigB=s.sigB;
           // a Point's size follows its mass — recompute it, otherwise every copy sits at minimum scale
-          obj.collapsedRadius=s.collapsedRadius||massToRadius(obj.mass,T.whiteMinR,T.whiteMaxR,T.brightMassMin,T.brightMassMax);
+          obj.collapsedRadius=s.collapsedRadius||massToRadius(obj.mass,T.whiteMinR,T.whiteMaxR,T.brightMassMin,T.darkMass/4);
           obj.displayR=obj.collapsedRadius;obj.birthProgress=1;obj.collapseBirth=performance.now()-60000;
         }
         updateCached(obj);obj.fillDirty=true;if(!obj.failedCollapse)refreshLifespan(obj,performance.now());
@@ -9108,7 +9108,7 @@ function shapeOverGlass(d,mx,my){for(const r of d.rel)if(underGlass(mx+r.x,my+r.
 // ── Next made (Build menu): what Create makes next, tuned within the game's own ranges — its mass and energy, its exact colour balance (a particle, a pigment,
 // a Point, a remnant or a relic), and what a package holds (a commodity's contents). Off: everything is made as it always is ──
 const NEXT={on:false,mass:null,energy:null,bal:[1,1,1,1,1,1],useBal:false,give:0,giveKind:'bright'};
-const nextDef=k=>{const top=Math.max(1,runT('riftMass')||T.massScaleMax*T.blackMult);return k==='mass'?{min:0.01,max:top,step:0.01}:{min:0.001,max:top,step:0.001};}; // (the whole range the game has: up to Rift mass, where a Rift would start to form; energy capped the same)
+const nextDef=k=>{const top=Math.max(1,runT('riftMass')||T.darkMass);return k==='mass'?{min:0.01,max:top,step:0.01}:{min:0.001,max:top,step:0.001};}; // (the whole range the game has: up to Rift mass, where a Rift would start to form; energy capped the same)
 function nextMade(o,cat){if(!o||!NEXT.on)return o;
   if(NEXT.mass!=null)o.mass=tuneSnap(nextDef('mass'),NEXT.mass);if(NEXT.energy!=null)o.energy=tuneSnap(nextDef('energy'),NEXT.energy);
   if(NEXT.useBal&&o.masses&&!o.whiteFx){const t=NEXT.bal.reduce((a,b)=>a+b,0)||1;o.masses=NEXT.bal.map(v=>v/t*o.mass);if(typeof balanceScore==='function')o.balance=balanceScore(o.masses);}
@@ -9722,14 +9722,14 @@ _pm('point-update');
       { const dAff=(q)=>q.dialT!==undefined&&q.dialT<T.dialMs+T.dialRampMs&&!q.isRemnant&&!q.dying&&!q.captured; // a String shot is only a collector while it is affected
         const rm=(dAff(a)&&b.isRemnant&&b.remKind!=='black'&&!b._collected)?b:(dAff(b)&&a.isRemnant&&a.remKind!=='black'&&!a._collected)?a:null;
         if(rm){rm._dialCollect=true;continue;} } // it takes the remnant and flies on: no bounce, no merge
-      if(!blackHole&&a.collapsed&&b.collapsed&&!a.failedCollapse&&!b.failedCollapse&&!a.isRemnant&&!b.isRemnant&&Math.min(a.mass,b.mass)>=T.massScaleMax*T.blackMult*0.5){ // two ECLIPSE / CRYSTALIZE Points (same or opposing) that are each massive enough: they collide into a Dark Remnant
-        const combinedMass=a.mass+b.mass,combinedEnergy=a.energy+b.energy,cx=(a.x+b.x)*0.5,cy=(a.y+b.y)*0.5;
-        const synth={x:cx,y:cy,mass:combinedMass,energy:combinedEnergy,masses:[0,0,0,0,0,0],sigR:60,sigG:60,sigB:70,peakEffectR:0};
-        const debris=triggerNova(synth,now,T.whiteEffMax);for(let di=0;di<debris.length;di++)newRemnants.push(debris[di]);
-        triggerBlackRemnant(cx,cy,now,combinedMass,combinedEnergy);dead[i]=1;dead[j]=1;break;
+      if(!blackHole&&a.collapsed&&b.collapsed&&!a.failedCollapse&&!b.failedCollapse&&!a.isRemnant&&!b.isRemnant&&Math.min(a.mass,b.mass)>=T.darkMass/4){ // two ECLIPSE / CRYSTALIZE Points (same or opposing) of a quarter of the Dark Remnant mass or more each: a nova of both masses and an exotic remnant — or a Dark Remnant, once the two together reach its mass (two of half, at least)
+        const {debris,leftover}=triggerActiveRemnantNova(a,b,now,T.whiteEffMax);
+        for(let di=0;di<debris.length;di++)newRemnants.push(debris[di]);
+        if(leftover)newRemnants.push(leftover);
+        dead[i]=1;dead[j]=1;break;
       }
       if(a.isRemnant&&b.isRemnant&&a.remKind==='brown'&&b.remKind==='brown'&&Math.min(ra,rb)>=T.brownMaxR*0.999){ // two Dim remnants at max radius (as drawn, an Enlarged status included) form a relic; two max relics nova + nebula, then a Dark Remnant
-  if(a.enriched&&b.enriched){const cm=a.mass+b.mass,ce=a.energy+b.energy,cx=(a.x+b.x)*0.5,cy=(a.y+b.y)*0.5,deb=triggerNova({x:cx,y:cy,vx:0,vy:0,rot:0,rotation:0,pvx:0,pvy:0,mass:cm,energy:ce,masses:[1,1,1,1,1,1],sigR:60,sigG:60,sigB:70,peakEffectR:0},now,T.whiteEffMax);if(deb)for(let di=0;di<deb.length;di++)newRemnants.push(deb[di]);if(!blackHole)triggerBlackRemnant(cx,cy,now,Math.max(cm,T.massScaleMax*T.blackMult),ce);dead[i]=1;dead[j]=1;break;}
+  if(a.enriched&&b.enriched){const cm=a.mass+b.mass,ce=a.energy+b.energy,cx=(a.x+b.x)*0.5,cy=(a.y+b.y)*0.5,deb=triggerNova({x:cx,y:cy,vx:0,vy:0,rot:0,rotation:0,pvx:0,pvy:0,mass:cm,energy:ce,masses:[1,1,1,1,1,1],sigR:60,sigG:60,sigB:70,peakEffectR:0},now,T.whiteEffMax);if(deb)for(let di=0;di<deb.length;di++)newRemnants.push(deb[di]);if(!blackHole)triggerBlackRemnant(cx,cy,now,Math.max(cm,T.darkMass),ce);dead[i]=1;dead[j]=1;break;}
   if(!a.enriched&&!b.enriched){const k0=bigger(a,b,ra,rb),o=k0===a?b:a;k0.enriched=true;k0.mass+=o.mass;for(let k=0;k<6;k++)k0.masses[k]+=o.masses[k];k0.energy+=o.energy;k0.vx=(a.vx+b.vx)/2;k0.vy=(a.vy+b.vy)/2;fireEvent('dimrelic',k0,[a,b]);if(k0===a){dead[j]=1;continue;}dead[i]=1;break;}
 }
       if((a.enriched||b.enriched)&&a.isRemnant&&b.isRemnant&&a.remKind!=='brown'&&b.remKind!=='brown'&&a.remKind!=='black'&&b.remKind!=='black'){bounceRemnants(a,b,ra,rb);continue;} // a relic REFLECTS off every other Bright / exotic remnant or relic (momentum only: no damage, no merge)
@@ -9877,7 +9877,7 @@ _pm('point-update');
       captor.ci=dominantCI(captor.masses);
       captor.balance=balanceScore(captor.masses);
       if(captor.collapsed&&!captor.failedCollapse&&!captor.isRemnant){
-        captor.collapsedRadius=Math.max(captor.collapsedRadius,massToRadius(captor.mass,T.whiteMinR,T.whiteMaxR)); // never shrinks a Point that was scaled past the natural cap
+        captor.collapsedRadius=Math.max(captor.collapsedRadius,massToRadius(captor.mass,T.whiteMinR,T.whiteMaxR,T.brightMassMin,T.darkMass/4)); // never shrinks a Point that was scaled past the natural cap
       }
       {const rgb=compositeRGB(captor.masses);captor.r=rgb.r;captor.g=rgb.g;captor.b=rgb.b;if(captor.whiteFx||captor.blackFx)enforceFx(captor);} // the consumed colour is mixed in; a CRYSTALIZE / ECLIPSE consumer keeps its look (its statuses — a Neutron's scale and the rest — stay too)
       updateCached(captor);captor.fillDirty=true;
@@ -9922,7 +9922,7 @@ _pm('collisions');
   // 2× black-remnant threshold → immediate death trigger (still goes through
   // the normal nova + fade sequence below, it just doesn't wait for lifespan).
   {
-    const _thresh=T.massScaleMax*T.blackMult;
+    const _thresh=T.darkMass;
     if(!blackHole){
       for(let i=0;i<an;i++){
         if(dead[i])continue;
@@ -9993,7 +9993,7 @@ _pm('collisions');
               newRemnants.push(rem);
             }
           } else if(p.collapsed&&!p.failedCollapse){
-            if(!blackHole)newRemnants.push(makeRemnant(p,p.mass>=T.massScaleMax*T.blackMult*0.5?chooseActiveRemnantType(p,p,p.masses):'white')); // a Point of half the Dark Remnant mass or more leaves an ACTIVE remnant (type from its colour balance, speed and spin)
+            if(!blackHole)newRemnants.push(makeRemnant(p,p.mass>=T.darkMass/2?chooseActiveRemnantType(p,p,p.masses):'white')); // a Point of half the Dark Remnant mass or more leaves an ACTIVE remnant (type from its colour balance, speed and spin)
           } else if(!blackHole){
             // Everything else that reaches the end of its life leaves a Dim Remnant with the SAME mass, energy and colour, and its velocity / spin.
             const rem=makeRemnant(p,'brown');
@@ -11117,7 +11117,7 @@ function updateInfoAndStats(now,hoverObj){
   if(cC>maxWhites)maxWhites=cC;
   const pEn=peakEci>=0?COLOR_NAMES[peakEci]:'—';
   const pMn=peakMci>=0?COLOR_NAMES[peakMci]:'—';
-  const blackThresh=(T.massScaleMax*T.blackMult)|0;
+  const blackThresh=T.darkMass|0;
   const spdTxt=isPaused?(timeScale>0.01?'⏸ pausing…':'⏸ PAUSED'):(timeScale<0.99&&!dilations.length?'▶ resuming…':'▶ '+speedLabel(speedMult)),
     pauseTag=spdTxt+(dilations.length?' · nova slow −'+Math.round(dilSlow*100)+'% ('+dilations.length+' nova'+(dilations.length>1?'s':'')+')':'')+'\n'+(isPaused&&timeScale<=0.01&&conMode?(conKind==='knot'?'✂ KNOT MODE — link a 3-point loop · '+inventory.knot+' Knot left · right-click: leave\n':'⛓ STRING MODE — link points · '+inventory.leash+' Spindle left · right-click: leave\n'):'');
   statsEl.title=perfHudText().trim(); // the full cause of the slowest frames lives in the tooltip
@@ -12484,11 +12484,11 @@ window.rebuild=rebuild;window.toggleTrails=toggleTrails;
 // ═════════════════════════ LIVE SCENES ═════════════════════════
 // The Encyclopedia embeds a copy of this very game (same code, same physics, same effects) in a small frame and scripts a tiny world in it.
 // ── additions (v129) ──
-function riskOf(p){if(!p.collapsed||p.failedCollapse||p.isRemnant)return 0;return p.mass>=T.riskDangerMass?2:p.mass>=T.riskWarnMass?1:0;}
+function riskOf(p){if(!p.collapsed||p.failedCollapse||p.isRemnant)return 0;return p.mass>=T.darkMass/2?2:p.mass>=T.darkMass/4?1:0;} // WARNING from a quarter of the Dark Remnant mass (two such make an exotic remnant), DANGER from half (two make a Dark Remnant)
 function toggleRisks(){risksOn=!risksOn;}
 let _rbSig='';
 function syncReadoutBtns(){const sg=[telemetryOn,risksOn,dynamicsOn,classOn,showRadii].join();if(sg===_rbSig)return;_rbSig=sg;updateInventoryUI();}
-function addDilation(R){const lo=novaMassRadius(T.collMass),hi=novaMassRadius(T.massScaleMax*T.blackMult),f=Math.max(0,Math.min(1,(R-lo)/Math.max(1,hi-lo)));dilations.push({a:T.dilMin+(T.dilMax-T.dilMin)*f,age:0});}
+function addDilation(R){const lo=novaMassRadius(T.collMass),hi=novaMassRadius(T.darkMass),f=Math.max(0,Math.min(1,(R-lo)/Math.max(1,hi-lo)));dilations.push({a:T.dilMin+(T.dilMax-T.dilMin)*f,age:0});}
 function stepDilation(now){ // each nova's own slow (5–50% by its size) is held in full until its timer (Nova fresh grace) has passed in game
   // time, then eases out over Dilation release ms. The slows add up; the total never passes 1 − Dilation floor (75%).
   const dtr=dilLast?Math.min(50,now-dilLast):0;dilLast=now;const evs=evCapSlow(now);if(!dilations.length){dilSlow=Math.min(1-T.dilFloor,evs);return 1-dilSlow;}
@@ -12540,11 +12540,11 @@ const SCENES={};
   SCENES.neutron={dur:7000,setup(S){S.rem(S.W/2,S.H/2,'neutron');S.ring(9,30,85,(x,y,i)=>{const p=S.pig(x,y,i,12);p.vx=rv(0.2);p.vy=rv(0.2);});S.ring(10,40,90,(x,y)=>S.part(x,y,2));}};
   SCENES.magnetic={dur:7000,setup(S){S.rem(S.W/2,S.H/2,'magnetic').rot=0.012;S.ring(10,25,70,(x,y,i)=>{const p=S.pig(x,y,i,12);p.vx=rv(0.2);p.vy=rv(0.2);});S.ring(10,30,75,(x,y)=>S.part(x,y,4));}};
   SCENES.pulsing={dur:8000,setup(S){S.rem(S.W/2,S.H/2,'pulsing').rot=0.008;S.ring(8,30,85,(x,y,i)=>S.pig(x,y,i%2?5:'white',12));S.ring(18,35,95,(x,y,i)=>S.part(x,y,i%2?5:'white'));}}; // SNARE and CRYSTALIZE only: neither moves things, so the beam's status change is all that shows
-  SCENES.nova={dur:5500,setup(S){const p=S.pnt(S.W/2,S.H/2,2);p.mass=600;p.masses=[100,100,100,100,100,100];p.energy=0.5;p.collapsedRadius=massToRadius(p.mass,T.whiteMinR,T.whiteMaxR,T.brightMassMin,T.brightMassMax);p._keep=false;p.lifespan=1400;S.ring(8,40,90,(x,y,i)=>S.pig(x,y,i,8));S.ring(12,45,95,(x,y)=>S.part(x,y,3));}};
+  SCENES.nova={dur:5500,setup(S){const p=S.pnt(S.W/2,S.H/2,2);p.mass=600;p.masses=[100,100,100,100,100,100];p.energy=0.5;p.collapsedRadius=massToRadius(p.mass,T.whiteMinR,T.whiteMaxR,T.brightMassMin,T.darkMass/4);p._keep=false;p.lifespan=1400;S.ring(8,40,90,(x,y,i)=>S.pig(x,y,i,8));S.ring(12,45,95,(x,y)=>S.part(x,y,3));}};
   const pf=mode=>({dur:5200,setup(S){classOn=true;dynamicsOn=true;const ok=mode===1?true:mode===2?false:S.n%2===1,p=S.pig(S.W/2,S.H/2,2,0);p.mass=T.collMass+20;const m=p.mass/3;p.masses=[m,0,m,0,m,0];p.balance=balanceScore(p.masses);p.energy=ok?T.collEnergy+0.3:0.02;updateCached(p);S.p=p;},
     tick(S,t){S.focus(S.p);S.look(t,S.p.x,S.p.y,[1800]);if(!S.fired&&t>1800){S.fired=1;tryCollapse(S.p,1);S.p._keep=true;S.p.lifespan=Infinity;}}});SCENES.pointform=pf(0);SCENES.pointfail=pf(2);
   SCENES.dark={dur:10000,setup(S){S.ring(14,25,90,(x,y,i)=>S.pig(x,y,i,10));for(let i=0;i<30;i++)S.part(S.rnd(10,S.W-10),S.rnd(10,S.H-10),i%6);},
-    tick(S,t){if(!S.fired&&t>900){S.fired=1;triggerBlackRemnant(S.W/2,S.H/2,performance.now(),T.massScaleMax*T.blackMult,T.collEnergy);}}};
+    tick(S,t){if(!S.fired&&t>900){S.fired=1;triggerBlackRemnant(S.W/2,S.H/2,performance.now(),T.darkMass,T.collEnergy);}}};
   SCENES.barrier={dur:7000,setup(S){
     T.barrierBreakSpeed=T.maxSpeed*0.6;const sp=T.maxSpeed;
     shp({cat:'shape_barrier',variant:'hard',pts:[{x:S.W*0.25,y:8},{x:S.W*0.25,y:S.H-8}]});
@@ -12784,11 +12784,11 @@ const CONV={
  wake:{t:'Particle → Pigment',f:()=>['mass, energy and colour mix are the particle\'s own: nothing is added or lost','it starts at the size it was drawn and grows to the pigment size: radius = '+tvE(T.colorMinR,'colorMinR')+' + ('+tvE(T.colorMaxR,'colorMaxR')+' − '+tvE(T.colorMinR,'colorMinR')+') × (1 − (1 − t)^'+tvE(T.massCurvePow,'massCurvePow')+'), t = (mass − '+tvE(T.pigmentMassMin,'pigmentMassMin')+') ÷ ('+tvE(T.pigmentMassMax,'pigmentMassMax')+' − '+tvE(T.pigmentMassMin,'pigmentMassMin')+')']},
  pigdeath:{t:'Pigment life and death',f:()=>['life = (mass ÷ energy) × '+tvE(T.lifeColor,'lifeColor')+' ms, never more than '+tvE(T.lifeMaxS,'lifeMaxS')+' s; it only counts down while the pigment shines','holding the cursor squeezes it: Td = '+tvE(T.holdDrainK,'holdDrainK')+' × 704 × life^0.648 ms, and its remaining life follows life × (1 − (t ÷ Td)²)','when it runs out it becomes a Dim Remnant with 100% of its mass, energy and colour mix (no loss)']},
  faildim:{t:'Failed collapse → Dim Remnant',f:()=>['a pigment that is heavy and balanced enough but has energy < '+tvE(T.collEnergy,'collEnergy')+' dims instead of collapsing','it is rebuilt by makeRemnant: mass × '+tvE(T.remMassFrac,'remMassFrac')+', energy × '+tvE(T.remEnergyFrac,'remEnergyFrac')+', colour mix × '+tvE(T.remMassFrac,'remMassFrac'),'example: mass 300, energy 20 → mass '+tvE(cvn(300*T.remMassFrac,1),'remMassFrac')+', energy '+tvE(cvn(20*T.remEnergyFrac,2),'remEnergyFrac')]},
- collapse:{t:'Pigment → Point',f:()=>['needs mass > '+tvE(T.collMass,'collMass')+' (Mass req)','needs energy ≥ '+tvE(T.collEnergy,'collEnergy')+' (Energy req); less and it dims instead','needs colour balance: every primary ≥ '+tvE(T.triadMin,'triadMin')+' of the mix and weakest ÷ strongest ≥ '+tvE(T.triadBal,'triadBal'),'Point radius = '+tvE(T.whiteMinR,'whiteMinR')+' + ('+tvE(T.whiteMaxR,'whiteMaxR')+' − '+tvE(T.whiteMinR,'whiteMinR')+') × (1 − (1 − t)^'+tvE(T.massCurvePow,'massCurvePow')+'), t = (mass − '+tvE(T.brightMassMin,'brightMassMin')+') ÷ ('+tvE(T.brightMassMax,'brightMassMax')+' − '+tvE(T.brightMassMin,'brightMassMin')+')','Point life = (mass ÷ energy) × '+tvE(T.lifeStarK,'lifeStarK')+' ÷ (radius × '+tvE(T.lifeStarDiv,'lifeStarDiv')+') ms, never more than '+tvE(T.lifeMaxS,'lifeMaxS')+' s, and it always counts down','mass and energy carry over unchanged']},
- pointdeath:{t:'Point → Bright Remnant (+ nova)',f:()=>{const m=300,e=62;return['remnant mass = Point mass × '+tvE(T.remMassFrac,'remMassFrac')+' (Remnant mass %), remnant energy = Point energy × '+tvE(T.remEnergyFrac,'remEnergyFrac')+' (Remnant energy %), colour mix × '+tvE(T.remMassFrac,'remMassFrac'),'example: a Point with mass '+tvE(m,'')+' and energy '+tvE(e,'')+' leaves mass '+tvE(cvn(m*T.remMassFrac,1),'remMassFrac')+' and energy '+tvE(cvn(e*T.remEnergyFrac,2),'remEnergyFrac'),'the rest of the energy is not carried over: the nova lays new particles with fresh energy ('+tvE(T.particleStartEnergy,'particleStartEnergy')+' ± '+tvE(T.particleEnergyJitter,'particleEnergyJitter')+', ÷ 10) × (1 − distance ÷ radius)²','nova radius = '+tvE(T.novaMassBase,'novaMassBase')+' × √mass (at least '+tvE(cvn(PIXEL_SIZE*2,1),'PIXEL_SIZE')+' px); total particle mass laid = Point mass (a thin nova fills only its outer ring)','a Point of at least half the Dark Remnant mass ('+tvE(Math.round(T.massScaleMax*T.blackMult/2),'blackMult massScaleMax')+') leaves an ACTIVE remnant instead (type chosen as in a fusion: colour balance, then speed and spin)','every nova slows game time: '+tvE(T.dilMin,'dilMin')+' (smallest) to '+tvE(T.dilMax,'dilMax')+' (largest), never below ×'+tvE(T.dilFloor,'dilFloor')];}},
+ collapse:{t:'Pigment → Point',f:()=>['needs mass > '+tvE(T.collMass,'collMass')+' (Mass req)','needs energy ≥ '+tvE(T.collEnergy,'collEnergy')+' (Energy req); less and it dims instead','needs colour balance: every primary ≥ '+tvE(T.triadMin,'triadMin')+' of the mix and weakest ÷ strongest ≥ '+tvE(T.triadBal,'triadBal'),'Point radius = '+tvE(T.whiteMinR,'whiteMinR')+' + ('+tvE(T.whiteMaxR,'whiteMaxR')+' − '+tvE(T.whiteMinR,'whiteMinR')+') × (1 − (1 − t)^'+tvE(T.massCurvePow,'massCurvePow')+'), t = (mass − '+tvE(T.brightMassMin,'brightMassMin')+') ÷ ('+tvE(T.darkMass/4,'darkMass')+' − '+tvE(T.brightMassMin,'brightMassMin')+')','Point life = (mass ÷ energy) × '+tvE(T.lifeStarK,'lifeStarK')+' ÷ (radius × '+tvE(T.lifeStarDiv,'lifeStarDiv')+') ms, never more than '+tvE(T.lifeMaxS,'lifeMaxS')+' s, and it always counts down','mass and energy carry over unchanged']},
+ pointdeath:{t:'Point → Bright Remnant (+ nova)',f:()=>{const m=300,e=62;return['remnant mass = Point mass × '+tvE(T.remMassFrac,'remMassFrac')+' (Remnant mass %), remnant energy = Point energy × '+tvE(T.remEnergyFrac,'remEnergyFrac')+' (Remnant energy %), colour mix × '+tvE(T.remMassFrac,'remMassFrac'),'example: a Point with mass '+tvE(m,'')+' and energy '+tvE(e,'')+' leaves mass '+tvE(cvn(m*T.remMassFrac,1),'remMassFrac')+' and energy '+tvE(cvn(e*T.remEnergyFrac,2),'remEnergyFrac'),'the rest of the energy is not carried over: the nova lays new particles with fresh energy ('+tvE(T.particleStartEnergy,'particleStartEnergy')+' ± '+tvE(T.particleEnergyJitter,'particleEnergyJitter')+', ÷ 10) × (1 − distance ÷ radius)²','nova radius = '+tvE(T.novaMassBase,'novaMassBase')+' × √mass (at least '+tvE(cvn(PIXEL_SIZE*2,1),'PIXEL_SIZE')+' px); total particle mass laid = Point mass (a thin nova fills only its outer ring)','a Point of at least half the Dark Remnant mass ('+tvE(Math.round(T.darkMass/2),'darkMass')+') leaves an ACTIVE remnant instead (type chosen as in a fusion: colour balance, then speed and spin)','two Points of at least a quarter of it each ('+tvE(Math.round(T.darkMass/4),'darkMass')+', where a Point is at its max radius) meeting leave a nova of both masses and an ACTIVE remnant','every nova slows game time: '+tvE(T.dilMin,'dilMin')+' (smallest) to '+tvE(T.dilMax,'dilMax')+' (largest), never below ×'+tvE(T.dilFloor,'dilFloor')];}},
  fuse:{t:'Bright + Bright → exotic remnant',f:()=>['they only break apart if combined motion ≥ '+tvE(T.remBounceNovaThresh,'remBounceNovaThresh')+' (each: speed ÷ '+tvE(T.maxSpeed,'maxSpeed')+' + spin ÷ '+tvE(T.maxRotSpeed,'maxRotSpeed')+'); softer hits just bounce','colour balance ≤ '+tvE(T.magBalanceLow,'magBalanceLow')+' or ≥ '+tvE(T.magBalanceHigh,'magBalanceHigh')+' → Magnetic (≥ '+tvE(T.magBWScore,'magBWScore')+' makes a Black & White one)','otherwise: (faster speed ÷ '+tvE(T.maxSpeed,'maxSpeed')+') + (faster spin ÷ '+tvE(T.maxRotSpeed,'maxRotSpeed')+') ≥ '+tvE(T.pulseSumThresh,'pulseSumThresh')+' → Pulsing, else Neutron','leftover remnant: mass × '+tvE(T.remMassFrac,'remMassFrac')+', energy × '+tvE(T.remEnergyFrac,'remEnergyFrac')+' of the two combined; the nova is sized from the combined mass']},
  crash:{t:'Active + Active → Dark Remnant',f:()=>['combined motion ≥ '+tvE(T.remBounceNovaThresh,'remBounceNovaThresh')+' (speed ÷ '+tvE(T.maxSpeed,'maxSpeed')+' + spin ÷ '+tvE(T.maxRotSpeed,'maxRotSpeed')+', both objects); softer and they bounce','they are replaced by a nova of the combined mass, then a Dark Remnant']},
- dark:{t:'Dark Remnant',f:()=>['a Point of mass ≥ '+tvE(Math.round(T.massScaleMax*T.blackMult),'blackMult massScaleMax')+' (Mass scale max × Mass ×) dies into one','two Points of at least half that mass meeting, two exotic remnants crashing, two relics meeting, or a Key also make one','it grows over '+tvE(T.blackGrowMs,'blackGrowMs')+' ms, freezes everything, then draws everything in at '+tvE(T.blackLaunchPerMs,'blackLaunchPerMs')+' objects per ms']},
+ dark:{t:'Dark Remnant',f:()=>['a Point of mass ≥ '+tvE(Math.round(T.darkMass),'darkMass')+' (Dark Remnant mass) dies into one','two Points of at least a quarter of that mass each meeting with that mass between them (two of half, at least), two exotic remnants crashing, two relics meeting, or a Key also make one','it grows over '+tvE(T.blackGrowMs,'blackGrowMs')+' ms, freezes everything, then draws everything in at '+tvE(T.blackLaunchPerMs,'blackLaunchPerMs')+' objects per ms']},
  relic:{t:'Relics',f:()=>['two Dim Remnants of mass ≥ '+tvE(T.dimMassMax,'dimMassMax')+' (Dim max mass) merge: one becomes a relic (enriched) with the combined mass and energy','two relics of that mass meeting make a nova and a Dark Remnant','an ECLIPSE Point that dies leaves an enriched Dim, a CRYSTALIZE Point an enriched Bright; relics are never eaten, merged or damaged and collect as ×100']},
  collect:{t:'Collecting',f:()=>['Bright / Dim: ceil(energy × 10), at least 1; relics ceil(energy × 100)','Neutron / Magnetic / Pulsing remnants: 1 (relics 100), plus +'+tvE(Math.ceil(T.statusEnergy*10),'statusEnergy')+' (relic +'+tvE(Math.ceil(T.statusEnergy*100),'statusEnergy')+') per stacked status','so a remnant with energy '+tvE(cvn(2.3,1),'')+' collects as '+tvE(Math.ceil(2.3*10),'')+' (relic '+tvE(Math.ceil(2.3*100),'')+')']},
  status:{t:'Status energy',f:()=>['a Dim, Bright or relic gains +'+tvE(T.statusEnergy,'statusEnergy')+' energy for every new status it picks up: Enlarged, Shrunk, or (Bright only) a colour','an exotic remnant stacks them too, from the other two active types: Enlarged, Shrunk, each colour pair, each Pulsing beat — up to '+tvE(T.activeStatusMax,'activeStatusMax'),'+'+tvE(T.statusEnergy,'statusEnergy')+' energy collects as +'+tvE(Math.ceil(T.statusEnergy*10),'statusEnergy')+' (relic +'+tvE(Math.ceil(T.statusEnergy*100),'statusEnergy')+')']},
@@ -12889,7 +12889,7 @@ function cardHTML(ev,mini,pg){ // the one card format: name bar, art box, type l
   return `<div class="mtg${sm?' sm':mini===2?' pic':''}${!pg&&discSeen.has('ev:'+ev.id)&&ilNew('ev:'+ev.id)?' fd':''}" data-ev="${ev.id}" data-new="ev:${ev.id}" style="--rc:${TIER_COL[t]}"><div class="nm"><b>${gEsc(ev.name)}</b><span class="gem"></span></div><div class="art" data-scene="${ev.scene}" data-ev="${ev.id}" data-k="${ev.ico}">${sm?evStillHTML([ev.id])||`<canvas class="rl-m" width="64" height="64" data-k="${ev.ico}"></canvas>`:''}</div>${body}</div>`;
 }
 function mountScene(h,w,hh){if(!h||h.firstChild||document.querySelectorAll('.rl-live iframe:not(.held),.mtg .art iframe:not(.held)').length>=5)return; /* (a page's picture holding on its last frame does not count) */{const R=(h.dataset.ev||'').split(',').map(evRecFor).find(Boolean);if(R&&!w){evReplayMount(h,R);return;}} /* something you witnessed: your own recording of it, live (a demo only for what you have not) */const f=document.createElement('iframe'),nm=h.dataset.s||h.dataset.scene;f.style.cssText='border:0;max-width:100%;pointer-events:none;background:#000;border-radius:6px;'+(w?`width:${w}px;height:${hh}px`:'width:100%;height:100%');
-  if(nm.slice(0,4)==='hub:'){const[sn,dk]=nm.slice(4).split(':');f.src='Surface_Map_HUB.html?v=20261111i&scene='+sn+(sn==='shop'?'&k='+encodeURIComponent(dk||''):'')+'&T='+encodeURIComponent(JSON.stringify(mapSceneT()))+'&D='+encodeURIComponent(JSON.stringify(dk&&DUCK_TYPES[dk]?{[dk]:DUCK_TYPES[dk]}:Object.fromEntries(Object.entries(DUCK_TYPES).slice(0,4))));}else{f.srcdoc=liveSrc(nm,null,h.dataset.hold);if(h.dataset.hold)f.className='held';}h.appendChild(f);} // a Surface Map demo is played by the map itself
+  if(nm.slice(0,4)==='hub:'){const[sn,dk]=nm.slice(4).split(':');f.src='Surface_Map_HUB.html?v=20261116a&scene='+sn+(sn==='shop'?'&k='+encodeURIComponent(dk||''):'')+'&T='+encodeURIComponent(JSON.stringify(mapSceneT()))+'&D='+encodeURIComponent(JSON.stringify(dk&&DUCK_TYPES[dk]?{[dk]:DUCK_TYPES[dk]}:Object.fromEntries(Object.entries(DUCK_TYPES).slice(0,4))));}else{f.srcdoc=liveSrc(nm,null,h.dataset.hold);if(h.dataset.hold)f.className='held';}h.appendChild(f);} // a Surface Map demo is played by the map itself
 function mapSceneT(){const o={};for(const k in T)if(/^(map|bh|duck|wake|glass|metal|dimGlow|glowHalo|maxSpeed)/.test(k))o[k]=T[k];return o;} // what a map demo needs of the tuners
 function showCardHTML(html){ // a Guide card (an entry or a shop) opened over the Guide, where an event card shows
   guideCSS();if(!_evOpen)_evPausedIt=false;_evOpen=true;_evReview=true;const ov=evOverlayEl();ov.innerHTML=`<div class="ev-box">${html}<button id="evOk">${txt('card.close')}</button></div>`;ov.style.display='flex';wrap.classList.add('ev-open');
@@ -12947,7 +12947,7 @@ const MAP_EDGES=[
  {id:'form',a:'pigment',b:'point',l:'collapse',scene:'pointform',cost:3,conv:['collapse'],cond:()=>['mass > '+T.collMass,'energy ≥ '+T.collEnergy,'every primary ≥ '+T.triadMin+' of the colour mix and weakest ÷ strongest ≥ '+T.triadBal]},
  {id:'dry',a:'pigment',b:'dim',l:'dims',scene:'pointfail',cost:3,conv:['pigdeath','faildim'],cond:()=>['its life runs out while shining','or it is heavy and balanced enough to collapse but has energy < '+T.collEnergy]},
  {id:'burst',a:'point',b:'bright',l:'bursts',scene:'nova',cost:5,conv:['pointdeath'],cond:()=>['a Point\'s life runs out (it always counts down); a nova fires and a Bright Remnant is left']},
- {id:'pdark',a:'point',b:'dark',l:'giant',scene:'dark',cost:20,conv:['dark'],cond:()=>['a Point reaches mass ≥ '+Math.round(T.massScaleMax*T.blackMult)]},
+ {id:'pdark',a:'point',b:'dark',l:'giant',scene:'dark',cost:20,conv:['dark'],cond:()=>['a Point reaches mass ≥ '+Math.round(T.darkMass)]},
  {id:'fuseN',a:'bright',b:'neutron',l:'collide',scene:'fuse_n',cost:10,conv:['fuse'],cond:()=>['two Bright Remnants collide with combined motion ≥ '+T.remBounceNovaThresh,'colour balance between '+T.magBalanceLow+' and '+T.magBalanceHigh,'faster speed ÷ '+T.maxSpeed+' + faster spin ÷ '+T.maxRotSpeed+' < '+T.pulseSumThresh]},
  {id:'fuseM',a:'bright',b:'magnetic',l:'collide',scene:'fuse_m',cost:10,conv:['fuse'],cond:()=>['the same collision, but colour balance ≤ '+T.magBalanceLow+' or ≥ '+T.magBalanceHigh]},
  {id:'fuseP',a:'bright',b:'pulsing',l:'collide',scene:'fuse_p',cost:10,conv:['fuse'],cond:()=>['the same collision, colour in the middle, but faster speed ÷ '+T.maxSpeed+' + faster spin ÷ '+T.maxRotSpeed+' ≥ '+T.pulseSumThresh]},
@@ -13443,7 +13443,7 @@ function buildBar(){let el=document.getElementById('buildBar');if(!el){el=docume
   $('bdDel').onclick=async()=>{const n=nm();if(!buildLib.levels[n]){flashSaveStatus(txt('build.no_such',n));return;}if(!confirm(txt('build.delete_ask',n)))return;delete buildLib.levels[n];if(await buildKeep())flashSaveStatus(txt('build.deleted',n));buildBar();};
   $('bdExport').onclick=()=>{saveFile('levels.json',JSON.stringify(buildLib));flashSaveStatus(txt('build.exported',Object.keys(buildLib.levels).length,Object.keys(buildLib.prefabs).length));};
   preBarWire($);}
-function buildPlay(){buildTest=buildLevelData();const P=buildTime?prefabSpawn(buildTime):null;const d=buildDarks[0];if(d){const t=buildDarks.slice();buildDarks=[];triggerBlackRemnant(d.x,d.y,performance.now(),d.mass||T.massScaleMax*T.blackMult,d.energy||T.collEnergy,true);buildDarks=t;} // (true: placed, so never a duck) // Test: the surface played as it would be (a Dark Remnant placed starts; a Rift can form; it can be cleared)
+function buildPlay(){buildTest=buildLevelData();const P=buildTime?prefabSpawn(buildTime):null;const d=buildDarks[0];if(d){const t=buildDarks.slice();buildDarks=[];triggerBlackRemnant(d.x,d.y,performance.now(),d.mass||T.darkMass,d.energy||T.collEnergy,true);buildDarks=t;} // (true: placed, so never a duck) // Test: the surface played as it would be (a Dark Remnant placed starts; a Rift can form; it can be cleared)
   if(isPaused)togglePause();flashSaveStatus(buildTime?(P&&P.length?txt('build.test_prefab',P.map(q=>q.name).join(', '),TIMES[buildTime]):txt('build.test_none',TIMES[buildTime])):txt('build.testing'));} // (at a time of day: which prefabs, if any, will appear)
 function buildBack(){const L=buildTest;buildTest=null;if(L)buildApply(L);levelCleared=false;clearInfo=null;flashSaveStatus(txt('build.back_to_build'));} // back to the surface as it was before the test
 var HUB=!window.__SCENE&&window.parent!==window&&/[?&]hub=1/.test(location.search);

@@ -71,7 +71,7 @@ Shining | It always has a ring. Shining makes the ring bigger.
 Life | Always runs down.
 Eats | Wins against pigments and remnants it touches. Between two Points the heavier wins.
 Active remnants | One that touches an exotic remnant fuses with it into a giant Point and a nova.
-Dark | Super heavy (about twice the Dark Remnant mass) makes a Dark Remnant."
+Dark | At the Dark Remnant mass ({dark_mass}) it dies into a Dark Remnant; at half, into an exotic remnant. Two of a quarter each meeting make an exotic remnant; two of half, a Dark Remnant."
 nova,bright,Nova,nova,The ring thrown out when a Point bursts.,"Does | Pushes things away, cracks Lenses it reaches (or breaks one it bursts inside), wakes particles, then lays new particles in the burst colours.
 Size | Grows with the mass. Light ones fill only the outer ring.
 Slow | It slows the game: 5% for the smallest nova up to 50% for the largest. Each one holds its slow until its timer passes. Slows add up, to at most 75% (a quarter speed).
