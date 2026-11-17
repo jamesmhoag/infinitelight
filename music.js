@@ -3,11 +3,11 @@
 //  hybrid   (the record player's own album): strings and a horn line over EDM drums, bass and an arpeggio when it drops
 //  edm      (the PULSE): four on the floor, off-beat bass, a plucked arpeggio, a pad that ducks under the kick; builds, drops and breaks
 //  symphony (CUSTOM HULLS): strings, cellos, a horn melody, pizzicato and timpani; it swells and settles
-// A record plays 48 bars, then the next one you own. The record player is a starting item on a mast mount (START_ITEMS, shared.js);
+// A record plays 48 bars, then the next one you own. Also: a souvenir copy from the GIFT SHOP (kept through its wipe), and Dim's Carnival's record prize. The record player is a starting item on a mast mount (START_ITEMS, shared.js);
 // its dock slot (♪) lists your records. A record: owned as up:<id> (the hybrid album comes with the player)
 const RECORDS=csvRead('records').map(r=>({id:r.id,n:r.name,g:r.genre,bpm:+r.bpm||120,root:+r.root||45,minor:r.scale!=='major',prog:String(r.prog||'0 5 3 4').split(/\s+/).map(Number),seed:+r.seed||1}));
 const MUSIC={ctx:null,cur:null,bar:0,step:0,at:0,timer:null,out:null,rev:null,duck:null,pref:(()=>{try{return JSON.parse(localStorage.getItem('il_music_v1')||'null')||{on:true,id:null};}catch(e){return{on:true,id:null};}})()};
-const recOwned=(r,has)=>r.g==='hybrid'?has('up:record'):has('up:'+r.id);
+const recOwned=(r,has)=>r.g==='hybrid'?has('up:record'):has('up:'+r.id)||SHOP_ITEMS.some(i=>i.fx.rec===r.id&&(souvenirs()[i.id]||0)>0); // (or a souvenir copy from the Gift Shop: yours whatever comes next)
 function musicSave(){try{localStorage.setItem('il_music_v1',JSON.stringify(MUSIC.pref));}catch(e){}}
 function musicRng(s){return()=>{s|=0;s=s+0x6D2B79F5|0;let t=Math.imul(s^s>>>15,1|s);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296;};}
 function musicInit(){if(MUSIC.ctx)return MUSIC.ctx;const A=window.AudioContext||window.webkitAudioContext;if(!A)return null;const c=MUSIC.ctx=new A();
