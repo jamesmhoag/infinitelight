@@ -1115,3 +1115,9 @@ map.water.rest_d,"The tide cannot carry you in from here: time passes",Surface M
 map.water.bottle,A bottle of water,Surface Map (water),
 map.water.bottle_d,"Drunk: your next move is on it, not the barrel",Surface Map (water),
 map.water.one_a_time,One drink a time of day,Surface Map (water),
+map.sleep.asleep,Asleep,Surface Map (sleep),
+map.sleep.until,"The day goes on without you: you wake at {time}",Surface Map (sleep),time = $0 — the time of day you wake
+map.sleep.woke,You wake: {time},Surface Map (sleep),time = $0 — the time of day
+map.sleep.woke_d,"The spill has spread while you slept",Surface Map (sleep),
+map.sleep.call,A wake-up call,Surface Map (sleep),
+map.sleep.call_d,"Tomorrow you wake at Dawn, not Morning",Surface Map (sleep),
