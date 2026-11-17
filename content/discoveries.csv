@@ -44,7 +44,10 @@ Tools & panels,slot_cache-clear,Cache: clear slot,5000
 Tools & panels,slot_cache-fill,Cache: fill slot,0
 Tools & panels,slot_cache-disable,Cache: disable slot,8000
 Advanced,mode_create,Create item mode,0
-Advanced,slot_create,Create item slot,0
+Advanced,slot_create,Elements tool slot (Build),0
+Advanced,slot_shapes,Shapes tool slot (Build),0
+Advanced,slot_goods,Commodities tool slot (Build),0
+Advanced,slot_entangle,Entanglement tool slot (Build),0
 "Feed & object info (feed and telemetry unlock separately, same cost)",feed_msg,Feed: any message,0
 "Feed & object info (feed and telemetry unlock separately, same cost)",obj_particle,Particle,0
 "Feed & object info (feed and telemetry unlock separately, same cost)",obj_pigment,Pigment,0
