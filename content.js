@@ -65,7 +65,7 @@ if(window.top===window){try{const t=+sessionStorage.getItem('il_load')||0;sessio
 // One cursor everywhere: the system cursor never shows (any state, any menu). The ring, its bloom and its dot; brighter over anything that does
 // something. Its click reaction is the surface's, the same on every page: a press shrinks it in (cursorClickShrink, over cursorClickDurMs), held on
 // it flares out past rest, a release eases it back from wherever it was; a right-click punches it outward. Colour and dimming cross-fade (~55 ms).
-function cursorBase(cx,x,y,cR,dimA,tintK,edgeCol,lw){
+function cursorBase(cx,x,y,cR,dimA,tintK,edgeCol,lw){if(!(cR>0))return; /* (a cursor shrunk to nothing, as it pops: nothing to draw) */
   const g=cx.createRadialGradient(x,y,0,x,y,cR*0.85);g.addColorStop(0,`rgba(0,0,0,${(0.5*dimA*tintK).toFixed(3)})`);g.addColorStop(0.75,`rgba(0,0,0,${(0.28*dimA*tintK).toFixed(3)})`);g.addColorStop(1,'rgba(0,0,0,0)');
   cx.beginPath();cx.arc(x,y,cR*0.85,0,6.2832);cx.fillStyle=g;cx.fill();
   cx.globalCompositeOperation='screen';cx.filter='blur(7px)';cx.globalAlpha=0.6*dimA; // the bloom behind the sharp ring

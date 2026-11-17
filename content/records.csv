@@ -1,0 +1,16 @@
+id,name,genre,bpm,root,scale,prog,seed,note
+rec_h1,First Light,hybrid,122,45,minor,0 5 2 6,101,"The record player's own album (Infinite Light): strings and horn over EDM drums"
+rec_h2,Chromatic Tide,hybrid,118,43,minor,0 3 5 4,202,
+rec_h3,The Point,hybrid,126,48,major,0 4 5 3,303,
+rec_h4,Bright Clears,hybrid,124,50,major,0 5 3 4,404,
+rec_h5,Midnight Collapse,hybrid,116,41,minor,0 6 5 4,505,
+rec_e1,Pulse Width,edm,128,45,minor,0 5 2 6,611,Sold at the PULSE
+rec_e2,Neutron Drop,edm,126,40,minor,0 0 5 6,722,
+rec_e3,Magnetic North,edm,124,47,minor,0 3 4 4,833,
+rec_e4,Strobe Lake,edm,130,42,major,0 4 5 3,944,
+rec_e5,Duck Bass,edm,122,38,minor,0 6 3 4,1055,
+rec_s1,Nocturne for a Buoy,symphony,72,50,minor,0 3 4 0,1166,Sold at CUSTOM HULLS
+rec_s2,Lantern Waltz,symphony,84,55,major,0 3 4 0 5 1 4 0,1277,
+rec_s3,Adagio of the Spill,symphony,60,45,minor,0 5 3 4,1388,
+rec_s4,Hull Overture,symphony,96,48,major,0 4 5 3 1 4 0 0,1499,
+rec_s5,Dim Carnival Suite,symphony,90,52,minor,0 5 6 4,1510,

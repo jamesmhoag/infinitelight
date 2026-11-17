@@ -688,6 +688,8 @@ mapGoodScale,1.1,Lake commodity size,0.2,2,0.05,Commodities,map,,,,"How big comm
 mapGoodMs,150000,Lake goods ms,10000,900000,5000,Commodities,map,,,,"About how often a can, a cup or a box floats in on the lake",
 mapChestMs,300000,Chest ms,10000,1800000,10000,Commodities,map,,,,About how often a treasure chest floats in (one at a time),
 mapDroneMs,1800,Drone flight ms,300,10000,100,Commodities,map,,,,How long the drone takes to fly to a shop (and back),
+musicVol,0.8,Music volume,0,1,0.05,Music,map,,,,The record player's volume,
+recFind,0.12,Record in the trash,0,1,0.01,Music,map,,,,"The chance an opened can, cup or box from the lake holds a record you do not have",
 mapChestOpenMs,1600,Chest open ms,200,6000,100,Commodities,map,,,,How long an opened chest glows before it sinks,
 mapChestBurnMs,2600,Chest burn ms,500,8000,100,Commodities,map,,,,How long an emptied chest takes to sink and burn away,
 evSlow,0.5,Event slow,0,0.9,0.05,Events — capture,gameplay,,,,"How much an event's capture slows the game, added to the novas' slows (0.5 = half speed)",
