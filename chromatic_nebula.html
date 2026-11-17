@@ -119,7 +119,7 @@ button:hover{background:rgba(255,255,255,0.15);}
   <div id="dock" class="bottom"><div id="inventoryPanel"></div><div id="touch-info"></div></div>
   <canvas id="cur"></canvas>
 </div>
-<script src="content.js?v=20261117b"></script><script src="shared.js?v=20261117b"></script>
+<script src="content.js?v=20261117c"></script><script src="shared.js?v=20261117c"></script>
 <script>
 txtApply(); // the page's own labels (content/strings.csv)
 const _SRC=document.documentElement.outerHTML; // kept so the Encyclopedia can run live scenes as embedded copies of the game
@@ -4356,7 +4356,7 @@ function gateDefaultCursor(){return gateStates.length;} // arming defaults to th
 // (middle-click steps the type, wheel the colour/kind); putting it away (click again / right-click) returns the normal cursor.
 let createItemMode=false; // (on in Build mode only)
 function createActive(){return !!(armedInvItem&&(armedInvItem.kind==='create'||armedInvItem.kind==='entangle'));} // Create, or Entanglement: the tools for what is already there (they share the type list, each its own part of it)
-const POST_CATS=new Set(['inertia','prefab','duplicate','remove']),toolHas=(kind,cat)=>cat!=='standard'&&(kind==='entangle')===POST_CATS.has(cat); // Entanglement: the Inertializer, Prefab, Duplicate (Copy, Move, Repurpose) and Remove; Create: the rest
+const POST_CATS=new Set(['inertia','select','prefab','duplicate','remove']),toolHas=(kind,cat)=>cat!=='standard'&&(kind==='entangle')===POST_CATS.has(cat); // Entanglement: the Inertializer, Select, Prefab, Duplicate (Copy, Move, Repurpose) and Remove; Create: the rest
 const _toolType={};
 function armInventoryItem(kind){
   if(kind==='cache-disable'){invDisableMode=!invDisableMode;updateInventoryUI();flashSaveStatus((invDisableMode?txt('surf.disable_mode_click_an'):txt('surf.disable_mode_off')));return;}
@@ -7835,6 +7835,7 @@ const CREATE_TYPES=[
   {cat:'remnant',variants:['brown','white','black','neutron','magnetic','pulsing','edim','ebright','eneutron','emagnetic','epulsing']}, // edim / ebright = ENRICHED Dim / Bright (collect count ×100)
   {cat:'duplicate',variants:['copy','move','repurpose']},
   {cat:'inertia',variants:[null]}, // Inertializer
+  {cat:'select',variants:['wipe','box','circle','nodes']}, // Select (Entanglement): picks objects into THE selection (inertSel), which the Inertializer then moves. Click adds one, a double click every one of the same type and variation, right click takes one off (on nothing: clears it); a drag selects by the variant: what the cursor wipes over, a box, a circle, or (nodes) clicks in space make a shape, closed on its first node
   {cat:'duck_space',variants:[]}, // a duck, floating here in space (its variants: every duck, filled in once they are known)
   {cat:'duck_pond',variants:[]}, // a duck sent to swim on the Surface Map's pond
   {cat:'commodity',variants:[]}, // Commodities: what the shops sell and send, whole (a can of PULSE soda, a coffee, a tin of duck, a box from any shop: its shop is what it holds; a treasure chest for the lake)
@@ -7870,7 +7871,54 @@ function liftSources(){
 // 0 inside the cursor buffer .. Max speed at ~200px) and spin it with the wheel (up = clockwise, down = counter-clockwise, capped at
 // Max rot spd). Clicking empty space applies it to every selected object, exactly like a Pulsing remnant's base effect (vx, vy, rot).
 // Fixed shapes and anything under a Lens / Gate fill can never be selected.
-let inertSel=[],inertBox=null,inertRot=0;
+let inertSel=[],inertBox=null,inertRot=0; // inertSel: THE selection ({obj, isDormant} or {obj, shape}), made by Select or the Inertializer
+let selNodes=[],selCircle=null; // Select's shape in progress: its nodes (nodes), or a circle's centre (circle)
+function selKind(o){return objKey(o)+'|'+(o.isRemnant?'':(o.whiteFx?'w':o.blackFx?'b':o.ci));} // the exact type and variation (a double click selects every one alike)
+function selAlive(e){const o=e.obj;if(e.shape)return fixedShapes.indexOf(o)>=0;if(e.isDormant)return dormant[dormIdxOf(o)]===o;return !o.captured&&!o.dying&&!o._collected;}
+function selPrune(){if(!inertSel.length)return;const live=new Set(active);inertSel=inertSel.filter(e=>e.shape||e.isDormant?selAlive(e):live.has(e.obj)&&selAlive(e));}
+function selAdd(o,isDormant){if(inertHas(o)>=0)return 0;if(!isDormant&&!inertEligible(o))return 0;inertSel.push(isDormant?{obj:o,isDormant:true}:{obj:o});return 1;}
+function selArea(test,parts){ // everything inside an area (test(x,y)): objects, shapes (by their centre) and, for Select, particles too
+  let n=0;for(const p of active)if(test(p.x,p.y))n+=selAdd(p,false);
+  for(const sh of fixedShapes){if(!inertShapeOk(sh)||inertHas(sh)>=0)continue;const c=shapeCentroid(sh);if(test(c[0],c[1])){inertSel.push({obj:sh,shape:true});n++;}}
+  if(parts)for(let i=0;i<dormant.length;i++){const d=dormant[i];if(d&&!d.isRemnant&&test(d.x,d.y)&&!underGlass(d.x,d.y))n+=selAdd(d,true);}
+  return n;}
+function selSaid(n){flashSaveStatus(txt(n?'surf.select.added':'surf.select.none',n,inertSel.length));}
+function selClick(mx,my){ // a click: the object there joins the selection; with nodes, a click in space places a node (on the first again: the shape closes)
+  const h=hitTestAnyObjectForDup(mx,my),hs=h?null:inertShapeAt(mx,my);
+  if(currentVariant()==='nodes'&&(selNodes.length||(!h&&!hs))){
+    if(selNodes.length>=3&&Math.hypot(mx-selNodes[0].x,my-selNodes[0].y)<=T.conCloseSnapR){const P=selNodes;selNodes=[];selSaid(selArea((x,y)=>pointInPolyXY(x,y,P),true));return;}
+    selNodes.push({x:mx,y:my});return;}
+  if(h){selSaid(selAdd(h.obj,h.isDormant));return;}
+  if(hs){if(inertHas(hs)<0){inertSel.push({obj:hs,shape:true});selSaid(1);}return;}
+  flashSaveStatus(txt('surf.select.tip'));}
+function selSame(mx,my){ // a double click: every object of the same exact type and variation
+  const h=hitTestAnyObjectForDup(mx,my);if(!h)return;const k=selKind(h.obj);let n=0;
+  if(h.isDormant){for(let i=0;i<dormant.length;i++){const d=dormant[i];if(d&&!d.isRemnant&&selKind(d)===k)n+=selAdd(d,true);}}
+  else for(const p of active)if(selKind(p)===k)n+=selAdd(p,false);
+  selSaid(n);}
+function selRight(mx,my){ // right click: the object there leaves the selection; on nothing, the selection is cleared (an empty one: the tool is put away)
+  if(selNodes.length){selNodes=[];return true;}
+  const h=hitTestAnyObjectForDup(mx,my),o=h?h.obj:inertShapeAt(mx,my),i=o?inertHas(o):-1;
+  if(i>=0){inertSel.splice(i,1);flashSaveStatus(txt('surf.select.removed',inertSel.length));return true;}
+  if(o)return true; // (on an object not selected: nothing)
+  if(inertSel.length){inertSel=[];flashSaveStatus(txt('surf.select.cleared'));return true;}
+  return false;}
+function selWipe(mx,my){const R=T.touchR;let n=0;for(const p of active){const dx=_wrapD(p.x-mx,W),dy=_wrapD(p.y-my,H);if(dx*dx+dy*dy<=R*R)n+=selAdd(p,false);}const h=hitTestAnyObjectForDup(mx,my);if(h&&h.isDormant)n+=selAdd(h.obj,true);return n;} // a wipe: what the cursor passes over
+function drawSelection(ctx){ // the selection's marks (Select and the Inertializer), and Select's shape in progress
+  const t=createActive()&&currentType().cat;if(t!=='select'&&t!=='inertia')return;selPrune();
+  const inv=!!invertMode,col=inv?'20,90,140':'120,220,255';ctx.save();ctx.lineWidth=1.2;ctx.setLineDash([3,3]);ctx.strokeStyle=`rgba(${col},0.9)`;
+  ctx.beginPath();for(const e of inertSel){const o=e.obj;
+    if(e.shape){const Pp=o.pts;ctx.moveTo(Pp[0].x,Pp[0].y);for(let i=1;i<Pp.length;i++)ctx.lineTo(Pp[i].x,Pp[i].y);if(o.closed)ctx.lineTo(Pp[0].x,Pp[0].y);continue;}
+    if(e.isDormant){const hw=PIXEL_SIZE*0.42;ctx.rect(o.x-hw,o.y-hw,hw*2,hw*2);continue;}
+    const r=Math.max(6,placedRadius(o)+4);ctx.moveTo(o.x+r,o.y);ctx.arc(o.x,o.y,r,0,6.2832);}
+  ctx.stroke();ctx.setLineDash([]);
+  if(t==='select'&&mouse.x>=0){const v=currentVariant();ctx.strokeStyle=`rgba(${col},0.9)`;ctx.fillStyle=`rgba(${col},0.10)`;
+    if(selCircle&&mouseDown&&dragMode){const r=Math.hypot(mouse.x-selCircle.x,mouse.y-selCircle.y);ctx.beginPath();ctx.arc(selCircle.x,selCircle.y,r,0,6.2832);ctx.fill();ctx.setLineDash([5,4]);ctx.stroke();ctx.setLineDash([]);}
+    if(v==='nodes'&&selNodes.length){ctx.beginPath();ctx.moveTo(selNodes[0].x,selNodes[0].y);for(const q of selNodes)ctx.lineTo(q.x,q.y);ctx.lineTo(mouse.x,mouse.y);ctx.setLineDash([5,4]);ctx.stroke();ctx.setLineDash([]);
+      for(const q of selNodes){ctx.beginPath();ctx.arc(q.x,q.y,3,0,6.2832);ctx.fill();ctx.stroke();}
+      if(selNodes.length>=3){ctx.beginPath();ctx.arc(selNodes[0].x,selNodes[0].y,T.conCloseSnapR,0,6.2832);ctx.globalAlpha=0.35;ctx.stroke();ctx.globalAlpha=1;}}
+    if(inertBox&&mouseDown&&dragMode){const x=Math.min(inertBox.x0,mouse.x),y=Math.min(inertBox.y0,mouse.y),w=Math.abs(mouse.x-inertBox.x0),h=Math.abs(mouse.y-inertBox.y0);ctx.fillRect(x,y,w,h);ctx.setLineDash([5,4]);ctx.strokeRect(x,y,w,h);ctx.setLineDash([]);}}
+  ctx.restore();}
 const INERT_MAXR=200,INERT_BUF=14;
 function dormIdxOf(p){if(!(GW>0&&GH>0))return -1;let gx=Math.floor((p.x-GRID_OX)/PIXEL_SIZE),gy=Math.floor((p.y-GRID_OY)/PIXEL_SY);gx=((gx%GW)+GW)%GW;gy=((gy%GH)+GH)%GH;return gy*GW+gx;}
 function inertShapeOk(sh){return !!sh&&(sh.cat==='shape_barrier'||sh.cat==='shape_glass')&&!sh.port&&!sh.globe&&!sh.wvMembers&&!sh.orbit&&fixedShapes.indexOf(sh)>=0;} // Lens, Glass, Barrier, Crate, Case, Gate, Plate — never the fixed Prism / Knot / Spindle
@@ -7896,9 +7944,8 @@ function inertClick(mx,my){
 }
 function inertFinishBox(x1,y1){
   const b=inertBox;inertBox=null;if(!b)return;
-  const xa=Math.min(b.x0,x1),xb=Math.max(b.x0,x1),ya=Math.min(b.y0,y1),yb=Math.max(b.y0,y1);let added=0;
-  for(const p of active){if(p.x<xa||p.x>xb||p.y<ya||p.y>yb||!inertEligible(p)||inertHas(p)>=0)continue;inertSel.push({obj:p});added++;}
-  for(const sh of fixedShapes){if(!inertShapeOk(sh)||inertHas(sh)>=0)continue;const c=shapeCentroid(sh);if(c[0]<xa||c[0]>xb||c[1]<ya||c[1]>yb)continue;inertSel.push({obj:sh,shape:true});added++;}
+  const xa=Math.min(b.x0,x1),xb=Math.max(b.x0,x1),ya=Math.min(b.y0,y1),yb=Math.max(b.y0,y1),sel=currentType().cat==='select';
+  const added=selArea((x,y)=>x>=xa&&x<=xb&&y>=ya&&y<=yb,sel);if(sel){selSaid(added);return;}
   flashSaveStatus((added?txt('surf.inertializer_selected_aim_wheel',inertSel.length):txt('surf.inertializer_nothing_selectable_in')));
 }
 function inertApply(now){
@@ -7916,11 +7963,7 @@ function drawInertializer(ctx){
   if(!(createActive()&&currentType().cat==='inertia'))return;
   const inv=!!invertMode,col=inv?'20,90,140':'120,220,255',spc=inv?'170,80,0':'255,170,70',txt=inv?'20,20,30':'235,240,250';
   ctx.save();ctx.lineCap='round';ctx.lineJoin='round';
-  for(const e of inertSel){const o=e.obj;
-    if(e.shape){if(!inertShapeOk(o))continue;ctx.beginPath();const Pp=o.pts;ctx.moveTo(Pp[0].x,Pp[0].y);for(let i=1;i<Pp.length;i++)ctx.lineTo(Pp[i].x,Pp[i].y);if(o.closed)ctx.closePath();ctx.setLineDash([6,4]);ctx.strokeStyle=`rgba(${col},0.95)`;ctx.lineWidth=2;ctx.stroke();ctx.setLineDash([]);continue;}
-    if(o.captured||o.dying)continue;const r=Math.max(6,placedRadius(o)+4);
-    ctx.beginPath();ctx.arc(o.x,o.y,r,0,6.2832);ctx.setLineDash([3,3]);ctx.strokeStyle=`rgba(${col},0.9)`;ctx.lineWidth=1.2;ctx.stroke();}
-  ctx.setLineDash([]);
+  // (the selection's marks: drawSelection)
   if(inertBox&&mouseDown&&dragMode){const x=Math.min(inertBox.x0,mouse.x),y=Math.min(inertBox.y0,mouse.y),w=Math.abs(mouse.x-inertBox.x0),h=Math.abs(mouse.y-inertBox.y0);
     ctx.fillStyle=`rgba(${col},0.10)`;ctx.fillRect(x,y,w,h);ctx.setLineDash([5,4]);ctx.strokeStyle=`rgba(${col},0.9)`;ctx.lineWidth=1;ctx.strokeRect(x,y,w,h);ctx.setLineDash([]);}
   const P=inertParams();
@@ -7949,7 +7992,8 @@ function drawInertializer(ctx){
   }
   ctx.restore();
 }
-function resetDupState(){inertSel=[];inertBox=null;
+function resetDupState(){inertBox=null;selNodes=[];selCircle=null; // (the selection itself is kept: Select fills it, the Inertializer uses it)
+
   for(const e of dupSources)restoreSource(e); // cancelling a Move puts everything back
   if(dupShape&&dupShape.moving){fixedShapes.push(dupShape.sh);rebuildGlassList();}
   dupTemplate=null;dupPicking=[];dupSources=[];dupShape=null;repRef=null;
@@ -8076,6 +8120,7 @@ function createLabel(){
   if(t.cat==='shape_pane')return txt('surf.glass_like_a_lens',(t.variants[v]===null?txt('surf.clear'):txt('surf.tinted',fxName(t.variants[v]))));
   if(t.cat==='shape_glass')return txt('surf.lens_click_inside_a',(t.variants[v]===null?txt('surf.clear'):txt('surf.tinted_objects_under_it',fxName(t.variants[v]))));
   if(t.cat==='inertia')return txt('surf.inertializer_click_drag_box');
+  if(t.cat==='select')return txt('surf.select.'+t.variants[v]);
   if(t.cat==='standard')return txt('surf.standard_cursor');
   if(t.cat==='prefab')return txt('pre.tool.'+t.variants[v],preSel.length,prePick||'—');
   if(t.cat==='surface')return txt('build.surface_tool',t.variants[v]==='bright'?txt('build.bright'):txt('build.dark'));
@@ -8349,7 +8394,7 @@ function handleDialHold(now){ // queued rounds, a pending lone-dab fire, loading
   lastDialShot=now;_dialHoldCall=true;performInventoryDrop(mouse.x,mouse.y,now);_dialHoldCall=false;
 }
 function handleHoldCharge(now){
-  if(createActive()&&(isShapeCat(currentType().cat)||currentType().cat==='remove'||currentType().cat==='inertia'||currentType().cat==='prefab')){holdCharging=false;return;}
+  if(createActive()&&(isShapeCat(currentType().cat)||currentType().cat==='remove'||currentType().cat==='inertia'||currentType().cat==='select'||currentType().cat==='prefab')){holdCharging=false;return;}
   if(!mouseDown||dragMode||uiPress||overUI||pressConsumed||conMode||(isPaused&&!createActive())||(downOnRemnant&&!createActive())||(armedInvItem&&!createActive())||(!createActive()&&pressedIDs.size>0)){ // (with something activated, a basic hold drains instead — see holdDrainMul)
     if(holdCharging){holdCharging=false;holdChargeObj=null;}
     return;
@@ -8397,7 +8442,8 @@ wrap.addEventListener('mousemove',e=>{
     return;
   }
   if(armedInvItem&&(ITEM_TOOLS.has(armedInvItem.kind)||armedInvItem.kind==='dial')&&!createActive())return; // these tools run from the held press (handleItemHold / handleDialHold), not from swipe-activation
-  if(boxTool()){inertBox={x0:downX,y0:downY};return;} // drag = box select (the Inertializer, and a prefab's parts)
+  if(boxTool()){inertBox={x0:downX,y0:downY};return;} // drag = box select (the Inertializer, Select's box, and a prefab's parts)
+  if(createActive()&&currentType().cat==='select'){const v=currentVariant();if(v==='circle'){if(!selCircle)selCircle={x:downX,y:downY};}else if(v==='wipe'){selWipe(mouse.x,mouse.y);}return;} // Select: a circle from where the drag began, or a wipe over what the cursor passes
   if(createActive()&&isShapeCat(currentType().cat)){ // hold + swipe: drag out a rectangle (wheel toggles an ellipse)
     if(!shapeRect)shapeRect={x0:downX,y0:downY,ellipse:false};
     return;
@@ -9188,6 +9234,9 @@ wrap.addEventListener('mouseup',e=>{
   if(overUI||pressConsumed){releaseMouseDown(performance.now());dragMode=false;paintActive=false;return;} // released over the interface: never resolves onto what's underneath
   if(_holdDrainUsed){_holdDrainUsed=false;releaseMouseDown(performance.now());dragMode=false;paintActive=false;return;} // end of a draining hold: nothing else happens on release
   if(mouseDown&&dragMode&&shapeRect){finishShapeRect(e.clientX-wrapRect.left,e.clientY-wrapRect.top);releaseMouseDown(performance.now());dragMode=false;paintActive=false;return;}
+  if(mouseDown&&dragMode&&createActive()&&currentType().cat==='select'&&!boxTool()){const mx=e.clientX-wrapRect.left,my=e.clientY-wrapRect.top;
+    if(selCircle){const c=selCircle,r=Math.hypot(mx-c.x,my-c.y);selCircle=null;selSaid(selArea((x,y)=>Math.hypot(_wrapD(x-c.x,W),_wrapD(y-c.y,H))<=r,true));}else selSaid(0||selWipe(mx,my));
+    releaseMouseDown(performance.now());dragMode=false;paintActive=false;return;}
   if(mouseDown&&dragMode&&boxTool()){(currentType().cat==='prefab'?preFinishBox:inertFinishBox)(e.clientX-wrapRect.left,e.clientY-wrapRect.top);releaseMouseDown(performance.now());dragMode=false;paintActive=false;return;}
   if(mouseDown&&dragMode&&createActive()&&currentType().cat==='duplicate'&&!dupTemplate){
     // End of a picking swipe: whatever was swept up gets finalized into the held template right here.
@@ -9217,6 +9266,8 @@ wrap.addEventListener('mouseup',e=>{
           }
         } else if(t.cat==='inertia'){
           inertClick(mx,my);
+        } else if(t.cat==='select'){
+          selClick(mx,my);
         } else if(t.cat==='prefab'){
           preClick(mx,my);
         } else if(isShapeCat(t.cat)){
@@ -9266,6 +9317,7 @@ document.addEventListener('dblclick',e=>{ // double-click the String item: arm i
 });
 wrap.addEventListener('dblclick',e=>{
   if(performance.now()-lastCollectDoneAt<700)return; // a double-click that collected is never also a group-activate / deactivate
+  if(!overUI&&createActive()&&currentType().cat==='select'){selSame(e.clientX-wrapRect.left,e.clientY-wrapRect.top);return;} // Select: every one of the same type and variation
   if(overUI||pressConsumed||uiPress||collectHold||blackHole||conMode||armedInvItem||createActive())return;
   const mx=e.clientX-wrapRect.left,my=e.clientY-wrapRect.top;
   autoSelectClosestTargets(mx,my,performance.now());ruleLearn('dbl');
@@ -9299,6 +9351,7 @@ wrap.addEventListener('contextmenu',e=>{
       if(dupTemplate||dupPicking.length||dupShape||repRef){resetDupState();cursorRClickAt=performance.now();return;}
     }
     if(createActive()&&currentType().cat==='prefab'&&(preSel.length||inertBox)){preSel=[];preTgt=-1;inertBox=null;buildBar();cursorRClickAt=performance.now();return;}
+    if(createActive()&&currentType().cat==='select'&&selRight(mouse.x,mouse.y)){cursorRClickAt=performance.now();return;}
     if(createActive()&&currentType().cat==='inertia'&&(inertSel.length||inertBox||inertRot)){inertSel=[];inertBox=null;inertRot=0;cursorRClickAt=performance.now();return;}
     armedInvItem=null;updateInventoryUI();return;
   }
@@ -11836,7 +11889,7 @@ function drawConstellationOverlay(ctx,now){
   drawFixedShapes(ctx,now);
   drawShardFx(ctx,now);
   drawShapeRectPreview(ctx);
-  drawInertializer(ctx);
+  drawSelection(ctx);drawInertializer(ctx);
   drawItemTools(ctx);
   drawShapeBuildMarkers(ctx,now);
   drawChainFocus(ctx,now); // once a chain is started: dim the scene, spotlight what can still be connected
@@ -12907,7 +12960,7 @@ function cardHTML(ev,mini,pg){ // the one card format: name bar, art box, type l
   return `<div class="mtg${sm?' sm':mini===2?' pic':''}${!pg&&discSeen.has('ev:'+ev.id)&&ilNew('ev:'+ev.id)?' fd':''}" data-ev="${ev.id}" data-new="ev:${ev.id}" style="--rc:${TIER_COL[t]}"><div class="nm"><b>${gEsc(ev.name)}</b><span class="gem"></span></div><div class="art" data-scene="${ev.scene}" data-ev="${ev.id}" data-k="${ev.ico}">${sm?evStillHTML([ev.id])||`<canvas class="rl-m" width="64" height="64" data-k="${ev.ico}"></canvas>`:''}</div>${body}</div>`;
 }
 function mountScene(h,w,hh){if(!h||h.firstChild||document.querySelectorAll('.rl-live iframe:not(.held),.mtg .art iframe:not(.held)').length>=5)return; /* (a page's picture holding on its last frame does not count) */{const R=(h.dataset.ev||'').split(',').map(evRecFor).find(Boolean);if(R&&!w){evReplayMount(h,R);return;}} /* something you witnessed: your own recording of it, live (a demo only for what you have not) */const f=document.createElement('iframe'),nm=h.dataset.s||h.dataset.scene;f.style.cssText='border:0;max-width:100%;pointer-events:none;background:#000;border-radius:6px;'+(w?`width:${w}px;height:${hh}px`:'width:100%;height:100%');
-  if(nm.slice(0,4)==='hub:'){const[sn,dk]=nm.slice(4).split(':');f.src='Surface_Map_HUB.html?v=20261117b&scene='+sn+(sn==='shop'?'&k='+encodeURIComponent(dk||''):'')+'&T='+encodeURIComponent(JSON.stringify(mapSceneT()))+'&D='+encodeURIComponent(JSON.stringify(dk&&DUCK_TYPES[dk]?{[dk]:DUCK_TYPES[dk]}:Object.fromEntries(Object.entries(DUCK_TYPES).slice(0,4))));}else{f.srcdoc=liveSrc(nm,null,h.dataset.hold);if(h.dataset.hold)f.className='held';}h.appendChild(f);} // a Surface Map demo is played by the map itself
+  if(nm.slice(0,4)==='hub:'){const[sn,dk]=nm.slice(4).split(':');f.src='Surface_Map_HUB.html?v=20261117c&scene='+sn+(sn==='shop'?'&k='+encodeURIComponent(dk||''):'')+'&T='+encodeURIComponent(JSON.stringify(mapSceneT()))+'&D='+encodeURIComponent(JSON.stringify(dk&&DUCK_TYPES[dk]?{[dk]:DUCK_TYPES[dk]}:Object.fromEntries(Object.entries(DUCK_TYPES).slice(0,4))));}else{f.srcdoc=liveSrc(nm,null,h.dataset.hold);if(h.dataset.hold)f.className='held';}h.appendChild(f);} // a Surface Map demo is played by the map itself
 function mapSceneT(){const o={};for(const k in T)if(/^(map|bh|duck|wake|glass|metal|dimGlow|glowHalo|maxSpeed)/.test(k))o[k]=T[k];return o;} // what a map demo needs of the tuners
 function showCardHTML(html){ // a Guide card (an entry or a shop) opened over the Guide, where an event card shows
   guideCSS();if(!_evOpen)_evPausedIt=false;_evOpen=true;_evReview=true;const ov=evOverlayEl();ov.innerHTML=`<div class="ev-box">${html}<button id="evOk">${txt('card.close')}</button></div>`;ov.style.display='flex';wrap.classList.add('ev-open');
@@ -13308,7 +13361,7 @@ function closeRules(){
 // with a yellow border, until its motion carries it on; if its motion never would, it is not placed, and the feed says why.
 let preSel=[],preTgt=-1,preDraft={name:'',from:3,to:24,w:1,ph:{at:0,stay:0}},prePick='',phasing=[],edgeQ=[],preLater=[],_preBarK='';
 const PRE_EDGE=24,PH_GROW=0.7;
-const boxTool=()=>createActive()&&(currentType().cat==='inertia'||currentType().cat==='prefab'&&currentVariant()==='select');
+const boxTool=()=>createActive()&&(currentType().cat==='inertia'||currentType().cat==='select'&&currentVariant()==='box'||currentType().cat==='prefab'&&currentVariant()==='select');
 const preTool=()=>createActive()&&currentType().cat==='prefab';
 const nearEdge=(x,y)=>x<PRE_EDGE||y<PRE_EDGE||x>W-PRE_EDGE||y>H-PRE_EDGE;
 function preShapeAt(mx,my){for(let i=fixedShapes.length-1;i>=0;i--){const sh=fixedShapes[i];if(!sh.pts||sh.pts.length<2)continue;for(const sg of shapeSegs(sh))if(segDist(mx,my,sg[0],sg[1]).d<=8)return sh;if(sh.glass&&inGlassShape(sh,mx,my))return sh;}return null;}

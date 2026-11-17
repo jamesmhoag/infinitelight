@@ -508,6 +508,16 @@ surf.glass_like_a_lens,Glass{tint} — like a Lens that never breaks · click in
 surf.tinted_objects_under_it, tinted {colour} — objects under it receive that colour's effect,surface,colour = $0 — its colour
 surf.lens_click_inside_a,"Lens{tint} — click inside a closed shape to fill it, or draw a closed shape · nothing under it can be clicked / collected / connected",surface,"tint = $0 — "" (clear)"" or "" tinted <colour>"""
 surf.inertializer_click_drag_box,"Inertializer — click / drag-box to select points, remnants and shapes · the vector sets direction + speed and curls with spin · wheel spins · click empty space to apply · right-click clears",surface,
+surf.select.wipe,"Select (wipe) — click an object to add it · drag over objects and particles to add all you pass · double click: every one alike · right click one to drop it, on nothing to clear · wheel: box, circle, nodes",surface,
+surf.select.box,"Select (box) — click an object to add it · drag a box to add everything in it · double click: every one alike · right click one to drop it, on nothing to clear · wheel: circle, nodes, wipe",surface,
+surf.select.circle,"Select (circle) — click an object to add it · drag out a circle from its centre to add everything in it · double click: every one alike · right click one to drop it, on nothing to clear · wheel: nodes, wipe, box",surface,
+surf.select.nodes,"Select (nodes) — click an object to add it · click in space to place nodes, the first again to close the shape and add everything in it · double click: every one alike · right click: drop one, undo the shape, or clear · wheel: wipe, box, circle",surface,
+surf.select.added,"Select — {added} added · {total} selected",surface,"added = $0 — objects just added
+total = $1 — the whole selection"
+surf.select.none,"Select — nothing new there · {total} selected",surface,total = $1 — the whole selection
+surf.select.removed,"Select — dropped · {total} selected",surface,total = $0 — the whole selection
+surf.select.cleared,Select — the selection is cleared.,surface,
+surf.select.tip,"Select — click an object to add it, double click for every one alike, or drag to select an area.",surface,
 surf.standard_cursor,Standard cursor,surface,
 surf.touching_a_particle_blends,{colour} · touching a particle blends colours by mass,surface,colour = $0 — its colour
 surf.grid_particle,Grid particle — {colour},surface,colour = $0 — its colour
