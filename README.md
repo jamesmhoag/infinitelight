@@ -84,6 +84,7 @@ Served as a static site (GitHub Pages: Settings → Pages → Deploy from branch
 - **Anchor** (Magnets & Stuff, hull mount): down, resting cannot drift you on the tide; moving raises it; the dock's ⚓ drops or raises it. **Rudder** and **Motor** (hull mount) are for wrecks, still to come.
 
 - **Wrecks** (`wreckCheck`): Midnight's collapse tosses your buoy about. Each thing on its mounts may go overboard, its own chance: **Wreck chance a ring** (0.12) for each ring you were from the Point, at most **Wreck chance max** (0.9). What goes is no longer yours (bought again to have it back); below deck is safe; an anchor, rudder or motor on the hull holds you through it (nothing is lost). Said in the feed as you fall asleep ("You were tossed and turned all night"), and kept as that day's manifest in the day's log.
+- **Gadgets** (Premium Neutrinos): the **Telescope** (telemetry), **Spectrometer** (class), **Protractor** (effect radii) and **Camera** (dynamics: mass and energy) each unlock their read-out (`{"disc":"mode_…"}`: the mode and its letter in the dock's T R D C) and stand on the **Gadget Shelf** below deck once bought, with the Clock smith's alarm clock (`gadgetOwned`; the shelf is laid again when what you own has changed). Demos and recordings use every read-out, owned or not.
 
 ## Build mode
 - On the title screen, **~** shows **Build mode** (`chromatic_nebula.html?build=1`): a surface for making and testing scenes and prefabs. Nothing in it is saved to your game (items, ducks, discoveries).

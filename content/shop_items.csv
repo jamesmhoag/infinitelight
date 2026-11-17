@@ -97,7 +97,9 @@ cap_dim2,neutron,"Max Faint 999,999>9,999,999",1000,,3,,"{""cap"":{""dim"":99999
 cap_bri2,neutron,"Max Bright 999,999>9,999,999",1000,,3,,"{""cap"":{""bright"":9999999}}",cap_bri1,,
 c_lens,neutron,Lens on the Center,2000,,3,,"{""up"":1}",,,
 w_lens_s,neutron,Wrap Lens with item shapes,500000,bright,3,,"{""up"":1}",,,
-radii,neutron,Live effect radii layer,1000000,bright,3,,"{""disc"":""mode_radii""}",,,
+radii,neutron,Protractor,2000,,2,,"{""disc"":""mode_radii""}",,,"A gadget for your shelf: effect radii (Modes → Radii, and the R read-out)"
+spectro,neutron,Spectrometer,1000,,1,,"{""disc"":""mode_class""}",,,"A gadget for your shelf: class, what each thing is (Modes → Class, and the C read-out)"
+camera,neutron,Camera,5000,,3,,"{""disc"":""mode_dynamics""}",,,"A gadget for your shelf: dynamics, mass and energy (Modes → Dynamics, and the D read-out)"
 pure_neu,neutron,Pure Density,9999,,3,,"{""up"":1}",,,
 d_neu,neutron,Random Duck Variant,9999,,3,,"{""duck"":""Size""}",,,A size variant (dupes possible)
 act5,line,Active maximum 1>5,10,magnetic,1,,"{""up"":1}",,,
@@ -129,7 +131,7 @@ rapid,pulsing,String rapid fire rate,10000,,3,,"{""up"":1}",,,
 blast,pulsing,String double-click blast,10000,,3,,"{""up"":1}",,,
 cap_dial3,pulsing,Max Strings 50>99,2000,,3,,"{""cap"":{""dial"":99}}",cap_dial2,,
 cap_leash2,pulsing,Max Spindles 10>50,2000,,3,,"{""cap"":{""leash"":50}}",cap_leash1,,
-telem,pulsing,Live telemetry layer,1000000,,3,,"{""disc"":""mode_telemetry""}",,,
+telem,neutron,Telescope,500,,1,,"{""disc"":""mode_telemetry""}",,,"A gadget for your shelf: telemetry, how things move (Modes → Telemetry, and the T read-out)"
 pure_pul,pulsing,Pure Rhythm,9999,,3,,"{""up"":1}",,,
 d_pul,pulsing,Random Duck Variant,9999,,3,,"{""duck"":""Material""}",,,A material variant (dupes possible)
 flip,duck,Flip a Duck,1,,1,,"{""duck"":""roll""}",,,"One duck in, a random duck out"
