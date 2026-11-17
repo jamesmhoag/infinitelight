@@ -1100,3 +1100,18 @@ ach.reached,"Achievement: {name} — {unlocks}",Achievements,"name = $0 — the 
 unlocks = $1 — what it unlocks"
 ach.milestone,a milestone,Achievements,said when an achievement unlocks nothing
 ach.needs,Needs the achievement {name},Achievements,name = $0 — the achievement still needed
+map.water.slot,"Fresh water: {water} of {max} · every move drinks one; a bright clear, or being beside a bright hex or the Point, fills it",Surface Map (water),"water = $0 — drinks left
+max = $1 — the barrel's size"
+map.water.slot_bottle,a bottle drunk: your next move is on it,Surface Map (water),
+map.water.filled,The barrel is full,Surface Map (water),
+map.water.filled_clear,"A bright clear: fresh water, {water} drinks",Surface Map (water),water = $0 — drinks
+map.water.filled_near,"Beside the light: fresh water, {water} drinks",Surface Map (water),water = $0 — drinks
+map.water.out,Out of water,Surface Map (water),
+map.water.out_d,"Rest: the tide carries you toward the Point, where there is water. Or buy a bottle.",Surface Map (water),
+map.water.tide,You rest; the tide carries you in,Surface Map (water),
+map.water.tide_d,A hex nearer the Point,Surface Map (water),
+map.water.rest,You rest,Surface Map (water),
+map.water.rest_d,"The tide cannot carry you in from here: time passes",Surface Map (water),
+map.water.bottle,A bottle of water,Surface Map (water),
+map.water.bottle_d,"Drunk: your next move is on it, not the barrel",Surface Map (water),
+map.water.one_a_time,One drink a time of day,Surface Map (water),
