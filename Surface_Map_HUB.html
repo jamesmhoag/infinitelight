@@ -163,7 +163,7 @@ body.shop-open #hdock{z-index:59}#hinv .slot.wal::before{border-color:rgba(255,2
 <div id="veil"></div>
 <div id="bfx"></div>
 <iframe id="neb" data-tt="map.ui.surface"></iframe>
-<script src="content.js?v=20261117q"></script><script src="shared.js?v=20261117q"></script><script src="cabin.js?v=20261117q"></script>
+<script src="content.js?v=20261117r"></script><script src="shared.js?v=20261117r"></script><script src="cabin.js?v=20261117r"></script>
 <script>
 // ╔══════════════════════════════════════════════════════════════════════════════╗
 // ║  MAP ENGINE                                                                 ║
@@ -182,7 +182,7 @@ let playLog=[],clock=3,day=1,pool=6,burstFx=null,dayLog=[],dayCnt={b:0,d:0},pend
 // // clock: the hour (3 = Twilight … 24 = Midnight, the day's last turn); day: your attempts; pool: what the source put out at its last burst; fresh: no ring added yet since it
 let constel=[],armed=null,weaveSel=[],weaveAsk=null,clearFx={},mergeFx=[],feedMsg={t:'',d:'',at:-1e9}; // constellations {keys,type}; the armed map item; a Weave being drawn; animations; the final count
 const STEP_H=3; // the day: eight turns of three hours
-const CACHE_V='20261117q'; // the build: bump with shared.js's
+const CACHE_V='20261117r'; // the build: bump with shared.js's
 const SCENE=new URLSearchParams(location.search).get('scene'); // a Guide / event demo: the map plays a scripted moment (no surface behind it)
 let phase='move',turnTimer=0,mergeTimer=0;
 let gameOverReason='';
@@ -558,8 +558,15 @@ function fireworksDraw(now){ // over the scene (the beam's layer): a rocket up f
       f.ps.forEach((p,i)=>{const[x,y]=sp([X+p[0]*R*p[3],Y+p[1]*R*p[3],(Hh+p[2]*R*p[3]-fall)*m]);c.fillStyle=f.c[i&1];c.globalAlpha=Math.max(0,a);c.beginPath();c.arc(x,y,Math.max(0.8,2.8*(1-e)),0,6.2832);c.fill();});c.globalAlpha=1;
       if(m>0&&e<0.7){const[gx,gy]=sp([X,Y,0]),gr=HEX*1.6,g=c.createRadialGradient(gx,gy,0,gx,gy,gr),k=Math.max(0,0.32*(1-e/0.7));g.addColorStop(0,f.c[0]+Math.round(k*255).toString(16).padStart(2,'0'));g.addColorStop(1,f.c[0]+'00');c.fillStyle=g;c.fillRect(gx-gr,gy-gr,gr*2,gr*2);}}} // its flash lighting the water under it
   c.restore();}
+// Wrecks: the collapse at Midnight tosses your buoy about. Everything on its mounts may go overboard, each its own chance: the further from the Point you were, the
+// likelier (Wreck chance a ring, at most Wreck chance max). What is lost is gone: no longer yours, to be bought again. Below deck is safe, and so are you if an
+// anchor, a rudder or a motor is on your hull (it holds you through it). The feed says so in the morning, and the day's log lists what went overboard
+function wreckCheck(){if(SCENE||MP.on||!buoyKit)return[];const C=kitCounts(buoyKit),on=[];for(const s of KIT_SLOTS)buoyKit.slots[s].slice(0,C[s]).forEach((id,i)=>{if(id)on.push({s,i,id});});
+  if(!on.length||on.some(m=>{const it=shopItem(m.id);return it&&(it.fx.anchor||it.fx.rudder||it.fx.motor);}))return[];
+  const p=Math.min(T.mapWreckMax!=null?T.mapWreckMax:0.9,cellRing(pQ,pR)*(T.mapWreckPerRing!=null?T.mapWreckPerRing:0.12)),lost=on.filter(()=>Math.random()<p);
+  if(!lost.length)return[];for(const m of lost)buoyKit.slots[m.s][m.i]=null;kitSave(buoyKit);neb({cmd:'lose',ids:lost.map(m=>m.id)});return lost.map(m=>m.id);}
 function endDay(){ // Midnight passed: it all falls into the source (the outer rings first, each faster), a flash, and a new spill at Twilight
-  pendingEnd={how:'midnight',n:0,win:false};phase='collapse';armed=null;weaveSel=[];weaveAsk=null;dropSession();
+  pendingEnd={how:'midnight',n:0,win:false,lost:wreckCheck()};phase='collapse';armed=null;weaveSel=[];weaveAsk=null;dropSession();
   const base=T.mapCollapseMs||1400;let t=0;for(let i=ringMax(),j=0;i>0;i--,j++){const dur=Math.max(110,base*0.55*Math.pow(0.7,j)),ri=i;at(t,()=>fallRing(ri,dur));t+=dur;}
   at(t,()=>{burstFx={t0:performance.now(),kind:'flash',dur:700};});at(t+420,finishDay);
   {const R=Math.max(1,T.mapBurstRings||3),ks=[];for(let i=1;i<=R;i++)for(const[q,r]of ring(i))ks.push(K(q,r));camTweenTo(ks,t+420);}
@@ -569,12 +576,12 @@ function fallRing(i,dur){ // one ring falls into the source
   burstFx={t0:performance.now(),kind:'fall',r:i,dur};}
 function finishDay(){ // after Midnight's flash: the day goes into the log, a new spill bursts out and a new day begins at Twilight
   const e=pendingEnd;if(!e)return;pendingEnd=null;
-  dayLog.push({day,end:e.how,ring:0,b:dayCnt.b,d:dayCnt.d,win:false,col:dayCnt.col});dayCnt={b:0,d:0};
+  dayLog.push({day,end:e.how,ring:0,b:dayCnt.b,d:dayCnt.d,win:false,col:dayCnt.col,lost:e.lost&&e.lost.length?e.lost:undefined});const wreck=e.lost&&e.lost.length?e.lost.map(id=>(shopItem(id)||{n:id}).n).join(', '):'';dayCnt={b:0,d:0};
   clock=3;day++;neb({cmd:'day',day});popSoonOpen();newMap();feed(txt('map.day_ended_at_midnight',day-1),txt('map.bright_dark_a_new',dayLog[dayLog.length-1].b,dayLog[dayLog.length-1].d));
-  focusCam(true);showTurn();updateHint();saveMap();if(!SCENE&&!MP.on)sleepUntil(wakeFor===day?6:9);} // asleep until Morning (a wake-up call for today: Dawn)
+  focusCam(true);showTurn();updateHint();saveMap();if(!SCENE&&!MP.on)sleepUntil(wakeFor===day?6:9);if(wreck)setTimeout(()=>feed(txt('map.wreck.tossed'),txt('map.wreck.lost',wreck),'no'),1200);} // (wrecked: said as you fall asleep, and kept in the day's log) // asleep until Morning (a wake-up call for today: Dawn)
 function dayLogHTML(){
   if(!dayLog.length)return '<div class="dsum">'+txt('map.days.none')+'</div>';let tb=0,td=0;
-  const rows=dayLog.map(e=>{tb+=e.b;td+=e.d;return `<tr${e.win?' class="w"':''}><td>Day ${e.day}</td><td>${END_NAME[e.end]||e.end}${e.ring?' · ring '+e.ring:''}${e.win?' · won':''}</td><td>${e.b}</td><td>${e.d}</td></tr>`;}).join('');
+  const rows=dayLog.map(e=>{tb+=e.b;td+=e.d;return `<tr${e.win?' class="w"':''}><td>Day ${e.day}</td><td>${END_NAME[e.end]||e.end}${e.ring?' · ring '+e.ring:''}${e.win?' · won':''}</td><td>${e.b}</td><td>${e.d}</td></tr>`+(e.lost?`<tr class="lost"><td></td><td colspan="3">${txt('map.wreck.manifest',e.lost.map(id=>(shopItem(id)||{n:id}).n).join(', '))}</td></tr>`:'');}).join(''); // (a wreck's manifest: what went overboard that night)
   return `<table class="dlog"><tr><th>${txt('map.days.day')}</th><th>${txt('map.days.ended')}</th><th>${txt('map.days.bright')}</th><th>${txt('map.days.dark')}</th></tr>${rows}<tr><th>${txt('map.days.all')}</th><th></th><th>${tb}</th><th>${td}</th></tr></table>`;}
 function showDayReport(){ // a day's report (or the run's, when won): how it ended, and the log of every day so far
   const e0=dayLog[dayLog.length-1],won=!!(e0&&e0.win),e=dayLog[dayLog.length-1]||{day,end:'full',ring:0,b:0,d:0},el=document.getElementById('day-report'),b=el.querySelector('button');
