@@ -105,6 +105,7 @@ function buoyModel(name,souv,col,kit){ // name: up to 20 characters; souv: (kept
       if(L==='anchor'){beam([x,y+0.12*s,z],[x,y-0.18*s,z],0.025*s,2);beam([x-0.1*s,y-0.14*s,z],[x+0.1*s,y-0.14*s,z],0.025*s,2);box(x-0.04*s,y+0.1*s,z-0.04*s,x+0.04*s,y+0.16*s,z+0.04*s,5);}
       else if(L==='rudder'){beam([x,y+0.1*s,z],[x,y-0.2*s,z],0.02*s,2);box(x-0.015*s,y-0.22*s,z-0.12*s,x+0.015*s,y-0.02*s,z+0.02*s,8);}
       else if(L==='motor'){box(x-0.08*s,y-0.02*s,z-0.08*s,x+0.08*s,y+0.14*s,z+0.08*s,2);beam([x,y-0.02*s,z],[x,y-0.24*s,z],0.02*s,2);}
+      else if(L==='drone'){box(x-0.07*s,y,z-0.07*s,x+0.07*s,y+0.04*s,z+0.07*s,5);for(const[i,j]of[[1,1],[1,-1],[-1,1],[-1,-1]]){beam([x,y+0.02*s,z],[x+i*0.13*s,y+0.03*s,z+j*0.13*s],0.012*s,2);box(x+i*0.13*s-0.05*s,y+0.05*s,z+j*0.13*s-0.05*s,x+i*0.13*s+0.05*s,y+0.055*s,z+j*0.13*s+0.05*s,1);}} // a little quadcopter, its four rotors
       else if(L==='flag'){beam([x,y,z],[x,y+0.35*s,z],0.015*s,2);box(x,y+0.2*s,z-0.01*s,x+0.22*s,y+0.34*s,z+0.01*s,9);}
       else box(x-0.06*s,y-0.06*s,z-0.06*s,x+0.06*s,y+0.06*s,z+0.06*s,it&&it.fx.col!=null?it.fx.col:6);};
     const ah=0.5+Math.PI/3+Math.PI;kit.slots.hull.slice(0,KC.hull).forEach((id,i)=>{if(id)look(id,0.5*Math.cos(ah+i*0.5),0.22,0.5*Math.sin(ah+i*0.5));});
@@ -113,6 +114,11 @@ function buoyModel(name,souv,col,kit){ // name: up to 20 characters; souv: (kept
     kit.slots.top.slice(0,KC.top).forEach((id,i)=>{if(id)look(id,0.12*(i?-1:1),1.92,0.04);});}
   _duckModels.set(type,{g:K.geo(2.7),nomk:1,mat:13,c1:[1,1,1],c2:[1,1,1],img:tx});return type;}
 const BUOY_LAMP=2.3; // the can light's height, in its own units (where its spot light comes from)
+function droneModel(){ // the drone in flight (the buoy's top-mount gadget): a white body, four arms, four dark rotors, a green eye
+  const type='drone';if(_duckModels.has(type))return type;const A=256,tx=document.createElement('canvas');tx.width=tx.height=A;const c=tx.getContext('2d');['#f2f2f4','#1b1b20','#9aa0a8','#7fffb0'].forEach((cl,i)=>{c.fillStyle=cl;c.fillRect(i*32,0,32,32);});
+  const K=meshKit(A,false),{box,beam,uv}=K;box(-0.16,-0.05,-0.16,0.16,0.05,0.16,0);for(const[i,j]of[[1,1],[1,-1],[-1,1],[-1,-1]]){beam([0,0,0],[i*0.32,0.03,j*0.32],0.025,2);box(i*0.32-0.02,0.03,j*0.32-0.02,i*0.32+0.02,0.08,j*0.32+0.02,2);box(i*0.32-0.15,0.08,j*0.32-0.15,i*0.32+0.15,0.09,j*0.32+0.15,1);}
+  const n=uv.length/4;box(0.15,-0.02,-0.03,0.17,0.02,0.03,3);for(let k=n;k<uv.length/4;k++)uv[k*4+2]=1; // its eye, lit
+  _duckModels.set(type,{g:K.geo(2.7),nomk:1,mat:13,c1:[1,1,1],c2:[1,1,1],img:tx});return type;}
 function buoyCanModel(){ // the buoy's can light: a short metal can, its lit lens at one end (+y), drawn turned to point where its light goes
   const type='buoycan';if(_duckModels.has(type))return type;const A=256,tx=document.createElement('canvas');tx.width=tx.height=A;const c=tx.getContext('2d');['#2a2c33','#fff4c8','#55585f'].forEach((cl,i)=>{c.fillStyle=cl;c.fillRect(i*32,0,32,32);});
   const K=meshKit(A,false),{uv,lathe}=K;lathe([[-0.13,0],[-0.13,0.065],[-0.1,0.08],[0.11,0.09],[0.135,0.092],[0.13,0.085]],16,[2,0,0,2,2],0); // its back, its body, its rim (closed to the lens)
