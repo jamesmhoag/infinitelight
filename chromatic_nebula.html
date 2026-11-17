@@ -119,7 +119,7 @@ button:hover{background:rgba(255,255,255,0.15);}
   <div id="dock" class="bottom"><div id="inventoryPanel"></div><div id="touch-info"></div></div>
   <canvas id="cur"></canvas>
 </div>
-<script src="content.js?v=20261117e"></script><script src="shared.js?v=20261117e"></script>
+<script src="content.js?v=20261117f"></script><script src="shared.js?v=20261117f"></script>
 <script>
 txtApply(); // the page's own labels (content/strings.csv)
 const _SRC=document.documentElement.outerHTML; // kept so the Encyclopedia can run live scenes as embedded copies of the game
@@ -4526,7 +4526,9 @@ function updateInventoryUI(){
   html+=`<div class="slot" data-kind="guide" onclick="openRules()" title="Guide"><div class="ic"><svg width="16" height="16" viewBox="0 0 16 16"><circle cx="8" cy="8" r="7" fill="none" stroke="currentColor" stroke-width="1.3"/><rect x="7.2" y="7" width="1.6" height="5" fill="currentColor"/><circle cx="8" cy="4.6" r="1" fill="currentColor"/></svg></div></div>`;
   html+=`<div class="slot" data-kind="buoy" onclick="openCollections()" title="${txt('coll.title')}"><div class="ic">${BUOY_ICO}</div></div>`; // your buoy: Status and your collections
   html+=readoutSlotHTML();
-  for(const kind of INV_KINDS){ // shown whether paused or not
+  const showStd=!BUILD||dockSet==='std',showBuild=!BUILD||dockSet==='build'; // Build mode: the dock shows its own tools or the standard items (the toggle); sound, speed, Guide, buoy, overlays and the feed arrow always
+  if(BUILD)html+=`<div class="slot dockset" onclick="dockSetToggle()" title="${txt(dockSet==='build'?'build.dock_build':'build.dock_std')}"><div class="ic">${dockSet==='build'?'⚒':'◇'}</div><div class="cnt">${txt(dockSet==='build'?'build.dock_build_s':'build.dock_std_s')}</div></div>`;
+  if(showStd)for(const kind of INV_KINDS){ // shown whether paused or not
     const count=inventory[kind];
     const armed=kind==='weave'?(conMode&&conKind==='leash'):(kind==='knot'||kind==='prism'||kind==='lens'||kind==='gate')?(conMode&&conKind===kind):(armedInvItem&&armedInvItem.kind===kind);
     html+=`<div class="slot${armed?' armed':''}${count<=0?' empty':''}${invDisabled.has(kind)?' dis':''}${(invFlash.kind===kind&&performance.now()-invFlash.at<900)?' flash':''}" data-kind="${kind}"
@@ -4535,16 +4537,21 @@ function updateInventoryUI(){
       <div class="cnt">${BUILD?'∞':fmtCount(count)}</div>
     </div>`;
   }
-  if(itemCacheMode){
+  if(itemCacheMode&&showBuild){
     html+=(BUILD?'':`<div class="slot cache" data-kind="cache-clear" data-arm="1"><div class="ic">✖</div><div class="cnt">clear</div></div>
     <div class="slot cache" data-kind="cache-fill" data-arm="1"><div class="ic">⤒</div><div class="cnt">fill</div></div>`)+`<div class="slot cache${invDisableMode?' armed':''}" data-kind="cache-disable" data-arm="1"><div class="ic">⦸</div><div class="cnt">off</div></div>`;
   }
-  if(createItemMode){
+  if(createItemMode&&showBuild){
     for(const k of ['create','entangle'])html+=`<div class="slot create${armedInvItem&&armedInvItem.kind===k?' armed':''}" data-kind="${k}" data-arm="1"><div class="ic">${INV_ICON[k]}</div><div class="cnt">∞</div></div>`; // Create, then Entanglement (the tools for what is there)
   }
   if(!window.__SCENE)html+=ilDockArrow(dockMin).replace('class="slot dmin"','class="slot dmin" onclick="dockMinToggle()"'); // the feed put away (▾) or brought back (▴): the same on the map and every surface
   el.innerHTML=html;applyDisc();
 }
+let dockSet='build';try{dockSet=localStorage.getItem('il_dockset')==='std'?'std':'build';}catch(e){} // Build mode's dock: its own tools ('build') or the standard items ('std'), remembered in this browser
+function dockSetToggle(){dockSet=dockSet==='build'?'std':'build';try{localStorage.setItem('il_dockset',dockSet);}catch(e){}
+  if(armedInvItem&&((dockSet==='std')===(armedInvItem.kind==='create'||armedInvItem.kind==='entangle'||String(armedInvItem.kind).startsWith('cache'))))armedInvItem=null; // the tool held goes when its set is put away
+  if(conMode&&dockSet==='build')setConMode(false);updateInventoryUI();}
+window.dockSetToggle=dockSetToggle;
 window.armInventoryItem=armInventoryItem;
 { const ip=document.getElementById('inventoryPanel'); // press, not click: nothing that happens between press and release (a rebuild, a placed tool…) can make a slot ignore you
   if(ip)ip.addEventListener('mousedown',e=>{if(e.button!==0)return;const rb=e.target.closest&&e.target.closest('[data-m]');if(rb){e.preventDefault();toggleReadout(rb.dataset.m);return;}const sl=e.target.closest&&e.target.closest('.slot[data-arm]');if(sl){e.preventDefault();armInventoryItem(sl.dataset.kind);}});
@@ -12983,7 +12990,7 @@ function cardHTML(ev,mini,pg){ // the one card format: name bar, art box, type l
   return `<div class="mtg${sm?' sm':mini===2?' pic':''}${!pg&&discSeen.has('ev:'+ev.id)&&ilNew('ev:'+ev.id)?' fd':''}" data-ev="${ev.id}" data-new="ev:${ev.id}" style="--rc:${TIER_COL[t]}"><div class="nm"><b>${gEsc(ev.name)}</b><span class="gem"></span></div><div class="art" data-scene="${ev.scene}" data-ev="${ev.id}" data-k="${ev.ico}">${sm?evStillHTML([ev.id])||`<canvas class="rl-m" width="64" height="64" data-k="${ev.ico}"></canvas>`:''}</div>${body}</div>`;
 }
 function mountScene(h,w,hh){if(!h||h.firstChild||document.querySelectorAll('.rl-live iframe:not(.held),.mtg .art iframe:not(.held)').length>=5)return; /* (a page's picture holding on its last frame does not count) */{const R=(h.dataset.ev||'').split(',').map(evRecFor).find(Boolean);if(R&&!w){evReplayMount(h,R);return;}} /* something you witnessed: your own recording of it, live (a demo only for what you have not) */const f=document.createElement('iframe'),nm=h.dataset.s||h.dataset.scene;f.style.cssText='border:0;max-width:100%;pointer-events:none;background:#000;border-radius:6px;'+(w?`width:${w}px;height:${hh}px`:'width:100%;height:100%');
-  if(nm.slice(0,4)==='hub:'){const[sn,dk]=nm.slice(4).split(':');f.src='Surface_Map_HUB.html?v=20261117e&scene='+sn+(sn==='shop'?'&k='+encodeURIComponent(dk||''):'')+'&T='+encodeURIComponent(JSON.stringify(mapSceneT()))+'&D='+encodeURIComponent(JSON.stringify(dk&&DUCK_TYPES[dk]?{[dk]:DUCK_TYPES[dk]}:Object.fromEntries(Object.entries(DUCK_TYPES).slice(0,4))));}else{f.srcdoc=liveSrc(nm,null,h.dataset.hold);if(h.dataset.hold)f.className='held';}h.appendChild(f);} // a Surface Map demo is played by the map itself
+  if(nm.slice(0,4)==='hub:'){const[sn,dk]=nm.slice(4).split(':');f.src='Surface_Map_HUB.html?v=20261117f&scene='+sn+(sn==='shop'?'&k='+encodeURIComponent(dk||''):'')+'&T='+encodeURIComponent(JSON.stringify(mapSceneT()))+'&D='+encodeURIComponent(JSON.stringify(dk&&DUCK_TYPES[dk]?{[dk]:DUCK_TYPES[dk]}:Object.fromEntries(Object.entries(DUCK_TYPES).slice(0,4))));}else{f.srcdoc=liveSrc(nm,null,h.dataset.hold);if(h.dataset.hold)f.className='held';}h.appendChild(f);} // a Surface Map demo is played by the map itself
 function mapSceneT(){const o={};for(const k in T)if(/^(map|bh|duck|wake|glass|metal|dimGlow|glowHalo|maxSpeed)/.test(k))o[k]=T[k];return o;} // what a map demo needs of the tuners
 function showCardHTML(html){ // a Guide card (an entry or a shop) opened over the Guide, where an event card shows
   guideCSS();if(!_evOpen)_evPausedIt=false;_evOpen=true;_evReview=true;const ov=evOverlayEl();ov.innerHTML=`<div class="ev-box">${html}<button id="evOk">${txt('card.close')}</button></div>`;ov.style.display='flex';wrap.classList.add('ev-open');

@@ -1011,6 +1011,10 @@ build.next_energy,Energy,Build menu,
 build.next_balance,Exact colour balance,Build menu,
 build.next_holds,A package holds,Build menu,
 build.next_as_made,"Left empty, Create makes it as the game does (the grey number is the last one made). Type a value to use it instead.",Build menu,"the Mass and Energy boxes' tooltip"
+build.dock_build,"The dock shows Build mode's tools (Create, Entanglement, the item cache). Click for the standard items.",Build mode,the dock toggle's tooltip
+build.dock_std,"The dock shows the standard items. Click for Build mode's tools.",Build mode,the dock toggle's tooltip
+build.dock_build_s,build,Build mode,under the dock toggle
+build.dock_std_s,items,Build mode,under the dock toggle
 build.sel,Selection,Build menu,
 build.sel_none,"Nothing selected: Entanglement → Select picks what to set here.",Build menu,
 build.sel_shapes,shapes,Build menu,
