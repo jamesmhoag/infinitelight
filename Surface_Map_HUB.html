@@ -163,7 +163,7 @@ body.shop-open #hdock{z-index:59}#hinv .slot.wal::before{border-color:rgba(255,2
 <div id="veil"></div>
 <div id="bfx"></div>
 <iframe id="neb" data-tt="map.ui.surface"></iframe>
-<script src="content.js?v=20261117i"></script><script src="shared.js?v=20261117i"></script><script src="cabin.js?v=20261117i"></script>
+<script src="content.js?v=20261117j"></script><script src="shared.js?v=20261117j"></script><script src="cabin.js?v=20261117j"></script>
 <script>
 // ╔══════════════════════════════════════════════════════════════════════════════╗
 // ║  MAP ENGINE                                                                 ║
@@ -182,7 +182,7 @@ let playLog=[],clock=3,day=1,pool=6,burstFx=null,dayLog=[],dayCnt={b:0,d:0},pend
 // // clock: the hour (3 = Twilight … 24 = Midnight, the day's last turn); day: your attempts; pool: what the source put out at its last burst; fresh: no ring added yet since it
 let constel=[],armed=null,weaveSel=[],weaveAsk=null,clearFx={},mergeFx=[],feedMsg={t:'',d:'',at:-1e9}; // constellations {keys,type}; the armed map item; a Weave being drawn; animations; the final count
 const STEP_H=3; // the day: eight turns of three hours
-const CACHE_V='20261117i'; // the build: bump with shared.js's
+const CACHE_V='20261117j'; // the build: bump with shared.js's
 const SCENE=new URLSearchParams(location.search).get('scene'); // a Guide / event demo: the map plays a scripted moment (no surface behind it)
 let phase='move',turnTimer=0,mergeTimer=0;
 let gameOverReason='';
@@ -1447,7 +1447,7 @@ function renderShop(){const el=document.getElementById('shop');if(SCENE)requestA
   card.innerHTML=`<h2>${(u.exit?txt('map.exit'):(u.pick?txt('map.pick_a_duck'):S.n))}</h2><div class="stag">${(u.exit?txt('map.gift.ask'):(u.pick?txt('map.ninety_nine_ducks_for'):S.tag))}</div>`+
     (curs.length&&!u.pick&&!u.exit?'<div class="stabs">'+curs.map(c=>`<span class="${c===u.tab?'on':''}" data-t="${c}">${curIcon(c)}</span>`).join('')+'</div>':'')+'<div class="srows">'+ // a tab for each thing it takes, by its symbol (one alone stays as the open tab)
     rows.map((r,i)=>r.c?`<div class="srow c" data-i="${i}"><span>${r.n}<br>${r.sub}</span></div>`:
-      `<div class="srow${r.poor?' poor':''}${r.own?' own':''}${r.it&&shopFlash&&shopFlash.id===r.it.id&&performance.now()-shopFlash.at<1500?' just'+(shopFlash.ok?'':' no'):''}" data-i="${i}"${r.disc?` data-disc="${r.disc}"`:''}><span>${r.n}</span><b>${r.p}</b></div>`).join('')+'</div>';
+      `<div class="srow${r.poor?' poor':''}${r.own?' own':''}${r.it&&shopFlash&&shopFlash.id===r.it.id&&performance.now()-shopFlash.at<1500?' just'+(shopFlash.ok?'':' no'):''}" data-i="${i}"${r.disc?` data-disc="${r.disc}" data-hov`:''}><span>${r.n}</span><b>${r.p}</b></div>`).join('')+'</div>';
   const pr=rows;
   card.querySelectorAll('.srow').forEach(r=>{const row=pr[+r.dataset.i];r.onclick=()=>{if(!row.own)row.go();};r.onmouseenter=()=>{shopHover=row.it?[row.fn||row.n,row.note||'']:null;};r.onmouseleave=()=>{shopHover=null;};});
   card.querySelectorAll('.stabs span').forEach(t=>{t.onclick=()=>{u.tab=t.dataset.t;renderShop();};t.onmouseenter=()=>{const c=t.dataset.t;shopHover=[curName(c),txt(rows.length===1?'map.shop.tab1':'map.shop.tab',fmtN(shopWallet(c)),rows.length)];};t.onmouseleave=()=>{shopHover=null;};});
