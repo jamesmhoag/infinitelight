@@ -120,7 +120,7 @@ button:hover{background:rgba(255,255,255,0.15);}
   <div id="dock" class="bottom"><div id="inventoryPanel"></div><div id="touch-info"></div></div>
   <canvas id="cur"></canvas>
 </div>
-<script src="content.js?v=20261118b"></script><script src="shared.js?v=20261118b"></script>
+<script src="content.js?v=20261118c"></script><script src="shared.js?v=20261118c"></script>
 <script>
 txtApply(); // the page's own labels (content/strings.csv)
 const _SRC=document.documentElement.outerHTML; // kept so the Encyclopedia can run live scenes as embedded copies of the game
@@ -2043,7 +2043,7 @@ const INV_STORAGE_KEY='chromaticNebulaInventory_v1';
 let gateFx=null,keyFx=null; // the Gate's rewind transition / the Key's insert-twist-collapse animation (real-time, see draw())
 let keyShapes=[];        // one entry per Key in the purse, oldest first — each remembers the Pattern that formed it
 let inventory={bright:0,dim:0,neutron:0,magnetic:0,pulsing:0,dial:0,leash:0,prism:0,gate:0,knot:0,key:0,lens:0,weave:0};
-let invDisabled=new Set(),invDisableMode=false,discSeen=startItems(new Set()),shopLog={},lifeLog={runs:0,days:0,bright:0,dark:0,rift:0},mapHist=null,_buoySub='now'; // lifeLog: every run there has been (runs begun, days, surfaces cleared of each kind); mapHist: this run, as the map last told it; shopLog: what you have bought, item → how many (Collections → Shops)
+let _jKnown=null,invDisabled=new Set(),invDisableMode=false,discSeen=startItems(new Set()),shopLog={},lifeLog={runs:0,days:0,bright:0,dark:0,rift:0},mapHist=null,_buoySub='now'; // lifeLog: every run there has been (runs begun, days, surfaces cleared of each kind); mapHist: this run, as the map last told it; shopLog: what you have bought, item → how many (Collections → Shops)
 let ducks=[],duckLog={},duckLuck={d:0,e:0},runState=runFresh(); // rubber ducks on this surface / the duck collection (type → count, saved with the inventory) / failed tries since the last duck (d) and the last exotic (e): each adds T.duckLuckStep to its chance (saved, so it carries across surfaces and days)
 let invFlash={kind:null,at:0};   // last slot that gained an item (its icon pulses)
 let earnFx=[],constellationFx=[]; // real-time visual effects (see drawEarnFx / drawConstellationFx)
@@ -2056,7 +2056,7 @@ setTimeout(()=>{try{achCheck(null);}catch(e){console.warn('achievements',e);}},0
     if(Array.isArray(saved.discovered))discSeen=new Set(saved.discovered);startItems(discSeen);
     if(saved.ducks&&typeof saved.ducks==='object')duckLog=saved.ducks;if(saved.buys&&typeof saved.buys==='object')shopLog=saved.buys;if(saved.life&&typeof saved.life==='object')lifeLog=Object.assign(lifeLog,saved.life);
     if(saved.luck)duckLuck=Object.assign({d:0,e:0},saved.luck);
-    if(saved.run)runState=Object.assign(runFresh(),saved.run);
+    if(saved.run)runState=Object.assign(runFresh(),saved.run);_jKnown=new Set(discSeen);
       if(typeof saved.notch==='number')inventory.knot=Math.min(invMaxFor('knot'),inventory.knot+saved.notch);
     for(const k of ['prism','knot','gate','key','lens'])if(inventory[k]>0)discSeen.add('ev:pat_'+k);} // Pattern items already held (from before forming one revealed it) show in the Guide
   }catch(e){/* localStorage unavailable — start fresh, still fully playable */}
@@ -2093,6 +2093,7 @@ function invMerge(saved){if(!saved)return false;let ch=false;const rk=_discReset
   return ch;}
 function saveInventory(){
   if(window.__SCENE||BUILD)return; // (Build mode: nothing it does is kept)
+  {const d=runState.day||0;if(!_jKnown)_jKnown=new Set(discSeen);for(const id of discSeen)if(!_jKnown.has(id)){_jKnown.add(id);if(d&&jName(id)){const L=(runState.jd=runState.jd||{})[d]||(runState.jd[d]=[]);L.push(id);}}} // the Journal's day entries: each rule, event and shop found, under the day it was found (runState.jd)
   syncKeyShapes();
   try{const raw=localStorage.getItem(INV_STORAGE_KEY);if(raw)invMerge(JSON.parse(raw));}catch(e){}
   const js=JSON.stringify(invPayload());_discReset=false;
@@ -2104,7 +2105,7 @@ window.addEventListener('storage',e=>{if(e.key!==INV_STORAGE_KEY||!e.newValue||w
 if(!window.__SCENE)IDB.get('inventory').then(raw=>{if(!raw)return;const b=JSON.parse(raw);let loc=null;try{loc=JSON.parse(localStorage.getItem(INV_STORAGE_KEY)||'null');}catch(e){}
   const older=!loc||(b.at||0)>(loc.at||0);if(older){for(const k of INV_KINDS)if(typeof b[k]==='number')inventory[k]=b[k];if(b.luck)duckLuck=Object.assign({d:0,e:0},b.luck);if(b.run)runState=Object.assign(runFresh(),b.run);} // the backup is newer (or the only copy): its counts too
   if(invMerge(b)||older){applyDisc();updateInventoryUI();saveInventory();}}).catch(()=>{});
-function runFresh(){return{day:0,clock:3,fortune:null,dimNext:null,bonus:null,charm:0,draw:null,next:null,keysGone:0,dimDone:{},sold:{}};}
+function runFresh(){return{jd:{},day:0,clock:3,fortune:null,dimNext:null,bonus:null,charm:0,draw:null,next:null,keysGone:0,dimDone:{},sold:{}};}
 const runNow=()=>(runState.day||0)*24+(runState.clock||3); // the map's day and time of day as one count of hours (a Daily Wonder's end)
 function fortuneStart(){const c=runState.fortune,g=c&&c.good?FORTUNE_GOOD[c.id]||{}:{};if(g.next)runState.next=g.next;if(g.next==='rare'){runState.keysGone=1;inventory.key=0;}} // yesterday's pick takes hold: a fortune's next drop, and the Keys a rare one costs
 function runExpire(){if(runState.bonus&&runState.bonus.until&&runNow()>=runState.bonus.until){runState.bonus=null;return true;}return false;} // a Daily Wonder's full day is over // (dimDone: what Dim's Carnival has done today — each of its cards is once a day) // a new run's state (shared.js: runBad, runGood, runBonus read it)
@@ -4511,7 +4512,7 @@ function discTick(){ // a locked element is fully covered by a veil showing its 
 let _dcX=-1,_dcY=-1,_dcVeil=null,_dcMet=null;
 document.addEventListener('mousemove',e=>{_dcX=e.clientX;_dcY=e.clientY;},true);
 function discVeil(){if(!_dcVeil){_dcVeil=document.createElement('div');_dcVeil.style.cssText="position:fixed;z-index:70;pointer-events:none;display:none;align-items:center;justify-content:center;gap:.3em;background:linear-gradient(90deg,#efe4c6,#f6eed8);border:1.5px dashed rgba(58,44,24,.6);color:#3a2c18;font-family:'Caveat','Segoe Print','Bradley Hand','Chalkboard SE','Comic Sans MS',cursive;box-sizing:border-box;border-radius:4px;box-shadow:0 2px 8px rgba(0,0,0,.35);white-space:nowrap;overflow:hidden";document.body.appendChild(_dcVeil);}return _dcVeil;} // (on the Journal's paper, in its hand)
-function resetDiscoveries(){discSeen=startItems(new Set());_discReset=true;saveInventory();applyDisc();flashSaveStatus(txt('surf.discoveries_reset'));}
+function resetDiscoveries(){discSeen=startItems(new Set());_jKnown=new Set(discSeen);_discReset=true;saveInventory();applyDisc();flashSaveStatus(txt('surf.discoveries_reset'));}
 window.resetDiscoveries=resetDiscoveries;
 /* Testing: discover everything there is (the interface, object types, events, the Guide and its map), fill every item, and clear the surface as a chosen kind */
 function discAll(){for(const d of DISC_ALL)discSeen.add(d[0]);for(const k in T)if(k.slice(0,3)==='dc_'){const id=k.slice(3);if(id.slice(0,4)==='obj_'){discSeen.add('of_'+id.slice(4));discSeen.add('ot_'+id.slice(4));}else discSeen.add(id);}
@@ -4522,7 +4523,7 @@ const TEST_SNAP='il_test_snap_inv';
 function testOn(){try{if(!localStorage.getItem(TEST_SNAP))localStorage.setItem(TEST_SNAP,JSON.stringify(Object.assign(invPayload(),{keyShapes})));}catch(e){} /* (once: the save as it was before testing) */
   TEST.set('mode',1);TEST.set('free',1);discAll();unlockAll();testFill();testSync();}
 function testOff(){let s=null;try{s=JSON.parse(localStorage.getItem(TEST_SNAP)||'null');}catch(e){}TEST.set('mode',0);TEST.set('free',0);
-  if(s){for(const k of INV_KINDS)inventory[k]=typeof s[k]==='number'?s[k]:0;invDisabled=new Set(s.disabled||[]);discSeen=startItems(new Set(s.discovered||[]));duckLog=s.ducks||{};duckLuck=Object.assign({d:0,e:0},s.luck||{});runState=Object.assign(runFresh(),s.run||{});keyShapes=s.keyShapes||[];shopLog=s.buys||{};lifeLog=Object.assign({runs:0,days:0,bright:0,dark:0,rift:0},s.life||{});
+  if(s){for(const k of INV_KINDS)inventory[k]=typeof s[k]==='number'?s[k]:0;invDisabled=new Set(s.disabled||[]);discSeen=startItems(new Set(s.discovered||[]));_jKnown=new Set(discSeen);duckLog=s.ducks||{};duckLuck=Object.assign({d:0,e:0},s.luck||{});runState=Object.assign(runFresh(),s.run||{});keyShapes=s.keyShapes||[];shopLog=s.buys||{};lifeLog=Object.assign({runs:0,days:0,bright:0,dark:0,rift:0},s.life||{});
     _discReset='all';saveInventory();} /* (nothing merged back: the save is exactly as it was) */
   try{localStorage.removeItem(TEST_SNAP);}catch(e){}applyDisc();updateInventoryUI();testSync();if(HUB)hubPost({type:'testRestored'});else location.reload();}
 function testMode(){if(HUB){hubPost({type:'testMode'});return;}if(TEST.get('mode'))testOff();else testOn();} // (on the map, the map runs it: its own save is snapshotted too)
@@ -12892,7 +12893,7 @@ function sceneBoot(name,TT){
 // The Journal: a book in plain language. Every entry is a page with a drawing of its moment (live while it is pointed at), its chapters are marked down its side, and its Glossary lists every subject with its pages.
 let _rulesOpen=false,_rulesWasPaused=false,_rulesTab='disc',_rulesMode='guide',_rulesLast={guide:'disc',coll:'buoy'};
 window._rulesOpen=false;
-const RULE_TABS=['disc','map','items','shapes','surf','shops','ducks','book'].map(k=>[k,txt('guide.tab.'+k)]); // (their names: content/strings.csv)
+const RULE_TABS=['days','disc','map','items','shapes','surf','shops','ducks','book'].map(k=>[k,txt('guide.tab.'+k)]); // (their names: content/strings.csv)
 const COLL_TABS=['buoy','coll','mshops','notes','souv'].map(k=>[k,txt('coll.tab.'+k)]); // Status and your collections (your buoy, or its slot in the inventory): the same menu as the Guide, its own tabs
 // where an entry's own section (RULES[i][1]) shows: How to play / How to clean up are Discoveries; particles, points and remnants are the Taxonomy
 const RULE_HOME={start:['disc','How to play'],touch:['disc','How to clean up'],things:['map','Taxonomy'],bright:['map','Taxonomy'],rem:['map','Taxonomy'],items:['items','Items'],shapes:['shapes','Shapes'],surf:['surf','Surface Map'],shops:['shops','Shops'],ducks:['ducks','Ducks']};
@@ -13075,7 +13076,7 @@ function cardHTML(ev,mini,pg){ // the one card format: name bar, art box, type l
   return `<div class="mtg${sm?' sm':mini===2?' pic':''}${!pg&&discSeen.has('ev:'+ev.id)&&ilNew('ev:'+ev.id)?' fd':''}" data-ev="${ev.id}" data-new="ev:${ev.id}" style="--rc:${TIER_COL[t]}"><div class="nm"><b>${gEsc(ev.name)}</b><span class="gem"></span></div><div class="art" data-scene="${ev.scene}" data-ev="${ev.id}" data-k="${ev.ico}">${sm?evStillHTML([ev.id])||`<canvas class="rl-m" width="64" height="64" data-k="${ev.ico}"></canvas>`:''}</div>${body}</div>`;
 }
 function mountScene(h,w,hh){if(!h||h.firstChild||document.querySelectorAll('.rl-live iframe:not(.held),.mtg .art iframe:not(.held)').length>=5)return; /* (a page's picture holding on its last frame does not count) */{const R=(h.dataset.ev||'').split(',').map(evRecFor).find(Boolean);if(R&&!w){evReplayMount(h,R);return;}} /* something you witnessed: your own recording of it, live (a demo only for what you have not) */const f=document.createElement('iframe'),nm=h.dataset.s||h.dataset.scene;f.style.cssText='border:0;max-width:100%;pointer-events:none;background:#000;border-radius:6px;'+(w?`width:${w}px;height:${hh}px`:'width:100%;height:100%');
-  if(nm.slice(0,4)==='hub:'){const[sn,dk]=nm.slice(4).split(':');f.src='Surface_Map_HUB.html?v=20261118b&scene='+sn+(sn==='shop'?'&k='+encodeURIComponent(dk||''):'')+'&T='+encodeURIComponent(JSON.stringify(mapSceneT()))+'&D='+encodeURIComponent(JSON.stringify(dk&&DUCK_TYPES[dk]?{[dk]:DUCK_TYPES[dk]}:Object.fromEntries(Object.entries(DUCK_TYPES).slice(0,4))));}else{f.srcdoc=liveSrc(nm,null,h.dataset.hold);if(h.dataset.hold)f.className='held';}h.appendChild(f);} // a Surface Map demo is played by the map itself
+  if(nm.slice(0,4)==='hub:'){const[sn,dk]=nm.slice(4).split(':');f.src='Surface_Map_HUB.html?v=20261118c&scene='+sn+(sn==='shop'?'&k='+encodeURIComponent(dk||''):'')+'&T='+encodeURIComponent(JSON.stringify(mapSceneT()))+'&D='+encodeURIComponent(JSON.stringify(dk&&DUCK_TYPES[dk]?{[dk]:DUCK_TYPES[dk]}:Object.fromEntries(Object.entries(DUCK_TYPES).slice(0,4))));}else{f.srcdoc=liveSrc(nm,null,h.dataset.hold);if(h.dataset.hold)f.className='held';}h.appendChild(f);} // a Surface Map demo is played by the map itself
 function mapSceneT(){const o={};for(const k in T)if(/^(map|bh|duck|wake|glass|metal|dimGlow|glowHalo|maxSpeed)/.test(k))o[k]=T[k];return o;} // what a map demo needs of the tuners
 function showCardHTML(html){ // a Guide card (an entry or a shop) opened over the Guide, where an event card shows
   guideCSS();if(!_evOpen)_evPausedIt=false;_evOpen=true;_evReview=true;const ov=evOverlayEl();ov.innerHTML=`<div class="ev-box">${html}<button id="evOk">${txt('card.close')}</button></div>`;ov.style.display='flex';wrap.classList.add('ev-open');
@@ -13265,7 +13266,7 @@ function guideCSS(){
 #rulesOverlay:not(.coll) .bk-nav{color:#e8dfc4;font:18px var(--hand);text-shadow:0 1px 3px #000}#rulesOverlay:not(.coll) #rlBody.jr{padding:34px 120px 2px 14px}
 .bk.jr{max-width:min(1560px,100%)}.bk.jr .bk-p{font-size:clamp(20px,1.45vw,25px)}.bk.jr .bk-w{font-size:1em;line-height:1.3em;background-size:100% 1.3em;background-image:repeating-linear-gradient(transparent 0 calc(1.3em - 1px),rgba(58,44,24,.16) calc(1.3em - 1px) 1.3em)}
 /* a page never scrolls: one whose words do not fit takes both sides of the spread, its words running on across the gutter */
-.bk-p.sp .bk-c{flex:1 1 0;max-height:none;columns:2;column-gap:60px;column-fill:auto;column-rule:1px solid rgba(58,44,24,.18)}.bk-p.sp .bk-w{flex:0 0 2.6em;min-height:0}.bk-p.sp .mtg .art,.bk-p .mtg .nm{break-inside:avoid}
+.bk-p.sp .bk-c{flex:1 1 0;max-height:none;columns:2;column-gap:60px;column-fill:auto;column-rule:1px solid rgba(58,44,24,.18)}.bk-p.sp .bk-w{flex:0 0 2.6em;min-height:0;margin-left:calc(50% + 30px);width:calc(50% - 30px)}.bk-p.sp .mtg .art,.bk-p .mtg .nm{break-inside:avoid}
 #rulesOverlay .bk-p .disc-lock{background:repeating-linear-gradient(-45deg,rgba(58,44,24,.05) 0 6px,rgba(58,44,24,.1) 6px 12px);border:1.5px dashed rgba(58,44,24,.55);border-radius:4px}#rulesOverlay .bk-p .disc-lock::after{color:#3a2c18;font:20px var(--hand);content:'\\25C7  ' attr(data-cost) ' Dim'}
 .bk{display:flex;max-width:820px;margin:8px auto;background:#6b4a2a;padding:10px;border-radius:6px;box-shadow:0 8px 30px rgba(0,0,0,.5);position:relative}
 .bk-p{flex:1 1 0;min-width:0;min-height:320px;box-sizing:border-box;background:linear-gradient(90deg,#efe4c6,#f6eed8);color:#3a2c18;padding:28px 30px 18px;font:20px/1.3 var(--hand);letter-spacing:0;position:relative}.bk-p+.bk-p{background:linear-gradient(90deg,#f6eed8,#efe4c6);border-left:1px solid #c9b88f}.bk-p.wide{flex:2 1 0}
@@ -13393,7 +13394,7 @@ function skTick(cv,now){const a=cv.parentNode,lv=a.querySelector('.lv'),f=lv&&lv
 function journalPages(){ // every page, in order: {ch: its chapter, k: its kind, id, key: its discovery (new until its page is turned to), n: its subject, ok: discovered, tx: its words (the Glossary's page references), nk: its notes' key}. Only what is witnessed has a page (none is left to fill)
   const P=[],cnt={},nk=p=>{const c=p.ch+'.'+p.k;cnt[c]=(cnt[c]||0)+1;return p.nk=p.key||c+cnt[c];},ru=ch=>e=>({ch,k:'rule',id:e[0],key:'g_'+e[0],n:e[2],ok:ruleOk(e[0]),tx:[e[2],e[4],...e[5].map(r=>r.join(' '))].join(' ')}),
     put=p=>{const w=p.k==='map'||_jSpan.has(nk(p));if(w&&P.length%2)P.push({ch:p.ch,k:'blank'});P.push(p);if(w)P.push({ch:p.ch,k:'skip'});}; // (a page whose words do not fit takes both sides of a spread: the lifecycle map always)
-  for(const[ch,n]of RULE_TABS){const E=ch==='book'?[]:RULES.filter(e=>(RULE_HOME[e[1]]||[e[1]])[0]===ch).map(ru(ch));
+  for(const[ch,n]of RULE_TABS){const E=ch==='book'?[]:ch==='days'?Object.keys(runState.jd||{}).map(Number).sort((a,b)=>a-b).map(d=>({ch,k:'day',id:d,key:'jd:'+d,n:txt('journal.day',d),ok:true,tx:runState.jd[d].map(jName).join(' ')})):RULES.filter(e=>(RULE_HOME[e[1]]||[e[1]])[0]===ch).map(ru(ch));
     if(ch==='disc')E.push(...EVENTS.map(e=>({ch,k:'ev',id:e.id,key:'ev:'+e.id,n:e.name,ok:evSeen(e.id),tx:e.name+' '+(e.seen||'')+' '+e.facts().join(' ').replace(/\u0001[^\u0002]*\u0002|\u0003/g,'')+' '+(e.flavor||'')})));
     if(ch==='shops')E.push(...Object.keys(SHOPS).map(k=>({ch,k:'shop',id:k,key:'ev:shop_'+k,n:SHOPS[k].n,ok:evSeen('shop_'+k),tx:[SHOPS[k].n,SHOPS[k].tag,SHOPS[k].about||''].join(' ')})));
     const K=E.filter(p=>p.ok);if(!K.length&&ch!=='map'&&ch!=='book')continue; // (a chapter with nothing witnessed yet is not in the book)
@@ -13401,10 +13402,12 @@ function journalPages(){ // every page, in order: {ch: its chapter, k: its kind,
     if(ch==='book'){const kn=P.map((p,i)=>[p,i+1]).filter(([p])=>p.key),rows=[...new Set(kn.map(([p])=>p.n))].sort((x,y)=>x.localeCompare(y)).map(s=>{const re=new RegExp('(^|[^A-Za-z])'+s.replace(/[.*+?^${}()|[\]\\]/g,'\\$&')+'([^A-Za-z]|$)','i');return[s,kn.filter(([p])=>p.n===s||s.length>2&&re.test(p.tx)).map(q=>q[1])];});
       for(let i=0;i<Math.max(1,rows.length);i+=15)put({ch,k:'idx',rows:rows.slice(i,i+15)});}} // the Glossary: each subject, then every page that speaks of it
   if(P.length%2)P.push({ch:'book',k:'blank'});for(const p of P)if(!p.nk)nk(p);return P;}
+function jName(id){const m=/^(g_|ev:)(.*)$/.exec(id);if(!m)return'';if(m[1]==='g_'){const e=RULES.find(x=>x[0]===m[2]);return e?e[2]:'';}if(m[2].slice(0,5)==='shop_')return(SHOPS[m[2].slice(5)]||{}).n||'';const e=EVENTS.find(x=>x.id===m[2]);return e?e.name:'';} // a discovery's name in the Journal ('' : none of its own)
 function pageHTML(P,i){const p=P[i];if(!p||p.k==='skip')return ''; // one page: what it holds (the entry's card as a page, the chapter's contents, the Glossary's lines), your notes under it, its number (a page over both sides: both numbers)
   const e=p.k==='rule'?RULES.find(x=>x[0]===p.id):p.k==='ev'?EVENTS.find(x=>x.id===p.id):null,w=(P[i+1]||{}).k==='skip';
   const h=p.k==='chap'?`<h2 class="bk-h">${gEsc(p.n)}</h2><p>${txt('journal.ch.'+p.ch)}</p><div class="bk-toc">${P.map((q,j)=>q.ch===p.ch&&q.key?`<a data-pg="${j}"><span>${gEsc(q.n)}</span><i>${j+1}</i></a>`:'').join('')}</div>`
     :p.k==='idx'?`<h2 class="bk-h" style="margin-top:0">${gEsc(txt('guide.tab.book'))}</h2>${p.rows.map(r=>`<div class="bk-ix"><b>${gEsc(r[0])}</b> &nbsp;${r[1].map(n=>`<a data-pg="${n-1}">${n}</a>`).join(', ')}</div>`).join('')||`<p>${txt('journal.empty')}</p>`}`
+    :p.k==='day'?`<h2 class="bk-h" style="margin-top:0">${gEsc(p.n)}</h2><p>${txt('journal.day_d')}</p>${(runState.jd[p.id]||[]).map(id=>{const j=P.findIndex(q=>q.key===id);return `<div class="bk-ix"><b>${gEsc(jName(id))}</b>${j>=0?` &nbsp;<a data-pg="${j}">${j+1}</a>`:''}</div>`;}).join('')}` // a day: what was found that day, each with its page
     :p.k==='map'?`<div class="lc"><div class="lc-l"><p class="rl-note">${txt('journal.map')}</p><canvas id="mapCv" width="900" height="500"></canvas></div><div id="mapInfo" class="lc-r" data-e="x"></div></div>`
     :p.k==='rule'?ruleCardHTML(e,true):p.k==='ev'?cardHTML(e,false,true):p.k==='shop'?shopCardHTML(p.id):'';
   return `<div class="bk-p${w?' wide':''}${w&&p.k!=='map'?' sp':''}"${p.key?` data-key="${p.key}"`:''}><div class="bk-c">${h}</div><textarea class="bk-w" data-nk="${p.nk}" placeholder="${gEsc(txt('journal.notes'))}" spellcheck="false">${gEsc(_jNotes[p.nk]||'')}</textarea><div class="bk-n">${w?(i+1)+' – '+(i+2):i+1}</div></div>`;}
@@ -13766,7 +13769,7 @@ window.addEventListener('message',e=>{
   else if(m.cmd==='buy'){const r=shopBuy(m.id,m.arg,m.ship);hubPost(Object.assign({type:'bought',id:m.id},r));if(r.draw){hubOverlay_(true);showDraw();}hubState();} // a Carnival card: the draw shows here, over the map
   else if(m.cmd==='lose'){for(const id of m.ids||[])discSeen.delete('up:'+id);_discReset=true;saveInventory();if(HUB)hubState();} // a wreck: what went overboard is no longer yours (this save is what holds: what it no longer has is not merged back)
   else if(m.cmd==='day'){if(m.newRun){runState=runFresh();lifeLog.runs++;}else if(m.day!==runState.day){lifeLog.days++;Object.assign(runState,{prevFortune:runState.fortune||null,fortune:runState.dimNext||null,dimNext:null,charm:0,draw:null,dimDone:{}});fortuneStart();}runState.day=m.day;runState.clock=3;runExpire(); /* (yesterday's dim fortune is today's; a Daily Wonder runs on to its time) */saveInventory();updateInventoryUI();hubState();} // a new day: today's fortune, bonus and Luck Charms are over // a shop on the map: this pays and hands it over
-  else if(m.cmd==='wipe'){for(const k of INV_KINDS)inventory[k]=0;duckLog={};duckLuck={d:0,e:0};runState=runFresh();discSeen=startItems(new Set());invDisabled=new Set();keyShapes=[];_discReset='all';IDB.del('session').catch(()=>{});saveInventory();updateInventoryUI();applyDisc();hubState();} // the Gift Shop: everything goes
+  else if(m.cmd==='wipe'){for(const k of INV_KINDS)inventory[k]=0;duckLog={};duckLuck={d:0,e:0};runState=runFresh();discSeen=startItems(new Set());_jKnown=new Set(discSeen);invDisabled=new Set();keyShapes=[];_discReset='all';IDB.del('session').catch(()=>{});saveInventory();updateInventoryUI();applyDisc();hubState();} // the Gift Shop: everything goes
   else if(m.cmd==='state')hubState('state',true);
   else if(m.cmd==='remote')remoteOn(m); // a map player's pointer on this surface
   else if(m.cmd==='remoteClear')REMOTES.clear();
