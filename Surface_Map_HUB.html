@@ -163,7 +163,7 @@ body.shop-open #hdock{z-index:59}#hinv .slot.wal::before{border-color:rgba(255,2
 <div id="veil"></div>
 <div id="bfx"></div>
 <iframe id="neb" data-tt="map.ui.surface"></iframe>
-<script src="content.js?v=20261118i"></script><script src="shared.js?v=20261118i"></script><script src="cabin.js?v=20261118i"></script><script src="music.js?v=20261118i"></script>
+<script src="content.js?v=20261118j"></script><script src="shared.js?v=20261118j"></script><script src="cabin.js?v=20261118j"></script><script src="music.js?v=20261118j"></script>
 <script>
 // ╔══════════════════════════════════════════════════════════════════════════════╗
 // ║  MAP ENGINE                                                                 ║
@@ -182,7 +182,7 @@ let playLog=[],clock=3,day=1,pool=6,burstFx=null,dayLog=[],dayCnt={b:0,d:0},pend
 // // clock: the hour (3 = Twilight … 24 = Midnight, the day's last turn); day: your attempts; pool: what the source put out at its last burst; fresh: no ring added yet since it
 let constel=[],armed=null,weaveSel=[],weaveAsk=null,clearFx={},mergeFx=[],feedMsg={t:'',d:'',at:-1e9}; // constellations {keys,type}; the armed map item; a Weave being drawn; animations; the final count
 const STEP_H=3; // the day: eight turns of three hours
-const CACHE_V='20261118i'; // the build: bump with shared.js's
+const CACHE_V='20261118j'; // the build: bump with shared.js's
 const SCENE=new URLSearchParams(location.search).get('scene'); // a Guide / event demo: the map plays a scripted moment (no surface behind it)
 let phase='move',turnTimer=0,mergeTimer=0;
 let gameOverReason='';
@@ -1122,7 +1122,7 @@ function pondStep(now){
   goodsSpawn(now);
   pond=pond.filter(d=>{
     if(d.good&&d.good.kind==='sign')d.type=goodTypeM(d.good); // a sign on the lake: lit and blinking while its shop is open
-    if(d.flot){const c=cells[d.flot];if(!c||!c.flot){if(d.good.give&&!d.good.open){delete d.flot;d.burn=now;return true;}return false;} /* (its hex fell in, an order on it: it sinks, lost) */const[x,y]=a2w(c.q,c.r);d.x+=(x-d.x)*0.04*dt;d.y+=(y-d.y)*0.04*dt;d.hd+=0.002*dt;d._s=HEX*0.62*(T.mapGoodScale||0.7);return true;} // flotsam on its hex: it drifts to it, turning slowly
+    if(d.flot){const c=cells[d.flot];if(!c||!c.flot){if(d.good.give&&!d.good.open){delete d.flot;d.burn=now;return true;}return false;} /* (its hex fell in, an order on it: it sinks, lost) */const[x,y]=a2w(c.q,c.r);d.x+=(x-d.x)*0.04*dt;d.y+=(y-d.y)*0.04*dt;d.hd+=0.002*dt;d._s=HEX*0.62*(T.mapGoodScale||0.7)*(d.good.id?(T.mapOrderScale||0.5):1); /* (an order: about your buoy's size, box and preserver together) */return true;} // flotsam on its hex: it drifts to it, turning slowly
     if(d.burn){const u=(now-d.burn)/(T.mapChestBurnMs||2600);d._sink=Math.min(1,u)*0.8;d.fade=Math.max(0,1-u);if(u>=1)return false;if(Math.random()<0.3)splashes.push({x:d.x,y:d.y,t:now,n:2,a:Math.random()*6.28});d._s=HEX*0.62*(T.mapGoodScale||0.7);return true;} // an emptied chest: it sinks and burns away as a crate does
     if(d.held||d.seek){const t=d.bottle?{scale:1.4}:d.good?{scale:T.mapGoodScale||0.7}:DUCK_TYPES[d.type]||{};d._s=HEX*0.62*(t.scale||1)/(t.head?1.25:1);d._sink=1;d.sp=0;d.dunk=0;d.spin=null; // carried under the water (it goes where the cursor does), or let go under a shop: it slides on out from under it, then comes up
       if(d.seek){const s=shopUnder(d.x,d.y);if(s){let dx=d.x-s.wx,dy=d.y-s.wy,l=Math.hypot(dx,dy);if(l<1e-3){dx=d.x||1;dy=d.y;l=Math.hypot(dx,dy)||1;}d.x+=dx/l*2.2*dt;d.y+=dy/l*2.2*dt;}else{d.seek=0;d.riseAt=now;}} /* (away from that shop) */

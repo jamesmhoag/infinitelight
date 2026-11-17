@@ -686,6 +686,7 @@ chestRelic,0.5,Chest relic chance,0,1,0.05,Commodities,gameplay,,,,Chance a trea
 mapGoodScale,1.1,Lake commodity size,0.2,2,0.05,Commodities,map,,,,"How big commodities and flotsam are on the lake, × a duck's",
 mapGoodMs,150000,Lake goods ms,10000,900000,5000,Commodities,map,,,,"About how often a can, a cup or a box floats in on the lake",
 mapChestMs,300000,Chest ms,10000,1800000,10000,Commodities,map,,,,About how often a treasure chest floats in (one at a time),
+mapOrderScale,0.5,Order size,0.2,1.5,0.05,Commodities,map,,,,"An order floating to you (its box on its life preserver), × a lake good's size: about your buoy's",
 mapDroneMs,1800,Drone flight ms,300,10000,100,Commodities,map,,,,How long the drone takes to fly to a shop (and back),
 musicVol,0.8,Music volume,0,1,0.05,Music,map,,,,The record player's volume,
 recFind,0.12,Record in the trash,0,1,0.01,Music,map,,,,"The chance an opened can, cup or box from the lake holds a record you do not have",
