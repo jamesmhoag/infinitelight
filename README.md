@@ -198,6 +198,7 @@ The Surface Map draws its ground on a 2D canvas and sends it to the GPU every fr
 - Out of water you cannot move: **Rest** (offered whenever you are dry) passes a time of day and the tide carries you a hex nearer the Point if one that way can be entered (`restTide`), until you are beside the light and can drink again.
 - A **Bottle of water** (Corner Store) is drunk as you buy it: your next move is on it rather than the barrel, or lets you move with the barrel dry. One a time of day.
 - Kept with the map (`drinks`, `bottle`); a new map starts full. Not yet while playing together.
+- The **Mini fridge** (Magnets & Stuff, kept; holds 3, `{"fridge":3}`): bottles you buy go into it, not down you (no limit a time of day while there is room). A move with the barrel dry takes one; clicking the water in the dock drinks one now (one drink a time of day). The dock shows them as ❄n (`fridge`, `fridgeDrink`).
 
 ## Sleep, waking and the Clock smith (Surface Map)
 - A new day (and a new map) starts at Twilight with ring 1 only, 1.00 a hex, 6.00 in all (**Midnight burst rings** `mapBurstRings`, now 1); the spill spreads a ring each time of day, the same 6.00 shared out over every hex still uncleared (`redistribute`).

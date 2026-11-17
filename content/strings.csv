@@ -1150,3 +1150,7 @@ map.anchor.raised_d,Moving raises it,Surface Map (anchor),
 map.wreck.tossed,You were tossed and turned all night,Surface Map (wrecks),
 map.wreck.lost,"Lost overboard: {items}. Buy them again to have them back.",Surface Map (wrecks),items = $0 — what went overboard
 map.wreck.manifest,"Wrecked at Midnight · lost overboard: {items}",Surface Map (wrecks),items = $0 — what went overboard (the day's log)
+map.water.fridge,A bottle from the fridge,Surface Map (water),
+map.water.in_fridge,"Into the fridge: {n} of {cap}",Surface Map (water),"n = $0 — bottles in it
+cap = $1 — what it holds"
+map.water.fridge_full,The fridge is full ({cap}),Surface Map (water),cap = $0 — what it holds

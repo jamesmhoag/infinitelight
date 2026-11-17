@@ -155,5 +155,6 @@ l_twin,hull,Twin-hook spotlight,20000,bright,2,,"{""part"":""light"",""top"":2}"
 pennant,hull,Pennant,1000,bright,1,,"{""up"":1,""mount"":""top"",""look"":""flag""}",,,Flown from the top mount
 chime,hull,Wind chime,500,bright,1,,"{""up"":1,""mount"":""mast"",""look"":""box"",""col"":5}",,,Hung from a mast mount
 anchor,magnetic,Anchor,25,magnetic,1,,"{""up"":1,""mount"":""hull"",""look"":""anchor"",""anchor"":1}",,,"Hull mount. Down, the tide cannot carry you when you rest (moving raises it; the dock drops it again)"
+fridge,magnetic,Mini fridge,40,magnetic,1,,"{""up"":1,""fridge"":3}",,,"Kept below deck: bottles of water you buy go in it (it holds 3), not down you. A move with the barrel dry takes one; click the water in the dock to drink one now"
 rudder,magnetic,Rudder,50,magnetic,2,,"{""up"":1,""mount"":""hull"",""look"":""rudder"",""rudder"":1}",,,Hull mount. Keeps your buoy from wrecking (wrecks: to come)
 motor,magnetic,Motor,100,magnetic,3,,"{""up"":1,""mount"":""hull"",""look"":""motor"",""motor"":1}",,,Hull mount. Keeps your buoy from wrecking (wrecks: to come)
