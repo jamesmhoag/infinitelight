@@ -47,6 +47,8 @@ keychain,gift,Key Chain,199999,,1,,"{""souv"":1}",,,
 hat,gift,Hat,1999999,,1,,"{""souv"":1}",,,
 stuffy,gift,Stuffy,9999999,,1,,"{""souv"":1}",,,
 tshirt,gift,T-shirt,9999999,,1,,"{""souv"":1}",,,
+vinyl_e,gift,"Souvenir vinyl: Strobe Lake",49999,,1,,"{""souv"":1,""rec"":""rec_e4""}",,,"A souvenir: the EDM record, yours on every buoy from now on (it plays on your record player)"
+vinyl_s,gift,"Souvenir vinyl: Lantern Waltz",49999,,1,,"{""souv"":1,""rec"":""rec_s2""}",,,"A souvenir: the symphony record, yours on every buoy from now on (it plays on your record player)"
 cl4,bright,Constellation light limit 3>4,3000,,1,,"{""up"":1}",,,Constellations are formed by leashes
 sh4,bright,Item shape light limit 3>4,5000,,1,,"{""up"":1}",,,"Item shapes: Prisms, Knots, Lens and Gates"
 c_gate,bright,Gates on the Center,1000,pulsing,1,,"{""up"":1}",,,
@@ -80,6 +82,7 @@ pure_bright,bright,Pure Brightness,9999999,,3,,"{""up"":1}",,,
 secret,dim,A Card of Secrets,50,bright,1,,"{""draw"":""secret""}",,,Pick one of three face-down cards: what it hides (an event or a Guide entry you have not found) is discovered for good · once a day
 fortune,dim,Fortune Telling,200,bright,1,,"{""draw"":""fortune""}",,,"Pick one of three face-down cards: a good fortune or a dim one (50 / 50), for tomorrow · once a day"
 wonder,dim,A Daily Wonder,2000,bright,1,,"{""draw"":""daily""}",,,"Draw three powerful bonuses, each with a catch, and keep one for a full day (until this time of day tomorrow) · once a day"
+recprize,dim,Carnival prize: a record,500,bright,1,,"{""recprize"":1}",,,"Win a record you do not have (EDM or symphony), at random · while there are any left to win"
 cap_dial1,neutron,Max Strings 5>10,10,,1,,"{""cap"":{""dial"":10}}",,,
 cap_knot,neutron,Max Knots 1>5,100,,1,,"{""cap"":{""knot"":5}}",,,
 s_knot,neutron,Knots on Sectors,100,pulsing,1,,"{""up"":1}",,,

@@ -163,7 +163,7 @@ body.shop-open #hdock{z-index:59}#hinv .slot.wal::before{border-color:rgba(255,2
 <div id="veil"></div>
 <div id="bfx"></div>
 <iframe id="neb" data-tt="map.ui.surface"></iframe>
-<script src="content.js?v=20261118d"></script><script src="shared.js?v=20261118d"></script><script src="cabin.js?v=20261118d"></script><script src="music.js?v=20261118d"></script>
+<script src="content.js?v=20261118e"></script><script src="shared.js?v=20261118e"></script><script src="cabin.js?v=20261118e"></script><script src="music.js?v=20261118e"></script>
 <script>
 // ╔══════════════════════════════════════════════════════════════════════════════╗
 // ║  MAP ENGINE                                                                 ║
@@ -182,7 +182,7 @@ let playLog=[],clock=3,day=1,pool=6,burstFx=null,dayLog=[],dayCnt={b:0,d:0},pend
 // // clock: the hour (3 = Twilight … 24 = Midnight, the day's last turn); day: your attempts; pool: what the source put out at its last burst; fresh: no ring added yet since it
 let constel=[],armed=null,weaveSel=[],weaveAsk=null,clearFx={},mergeFx=[],feedMsg={t:'',d:'',at:-1e9}; // constellations {keys,type}; the armed map item; a Weave being drawn; animations; the final count
 const STEP_H=3; // the day: eight turns of three hours
-const CACHE_V='20261118d'; // the build: bump with shared.js's
+const CACHE_V='20261118e'; // the build: bump with shared.js's
 const SCENE=new URLSearchParams(location.search).get('scene'); // a Guide / event demo: the map plays a scripted moment (no surface behind it)
 let phase='move',turnTimer=0,mergeTimer=0;
 let gameOverReason='';
@@ -1504,7 +1504,7 @@ function shopRows(){const u=shopUI,has=k=>disc.has(k);
   if(u.exit)return[{c:1,n:txt('map.gift.yes'),sub:txt('map.gift.yessub'),go:giftEnter},{c:1,n:txt('map.gift.no'),sub:txt('map.gift.nosub'),go:closeShop}];
   if(u.pick)return Object.keys(DUCK_TYPES).map(t=>({n:duckStar(DUCK_TYPES[t])+DUCK_TYPES[t].name,p:'× '+(duckLog[t]||0),go:()=>shopBuy(shopItem('pickduck'),t)}));
   const ducks=Object.values(duckLog).reduce((a,b)=>a+(b|0),0),souv=souvenirs();
-  return SHOP_ITEMS.filter(i=>i.shop===u.id&&i.r<=u.rank&&(!i.req||has('up:'+i.req))&&!achLocked('item',i.id,has)&&!(i.fx.draw==='secret'&&run.secrets===0)&&i.fx.clock!==clock&&!(i.fx.clock==='yesterday'&&day<=1)).map(i=>{ /* (the time you are at is not for sale; yesterday only when there was one) */const own=shopOnce(i)&&has('up:'+i.id),held=i.fx.souv?giftWallet:i.cur==='duck'?ducks:(inv[i.cur]||0);
+  return SHOP_ITEMS.filter(i=>i.shop===u.id&&i.r<=u.rank&&(!i.req||has('up:'+i.req))&&!achLocked('item',i.id,has)&&!(i.fx.draw==='secret'&&run.secrets===0)&&i.fx.clock!==clock&&!(i.fx.clock==='yesterday'&&day<=1)&&!(i.fx.recprize&&!RECORDS.some(r=>r.g!=='hybrid'&&!recOwned(r,has)))).map(i=>{ /* (the time you are at is not for sale; yesterday only when there was one) */const own=shopOnce(i)&&has('up:'+i.id),held=i.fx.souv?giftWallet:i.cur==='duck'?ducks:(inv[i.cur]||0);
     const pr=shopPrice(i,Object.assign({},run,{clock})),done=!!(i.fx.draw&&(run.dimDone||{})[i.fx.draw]),left=shopLeft(i,Object.assign({},run,{clock,day})),out=!own&&!left;
     const noTime=i.fx.clock!=null&&runBonus(run,'xup'),xg=(i.fx.xbuy||i.fx.xsell)?fmtN(xactGets(i,Object.assign({},run,{clock}))):null,nm=xg?xg+' <i class="scur">'+curIcon(i.fx.xbuy||'bright')+'</i>':i.n,fn=xg?xg+' '+i.n:i.n; // (XACT: how many you get, at today's rates, by the currency's symbol; fn: said in the feed)
     const fit=own&&i.fx.part&&buoyKit&&buoyKit.parts[i.fx.part]!==i.id; // a part you own, not fitted: fitted again here, free (only Custom Hulls changes parts)
@@ -1548,7 +1548,7 @@ function buyShow(){ // what a purchase did, everywhere it shows: the feed sums i
   for(const k of BUY_KINDS){const d=got[k]-had[k];if(!d)continue;(d<0?gone:came).push((d<0?'−':'+')+fmtN(Math.abs(d))+' '+curName(k));dockFx[k]={at:now,up:d>0};dockUp[k]=now;
     const el=document.querySelector('#hinv .slot[data-k="'+k+'"]');if(el&&lay){const r=el.getBoundingClientRect(),i=document.createElement('i');i.className=d>0?'up':'dn';i.textContent=(d<0?'−':'+')+fmtN(Math.abs(d));i.style.left=(r.left+r.width/2)+'px';i.style.top=(r.top-6)+'px';lay.appendChild(i);setTimeout(()=>i.remove(),1600);}}
   if(gone.length||came.length)feed(txt('map.buy.title',b.it.n),[...gone,...came].join(' · '));syncDock();}
-function shopBought(m){const it=shopItem(m.id);if(!it)return;if(m.ok&&it.fx.wake){wakeFor=day+1;feed(txt('map.sleep.call'),txt('map.sleep.call_d'));saveMap();}if(m.ok&&it.fx.water){if(fridgeCap()>0){fridge=Math.min(fridgeCap(),fridge+1);feed(txt('map.water.bottle'),txt('map.water.in_fridge',fridge,fridgeCap()));}else{bottle=1;bottleAt=day*24+clock;feed(txt('map.water.bottle'),txt('map.water.bottle_d'));}syncDock();saveMap();} /* (a fridge: kept cold, not drunk) */if(m.ok&&m.ship){flotPut({kind:'box',shop:it.shop,give:m.ship},shopHex(shopUI&&shopUI.key));feed(txt('good.ordered',it.n),txt('good.ordered_d',SHOPS[it.shop].n));}shopFlash={id:m.id,at:performance.now(),ok:!!m.ok};if(!m.ok)buySnap=null;feed((m.ok?txt('map.bought',m.msg):it.n),m.ok?SHOPS[it.shop].n:m.msg);
+function shopBought(m){const it=shopItem(m.id);if(!it)return;if(m.ok&&it.fx.recprize){const L=RECORDS.filter(r=>r.g!=='hybrid'&&!recOwned(r,k=>disc.has(k))),r=L[(Math.random()*L.length)|0];if(r){disc.add('up:'+r.id);neb({cmd:'discover',id:'up:'+r.id});feed(txt('map.rec.found',r.n),txt('map.rec.g_'+r.g));syncDock();}} /* Dim's Carnival: a record won */if(m.ok&&it.fx.wake){wakeFor=day+1;feed(txt('map.sleep.call'),txt('map.sleep.call_d'));saveMap();}if(m.ok&&it.fx.water){if(fridgeCap()>0){fridge=Math.min(fridgeCap(),fridge+1);feed(txt('map.water.bottle'),txt('map.water.in_fridge',fridge,fridgeCap()));}else{bottle=1;bottleAt=day*24+clock;feed(txt('map.water.bottle'),txt('map.water.bottle_d'));}syncDock();saveMap();} /* (a fridge: kept cold, not drunk) */if(m.ok&&m.ship){flotPut({kind:'box',shop:it.shop,give:m.ship},shopHex(shopUI&&shopUI.key));feed(txt('good.ordered',it.n),txt('good.ordered_d',SHOPS[it.shop].n));}shopFlash={id:m.id,at:performance.now(),ok:!!m.ok};if(!m.ok)buySnap=null;feed((m.ok?txt('map.bought',m.msg):it.n),m.ok?SHOPS[it.shop].n:m.msg);
   if(m.ok&&(it.fx.clock==='yesterday'||it.fx.clock==='tomorrow')){if(MP.role==='guest')mpSend('clock',{clock:it.fx.clock});else timeTravel(it.fx.clock);}
   else if(m.ok&&it.fx.clock&&MP.role==='guest')mpSend('clock',{clock:it.fx.clock});else if(m.ok&&it.fx.clock){timeShift(it.fx.clock);showTurn();const tl=document.getElementById('turn-label');tl.classList.add('bought');setTimeout(()=>tl.classList.remove('bought'),1800);updateHint();saveMap();} // the Clock smith turns the day's clock
   if(m.ok&&m.draw){document.getElementById('shop').classList.remove('show');currentView='overlay';showNeb(true);} // a Carnival card: the surface shows the draw (and the card picked) over the map; the shop comes back when it closes
