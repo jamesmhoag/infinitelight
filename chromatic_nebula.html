@@ -120,7 +120,7 @@ button:hover{background:rgba(255,255,255,0.15);}
   <div id="dock" class="bottom"><div id="inventoryPanel"></div><div id="touch-info"></div></div>
   <canvas id="cur"></canvas>
 </div>
-<script src="content.js?v=20261118e"></script><script src="shared.js?v=20261118e"></script>
+<script src="content.js?v=20261118f"></script><script src="shared.js?v=20261118f"></script>
 <script>
 txtApply(); // the page's own labels (content/strings.csv)
 const _SRC=document.documentElement.outerHTML; // kept so the Encyclopedia can run live scenes as embedded copies of the game
@@ -12894,7 +12894,7 @@ function sceneBoot(name,TT){
 let _rulesOpen=false,_rulesWasPaused=false,_rulesTab='disc',_rulesMode='guide',_rulesLast={guide:'disc',coll:'buoy'};
 window._rulesOpen=false;
 const RULE_TABS=['days','disc','map','items','shapes','surf','shops','ducks','book'].map(k=>[k,txt('guide.tab.'+k)]); // (their names: content/strings.csv)
-const COLL_TABS=['buoy','coll','mshops','notes','souv'].map(k=>[k,txt('coll.tab.'+k)]); // Status and your collections (your buoy, or its slot in the inventory): the same menu as the Guide, its own tabs
+const COLL_TABS=['buoy','coll','mshops','notes','souv','ach'].map(k=>[k,txt('coll.tab.'+k)]); // Status and your collections (your buoy, or its slot in the inventory): the same menu as the Guide, its own tabs
 // where an entry's own section (RULES[i][1]) shows: How to play / How to clean up are Discoveries; particles, points and remnants are the Taxonomy
 const RULE_HOME={start:['disc','How to play'],touch:['disc','How to clean up'],things:['map','Taxonomy'],bright:['map','Taxonomy'],rem:['map','Taxonomy'],items:['items','Items'],shapes:['shapes','Shapes'],surf:['surf','Surface Map'],shops:['shops','Shops'],ducks:['ducks','Ducks']};
 // [id, tab, name, picture, one-line summary, [[label,text],…]]
@@ -13079,7 +13079,7 @@ function cardHTML(ev,mini,pg){ // the one card format: name bar, art box, type l
   return `<div class="mtg${sm?' sm':mini===2?' pic':''}${!pg&&discSeen.has('ev:'+ev.id)&&ilNew('ev:'+ev.id)?' fd':''}" data-ev="${ev.id}" data-new="ev:${ev.id}" style="--rc:${TIER_COL[t]}"><div class="nm"><b>${gEsc(ev.name)}</b><span class="gem"></span></div><div class="art" data-scene="${ev.scene}" data-ev="${ev.id}" data-k="${ev.ico}">${sm?evStillHTML([ev.id])||`<canvas class="rl-m" width="64" height="64" data-k="${ev.ico}"></canvas>`:''}</div>${body}</div>`;
 }
 function mountScene(h,w,hh){if(!h||h.firstChild||document.querySelectorAll('.rl-live iframe:not(.held),.mtg .art iframe:not(.held)').length>=5)return; /* (a page's picture holding on its last frame does not count) */{const R=(h.dataset.ev||'').split(',').map(evRecFor).find(Boolean);if(R&&!w){evReplayMount(h,R);return;}} /* something you witnessed: your own recording of it, live (a demo only for what you have not) */const f=document.createElement('iframe'),nm=h.dataset.s||h.dataset.scene;f.style.cssText='border:0;max-width:100%;pointer-events:none;background:#000;border-radius:6px;'+(w?`width:${w}px;height:${hh}px`:'width:100%;height:100%');
-  if(nm.slice(0,4)==='hub:'){const[sn,dk]=nm.slice(4).split(':');f.src='Surface_Map_HUB.html?v=20261118e&scene='+sn+(sn==='shop'?'&k='+encodeURIComponent(dk||''):'')+'&T='+encodeURIComponent(JSON.stringify(mapSceneT()))+'&D='+encodeURIComponent(JSON.stringify(dk&&DUCK_TYPES[dk]?{[dk]:DUCK_TYPES[dk]}:Object.fromEntries(Object.entries(DUCK_TYPES).slice(0,4))));}else{f.srcdoc=liveSrc(nm,null,h.dataset.hold);if(h.dataset.hold)f.className='held';}h.appendChild(f);} // a Surface Map demo is played by the map itself
+  if(nm.slice(0,4)==='hub:'){const[sn,dk]=nm.slice(4).split(':');f.src='Surface_Map_HUB.html?v=20261118f&scene='+sn+(sn==='shop'?'&k='+encodeURIComponent(dk||''):'')+'&T='+encodeURIComponent(JSON.stringify(mapSceneT()))+'&D='+encodeURIComponent(JSON.stringify(dk&&DUCK_TYPES[dk]?{[dk]:DUCK_TYPES[dk]}:Object.fromEntries(Object.entries(DUCK_TYPES).slice(0,4))));}else{f.srcdoc=liveSrc(nm,null,h.dataset.hold);if(h.dataset.hold)f.className='held';}h.appendChild(f);} // a Surface Map demo is played by the map itself
 function mapSceneT(){const o={};for(const k in T)if(/^(map|bh|duck|wake|glass|metal|dimGlow|glowHalo|maxSpeed)/.test(k))o[k]=T[k];return o;} // what a map demo needs of the tuners
 function showCardHTML(html){ // a Guide card (an entry or a shop) opened over the Guide, where an event card shows
   guideCSS();if(!_evOpen)_evPausedIt=false;_evOpen=true;_evReview=true;const ov=evOverlayEl();ov.innerHTML=`<div class="ev-box">${html}<button id="evOk">${txt('card.close')}</button></div>`;ov.style.display='flex';wrap.classList.add('ev-open');
@@ -13452,6 +13452,9 @@ function rulesRender(){
     body.querySelectorAll('[data-shopv]').forEach(el=>el.onclick=e=>{e.stopPropagation();openShopViewer(el.dataset.shopv);});
   } else if(_rulesTab==='souv'){const sv=souvenirs(),L=SHOP_ITEMS.filter(i=>i.fx.souv); // the Gift Shop's souvenirs: kept through every new start, and hung on your buoy
     body.innerHTML=`<p class="rl-note">${txt('coll.souv.note')}</p><div class="rl-cards">`+L.map(i=>(sv[i.id]||0)>0?`<div class="mtg sm sv${ilNew('sv_'+i.id)?' fd':''}" data-new="sv_${i.id}"><div class="sv-i">${BUOY_SOUV_ICO[i.id]||'★'}</div><b>${gEsc(i.n)}</b><span>× ${sv[i.id]}</span></div>`:'<div class="mtg sm back">?</div>').join('')+'</div>'+(L.some(i=>sv[i.id]>0)?'':`<p class="rl-note">${txt('coll.souv.none')}</p>`);
+  } else if(_rulesTab==='ach'){const f=n=>Math.floor(n).toLocaleString('en-US'); // Achievements (content/achievements.csv): each one, how far along its lifetime count you are, and what reaching it opens
+    body.innerHTML=`<p class="rl-note">${txt('coll.ach.note',ACH.filter(a=>discSeen.has('ach:'+a.id)).length,ACH.length)}</p>`+ACH.map(a=>{const at=T['ach_'+a.id]!=null?T['ach_'+a.id]:a.at,n=Math.min(at,lifeLog[a.stat]||0),ok=discSeen.has('ach:'+a.id);
+      return `<div class="ach${ok?' ok':''}" style="margin:8px 0;padding:8px 10px;border:1px solid rgba(255,255,255,${ok?0.5:0.15});border-radius:6px;opacity:${ok?1:0.8}"><b>${ok?'✓ ':''}${gEsc(a.n)}</b><span style="float:right">${f(n)} / ${f(at)}</span><div style="height:4px;margin:6px 0;background:rgba(255,255,255,.12);border-radius:2px"><div style="height:100%;width:${(100*n/Math.max(1,at)).toFixed(1)}%;background:${ok?'#ffd66e':'#9fd'};border-radius:2px"></div></div><div class="rl-note" style="margin:0">${gEsc(a.note)}</div></div>`;}).join('');
   }
   const bp=document.getElementById('bkP'),bn=document.getElementById('bkN'),bk=_rulesMode==='guide'?'guide':'notes';if(bp)bp.onclick=()=>{_bookPg[bk]--;rulesRender();};if(bn)bn.onclick=()=>{_bookPg[bk]++;rulesRender();}; // a book's pages turn (the Journal's, the Letters')
   if(_rulesMode!=='guide')body.querySelectorAll('canvas.rl-m').forEach(cv=>rulesDraw(cv,cv.dataset.k));duckPondMount();
