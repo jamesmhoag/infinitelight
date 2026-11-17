@@ -163,7 +163,7 @@ body.shop-open #hdock{z-index:59}#hinv .slot.wal::before{border-color:rgba(255,2
 <div id="veil"></div>
 <div id="bfx"></div>
 <iframe id="neb" data-tt="map.ui.surface"></iframe>
-<script src="content.js?v=20261116c"></script><script src="shared.js?v=20261116c"></script><script src="cabin.js?v=20261116c"></script>
+<script src="content.js?v=20261116d"></script><script src="shared.js?v=20261116d"></script><script src="cabin.js?v=20261116d"></script>
 <script>
 // ╔══════════════════════════════════════════════════════════════════════════════╗
 // ║  MAP ENGINE                                                                 ║
@@ -182,7 +182,7 @@ let playLog=[],clock=3,day=1,pool=6,burstFx=null,dayLog=[],dayCnt={b:0,d:0},pend
 // // clock: the hour (3 = Twilight … 24 = Midnight, the day's last turn); day: your attempts; pool: what the source put out at its last burst; fresh: no ring added yet since it
 let constel=[],armed=null,weaveSel=[],weaveAsk=null,clearFx={},mergeFx=[],feedMsg={t:'',d:'',at:-1e9}; // constellations {keys,type}; the armed map item; a Weave being drawn; animations; the final count
 const STEP_H=3; // the day: eight turns of three hours
-const CACHE_V='20261116c'; // the build: bump with shared.js's
+const CACHE_V='20261116d'; // the build: bump with shared.js's
 const SCENE=new URLSearchParams(location.search).get('scene'); // a Guide / event demo: the map plays a scripted moment (no surface behind it)
 let phase='move',turnTimer=0,mergeTimer=0;
 let gameOverReason='';
@@ -1426,9 +1426,9 @@ function shopRows(){const u=shopUI,has=k=>disc.has(k);
   if(u.pick)return Object.keys(DUCK_TYPES).map(t=>({n:duckStar(DUCK_TYPES[t])+DUCK_TYPES[t].name,p:'× '+(duckLog[t]||0),go:()=>shopBuy(shopItem('pickduck'),t)}));
   const ducks=Object.values(duckLog).reduce((a,b)=>a+(b|0),0),souv=souvenirs();
   return SHOP_ITEMS.filter(i=>i.shop===u.id&&i.r<=u.rank&&(!i.req||has('up:'+i.req))&&!(i.fx.draw==='secret'&&run.secrets===0)&&i.fx.clock!==clock&&!(i.fx.clock==='yesterday'&&!mapHist[(day-1)*24+clock])).map(i=>{ /* (the time you are at is not for sale; yesterday only when there was one) */const own=shopOnce(i)&&has('up:'+i.id),held=i.fx.souv?giftWallet:i.cur==='duck'?ducks:(inv[i.cur]||0);
-    const pr=shopPrice(i,Object.assign({},run,{clock})),done=!!(i.fx.draw&&(run.dimDone||{})[i.fx.draw]);
+    const pr=shopPrice(i,Object.assign({},run,{clock})),done=!!(i.fx.draw&&(run.dimDone||{})[i.fx.draw]),left=shopLeft(i,Object.assign({},run,{clock,day})),out=!own&&!left;
     const noTime=i.fx.clock!=null&&runBonus(run,'xup'),xg=(i.fx.xbuy||i.fx.xsell)?fmtN(xactGets(i,Object.assign({},run,{clock}))):null,nm=xg?xg+' <i class="scur">'+curIcon(i.fx.xbuy||'bright')+'</i>':i.n,fn=xg?xg+' '+i.n:i.n; // (XACT: how many you get, at today's rates, by the currency's symbol; fn: said in the feed)
-    return{it:i,cur:shopCur(i),n:nm,fn,p:own?txt('map.shop.yours'):done?txt('map.shop.tomorrow'):noTime?txt('map.shop.notoday'):fmtN(pr),own:own||done||noTime,poor:!own&&held<pr,disc:'si_'+i.id,note:(i.note?i.note+' · ':'')+(i.fx.up?txt('map.shop.upsoon'):i.fx.souv?txt('map.shop.souvkept',souv[i.id]||0):'')||'',
+    return{it:i,cur:shopCur(i),n:nm,fn,p:own?txt('map.shop.yours'):out?txt('map.shop.soldout'):done?txt('map.shop.tomorrow'):noTime?txt('map.shop.notoday'):fmtN(pr),own:own||out||done||noTime,poor:!own&&held<pr,disc:'si_'+i.id,note:(i.note?i.note+' · ':'')+(i.stock&&!own?txt('map.shop.left',left,i.stock)+' · ':'')+(i.fx.up?txt('map.shop.upsoon'):i.fx.souv?txt('map.shop.souvkept',souv[i.id]||0):'')||'',
       go:()=>i.fx.duck==='pick'?(shopUI.pick=true,renderShop()):shopBuy(i)};});}
 const curName=c=>c==='gift'?txt('map.cur.gift'):c==='duck'?txt('map.cur.duck'):KIND_NAME[c]||c,curIcon=c=>icons[c==='gift'?'bright':c]||(c==='duck'?DUCK_ICO:curName(c)[0]); // a currency's name (for the feed) and symbol
 const shopCur=i=>i.fx.souv?'gift':i.cur; // what an item is paid with (souvenirs: your last Bright)
