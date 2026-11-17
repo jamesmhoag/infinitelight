@@ -119,7 +119,7 @@ button:hover{background:rgba(255,255,255,0.15);}
   <div id="dock" class="bottom"><div id="inventoryPanel"></div><div id="touch-info"></div></div>
   <canvas id="cur"></canvas>
 </div>
-<script src="content.js?v=20261117d"></script><script src="shared.js?v=20261117d"></script>
+<script src="content.js?v=20261117e"></script><script src="shared.js?v=20261117e"></script>
 <script>
 txtApply(); // the page's own labels (content/strings.csv)
 const _SRC=document.documentElement.outerHTML; // kept so the Encyclopedia can run live scenes as embedded copies of the game
@@ -7890,9 +7890,10 @@ function selClick(mx,my){ // a click: the object there joins the selection; with
     selNodes.push({x:mx,y:my});return;}
   if(h){selSaid(selAdd(h.obj,h.isDormant));return;}
   if(hs){if(inertHas(hs)<0){inertSel.push({obj:hs,shape:true});selSaid(1);}return;}
+  const pg=pfEdgeAt(mx,my);if(pg){selPrefab(pg,false);return;}
   flashSaveStatus(txt('surf.select.tip'));}
-function selSame(mx,my){ // a double click: every object of the same exact type and variation
-  const h=hitTestAnyObjectForDup(mx,my);if(!h)return;const k=selKind(h.obj);let n=0;
+function selSame(mx,my){ // a double click: every object of the same exact type and variation (on a prefab's edge: every placed prefab of that name)
+  const h=hitTestAnyObjectForDup(mx,my);if(!h){const pg=pfEdgeAt(mx,my);if(pg)selPrefab(pg,true);return;}const k=selKind(h.obj);let n=0;
   if(h.isDormant){for(let i=0;i<dormant.length;i++){const d=dormant[i];if(d&&!d.isRemnant&&selKind(d)===k)n+=selAdd(d,true);}}
   else for(const p of active)if(selKind(p)===k)n+=selAdd(p,false);
   selSaid(n);}
@@ -10251,6 +10252,7 @@ function renderWorld(now,suppressGlow,asPlay){
   // like the rest of the sim's pause ramp, so the blend rides the same Stop ms / Resume ms feel as everything else that pauses.
   const timeScaleForBlend=asPlay?1:isPaused?Math.min(1,timeScale):Math.min(1,baseScale/Math.max(0.05,Math.min(1,resumeRef,speedMult))); // changing speed while running never counts as 'less played'
   ctx.fillStyle=invertMode?'#fff':'#000';ctx.fillRect(0,0,W,H); // main canvas: always a hard clear — the nebula redraws fully fresh on it every frame regardless of trails
+  drawPrefabEdges(ctx); // (Build mode: placed prefabs' edges, under everything)
   drawBlackRemnantBG(ctx,now); // the Dark Remnant's expanding darkness — drawn like part of the background, UNDER everything else, so it never blocks anything it hasn't actually reached yet
   if(blackHole&&blackHole.activateR>0){
     // The Dark Remnant's OWN background layer — a plain expanding black disc, independent of (and reaching well past)
@@ -12981,7 +12983,7 @@ function cardHTML(ev,mini,pg){ // the one card format: name bar, art box, type l
   return `<div class="mtg${sm?' sm':mini===2?' pic':''}${!pg&&discSeen.has('ev:'+ev.id)&&ilNew('ev:'+ev.id)?' fd':''}" data-ev="${ev.id}" data-new="ev:${ev.id}" style="--rc:${TIER_COL[t]}"><div class="nm"><b>${gEsc(ev.name)}</b><span class="gem"></span></div><div class="art" data-scene="${ev.scene}" data-ev="${ev.id}" data-k="${ev.ico}">${sm?evStillHTML([ev.id])||`<canvas class="rl-m" width="64" height="64" data-k="${ev.ico}"></canvas>`:''}</div>${body}</div>`;
 }
 function mountScene(h,w,hh){if(!h||h.firstChild||document.querySelectorAll('.rl-live iframe:not(.held),.mtg .art iframe:not(.held)').length>=5)return; /* (a page's picture holding on its last frame does not count) */{const R=(h.dataset.ev||'').split(',').map(evRecFor).find(Boolean);if(R&&!w){evReplayMount(h,R);return;}} /* something you witnessed: your own recording of it, live (a demo only for what you have not) */const f=document.createElement('iframe'),nm=h.dataset.s||h.dataset.scene;f.style.cssText='border:0;max-width:100%;pointer-events:none;background:#000;border-radius:6px;'+(w?`width:${w}px;height:${hh}px`:'width:100%;height:100%');
-  if(nm.slice(0,4)==='hub:'){const[sn,dk]=nm.slice(4).split(':');f.src='Surface_Map_HUB.html?v=20261117d&scene='+sn+(sn==='shop'?'&k='+encodeURIComponent(dk||''):'')+'&T='+encodeURIComponent(JSON.stringify(mapSceneT()))+'&D='+encodeURIComponent(JSON.stringify(dk&&DUCK_TYPES[dk]?{[dk]:DUCK_TYPES[dk]}:Object.fromEntries(Object.entries(DUCK_TYPES).slice(0,4))));}else{f.srcdoc=liveSrc(nm,null,h.dataset.hold);if(h.dataset.hold)f.className='held';}h.appendChild(f);} // a Surface Map demo is played by the map itself
+  if(nm.slice(0,4)==='hub:'){const[sn,dk]=nm.slice(4).split(':');f.src='Surface_Map_HUB.html?v=20261117e&scene='+sn+(sn==='shop'?'&k='+encodeURIComponent(dk||''):'')+'&T='+encodeURIComponent(JSON.stringify(mapSceneT()))+'&D='+encodeURIComponent(JSON.stringify(dk&&DUCK_TYPES[dk]?{[dk]:DUCK_TYPES[dk]}:Object.fromEntries(Object.entries(DUCK_TYPES).slice(0,4))));}else{f.srcdoc=liveSrc(nm,null,h.dataset.hold);if(h.dataset.hold)f.className='held';}h.appendChild(f);} // a Surface Map demo is played by the map itself
 function mapSceneT(){const o={};for(const k in T)if(/^(map|bh|duck|wake|glass|metal|dimGlow|glowHalo|maxSpeed)/.test(k))o[k]=T[k];return o;} // what a map demo needs of the tuners
 function showCardHTML(html){ // a Guide card (an entry or a shop) opened over the Guide, where an event card shows
   guideCSS();if(!_evOpen)_evPausedIt=false;_evOpen=true;_evReview=true;const ov=evOverlayEl();ov.innerHTML=`<div class="ev-box">${html}<button id="evOk">${txt('card.close')}</button></div>`;ov.style.display='flex';wrap.classList.add('ev-open');
@@ -13380,7 +13382,7 @@ function closeRules(){
 // runs out from it and reveals it, real (and moving, if it was): until then it passes over everything. Phasing out is the same, backwards.
 // Placed at an edge (Place, Move or Duplicate), it is pushed fully off the screen (Prefab buffer px more) and waits there, shown half see-through
 // with a yellow border, until its motion carries it on; if its motion never would, it is not placed, and the feed says why.
-let preSel=[],preTgt=-1,preDraft={name:'',from:3,to:24,w:1,ph:{at:0,stay:0}},prePick='',phasing=[],edgeQ=[],preLater=[],_preBarK='';
+let pfSeq=0,preSel=[],preTgt=-1,preDraft={name:'',from:3,to:24,w:1,ph:{at:0,stay:0}},prePick='',phasing=[],edgeQ=[],preLater=[],_preBarK='';
 const PRE_EDGE=24,PH_GROW=0.7;
 const boxTool=()=>createActive()&&(currentType().cat==='inertia'||currentType().cat==='select'&&currentVariant()==='box'||currentType().cat==='prefab'&&currentVariant()==='select');
 const preTool=()=>createActive()&&currentType().cat==='prefab';
@@ -13408,15 +13410,39 @@ function preCapture(){ // the selection as a prefab's parts: each its offset fro
     if(e.good)return{good:{kind:o.kind,shop:o.shop,open:!!o.open,give:o.give||null},dx,dy,vx:o.vx||0,vy:o.vy||0,ph};
     return{s:snapshotForDup(o,false),dx,dy,vx:o.vx||0,vy:o.vy||0,ph};});}
 const prePartR=c=>c.good?T.goodSize*0.6:c.shape?Math.max(4,...c.shape.rel.map(q=>Math.hypot(q.x,q.y))):c.neb||c.s.isDormant?PIXEL_SIZE*0.5:c.s.collapsed?(c.s.collapsedRadius||8):c.s.isRemnant?8:5; // how far a part reaches from its centre
-function prePartPlace(c,x,y){ // one part, real, at (x, y) (wrapped onto the surface), moving as it was
+function prePartPlace(c,x,y,pf){ // one part, real, at (x, y) (wrapped onto the surface), moving as it was; pf: which placed prefab it belongs to ({i: that placing, n: its name}), kept on the part as _pf
   x=((x%W)+W)%W;y=((y%H)+H)%H;
-  if(c.shape){const sh=Object.assign({},c.shape,{id:++shapeSeq,pts:c.shape.rel.map(r=>({x:x+r.x,y:y+r.y})),holes:c.shape.holesRel?c.shape.holesRel.map(h=>h.map(r=>({x:x+r.x,y:y+r.y}))):undefined,broken:{},acc:0,lastSweep:0});delete sh.rel;delete sh.holesRel;fixedShapes.push(sh);rebuildGlassList();return{shape:sh};}
-  if(c.good)return{good:spawnGood(x,y,performance.now(),Object.assign({},c.good,{vx:c.vx||0,vy:c.vy||0}),1)};
-  const o=stampSnapshotAt(c.s,x,y);if(!o)return null;o.vx=c.vx||0;o.vy=c.vy||0;return{obj:o};}
+  if(c.shape){const sh=Object.assign({},c.shape,{_pf:pf,id:++shapeSeq,pts:c.shape.rel.map(r=>({x:x+r.x,y:y+r.y})),holes:c.shape.holesRel?c.shape.holesRel.map(h=>h.map(r=>({x:x+r.x,y:y+r.y}))):undefined,broken:{},acc:0,lastSweep:0});delete sh.rel;delete sh.holesRel;fixedShapes.push(sh);rebuildGlassList();return{shape:sh};}
+  if(c.good){const g=spawnGood(x,y,performance.now(),Object.assign({},c.good,{vx:c.vx||0,vy:c.vy||0}),1);if(g&&pf)g._pf=pf;return{good:g};}
+  const o=stampSnapshotAt(c.s,x,y);if(!o)return null;o.vx=c.vx||0;o.vy=c.vy||0;if(pf)o._pf=pf;return{obj:o};}
+// Prefab edges (Build mode, not while testing): each placed prefab's parts, outlined together behind everything (a band round them, Prefab edge px wide). Select picks
+// a whole prefab by its edge; a double click on the edge picks every placed prefab of that name. The edge never takes a click from anything else
+function pfGroups(){const G=new Map(),add=(o,e)=>{const t=o&&o._pf;if(!t)return;let g=G.get(t.i);if(!g)G.set(t.i,g={i:t.i,n:t.n,parts:[]});g.parts.push(e);};
+  for(const p of active)if(!p.dying&&!p.captured)add(p,{obj:p});for(const d of dormant)if(d)add(d,{obj:d,isDormant:true});for(const sh of fixedShapes)add(sh,{obj:sh,shape:true});for(const g of goods)add(g,{obj:g,good:true});
+  for(const g of G.values()){const pts=[];for(const e of g.parts){if(e.shape)for(const q of e.obj.pts)pts.push([q.x,q.y]);else pts.push([e.obj.x,e.obj.y]);}g.hull=hull2(pts);}
+  return G;}
+function hull2(P){if(P.length<3)return P.slice();P=P.slice().sort((a,b)=>a[0]-b[0]||a[1]-b[1]);const cr=(o,a,b)=>(a[0]-o[0])*(b[1]-o[1])-(a[1]-o[1])*(b[0]-o[0]),L=[],U=[]; // convex hull (monotone chain)
+  for(const p of P){while(L.length>=2&&cr(L[L.length-2],L[L.length-1],p)<=0)L.pop();L.push(p);}for(let i=P.length-1;i>=0;i--){const p=P[i];while(U.length>=2&&cr(U[U.length-2],U[U.length-1],p)<=0)U.pop();U.push(p);}
+  U.pop();L.pop();return L.concat(U);}
+const pfPad=()=>Math.max(4,T.prefabEdgeW!=null?T.prefabEdgeW:24);
+function pfHullPath(c,h){c.beginPath();if(h.length===1){c.moveTo(h[0][0]+0.01,h[0][1]);c.lineTo(h[0][0],h[0][1]);return;}c.moveTo(h[0][0],h[0][1]);for(let i=1;i<h.length;i++)c.lineTo(h[i][0],h[i][1]);c.closePath();}
+function drawPrefabEdges(c){if(!BUILD||buildTest)return;const G=pfGroups();if(!G.size)return;const pad=pfPad(),inv=!!invertMode;
+  c.save();c.lineJoin='round';c.lineCap='round';
+  for(const g of G.values()){pfHullPath(c,g.hull);c.lineWidth=pad*2;c.strokeStyle=inv?'rgba(0,0,0,0.07)':'rgba(255,255,255,0.06)';c.stroke();if(g.hull.length>=3){c.fillStyle=c.strokeStyle;c.fill();}c.lineWidth=1;c.setLineDash([4,5]);c.strokeStyle=inv?'rgba(0,0,0,0.35)':'rgba(255,255,255,0.3)';pfHullPath(c,g.hull);c.stroke();c.setLineDash([]);}
+  c.restore();}
+function pfEdgeAt(mx,my){ // the placed prefab whose edge band (pad px from its hull) is at (mx, my)
+  if(!BUILD||buildTest)return null;const pad=pfPad();let best=null,bd=Infinity;
+  for(const g of pfGroups().values()){const h=g.hull;let d=Infinity;if(h.length===1)d=Math.hypot(mx-h[0][0],my-h[0][1]);else{for(let i=0;i<h.length;i++){const a=h[i],b=h[(i+1)%h.length];d=Math.min(d,segDist(mx,my,{x:a[0],y:a[1]},{x:b[0],y:b[1]}).d);}if(h.length>=3&&pointInPolyXY(mx,my,h.map(q=>({x:q[0],y:q[1]}))))d=0;}
+    if(d<=pad&&d<bd){bd=d;best=g;}}
+  return best;}
+function selPrefab(g,all){ // a prefab's parts join the selection (all: every placed prefab of its name)
+  let n=0;const G=all?[...pfGroups().values()].filter(q=>q.n===g.n):[g];
+  for(const q of G)for(const e of q.parts){if(e.good)continue;if(e.shape){if(inertHas(e.obj)<0&&inertShapeOk(e.obj)){inertSel.push({obj:e.obj,shape:true});n++;}}else n+=selAdd(e.obj,!!e.isDormant);}
+  selSaid(n);}
 const prePhMs=()=>Math.max(1,T.prefabPhaseMs!=null?T.prefabPhaseMs:900); // how long phasing in (and out) takes: the same for every prefab and part
-function phaseIn(parts,cx,cy,ph){const now=performance.now();phasing.push({t0:now,items:parts.map(c=>{const q=Object.assign({at:0,stay:0},ph,c.ph||{}),at=c.ph&&c.ph.at||0;return{c,ph:q,x:cx+c.dx,y:cy+c.dy,st:at>0?'wait':'in',t0:now+at,live:null};})});} // (a part with its own phase: its appears-at after the prefab's)
+function phaseIn(parts,cx,cy,ph,name){const now=performance.now();phasing.push({t0:now,pf:{i:++pfSeq,n:name||''},items:parts.map(c=>{const q=Object.assign({at:0,stay:0},ph,c.ph||{}),at=c.ph&&c.ph.at||0;return{c,ph:q,x:cx+c.dx,y:cy+c.dy,st:at>0?'wait':'in',t0:now+at,live:null};})});} // (a part with its own phase: its appears-at after the prefab's)
 function prePlace(mx,my){const P=buildLib.prefabs[prePick];if(!P){flashSaveStatus(txt('pre.pick_first'));return;}
-  if(nearEdge(mx,my)&&!preStill(P.parts)){edgePlace(P.parts,P,mx,my);return;}phaseIn(P.parts,mx,my,P.ph);} // (placed by hand: it phases in now; on a surface it waits for its appears-at)
+  if(nearEdge(mx,my)&&!preStill(P.parts)){edgePlace(P.parts,P,mx,my);return;}phaseIn(P.parts,mx,my,P.ph,P.name);} // (placed by hand: it phases in now; on a surface it waits for its appears-at)
 const preStill=parts=>parts.some(c=>c.neb||c.s&&c.s.isDormant); // a prefab with any of the nebula in it never drifts in: it phases in where it is put
 function partsBox(parts){let x0=1e9,y0=1e9,x1=-1e9,y1=-1e9;for(const c of parts){const r=prePartR(c);x0=Math.min(x0,c.dx-r);x1=Math.max(x1,c.dx+r);y0=Math.min(y0,c.dy-r);y1=Math.max(y1,c.dy+r);}return{x0,y0,x1,y1};}
 function edgeEnterT(b,cx,cy,vx,vy){ // frames until a box (b, about (cx, cy)) moving at (vx, vy) first overlaps the screen; null: never
@@ -13427,7 +13453,7 @@ function edgePlace(parts,P,mx,my,quiet){ // placed at an edge: pushed fully off 
   if(m===mx)cx=-b.x1-buf;else if(m===W-mx)cx=W-b.x0+buf;else if(m===my)cy=-b.y1-buf;else cy=H-b.y0+buf;
   let vx=0,vy=0;for(const c of parts){vx+=c.vx||0;vy+=c.vy||0;}vx/=parts.length;vy/=parts.length;
   if(edgeEnterT(b,cx,cy,vx,vy)==null){if(!quiet)flashSaveStatus(txt(Math.hypot(vx,vy)<1e-6?'pre.never_on_still':'pre.never_on_away'));return false;}
-  edgeQ.push({parts:JSON.parse(JSON.stringify(parts)),name:P?P.name:'',cx,cy,vx,vy,in:parts.map(()=>false)});if(!quiet)flashSaveStatus(txt('pre.waits_off'));return true;}
+  edgeQ.push({parts:JSON.parse(JSON.stringify(parts)),name:P?P.name:'',pf:{i:++pfSeq,n:P?P.name:''},cx,cy,vx,vy,in:parts.map(()=>false)});if(!quiet)flashSaveStatus(txt('pre.waits_off'));return true;}
 // A surface started at a time of day (a map hex, or Build mode's Test at a time): how many prefabs appear is drawn for that time (Prefabs at <time>:
 // from 0 up to it, each count as likely as (count+1)^Prefab count curve: 0 every count alike, more the more the higher), and which ones by their Value
 // among those whose times include it (no repeats). Each waits for its appears-at (ms from the surface's start; 0 at once), then phases in, tending
@@ -13441,7 +13467,7 @@ function preOpenSpot(parts){const b=partsBox(parts),bias=T.prefabOpenBias!=null?
   let u=Math.random()*tot;for(const c of C)if((u-=c[2])<0)return c;return C[0];}
 function prefabPut(P){const mv=!preStill(P.parts)&&P.parts.some(c=>Math.hypot(c.vx||0,c.vy||0)>1e-6);
   if(mv&&Math.random()<0.5)for(let i=0;i<12;i++){const s=(Math.random()*4)|0,u=Math.random(),mx=s===0?2:s===1?W-2:u*W,my=s===2?2:s===3?H-2:u*H;if(edgePlace(P.parts,P,mx,my,true)){logEv('prefab '+P.name+' drifts in');return;}} // drifting in, from wherever along an edge it would come on
-  const[x,y]=preOpenSpot(P.parts);phaseIn(P.parts,x,y,P.ph);logEv('prefab '+P.name+' phases in');}
+  const[x,y]=preOpenSpot(P.parts);phaseIn(P.parts,x,y,P.ph,P.name);logEv('prefab '+P.name+' phases in');}
 function prefabSpawn(h){preLater=[];if(h==null)return[];const L=Object.values(prefabLib()).filter(P=>P.parts&&P.parts.length&&prefabAt(P,h)&&(P.w==null||P.w>0)),out=[],now=performance.now();
   for(let n=Math.min(prefabCount(h),L.length);n>0;n--){let tot=0;for(const P of L)tot+=P.w==null?1:P.w;let u=Math.random()*tot,i=0;for(;i<L.length-1;i++)if((u-=L[i].w==null?1:L[i].w)<0)break;const P=L.splice(i,1)[0];out.push(P);preLater.push({t:now+(P.ph&&P.ph.at||0),P});} // by their Value, no repeats; each at its own time
   return out;}
@@ -13451,14 +13477,14 @@ function prefabTick(now,dt){
   if(BUILD){const k=preTool()?currentVariant()+'|'+preSel.length:'';if(k!==_preBarK){_preBarK=k;buildBar();}} // (the bar's prefab row follows the tool)
   const ts=dt/16.67;
   for(const R of phasing){for(const it of R.items){if(it.st==='wait'){if(now<it.t0)continue;it.st='in';it.t0=now;}const u=(now-it.t0)/prePhMs();
-      if(it.st==='in'){if(!it.live){it.x+=(it.c.vx||0)*ts;it.y+=(it.c.vy||0)*ts;if(u>=PH_GROW){it.live=prePartPlace(it.c,it.x,it.y)||{};}} // fully grown: real (moving at once, if it was)
+      if(it.st==='in'){if(!it.live){it.x+=(it.c.vx||0)*ts;it.y+=(it.c.vy||0)*ts;if(u>=PH_GROW){it.live=prePartPlace(it.c,it.x,it.y,R.pf)||{};}} // fully grown: real (moving at once, if it was)
         if(u>=1){it.st='on';it.t0=now;}}
       else if(it.st==='on'){if(it.ph.stay>0&&now-it.t0>=it.ph.stay){const o=it.live&&(it.live.obj||it.live.shape);if(!o&&it.live&&it.live.good){it.x=it.live.good.x;it.y=it.live.good.y;}if(o){const c=it.live.shape?shapeCentroid(o):[o.x,o.y];it.x=c[0];it.y=c[1];}preRemove(it.live);it.live=null;it.st='out';it.t0=now;}} // its stay is over: it phases out
       else if(it.st==='out'){it.x+=(it.c.vx||0)*ts;it.y+=(it.c.vy||0)*ts;if(u>=1)it.st='gone';}}
     R.items=R.items.filter(it=>it.st!=='gone'&&!(it.st==='on'&&!(it.ph.stay>0)));}
   phasing=phasing.filter(R=>R.items.length);
   if(BUILD&&!buildTest)return; // (while building, the ones at the edges wait)
-  for(const E of edgeQ){E.cx+=E.vx*ts;E.cy+=E.vy*ts;E.parts.forEach((c,i)=>{if(E.in[i])return;const x=E.cx+c.dx,y=E.cy+c.dy;if(x>=0&&x<W&&y>=0&&y<H){prePartPlace(c,x,y);E.in[i]=true;}});} // each part comes on as it crosses the edge
+  for(const E of edgeQ){E.cx+=E.vx*ts;E.cy+=E.vy*ts;E.parts.forEach((c,i)=>{if(E.in[i])return;const x=E.cx+c.dx,y=E.cy+c.dy;if(x>=0&&x<W&&y>=0&&y<H){prePartPlace(c,x,y,E.pf);E.in[i]=true;}});} // each part comes on as it crosses the edge
   edgeQ=edgeQ.filter(E=>E.in.some(v=>!v)&&edgeEnterT(partsBox(E.parts),E.cx,E.cy,E.vx,E.vy)!=null);}
 function prePartPath(c,x,y,k){const P=new Path2D();if(c.shape){c.shape.rel.forEach((q,i)=>P[i?'lineTo':'moveTo'](x+q.x*k,y+q.y*k));if(c.shape.closed)P.closePath();}else P.arc(x,y,Math.max(0.3,prePartR(c)*k),0,6.2832);return P;}
 function prefabDraw(c,now){
