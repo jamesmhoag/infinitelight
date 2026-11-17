@@ -51,6 +51,7 @@ Three Dark Remnants swirl into one great one and pull in three rings.","Many sur
 map_bottle,Message in a Bottle,Event — Surface Map,u,hub:bottle,bottle,"A bottle floated onto the lake with a letter rolled up inside.
 Someone else was here. There are {letters_total} letters to find; the ones you find are kept in the Guide (Letters).","Somebody, somewhere, hoped you would read this.",A bottle floated onto the lake.
 map_descend,Descent,Event — Surface Map,m,hub:descend,dark,You stepped into the centre. A deeper map begins.,"Under every surface, another.",You stepped into the centre and fell to a deeper map.
+cabin,Below Deck,Event — Surface Map,c,hub:cabin,icon,"Click your buoy and you climb down its hatch: a cabin, with a desk, a journal, a chest for your hoard and what you have bought for it. The ladder (or a right click) takes you back up.","A room of your own, under the light.",You climbed down your buoy's hatch for the first time.
 map_constellation,Constellation,Event — Surface Map,u,hub:constellation,weave,"A Weave joined bright hexes into a constellation.
 Each time of day it gives you one of its item. A newer one crossing it breaks it.","Light, drawn between lights.",Lines of light were drawn between bright hexes.
 map_ring,Full Circle,Event — Surface Map,r,hub:ring,nova,"A whole ring of clears, all of one kind, ended the day: the rings beyond it fell into the Point.

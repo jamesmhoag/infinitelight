@@ -163,7 +163,7 @@ body.shop-open #hdock{z-index:59}#hinv .slot.wal::before{border-color:rgba(255,2
 <div id="veil"></div>
 <div id="bfx"></div>
 <iframe id="neb" data-tt="map.ui.surface"></iframe>
-<script src="content.js?v=20261118j"></script><script src="shared.js?v=20261118j"></script><script src="cabin.js?v=20261118j"></script><script src="music.js?v=20261118j"></script>
+<script src="content.js?v=20261118k"></script><script src="shared.js?v=20261118k"></script><script src="cabin.js?v=20261118k"></script><script src="music.js?v=20261118k"></script>
 <script>
 // ╔══════════════════════════════════════════════════════════════════════════════╗
 // ║  MAP ENGINE                                                                 ║
@@ -182,7 +182,7 @@ let playLog=[],clock=3,day=1,pool=6,burstFx=null,dayLog=[],dayCnt={b:0,d:0},pend
 // // clock: the hour (3 = Twilight … 24 = Midnight, the day's last turn); day: your attempts; pool: what the source put out at its last burst; fresh: no ring added yet since it
 let constel=[],armed=null,weaveSel=[],weaveAsk=null,clearFx={},mergeFx=[],feedMsg={t:'',d:'',at:-1e9}; // constellations {keys,type}; the armed map item; a Weave being drawn; animations; the final count
 const STEP_H=3; // the day: eight turns of three hours
-const CACHE_V='20261118j'; // the build: bump with shared.js's
+const CACHE_V='20261118k'; // the build: bump with shared.js's
 const SCENE=new URLSearchParams(location.search).get('scene'); // a Guide / event demo: the map plays a scripted moment (no surface behind it)
 let phase='move',turnTimer=0,mergeTimer=0;
 let gameOverReason='';
@@ -1735,6 +1735,7 @@ const SCENES={
   street(){sceneReset(3);viewZoom=1.8;clock=3;for(let i=1;i<=7;i++)at(i*1100,()=>{clock=3+i*3;showTurn();});return 9000;}, // main street through the day: each shop lit while it is open
   clear(){sceneReset();const ks=['1,-1','1,0','0,1','-1,1','2,-1'];ks.forEach((k,i)=>at(700+i*1100,()=>sceneCap(k,i%2?'dark':'bright')));return 7600;},
   merge(){sceneReset(5);const ks=['1,0','0,1','1,1'];ks.forEach((k,i)=>at(500+i*600,()=>{if(i<2)sceneCap(k,'dark');else{completeCaptureForCell(k,'dark');clearFx[k].t0=performance.now();camTX=camTY=0;}}));return 7000;},
+  cabin(){sceneReset(1);viewZoom=1.6;at(900,()=>cabinOpen());return 7000;}, // climbing down your buoy's hatch: below deck
   descend(){sceneReset();ring(1).forEach(([q,r],i)=>at(300+i*350,()=>sceneCap(K(q,r),'bright')));at(2700,()=>{voidOpen=true;});at(3600,()=>{const o=cells[K(pQ,pR)];if(o)o.isP=false;depth++;newMap();camTX=camTY=0;showMergeFlash(txt('map.descended_to_d',depth));});return 6500;},
   constellation(){sceneReset();const ks=['2,-1','1,1','-1,2','-2,1','-1,-1'];ks.forEach((k,i)=>at(300+i*250,()=>sceneCap(k,'bright')));armed='weave';weaveSel=[];
     ks.forEach((k,i)=>at(1800+i*450,()=>weaveSel.push(k)));at(1800+5*450+300,()=>{constel=[{keys:ks.slice(),type:'lens'}];weaveSel=[];armed=null;showMergeFlash(txt('map.constellation_lens'));});at(5200,()=>{advanceTurn();showMergeFlash(txt('map.1_lens'));});return 7500;},
