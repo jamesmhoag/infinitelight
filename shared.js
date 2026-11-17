@@ -74,21 +74,43 @@ const BUOY_COLS=[...EFFECT_HEX.flatMap((h,i)=>[h,hexMix(h,EFFECT_HEX[(i+1)%6])])
 const BUOY_COL_ORDER=[0,2,4,6,8,10,1,3,5,7,9,11,12,13,14,15,16,17]; // the picker's rows, six each: the effect colours, the ones between them, white to black
 const BUOY_COL_NAMES=['Orange','Gold','Lime','Bright green','Spring green','Turquoise','Azure','Royal blue','Violet','Purple','Magenta','Rose','White','Silver','Grey','Slate','Charcoal','Black'];
 function buoyColHint(c){const i=BUOY_COLS.indexOf(c);if(i<0)return null;return[BUOY_COL_NAMES[i]+' · '+c.toUpperCase(),i>=12?txt('buoy.col.plain'):i%2?txt('buoy.col.mid',EFFECT_NAMES[(i-1)/2],EFFECT_NAMES[((i+1)/2)%6]):txt('buoy.col.fx',EFFECT_NAMES[i/2])];} // a buoy colour pointed at, for the feed: its name and hex, and the effect colour it is (or the two it is between)
-function buoyModel(name,souv,col){ // name: up to 20 characters; souv: the souvenir ids kept (the latest of each kind); col: its colour → the model's type, for drawDuckScene
-  name=String(name||'').slice(0,20);col=col||BUOY_COLS[0];const type='buoy:'+name+'|'+souv.join(',')+'|'+col;if(_duckModels.has(type))return type;const A=1024,tx=document.createElement('canvas');tx.width=tx.height=A;const c=tx.getContext('2d');
+// ── Your buoy's kit (kept per player, 'il_buoykit_v1'): its three parts — the float (its hull: a material), the mast (how many mounts its supports carry, and
+// whether each carries two) and the spotlight (how many the top mount carries) — swapped at Custom Hulls (Over Hull); and what is on its mounts: one on the back of
+// the float (the hull mount: rudder, motor, anchor…), one per mast support (the mast mounts: toys, apparel…) and the top mount under the spotlight (a sail, a flag…).
+// A mountable item (shop_items: {"up":1,"mount":"hull"|"mast"|"top"}) goes only on its own kind of mount; a part ({"part":"float"|"mast"|"light", …}). Swapped
+// in the Mirror (Status → Mounts) and seen on the buoy wherever it shows; stowed below deck when not mounted
+const KIT_KEY='il_buoykit_v1',KIT_PARTS=['float','mast','light'],KIT_SLOTS=['hull','mast','top'];
+const HULL_MAT={wood:'#8a5a32',metal:'#9aa3ad',glass:'#bfe8ff',gold:'#e0b040',ice:'#dff6ff',dim:'#3a2630',bright:'#fffbe8',chromatic:'#c08cff'};
+function kitGet(){let k=null;try{k=JSON.parse(localStorage.getItem(KIT_KEY)||'null');}catch(e){}k=k&&typeof k==='object'?k:{};k.parts=Object.assign({float:'basic',mast:'basic',light:'basic'},k.parts||{});k.slots=k.slots||{};
+  for(const s of KIT_SLOTS)k.slots[s]=Array.isArray(k.slots[s])?k.slots[s]:[];k.anchor=k.anchor!==false;return k;} // (anchor: down, when an anchor is mounted)
+function kitSave(k){try{localStorage.setItem(KIT_KEY,JSON.stringify(k));}catch(e){}}
+function kitPart(k,p){const id=k.parts[p];return id&&id!=='basic'?shopItem(id)||null:null;}
+function kitCounts(k){const f=kitPart(k,'float'),m=kitPart(k,'mast'),l=kitPart(k,'light');return{hull:(f&&f.fx.hull)||1,mast:(m&&m.fx.mounts)||3,top:(l&&l.fx.top)||1,dbl:!!(m&&m.fx.dbl)};} // how many of each mount (dbl: each mast mount doubles what is on it)
+function kitMounted(k,id){return KIT_SLOTS.some(s=>k.slots[s].includes(id));}
+function kitSig(k){return KIT_PARTS.map(p=>k.parts[p]).join(',')+'/'+KIT_SLOTS.map(s=>k.slots[s].slice(0,kitCounts(k)[s]).join('.')).join('/');}
+function buoyModel(name,souv,col,kit){ // name: up to 20 characters; souv: (kept for the call's shape: souvenirs are below deck, not on the float); col: its colour; kit: its parts and mounts (kitGet) → the model's type, for drawDuckScene
+  name=String(name||'').slice(0,20);col=col||BUOY_COLS[0];kit=kit||{parts:{float:'basic',mast:'basic',light:'basic'},slots:{hull:[],mast:[],top:[]}};const fl=kitPart(kit,'float'),mat=fl&&HULL_MAT[fl.fx.mat];if(mat)col=mat;const type='buoy:'+name+'|'+col+'|'+kitSig(kit);if(_duckModels.has(type))return type;const A=1024,tx=document.createElement('canvas');tx.width=tx.height=A;const c=tx.getContext('2d');
   [col,col.toLowerCase()==='#ffffff'?'#26262c':'#f2f0ea','#2a2c33','#fff1b0','#142033','#e0b040','#f4e8cf','#3f6fd8','#9a6a44','#e04a8a','#c9ced6'].forEach((cl,i)=>{c.fillStyle=cl;c.fillRect(i*32,0,32,32);}); // its colour, the band, metal, lamp, sign, then the souvenirs, glass
   c.font='bold 84px system-ui,sans-serif';c.textAlign='center';c.textBaseline='middle';const nw=c.measureText(name||' ').width,fs=84*Math.min(1,(A-80)/Math.max(1,nw)),tw=Math.max(240,Math.min(A-16,nw*fs/84+64)); // the sign: the name at a size 20 characters still fit, on a board as wide as it needs
   c.fillStyle='#142033';c.fillRect((A-tw)/2,512,tw,160);c.strokeStyle='#f2f0ea';c.lineWidth=7;c.strokeRect((A-tw)/2+8,520,tw-16,144);c.font='bold '+fs.toFixed(0)+'px system-ui,sans-serif';c.fillStyle='#ffffff';c.fillText(name,A/2,594);
   const K=meshKit(A,false),{uv,quad,box,beam,lathe}=K,glow=(f)=>{const n=uv.length/4;f();for(let k=n;k<uv.length/4;k++)uv[k*4+2]=1;};
   lathe([[-0.55,0],[-0.5,0.22],[-0.25,0.5],[0,0.58],[0.12,0.58],[0.22,0.46],[0.28,0.2],[0.3,0]],22,[0,0,0,1,1,0,0],0); // the float: its colour, the band at the waterline
-  beam([0,0.28,0],[0,2.16,0],0.07,2);for(let i=0;i<3;i++){const a=i/3*6.2832+0.5;beam([0.42*Math.cos(a),0.24,0.42*Math.sin(a)],[0,1.3,0],0.05,0);} // the mast, and its cage
+  const KC=kitCounts(kit),nS=Math.max(3,KC.mast);beam([0,0.28,0],[0,2.16,0],0.07,2);for(let i=0;i<nS;i++){const a=i/nS*6.2832+0.5;beam([0.42*Math.cos(a),0.24,0.42*Math.sin(a)],[0,1.3,0],0.05,0);} // the mast, and its cage (a support for every mast mount: 3 at least)
   const sh=0.4,sw=sh*tw/160,y0=1.3,u0=(A-tw)/2/A,u1=1-u0,v0=512/A,v1=672/A,F=[[u0,v1],[u1,v1],[u1,v0],[u0,v0]]; // the sign, on the mast: a framed board, thick, the name on both faces
   box(-sw/2-0.03,y0-0.03,-0.04,sw/2+0.03,y0+sh+0.03,0.04,2);glow(()=>{quad([[-sw/2,y0,0.042],[sw/2,y0,0.042],[sw/2,y0+sh,0.042],[-sw/2,y0+sh,0.042]],[0,0,1],F);quad([[sw/2,y0,-0.042],[-sw/2,y0,-0.042],[-sw/2,y0+sh,-0.042],[sw/2,y0+sh,-0.042]],[0,0,-1],F);}); /* its faces lit from within: the name reads at any time of day */
   {const a=0.5+Math.PI/3,hx=0.3*Math.cos(a),hz=0.3*Math.sin(a),tx=-Math.sin(a),tz=Math.cos(a);lathe([[0.2,0.15],[0.36,0.15],[0.36,0.12],[0.39,0.125],[0.41,0.11],[0.415,0]],20,[5,5,1,1,1],0,hx,hz);beam([hx-tx*0.06,0.45,hz-tz*0.06],[hx+tx*0.06,0.45,hz+tz*0.06],0.03,5);beam([hx-tx*0.06,0.41,hz-tz*0.06],[hx-tx*0.06,0.45,hz-tz*0.06],0.03,5);beam([hx+tx*0.06,0.41,hz+tz*0.06],[hx+tx*0.06,0.45,hz+tz*0.06],0.03,5);} // the hatch on its deck: round (a gold coaming, a domed lid, a handle), midway between two of the mast's supports // the hatch on its deck (a coaming, its lid, a brass handle): the way below deck
   box(-0.07,2.14,-0.07,0.07,2.19,0.07,2);beam([-0.11,2.19,0],[-0.11,2.33,0],0.03,2);beam([0.11,2.19,0],[0.11,2.33,0],0.03,2);beam([-0.11,2.19,0],[0.11,2.19,0],0.03,2); // the yoke its can light turns in (the can: buoyCanModel), high on the mast: looking down it clears the name sign
-  souv.forEach((id,i)=>{const a=i/Math.max(1,souv.length)*6.2832+1.1,x=0.62*Math.cos(a),z=0.62*Math.sin(a),k=BUOY_SOUV[id]||6; // each souvenir, hung on the float's rim
-    if(id==='keychain'){beam([x,0.3,z],[x,0.12,z],0.015,2);box(x-0.05,0.05,z-0.05,x+0.05,0.13,z+0.05,k);}else if(id==='postcard')box(x-0.11,0.12,z-0.02,x+0.11,0.28,z+0.02,k);
-    else if(id==='hat'){box(x-0.1,0.28,z-0.1,x+0.1,0.31,z+0.1,k);box(x-0.06,0.31,z-0.06,x+0.06,0.4,z+0.06,k);}else if(id==='stuffy')box(x-0.08,0.28,z-0.08,x+0.08,0.44,z+0.08,k);else box(x-0.1,0.1,z-0.02,x+0.1,0.28,z+0.02,k);});
+  { // what is mounted: the hull mount on the back of the float (opposite the hatch), a mast mount halfway up each support (two side by side when the mast doubles), the top mount under the can light
+    const look=(id,x,y,z,s)=>{const it=shopItem(id),L=it&&it.fx.look||'box';s=s||1;
+      if(L==='anchor'){beam([x,y+0.12*s,z],[x,y-0.18*s,z],0.025*s,2);beam([x-0.1*s,y-0.14*s,z],[x+0.1*s,y-0.14*s,z],0.025*s,2);box(x-0.04*s,y+0.1*s,z-0.04*s,x+0.04*s,y+0.16*s,z+0.04*s,5);}
+      else if(L==='rudder'){beam([x,y+0.1*s,z],[x,y-0.2*s,z],0.02*s,2);box(x-0.015*s,y-0.22*s,z-0.12*s,x+0.015*s,y-0.02*s,z+0.02*s,8);}
+      else if(L==='motor'){box(x-0.08*s,y-0.02*s,z-0.08*s,x+0.08*s,y+0.14*s,z+0.08*s,2);beam([x,y-0.02*s,z],[x,y-0.24*s,z],0.02*s,2);}
+      else if(L==='flag'){beam([x,y,z],[x,y+0.35*s,z],0.015*s,2);box(x,y+0.2*s,z-0.01*s,x+0.22*s,y+0.34*s,z+0.01*s,9);}
+      else box(x-0.06*s,y-0.06*s,z-0.06*s,x+0.06*s,y+0.06*s,z+0.06*s,it&&it.fx.col!=null?it.fx.col:6);};
+    const ah=0.5+Math.PI/3+Math.PI;kit.slots.hull.slice(0,KC.hull).forEach((id,i)=>{if(id)look(id,0.5*Math.cos(ah+i*0.5),0.22,0.5*Math.sin(ah+i*0.5));});
+    kit.slots.mast.slice(0,KC.mast).forEach((id,i)=>{if(!id)return;const a=i/nS*6.2832+0.5,t=0.45,bx=0.42*Math.cos(a)*(1-t),by=0.24+(1.3-0.24)*t,bz=0.42*Math.sin(a)*(1-t),ox=0.09*Math.cos(a),oz=0.09*Math.sin(a);
+      if(KC.dbl){look(id,bx+ox-oz*0.6,by,bz+oz+ox*0.6,0.8);look(id,bx+ox+oz*0.6,by,bz+oz-ox*0.6,0.8);}else look(id,bx+ox,by,bz+oz);});
+    kit.slots.top.slice(0,KC.top).forEach((id,i)=>{if(id)look(id,0.12*(i?-1:1),1.92,0.04);});}
   _duckModels.set(type,{g:K.geo(2.7),nomk:1,mat:13,c1:[1,1,1],c2:[1,1,1],img:tx});return type;}
 const BUOY_LAMP=2.3; // the can light's height, in its own units (where its spot light comes from)
 function buoyCanModel(){ // the buoy's can light: a short metal can, its lit lens at one end (+y), drawn turned to point where its light goes
@@ -551,7 +573,7 @@ const _soonSign={};function soonSign(id){if(_soonSign[id])return _soonSign[id];c
 const ACH=csvRead('achievements').map(r=>({id:r.id,n:r.name,stat:r.stat,at:cellV(r.at)||0,un:String(r.unlocks||'').split(/[;\s]+/).filter(Boolean).map(u=>{const i=u.indexOf(':');return{k:u.slice(0,i),id:u.slice(i+1)};}),note:r.note||''}));
 function achLocked(kind,id,has){for(const a of ACH)if(a.un.some(u=>u.k===kind&&u.id===id)&&!has('ach:'+a.id))return a;return null;} // the achievement still needed for it, or null
 const shopLeft=(it,run)=>it.stock?Math.max(0,it.stock-((run.sold||{})[it.id]||[]).filter(t=>t<=(run.day||0)*24+(run.clock||3)).length):Infinity; // how many of an item its shop still has (stock: content/shop_items.csv; none set: no limit). run.sold: when each was bought this run, in the map's hours — so a run starts fully stocked, and a time before a purchase (the Clock smith) has it back on the shelf
-const shopOnce=it=>!!(it.fx.cap||it.fx.up||it.fx.disc||it.fx.perm); // bought once and kept (as the discovery 'up:<id>'); the rest can be bought again
+const shopOnce=it=>!!(it.fx.cap||it.fx.up||it.fx.disc||it.fx.perm||it.fx.part); // bought once and kept (as the discovery 'up:<id>'); the rest can be bought again
 const CLOCK_HOURS=[3,6,9,12,15,18,21,24],CLOCK_MULT=[1,2,3,5,8,13,21,34,55]; // the Clock smith: each time of day away from now costs more (×2 next to it, then ×3, ×5, ×8…)
 const XACT={dim:{buy:9,sell:8.5,up:1.5,down:3.5},magnetic:{buy:0.1,sell:0.085,up:0.015,down:0.035},neutron:{buy:0.1,sell:0.085,up:0.015,down:0.035},pulsing:{buy:0.1,sell:0.085,up:0.015,down:0.035}}; // XACT change: how many of each for one Bright; sold back at sell / buy of what it cost (a little less); a fortune moves the sell rate, a wonder both (×1.1 / ×0.9)
 function xactRate(k,run){const X=XACT[k],g=runGood(run),w=runBonus(run,'xup')?1.1:runBonus(run,'xdown')?0.9:1,sell=Math.max(0,X.sell+(g&&(FORTUNE_GOOD[g.id]||{}).xsell?X.up:0)-(runBad(run,'xsell')?X.down:0));return{buy:X.buy*w,sell:sell/X.buy*w/X.buy};} // buy: units per Bright; sell: Bright per unit

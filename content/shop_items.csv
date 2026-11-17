@@ -137,3 +137,21 @@ exotic,duck,Exotic Duck,5,,2,,"{""duck"":""exotic""}",,,"Five of one kind in, a 
 pickduck,duck,Pick a Duck,99,,3,,"{""duck"":""pick""}",,,"Ninety-nine ducks in, the duck of your choice out"
 charm,duck,Luck Charm,5000,bright,1,,"{""charm"":1}",,,"+5% duck chance for today and +1% on your next drop · each one costs ×10 the last; the price is back to 5,000 each day"
 lucky,duck,Lucky Duck,1000000,bright,2,,"{""perm"":""lucky""}",,,"For good: doubles the base duck, exotic and rare exotic chances, and each miss adds 4% instead of 1% (a Luck Charm stacks on it)"
+f_wood,hull,Wooden float,2000,bright,1,,"{""part"":""float"",""mat"":""wood""}",,,A float of planked wood
+f_metal,hull,Metal float,5000,bright,1,,"{""part"":""float"",""mat"":""metal""}",,,A float of riveted metal
+f_glass,hull,Glass float,10000,bright,2,,"{""part"":""float"",""mat"":""glass""}",,,A float of thick glass
+f_ice,hull,Ice float,20000,bright,2,,"{""part"":""float"",""mat"":""ice""}",,,A float of ice that never melts
+f_gold,hull,Gold float,50000,bright,3,,"{""part"":""float"",""mat"":""gold""}",,,A float of gold
+f_dim,hull,Dim float,50000,dim,3,,"{""part"":""float"",""mat"":""dim""}",,,A float of Dim
+f_bright,hull,Bright float,100000,bright,3,,"{""part"":""float"",""mat"":""bright""}",,,A float of Bright
+f_chromatic,hull,Chromatic float,250000,bright,3,,"{""part"":""float"",""mat"":""chromatic""}",,,A float that holds every colour
+m_four,hull,Four-mount mast,10000,bright,1,,"{""part"":""mast"",""mounts"":4}",,,Four supports: a mount on each
+m_twin,hull,Twin-hook mast,25000,bright,2,,"{""part"":""mast"",""mounts"":2,""dbl"":1}",,,"Two mounts, each holding two of what is hung on it: its effect doubled"
+m_triple,hull,Triple twin-hook mast,100000,bright,3,,"{""part"":""mast"",""mounts"":3,""dbl"":1}",,,"Three mounts, each doubling what is hung on it"
+m_six,hull,Six-mount mast,250000,bright,3,,"{""part"":""mast"",""mounts"":6}",,,Six supports: a mount on each
+l_twin,hull,Twin-hook spotlight,20000,bright,2,,"{""part"":""light"",""top"":2}",,,The top mount under it holds two
+pennant,hull,Pennant,1000,bright,1,,"{""up"":1,""mount"":""top"",""look"":""flag""}",,,Flown from the top mount
+chime,hull,Wind chime,500,bright,1,,"{""up"":1,""mount"":""mast"",""look"":""box"",""col"":5}",,,Hung from a mast mount
+anchor,magnetic,Anchor,25,magnetic,1,,"{""up"":1,""mount"":""hull"",""look"":""anchor"",""anchor"":1}",,,"Hull mount. Down, the tide cannot carry you when you rest (moving raises it; the dock drops it again)"
+rudder,magnetic,Rudder,50,magnetic,2,,"{""up"":1,""mount"":""hull"",""look"":""rudder"",""rudder"":1}",,,Hull mount. Keeps your buoy from wrecking (wrecks: to come)
+motor,magnetic,Motor,100,magnetic,3,,"{""up"":1,""mount"":""hull"",""look"":""motor"",""motor"":1}",,,Hull mount. Keeps your buoy from wrecking (wrecks: to come)
