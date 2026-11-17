@@ -43,3 +43,8 @@ Each effect is written as JSON. These are the kinds the code handles now:
 - **Upgrade still to be made:** `{"up":1}`. This marks an upgrade whose effect isn't built yet; it's bought once and kept.
 
 A new kind of effect needs code before it does anything. Until then, use `{"up":1}` for it.
+
+## achievements.csv
+One row per achievement: `id`, `name`, `stat` (the lifetime counter it watches), `at` (how much it needs; Tune → Achievements overrides it, `ach_<id>`), `unlocks` (space or `;` separated: `disc:<discovery id>` an interface element is found, `shop:<shop id>` that shop can open, `item:<shop item id>` that item is sold), `note`. Anything an achievement unlocks is locked until it is reached; an empty `unlocks` is a milestone.
+
+Counters (`stat`), kept for the whole game in the life log: `earn:<kind>` (items earned, not bought: bright, dim, neutron, magnetic, pulsing, dial, leash, weave, prism, knot, gate, key, lens), `use:<kind>` (items used), `collect:<kind>` (remnants collected: bright, dim, neutron, magnetic, pulsing), `buy:<shop>` (purchases there), `spend:<shop>` (what was spent there), `ev:<event id>` (times it happened), `duck` (ducks collected), `good:<kind>` (commodities opened), and `runs`, `days`, `bright`, `dark`, `rift` (runs, days, clears). New content counts on its own as long as it goes through these (`stat(key, n)` in the surface).
