@@ -75,22 +75,22 @@ function cursorBase(cx,x,y,cR,dimA,tintK,edgeCol,lw){if(!(cR>0))return; /* (a cu
 // cursor (src: the scene's canvas), magnified and turned with the nib. It lies to the bottom left at 45°, swinging smoothly away from any edge it would be cut off by and
 // back again; white, dimmed by half as much as the cursor is (dimA: the cursor's own dimming)
 const NIB={a:Math.PI*0.75,last:0};
-function cursorNib(cx,x,y,cR,dimA,src,W,H,t){
-  const L=t.cursorNibLen||40,lr=t.cursorNibLens||13,z=t.cursorNibZoom||2.4,g0=cR+1,reach=g0+L+lr*2,m=4,def=Math.PI*0.75;
-  const fits=a=>{const ex=x+Math.cos(a)*reach,ey=y+Math.sin(a)*reach,w=lr+6;return ex-w>=m&&ex+w<=W-m&&ey-w>=m&&ey+w<=H-m;};
-  let tgt=def;if(!fits(def)){tgt=null;for(let d=Math.PI/12;d<=Math.PI+1e-6&&tgt==null;d+=Math.PI/12){if(fits(def-d))tgt=def-d;else if(fits(def+d))tgt=def+d;}if(tgt==null)tgt=def;}
+function cursorNib(cx,x,y,cR,dimA,src,W,H,t){ // the plain cursor: the Fountain Pen's nib seen from straight above (a slight shear), as down a microscope, its writing tip on the cursor's centre;
+  // the microscope's lens beside it overlaps the cursor ring (a Venn diagram of the two: the lens shows, magnified, what is under the tip), turned away from the screen's edges
+  const k=t.cursorNibK!=null?t.cursorNibK:0.75,lr=cR*(t.cursorNibLensK!=null?t.cursorNibLensK:1),z=t.cursorNibZoom||2.4,d=cR+lr*0.45,m=4,def=-Math.PI*0.25; // k: the nib's length (× the ring); lr: the lens; d: from the ring's centre to the lens's (they overlap by ~half the lens)
+  const fits=a=>{const ex=x+Math.cos(a)*d,ey=y+Math.sin(a)*d;return ex-lr>=m&&ex+lr<=W-m&&ey-lr>=m&&ey+lr<=H-m;};
+  let tgt=def;if(!fits(def)){tgt=null;for(let q=Math.PI/12;q<=Math.PI+1e-6&&tgt==null;q+=Math.PI/12){if(fits(def-q))tgt=def-q;else if(fits(def+q))tgt=def+q;}if(tgt==null)tgt=def;}
   const now=performance.now(),dt=NIB.last?Math.min(100,now-NIB.last):16;NIB.last=now;let da=((tgt-NIB.a)%(2*Math.PI)+3*Math.PI)%(2*Math.PI)-Math.PI;NIB.a+=da*(1-Math.exp(-dt/110)); // eased round the shorter way
-  const A=1-(1-dimA)*0.5,lx=g0+L+lr-1; // (half the cursor's dimming)
-  cx.save();cx.translate(x,y);cx.rotate(NIB.a);
-  if(src){cx.save();cx.beginPath();cx.arc(lx,0,lr,0,6.2832);cx.clip();cx.fillStyle='#000';cx.fill();cx.globalAlpha=A;cx.translate(lx,0);cx.rotate(-NIB.a+Math.PI*0.25); // the lens: what is under the cursor, magnified, held at an angle
-    const s=lr*2/z;try{cx.drawImage(src,x-s/2,y-s/2,s,s,-lr*1.15,-lr*1.15,lr*2.3,lr*2.3);}catch(e){}cx.restore();}
-  const w0=1.2,w1=5.2,w2=5.8,ks=g0+L*0.62,ke=g0+L; // the nib: from its tip, widening to its shoulders, then the cut-off shaft
-  cx.beginPath();cx.moveTo(g0,0);cx.quadraticCurveTo(g0+L*0.3,-w1*0.55,ks,-w1);cx.lineTo(ks+2,-w2);cx.lineTo(ke,-w2);cx.lineTo(ke,w2);cx.lineTo(ks+2,w2);cx.lineTo(ks,w1);cx.quadraticCurveTo(g0+L*0.3,w1*0.55,g0,0);cx.closePath();
-  cx.fillStyle=`rgba(255,255,255,${(0.16*A).toFixed(3)})`;cx.fill();cx.strokeStyle=`rgba(255,255,255,${(0.78*A).toFixed(3)})`;cx.lineWidth=1;cx.stroke();
-  cx.beginPath();cx.moveTo(g0+w0,0);cx.lineTo(g0+L*0.42,0);cx.stroke(); // the slit
-  cx.beginPath();cx.arc(g0+L*0.42+1.6,0,1.6,0,6.2832);cx.stroke(); // the breather hole
-  cx.beginPath();cx.moveTo(ks+2,-w2);cx.lineTo(ks+2,w2);cx.strokeStyle=`rgba(255,255,255,${(0.4*A).toFixed(3)})`;cx.stroke(); // where the shoulders meet the shaft
-  cx.beginPath();cx.arc(lx,0,lr,0,6.2832);cx.strokeStyle=`rgba(255,255,255,${(0.85*A).toFixed(3)})`;cx.lineWidth=1.2;cx.stroke(); // the lens's rim
+  const A=1-(1-dimA)*0.5,lx=x+Math.cos(NIB.a)*d,ly=y+Math.sin(NIB.a)*d; // (half the cursor's dimming)
+  if(src){cx.save();cx.beginPath();cx.arc(lx,ly,lr,0,6.2832);cx.clip();cx.fillStyle='#000';cx.fill();cx.globalAlpha=A;const s=lr*2/z;try{cx.drawImage(src,x-s/2,y-s/2,s,s,lx-lr,ly-lr,lr*2,lr*2);}catch(e){}cx.restore(); // the lens: what is under the tip, magnified, upright
+    cx.beginPath();cx.moveTo(lx-lr*0.18,ly);cx.lineTo(lx+lr*0.18,ly);cx.moveTo(lx,ly-lr*0.18);cx.lineTo(lx,ly+lr*0.18);cx.strokeStyle=`rgba(255,255,255,${(0.35*A).toFixed(3)})`;cx.lineWidth=0.8;cx.stroke();} // (its crosshair: the tip's own point)
+  cx.beginPath();cx.arc(lx,ly,lr,0,6.2832);cx.strokeStyle=`rgba(255,255,255,${(0.7*A).toFixed(3)})`;cx.lineWidth=1.1;cx.stroke(); // the lens's rim
+  const h=cR*k,w=h*0.42,b=NIB.a+Math.PI; // the nib, foreshortened: from its tip (the cursor's centre) back toward the barrel, away from the lens
+  cx.save();cx.translate(x,y);cx.rotate(b);cx.transform(1,0,0.18,1,0,0); // (a slight shear: looked at nearly straight down)
+  cx.beginPath();cx.moveTo(0,0);cx.quadraticCurveTo(h*0.45,-w*0.5,h,-w);cx.lineTo(h*1.08,-w*0.92);cx.lineTo(h*1.08,w*0.92);cx.lineTo(h,w);cx.quadraticCurveTo(h*0.45,w*0.5,0,0);cx.closePath();
+  cx.fillStyle=`rgba(226,179,60,${(0.55*A).toFixed(3)})`;cx.fill();cx.strokeStyle=`rgba(255,255,255,${(0.8*A).toFixed(3)})`;cx.lineWidth=0.9;cx.stroke(); // gold
+  cx.beginPath();cx.ellipse(h*1.2,0,h*0.16,w*1.05,0,0,6.2832);cx.fillStyle=`rgba(244,241,234,${(0.5*A).toFixed(3)})`;cx.fill();cx.stroke(); // the white barrel's end, seen end-on
+  cx.beginPath();cx.moveTo(0.6,0);cx.lineTo(h*0.5,0);cx.strokeStyle=`rgba(40,30,10,${(0.7*A).toFixed(3)})`;cx.stroke();cx.beginPath();cx.arc(h*0.55,0,Math.max(0.6,w*0.12),0,6.2832);cx.stroke(); // its slit and breather hole
   cx.restore();}
 function cursorRing(cx,x,y,cR,dimA,edgeCol,lw){cx.beginPath();cx.arc(x,y,cR,0,6.2832);cx.strokeStyle=`rgba(${edgeCol},${(0.80*dimA).toFixed(3)})`;cx.lineWidth=lw;cx.stroke();}
 function cursorDot(cx,x,y,dimA,edgeCol){
