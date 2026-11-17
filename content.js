@@ -71,9 +71,6 @@ function cursorBase(cx,x,y,cR,dimA,tintK,edgeCol,lw){if(!(cR>0))return; /* (a cu
   cx.globalCompositeOperation='screen';cx.filter='blur(7px)';cx.globalAlpha=0.6*dimA; // the bloom behind the sharp ring
   cx.beginPath();cx.arc(x,y,cR,0,6.2832);cx.strokeStyle=`rgba(${edgeCol},0.9)`;cx.lineWidth=lw*2.5;cx.stroke();
   cx.filter='none';cx.globalAlpha=1;cx.globalCompositeOperation='source-over';}
-// The Fountain Pen's nib on the plain cursor: its tip at the ring, pointing at the centre; the shaft, cut off, holds a lens — the microscope — showing what is under the
-// cursor (src: the scene's canvas), magnified and turned with the nib. It lies to the bottom left at 45°, swinging smoothly away from any edge it would be cut off by and
-// back again; white, dimmed by half as much as the cursor is (dimA: the cursor's own dimming)
 const NIB={a:Math.PI*0.75,last:0};
 function cursorNib(cx,x,y,cR,dimA,src,W,H,t){ // the plain cursor: the Fountain Pen's nib seen from straight above (a slight shear), as down a microscope, its writing tip on the cursor's centre;
   // the microscope's lens beside it overlaps the cursor ring (a Venn diagram of the two: the lens shows, magnified, what is under the tip), turned away from the screen's edges
