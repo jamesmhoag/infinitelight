@@ -153,3 +153,4 @@ chest_exo,bright,Exotic compartments,5000,bright,2,,"{""up"":1}",chest_comp,,Eac
 chest_bri,bright,Bright compartments,20000,bright,2,,"{""up"":1}",chest_comp,,"Bright and Dim compartments hold 99,999 each"
 chest_energy,bright,Energy Value,250000,bright,3,,"{""up"":1}",chest_comp,,Every capacity of your chest × 10
 chest_vault,bright,Bright vault,5000000,bright,3,,"{""up"":1}",chest_energy,,Bright holds × 10 again
+drone,hull,Drone,40000,bright,2,,"{""up"":1,""mount"":""top"",""look"":""drone"",""drone"":1}",,,"Top mount. Click a shop you are not beside: it flies there and you shop as if you were (once a day; it must be home before it flies again)"

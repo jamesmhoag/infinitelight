@@ -1167,3 +1167,6 @@ map.water.fridge,A bottle from the fridge,Surface Map (water),
 map.water.in_fridge,"Into the fridge: {n} of {cap}",Surface Map (water),"n = $0 — bottles in it
 cap = $1 — what it holds"
 map.water.fridge_full,The fridge is full ({cap}),Surface Map (water),cap = $0 — what it holds
+map.drone.off,The drone is off,Shops,
+map.drone.out,"Too far, and the drone is still out: it must be home before it flies again.",Shops,
+map.drone.today,"Too far, and the drone has flown today (once a day): go beside it, or order from its catalogue in your desk drawer.",Shops,

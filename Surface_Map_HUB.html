@@ -163,7 +163,7 @@ body.shop-open #hdock{z-index:59}#hinv .slot.wal::before{border-color:rgba(255,2
 <div id="veil"></div>
 <div id="bfx"></div>
 <iframe id="neb" data-tt="map.ui.surface"></iframe>
-<script src="content.js?v=20261117v"></script><script src="shared.js?v=20261117v"></script><script src="cabin.js?v=20261117v"></script>
+<script src="content.js?v=20261117w"></script><script src="shared.js?v=20261117w"></script><script src="cabin.js?v=20261117w"></script>
 <script>
 // ╔══════════════════════════════════════════════════════════════════════════════╗
 // ║  MAP ENGINE                                                                 ║
@@ -182,7 +182,7 @@ let playLog=[],clock=3,day=1,pool=6,burstFx=null,dayLog=[],dayCnt={b:0,d:0},pend
 // // clock: the hour (3 = Twilight … 24 = Midnight, the day's last turn); day: your attempts; pool: what the source put out at its last burst; fresh: no ring added yet since it
 let constel=[],armed=null,weaveSel=[],weaveAsk=null,clearFx={},mergeFx=[],feedMsg={t:'',d:'',at:-1e9}; // constellations {keys,type}; the armed map item; a Weave being drawn; animations; the final count
 const STEP_H=3; // the day: eight turns of three hours
-const CACHE_V='20261117v'; // the build: bump with shared.js's
+const CACHE_V='20261117w'; // the build: bump with shared.js's
 const SCENE=new URLSearchParams(location.search).get('scene'); // a Guide / event demo: the map plays a scripted moment (no surface behind it)
 let phase='move',turnTimer=0,mergeTimer=0;
 let gameOverReason='';
@@ -1077,7 +1077,16 @@ function buoyPlane(now){ // on the plane, under it: its spot light, its ripples,
   if(buoy.mv&&!buoy.mv.fire){const ink=onWhite(buoy.x,buoy.y)?[20,24,32]:sunInk();drawWakeShape(c,bx,by,Math.cos(buoy.hd),Math.sin(buoy.hd),HEX*0.4,0.7,0.4,ink,ink);if(now-(buoy.lastRip||0)>180){buoy.lastRip=now;ripples.push({x:buoy.x,y:buoy.y,t:now,dk:onWhite(buoy.x,buoy.y)});}}
   if(buoy.trail){const t=(now-buoy.trail.t0)/700;if(t>=1)buoy.trail=null;else{const[ax,ay]=w2s(buoy.trail.x0,buoy.trail.y0);c.save();c.globalCompositeOperation='screen';c.lineCap='round';c.strokeStyle=`rgba(255,250,235,${(0.8*(1-t)).toFixed(3)})`;c.lineWidth=HEX*0.12*(1-t)+1;c.filter=`blur(${(HEX*0.04).toFixed(1)}px)`;c.beginPath();c.moveTo(ax,ay);c.lineTo(bx,by);c.stroke();c.restore();}}} // a String's shot: a streak, like a Point fired
 function buoySouv(){const sv=souvenirs();return SHOP_ITEMS.filter(i=>i.fx.souv&&(sv[i.id]||0)>0).map(i=>i.id);} // the souvenirs kept, one of each kind
-function buoyDraw(now,mirror){drawDuckScene(G3.duck,buoyModel(playerName,buoySouv(),buoyCol,buoyKit),buoyOpts(now,mirror));{const o=buoyCan(now,mirror);if(o)drawDuckScene(G3.duck,buoyCanModel(),o);} // (its can light, turned to its spot)
+// The drone (a top-mount gadget): a shop you are not beside, clicked, sends it there (once a day). It flies over, the shop opens as if you were there (what you
+// buy comes back with it), and once you leave the shop it flies home. Out, it is off its mount
+let drone=null,droneDay=0; // drone: its flight {key, wx,wy (the shop), t0, open (arrived), back (heading home)}; droneDay: the day it last flew
+const droneOwned=()=>!!(buoyKit&&buoyKit.slots.top.slice(0,kitCounts(buoyKit).top).includes('drone'));
+function droneAt(now){const d=drone,ms=T.mapDroneMs||1800;if(!d)return null;let u=d.back?1-(now-d.back)/ms:(now-d.t0)/ms;if(d.back&&u<=0){drone=null;return null;}u=Math.max(0,Math.min(1,u));const e=u*u*(3-2*u);
+  if(u>=1&&!d.open&&!d.back){d.open=1;if(!shopUI)openShop(d.key);if(!shopUI)d.back=now;} // there: its counter opens (closed: it turns back)
+  return{x:buoy.x+(d.wx-buoy.x)*e,y:buoy.y+(d.wy-buoy.y)*e,z:HEX*(0.35+0.6*Math.sin(Math.PI*Math.min(1,e*1.6))),yaw:Math.atan2(d.wy-buoy.y,d.wx-buoy.x)+now/900};}
+function droneDraw(now,mirror){const a=droneAt(now);if(!a||!cam)return;const o=buoyOpts(now,mirror),m=mirror?-1:1,c=Math.cos(a.yaw),sn=Math.sin(a.yaw),[px,py]=w2s(a.x,a.y),[X,Y,k]=proj(px,py);
+  Object.assign(o,{rot:new Float32Array([c,sn,0, 0,0,m, -sn,c,0]),pos:[px-MW/2,py-MH/2,a.z*m],env:{x:X,y:Y,lights:[]},px:o.size*k,L3:null});drawDuckScene(G3.duck,droneModel(),o);}
+function buoyDraw(now,mirror){drawDuckScene(G3.duck,buoyModel(playerName,buoySouv(),buoyCol,drone?Object.assign({},buoyKit,{slots:Object.assign({},buoyKit.slots,{top:buoyKit.slots.top.map(id=>id==='drone'?null:id)})}):buoyKit),buoyOpts(now,mirror));droneDraw(now,mirror);{const o=buoyCan(now,mirror);if(o)drawDuckScene(G3.duck,buoyCanModel(),o);} // (its can light, turned to its spot)
   if(MP.on)for(const P of MP.players){if(P.id===MP.me)continue;const b=MP.ob[P.id];if(b&&b.x!=null)drawDuckScene(G3.duck,buoyModel(P.name,[],P.col),buoyOpts(now,mirror,b));}} // (playing together: everyone else's buoy, on their hex) // the buoy, then its sign (facing you)
 function buoyFrame(now,b){b=b||buoy; // how it floats now: its turn, a slow rocking sway (its up tipped, about an axis that wanders round), its bob; and where its lantern is
   const size=HEX*BUOY_SIZE,f=[Math.cos(b.yaw),Math.sin(b.yaw)],ph=b.ph||0,sw=(T.mapBuoySway!=null?T.mapBuoySway:0.09)*(Math.sin(now/1300+ph)+0.35*Math.sin(now/610+1.7+ph))+Math.min(0.12,(b.spin||0)*1.5),ua=now/3700+ph,u=[Math.cos(ua),Math.sin(ua),0],cs=Math.cos(sw),sn=Math.sin(sw);
@@ -1172,14 +1181,14 @@ function saveMap(){
   if(SCENE)return; // a demo never touches your map
   if(MP.on){if(MP.role==='guest')return;mpSync();} // (playing together: the host's map is everyone's; a friend's own map is left as it was)
   const out={};for(const k in cells){const c=Object.assign({},cells[k]);delete c._im;out[k]=c;}
-  const rec=()=>JSON.stringify({v:3,hist:mapHist,cells:out,turn,clock,day,pool,constel,dayLog,dayCnt,pendingEnd,score,pQ,pR,totalCells,phase,depth,gameOverReason,captureOrder,mergeGroups,mergeIdCounter,voidOpen,hubPop,playLog,session:nebulaCellKey,drinks,bottle,bottleAt,fridge,asleep,wakeFor});
+  const rec=()=>JSON.stringify({v:3,hist:mapHist,cells:out,turn,clock,day,pool,constel,dayLog,dayCnt,pendingEnd,score,pQ,pR,totalCells,phase,depth,gameOverReason,captureOrder,mergeGroups,mergeIdCounter,voidOpen,hubPop,playLog,session:nebulaCellKey,drinks,bottle,bottleAt,fridge,asleep,wakeFor,droneDay});
   try{localStorage.setItem(MAP_KEY,rec());}catch(e){for(const k in out)delete out[k].shot;try{localStorage.setItem(MAP_KEY,rec());}catch(x){}} // full: an unfinished hex's picture is the first thing to go
 }
 function loadMap(){
   let d=null;try{d=JSON.parse(localStorage.getItem(MAP_KEY)||'null');}catch(e){}
   if(!d||!d.cells)return false;
   if(d.v!==3)return false; // a map from before the times of day starts over
-  ({cells,turn,clock,day,pool,constel,dayLog,dayCnt,pendingEnd,score,pQ,pR,totalCells,phase,depth,gameOverReason,captureOrder,mergeGroups,mergeIdCounter,voidOpen}=d);mapHist=d.hist||{};playLog=d.playLog||[];if(phase==='collapse'&&!d.pendingEnd){phase='move';for(const k in cells)delete cells[k].stain;} /* (left mid-collapse: it is over) */nebulaCellKey=d.session||null;hubPop=d.hubPop||[null,null];drinks=d.drinks!=null?d.drinks:waterMax();bottle=d.bottle||0;bottleAt=d.bottleAt!=null?d.bottleAt:-1;fridge=d.fridge||0;asleep=d.asleep||null;wakeFor=d.wakeFor!=null?d.wakeFor:-1;if(asleep&&!pendingEnd){buoy.rested=true;setTimeout(sleepStep,1200);} // (left asleep: the sleep goes on)_sunH=clock;_sun={from:clock,to:clock,t0:0};dayLog=dayLog||[];dayCnt=dayCnt||{b:0,d:0};
+  ({cells,turn,clock,day,pool,constel,dayLog,dayCnt,pendingEnd,score,pQ,pR,totalCells,phase,depth,gameOverReason,captureOrder,mergeGroups,mergeIdCounter,voidOpen}=d);mapHist=d.hist||{};playLog=d.playLog||[];if(phase==='collapse'&&!d.pendingEnd){phase='move';for(const k in cells)delete cells[k].stain;} /* (left mid-collapse: it is over) */nebulaCellKey=d.session||null;hubPop=d.hubPop||[null,null];drinks=d.drinks!=null?d.drinks:waterMax();bottle=d.bottle||0;bottleAt=d.bottleAt!=null?d.bottleAt:-1;fridge=d.fridge||0;droneDay=d.droneDay||0;asleep=d.asleep||null;wakeFor=d.wakeFor!=null?d.wakeFor:-1;if(asleep&&!pendingEnd){buoy.rested=true;setTimeout(sleepStep,1200);} // (left asleep: the sleep goes on)_sunH=clock;_sun={from:clock,to:clock,t0:0};dayLog=dayLog||[];dayCnt=dayCnt||{b:0,d:0};
   if(pendingEnd)finishDay();else if(phase==='collapse')phase='move';else if(phase==='ended')showDayReport(); // a day left falling in finishes at once; a won run shows its report
   mapResize();focusCam(false);updateHint();return true;
 }
@@ -1469,7 +1478,8 @@ function openShop(key){const el=shopEls[key],s=el&&el._s;if(!s||phase==='collaps
   if(!s.lit){shopTap(s); // a tap on its glass
     const g=runGood(run);if(!(g&&(FORTUNE_GOOD[g.id]||{}).knock)){if(tapN<5)feed(txt('map.is_closed',SHOPS[s.id].n),txt('map.open',shopHours(s.id),(runBad(run,'holiday')?txt('map.a_holiday_it_closes'):'')));return;}
     feed(txt('map.tap.knock',SHOPS[s.id].n),txt('map.tap.knock2'),'tap');} // Friendly Neighborhood (a good fortune): a knock opens it up
-  if(s.id!=='gift'&&!shopHere(key)){feed(SHOPS[s.id].n,txt(disc.has('cat:'+s.id)?'map.cat.far_has':'map.cat.far'),'no');return;} // too far: go beside it, or order from its catalogue (the desk drawer, below deck)
+  if(s.id!=='gift'&&!shopHere(key)){if(droneOwned()&&!drone&&droneDay!==day){droneDay=day;drone={key,wx:s.wx,wy:s.wy,t0:performance.now()};feed(txt('map.drone.off'),SHOPS[s.id].n);saveMap();return;} /* the drone: off to it */
+    feed(SHOPS[s.id].n,txt(droneOwned()?(drone?'map.drone.out':'map.drone.today'):disc.has('cat:'+s.id)?'map.cat.far_has':'map.cat.far'),'no');return;} // too far: go beside it, or order from its catalogue (the desk drawer, below deck)
   if(s.id!=='gift'&&!SCENE&&!disc.has('cat:'+s.id))catTake(s.id); // (its catalogue: taken on the way in)
   shopUI={id:s.id,rank:s.rank||3,exit:s.id==='gift',key};renderShop();hubEvent('shop_'+s.id);}
 // Catalogues: one for each shop, taken from its counter the first time you are in, or found in a box from it on the lake; kept in the desk drawer below deck.
@@ -1478,7 +1488,7 @@ function catTake(id){disc.add('cat:'+id);neb({cmd:'discover',id:'cat:'+id});feed
 function drawerOpen(){shopUI={drawer:true,id:null};renderShop();}
 function catOpen(id){const s=shopList().find(x=>x.id===id);if(!s){feed(SHOPS[id].n,txt('map.cat.away'),'no');return;}shopUI={id,rank:s.rank||3,key:s.key,cat:true};renderShop();}
 function closeShop(){if(shopUI&&shopUI.gift){quitMain();return;} // leaving the Gift Shop: the run is over
-  shopUI=null;renderShop();evPump();}
+  if(drone&&drone.open&&!drone.back)drone.back=performance.now(); /* (the drone: home again) */shopUI=null;renderShop();evPump();}
 function shopRows(){const u=shopUI,has=k=>disc.has(k);
   if(u.drawer){const cs=Object.keys(SHOPS).filter(id=>has('cat:'+id));return cs.length?cs.map(id=>({c:1,n:SHOPS[id].n,sub:shopList().some(x=>x.id===id)?SHOPS[id].tag:txt('map.cat.away'),go:()=>catOpen(id)})):[{c:1,n:txt('map.cat.none'),sub:txt('map.cat.none_d'),go:closeShop}];}
   if(u.exit)return[{c:1,n:txt('map.gift.yes'),sub:txt('map.gift.yessub'),go:giftEnter},{c:1,n:txt('map.gift.no'),sub:txt('map.gift.nosub'),go:closeShop}];
@@ -1518,7 +1528,7 @@ function shopBuy(it,arg){hubLearn('shopbuy');
   if(it.fx.water&&fridgeCap()>0&&fridge>=fridgeCap()){feed(it.n,txt('map.water.fridge_full',fridgeCap()),'no');return;} // (the fridge is full)
   if(it.fx.water&&!fridgeCap()&&bottleAt===day*24+clock){feed(it.n,txt('map.water.one_a_time'),'no');return;} // (one drink a time of day)
   buySnap={had:buyTake(),it,at:performance.now()};neb({cmd:'buy',id:it.id,arg,ship:shopUI&&shopUI.cat?1:0});} // (from its catalogue: what it gives floats to you from the shop, in a box on a life preserver)
-const shopHere=key=>SCENE||(cells[key]?hexD(cells[key],here())<=1:cellRing(pQ,pR)<=1); // you are at a shop: on or beside its hex (a pop-up), or on or beside the Point (main street and the Point's own pop-ups)
+const shopHere=key=>SCENE||(drone&&drone.open&&!drone.back&&drone.key===key)||(cells[key]?hexD(cells[key],here())<=1:cellRing(pQ,pR)<=1); // you are at a shop: on or beside its hex (a pop-up), or on or beside the Point (main street and the Point's own pop-ups)
 const shopHex=key=>cells[key]?{q:cells[key].q,r:cells[key].r}:{q:0,r:0}; // the hex a shop is in (main street and the Point's pop-ups: the Point)
 let buySnap=null,shopFlash=null,_stPrev=null; // a purchase on its way (what you had, so what it spent and gave shows once the surface answers); the row last bought; the Status values last shown
 const BUY_KINDS=['bright','dim','neutron','magnetic','pulsing','duck','leash','dial','weave','prism','knot','gate','key','lens'],dockFx={};
