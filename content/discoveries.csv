@@ -22,6 +22,7 @@ Inventory items,slot_lens,Lens slot,150
 Inventory items,slot_key,Key slot,200
 Tools & panels,hud_tune,Tune menu,0
 Tools & panels,mode_pause,Pause mode,0
+Tools & panels,mode_play,Play mode (Build mode),0
 Tools & panels,mode_invert,Invert mode,0
 Tools & panels,mode_trails,Trails mode,9999999
 Tools & panels,mode_particlemap,Particle map mode,9999999
