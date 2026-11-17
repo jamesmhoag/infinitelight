@@ -163,7 +163,7 @@ body.shop-open #hdock{z-index:59}#hinv .slot.wal::before{border-color:rgba(255,2
 <div id="veil"></div>
 <div id="bfx"></div>
 <iframe id="neb" data-tt="map.ui.surface"></iframe>
-<script src="content.js?v=20261117x"></script><script src="shared.js?v=20261117x"></script><script src="cabin.js?v=20261117x"></script><script src="music.js?v=20261117x"></script>
+<script src="content.js?v=20261117y"></script><script src="shared.js?v=20261117y"></script><script src="cabin.js?v=20261117y"></script><script src="music.js?v=20261117y"></script>
 <script>
 // ╔══════════════════════════════════════════════════════════════════════════════╗
 // ║  MAP ENGINE                                                                 ║
@@ -182,7 +182,7 @@ let playLog=[],clock=3,day=1,pool=6,burstFx=null,dayLog=[],dayCnt={b:0,d:0},pend
 // // clock: the hour (3 = Twilight … 24 = Midnight, the day's last turn); day: your attempts; pool: what the source put out at its last burst; fresh: no ring added yet since it
 let constel=[],armed=null,weaveSel=[],weaveAsk=null,clearFx={},mergeFx=[],feedMsg={t:'',d:'',at:-1e9}; // constellations {keys,type}; the armed map item; a Weave being drawn; animations; the final count
 const STEP_H=3; // the day: eight turns of three hours
-const CACHE_V='20261117x'; // the build: bump with shared.js's
+const CACHE_V='20261117y'; // the build: bump with shared.js's
 const SCENE=new URLSearchParams(location.search).get('scene'); // a Guide / event demo: the map plays a scripted moment (no surface behind it)
 let phase='move',turnTimer=0,mergeTimer=0;
 let gameOverReason='';
@@ -1081,7 +1081,7 @@ function buoySouv(){const sv=souvenirs();return SHOP_ITEMS.filter(i=>i.fx.souv&&
 // The drone (a top-mount gadget): a shop you are not beside, clicked, sends it there (once a day). It flies over, the shop opens as if you were there (what you
 // buy comes back with it), and once you leave the shop it flies home. Out, it is off its mount
 let drone=null,droneDay=0; // drone: its flight {key, wx,wy (the shop), t0, open (arrived), back (heading home)}; droneDay: the day it last flew
-const droneOwned=()=>!!(buoyKit&&buoyKit.slots.top.slice(0,kitCounts(buoyKit).top).includes('drone'));
+const kitOn=id=>!!(buoyKit&&KIT_SLOTS.some(s=>buoyKit.slots[s].slice(0,kitCounts(buoyKit)[s]).includes(id))),droneOwned=()=>kitOn('drone'); // kitOn: on one of your buoy's mounts now
 function droneAt(now){const d=drone,ms=T.mapDroneMs||1800;if(!d)return null;let u=d.back?1-(now-d.back)/ms:(now-d.t0)/ms;if(d.back&&u<=0){drone=null;return null;}u=Math.max(0,Math.min(1,u));const e=u*u*(3-2*u);
   if(u>=1&&!d.open&&!d.back){d.open=1;if(!shopUI)openShop(d.key);if(!shopUI)d.back=now;} // there: its counter opens (closed: it turns back)
   return{x:buoy.x+(d.wx-buoy.x)*e,y:buoy.y+(d.wy-buoy.y)*e,z:HEX*(0.35+0.6*Math.sin(Math.PI*Math.min(1,e*1.6))),yaw:Math.atan2(d.wy-buoy.y,d.wx-buoy.x)+now/900};}
@@ -1141,6 +1141,7 @@ function pondStep(now){
       const RL=HEX*(T.mapParadeRise||2.2),e=v=>v*v*(3-2*v),ps=s<0?1:s<RL?1-e(s/RL):s>parade.path-RL?e(Math.min(1,(s-parade.path+RL)/RL)):0;d._sink=Math.max(d._sink,ps); // one at a time: each comes up slowly as it sets off (a submarine surfacing, moving all the while), and goes down slowly at the end
       if(ps<1&&now-d.lastRip>380){d.lastRip=now;ripples.push({x:d.x,y:d.y,t:now,dk:onWhite(d.x,d.y)});}const t=DUCK_TYPES[d.type]||{};d._s=HEX*0.62*(t.scale||1)/(t.head?1.25:1);return s<parade.path;}
     if(d.kick){d.kick*=Math.pow(0.97,dt);if(d.kick<0.05)d.kick=0;}if(d.twist){d.hd+=d.twist*dt;d.twist*=Math.pow(0.94,dt);if(Math.abs(d.twist)<0.002)d.twist=0;}
+    if(d.good&&!d.good.open&&!d.flot&&!d.leave&&kitOn('magnet')){const to=Math.atan2(buoy.y-d.y,buoy.x-d.x);d.hd+=Math.atan2(Math.sin(to-d.hd),Math.cos(to-d.hd))*0.03*dt;d.born=Math.max(d.born,now-60000);} /* the horseshoe magnet: goods come your way, and stay */
     if(d.leave){const out=Math.atan2(d.y,d.x);d.hd+=Math.atan2(Math.sin(out-d.hd),Math.cos(out-d.hd))*0.08*dt;d.cur=0;d.dash=now+500;d.next=now+1e9;}
     if(now>d.next){d.next=now+1800+Math.random()*3000;d.cur=Math.random()<0.1?(Math.random()<0.5?-1:1)*0.03:(Math.random()-0.5)*0.006;d.dash=Math.random()<0.18?now+1200+Math.random()*1200:0;} // now and then a dash // mostly a gentle curve on its way across; now and then a doughnut
     const paddle=d.bottle||d.good?0.12+(d.kick||0)*0.6:(d.dash>now?1.5:0.38+0.28*Math.max(0,Math.sin(now/260+d.ph)))+(d.kick||0),go=(d.splash&&now-d.born<900)||sp_||d.dunk?0:paddle;d.sp+=(go-d.sp)*(d.kick?0.2:0.05)*dt; // spinning or under water: it stops
@@ -1489,7 +1490,7 @@ function catTake(id){disc.add('cat:'+id);neb({cmd:'discover',id:'cat:'+id});feed
 function drawerOpen(){shopUI={drawer:true,id:null};renderShop();}
 // The record player (a starting item on a mast mount, music.js): its dock slot lists the records you own; one clicked plays (again: stops); a record plays
 // 48 bars, then the next you own. Mounted and on, it starts with your first click on the map (a browser plays sound only after one)
-const recPlayer=()=>!!(buoyKit&&buoyKit.slots.mast.slice(0,kitCounts(buoyKit).mast).includes('record')&&disc.has('up:record')),recMine=()=>RECORDS.filter(r=>recOwned(r,k=>disc.has(k)));
+const recPlayer=()=>kitOn('record')&&disc.has('up:record'),recMine=()=>RECORDS.filter(r=>recOwned(r,k=>disc.has(k)));
 function recordsOpen(){shopUI={records:true,id:null};renderShop();}
 function recPlay(id){if(MUSIC.cur&&MUSIC.cur.id===id&&MUSIC.pref.on)musicStop();else{musicPlay(id);feed('♪ '+RECORDS.find(r=>r.id===id).n,txt('map.rec.g_'+RECORDS.find(r=>r.id===id).g));}if(shopUI&&shopUI.records)renderShop();syncDock();}
 MUSIC.next=()=>{const L=recMine(),i=L.findIndex(r=>r===MUSIC.cur);if(L.length&&recPlayer())musicPlay(L[(i+1)%L.length].id);else musicStop();syncDock();};

@@ -97,16 +97,16 @@ d_neu,neutron,Random Duck Variant,9999,,3,,"{""duck"":""Size""}",,,A size varian
 act5,line,Active maximum 1>5,10,magnetic,1,,"{""up"":1}",,,
 sweep,line,Sweep selection,20,magnetic,1,,"{""up"":1}",,,
 blotch,line,Blotch selection,50,magnetic,1,,"{""up"":1}",,,
-s_prism,magnetic,Prisms on Sectors,50,,1,,"{""up"":1}",,,
+s_prism,corner,Prisms on Sectors,50,magnetic,1,,"{""up"":1}",,,
 act15,line,Active maximum 5>15,100,magnetic,2,,"{""up"":1}",act5,,
-cap_prism,magnetic,Max Prisms 1>5,500,,2,,"{""cap"":{""prism"":5}}",,,
+cap_prism,corner,Max Prisms 1>5,500,magnetic,2,,"{""cap"":{""prism"":5}}",,,
 p_mag,magnetic,Magnetic as an item from the pouch,500,,2,,"{""up"":1}",,,
-c_prism,magnetic,Prisms on the Center,500,,2,,"{""up"":1}",,,
+c_prism,corner,Prisms on the Center,500,magnetic,2,,"{""up"":1}",,,
 act20,line,Active maximum 15>20,1000,magnetic,3,,"{""up"":1}",act15,,
-dk_hue,magnetic,Dark Remnant takes the predominant hue,2000,,3,,"{""up"":1}",,,
-dk_rainbow,magnetic,Rainbow Dark Remnant when the balance is bright,5000,,3,,"{""up"":1}",,,
+dk_hue,dim,Dark Remnant takes the predominant hue,2000,magnetic,3,,"{""up"":1}",,,
+dk_rainbow,dim,Rainbow Dark Remnant when the balance is bright,5000,magnetic,3,,"{""up"":1}",,,
 pure_mag,magnetic,Pure Harmony,9999,,3,,"{""up"":1}",,,
-d_mag,magnetic,Random Duck Variant,9999,,3,,"{""duck"":""Colour""}",,,A colour variant (dupes possible)
+d_mag,duck,Random Duck Variant,9999,magnetic,3,,"{""duck"":""Colour""}",,,A colour variant (dupes possible)
 s_dial,pulsing,Strings on Sectors,10,,1,,"{""up"":1}",,,
 s_leash,pulsing,Spindles on Sectors,50,,1,,"{""up"":1}",,,
 c_dial,pulsing,Strings on the Center,100,,1,,"{""up"":1}",,,
@@ -148,6 +148,7 @@ anchor,magnetic,Anchor,25,magnetic,1,,"{""up"":1,""mount"":""hull"",""look"":""a
 fridge,magnetic,Mini fridge,40,magnetic,1,,"{""up"":1,""fridge"":3}",,,"Kept below deck: bottles of water you buy go in it (it holds 3), not down you. A move with the barrel dry takes one; click the water in the dock to drink one now"
 rudder,magnetic,Rudder,50,magnetic,2,,"{""up"":1,""mount"":""hull"",""look"":""rudder"",""rudder"":1}",,,Hull mount. Keeps your buoy from wrecking (wrecks: to come)
 motor,magnetic,Motor,100,magnetic,3,,"{""up"":1,""mount"":""hull"",""look"":""motor"",""motor"":1}",,,Hull mount. Keeps your buoy from wrecking (wrecks: to come)
+magnet,magnetic,Horseshoe magnet,60,magnetic,2,,"{""up"":1,""mount"":""hull"",""look"":""magnet"",""magnet"":1}",,,"Hull mount. Goods floating on the lake are drawn your way, and do not drift off while it is on"
 chest_comp,bright,Compartmented chest,500,bright,1,,"{""up"":1}",,,"Each remnant its own compartment: Bright and Dim 999 each, each exotic 99 (instead of 999 shared)"
 chest_exo,bright,Exotic compartments,5000,bright,2,,"{""up"":1}",chest_comp,,Each exotic remnant's compartment holds 999
 chest_bri,bright,Bright compartments,20000,bright,2,,"{""up"":1}",chest_comp,,"Bright and Dim compartments hold 99,999 each"
