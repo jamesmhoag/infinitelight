@@ -163,7 +163,7 @@ body.shop-open #hdock{z-index:59}#hinv .slot.wal::before{border-color:rgba(255,2
 <div id="veil"></div>
 <div id="bfx"></div>
 <iframe id="neb" data-tt="map.ui.surface"></iframe>
-<script src="content.js?v=20261117y"></script><script src="shared.js?v=20261117y"></script><script src="cabin.js?v=20261117y"></script><script src="music.js?v=20261117y"></script>
+<script src="content.js?v=20261117z"></script><script src="shared.js?v=20261117z"></script><script src="cabin.js?v=20261117z"></script><script src="music.js?v=20261117z"></script>
 <script>
 // ╔══════════════════════════════════════════════════════════════════════════════╗
 // ║  MAP ENGINE                                                                 ║
@@ -182,7 +182,7 @@ let playLog=[],clock=3,day=1,pool=6,burstFx=null,dayLog=[],dayCnt={b:0,d:0},pend
 // // clock: the hour (3 = Twilight … 24 = Midnight, the day's last turn); day: your attempts; pool: what the source put out at its last burst; fresh: no ring added yet since it
 let constel=[],armed=null,weaveSel=[],weaveAsk=null,clearFx={},mergeFx=[],feedMsg={t:'',d:'',at:-1e9}; // constellations {keys,type}; the armed map item; a Weave being drawn; animations; the final count
 const STEP_H=3; // the day: eight turns of three hours
-const CACHE_V='20261117y'; // the build: bump with shared.js's
+const CACHE_V='20261117z'; // the build: bump with shared.js's
 const SCENE=new URLSearchParams(location.search).get('scene'); // a Guide / event demo: the map plays a scripted moment (no surface behind it)
 let phase='move',turnTimer=0,mergeTimer=0;
 let gameOverReason='';
@@ -1554,8 +1554,8 @@ function shopBought(m){const it=shopItem(m.id);if(!it)return;if(m.ok&&it.fx.wake
   if(m.ok&&m.draw){document.getElementById('shop').classList.remove('show');currentView='overlay';showNeb(true);} // a Carnival card: the surface shows the draw (and the card picked) over the map; the shop comes back when it closes
   if(m.ok&&shopUI&&shopUI.pick)shopUI.pick=false;if(shopUI)renderShop();}
 function shopPicked(m){feed(m.title||'',m.text||'');} // a Carnival card turned over (shown by the surface)
-function giftEnter(){ // Yes: everything is lost (the purse, ducks, discoveries and the map); souvenirs are bought from your last Bright and kept
-  giftWallet=inv.bright||0;evAsked.clear();neb({cmd:'wipe'});playerName='';try{localStorage.removeItem(NAME_KEY);}catch(e){} /* a new game: your name is asked again */try{localStorage.removeItem(MAP_KEY);}catch(e){}initGame();shopUI={id:'gift',rank:3,gift:true};renderShop();}
+function giftEnter(){ // Yes: everything is lost (the purse, ducks, discoveries, the map, the buoy's parts and mounts); souvenirs are bought from your last Bright and kept, below deck in the Hull Compartment
+  giftWallet=inv.bright||0;evAsked.clear();neb({cmd:'wipe'});playerName='';try{localStorage.removeItem(NAME_KEY);}catch(e){} /* a new game: your name is asked again */try{localStorage.removeItem(MAP_KEY);localStorage.removeItem(KIT_KEY);}catch(e){}buoyKit=kitGet(); /* the buoy's parts and mounts go too (a new buoy: the record player on its mast); its colour and its souvenirs stay */initGame();shopUI={id:'gift',rank:3,gift:true};renderShop();}
 document.getElementById('shop').addEventListener('click',e=>{if(e.target.id==='shop')closeShop();});
 document.getElementById('letter').addEventListener('click',closeLetter);document.getElementById('letter').addEventListener('contextmenu',e=>{e.preventDefault();closeLetter();});
 document.getElementById('shop').addEventListener('contextmenu',e=>{e.preventDefault();closeShop();});
