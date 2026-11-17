@@ -124,6 +124,11 @@ earnPathW,2,Path width,0.5,6,0.1,Achievements & Pattern — Visual,theme,,,,Line
 earnTextRise,26,Text rise,0,80,2,Achievements & Pattern — Visual,theme,,,,"How far the ""+1"" text floats up",
 earnTextSize,13,Text size,8,28,1,Achievements & Pattern — Visual,theme,,,,"Size of the achievement ""+1"" text",
 collectGraceMs,260,Collect grace ms,0,1000,20,Achievements & Pattern — Visual,theme,,,,"A click still collects the target the cursor just slid off of, for this long after","ms: a click still collects the target the cursor just slid off of, for this long after (must cover the collect cursor's own fade-out, so the two never disagree)"
+netOn,1,Net,0,1,1,Achievements & Pattern — Visual,theme,,,,"Collecting draws the net: hanging from the hoop on hover, dipped and dragged while wiping (0: the old chevrons)",
+netScoopMs,320,Net scoop ms,60,1500,10,Achievements & Pattern — Visual,theme,,,,"ms: a click's scoop, in and out; the remnant is collected halfway, at its deepest",
+netDblMult,3,Net double ×,1,8,0.1,Achievements & Pattern — Visual,theme,,,,"A double click's hoop: this × Touch rad; every remnant of the kind clicked within it is scooped",
+netRippleMs,700,Net ripple ms,100,3000,10,Achievements & Pattern — Visual,theme,,,,"ms: a ripple from the net entering or leaving the surface, or dragged through it",
+netUnderA,0.45,Net under α,0,1,0.05,Achievements & Pattern — Visual,theme,,,,"How visible the hoop and net are under the surface",
 metalReflA,0.55,Metal reflection,0,1,0.05,Achievements & Pattern — Visual,theme,,,,Scene reflection strength on Barrier edges and Gate posts,strength of the scene reflection on metal (Barrier edge / Gate posts)
 metalLightA,1,Metal glint,0,3,0.05,Achievements & Pattern — Visual,theme,,,,How strongly nearby lights glint on Barrier edges and Gate posts,how strongly nearby lights glint on metal
 lensMeshN,5,Fish-eye mesh N,3,40,1,Achievements & Pattern — Visual,theme,,,,"Fish-eye mesh is N×N cells (2N² triangles): more = smoother curve, slower","fish-eye mesh divisions: N×N cells = 2N² triangles (more = smoother curve, slower)"

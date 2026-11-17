@@ -120,7 +120,7 @@ button:hover{background:rgba(255,255,255,0.15);}
   <div id="dock" class="bottom"><div id="inventoryPanel"></div><div id="touch-info"></div></div>
   <canvas id="cur"></canvas>
 </div>
-<script src="content.js?v=20261117k"></script><script src="shared.js?v=20261117k"></script>
+<script src="content.js?v=20261117l"></script><script src="shared.js?v=20261117l"></script>
 <script>
 txtApply(); // the page's own labels (content/strings.csv)
 const _SRC=document.documentElement.outerHTML; // kept so the Encyclopedia can run live scenes as embedded copies of the game
@@ -5276,7 +5276,7 @@ function flushDialCollects(){for(const q of active.slice()){if(!q._dialCollect)c
 let _collHeatPress=-1;
 function bondOf(p){return activeBonds.find(b=>b.chain.indexOf(p)!==-1)||null;} // the shape (if any) a remnant is still a node of
 function collectRemnant(c){
-  if(!c||!c.p||c.p._collected||!c.kind)return false;ruleLearn('goal');ruleLearn('collect'); // one collect per collectable: a fast second click (the grace window's last target, a hold's first, a double click's sweep) finds it already taken
+  if(!c||!c.p||c.p._collected||c.p._netAt||!c.kind)return false;ruleLearn('goal');ruleLearn('collect'); // one collect per collectable: a fast second click (the grace window's last target, a hold's first, a double click's sweep) finds it already taken
   c.inShape=!!bondOf(c.p);
   if(!c.free){ const hn=performance.now(); if(heatBlocked(hn))return false; // an overheated cursor collects nothing
     const pr=_collectFor?_collectFor.downAt:mouseDownAt;if(_collHeatPress===pr)heatAdd(1,hn);else _collHeatPress=pr; } // (a String shot collecting costs no heat) the first object of a press is free; each further one adds heat, like a swipe
@@ -5307,11 +5307,9 @@ function tryPickupRemnant(mx,my){
   {const dk=duckAt(mx,my);if(dk){collectDuck(dk);return true;}} // a duck under the cursor is collected first
   { const nta=performance.now();
     if(lastCollectAll&&nta-lastCollectAll.t<380&&Math.hypot(mx-lastCollectAll.x,my-lastCollectAll.y)<34){ // second quick click: sweep up the NEAREST remnants of the same type, anywhere on screen, up to the snake length in all
-      const k=lastCollectAll.kind;lastCollectAll=null;
-      const list=[];for(const q of active){if(q.dying||q.captured||q._collected||collectKindOf(q)!==k||underGlass(q.x,q.y)||bondOf(q))continue;list.push({q,d:Math.hypot(_wrapD(q.x-mx,W),_wrapD(q.y-my,H))});}
-      list.sort((a,b)=>a.d-b.d);const lim=Math.max(0,Math.floor(T.maxActivePoints)-1);let n=0;
-      _batchSnd=true;try{for(const e of list){if(n>=lim)break;if(collectRemnant({p:e.q,kind:k})===false)break;n++;if(n===1)var rep1=e.q;}}finally{_batchSnd=false;}
-      if(rep1&&rep1.remKind)_playRemnantActionSoundInner(rep1,false,Math.min(1.6,1+n*0.05)); // one collection sound for the whole batch
+      const k=lastCollectAll.kind;lastCollectAll=null;const R=T.touchR*(T.netDblMult||3); // the net slashed in wide: every remnant of that kind within its hoop
+      const cs=[];for(const q of active){if(q.dying||q.captured||q._collected||collectKindOf(q)!==k||underGlass(q.x,q.y)||bondOf(q))continue;if(Math.hypot(_wrapD(q.x-mx,W),_wrapD(q.y-my,H))<=R)cs.push({p:q,kind:k});}
+      netScoop(cs,mx,my,R,true)||netRipple(mx,my,R,0.8);
       lastCollectDoneAt=nta;
       return true; // the click is spent either way — it never falls through to an activation
     } }
@@ -5320,9 +5318,38 @@ function tryPickupRemnant(mx,my){
   // lands during that ease still collects the target it just had, rather than falling through to a plain activation.
   if(!c&&lastCollectTarget&&!lastCollectTarget.dying&&!lastCollectTarget.captured&&performance.now()-lastCollectSeenAt<T.collectGraceMs)c={p:lastCollectTarget,kind:collectKindOf(lastCollectTarget)};
   if(!c||!c.kind)return false;
-  collectRemnant(c);lastCollectAll={kind:c.kind,t:performance.now(),x:mx,y:my};
+  if(!netScoop([c],mx,my,Math.max(T.cursorBaseR,8)*1.1,false))collectRemnant(c);lastCollectAll={kind:c.kind,t:performance.now(),x:mx,y:my}; // scooped: collected as the net comes up
   return true;
 }
+// ── The net (collecting): the cursor's ring is a net's hoop. Hovering a remnant, the net hangs from it; a click turns the hoop on edge and dips it under the
+// surface (a ripple as it enters), scoops the remnant and comes up again (a ripple as it leaves): the remnant is collected as the scoop completes (Net scoop ms,
+// at its deepest), with the same effect as ever. A double click slashes in a hoop Net double × the reach wide and scoops every remnant of that kind within it.
+// Holding and wiping drags the dipped hoop, the net trailing behind, the surface rippling steadily. Under the surface the hoop and net are dimmed (Net under α)
+const NET={dips:[],rip:[],lastRip:0,trail:[]};
+function netRipple(x,y,R,a){NET.rip.push({x,y,R,a:a||1,t0:performance.now()});}
+function netScoop(cs,x,y,R,dbl){const now=performance.now(),list=cs.filter(c=>c&&c.p&&!c.p._collected&&!c.p._netAt);if(!list.length)return false;
+  for(const c of list)c.p._netAt=now;NET.dips.push({x,y,R,dbl,cs:list,t0:now,done:false});netRipple(x,y,R,1);return true;}
+function netTick(now){const D=Math.max(60,T.netScoopMs||320);
+  for(const d of NET.dips){const u=(now-d.t0)/D;
+    for(const c of d.cs)if(!c.p._collected&&!c.p.dying&&!d.done){const k=Math.min(1,u/0.5);c.p.x+=(_wrapD(d.x-c.p.x,W))*0.18*k;c.p.y+=(_wrapD(d.y-c.p.y,H))*0.18*k;} // drawn into the net as it sweeps
+    if(!d.done&&u>=0.5){d.done=true;const live=d.cs.filter(c=>!c.p._collected&&!c.p.dying&&active.indexOf(c.p)>=0);
+      if(live.length>1){_batchSnd=true;let n=0,rep1=null;try{for(const c of live){c.p._netAt=0;if(collectRemnant(c)===false)break;n++;if(!rep1)rep1=c.p;}}finally{_batchSnd=false;}if(rep1&&rep1.remKind)_playRemnantActionSoundInner(rep1,false,Math.min(1.6,1+n*0.05));}
+      else for(const c of live){c.p._netAt=0;collectRemnant(c);}
+      for(const c of d.cs)c.p._netAt=0;lastCollectDoneAt=now;}
+    if(!d.out&&u>=0.8){d.out=true;netRipple(d.x,d.y,d.R,0.7);}}
+  NET.dips=NET.dips.filter(d=>now-d.t0<D);NET.rip=NET.rip.filter(r=>now-r.t0<(T.netRippleMs||700));}
+function netDraw(cx,now,cR,col){ // the scoops, the dragged net and the ripples (the cursor layer)
+  const D=Math.max(60,T.netScoopMs||320),RM=T.netRippleMs||700,ua=T.netUnderA!=null?T.netUnderA:0.45;cx.save();cx.lineCap='round';
+  for(const r of NET.rip){const u=(now-r.t0)/RM;for(let k=0;k<2;k++){const v=u-k*0.18;if(v<=0)continue;cx.beginPath();cx.arc(r.x,r.y,r.R*(0.9+v*1.6),0,6.2832);cx.strokeStyle=`rgba(${col},${(0.45*r.a*(1-v)*(1-v)).toFixed(3)})`;cx.lineWidth=1.2*(1-v)+0.3;cx.stroke();}}
+  for(const d of NET.dips){const u=Math.min(1,(now-d.t0)/D),dip=Math.sin(u*Math.PI),A=1-(1-ua)*Math.min(1,dip*1.6); // in: on edge and down; out: up and level again
+    netHoop(cx,d.x,d.y+dip*d.R*0.35,d.R,1-dip*0.82,dip*0.5,A,col,dip);}
+  cx.restore();}
+function netHoop(cx,x,y,R,sq,tilt,A,col,bag){ // the hoop (squashed by sq: 1 flat, ~0 on edge; turned by tilt) and its net hanging below it (bag: how deep)
+  cx.save();cx.translate(x,y);cx.rotate(tilt);const ry=Math.max(0.6,R*sq),bx=0,by=R*(1.5+0.6*bag);
+  cx.strokeStyle=`rgba(${col},${(0.5*A).toFixed(3)})`;cx.lineWidth=0.7;cx.beginPath(); // the net: lines from the hoop's rim gathering to its bottom, and two bands across
+  for(let i=0;i<=8;i++){const a=Math.PI*(i/8),px=Math.cos(a)*R,py=Math.sin(a)*ry;cx.moveTo(px,py);cx.quadraticCurveTo(px*0.55+bx*0.3,py*0.4+by*0.6,bx*0.25+px*0.08,by);}
+  for(const f of [0.4,0.72]){cx.moveTo(-R*(1-f*0.75)+bx*f*0.25,by*f);cx.quadraticCurveTo(bx*f*0.25,by*f+R*0.35*(1-f),R*(1-f*0.75)+bx*f*0.25,by*f);}
+  cx.stroke();cx.beginPath();cx.ellipse(0,0,R,ry,0,0,6.2832);cx.strokeStyle=`rgba(${col},${(0.9*A).toFixed(3)})`;cx.lineWidth=1.4;cx.stroke();cx.restore();}
 let lastCollectDoneAt=0,collectFeed={kind:null,n:0,got:0,t:0};const COLLECT_NAME={dim:'dim remnant',bright:'bright remnant',neutron:'neutron remnant',magnetic:'magnetic remnant',pulsing:'pulsing remnant'};
 let collectHold=false,downOnRemnant=null;const collectSeen=new Set();
 let lastCollectSeenAt=0,lastCollectTarget=null; // a brief grace window so a click doesn't miss a target the cursor JUST slid off of
@@ -10919,6 +10946,14 @@ function drawSymbolFor(cx,x,y,cR,sp,holdT){
     cx.fillStyle=col(0.95);
     cx.font='bold 10px monospace';cx.textAlign='center';cx.textBaseline='middle';
     cx.fillText(sp.rem>0?String(sp.rem):'⟲',x,y+cR*0.8);
+  } else if((sp.type==='collect'||sp.type==='hold')&&T.netOn){ // the net: hanging from the hoop (hover), or dipped and dragged (holding, wiping)
+    const hold=sp.type==='hold',ua=T.netUnderA!=null?T.netUnderA:0.45;
+    if(!hold)netHoop(cx,x,y,cR,1,0,1,sp.rgb,1.1+0.4*clickK); // (hanging well below the hoop, so it reads as a net)
+    else{const tr=NET.trail,last=tr[tr.length-1],now=performance.now();if(!last||Math.hypot(x-last[0],y-last[1])>2)tr.push([x,y]);while(tr.length>8)tr.shift();
+      let dx=0,dy=1;if(tr.length>2){const f=tr[0];const vx=f[0]-x,vy=f[1]-y,l=Math.hypot(vx,vy);if(l>3){dx=vx/l;dy=vy/l;}}
+      netHoop(cx,x,y,cR,0.22,Math.atan2(dy,dx)-Math.PI/2,ua,sp.rgb,1.4,null); // (turned so the net trails behind the way it is being dragged)
+      if(now-NET.lastRip>140&&last&&Math.hypot(x-last[0],y-last[1])>1){NET.lastRip=now;netRipple(x,y,cR,0.5);}}
+    if(sp.p)drawCollectPreview(cx,sp.p,x,y,heldK,clickK);
   } else if(sp.type==='collect'||sp.type==='hold'){
     // Collect: four small inward chevrons closing on the target, idly pulsing. Hold-collect: a slowly turning dashed
     // ring with the chevrons drawn tighter and steadier. A fresh click snaps the chevrons in sharply either way.
@@ -11027,6 +11062,7 @@ function computeHoverAndCursor(now){
     // Center dot, with its own small glow
     if(!itemRing)cursorDot(cx,mouse.x,mouse.y,dimA,edgeCol);
     if(T.cursorNibOn&&!armedInvItem&&!inCreate&&!conMode&&!collectHold&&!heatLocked&&mouseInBounds&&!overUI)cursorNib(cx,mouse.x,mouse.y,cR,dimA,canvas,W,H,T); // the plain cursor: the pen's nib, with its lens
+    netTick(now);netDraw(cx,now,cR,'120,255,190'); // the net's scoops and ripples
     if(hoverObj){const hi=buildInfoFor(hoverObj,now);if(hi.scale>0){cx.beginPath();cx.arc(mouse.x,mouse.y,Math.max(0,hi.curR),0,6.2832);cx.strokeStyle=`rgba(${hi.r},${hi.g},${hi.b},${(hi.scale*10|0)/100})`;cx.lineWidth=0.75;cx.stroke();}}
     let symCol=edgeCol;
     if(armedInvItem&&!inCreate){const ac=armedCursorRGB();symCol=`${ac.r|0},${ac.g|0},${ac.b|0}`;} // the ring is the standard cursor; only the item's symbol carries the item colour
@@ -13007,7 +13043,7 @@ function cardHTML(ev,mini,pg){ // the one card format: name bar, art box, type l
   return `<div class="mtg${sm?' sm':mini===2?' pic':''}${!pg&&discSeen.has('ev:'+ev.id)&&ilNew('ev:'+ev.id)?' fd':''}" data-ev="${ev.id}" data-new="ev:${ev.id}" style="--rc:${TIER_COL[t]}"><div class="nm"><b>${gEsc(ev.name)}</b><span class="gem"></span></div><div class="art" data-scene="${ev.scene}" data-ev="${ev.id}" data-k="${ev.ico}">${sm?evStillHTML([ev.id])||`<canvas class="rl-m" width="64" height="64" data-k="${ev.ico}"></canvas>`:''}</div>${body}</div>`;
 }
 function mountScene(h,w,hh){if(!h||h.firstChild||document.querySelectorAll('.rl-live iframe:not(.held),.mtg .art iframe:not(.held)').length>=5)return; /* (a page's picture holding on its last frame does not count) */{const R=(h.dataset.ev||'').split(',').map(evRecFor).find(Boolean);if(R&&!w){evReplayMount(h,R);return;}} /* something you witnessed: your own recording of it, live (a demo only for what you have not) */const f=document.createElement('iframe'),nm=h.dataset.s||h.dataset.scene;f.style.cssText='border:0;max-width:100%;pointer-events:none;background:#000;border-radius:6px;'+(w?`width:${w}px;height:${hh}px`:'width:100%;height:100%');
-  if(nm.slice(0,4)==='hub:'){const[sn,dk]=nm.slice(4).split(':');f.src='Surface_Map_HUB.html?v=20261117k&scene='+sn+(sn==='shop'?'&k='+encodeURIComponent(dk||''):'')+'&T='+encodeURIComponent(JSON.stringify(mapSceneT()))+'&D='+encodeURIComponent(JSON.stringify(dk&&DUCK_TYPES[dk]?{[dk]:DUCK_TYPES[dk]}:Object.fromEntries(Object.entries(DUCK_TYPES).slice(0,4))));}else{f.srcdoc=liveSrc(nm,null,h.dataset.hold);if(h.dataset.hold)f.className='held';}h.appendChild(f);} // a Surface Map demo is played by the map itself
+  if(nm.slice(0,4)==='hub:'){const[sn,dk]=nm.slice(4).split(':');f.src='Surface_Map_HUB.html?v=20261117l&scene='+sn+(sn==='shop'?'&k='+encodeURIComponent(dk||''):'')+'&T='+encodeURIComponent(JSON.stringify(mapSceneT()))+'&D='+encodeURIComponent(JSON.stringify(dk&&DUCK_TYPES[dk]?{[dk]:DUCK_TYPES[dk]}:Object.fromEntries(Object.entries(DUCK_TYPES).slice(0,4))));}else{f.srcdoc=liveSrc(nm,null,h.dataset.hold);if(h.dataset.hold)f.className='held';}h.appendChild(f);} // a Surface Map demo is played by the map itself
 function mapSceneT(){const o={};for(const k in T)if(/^(map|bh|duck|wake|glass|metal|dimGlow|glowHalo|maxSpeed)/.test(k))o[k]=T[k];return o;} // what a map demo needs of the tuners
 function showCardHTML(html){ // a Guide card (an entry or a shop) opened over the Guide, where an event card shows
   guideCSS();if(!_evOpen)_evPausedIt=false;_evOpen=true;_evReview=true;const ov=evOverlayEl();ov.innerHTML=`<div class="ev-box">${html}<button id="evOk">${txt('card.close')}</button></div>`;ov.style.display='flex';wrap.classList.add('ev-open');
