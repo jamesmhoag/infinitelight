@@ -513,8 +513,8 @@ const SHOPS={};for(const r of csvRead('shops'))SHOPS[r.id]={n:r.name,tag:r.tag,a
 // SHOP_ITEMS: [id, shop, name, cost, cur (blank: the shop's own, else bright), r (the pop-up rank that first carries it), fx, req (an item owned first), dc (Dim to
 // hold to discover it: the dc_si_<id> tuner), note]. fx: give {kind:n} · cap {kind:max} (raises a purse cap, once) · clock h (turns the map's clock) ·
 // duck roll | exotic | pick | Size | Colour | Material (a duck of that kind) · disc id (reveals an interface element, once) · souv (a Gift Shop souvenir) ·
-// up (an upgrade, once: its effect is still to come)
-const SHOP_ITEMS=csvRead('shop_items').map(r=>[r.id,r.shop,r.name,cellV(r.cost),r.currency,cellV(r.rank),cvJ(r.effect)||{},r.requires,cellV(r.discover_dim),r.note]).map(([id,shop,n,cost,cur,r,fx,req,dc,note])=>({id,shop,n,cost,cur:cur||SHOPS[shop].cur||'bright',r,fx,req:req||null,dc:dc||0,note:note||''}));
+// up (an upgrade, once: its effect is still to come). stock: how many the shop has each run (0: no limit; shopLeft)
+const SHOP_ITEMS=csvRead('shop_items').map(r=>[r.id,r.shop,r.name,cellV(r.cost),r.currency,cellV(r.rank),cvJ(r.effect)||{},r.requires,cellV(r.discover_dim),r.note,cellV(r.stock)]).map(([id,shop,n,cost,cur,r,fx,req,dc,note,stock])=>({id,shop,n,cost,cur:cur||SHOPS[shop].cur||'bright',r,fx,req:req||null,dc:dc||0,note:note||'',stock:stock>0?stock:0}));
 const shopItem=id=>SHOP_ITEMS.find(i=>i.id===id);
 const _signBk=new Map();let _clkSvg=null;const _clkImg={};
 function clockSign(h){ // the Clock smith's sign with its hand at the time of day (12, 3, 6, 9 and round again: noon back to midnight)
@@ -544,6 +544,7 @@ function shopGlowK(){const d=(DUCK_SUN.c[0]+DUCK_SUN.c[1]+DUCK_SUN.c[2])/3;retur
 const _soonSign={};function soonSign(id){if(_soonSign[id])return _soonSign[id];const c=document.createElement('canvas');c.width=600;c.height=300;const g=c.getContext('2d'),S=SHOPS[id]; // a Coming soon sign: big and white on dark, the shop's name under it in its colour
   g.fillStyle='#0d0e12';g.fillRect(0,0,600,300);g.strokeStyle='#ffffff';g.lineWidth=10;g.strokeRect(14,14,572,272);g.textAlign='center';g.textBaseline='middle';g.fillStyle='#ffffff';let F=104;g.font='bold '+F+'px system-ui,sans-serif';while(F>30&&g.measureText(txt('shop.soon.sign')).width>520){F-=4;g.font='bold '+F+'px system-ui,sans-serif';}g.fillText(txt('shop.soon.sign'),300,118);
   g.fillStyle=S.col||'#ffe9a8';let f=52;g.font='bold '+f+'px system-ui,sans-serif';while(f>20&&g.measureText(S.n).width>540){f-=4;g.font='bold '+f+'px system-ui,sans-serif';}g.fillText(S.n,300,222);return _soonSign[id]=c;}
+const shopLeft=(it,run)=>it.stock?Math.max(0,it.stock-((run.sold||{})[it.id]||[]).filter(t=>t<=(run.day||0)*24+(run.clock||3)).length):Infinity; // how many of an item its shop still has (stock: content/shop_items.csv; none set: no limit). run.sold: when each was bought this run, in the map's hours — so a run starts fully stocked, and a time before a purchase (the Clock smith) has it back on the shelf
 const shopOnce=it=>!!(it.fx.cap||it.fx.up||it.fx.disc||it.fx.perm); // bought once and kept (as the discovery 'up:<id>'); the rest can be bought again
 const CLOCK_HOURS=[3,6,9,12,15,18,21,24],CLOCK_MULT=[1,2,3,5,8,13,21,34,55]; // the Clock smith: each time of day away from now costs more (×2 next to it, then ×3, ×5, ×8…)
 const XACT={dim:{buy:9,sell:8.5,up:1.5,down:3.5},magnetic:{buy:0.1,sell:0.085,up:0.015,down:0.035},neutron:{buy:0.1,sell:0.085,up:0.015,down:0.035},pulsing:{buy:0.1,sell:0.085,up:0.015,down:0.035}}; // XACT change: how many of each for one Bright; sold back at sell / buy of what it cost (a little less); a fortune moves the sell rate, a wonder both (×1.1 / ×0.9)

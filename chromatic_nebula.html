@@ -119,7 +119,7 @@ button:hover{background:rgba(255,255,255,0.15);}
   <div id="dock" class="bottom"><div id="inventoryPanel"></div><div id="touch-info"></div></div>
   <canvas id="cur"></canvas>
 </div>
-<script src="content.js?v=20261116c"></script><script src="shared.js?v=20261116c"></script>
+<script src="content.js?v=20261116d"></script><script src="shared.js?v=20261116d"></script>
 <script>
 txtApply(); // the page's own labels (content/strings.csv)
 const _SRC=document.documentElement.outerHTML; // kept so the Encyclopedia can run live scenes as embedded copies of the game
@@ -2080,7 +2080,7 @@ window.addEventListener('storage',e=>{if(e.key!==INV_STORAGE_KEY||!e.newValue||w
 if(!window.__SCENE)IDB.get('inventory').then(raw=>{if(!raw)return;const b=JSON.parse(raw);let loc=null;try{loc=JSON.parse(localStorage.getItem(INV_STORAGE_KEY)||'null');}catch(e){}
   const older=!loc||(b.at||0)>(loc.at||0);if(older){for(const k of INV_KINDS)if(typeof b[k]==='number')inventory[k]=b[k];if(b.luck)duckLuck=Object.assign({d:0,e:0},b.luck);if(b.run)runState=Object.assign(runFresh(),b.run);} // the backup is newer (or the only copy): its counts too
   if(invMerge(b)||older){applyDisc();updateInventoryUI();saveInventory();}}).catch(()=>{});
-function runFresh(){return{day:0,clock:3,fortune:null,dimNext:null,bonus:null,charm:0,draw:null,next:null,keysGone:0,dimDone:{}};}
+function runFresh(){return{day:0,clock:3,fortune:null,dimNext:null,bonus:null,charm:0,draw:null,next:null,keysGone:0,dimDone:{},sold:{}};}
 const runNow=()=>(runState.day||0)*24+(runState.clock||3); // the map's day and time of day as one count of hours (a Daily Wonder's end)
 function fortuneStart(){const c=runState.fortune,g=c&&c.good?FORTUNE_GOOD[c.id]||{}:{};if(g.next)runState.next=g.next;if(g.next==='rare'){runState.keysGone=1;inventory.key=0;}} // yesterday's pick takes hold: a fortune's next drop, and the Keys a rare one costs
 function runExpire(){if(runState.bonus&&runState.bonus.until&&runNow()>=runState.bonus.until){runState.bonus=null;return true;}return false;} // a Daily Wonder's full day is over // (dimDone: what Dim's Carnival has done today — each of its cards is once a day) // a new run's state (shared.js: runBad, runGood, runBonus read it)
@@ -12892,7 +12892,7 @@ function cardHTML(ev,mini,pg){ // the one card format: name bar, art box, type l
   return `<div class="mtg${sm?' sm':mini===2?' pic':''}${!pg&&discSeen.has('ev:'+ev.id)&&ilNew('ev:'+ev.id)?' fd':''}" data-ev="${ev.id}" data-new="ev:${ev.id}" style="--rc:${TIER_COL[t]}"><div class="nm"><b>${gEsc(ev.name)}</b><span class="gem"></span></div><div class="art" data-scene="${ev.scene}" data-ev="${ev.id}" data-k="${ev.ico}">${sm?evStillHTML([ev.id])||`<canvas class="rl-m" width="64" height="64" data-k="${ev.ico}"></canvas>`:''}</div>${body}</div>`;
 }
 function mountScene(h,w,hh){if(!h||h.firstChild||document.querySelectorAll('.rl-live iframe:not(.held),.mtg .art iframe:not(.held)').length>=5)return; /* (a page's picture holding on its last frame does not count) */{const R=(h.dataset.ev||'').split(',').map(evRecFor).find(Boolean);if(R&&!w){evReplayMount(h,R);return;}} /* something you witnessed: your own recording of it, live (a demo only for what you have not) */const f=document.createElement('iframe'),nm=h.dataset.s||h.dataset.scene;f.style.cssText='border:0;max-width:100%;pointer-events:none;background:#000;border-radius:6px;'+(w?`width:${w}px;height:${hh}px`:'width:100%;height:100%');
-  if(nm.slice(0,4)==='hub:'){const[sn,dk]=nm.slice(4).split(':');f.src='Surface_Map_HUB.html?v=20261116c&scene='+sn+(sn==='shop'?'&k='+encodeURIComponent(dk||''):'')+'&T='+encodeURIComponent(JSON.stringify(mapSceneT()))+'&D='+encodeURIComponent(JSON.stringify(dk&&DUCK_TYPES[dk]?{[dk]:DUCK_TYPES[dk]}:Object.fromEntries(Object.entries(DUCK_TYPES).slice(0,4))));}else{f.srcdoc=liveSrc(nm,null,h.dataset.hold);if(h.dataset.hold)f.className='held';}h.appendChild(f);} // a Surface Map demo is played by the map itself
+  if(nm.slice(0,4)==='hub:'){const[sn,dk]=nm.slice(4).split(':');f.src='Surface_Map_HUB.html?v=20261116d&scene='+sn+(sn==='shop'?'&k='+encodeURIComponent(dk||''):'')+'&T='+encodeURIComponent(JSON.stringify(mapSceneT()))+'&D='+encodeURIComponent(JSON.stringify(dk&&DUCK_TYPES[dk]?{[dk]:DUCK_TYPES[dk]}:Object.fromEntries(Object.entries(DUCK_TYPES).slice(0,4))));}else{f.srcdoc=liveSrc(nm,null,h.dataset.hold);if(h.dataset.hold)f.className='held';}h.appendChild(f);} // a Surface Map demo is played by the map itself
 function mapSceneT(){const o={};for(const k in T)if(/^(map|bh|duck|wake|glass|metal|dimGlow|glowHalo|maxSpeed)/.test(k))o[k]=T[k];return o;} // what a map demo needs of the tuners
 function showCardHTML(html){ // a Guide card (an entry or a shop) opened over the Guide, where an event card shows
   guideCSS();if(!_evOpen)_evPausedIt=false;_evOpen=true;_evReview=true;const ov=evOverlayEl();ov.innerHTML=`<div class="ev-box">${html}<button id="evOk">${txt('card.close')}</button></div>`;ov.style.display='flex';wrap.classList.add('ev-open');
@@ -13563,7 +13563,7 @@ window.addEventListener('message',e=>{
 function spendDucks(n,pool){for(let i=0;i<n;i++){const k=pool.reduce((a,b)=>(duckLog[b]||0)>(duckLog[a]||0)?b:a,pool[0]);if(!k||!(duckLog[k]>0))return false;if(!--duckLog[k])delete duckLog[k];}return true;}
 function shopBuy(id,arg,ship){ // ship: bought from a shop you are not at: what it gives is sent in a box (opened on the lake: 'unbox')
   const it=shopItem(id),has=k=>discSeen.has(k);if(!it||it.fx.souv)return{ok:0,msg:'Not for sale here'};const fx=it.fx,own=Object.keys(duckLog).filter(k=>duckLog[k]>0);
-  if(shopOnce(it)&&has('up:'+id))return{ok:0,msg:'Already yours'};if(it.req&&!has('up:'+it.req))return{ok:0,msg:'Needs '+shopItem(it.req).n+' first'};
+  if(shopOnce(it)&&has('up:'+id))return{ok:0,msg:'Already yours'};if(it.req&&!has('up:'+it.req))return{ok:0,msg:'Needs '+shopItem(it.req).n+' first'};if(!shopLeft(it,runState))return{ok:0,msg:'Sold out'};
   if(fx.give)for(const k in fx.give)if(inventory[k]>=invMaxFor(k))return{ok:0,msg:'Your purse is full ('+fmtCount(invMaxFor(k))+' '+k+')'};
   if(fx.draw&&(runState.dimDone||{})[fx.draw])return{ok:0,msg:it.n+' is once a day: come back tomorrow'};const cost=shopPrice(it,runState),sec=fx.draw==='secret'?secretCards():null;if(sec&&!sec.length)return{ok:0,msg:'No secrets left to tell'};
   let pool=own,axis=null;
@@ -13581,6 +13581,7 @@ function shopBuy(id,arg,ship){ // ship: bought from a shop you are not at: what 
     const t=fx.duck==='pick'?arg:fx.duck==='roll'?rollDuckType():pk(DUCK_IDS.filter(k=>k!=='classic'&&(ax?DUCK_TYPES[k].axis===ax:!DUCK_TYPES[k].rare)));
     duckLog[t]=(duckLog[t]||0)+1;got='\u{1F986} '+DUCK_TYPES[t].name;}
   if(fx.disc)discSeen.add(fx.disc);if(shopOnce(it))discSeen.add('up:'+id);shopLog[id]=(shopLog[id]||0)+1;
+  if(it.stock){const S=runState.sold=runState.sold||{};S[id]=(S[id]||[]).filter(t=>t<=runNow()).concat(runNow());} // one off its shelf, at this hour (bought at an earlier time than a later purchase: that later one never happened)
   saveInventory();updateInventoryUI();applyDisc();return{ok:1,msg:got,draw,ship:ship||null};}
 function secretCards(){const c=[...EVENTS.filter(e=>!evSeen(e.id)).map(e=>({id:'ev:'+e.id,ev:e.id,n:e.name})),...RULES.filter(e=>!ruleOk(e[0])).map(e=>({id:'g_'+e[0],rule:e[0],n:e[2]}))];return c.sort(()=>Math.random()-0.5).slice(0,3);} // what a Card of Secrets can turn up: events not yet witnessed, and Guide entries not yet found that the Guide would show
 function shopPick(i){const d=runState.draw,c=d&&d.cards[i];if(!c)return{ok:0,text:'Nothing to pick'};runState.draw=null;let title,text; // a card turned over: what it gives

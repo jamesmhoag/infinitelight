@@ -237,6 +237,9 @@ map.gift.yessub,(enter the GIFT SHOP),Surface Map,
 map.gift.no,No,Surface Map,
 map.gift.nosub,(not yet),Surface Map,
 map.shop.yours,✓ yours,Surface Map,
+map.shop.soldout,Sold out,Surface Map,
+map.shop.left,{left} of {stock} left,Surface Map,"left = $0 — how many the shop still has
+stock = $1 — how many it has each run"
 map.shop.tomorrow,tomorrow,Surface Map,
 map.shop.upsoon,its effect is still to come,Surface Map,
 map.shop.souvkept,kept: you have {kept},Surface Map,kept = $0 — souvenirs of this kind you have
