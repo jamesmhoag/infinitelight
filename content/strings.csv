@@ -7,6 +7,15 @@ rank = $1 — the rank
 shop = $2 — the shop's name"
 tune.save,Save vars…,Tune menu,
 tune.load,Load vars…,Tune menu,
+tune.preset.pick,Presets…,Tune menu,
+tune.preset.name,Preset name,Tune menu,
+tune.preset.save,Save,Tune menu,
+tune.preset.delete,Delete,Tune menu,
+tune.preset.need_name,Name the preset first.,Tune menu,
+tune.preset.saved,Preset saved: {name},Tune menu,name = $0 — the preset's name
+tune.preset.loaded,Preset: {name},Tune menu,name = $0 — the preset's name
+tune.preset.deleted,Preset deleted: {name},Tune menu,name = $0 — the preset's name
+tune.preset.nospace,No room left in this browser to keep that preset.,Tune menu,
 tune.filter,Filter settings…,Tune menu,
 tune.tab.theme,Theme,Tune menu,
 tune.tab.gameplay,Gameplay,Tune menu,
