@@ -120,7 +120,7 @@ button:hover{background:rgba(255,255,255,0.15);}
   <div id="dock" class="bottom"><div id="inventoryPanel"></div><div id="touch-info"></div></div>
   <canvas id="cur"></canvas>
 </div>
-<script src="content.js?v=20261117h"></script><script src="shared.js?v=20261117h"></script>
+<script src="content.js?v=20261117i"></script><script src="shared.js?v=20261117i"></script>
 <script>
 txtApply(); // the page's own labels (content/strings.csv)
 const _SRC=document.documentElement.outerHTML; // kept so the Encyclopedia can run live scenes as embedded copies of the game
@@ -7497,7 +7497,9 @@ function applyForce(src,tgt,scale,dt,eR){
   scale*=dialFxMul(tgt);if(scale<=0)return; // launched by the String: unaffected during its time, then gradually affected
   let dx=tgt.x-src.x,dy=tgt.y-src.y;
   if(dx>W*0.5)dx-=W;else if(dx<-W*0.5)dx+=W;if(dy>H*0.5)dy-=H;else if(dy<-H*0.5)dy+=H;
-  const spin=src.ci===1||src.ci===2||src.ci===3,wallT=performance.now(),held=spin&&tgt._orbSrc===src.id&&wallT-(tgt._orbT||0)<150;
+  const spin=src.ci===1||src.ci===2||src.ci===3,wallT=performance.now();
+  let os=null;if(spin){const S=tgt._orbS||(tgt._orbS=new Map());os=S.get(src.id);if(os&&wallT-os.t>=150){S.delete(src.id);os=null;}} // each Orbit / Fling / Pull holding it keeps its OWN catch (where it took hold, how far along, which way round): several at once no longer restart each other's catch every frame (which held the target still)
+  const held=!!os;
   const reach=held&&Math.hypot(tgt.vx-(src.vx||0),tgt.vy-(src.vy||0))<T.maxSpeed*T.fxEscapeSpd?eR*T.fxHoldReach:eR; // once caught it is held a little beyond the edge, unless it is fast
   const d2=dx*dx+dy*dy;if(d2>reach*reach||d2<0.25)return;
   const d=Math.sqrt(d2),nx=dx/d,ny=dy/d,tx=ny,ty=-nx;
@@ -7517,19 +7519,19 @@ function applyForce(src,tgt,scale,dt,eR){
     // curves that velocity onto the intended path: a circle at the distance the effect took hold (Orbit), or one whose radius grows (Fling) / shrinks
     // (Pull) at Spiral rate. Spin change is limited by the same force rate and by Max rot spd, so a target that cannot turn hard enough misses its path.
     const rvx=tgt.vx-(src.vx||0),rvy=tgt.vy-(src.vy||0),s0=Math.hypot(rvx,rvy),tv=rvx*tx+rvy*ty;
-    let dir=tgt._orbDir||0;
-    if(s0>0.02&&Math.abs(tv)>0.15*s0)dir=tv>0?1:-1;else if(!dir)dir=tgt.rot?(tgt.rot>0?-1:1):1; // keep the sense it is already circling in
-    tgt._orbDir=dir;
     const rate=src.ci===2?0:(src.ci===1?T.spiralRate:-T.spiralRate);
-    if(!held){tgt._orbSrc=src.id;tgt._orbR=Math.min(d,eR*0.85);tgt._orbAge=0;} // caught: its path is locked at the distance it entered at (kept inside the edge)
-    tgt._orbT=wallT;tgt._orbAge+=dt; // (simulation time, so slow motion slows the catch too)
-    const cu=Math.min(1,tgt._orbAge/Math.max(1,T.fxCatchMs)),c=cu*cu*(3-2*cu); // the catch: 0 → 1, eased; the effect itself only builds as it takes control
-    tgt._orbR+=rate*dtS*c;
+    if(!os){ // caught: its path is locked at the distance it entered at (kept inside the edge), and which way round it goes is decided now and kept while this effect holds it (the way it was already moving, else its spin, else clockwise) — re-deciding it every frame flipped it on any nudge, a wobble
+      const dir=s0>0.02&&Math.abs(tv)>0.15*s0?(tv>0?1:-1):tgt.rot?(tgt.rot>0?-1:1):1;
+      os={R:Math.min(d,eR*0.85),age:0,dir,t:wallT};tgt._orbS.set(src.id,os);}
+    os.t=wallT;os.age+=dt;tgt._orbSrc=src.id;tgt._orbT=wallT; // (simulation time, so slow motion slows the catch too) (_orbSrc / _orbT: held by a spin effect at all, for the exit spin and the Dim WHIRL)
+    const dir=os.dir,share=1/Math.max(1,[...tgt._orbS.values()].filter(q=>wallT-q.t<150).length); // held by several at once: each gives its share (they blend into one path instead of fighting to a standstill)
+    const cu=Math.min(1,os.age/Math.max(1,T.fxCatchMs)),c=cu*cu*(3-2*cu); // the catch: 0 → 1, eased; the effect itself only builds as it takes control
+    os.R+=rate*dtS*c;
     const sOrb=Math.max(0.05,Math.min(T.maxSpeed,T.maxRotSpeed*T.rotCurveMult*d)); // orbital speed here
-    const rvDes=rate+T.orbitSteer*0.1*(tgt._orbR-d); // radial speed that keeps it on the intended radius
+    const rvDes=rate+T.orbitSteer*0.1*(os.R-d); // radial speed that keeps it on the intended radius
     const sinB=Math.max(-0.9,Math.min(0.9,rvDes/sOrb)),cosB=Math.sqrt(1-sinB*sinB);
     const hx=dir*cosB*tx+sinB*nx,hy=dir*cosB*ty+sinB*ny; // intended heading
-    const K=src.ci===1?T.kFling:(src.ci===2?T.kOrbit:T.kPull),acc=K*(T.forceFloor+T.forceCeil)*FORCE_BASE*Math.max(0,scale)*dtS; // velocity change allowed per frame
+    const K=src.ci===1?T.kFling:(src.ci===2?T.kOrbit:T.kPull),acc=K*(T.forceFloor+T.forceCeil)*FORCE_BASE*Math.max(0,scale)*dtS*share; // velocity change allowed per frame
     const cap=acc*(1+(T.fxCatchK-1)*(1-c)); // stray momentum is neutralised quickly first…
     let dvx=hx*sOrb*c-rvx,dvy=hy*sOrb*c-rvy;const dm=Math.hypot(dvx,dvy); // …toward the intended path, whose speed builds as the catch completes
     if(dm>cap){dvx*=cap/dm;dvy*=cap/dm;}
@@ -7537,7 +7539,7 @@ function applyForce(src,tgt,scale,dt,eR){
     const nvx=tgt.vx-(src.vx||0),nvy=tgt.vy-(src.vy||0),s1=Math.hypot(nvx,nvy);
     const e=s1>0.01?Math.atan2(nvx*hy-nvy*hx,nvx*hx+nvy*hy):0; // turn that would line its velocity up with the intended heading
     const cmd=(-dir*s1*cosB/d+T.orbitSteer*e)/Math.max(0.0001,T.rotCurveMult);
-    const maxStep=K*T.rotForceMult*(T.forceFloor+T.forceCeil)*FORCE_BASE*Math.max(0,scale)*dtS;
+    const maxStep=K*T.rotForceMult*(T.forceFloor+T.forceCeil)*FORCE_BASE*Math.max(0,scale)*dtS*share;
     const want=Math.max(-T.maxRotSpeed,Math.min(T.maxRotSpeed,cmd))*c; // spin is eased in too, so nothing entering is spun out
     tgt.rot+=Math.max(-maxStep,Math.min(maxStep,want-(tgt.rot||0)));
     return;
@@ -9551,7 +9553,7 @@ let settleTimer=0;
 let _hdOn=false,_hdAny=false;
 
 function exitSpinStep(p,now,timeScale){ // after leaving an Orbit / Fling / Whirl ring, spin bleeds down to Exit spin keep of what it left with
-  if(p._orbSrc!==undefined&&now-(p._orbT||0)>150){p._orbSrc=undefined;p._exitRot=Math.abs(p.rot||0);} // just left an Orbit / Fling / Whirl ring (applyForce stopped refreshing it)
+  if(p._orbSrc!==undefined&&now-(p._orbT||0)>150){p._orbSrc=undefined;p._orbS=undefined;p._exitRot=Math.abs(p.rot||0);} // just left an Orbit / Fling / Whirl ring (applyForce stopped refreshing it)
   else if(p._orbSrc!==undefined)p._exitRot=0; // back inside one: the effect owns its spin again
   if(p._exitRot&&p.rotGoal===undefined){ // its spin bleeds down to Exit spin keep of what it left with, so the curve opens out and it moves away from the source
     const fl=p._exitRot*T.exitSpinKeep,a=Math.abs(p.rot||0),nr=a-(p._exitRot-fl)*timeScale*16.67/Math.max(1,T.exitSpinMs);
@@ -13004,7 +13006,7 @@ function cardHTML(ev,mini,pg){ // the one card format: name bar, art box, type l
   return `<div class="mtg${sm?' sm':mini===2?' pic':''}${!pg&&discSeen.has('ev:'+ev.id)&&ilNew('ev:'+ev.id)?' fd':''}" data-ev="${ev.id}" data-new="ev:${ev.id}" style="--rc:${TIER_COL[t]}"><div class="nm"><b>${gEsc(ev.name)}</b><span class="gem"></span></div><div class="art" data-scene="${ev.scene}" data-ev="${ev.id}" data-k="${ev.ico}">${sm?evStillHTML([ev.id])||`<canvas class="rl-m" width="64" height="64" data-k="${ev.ico}"></canvas>`:''}</div>${body}</div>`;
 }
 function mountScene(h,w,hh){if(!h||h.firstChild||document.querySelectorAll('.rl-live iframe:not(.held),.mtg .art iframe:not(.held)').length>=5)return; /* (a page's picture holding on its last frame does not count) */{const R=(h.dataset.ev||'').split(',').map(evRecFor).find(Boolean);if(R&&!w){evReplayMount(h,R);return;}} /* something you witnessed: your own recording of it, live (a demo only for what you have not) */const f=document.createElement('iframe'),nm=h.dataset.s||h.dataset.scene;f.style.cssText='border:0;max-width:100%;pointer-events:none;background:#000;border-radius:6px;'+(w?`width:${w}px;height:${hh}px`:'width:100%;height:100%');
-  if(nm.slice(0,4)==='hub:'){const[sn,dk]=nm.slice(4).split(':');f.src='Surface_Map_HUB.html?v=20261117h&scene='+sn+(sn==='shop'?'&k='+encodeURIComponent(dk||''):'')+'&T='+encodeURIComponent(JSON.stringify(mapSceneT()))+'&D='+encodeURIComponent(JSON.stringify(dk&&DUCK_TYPES[dk]?{[dk]:DUCK_TYPES[dk]}:Object.fromEntries(Object.entries(DUCK_TYPES).slice(0,4))));}else{f.srcdoc=liveSrc(nm,null,h.dataset.hold);if(h.dataset.hold)f.className='held';}h.appendChild(f);} // a Surface Map demo is played by the map itself
+  if(nm.slice(0,4)==='hub:'){const[sn,dk]=nm.slice(4).split(':');f.src='Surface_Map_HUB.html?v=20261117i&scene='+sn+(sn==='shop'?'&k='+encodeURIComponent(dk||''):'')+'&T='+encodeURIComponent(JSON.stringify(mapSceneT()))+'&D='+encodeURIComponent(JSON.stringify(dk&&DUCK_TYPES[dk]?{[dk]:DUCK_TYPES[dk]}:Object.fromEntries(Object.entries(DUCK_TYPES).slice(0,4))));}else{f.srcdoc=liveSrc(nm,null,h.dataset.hold);if(h.dataset.hold)f.className='held';}h.appendChild(f);} // a Surface Map demo is played by the map itself
 function mapSceneT(){const o={};for(const k in T)if(/^(map|bh|duck|wake|glass|metal|dimGlow|glowHalo|maxSpeed)/.test(k))o[k]=T[k];return o;} // what a map demo needs of the tuners
 function showCardHTML(html){ // a Guide card (an entry or a shop) opened over the Guide, where an event card shows
   guideCSS();if(!_evOpen)_evPausedIt=false;_evOpen=true;_evReview=true;const ov=evOverlayEl();ov.innerHTML=`<div class="ev-box">${html}<button id="evOk">${txt('card.close')}</button></div>`;ov.style.display='flex';wrap.classList.add('ev-open');
