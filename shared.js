@@ -554,8 +554,8 @@ const xactGets=(it,run)=>it.fx.xbuy?Math.floor(it.cost*xactRate(it.fx.xbuy,run).
 function tuneFmt(v,step){if(step>=1&&v>=10000)return Math.round(v).toLocaleString('en-US');return step<0.005?v.toFixed(4):step<0.01?v.toFixed(3):step<0.1?v.toFixed(2):step<1?v.toFixed(1):v.toString();} // as many places as its step has
 function tuneSnap(d,v){v=parseFloat(String(v).replace(/,/g,''));if(!isFinite(v))return null;const st=+d.step||0,mn=+d.min,mx=+d.max;v=Math.max(mn,Math.min(mx,v));if(st>0)v=mn+Math.round((v-mn)/st)*st;return Math.max(mn,Math.min(mx,+v.toFixed(6)));} // a typed value: within its range, on its nearest step
 function tuneValInput(d,get,set){ // the value beside a tuner's slider, and a box to type one in: Enter (or leaving it) sets it, corrected to its range and nearest step; Esc puts it back
-  const el=document.createElement('input');el.type='text';el.inputMode='decimal';el.className='tval';el.spellcheck=false;const show=()=>{el.value=tuneFmt(+get(),+d.step||0);};show();
-  const go=()=>{const v=tuneSnap(d,el.value);if(v!=null)set(v);show();};
+  const el=document.createElement('input');el.type='text';el.inputMode='decimal';el.className='tval';el.spellcheck=false;const show=()=>{const v=get();el.value=v==null?'':tuneFmt(+v,+d.step||0);if(d.ph)el.placeholder=d.ph();};show();
+  const go=()=>{if(d.empty&&!el.value.trim()){set(null);show();return;}const v=tuneSnap(d,el.value);if(v!=null)set(v);show();}; // (d.empty: a box left empty means "none set"; d.ph: what it shows then)
   el.addEventListener('keydown',e=>{e.stopPropagation();if(e.key==='Enter'){go();el.blur();}else if(e.key==='Escape'){show();el.blur();}}); // (typing here is not a game key)
   el.addEventListener('change',go);el.addEventListener('focus',()=>el.select());el._show=show;return el;}
 /* Test mode (Modes → Test mode, on the map and on a surface; each player's own). mode: on (the save was snapshotted as it came on, and is put back as it goes off);
