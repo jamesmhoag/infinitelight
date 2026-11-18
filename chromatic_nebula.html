@@ -120,7 +120,7 @@ button:hover{background:rgba(255,255,255,0.15);}
   <div id="dock" class="bottom"><div id="inventoryPanel"></div><div id="touch-info"></div></div>
   <canvas id="cur"></canvas>
 </div>
-<script src="content.js?v=20261118n"></script><script src="shared.js?v=20261118n"></script>
+<script src="content.js?v=20261118o"></script><script src="shared.js?v=20261118o"></script>
 <script>
 txtApply(); // the page's own labels (content/strings.csv)
 const _SRC=document.documentElement.outerHTML; // kept so the Encyclopedia can run live scenes as embedded copies of the game
@@ -6362,7 +6362,14 @@ function updateCached(p){const m=p.radMult||1;p.cachedVR=calcVR(p.mass)*m*(p.siz
 let buildSeed=0;
 
 let wrapRect=null;
-function fitCanvas(){ // the canvas keeps its own particle size (never stretched or cropped by a window resize); if the window is a different size it is simply centred on the theme colour
+function fitWorld(){ // the window is not the size the surface was made at (a save restored in a different window, or the window resized): the world is stretched to fill it
+  // (every position mapped from the grid's rect to the whole window, the grid's pitch stretched to match), so the surface always covers the screen exactly: no bands, no wrap seam
+  const ww=wrap.offsetWidth,wh=wrap.offsetHeight;if(!W||!GW||!ww||!wh||ww===W&&wh===H&&!GRID_OX&&!GRID_OY)return;
+  const ox=GRID_OX,oy=GRID_OY,sx=ww/(GW*PIXEL_SIZE),sy=wh/(GH*PIXEL_SY),sc=o=>{if(o&&typeof o.x==='number'){o.x=(o.x-ox)*sx;o.y=(o.y-oy)*sy;}};
+  for(const p of active)sc(p);for(const p of dormant)sc(p);for(const d of ducks)sc(d);if(blackHole)sc(blackHole);
+  W=ww;H=wh;canvas.width=W;canvas.height=H;PIXEL_SIZE=W/GW;PIXEL_SY=H/GH;GRID_OX=GRID_OY=0;PIXEL_DISPLAY_R=PIXEL_SIZE;PIXEL_TRIGGER_R=PIXEL_SIZE*0.35;nebBlurStale=true;nebDirty=true;updateRect();}
+let _fitT=0;window.addEventListener('resize',()=>{clearTimeout(_fitT);_fitT=setTimeout(fitWorld,250);}); // (once the window has settled)
+function fitCanvas(){ // the canvas at its size, centred (fitWorld makes that the window's own)
   const ww=wrap.offsetWidth,wh=wrap.offsetHeight;canvas.style.width=W+'px';canvas.style.height=H+'px';
   canvas.style.left=Math.round((ww-W)/2)+'px';canvas.style.top=Math.round((wh-H)/2)+'px';
   const bg=invertMode?'#fff':'#000';wrap.style.background=bg;document.body.style.background=bg;document.documentElement.style.background=bg;
@@ -6701,6 +6708,7 @@ function loadMapFromObject(data,keepT){
   maxWhites=data.maxWhites||0;if(Array.isArray(data.invDisabled)){invDisabled=new Set(data.invDisabled);saveInventory();}
   lastActivatedId=-1;fpsCount=0;fpsLast=performance.now();dispersions.length=0;flashes.length=0;
   buildSeed=data.buildSeed||Math.random()*100;
+  fitWorld(); // (saved in another window size: stretched to this one)
   rebuildNebula();
 }
 function resetSceneState(){resetAudioState();ducks.length=0;goods.length=0;surfaceStartSnapshot=null;lastGateSnapshot=null;gateStates=[];gateCursor=0;whiteChain.length=0;armedInvItem=null;clearFieldsSilently();gateFx=null;keyFx=null;conMode=false;pendingActs.clear();activeBonds.length=0;pendingDial.clear();fixedShapes.length=0;shapeBuild=null;_glassList=[];_gateList=[];_zoneList=[];_plateList=[];shardFx.length=0;_shapeSet=new Set();_grpPrev=new Map();inertSel=[];inertBox=null;}
@@ -13087,7 +13095,7 @@ function cardHTML(ev,mini,pg){ // the one card format: name bar, art box, type l
   return `<div class="mtg${sm?' sm':mini===2?' pic':''}${!pg&&discSeen.has('ev:'+ev.id)&&ilNew('ev:'+ev.id)?' fd':''}" data-ev="${ev.id}" data-new="ev:${ev.id}" style="--rc:${TIER_COL[t]}"><div class="nm"><b>${gEsc(ev.name)}</b><span class="gem"></span></div><div class="art" data-scene="${ev.scene}" data-ev="${ev.id}" data-k="${ev.ico}">${sm?evStillHTML([ev.id])||`<canvas class="rl-m" width="64" height="64" data-k="${ev.ico}"></canvas>`:''}</div>${body}</div>`;
 }
 function mountScene(h,w,hh){if(!h||h.firstChild||document.querySelectorAll('.rl-live iframe:not(.held),.mtg .art iframe:not(.held)').length>=5)return; /* (a page's picture holding on its last frame does not count) */{const R=(h.dataset.ev||'').split(',').map(evRecFor).find(Boolean);if(R&&!w){evReplayMount(h,R);return;}} /* something you witnessed: your own recording of it, live (a demo only for what you have not) */const f=document.createElement('iframe'),nm=h.dataset.s||h.dataset.scene;f.style.cssText='border:0;max-width:100%;pointer-events:none;background:#000;border-radius:6px;'+(w?`width:${w}px;height:${hh}px`:'width:100%;height:100%');
-  if(nm.slice(0,4)==='hub:'){const[sn,dk]=nm.slice(4).split(':');f.src='Surface_Map_HUB.html?v=20261118n&scene='+sn+(sn==='shop'?'&k='+encodeURIComponent(dk||''):'')+'&T='+encodeURIComponent(JSON.stringify(mapSceneT()))+'&D='+encodeURIComponent(JSON.stringify(dk&&DUCK_TYPES[dk]?{[dk]:DUCK_TYPES[dk]}:Object.fromEntries(Object.entries(DUCK_TYPES).slice(0,4))));}else{f.srcdoc=liveSrc(nm,null,h.dataset.hold);if(h.dataset.hold)f.className='held';}h.appendChild(f);} // a Surface Map demo is played by the map itself
+  if(nm.slice(0,4)==='hub:'){const[sn,dk]=nm.slice(4).split(':');f.src='Surface_Map_HUB.html?v=20261118o&scene='+sn+(sn==='shop'?'&k='+encodeURIComponent(dk||''):'')+'&T='+encodeURIComponent(JSON.stringify(mapSceneT()))+'&D='+encodeURIComponent(JSON.stringify(dk&&DUCK_TYPES[dk]?{[dk]:DUCK_TYPES[dk]}:Object.fromEntries(Object.entries(DUCK_TYPES).slice(0,4))));}else{f.srcdoc=liveSrc(nm,null,h.dataset.hold);if(h.dataset.hold)f.className='held';}h.appendChild(f);} // a Surface Map demo is played by the map itself
 function mapSceneT(){const o={};for(const k in T)if(/^(map|bh|duck|wake|glass|metal|dimGlow|glowHalo|maxSpeed)/.test(k))o[k]=T[k];return o;} // what a map demo needs of the tuners
 function showCardHTML(html){ // a Guide card (an entry or a shop) opened over the Guide, where an event card shows
   guideCSS();if(!_evOpen)_evPausedIt=false;_evOpen=true;_evReview=true;const ov=evOverlayEl();ov.innerHTML=`<div class="ev-box">${html}<button id="evOk">${txt('card.close')}</button></div>`;ov.style.display='flex';wrap.classList.add('ev-open');
