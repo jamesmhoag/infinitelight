@@ -426,7 +426,7 @@ surf.lens,Lens,surface,
 surf.places_particles_points_and,"Particles, pigments, Points, remnants and relics (middle click: type · wheel: colour or kind)",surface,
 surf.click_swipe_double_click,"Click / swipe / double-click (nearest Max-activated targets): each touched point or particle is enlarged (it bursts like a nova) or shrunk (it implodes everything near inward) — one random outcome per gesture, 1 Neutron each",surface,
 surf.click_a_dim_remnant,Click a Dim Remnant: it is consumed and becomes a stationary DEPTH (bigger for a heavier remnant) — click it again to destroy it; a new one removes whatever it overlaps. Costs Dim every interval while it stands,surface,
-surf.click_a_bright_remnant,"Click a Bright Remnant: it is consumed and becomes a stationary BALANCE (a square turned like the remnant, bigger for a heavier one) — everything inside freezes (lifespans too), the outside bounces off; click it again to destroy it and let it all move on. A new one removes whatever it overlaps. Costs Bright every interval while it stands",surface,
+surf.click_a_bright_remnant,"Click a Bright Remnant: it is consumed and becomes a stationary BALANCE (a square turned like the remnant, bigger the more energy it has, up to Balance half-side) — everything inside freezes (lifespans too), the outside bounces off; click it again to destroy it and let it all move on. A new one removes whatever it overlaps. Costs Bright every interval while it stands",surface,
 surf.harmony_colour_click_swipe,HARMONY (colour) — click / swipe / double-click (nearest Max-activated targets): everything touched (points and particles) takes ONE random new colour effect — each at its own place in that colour's range — 1 each,surface,
 surf.rhythm_motion_click_swipe,"RHYTHM (motion) — click / swipe / double-click (nearest Max-activated targets): everything touched (particles wake) gets the SAME one random motion — one direction, one speed, one spin (straight, or a big / mid / tight arc; fast or slow) — 1 each",surface,
 surf.sets_speed_spin_of,Sets speed / spin of Points & remnants — STOP by default (wheel: 7 states),surface,
@@ -605,6 +605,20 @@ life = $5 — its life left"
 surf.edge,{ok}{edge} edge,surface,"ok = $0 — ""＋ "" when it can be placed
 edge = $1 — the edge's kind"
 surf.click_to_shine_right,click to shine · right-click to stop all shining,surface,
+surf.item_active,{icon} {item} active,surface,"icon = $0 — the item's icon
+item = $1 — its name"
+surf.use_dim,click a Dim Remnant: a DEPTH there · click it again to close it,surface,
+surf.use_bright,click a Bright Remnant: a BALANCE there (more energy: bigger) · click it again to close it,surface,
+surf.use_neutron,"click, swipe or double-click points: each enlarged or shrunk · 1 each",surface,
+surf.use_magnetic,"click, swipe or double-click points: each takes one new colour effect · 1 each",surface,
+surf.use_pulsing,"click, swipe or double-click points: all take one shared motion · 1 each",surface,
+surf.use_dial,click: a shot that sets the speed and spin of Points and remnants · wheel: its setting,surface,
+surf.use_leash,link lit points into a Pattern · 1 per Pattern,surface,
+surf.use_prism,link a loop round a point: what is inside takes its colour,surface,
+surf.use_gate,link a loop of lit points: a Gate · a Key opens it,surface,
+surf.use_knot,link three points: what is inside the loop dims,surface,
+surf.use_key,click: your oldest Key is driven through the surface,surface,
+surf.use_lens,link a loop of lit points or remnants: a Lens · click inside a Pattern to fill it,surface,
 surf.fps_sim_ms_draw,"{paused}{fps} fps{fps_min}
 sim {sim} ms{sim_max}
 draw {draw} ms{draw_max}

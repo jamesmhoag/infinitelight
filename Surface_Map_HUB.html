@@ -343,7 +343,7 @@ function riftFxDraw(now){const c=mctx;riftFx=riftFx.filter(f=>f.t0==null||now-f.
       for(const h of f.from){if(h.bright)add(h.x,h.y,'255,255,255',false,40);else add(h.x,h.y,null,false,22);if(h.shop)add(h.x,h.y,'40,40,52',true,14);} // shattered into glowing white; the rest its own colours; a shop, in pieces
       for(let i=0;i<30;i++){const a=Math.random()*6.2832,r=HEX*(1+Math.random()*1.6);f.ps.push({x:f.x+Math.cos(a)*r,y:f.y+Math.sin(a)*r,col:null,rot:0,vr:0,d:Math.random()*0.3});}}
     const tw=Math.min(1,(now-f.t0)/140),L=HEX*0.8*tw,P=new Path2D(),[ax,ay]=[Math.cos(f.a),Math.sin(f.a)]; // it snaps open (faster than its wave)
-    if(tw<1)riftStripe(P,X-ax*L,Y-ay*L,X+ax*L,Y+ay*L,HEX*0.16*Math.max(0.2,tw),f.k.length,HEX*0.3,true);if(tw<1)drawRiftGlow(c,P,now,HEX/160);
+    if(tw<1)riftStripe(P,[[X-ax*L,Y-ay*L],[X+ax*L,Y+ay*L]],HEX*0.16*Math.max(0.2,tw),f.k.length,HEX*0.3,true);if(tw<1)drawRiftGlow(c,P,now,HEX/160);
     const wu=Math.min(1,(now-f.t0-60)/900);if(wu>0&&wu<1){const R=HEX*4.6*Math.sqrt(wu);c.save();c.globalCompositeOperation='screen';c.lineWidth=HEX*0.22*(1-wu);c.strokeStyle=`rgba(255,255,255,${(0.85*(1-wu)).toFixed(3)})`;c.beginPath();c.arc(X,Y,R,0,6.2832);c.stroke(); // the wave: a ring, as a nova's seen from above
       c.filter=`blur(${(HEX*0.12).toFixed(1)}px)`;c.strokeStyle=`rgba(255,140,30,${(0.7*(1-wu)).toFixed(3)})`;c.lineWidth=HEX*0.4*(1-wu);c.stroke();c.restore();}
     c.save();c.globalCompositeOperation='screen';for(const p of f.ps){const pu=Math.max(0,Math.min(1,(u*1.6-p.d)/(1-p.d))),e=pu*pu*pu,x=p.x+(f.x-p.x)*e,y=p.y+(f.y-p.y)*e;if(pu<=0||pu>=1)continue;const[px,py]=w2s(x,y),a=(1-pu*pu);
@@ -365,9 +365,9 @@ function riftsDraw(now){ // every Rift's scar, in the Dark Remnant's pulsing glo
   riftFxDraw(now);const rs=Object.keys(cells).filter(k=>cells[k].rift&&!(cells[k].rift.fx!==undefined&&(cells[k].rift.fx===null||now-cells[k].rift.fx<140)));if(!rs.length)return; /* (one still to open, or opening: its effect draws it) */const set=new Set(rs),P=new Path2D(),w=HEX*0.11,ctr=k=>w2s(...a2w(cells[k].q,cells[k].r)),nb=k=>neighbors(cells[k].q,cells[k].r).map(([q,r])=>K(q,r)).filter(n=>set.has(n)),seed=k=>(cells[k].q*7.3+cells[k].r*13.1);
   const inTri=new Set();for(const a of rs)for(const b of nb(a))for(const c of nb(b))if(c!==a&&nb(c).includes(a)&&!inTri.has(a)&&!inTri.has(b)&&!inTri.has(c)){riftPoly(P,[ctr(a),ctr(b),ctr(c)],w*0.6,seed(a));inTri.add(a).add(b).add(c);} // three that touch: a triangle
   const done=new Set();for(const a of rs){if(inTri.has(a))continue;const ns=nb(a); // (beside a triangle: its edge runs on into the triangle's corner, so the shapes join)
-    if(!ns.length){const t=cells[a].rift.a,[x,y]=ctr(a),L=HEX*0.8;riftStripe(P,x-Math.cos(t)*L,y-Math.sin(t)*L,x+Math.cos(t)*L,y+Math.sin(t)*L,w*1.4,seed(a),HEX*0.3,true);continue;} // alone: across its hex
+    if(!ns.length){const t=cells[a].rift.a,[x,y]=ctr(a),L=HEX*0.8;riftStripe(P,[[x-Math.cos(t)*L,y-Math.sin(t)*L],[x+Math.cos(t)*L,y+Math.sin(t)*L]],w*1.4,seed(a),HEX*0.3,true);continue;} // alone: across its hex
     for(const b of ns){const id=a<b?a+'|'+b:b+'|'+a;if(done.has(id))continue;done.add(id);const[x0,y0]=ctr(a),[x1,y1]=ctr(b),dx=x1-x0,dy=y1-y0,l=Math.hypot(dx,dy)||1,ea=nb(a).length===1?HEX*0.75:0,eb=nb(b).length===1?HEX*0.75:0; // side by side: one edge, out past each end
-      riftStripe(P,x0-dx/l*ea,y0-dy/l*ea,x1+dx/l*eb,y1+dy/l*eb,w*1.4,seed(a)+seed(b),HEX*0.3,true);}}
+      riftStripe(P,[[x0-dx/l*ea,y0-dy/l*ea],[x1+dx/l*eb,y1+dy/l*eb]],w*1.4,seed(a)+seed(b),HEX*0.3,true);}}
   drawRiftGlow(mctx,P,now,HEX/160);}
 function completeCaptureForCell(cellKey,kind,tally){
   const c=cells[cellKey];if(!c||c.cap)return;
