@@ -10496,7 +10496,7 @@ function renderWorld(now,suppressGlow,asPlay){
   // and laid over the scene once — the fill cost no longer grows with every activated point's radius squared.
   const gs=Math.max(0.15,Math.min(1,T.glowResScale)),glw=Math.max(2,Math.ceil(W*gs)),glh=Math.max(2,Math.ceil(H*gs));
   if(!glowLow||glowLow.width!==glw||glowLow.height!==glh){glowLow=document.createElement('canvas');glowLow.width=glw;glowLow.height=glh;glowLowCtx=glowLow.getContext('2d');}
-  const gl=glowLowCtx;gl.setTransform(gs,0,0,gs,0,0);gl.globalAlpha=1;gl.globalCompositeOperation='source-over';gl.clearRect(0,0,W,H);
+  const gl=glowLowCtx;gl.setTransform(1,0,0,1,0,0);gl.globalAlpha=1;gl.globalCompositeOperation='source-over';gl.clearRect(0,0,glw,glh);gl.setTransform(gs,0,0,gs,0,0); // (cleared whole, in its own pixels: W×H at this scale is rarely whole rows, and a last row left part-cleared kept every glow that reached it, a stain along the bottom edge whenever the window is not full screen)
   gl.save();gl.globalCompositeOperation='screen';
   for(let i=0;i<active.length;i++){const p=active[i];
     const zcg=_zoneList.length?zoneClip(gl,p.x,p.y):false; // the glow of an effect radius stops at the boundary too
@@ -10519,7 +10519,7 @@ function renderWorld(now,suppressGlow,asPlay){
     if(zcg)gl.restore();
   }
   gl.restore();
-  pointsCtx.save();pointsCtx.globalCompositeOperation='screen';pointsCtx.imageSmoothingEnabled=true;pointsCtx.drawImage(glowLow,0,0,glw,glh,0,0,W,H);pointsCtx.restore();
+  pointsCtx.save();pointsCtx.globalCompositeOperation='screen';pointsCtx.imageSmoothingEnabled=true;pointsCtx.drawImage(glowLow,0,0,glw,glh,0,0,glw/gs,glh/gs); // (at exactly its scale: its rounded-up last row lies past the edge, not stretched over it)pointsCtx.restore();
 
   const n=active.length;
   if(n>0){
