@@ -4439,6 +4439,7 @@ function adjustArmedItemEffect(delta){
 const ICO_REV={'\uE001':'dim','\uE002':'bright','\uE003':'magnetic','\uE004':'pulsing','\uE005':'neutron','\uE006':'dial','\uE007':'leash','\uE008':'prism','\uE009':'gate','\uE00A':'knot','\uE00B':'key','\uE00C':'lens'};
 const INV_ICON={create:'✚',shapes:'⬡',goods:'❖',entangle:'⧉',dim:'\uE001',bright:'\uE002',magnetic:'\uE003',pulsing:'\uE004',neutron:'\uE005',dial:'\uE006',leash:'\uE007',prism:'\uE008',gate:'\uE009',knot:'\uE00A',key:'\uE00B',lens:'\uE00C'};
 const INV_LABEL={create:txt('surf.create'),shapes:txt('surf.shapes'),goods:txt('surf.goods'),entangle:txt('surf.entangle'),bright:txt('surf.balance'),dim:txt('surf.depth'),neutron:txt('surf.dynamism'),magnetic:txt('surf.harmony'),pulsing:txt('surf.rhythm'),dial:txt('surf.string'),leash:txt('surf.spindle'),prism:txt('surf.prism'),gate:txt('surf.gate'),knot:txt('surf.knot'),key:txt('surf.key'),lens:txt('surf.lens')};
+const ITEM_USE={};for(const k of ['dim','bright','neutron','magnetic','pulsing','dial','leash','prism','gate','knot','key','lens'])ITEM_USE[k]=txt('surf.use_'+k); // an active item, in a line: how it is used (the feed, while it is active)
 const INV_DESC={
   create:txt('surf.places_particles_points_and'),shapes:txt('surf.shapes_desc'),goods:txt('surf.goods_desc'),entangle:txt('surf.entangle_desc'),
   neutron:txt('surf.click_swipe_double_click'),
@@ -4825,7 +4826,8 @@ function placeField(kind,x,y,now){
   let rem=null,bd=1e9;
   for(const q of active){if(!q.isRemnant||q.remKind!==(kind==='dim'?'brown':'white')||q._embed||q.dying||q.captured||q._stasis)continue;const d=Math.hypot(_wrapD(q.x-x,W),_wrapD(q.y-y,H));if(d<=Math.max(T.touchR,placedRadius(q)+2)&&d<bd){bd=d;rem=q;}}
   if(!rem){flashSaveStatus(txt('surf.under_the_cursor_it',(kind==='dim'?txt('surf.depth_needs_a_dim'):txt('surf.balance_needs_a_bright'))));return false;}
-  const R=kind==='dim'?massToRadius(rem.mass,T.dimWhirlRMin,T.dimWhirlR,T.dimMassMin,T.dimMassMax):massToRadius(rem.mass,T.brightStasisRMin,T.brightStasisR,T.brightMassMin,T.darkMass/4),r0=Math.max(1,placedRadius(rem));
+  const R=kind==='dim'?massToRadius(rem.mass,T.dimWhirlRMin,T.dimWhirlR,T.dimMassMin,T.dimMassMax):T.brightStasisRMin+(T.brightStasisR-T.brightStasisRMin)*Math.min(1,Math.max(0,rem.energy||0)/Math.max(0.01,T.brightStasisEMax||1)), // (a BALANCE: by the remnant's energy, up to Balance half-side)
+    r0=Math.max(1,placedRadius(rem));
   x=rem.x;y=rem.y;
   logEv('placed '+kind+' field at '+(x|0)+','+(y|0));
   for(const h of placedFields.slice())if(fieldDist(h,x,y)<fieldR(h)+R)destroyFieldObj(h,now); // fields cannot overlap: the newest destroys whatever it is placed on
@@ -5312,8 +5314,9 @@ function collectRemnant(c){
   const per=remnantValue(c.p,c.kind),got=_collectFor?per:boomBust(Math.min(per,Math.max(1,invMaxFor(c.kind)-inventory[c.kind]))); // (a Boom or Bust day: ×5 or nothing)
   if(_collectFor)mpGot(c.kind,got);else{addInventory(c.kind,got);surfaceTally[c.kind]=(surfaceTally[c.kind]||0)+got;if(MP.live)MP.score.host+=got;} // a second player's pickup is theirs
   if(!_batchSnd){const cp=c.p.remKind?c.p:Object.assign({},c.p,{remKind:'brown'});_playRemnantActionSoundInner(cp,false,1);} // exactly the tuner's pickup sound for that remnant type
-  spawnCollectSparks(c.p); // the remnant's edge breaks into particles that gather inward and rise
-  earnFx.push({kind:'plus',x:c.p.x,y:c.p.y-14,text:(_collectFor?(_collectFor.name||'Friend')+' ':'')+INV_ICON[c.kind]+' +'+got,born:performance.now(),dur:1100});if(_collectFor)return true;
+  if(NET.sum&&!_collectFor)NET.sum[c.kind]=(NET.sum[c.kind]||0)+got; // one catch of the net: summed, one burst and one +n per kind when it is all in (netTick)
+  else{spawnCollectSparks(c.p); // the remnant's edge breaks into particles that gather inward and rise
+  earnFx.push({kind:'plus',x:c.p.x,y:c.p.y-14,text:(_collectFor?(_collectFor.name||'Friend')+' ':'')+INV_ICON[c.kind]+' +'+got,born:performance.now(),dur:1100});}if(_collectFor)return true;
   {const nf=performance.now();if(collectFeed.kind===c.kind&&nf-collectFeed.t<1500){collectFeed.n++;collectFeed.got+=got;}else collectFeed={kind:c.kind,n:1,got,t:nf};collectFeed.t=nf;flashSaveStatus(txt('surf.collected_for',INV_ICON[c.kind],collectFeed.n,COLLECT_NAME[c.kind],(collectFeed.n===1?'':txt('surf.s')),collectFeed.got,INV_LABEL[c.kind]));}
   return true;
 }
@@ -5343,52 +5346,56 @@ function tryPickupRemnant(mx,my){
   if(!netScoop([c],mx,my,Math.max(T.cursorBaseR,8)*1.1,false))collectRemnant(c);lastCollectAll={kind:c.kind,t:performance.now(),x:mx,y:my}; // scooped: collected as the net comes up
   return true;
 }
-// ── The net (collecting): pointing at a remnant, the cursor's ring becomes the net's hoop (the dot still at its centre), the net trailing loose and wavy behind it as
-// the remnant is followed; it comes up out of the depth and sinks away as the nib does. A dab splashes the net in, flips it over in a half circle and collects
-// (a few ripples). A double dab swells the hoop out round every remnant of that kind in reach (Net double × Touch rad at most), draws them in as it shrinks back,
-// flips and collects (ripples at its start, its widest and its finish, and a splash). A held press (wiping or not) never collects: what the dipped hoop passes
-// over is gathered into the net and rides in it, out of every collision (as good as collected: it cannot escape), until the press ends and the net flips and
-// collects it all. Wiping, the hoop stands on edge, the net streaming straight behind at Net wake spd and drooping and waving more as it slows until, stopped,
-// it hangs as on hover; its wake is the pigment's bow wake (drawWakeShape) scaled by that same speed. Under the surface the hoop and net are dimmed (Net under α)
-const NET={dips:[],rip:[],spl:[],held:[],rope:null,v:0,w:0,wi:0,s:0,fx:0,fy:1,x:0,y:0,R:12,last:0},netCol=now=>chromaRGB(now).map(v=>Math.round(246+(v-246)*0.08)).join(), // the net: white, with a breath of the chromatic wheel (as the Net below deck)
-  NET_PH={one:[0,0.35,0.3,0.8,1],dbl:[0.3,0.55,0.5,0.85,1.6]},netSm=u=>u<=0?0:u>=1?1:u*u*(3-2*u); // a scoop's phases (of its length): widest, drawn in by, flip from, collected at; its length × Net scoop ms
+// ── The net (collecting): pointing at a remnant, the cursor's ring becomes the net's hoop (the dot still at its centre), the net hanging down into the depth and
+// trailing back along the cursor's path, loose and wavy; it comes up out of the depth and sinks away as the nib does. A dab splashes the net in, draws the remnant
+// in, pauses, then flips the net over in a half circle with a snap and collects (ripples, a splash). A double dab swells the hoop out round every remnant of that
+// kind in reach (Net double × Touch rad at most), draws them in as it shrinks back, flips and collects (ripples at its start, its widest and its finish, a splash).
+// A held press (wiping or not) never collects: what the dipped hoop passes over is gathered into the net and rides in it, out of every collision (as good as
+// collected: it cannot escape), until the press ends and the net flips and collects it all. Whatever one flip collects counts as one catch: one burst, one sound,
+// the values summed (+n for each kind). Wiping, the hoop stands on edge, the net streaming back along the path at Net wake spd and sinking into the depth and waving
+// more as it slows until, stopped, it hangs as on hover; its wake is the pigment's bow wake (drawWakeShape) scaled by that same speed. Under the surface the hoop
+// and net are dimmed (Net under α)
+const NET={dips:[],rip:[],spl:[],held:[],rope:null,sum:null,v:0,w:0,wi:0,s:0,fx:1,fy:0,x:0,y:0,R:12,last:0},netCol=now=>chromaRGB(now).map(v=>Math.round(246+(v-246)*0.08)).join(), // the net: white, with a breath of the chromatic wheel (as the Net below deck)
+  NET_PH={one:[0,0.3,0.4,0.72,0.78,1],dbl:[0.25,0.45,0.52,0.75,0.8,1.5]},netSm=u=>u<=0?0:u>=1?1:u*u*(3-2*u), // a scoop's beats (of its length): widest, drawn in by, flip from, flip to, collected at; its length × Net scoop ms
+  netSnap=u=>u<=0?0:u>=1?1:1+2.70158*Math.pow(u-1,3)+1.70158*Math.pow(u-1,2); // the flip: slow to start, then over with a snap that overshoots and settles
 function netRipple(x,y,R,a){NET.rip.push({x,y,R,a:a||1,t0:performance.now()});}
 function netKeep(c){if(!c||!c.p||c.p._collected||c.p._netAt||!c.kind)return;c.p._netAt=performance.now();c.j=Math.random()*6.2832;unbond(c.p);NET.held.push(c);if(NET.held.length>1)playScaleStep();} // gathered into the net while the press is held (a rising glissando links them)
 function netScoop(cs,x,y,R,dbl){const now=performance.now(),list=cs.filter(c=>c&&c.p&&!c.p._collected&&!c.p._netAt);if(!list.length)return false;let R1=NET.R;
   for(const c of list){c.p._netAt=now;c.ox=_wrapD(c.p.x-x,W);c.oy=_wrapD(c.p.y-y,H);if(dbl)R1=Math.max(R1,Math.min(R,Math.hypot(c.ox,c.oy)+placedRadius(c.p)+4));} // a double dab's hoop swells just far enough to take in every one
-  NET.dips.push({x,y,R0:NET.R,R1,dbl,cs:list,t0:now});NET.v=0;netRipple(x,y,NET.R,1);splashAdd(NET.spl,x,y,NET.R*(dbl?1:1.6),dbl?5:8);return true;}
-function netTick(now){const D=Math.max(60,T.netScoopMs||320);
-  for(const d of NET.dips){const P=NET_PH[d.dbl?'dbl':'one'],u=(now-d.t0)/(D*P[4]),k=netSm((u-P[0])/(P[1]-P[0]));
+  NET.dips.push({x,y,R0:NET.R,R1,dbl,cs:list,t0:now,bx:-NET.fx,by:-NET.fy});NET.v=0;netRipple(x,y,NET.R,1);splashAdd(NET.spl,x,y,NET.R*3,dbl?8:12,3);return true;} // (bx, by: back along the path it came, where the net trails)
+function netTick(now){const D=Math.max(60,T.netScoopMs||750);
+  for(const d of NET.dips){const P=NET_PH[d.dbl?'dbl':'one'],u=(now-d.t0)/(D*P[5]),k=netSm((u-P[0])/(P[1]-P[0]));
     if(!d.done)for(const c of d.cs)if(!c.p._collected&&!c.p.dying){c.p.x=d.x+c.ox*(1-k);c.p.y=d.y+c.oy*(1-k);c.p.vx=c.p.vy=0;} // drawn in to the hoop's middle (a double dab's as it shrinks back)
     if(d.dbl&&!d.ap&&u>=P[0]){d.ap=1;netRipple(d.x,d.y,d.R1,0.8);} // at its widest
-    if(!d.done&&u>=P[3]){d.done=true;const live=d.cs.filter(c=>!c.p._collected&&!c.p.dying&&active.indexOf(c.p)>=0);
+    if(!d.fl&&u>=P[3]){d.fl=1;netRipple(d.x,d.y,d.R0,0.8);splashAdd(NET.spl,d.x,d.y,d.R0*3,6,3);} // the snap of the flip
+    if(!d.done&&u>=P[4]){d.done=true;const live=d.cs.filter(c=>!c.p._collected&&!c.p.dying&&active.indexOf(c.p)>=0);
       if(mouseDown)NET.held.push(...live); // pressed again before it came up: they stay in the net and follow it until the press ends
-      else{for(const c of d.cs)c.p._netAt=0;
-        if(live.length>1){_batchSnd=true;let n=0,rep1=null;try{for(const c of live){if(collectRemnant(c)===false)break;n++;if(!rep1)rep1=c.p;}}finally{_batchSnd=false;}if(rep1&&rep1.remKind)_playRemnantActionSoundInner(rep1,false,Math.min(1.6,1+n*0.05));}
-        else for(const c of live)collectRemnant(c);lastCollectDoneAt=now;}
-      netRipple(d.x,d.y,d.R0*0.8,0.7);netRipple(d.x+d.R0*0.5,d.y-d.R0*0.3,d.R0*0.45,0.5);if(d.dbl)splashAdd(NET.spl,d.x,d.y,d.R0*1.8,10);}}
-  NET.dips=NET.dips.filter(d=>now-d.t0<D*NET_PH[d.dbl?'dbl':'one'][4]);NET.rip=NET.rip.filter(r=>now-r.t0<(T.netRippleMs||700));
+      else{for(const c of d.cs)c.p._netAt=0;NET.sum={};_batchSnd=true;let n=0,rep1=null;try{for(const c of live){if(collectRemnant(c)===false)break;n++;if(!rep1)rep1=c.p;}}finally{_batchSnd=false;} // one catch: one burst, one sound, one sum
+        if(rep1){spawnCollectSparks(rep1);_playRemnantActionSoundInner(rep1.remKind?rep1:Object.assign({},rep1,{remKind:'brown'}),false,Math.min(1.6,1+(n-1)*0.05));let row=0;for(const kd in NET.sum)earnFx.push({kind:'plus',x:d.x,y:d.y-14-16*row++,text:INV_ICON[kd]+' +'+NET.sum[kd],born:now,dur:1300});}
+        NET.sum=null;lastCollectDoneAt=now;}
+      netRipple(d.x,d.y,d.R0*0.8,1);netRipple(d.x+d.R0*0.5,d.y-d.R0*0.3,d.R0*0.5,0.7);splashAdd(NET.spl,d.x,d.y,d.R0*3,d.dbl?14:8,3);}}
+  NET.dips=NET.dips.filter(d=>now-d.t0<D*NET_PH[d.dbl?'dbl':'one'][5]);NET.rip=NET.rip.filter(r=>now-r.t0<(T.netRippleMs||900));
   if(!mouseDown&&NET.held.length){const h=NET.held;NET.held=[];for(const c of h)c.p._netAt=0;netScoop(h,NET.x,NET.y,NET.R,false);}} // the press is over: the net flips and collects what it carried
 function netDraw(cx,now,cR,col,on){ // the net on the cursor, the scoops, the wake, the ripples and the splashes (the cursor layer)
-  const D=Math.max(60,T.netScoopMs||320),RM=T.netRippleMs||700,ua=T.netUnderA!=null?T.netUnderA:0.45,x=mouse.x,y=mouse.y,dt=NET.last?Math.min(100,now-NET.last):16,f=dt/16;NET.last=now;
+  const D=Math.max(60,T.netScoopMs||750),RM=T.netRippleMs||900,ua=T.netUnderA!=null?T.netUnderA:0.45,x=mouse.x,y=mouse.y,dt=NET.last?Math.min(100,now-NET.last):16,f=dt/16;NET.last=now;
   const mv=Math.hypot(x-NET.x,y-NET.y);if(mv>0.3&&mv<W*0.5){NET.fx+=((x-NET.x)/mv-NET.fx)*0.35;NET.fy+=((y-NET.y)/mv-NET.fy)*0.35;const l=Math.hypot(NET.fx,NET.fy)||1;NET.fx/=l;NET.fy/=l;}
   NET.s+=(Math.min(mv,W*0.5)/f-NET.s)*(1-Math.exp(-dt/90));NET.x=x;NET.y=y;NET.R=cR;const s=Math.min(1,NET.s/Math.max(1,T.netWakeSpd||24)); // how fast the net is moving: 0 still, 1 at Net wake spd or past it
   on=on&&!NET.dips.length;NET.v+=((on?1:0)-NET.v)*(1-Math.exp(-dt/(on?70:160)));NET.w+=((collectHold?1:0)-NET.w)*(1-Math.exp(-dt/60)); // up quickly, away more slowly (as the nib); w: dipped (held)
-  const N=6,L=cR*0.45,r=NET.rope||(NET.rope=Array.from({length:N},(_,i)=>({x,y:y+i*L,px:x,py:y+i*L}))),wet=NET.w*s,g=cR*0.06*(1-wet),dm=Math.pow(NET.w>0.5?0.78:0.88,f); // the net's line: it follows the hoop, its weight drooping it the slower it goes
-  r[0].x=r[0].px=x;r[0].y=r[0].py=y;for(let i=1;i<N;i++){const n=r[i],vx=(n.x-n.px)*dm,vy=(n.y-n.py)*dm;n.px=n.x;n.py=n.y;n.x+=vx;n.y+=vy+g*f*f;}
-  for(let it=0;it<2;it++)for(let i=1;i<N;i++){const a=r[i-1],n=r[i],dx=n.x-a.x,dy=n.y-a.y,dd=Math.hypot(dx,dy)||1;n.x=a.x+dx/dd*L;n.y=a.y+dy/dd*L;}
+  const N=6,L=cR*0.5*(0.3+0.7*s),r=NET.rope||(NET.rope=Array.from({length:N},(_,i)=>({x:x-NET.fx*i*L,y:y-NET.fy*i*L}))); // the net's line: it hangs down into the depth, so on the screen only the part dragged back along the path shows, longer the faster it goes
+  r[0].x=x;r[0].y=y;for(let i=1;i<N;i++){const a=r[i-1],n=r[i];let dx=n.x-a.x,dy=n.y-a.y,dd=Math.hypot(dx,dy);if(dd<0.01){dx=-NET.fx;dy=-NET.fy;dd=1;}n.x=a.x+dx/dd*L;n.y=a.y+dy/dd*L;} // each knot follows the one before it: the net lies back along the way it came
   for(const c of NET.held){const p=c.p,n=r[N-2];p.x=n.x+Math.cos(c.j)*cR*0.25;p.y=n.y+Math.sin(c.j)*cR*0.25;p.vx=p.vy=0;} // what it gathered rides in the bottom of the net
-  if(!T.netOn){NET.spl.length=0;return;}cx.save();cx.lineCap='round';
-  for(const rp of NET.rip){const u=(now-rp.t0)/RM;for(let k=0;k<2;k++){const v=u-k*0.18;if(v<=0)continue;cx.beginPath();cx.arc(rp.x,rp.y,rp.R*(0.9+v*1.6),0,6.2832);cx.strokeStyle=`rgba(${col},${(0.45*rp.a*(1-v)*(1-v)).toFixed(3)})`;cx.lineWidth=1.2*(1-v)+0.3;cx.stroke();}}
-  if(NET.w>0.01){NET.wi+=((NET.s>0.6?1:0)-NET.wi)*(1-Math.exp(-dt/120));const cc=col.split(',').map(Number);drawWakeShape(cx,x,y,NET.fx,NET.fy,cR*2.5,s,T.wakeMaxA*NET.wi*NET.w,cc,cc);} // wiping: the one wake, its shape by speed
-  for(const d of NET.dips){const P=NET_PH[d.dbl?'dbl':'one'],u=Math.min(1,(now-d.t0)/(D*P[4])),Rd=d.dbl?(u<P[0]?d.R0+(d.R1-d.R0)*netSm(u/P[0]):d.R1+(d.R0-d.R1)*netSm((u-P[0])/(P[1]-P[0]))):d.R0,
-    fk=netSm((u-P[2])/(P[3]-P[2])),out=netSm((u-P[3])/(1-P[3])),dip=Math.min(1,u/0.12)*(1-out),sq=Math.cos(Math.PI*fk),by=Rd*2.2*sq; // the half circle flip: the hoop goes over on edge, the net swinging up over it (the whole net swelling with a double dab's hoop)
-    netHoop(cx,d.x,d.y,Rd,sq,(1-out)*(1-(1-ua)*dip),col,Array.from({length:N},(_,i)=>[d.x+Math.sin(now/90+i)*d.R0*0.08*(i/N)*(1-fk*fk),d.y+by*i/(N-1)]));}
-  if(NET.v>0.01){const e=NET.v*NET.v*(3-2*NET.v),amp=cR*(NET.w>0.5?0.06+0.16*(1-s):0.22),wt=now/300; // wavier the slower it goes (as loose as on hover once still)
-    netHoop(cx,x,y,cR*(1+0.35*(1-e)),1-0.78*NET.w,e*(1-(1-ua)*NET.w),col,r.map((n,i)=>{const a=r[Math.max(0,i-1)],b=r[Math.min(N-1,i+1)],dx=b.x-a.x,dy=b.y-a.y,l=Math.hypot(dx,dy)||1,o=amp*Math.sin(wt-i*1.2)*i/(N-1);return[n.x-dy/l*o,n.y+dx/l*o];}));}
-  splashDraw(cx,NET.spl,now,dt);cx.restore();}
-function netHoop(cx,x,y,R,sq,A,col,pts){ // the hoop (squashed by sq: 1 flat, 0 on edge, its flat side across the net's way) and the net along pts (from the hoop's middle to its bottom)
-  const N=pts.length,tx=pts[N-1][0]-x,ty=pts[N-1][1]-y,tl=Math.hypot(tx,ty),ux=tl>0.5?tx/tl:0,uy=tl>0.5?ty/tl:1,ry=Math.max(0.6,R*Math.abs(sq)),
+  if(!T.netOn){NET.spl.length=0;return;}cx.save();cx.lineCap='round';cx.globalCompositeOperation='lighter';
+  for(const rp of NET.rip){const u=(now-rp.t0)/RM;for(let k=0;k<3;k++){const v=u-k*0.16;if(v<=0||v>=1)continue;cx.beginPath();cx.arc(rp.x,rp.y,rp.R*(0.9+v*2.4),0,6.2832);cx.strokeStyle=`rgba(${col},${(0.85*rp.a*(1-v)*(1-v)).toFixed(3)})`;cx.lineWidth=1.8*(1-v)+0.5;cx.stroke();}}
+  if(NET.w>0.01){NET.wi+=((NET.s>0.6?1:0)-NET.wi)*(1-Math.exp(-dt/120));const cc=col.split(',').map(Number);drawWakeShape(cx,x,y,NET.fx,NET.fy,cR*4,s,Math.min(0.9,T.wakeMaxA*2.4)*NET.wi*NET.w,cc,cc);} // wiping: the one wake, its shape by speed
+  splashDraw(cx,NET.spl,now,dt);cx.globalCompositeOperation='source-over';
+  for(const d of NET.dips){const P=NET_PH[d.dbl?'dbl':'one'],u=Math.min(1,(now-d.t0)/(D*P[5])),Rd=d.dbl?(u<P[0]?d.R0+(d.R1-d.R0)*netSm(u/P[0]):d.R1+(d.R0-d.R1)*netSm((u-P[0])/(P[1]-P[0]))):d.R0,
+    ph=Math.PI*netSnap((u-P[2])/(P[3]-P[2])),out=netSm((u-P[4])/(1-P[4])),dip=Math.min(1,u/0.12)*(1-out),sq=Math.cos(ph),tl=Rd*(0.45*Math.cos(ph)+1.6*Math.sin(ph)); // the half circle flip: the net comes up out of the depth, over and down the other side of the hoop
+    netHoop(cx,d.x,d.y,Rd,sq,(1-out)*(1-(1-ua)*dip*Math.max(0,sq)),col,Array.from({length:N},(_,i)=>[d.x+d.bx*tl*i/(N-1)-d.by*Math.sin(now/90+i)*d.R0*0.06*(i/N),d.y+d.by*tl*i/(N-1)+d.bx*Math.sin(now/90+i)*d.R0*0.06*(i/N)]),d.bx,d.by);}
+  if(NET.v>0.01){const e=NET.v*NET.v*(3-2*NET.v),amp=cR*(NET.w>0.5?0.05+0.12*(1-s):0.16),wt=now/300; // wavier the slower it goes (as loose as on hover once still)
+    netHoop(cx,x,y,cR*(1+0.35*(1-e)),1-0.78*NET.w,e*(1-(1-ua)*NET.w),col,r.map((n,i)=>{const a=r[Math.max(0,i-1)],b=r[Math.min(N-1,i+1)],dx=b.x-a.x,dy=b.y-a.y,l=Math.hypot(dx,dy)||1,o=amp*Math.sin(wt-i*1.2)*i/(N-1);return[n.x-dy/l*o,n.y+dx/l*o];}),-NET.fx,-NET.fy);}
+  cx.restore();}
+function netHoop(cx,x,y,R,sq,A,col,pts,bx,by){ // the hoop (squashed by sq: 1 flat, 0 on edge, its flat side across the net's way) and the net along pts (from the hoop's middle to its bottom; bx, by: its way when it hangs straight into the depth)
+  const N=pts.length,tx=pts[N-1][0]-x,ty=pts[N-1][1]-y,tl=Math.hypot(tx,ty),ux=tl>0.5?tx/tl:bx||0,uy=tl>0.5?ty/tl:by==null?1:by,ry=Math.max(0.6,R*Math.abs(sq)),
     at=(i,fr)=>{const p=pts[i],q=pts[Math.min(N-1,i+1)],o=pts[Math.max(0,i-1)];let dx=q[0]-o[0],dy=q[1]-o[1];const l=Math.hypot(dx,dy);if(l<0.01){dx=ux;dy=uy;}else{dx/=l;dy/=l;}const w=R*Math.pow(1-i/(N-1),0.8)*fr;return[p[0]-dy*w,p[1]+dx*w];};
   cx.strokeStyle=`rgba(${col},${(0.5*A).toFixed(3)})`;cx.lineWidth=0.7;cx.beginPath(); // the net: lines from the hoop's rim gathering to its bottom, and two bands across
   for(let j=0;j<=8;j++){const fr=Math.cos(Math.PI*j/8),al=Math.sin(Math.PI*j/8)*ry;cx.moveTo(x-uy*fr*R+ux*al,y+ux*fr*R+uy*al);
@@ -5512,7 +5519,7 @@ function triggerBlackRemnant(x,y,now,mass,energy,fromGate,rift){ // rift: a Rift
   if(!rift)fireEvent('dark',{x,y});
   blackHole={x,y,targetR,consumeR:0,waveR:0,growStart:now,phase:'grow',activateR:0,scoreMass:0,scoreEnergy:0,collapsedMass:mass||0,collapsedEnergy:energy||0,complete:false,wakes:[],impacts:[],inv:invertMode};
   if(fromGate==='nogrow')blackHole.growStart=now-T.blackGrowMs-1; // released from a Gate: already full size, no re-appearing
-  if(rift){const f=rift.a!=null,a=f?rift.a:Math.random()*Math.PI,w0=T.riftWMin||40,w=w0+Math.random()*Math.max(0,(T.riftWMax||80)-w0);Object.assign(blackHole,{rift:{a,nx:-Math.sin(a),ny:Math.cos(a),seed:f?rift.seed:Math.random()*100},targetR:w/2,phase:f?'grow':'crack',crackStart:now});} // (rift: a crack that formed (riftForms) opens along its own line at once) // a Rift: a line across the screen at a random angle (through where the mass was), its black stripe 40–80 px wide
+  if(rift){const f=rift.a!=null,a=f?rift.a:Math.random()*Math.PI,w0=T.riftWMin||40,w=w0+Math.random()*Math.max(0,(T.riftWMax||80)-w0);Object.assign(blackHole,{rift:{a,nx:-Math.sin(a),ny:Math.cos(a),seed:f?rift.seed:Math.random()*100},targetR:w/2,phase:f?'grow':'crack',crackStart:now});blackHole.rift.pts=riftSpine(x,y,blackHole.rift);} // (its line: the crack's own legs, riftSpine) // (rift: a crack that formed (riftForms) opens along its own line at once) // a Rift: a line across the screen at a random angle (through where the mass was), its black stripe 40–80 px wide
   else blackHole._spawnPurge=true; // applied at the start of the next Dark Remnant update (this can be called mid collision pass, where `active` must not shrink)
   releaseMouseDown(now);pressedIDs.clear();pendingActs.clear();lastActivatedId=-1;
   armedInvItem=null;setConMode(false); // the Dark Remnant takes over completely — no armed tool or Pattern mode survives its appearance
@@ -5782,7 +5789,7 @@ function drawBlackRemnantBG(ctx,now){
 }
 function voidPath(P){ // the Dark Remnant's / Rift's pure black core (every wrapped copy), added to Path2D P: what no light in the scene may brighten
   const bh=blackHole;if(!bh||bh.phase==='crack')return P;const R=Math.max(0.5,bh.consumeR);
-  if(bh.rift){const r=bh.rift,L=Math.hypot(W,H);riftStripe(P,bh.x-r.ny*L,bh.y+r.nx*L,bh.x+r.ny*L,bh.y-r.nx*L,R,r.seed,70);}
+  if(bh.rift)riftStripe(P,bh.rift.pts,R,bh.rift.seed,70);
   else wrapCopies(bh.x,bh.y,R,(ox,oy)=>{P.moveTo(bh.x+ox+R,bh.y+oy);P.arc(bh.x+ox,bh.y+oy,R,0,6.2832);});return P;}
 function drawBlackRemnant(ctx,now){
   if(!blackHole)return;
@@ -10367,7 +10374,7 @@ function renderWorld(now,suppressGlow,asPlay){
     // In the normal scheme the background is already black so this is invisible/harmless; in Invert mode it's the
     // thing that actually carries the background from white to black as the Dark Remnant finishes consuming the surface.
     const bgR=Math.min(Math.sqrt(W*W+H*H),blackHole.activateR);
-    if(bgR>0){ctx.save();ctx.beginPath();if(blackHole.rift){ctx.translate(blackHole.x,blackHole.y);ctx.rotate(blackHole.rift.a);const L=Math.hypot(W,H);ctx.rect(-L,-bgR,2*L,2*bgR);}else ctx.arc(blackHole.x,blackHole.y,bgR,0,6.2832);ctx.fillStyle=blackHole.rift?`rgba(255,255,255,${(T.riftWashA!=null?T.riftWashA:0.28).toFixed(3)})`:'#000';ctx.fill();ctx.restore();} // (a Rift's: a band along it)
+    if(bgR>0){ctx.save();ctx.beginPath();if(blackHole.rift){const r=blackHole.rift.pts;ctx.moveTo(...r[0]);for(const q of r)ctx.lineTo(...q);ctx.lineJoin='round';ctx.lineWidth=2*bgR;ctx.strokeStyle='#000';ctx.stroke();}else{ctx.arc(blackHole.x,blackHole.y,bgR,0,6.2832);ctx.fillStyle='#000';ctx.fill();}ctx.restore();} // (a Rift's: a band along its line)
   }
 
   if(!pointsCanvas){pointsCanvas=document.createElement('canvas');pointsCtx=pointsCanvas.getContext('2d');}
@@ -11246,6 +11253,8 @@ function updateInfoAndStats(now,hoverObj){
       d=d?d+'  ·  '+hoverStr:hoverStr;
     }
     setFeed(INV_ICON[armedInvItem&&CREATE_KINDS.includes(armedInvItem.kind)?armedInvItem.kind:'create']+' '+createLabel(),d,'rgba(255,255,255,0.92)');
+  } else if(armedInvItem&&ITEM_USE[armedInvItem.kind]&&!(armedInvItem.kind==='prism'&&hoverObj&&prismValidTarget(hoverObj))){ // an item active: the feed says which, and how it is used
+    const k=armedInvItem.kind;setFeed(txt('surf.item_active',INV_ICON[k],INV_LABEL[k]),ITEM_USE[k],'rgba(255,225,140,0.95)');
   } else if(armedInvItem&&armedInvItem.kind==='prism'&&hoverObj&&prismValidTarget(hoverObj)){
     // Prism, hovering a valid target: show both what it currently is AND the active-word it will become, e.g.
     // "Orbit → Attract" — not just its current state, which is all the generic info readout below shows.
@@ -13012,7 +13021,8 @@ const EVENTS=csvRead('events').map(r=>{const f=r.facts.split('\n');return{id:r.i
 let _evQ=[],_evOpen=false,_evPausedIt=false,_evReview=false,_evHand=[],_evAct=0,_evDraw=false; // _evDraw: a Carnival draw is showing (it closes only by picking) // discoveries made together come as a hand: one card shown, the rest to pick
 function fireEvent(id,at,src){if(!window.__SCENE&&!BUILD)stat('ev:'+id);if(window.__SCENE||BUILD||discSeen.has('ev:'+id)||_evQ.indexOf(id)>=0||!EVENTS.some(e=>e.id===id))return;if(!at&&EV_FRAME[id]==='f')at={x:W/2,y:H/2}; // (the whole surface: its centre)
   discSeen.add('ev:'+id);saveInventory();evDeskSync(); // discovered as it happens (the Journal has it at once); new until it is looked at, anywhere (ilNew)
-  const sz=EV_FRAME[id];if(at&&sz&&!_rulesOpen&&!_menuOpen&&!_evOpen&&!isPaused){evCapStart(id,at,sz,src);return;}_evQ.push(id);} // where it happened, a capture frames it as it unfolds (src: what its subject came of: the Point a remnant formed from, the two that merged, a Pattern's Points); anything else is a card at once
+  const sz=EV_FRAME[id];if(!_evOpen&&!_evCap&&[..._evDesk,...evNew()].some(i=>i!==id)){if(at&&sz)evQuietRec(id,at,sz);_evDesk.push(id);evDeskSync();return;} // some still to review: it joins them on the desk (recorded quietly for its card), play goes on
+  if(at&&sz&&!_rulesOpen&&!_menuOpen&&!_evOpen&&!isPaused){evCapStart(id,at,sz,src);return;}_evQ.push(id);} // where it happened, a capture frames it as it unfolds (src: what its subject came of: the Point a remnant formed from, the two that merged, a Pattern's Points); anything else is a card at once
 // ── Event capture: the moment an event first happens, the game does not stop at once. A frame (a faint line with sparkles, brighter as it starts) follows it
 // round the surface (wrapping with it), sized by its kind (EV_FRAME: small for a pigment or Point, large for a Dark Remnant or a nova, the whole screen for a
 // Rift), the game slows by Event slow (with the novas' slows) and the scene is recorded (a rolling recording keeps Event pre ms before it). If nothing else
@@ -14265,28 +14275,35 @@ Object.assign(RULE_EV,{duck:'duck'}); /* (duckexo: learned when an exotic one co
 // sides, parallel to it, and everything is drawn straight across to it and consumed (bursts of spikes where it hits), by the Dark Remnant's own
 // collapse settings (blackHole with .rift: every distance is to its line). Remnants can still be collected at the last second. On the Surface Map
 // the hex is gone: a scar (see riftCell there).
-function bhVec(bh,x,y){if(!bh.rift)return[_wrapD(x-bh.x,W),_wrapD(y-bh.y,H)];const r=bh.rift,s=(x-bh.x)*r.nx+(y-bh.y)*r.ny;return[r.nx*s,r.ny*s];} // from the hole (a Dark Remnant's centre, or the nearest point of a Rift's line) out to (x,y)
-function bhReach(bh){if(!bh.rift)return Math.sqrt(W*W+H*H);let m=0;for(const[x,y]of[[0,0],[W,0],[0,H],[W,H]])m=Math.max(m,Math.abs((x-bh.x)*bh.rift.nx+(y-bh.y)*bh.rift.ny));return m;} // how far its wave runs to cover the screen
-function riftCrackPath(x,y,r,n,P){ // the crack, in four stages (n: 0–4, fractional while one runs): from where the mass was, out both ways along the Rift's line to the screen's edges. Each side's way to its
-  // edge is cut in quarters: the first stage runs a quarter of it each way (the whole line's two eighths), and every stage after runs on another quarter from each end, its angle tweaked a few degrees
-  // (Rift stage bend): at the fourth, the eight eighths reach the edges. Jagged like glass, short splinters off it
-  P=P||new Path2D();const tx=r.ny,ty=-r.nx,bend=(T.riftBend!=null?T.riftBend:5)*Math.PI/180;
-  for(const sd of[-1,1]){const dx=tx*sd,dy=ty*sd,toE=Math.min(dx>1e-6?(W-x)/dx:dx<-1e-6?-x/dx:1e9,dy>1e-6?(H-y)/dy:dy<-1e-6?-y/dy:1e9),q=Math.max(10,toE)/4; // (its way to the edge, in quarters)
-    let px=x,py=y,a=0,i=0;P.moveTo(px,py);
-    for(let k=0;k<4&&k<n;k++){if(k)a+=(riftJag(k+300,r.seed+sd)-0.5)*2*bend;const ca=Math.cos(a),sa=Math.sin(a),ux=dx*ca-dy*sa,uy=dx*sa+dy*ca,len=q*Math.min(1,n-k),st=Math.max(6,Math.min(46,len/3));
-      for(let d=st;d<=len+0.01;d+=st,i++){const j=(riftJag(i,r.seed+sd)-0.5)*3,qx=px+ux*Math.min(d,len)-uy*j,qy=py+uy*Math.min(d,len)+ux*j;P.lineTo(qx,qy);
-        if(riftJag(i+50,r.seed+sd)<0.2){const ba=(riftJag(i+80,r.seed)-0.5)*1.6,bl=6+16*riftJag(i+90,r.seed);P.lineTo(qx+(ux*Math.cos(ba)-uy*Math.sin(ba))*bl,qy+(ux*Math.sin(ba)+uy*Math.cos(ba))*bl);P.moveTo(qx,qy);}}
+function bhVec(bh,x,y){if(!bh.rift)return[_wrapD(x-bh.x,W),_wrapD(y-bh.y,H)];const q=riftNear(bh.rift.pts,x,y);return[x-q[0],y-q[1]];} // from the hole (a Dark Remnant's centre, or the nearest point of a Rift's line) out to (x,y)
+function bhReach(bh){if(!bh.rift)return Math.sqrt(W*W+H*H);let m=0;for(const[x,y]of[[0,0],[W,0],[0,H],[W,H]])m=Math.max(m,Math.hypot(...bhVec(bh,x,y)));return m;} // how far its wave runs to cover the screen
+function riftNear(pts,x,y){let bd=Infinity,bx=x,by=y;for(let i=1;i<pts.length;i++){const[ax,ay]=pts[i-1],ex=pts[i][0]-ax,ey=pts[i][1]-ay,t=Math.max(0,Math.min(1,((x-ax)*ex+(y-ay)*ey)/(ex*ex+ey*ey||1))),px=ax+ex*t,py=ay+ey*t,d=(x-px)*(x-px)+(y-py)*(y-py);if(d<bd){bd=d;bx=px;by=py;}}return[bx,by];} // the nearest point of a Rift's line
+function riftSides(x,y,r){ // a Rift's line, as its crack grows: from where the mass was out both ways to the screen's edges, each side's way to its edge in four quarter legs, every leg after the first
+  // turned by up to Rift stage bend° (the same every time for its seed): [{dx,dy,q,legs:[[ux,uy],…]}] for the two sides
+  const tx=r.ny,ty=-r.nx,bend=(T.riftBend!=null?T.riftBend:5)*Math.PI/180;
+  return[-1,1].map(sd=>{const dx=tx*sd,dy=ty*sd,toE=Math.min(dx>1e-6?(W-x)/dx:dx<-1e-6?-x/dx:1e9,dy>1e-6?(H-y)/dy:dy<-1e-6?-y/dy:1e9);let a=0;
+    return{sd,q:Math.max(10,toE)/4,legs:[0,1,2,3].map(k=>{if(k)a+=(riftJag(k+300,r.seed+sd)-0.5)*2*bend;const ca=Math.cos(a),sa=Math.sin(a);return[dx*ca-dy*sa,dx*sa+dy*ca];})};});}
+function riftSpine(x,y,r){ // the open Rift's line: the crack's own legs, end to end, run on past both edges
+  const L=Math.hypot(W,H),sides=riftSides(x,y,r).map(sd=>{let px=x,py=y;const o=[];sd.legs.forEach(([ux,uy],k)=>{const l=sd.q+(k===3?L:0);px+=ux*l;py+=uy*l;o.push([px,py]);});return o;});
+  const sp=[...sides[0].reverse(),[x,y],...sides[1]],q=riftSides(x,y,r);sp.pin=[L+4*q[0].q,4*q[0].q,4*q[1].q];return sp;} // (pin: where it formed, and each side's way to its edge: the pinch's span)
+function riftOffset(pts,d){return pts.map((p,i)=>{const a=pts[Math.max(0,i-1)],b=pts[Math.min(pts.length-1,i+1)],ex=b[0]-a[0],ey=b[1]-a[1],l=Math.hypot(ex,ey)||1;return[p[0]-ey/l*d,p[1]+ex/l*d];});} // the line moved out d to one side (its wave's fronts)
+function riftCrackPath(x,y,r,n,P){ // the crack, in four stages (n: 0–4, fractional while one runs): from where the mass was, out both ways along the Rift's legs (riftSides) to the screen's edges, the
+  // first stage a quarter of each side's way, each after it another quarter: at the fourth, they reach the edges. Jagged like glass, short splinters off it
+  P=P||new Path2D();
+  for(const sd of riftSides(x,y,r)){let px=x,py=y,i=0;P.moveTo(px,py);
+    for(let k=0;k<4&&k<n;k++){const[ux,uy]=sd.legs[k],len=sd.q*Math.min(1,n-k),st=Math.max(6,Math.min(46,len/3));
+      for(let d=st;d<=len+0.01;d+=st,i++){const j=(riftJag(i,r.seed+sd.sd)-0.5)*3,qx=px+ux*Math.min(d,len)-uy*j,qy=py+uy*Math.min(d,len)+ux*j;P.lineTo(qx,qy);
+        if(riftJag(i+50,r.seed+sd.sd)<0.2){const ba=(riftJag(i+80,r.seed)-0.5)*1.6,bl=6+16*riftJag(i+90,r.seed);P.lineTo(qx+(ux*Math.cos(ba)-uy*Math.sin(ba))*bl,qy+(ux*Math.sin(ba)+uy*Math.cos(ba))*bl);P.moveTo(qx,qy);}}
       px+=ux*len;py+=uy*len;P.lineTo(px,py);}}
   return P;}
 function drawRiftCrack(c,P,now){drawRiftGlow(c,P,now,0.5,0,true);c.save();c.strokeStyle='rgba(255,255,255,0.9)';c.lineWidth=1.2;c.stroke(P);c.restore();}
-function drawRift(c,bh,now){const r=bh.rift,L=Math.hypot(W,H),tx=r.ny,ty=-r.nx;
+function drawRift(c,bh,now){const r=bh.rift;
   if(bh.phase==='crack'){const u=Math.min(1,(now-bh.crackStart)/Math.max(1,T.riftCrackMs||260));drawRiftCrack(c,riftCrackPath(bh.x,bh.y,r,4*(1-Math.pow(1-u,3))),now);return;} // the crack runs out both ways from where the mass was
-  drawRiftGlow(c,riftStripe(new Path2D(),bh.x-tx*L,bh.y-ty*L,bh.x+tx*L,bh.y+ty*L,Math.max(0.5,bh.consumeR),r.seed,70),now,1);} // open: the stripe (its edges in the pulsing glow)
-function drawRiftWave(c,bh,now){const a=bh.activateR,L=Math.hypot(W,H),bw=Math.max(30,Math.min(150,a*0.2)); // the wave out from a Rift, both sides at once: the white behind it (its exterior whitens, as a bright clear), a white flare and the Dark Remnant's glow along its fronts
-  c.save();c.translate(bh.x,bh.y);c.rotate(bh.rift.a);const g=c.createLinearGradient(0,-a,0,a);const wa=(T.riftWashA!=null?T.riftWashA:0.28).toFixed(3);g.addColorStop(0,'rgba(255,255,255,0)');g.addColorStop(0.12,`rgba(255,255,255,${wa})`);g.addColorStop(0.88,`rgba(255,255,255,${wa})`);g.addColorStop(1,'rgba(255,255,255,0)'); // (behind it the surface whitens, as a bright clear's does: only the stripe is black)
-  c.filter=`blur(${T.bhExpandBlur}px)`;c.fillStyle=g;c.fillRect(-L,-a,2*L,2*a);c.filter='none';c.globalCompositeOperation='screen';
-  for(const sd of[-1,1]){const y=sd*a,f=c.createLinearGradient(0,y-bw*sd,0,y+bw*0.35*sd);f.addColorStop(0,'rgba(255,255,255,0)');f.addColorStop(0.72,'rgba(255,255,255,0.5)');f.addColorStop(1,'rgba(255,255,255,0)');c.fillStyle=f;c.fillRect(-L,Math.min(y-bw*sd,y+bw*0.35*sd),2*L,bw*1.35);}
-  c.globalCompositeOperation='source-over';const P=new Path2D();P.moveTo(-L,-a);P.lineTo(L,-a);P.moveTo(-L,a);P.lineTo(L,a);drawRiftGlow(c,P,now,1,0,true);c.restore();}
+  drawRiftGlow(c,riftStripe(new Path2D(),r.pts,Math.max(0.5,bh.consumeR),r.seed,70),now,1);} // open: the stripe along the crack's own legs (a line Dark Remnant: its rings' glow, the void black)
+function drawRiftWave(c,bh,now){const a=bh.activateR,bw=Math.max(30,Math.min(150,a*0.2)); // the wave out from a Rift, both sides at once, its fronts following the Rift's line: a white flare and the Dark Remnant's glow along each (behind them all is black, as a Dark Remnant's)
+  c.save();c.lineJoin='round';c.globalCompositeOperation='screen';const P=new Path2D();
+  for(const sd of[-1,1]){const o=riftOffset(bh.rift.pts,sd*a);P.moveTo(...o[0]);for(const q of o)P.lineTo(...q);}
+  c.filter=`blur(${(bw*0.25).toFixed(1)}px)`;c.strokeStyle='rgba(255,255,255,0.5)';c.lineWidth=bw*0.6;c.stroke(P);c.filter='none';c.globalCompositeOperation='source-over';drawRiftGlow(c,P,now,1,0,true);c.restore();}
 
 
 let _riftAt=0,riftForms=[]; // areas tearing (more than one can): each a crack that runs a quarter of the screen further every Rift stage ms while the mass in its own area holds (cracks branching off at slight angles), and opens once the fourth has filled the screen; when its mass drops below Rift mass it seals back a crack every Rift seal ms (and can pick up again). The mass of an area a crack holds counts for that crack alone
