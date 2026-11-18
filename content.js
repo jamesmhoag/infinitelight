@@ -71,14 +71,16 @@ function cursorBase(cx,x,y,cR,dimA,tintK,edgeCol,lw){if(!(cR>0))return; /* (a cu
   cx.globalCompositeOperation='screen';cx.filter='blur(7px)';cx.globalAlpha=0.6*dimA; // the bloom behind the sharp ring
   cx.beginPath();cx.arc(x,y,cR,0,6.2832);cx.strokeStyle=`rgba(${edgeCol},0.9)`;cx.lineWidth=lw*2.5;cx.stroke();
   cx.filter='none';cx.globalAlpha=1;cx.globalCompositeOperation='source-over';}
-const NIB={a:null,v:0,last:0};
+const NIB={a:null,v:0,last:0,cv:null,ox:0,oy:0};
+function nibGrab(src,x,y){if(!NIB.v&&!NIB.on)return;const S=200;if(!NIB.cv){NIB.cv=document.createElement('canvas');NIB.cv.width=NIB.cv.height=S;}const c=NIB.cv.getContext('2d');NIB.ox=Math.round(x-S/2);NIB.oy=Math.round(y-S/2); // what the lens will show, taken before the cursor's own light is laid over the scene (so none of the cursor shows in it)
+  c.clearRect(0,0,S,S);try{c.drawImage(src,NIB.ox,NIB.oy,S,S,0,0,S,S);}catch(e){}}
 // The nib cursor (art: Nib.svg, laid out as in the reference "microscopic nib"): the cursor ring, a microscope lens below-left of it (a bigger circle that overlaps
 // it: the ring is hidden inside the lens), and the Fountain Pen's nib on top, its writing tip on the cursor's centre. It shows only over something that can be
 // shone (on: over one); it comes up out of the depth as it fades in (larger and softer, settling to size) and sinks back as it fades out
 const NIB_PATH=typeof Path2D!=='undefined'?new Path2D('M27.5946 7.05652L29.5918 27.0565C29.5918 27.0565 28.6327 27.5382 27.5946 28.26L27.5946 28.5566L23.5921 35.0566C23.5921 35.0566 24.4242 31.5966 25.5924 30.0566C26.0943 29.3949 26.864 28.768 27.5946 28.26L27.5946 21.0566L24.5924 12.0566L25.5924 12.0566C25.0924 11.5566 27.5946 7.05652 27.5946 7.05652C27.5946 7.05652 23.5924 9.55659 23.0924 9.05659L23.0924 10.5566L19.0924 6.05659L9.59241 3.05659L0.0922851 4.55652C0.0922851 4.55652 3.53556 3.90888 5.59229 3.05659C7.44943 2.287 10.0921 0.556577 10.0921 0.556577L27.5946 7.05652Z'):null,
   NIB_TIP=[27.5946,7.05652],NIB_U=16,NIB_LENS=[-20.5,16.5,19.5]; // (its tip, the cursor ring's radius and the lens: centre offset and radius, all in the art's units)
 function cursorNib(cx,x,y,cR,dimA,src,W,H,t,on){
-  const now=performance.now(),dt=NIB.last?Math.min(100,now-NIB.last):16;NIB.last=now;NIB.v+=((on?1:0)-NIB.v)*(1-Math.exp(-dt/(on?70:160)));if(NIB.v<0.01)return; // (in quickly, out more slowly)
+  const now=performance.now(),dt=NIB.last?Math.min(100,now-NIB.last):16;NIB.last=now;NIB.on=on;NIB.v+=((on?1:0)-NIB.v)*(1-Math.exp(-dt/(on?70:160)));if(NIB.v<0.01)return; // (in quickly, out more slowly)
   const v=NIB.v,e=v*v*(3-2*v),s=cR/NIB_U*(t.cursorNibScale!=null?t.cursorNibScale:1)*(1+0.35*(1-e)),A=(1-(1-dimA)*0.5)*e,z=t.cursorNibZoom||2.4,m=4; // s: art units to px (larger while still deep)
   const def=Math.atan2(NIB_LENS[1],NIB_LENS[0]),d=Math.hypot(NIB_LENS[0],NIB_LENS[1])*s,lr=NIB_LENS[2]*s*(t.cursorNibLensK!=null?t.cursorNibLensK:1);
   const fits=a=>{const ex=x+Math.cos(a)*d,ey=y+Math.sin(a)*d;return ex-lr>=m&&ex+lr<=W-m&&ey-lr>=m&&ey+lr<=H-m;};
@@ -86,7 +88,7 @@ function cursorNib(cx,x,y,cR,dimA,src,W,H,t,on){
   if(NIB.a==null)NIB.a=def;let da=((tgt-NIB.a)%(2*Math.PI)+3*Math.PI)%(2*Math.PI)-Math.PI;NIB.a+=da*(1-Math.exp(-dt/110)); // turned away from the screen's edges, eased round the shorter way
   const lx=x+Math.cos(NIB.a)*d,ly=y+Math.sin(NIB.a)*d,rot=NIB.a-def;
   cx.save();cx.beginPath();cx.arc(lx,ly,lr,0,6.2832);cx.clip();cx.fillStyle=`rgba(0,0,0,${e.toFixed(3)})`;cx.fill(); // the lens, over the ring: what is under the tip, magnified, upright
-  if(src){cx.globalAlpha=A;const w=lr*2/z;try{cx.drawImage(src,x-w/2,y-w/2,w,w,lx-lr,ly-lr,lr*2,lr*2);}catch(e){}}cx.restore();
+  if(src){cx.globalAlpha=A;const w=lr*2/z,g=NIB.cv;try{if(g)cx.drawImage(g,x-w/2-NIB.ox,y-w/2-NIB.oy,w,w,lx-lr,ly-lr,lr*2,lr*2);else cx.drawImage(src,x-w/2,y-w/2,w,w,lx-lr,ly-lr,lr*2,lr*2);}catch(e){}}cx.restore(); /* (from nibGrab: the scene without the cursor's light) */
   cx.beginPath();cx.arc(lx,ly,lr,0,6.2832);cx.strokeStyle=`rgba(255,255,255,${(0.85*A).toFixed(3)})`;cx.lineWidth=Math.max(1,2*s);cx.stroke(); // its rim
   if(NIB_PATH){cx.save();cx.translate(x,y);cx.rotate(rot);cx.scale(s,s);cx.translate(-NIB_TIP[0],-NIB_TIP[1]);cx.lineJoin='round';cx.strokeStyle=`rgba(0,0,0,${(0.55*A).toFixed(3)})`;cx.lineWidth=2.4/s;cx.stroke(NIB_PATH);cx.fillStyle=cx.strokeStyle=`rgba(255,255,255,${A.toFixed(3)})`;cx.lineWidth=1;cx.fill(NIB_PATH);cx.stroke(NIB_PATH);cx.restore();}} // the nib, on top (a dark edge under it, so it reads over a bright lens)
 function cursorRing(cx,x,y,cR,dimA,edgeCol,lw){cx.beginPath();cx.arc(x,y,cR,0,6.2832);cx.strokeStyle=`rgba(${edgeCol},${(0.80*dimA).toFixed(3)})`;cx.lineWidth=lw;cx.stroke();}
