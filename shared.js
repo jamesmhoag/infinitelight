@@ -376,7 +376,7 @@ function drawOnWater(c,type,R,X,Y,h,hb,n,env,ra,only){ // only: 'r' its reflecti
   if(ra>0&&only!=='m')drawDuck3D(c,type,Rm,[[X-2*hb*n[0]*h,Y+2*hb*n[1]*h]],h,ra,0,null,{n,h:-hb,clip:-1,mirror:1});if(only!=='r')drawDuck3D(c,type,M,[[X,Y]],h,1,0,env,{n,h:hb,clip:1});}
 function rippleAt(r,now,hex){const a=(now-r.t)/(T.rippleMs||1800);return{a,R:4+Math.max(0,a)*hex*(T.rippleReach!=null?T.rippleReach:0.9)*(r.big?1.78:r.sm?0.44:1)};} // a ring on the water — the Surface Map's, the title's and any to come: its age (0–1) and how far out it is (hex: a hex's size there, px)
 const rippleBend=r=>(T.rippleBend!=null?T.rippleBend:4)*(r.big?1.7:r.sm?0.5:1),rippleW=hex=>[hex*(T.rippleWidth!=null?T.rippleWidth:0.1),hex*(T.rippleWave!=null?T.rippleWave:0.14)]; // how far a ring bends what is under it (px, at a 34 px hex); its swell's width and crest spacing
-function splashAdd(L,x,y,s,n){for(let i=0;i<(n||14);i++){const a=-Math.PI*(0.15+0.7*Math.random()),v=s*(0.0015+0.003*Math.random());L.push({x,y,vx:Math.cos(a)*v*(Math.random()<0.5?-1:1)*1.3,vy:Math.sin(a)*v*1.6,g:s*0.000012,t:performance.now(),r:s*(0.025+0.035*Math.random()),c:EFFECT_HEX[(Math.random()*6)|0]});}} // a splash: drops of the surface's pigment thrown up (s: the splasher's size, px)
+function splashAdd(L,x,y,s,n,rk){rk=rk||1;for(let i=0;i<(n||14);i++){const a=-Math.PI*(0.15+0.7*Math.random()),v=s*(0.0015+0.003*Math.random());L.push({x,y,vx:Math.cos(a)*v*(Math.random()<0.5?-1:1)*1.3,vy:Math.sin(a)*v*1.6,g:s*0.000012,t:performance.now(),r:s*rk*(0.025+0.035*Math.random()),c:EFFECT_HEX[(Math.random()*6)|0]});}} // a splash: drops of the surface's pigment thrown up (s: the splasher's size, px; rk: the drops' size ×)
 function splashDraw(c,L,now,dt){dt=Math.min(50,dt||16);for(let i=L.length-1;i>=0;i--){const p=L[i],a=(now-p.t)/900;if(a>=1){L.splice(i,1);continue;}p.vy+=p.g*dt;p.x+=p.vx*dt;p.y+=p.vy*dt;c.globalAlpha=0.9*(1-a);c.fillStyle=p.c;c.beginPath();c.arc(p.x,p.y,p.r*(1-a*0.5),0,6.2832);c.fill();}c.globalAlpha=1;} // (they fall back and fade)
 function drawDuckScene(G,type,o){ // a duck straight into a scene (G = duckCtx of the scene's own context): o.rot a 3×3 (column-major) turn in the
   // world, o.size world units per model unit, o.pos where it is, o.view / o.proj / o.viewRot the camera; o.env as drawDuck3D (screen px), o.px its size on screen
@@ -507,26 +507,35 @@ function drawBHGlowRing(mainCtx,bh,R,now,phaseOffset,cfg,canvasHolder,drawVoidCo
 // ── A Rift (shared): a jagged pure black stripe along a line, outlined with the Dark Remnant's pulsing glow. The surface draws one across the
 // screen as it tears; the Surface Map draws the scar it leaves (and joins neighbouring scars into one edge, or three into a triangle). ──
 function riftJag(i,seed){const x=Math.sin(i*127.1+seed*311.7)*43758.5453;return x-Math.floor(x);} // a fixed jag per step (the same every frame)
-function riftStripe(P,x0,y0,x1,y1,w,seed,step,taper){ // adds a stripe from (x0,y0) to (x1,y1) to Path2D P: w its half width (±12%: long edges, nearly flat bends); taper: a scar's shape (widest in the middle, to points at its ends)
-  const dx=x1-x0,dy=y1-y0,L=Math.hypot(dx,dy)||1,tx=dx/L,ty=dy/L,nx=-ty,ny=tx,n=Math.max(2,Math.ceil(L/(step||12))),top=[],bot=[];
-  for(let i=0;i<=n;i++){const u=i/n,cx=x0+dx*u,cy=y0+dy*u,e=taper?Math.pow(Math.sin(Math.PI*u),0.7):(i===0||i===n?0.25:1),a=w*(0.88+0.24*riftJag(i,seed))*e,b=w*(0.88+0.24*riftJag(i+999,seed))*e;top.push([cx+nx*a,cy+ny*a]);bot.push([cx-nx*b,cy-ny*b]);}
+function riftStripe(P,pts,w,seed,step,taper){ // adds a stripe along the line pts ([[x,y],…], straight legs) to Path2D P: w its half width (±12%: long edges, nearly flat bends), pinched to Rift pinch × in its middle;
+  // taper: a scar's shape (to points at its ends), else its ends a quarter wide
+  const Ls=[0];for(let i=1;i<pts.length;i++)Ls.push(Ls[i-1]+Math.hypot(pts[i][0]-pts[i-1][0],pts[i][1]-pts[i-1][1]));const Lt=Ls[Ls.length-1]||1,n=Math.max(2,Math.ceil(Lt/(step||12))),top=[],bot=[],pm=T.riftPinch!=null?T.riftPinch:0.25,
+    [pc,ph0,ph1]=pts.pin||[Lt/2,Lt/2,Lt/2]; // the pinch: at pc along it, widening over ph0 back and ph1 on (pts.pin: a Rift's, the part on screen either side of where it formed)
+  for(let i=0,g=1;i<=n;i++){const u=i/n,d=Lt*u;while(g<pts.length-1&&Ls[g]<d)g++;const[ax,ay]=pts[g-1],[bx,by]=pts[g],sl=(Ls[g]-Ls[g-1])||1,t=(d-Ls[g-1])/sl,cx=ax+(bx-ax)*t,cy=ay+(by-ay)*t,nx=-(by-ay)/sl,ny=(bx-ax)/sl,
+    e=(taper?Math.pow(Math.sin(Math.PI*u),0.7):(i===0||i===n?0.25:1))*(pm+(1-pm)*Math.pow(Math.min(1,d<pc?(pc-d)/ph0:(d-pc)/ph1),0.9)),a=w*(0.88+0.24*riftJag(i,seed))*e,b=w*(0.88+0.24*riftJag(i+999,seed))*e;top.push([cx+nx*a,cy+ny*a]);bot.push([cx-nx*b,cy-ny*b]);}
   P.moveTo(...top[0]);for(const p of top)P.lineTo(...p);for(let i=bot.length-1;i>=0;i--)P.lineTo(...bot[i]);P.closePath();return P;}
 function riftPoly(P,pts,w,seed){ // a jagged filled polygon (three scars merged into a triangle): each side pushed in and out by up to w
   const out=[];pts.forEach((a,j)=>{const b=pts[(j+1)%pts.length],L=Math.hypot(b[0]-a[0],b[1]-a[1]),n=Math.max(2,Math.ceil(L/28)),nx=-(b[1]-a[1])/L,ny=(b[0]-a[0])/L;
     for(let i=0;i<n;i++){const u=i/n,o=w*(riftJag(i+j*97,seed)-0.5)*0.7;out.push([a[0]+(b[0]-a[0])*u+nx*o,a[1]+(b[1]-a[1])*u+ny*o]);}});
   P.moveTo(...out[0]);for(const p of out)P.lineTo(...p);P.closePath();return P;}
 const DARK_RING_COLS=['255,150,40','255,120,20']; // the Dark Remnant's two glowing rings (a Rift's edges too; the journal's drawings wash in them)
-function drawRiftGlow(c,P,now,k,ph,line){ // P's outline in the Dark Remnant's pulsing glow (its two rings' widths, blurs and heartbeat; k scales them), then P filled pure black (line: a crack, only stroked)
+function darkRingCfgs(k){return[ // the Dark Remnant's two glowing rings (k scales their widths, blurs and sway): the void's own look and a Rift's
+  {width:T.bhRingWidth*k,blurWide:T.bhBlurWide*k,blurMid:T.bhBlurMid*k,alphaWide:T.bhAlphaWide,alphaMid:T.bhAlphaMid,beatMs:T.bhRingBeatMs,pulseAmt:T.bhRingPulseAmt,swayR:T.bhRingSwayR*k,swaySpeed:T.bhRingSwaySpeed},
+  {width:T.bhRing2Width*k,blurWide:T.bhRing2BlurWide*k,blurMid:T.bhRing2BlurMid*k,alphaWide:T.bhRing2AlphaWide,alphaMid:T.bhRing2AlphaMid,beatMs:T.bhRing2BeatMs,pulseAmt:T.bhRing2PulseAmt,swayR:T.bhRing2SwayR*k,swaySpeed:T.bhRing2SwaySpeed}];}
+function drawRiftGlow(c,P,now,k,ph,line){ // P's outline as a line Dark Remnant: its two rings' banded glow (dark amber, bright amber, amber, as drawBHGlowRing's gradient) along the edge, swaying and beating, in its wide
+  // and mid blur passes; then P filled pure black (the void; line: a crack, only the glow)
   if(T.bhRingBeatMs>0){const o=ph||0;c.save();c.globalCompositeOperation='lighter';c.lineJoin='round';
-    for(const[bl,al,wd,bm,pa,off,col]of[[T.bhBlurWide,T.bhAlphaWide,T.bhRingWidth,T.bhRingBeatMs,T.bhRingPulseAmt,0,DARK_RING_COLS[0]],[T.bhRing2BlurMid,T.bhRing2AlphaMid,T.bhRing2Width,T.bhRing2BeatMs,T.bhRing2PulseAmt,0.5,DARK_RING_COLS[1]]]){
-      const pu=heartbeatPulse((((now+o)%bm)/bm+off)%1)*pa;c.filter=bl>0?`blur(${Math.max(0.5,bl*k).toFixed(1)}px)`:'none';c.globalAlpha=Math.min(1,(al||0.6)*(1+pu*0.6));c.strokeStyle=`rgb(${col})`;c.lineWidth=Math.max(1,wd*k*(1+pu));c.stroke(P);}
+    darkRingCfgs(k).forEach((cf,ri)=>{const pu=heartbeatPulse((((now+o)%cf.beatMs)/cf.beatMs+ri*0.5)%1)*cf.pulseAmt,bA=1+pu*0.6,rw=Math.max(0.5,cf.width)*(1+pu),sa=now*0.001*cf.swaySpeed;
+      c.save();c.translate(Math.cos(sa)*cf.swayR,Math.sin(sa)*cf.swayR*0.6);
+      for(const[bl,al]of[[cf.blurWide,cf.alphaWide],[cf.blurMid,cf.alphaMid]]){if(!(al>0))continue;c.filter=bl>0?`blur(${Math.max(0.5,bl).toFixed(1)}px)`:'none';c.globalAlpha=Math.min(1,al);
+        for(const[wm,col,a]of[[2,'200,100,20',0.35],[1.2,'255,120,20',0.35],[0.5,'255,160,40',0.6]]){c.strokeStyle=`rgba(${col},${Math.min(1,a*bA).toFixed(3)})`;c.lineWidth=rw*wm;c.stroke(P);}}
+      c.restore();});
     c.restore();}
   if(!line){c.fillStyle='#000';c.fill(P);}}
 const _drMapH1={canvas:null,ctx:null},_drMapH2={canvas:null,ctx:null};
 function drawDarkRemnantAt(ctx,x,y,R,now,f,ph){ // the surface's Dark Remnant look at (x,y), void radius R; f scales its ring widths, blurs and sway (R ÷ the surface's own radius)
   if(!(T.bhRingBeatMs>0)||!isFinite(x+y+R))return; // (the map has nothing to draw it with until the surface has sent its tuners)
-  const k=f||1,o=ph||0,bh={x,y},c1={width:T.bhRingWidth*k,blurWide:T.bhBlurWide*k,blurMid:T.bhBlurMid*k,alphaWide:T.bhAlphaWide,alphaMid:T.bhAlphaMid,beatMs:T.bhRingBeatMs,pulseAmt:T.bhRingPulseAmt,swayR:T.bhRingSwayR*k,swaySpeed:T.bhRingSwaySpeed},
-    c2={width:T.bhRing2Width*k,blurWide:T.bhRing2BlurWide*k,blurMid:T.bhRing2BlurMid*k,alphaWide:T.bhRing2AlphaWide,alphaMid:T.bhRing2AlphaMid,beatMs:T.bhRing2BeatMs,pulseAmt:T.bhRing2PulseAmt,swayR:T.bhRing2SwayR*k,swaySpeed:T.bhRing2SwaySpeed};
+  const k=f||1,o=ph||0,bh={x,y},[c1,c2]=darkRingCfgs(k);
   const pad=T.bhDrawPad;T.bhDrawPad=pad*k; // (its drawing room scales with it)
   drawBHGlowRing(ctx,bh,R,now+o,0,c1,_drMapH1,true);drawBHGlowRing(ctx,bh,R,now+o,0.5,c2,_drMapH2,false);T.bhDrawPad=pad;
   ctx.save();ctx.beginPath();ctx.arc(x,y,R,0,6.2832);ctx.fillStyle='#000';ctx.fill();ctx.restore();}
