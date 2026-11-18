@@ -163,7 +163,7 @@ body.shop-open #hdock{z-index:59}#hinv .slot.wal::before{border-color:rgba(255,2
 <div id="veil"></div>
 <div id="bfx"></div>
 <iframe id="neb" data-tt="map.ui.surface"></iframe>
-<script src="content.js?v=20261118k"></script><script src="shared.js?v=20261118k"></script><script src="cabin.js?v=20261118k"></script><script src="music.js?v=20261118k"></script>
+<script src="content.js?v=20261118l"></script><script src="shared.js?v=20261118l"></script><script src="cabin.js?v=20261118l"></script><script src="music.js?v=20261118l"></script>
 <script>
 // ╔══════════════════════════════════════════════════════════════════════════════╗
 // ║  MAP ENGINE                                                                 ║
@@ -182,7 +182,7 @@ let playLog=[],clock=3,day=1,pool=6,burstFx=null,dayLog=[],dayCnt={b:0,d:0},pend
 // // clock: the hour (3 = Twilight … 24 = Midnight, the day's last turn); day: your attempts; pool: what the source put out at its last burst; fresh: no ring added yet since it
 let constel=[],armed=null,weaveSel=[],weaveAsk=null,clearFx={},mergeFx=[],feedMsg={t:'',d:'',at:-1e9}; // constellations {keys,type}; the armed map item; a Weave being drawn; animations; the final count
 const STEP_H=3; // the day: eight turns of three hours
-const CACHE_V='20261118k'; // the build: bump with shared.js's
+const CACHE_V='20261118l'; // the build: bump with shared.js's
 const SCENE=new URLSearchParams(location.search).get('scene'); // a Guide / event demo: the map plays a scripted moment (no surface behind it)
 let phase='move',turnTimer=0,mergeTimer=0;
 let gameOverReason='';
@@ -319,6 +319,8 @@ function getMoves(){
     if(!c.cap){out.push({q,r,path:[]});continue;}
     const path=[{q,r}];q+=dq;r+=dr;
     while(true){const c2=cells[K(q,r)];if(!c2||c2.rift||pdHas(K(q,r))||c2.flot)break;if(c2.isVoid){if(voidOpen&&q===0&&r===0)out.push({q,r,path:[...path]});if(!(q===0&&r===0)){path.push({q,r});q+=dq;r+=dr;continue;}break;}if(!c2.cap){out.push({q,r,path:[...path]});break;}path.push({q,r});q+=dq;r+=dr;}}
+  const here=cells[K(pQ,pR)];if(buoy.under&&here&&here.rift)for(const[q,r]of neighbors(pQ,pR)){const b=cells[K(q,r)];if(!b||!b.cap)continue; // under, after a Rift: up on any open hex beside a bright clear round the tear (not only the ones straight across)
+    for(const[q2,r2]of neighbors(q,r)){const k2=K(q2,r2),c2=cells[k2];if(c2&&!c2.cap&&!c2.isVoid&&!c2.flot&&!pdHas(k2)&&!out.some(m=>m.q===q2&&m.r===r2))out.push({q:q2,r:r2,path:[{q,r}]});}}
   return out;
 }
 function doCapture(){ // enter the surface of the hex you stand on
