@@ -44,8 +44,8 @@ cursorStainHide,4,Stain under,0,12,0.5,Cursor,theme,,,,How strongly particles co
 cursorIdleAlphaMult,0.5,Idle α ×,0,1,0.05,Cursor,theme,,,,Alpha multiplier when not hovering a target,0..1: overall alpha multiplier applied when not hovering a target
 cursorIdleBorderDark,0.4,Idle dark,0,1,0.05,Cursor,theme,,,,How far the idle ring color is mixed toward black,0..1: how far the ring/edge color is mixed toward black when not hovering a target
 cursorNibOn,1,Pen nib,0,1,1,Cursor,theme,,,,"The plain cursor carries the Fountain Pen's nib, its lens showing what is under it (0: off)",
-cursorNibK,0.75,Nib length,0.2,1.5,0.05,Cursor,theme,,,,"The nib seen from above: its length from the tip (on the cursor's centre) to the barrel, × the cursor ring",
-cursorNibLensK,1,Nib lens size,0.5,2,0.05,Cursor,theme,,,,"The microscope lens beside the cursor ring (× the ring): the two overlap, a Venn diagram of their sizes",
+cursorNibScale,1,Nib size,0.4,2,0.05,Cursor,theme,,,,"The nib cursor (nib and microscope lens, drawn from Nib.svg) × its size against the cursor ring",
+cursorNibLensK,1,Nib lens size,0.5,2,0.05,Cursor,theme,,,,"The microscope lens below-left of the cursor ring (× its size in the art): it overlaps the ring, the ring hidden inside it",
 cursorNibZoom,2.4,Nib zoom,1,6,0.1,Cursor,theme,,,,"How much the nib's lens magnifies what is under the cursor",
 pauseStopMs,650,Stop ms,0,3000,50,Pause,gameplay,,,,Time to ramp from full speed down to a full stop when pausing,ms: ramp time from full speed down to a full stop
 pauseResumeMs,650,Resume ms,0,3000,50,Pause,gameplay,,,,Time to ramp from a full stop back up to full speed when resuming,ms: ramp time from a full stop back up to full speed
@@ -128,6 +128,7 @@ netOn,1,Net,0,1,1,Achievements & Pattern — Visual,theme,,,,"Collecting draws t
 netScoopMs,320,Net scoop ms,60,1500,10,Achievements & Pattern — Visual,theme,,,,"ms: a click's scoop, in and out; the remnant is collected halfway, at its deepest",
 netDblMult,3,Net double ×,1,8,0.1,Achievements & Pattern — Visual,theme,,,,"A double click's hoop: this × Touch rad; every remnant of the kind clicked within it is scooped",
 netRippleMs,700,Net ripple ms,100,3000,10,Achievements & Pattern — Visual,theme,,,,"ms: a ripple from the net entering or leaving the surface, or dragged through it",
+netWakeMs,900,Net wake ms,200,3000,50,Cursor,theme,,,,"Wiping with the net: how long its wake (two lines spreading back from its path) lasts",
 netUnderA,0.45,Net under α,0,1,0.05,Achievements & Pattern — Visual,theme,,,,"How visible the hoop and net are under the surface",
 metalReflA,0.55,Metal reflection,0,1,0.05,Achievements & Pattern — Visual,theme,,,,Scene reflection strength on Barrier edges and Gate posts,strength of the scene reflection on metal (Barrier edge / Gate posts)
 metalLightA,1,Metal glint,0,3,0.05,Achievements & Pattern — Visual,theme,,,,How strongly nearby lights glint on Barrier edges and Gate posts,how strongly nearby lights glint on metal
