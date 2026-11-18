@@ -6603,14 +6603,14 @@ function flashSaveStatus(msg){
 // real object references after loading.
 function serializePoint(p){
   const o=Object.assign({},p);
-  delete o.capturedBy;delete o._dimFlash;delete o._tintSrc;delete o._shTo;delete o._tweenW;delete o._bhQ;
+  delete o.capturedBy;delete o._dimFlash;delete o._tintSrc;delete o._shTo;delete o._tweenW;delete o._bhQ;delete o._orbS; // (_orbS: the Orbits / Flings / Pulls holding it, a live Map: JSON would turn it into {}, and every frame's step would stop on it)
   o.capturedById=p.capturedBy?p.capturedBy.id:-1;
   return o;
 }
 function deserializePoint(o){
   const p=Object.assign({},o);
   delete p.capturedById;
-  p.capturedBy=null;
+  p.capturedBy=null;delete p._orbS; // (a surface saved before that kept its holds as {}: dropped, they take hold again)
   p._capturedById=(o.capturedById===undefined?-1:o.capturedById);
   p.fillDirty=true; // force every cached fill-color string to recompute
   return p;
