@@ -430,6 +430,7 @@ const T={};for(const r of csvRead('tuners'))T[r.key]=cellV(r.default); // every 
 const DISC_LIST=[];for(const r of csvRead('discoveries')){let g=DISC_LIST.find(x=>x[0]===r.group);if(!g)DISC_LIST.push(g=[r.group,[]]);g[1].push([r.id,r.name,cellV(r.cost)]);} // what can be discovered, and its Dim: content/discoveries.csv
 DISC_LIST.push(['Surface Map shops (what each sells)',[...SHOP_ITEMS.map(i=>['si_'+i.id,SHOPS[i.shop].n+': '+i.n,i.dc])]]);
 const DISC_ALL=[];for(const g of DISC_LIST)for(const d of g[1]){DISC_ALL.push(d);T['dc_'+d[0]]=d[2];} // Discoveries: Dim needed (on hover) to reveal each interface element
+let T_DEF=null;const T_OLD={brightStasisCost:50,brightStasisIntervalMs:50,netScoopMs:320,netRippleMs:700}; // the defaults (taken as the saved config loads, once every content file has set its own): a saved config keeps only what differs from them, so a default changed later reaches everyone who left it alone. T_OLD: defaults since changed, dropped from a config saved before (when every value was kept) where it still holds them
 const TUNE_DEFS=[];{let sec=null,tab=null;for(const r of csvRead('tuners')){if(!r.label)continue;if(r.section!==sec||r.tab!==tab){sec=r.section;tab=r.tab;TUNE_DEFS.push({sec,tab});}
   TUNE_DEFS.push({key:r.key,label:r.label,min:cellV(r.min),max:cellV(r.max),step:cellV(r.step),tip:r.tip,type:r.type||undefined,options:r.options?r.options.split('|'):undefined,test:r.test?new Function(r.test):undefined});}} // the Tune menu: content/tuners.csv, in its order (a new section or tab where the row's changes)
 
@@ -529,20 +530,23 @@ const LS_KEY='nebula-config';
 const PRESET_KEY='nebula-presets';let tunePresets={},tunePreset='';try{tunePresets=JSON.parse(localStorage.getItem(PRESET_KEY))||{};}catch(e){} // named tuner configurations (Tune: the row under Save / Load vars), and the one last chosen or saved
 async function saveConfig(){
   if(window.__SCENE)return;
-  try{if(window.storage){await window.storage.set(LS_KEY,JSON.stringify(T));return;}}catch(e){}
-  try{localStorage.setItem(LS_KEY,JSON.stringify(T));}catch(e){}
+  const o={_v:2},D=T_DEF||{};for(const k in T)if(T[k]!==D[k])o[k]=T[k];const js=JSON.stringify(o); // (only what was tuned away from its default)
+  try{if(window.storage){await window.storage.set(LS_KEY,js);return;}}catch(e){}
+  try{localStorage.setItem(LS_KEY,js);}catch(e){}
 }
 let saveTimer=null;
 function debounceSave(){clearTimeout(saveTimer);saveTimer=setTimeout(saveConfig,500);}
 function applyLoadedConfig(raw,live){ // a saved config (JSON text) or tuners sent by the map (live): a value is taken only if it is of the tuner's own type, numbers only when finite
   try{
-    const saved=typeof raw==='string'?JSON.parse(raw):raw,bad=[];
-    for(const k in saved){if(!(k in T))continue;const v=saved[k];if(typeof v===typeof T[k]&&(typeof v!=='number'||isFinite(v)))T[k]=v;else bad.push(k);}
-    if(bad.length){console.warn('tuners kept at their defaults (bad saved values):',bad.join(', '));debounceSave();}
+    const saved=typeof raw==='string'?JSON.parse(raw):raw,bad=[],old=!live&&saved._v!==2; // old: a config saved whole (every value, defaults too)
+    for(const k in saved){if(!(k in T))continue;if(old&&k in T_OLD&&saved[k]===T_OLD[k])continue; // (a default since changed, never tuned: the new one stands)
+const v=saved[k];if(typeof v===typeof T[k]&&(typeof v!=='number'||isFinite(v)))T[k]=v;else bad.push(k);}
+    if(bad.length)console.warn('tuners kept at their defaults (bad saved values):',bad.join(', '));if(bad.length||old)debounceSave(); // (re-saved: only what differs from the defaults)
     if(!live){buildTunePanel();updateCoverageModeBtn();}
   }catch(e){}
 }
 async function loadConfig(){
+  T_DEF=Object.assign({},T);
   try{
     if(window.storage){
       const r=await window.storage.get(LS_KEY);
