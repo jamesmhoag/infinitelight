@@ -5286,7 +5286,7 @@ function collectableAt(mx,my){
   let best=null,bd=Infinity,bk=null,br=99;
   for(let i=0;i<active.length;i++){
     const p=active[i],kind=collectKindOf(p);
-    if(!kind||underGlass(p.x,p.y)||eclipsed(p.x,p.y,pointVisibleRadius(p),p))continue;
+    if(!kind||p._netAt||underGlass(p.x,p.y)||eclipsed(p.x,p.y,pointVisibleRadius(p),p))continue;
     const dx=_wrapD(p.x-mx,W),dy=_wrapD(p.y-my,H),d2=dx*dx+dy*dy,R=Math.max(T.touchR,placedRadius(p)+2);
     const rk=collectRank(p);if(d2>R*R||rk>br||(rk===br&&d2>=bd))continue;
     bd=d2;best=p;bk=kind;br=rk;
@@ -5296,6 +5296,7 @@ function collectableAt(mx,my){
 function flushDialCollects(){for(const q of active.slice()){if(!q._dialCollect)continue;q._dialCollect=false;const k=collectKindOf(q);if(k&&!q._collected)collectRemnant({p:q,kind:k,free:true});}}
 let _collHeatPress=-1;
 function bondOf(p){return activeBonds.find(b=>b.chain.indexOf(p)!==-1)||null;} // the shape (if any) a remnant is still a node of
+function unbond(p){for(let bi=activeBonds.length-1;bi>=0;bi--){const bd=activeBonds[bi];if(bd.chain.indexOf(p)!==-1)popBond(bd,bi);}} // a node taken out (collected, or netted) breaks its Pattern / prism / knot; the other nodes drift free
 function collectRemnant(c){
   if(!c||!c.p||c.p._collected||c.p._netAt||!c.kind)return false;ruleLearn('goal');ruleLearn('collect'); // one collect per collectable: a fast second click (the grace window's last target, a hold's first, a double click's sweep) finds it already taken
   c.inShape=!!bondOf(c.p);
@@ -5303,15 +5304,14 @@ function collectRemnant(c){
     const pr=_collectFor?_collectFor.downAt:mouseDownAt;if(_collHeatPress===pr)heatAdd(1,hn);else _collHeatPress=pr; } // (a String shot collecting costs no heat) the first object of a press is free; each further one adds heat, like a swipe
   if(!_collectFor&&invFull(c.kind)){flashSaveStatus(txt('surf.is_full',INV_LABEL[c.kind]));return false;}
   c.p._collected=true;if(blackHole)c.p._bhGone=true;lastCollectDoneAt=performance.now();discObj(c.p);if(lastCollectTarget===c.p)lastCollectTarget=null;
-  for(let bi=activeBonds.length-1;bi>=0;bi--){const bd=activeBonds[bi];if(bd.chain.indexOf(c.p)!==-1)popBond(bd,bi);} // a node taken out breaks its Pattern / prism / knot; the other nodes drift free
+  unbond(c.p);
   const idx=active.indexOf(c.p);if(idx>=0)active.splice(idx,1);
   pressedIDs.delete(c.p.id);if(lastActivatedId===c.p.id)lastActivatedId=-1;
   // Bright / Dim remnants are worth 10× their energy, rounded up (0.823 → 9, 0.0003 → 1); Neutron, Magnetic and Pulsing always count 1
   if(!_collectFor)stat('collect:'+c.kind); // (lifetime: remnants of each kind collected)
   const per=remnantValue(c.p,c.kind),got=_collectFor?per:boomBust(Math.min(per,Math.max(1,invMaxFor(c.kind)-inventory[c.kind]))); // (a Boom or Bust day: ×5 or nothing)
   if(_collectFor)mpGot(c.kind,got);else{addInventory(c.kind,got);surfaceTally[c.kind]=(surfaceTally[c.kind]||0)+got;if(MP.live)MP.score.host+=got;} // a second player's pickup is theirs
-  if(_batchSnd){}else if(collectHold&&collectSeen.size>1)playScaleStep();else{const cp=c.p.remKind?c.p:Object.assign({},c.p,{remKind:'brown'});_playRemnantActionSoundInner(cp,false,1);} // exactly the tuner's pickup sound for that remnant type
-   // wiping up: a rising glissando links the pickups
+  if(!_batchSnd){const cp=c.p.remKind?c.p:Object.assign({},c.p,{remKind:'brown'});_playRemnantActionSoundInner(cp,false,1);} // exactly the tuner's pickup sound for that remnant type
   spawnCollectSparks(c.p); // the remnant's edge breaks into particles that gather inward and rise
   earnFx.push({kind:'plus',x:c.p.x,y:c.p.y-14,text:(_collectFor?(_collectFor.name||'Friend')+' ':'')+INV_ICON[c.kind]+' +'+got,born:performance.now(),dur:1100});if(_collectFor)return true;
   {const nf=performance.now();if(collectFeed.kind===c.kind&&nf-collectFeed.t<1500){collectFeed.n++;collectFeed.got+=got;}else collectFeed={kind:c.kind,n:1,got,t:nf};collectFeed.t=nf;flashSaveStatus(txt('surf.collected_for',INV_ICON[c.kind],collectFeed.n,COLLECT_NAME[c.kind],(collectFeed.n===1?'':txt('surf.s')),collectFeed.got,INV_LABEL[c.kind]));}
@@ -5343,41 +5343,58 @@ function tryPickupRemnant(mx,my){
   if(!netScoop([c],mx,my,Math.max(T.cursorBaseR,8)*1.1,false))collectRemnant(c);lastCollectAll={kind:c.kind,t:performance.now(),x:mx,y:my}; // scooped: collected as the net comes up
   return true;
 }
-// ── The net (collecting): the cursor's ring is a net's hoop. Hovering a remnant, the net hangs from it; a click turns the hoop on edge and dips it under the
-// surface (a ripple as it enters), scoops the remnant and comes up again (a ripple as it leaves): the remnant is collected as the scoop completes (Net scoop ms,
-// at its deepest), with the same effect as ever. A double click slashes in a hoop Net double × the reach wide and scoops every remnant of that kind within it.
-// Holding and wiping drags the dipped hoop, the net trailing behind, the surface rippling steadily. Under the surface the hoop and net are dimmed (Net under α)
-const NET={dips:[],rip:[],lastRip:0,trail:[],wake:[],v:0,wantT:0,at:null,bag:null,last:0},netCol=now=>chromaRGB(now).map(v=>Math.round(246+(v-246)*0.08)).join(); // the net: white, with a breath of the chromatic wheel (as the Net below deck)
+// ── The net (collecting): pointing at a remnant, the cursor's ring becomes the net's hoop (the dot still at its centre), the net trailing loose and wavy behind it as
+// the remnant is followed; it comes up out of the depth and sinks away as the nib does. A dab splashes the net in, flips it over in a half circle and collects
+// (a few ripples). A double dab swells the hoop out round every remnant of that kind in reach (Net double × Touch rad at most), draws them in as it shrinks back,
+// flips and collects (ripples at its start, its widest and its finish, and a splash). A held press (wiping or not) never collects: what the dipped hoop passes
+// over is gathered into the net and rides in it, out of every collision (as good as collected: it cannot escape), until the press ends and the net flips and
+// collects it all. Wiping, the hoop stands on edge, the net streaming straight behind at Net wake spd and drooping and waving more as it slows until, stopped,
+// it hangs as on hover; its wake is the pigment's bow wake (drawWakeShape) scaled by that same speed. Under the surface the hoop and net are dimmed (Net under α)
+const NET={dips:[],rip:[],spl:[],held:[],rope:null,v:0,w:0,wi:0,s:0,fx:0,fy:1,x:0,y:0,R:12,last:0},netCol=now=>chromaRGB(now).map(v=>Math.round(246+(v-246)*0.08)).join(), // the net: white, with a breath of the chromatic wheel (as the Net below deck)
+  NET_PH={one:[0,0.35,0.3,0.8,1],dbl:[0.3,0.55,0.5,0.85,1.6]},netSm=u=>u<=0?0:u>=1?1:u*u*(3-2*u); // a scoop's phases (of its length): widest, drawn in by, flip from, collected at; its length × Net scoop ms
 function netRipple(x,y,R,a){NET.rip.push({x,y,R,a:a||1,t0:performance.now()});}
-function netScoop(cs,x,y,R,dbl){const now=performance.now(),list=cs.filter(c=>c&&c.p&&!c.p._collected&&!c.p._netAt);if(!list.length)return false;
-  for(const c of list)c.p._netAt=now;NET.dips.push({x,y,R,dbl,cs:list,t0:now,done:false});netRipple(x,y,R,1);return true;}
+function netKeep(c){if(!c||!c.p||c.p._collected||c.p._netAt||!c.kind)return;c.p._netAt=performance.now();c.j=Math.random()*6.2832;unbond(c.p);NET.held.push(c);if(NET.held.length>1)playScaleStep();} // gathered into the net while the press is held (a rising glissando links them)
+function netScoop(cs,x,y,R,dbl){const now=performance.now(),list=cs.filter(c=>c&&c.p&&!c.p._collected&&!c.p._netAt);if(!list.length)return false;let R1=NET.R;
+  for(const c of list){c.p._netAt=now;c.ox=_wrapD(c.p.x-x,W);c.oy=_wrapD(c.p.y-y,H);if(dbl)R1=Math.max(R1,Math.min(R,Math.hypot(c.ox,c.oy)+placedRadius(c.p)+4));} // a double dab's hoop swells just far enough to take in every one
+  NET.dips.push({x,y,R0:NET.R,R1,dbl,cs:list,t0:now});NET.v=0;netRipple(x,y,NET.R,1);splashAdd(NET.spl,x,y,NET.R*(dbl?1:1.6),dbl?5:8);return true;}
 function netTick(now){const D=Math.max(60,T.netScoopMs||320);
-  for(const d of NET.dips){const u=(now-d.t0)/D;
-    for(const c of d.cs)if(!c.p._collected&&!c.p.dying&&!d.done){const k=Math.min(1,u/0.5);c.p.x+=(_wrapD(d.x-c.p.x,W))*0.18*k;c.p.y+=(_wrapD(d.y-c.p.y,H))*0.18*k;} // drawn into the net as it sweeps
-    if(!d.done&&u>=0.5){d.done=true;const live=d.cs.filter(c=>!c.p._collected&&!c.p.dying&&active.indexOf(c.p)>=0);
-      if(live.length>1){_batchSnd=true;let n=0,rep1=null;try{for(const c of live){c.p._netAt=0;if(collectRemnant(c)===false)break;n++;if(!rep1)rep1=c.p;}}finally{_batchSnd=false;}if(rep1&&rep1.remKind)_playRemnantActionSoundInner(rep1,false,Math.min(1.6,1+n*0.05));}
-      else for(const c of live){c.p._netAt=0;collectRemnant(c);}
-      for(const c of d.cs)c.p._netAt=0;lastCollectDoneAt=now;}
-    if(!d.out&&u>=0.8){d.out=true;netRipple(d.x,d.y,d.R,0.7);}}
-  NET.dips=NET.dips.filter(d=>now-d.t0<D);NET.rip=NET.rip.filter(r=>now-r.t0<(T.netRippleMs||700));NET.wake=NET.wake.filter(w=>now-w.t0<(T.netWakeMs||900));}
-function netDraw(cx,now,cR,col){ // the scoops, the dragged net and the ripples (the cursor layer)
-  const D=Math.max(60,T.netScoopMs||320),RM=T.netRippleMs||700,ua=T.netUnderA!=null?T.netUnderA:0.45;cx.save();cx.lineCap='round';
-  for(const r of NET.rip){const u=(now-r.t0)/RM;for(let k=0;k<2;k++){const v=u-k*0.18;if(v<=0)continue;cx.beginPath();cx.arc(r.x,r.y,r.R*(0.9+v*1.6),0,6.2832);cx.strokeStyle=`rgba(${col},${(0.45*r.a*(1-v)*(1-v)).toFixed(3)})`;cx.lineWidth=1.2*(1-v)+0.3;cx.stroke();}}
-  const WM=T.netWakeMs||900;for(const w of NET.wake){const u=(now-w.t0)/WM,b=w.a+Math.PI;for(const sg of[-1,1]){const a=b+sg*0.42,r0=w.R*(0.5+u*2),L=w.R*(0.45+u*0.4),px=w.x+Math.cos(a)*r0,py=w.y+Math.sin(a)*r0; // wiping: a wake, two lines spreading back from the hoop's path (ripples are for a dab)
-    cx.beginPath();cx.moveTo(px,py);cx.lineTo(px+Math.cos(a)*L,py+Math.sin(a)*L);cx.strokeStyle=`rgba(${col},${(0.35*(1-u)*(1-u)).toFixed(3)})`;cx.lineWidth=1.1*(1-u)+0.3;cx.stroke();}}
-  for(const d of NET.dips){const u=Math.min(1,(now-d.t0)/D),dip=Math.sin(u*Math.PI),A=1-(1-ua)*Math.min(1,dip*1.6); // in: on edge and down; out: up and level again
-    netHoop(cx,d.x,d.y+dip*d.R*0.35,d.R,1-dip*0.82,dip*0.5,A,col,dip);}
-  const dt=NET.last?Math.min(100,now-NET.last):16,on=now-NET.wantT<60;NET.last=now;NET.v+=((on?1:0)-NET.v)*(1-Math.exp(-dt/(on?45:180))); // hovering a collectable: the net comes up to the hoop quickly, and sinks away more slowly
-  if(NET.at&&NET.v>0.01&&!collectHold){const{x,y,R,k}=NET.at,e=NET.v*NET.v*(3-2*NET.v),by=R*(1.5+0.6*(1.1+0.4*k)),B=NET.bag||(NET.bag={x,y:y+by,vx:0,vy:0}),f=dt/16; // the net hangs from the hoop and swings after it, settling when it stops
-    B.vx+=(x-B.x)*0.06*f;B.vy+=(y+by-B.y)*0.06*f;B.vx*=Math.pow(0.86,f);B.vy*=Math.pow(0.86,f);B.x+=B.vx*f;B.y+=B.vy*f;const sway=Math.sin(now/900)*R*0.06;
-    netHoop(cx,x,y,R*(1+0.3*(1-e)),1,0,e,col,1.1+0.4*k+(B.y-y-by)/R*0.5,B.x-x+sway);}
-  cx.restore();}
-function netHoop(cx,x,y,R,sq,tilt,A,col,bag,bx){ // the hoop (squashed by sq: 1 flat, ~0 on edge; turned by tilt) and its net hanging below it (bag: how deep; bx: its bottom swung aside)
-  cx.save();cx.translate(x,y);cx.rotate(tilt);const ry=Math.max(0.6,R*sq),by=R*(1.5+0.6*bag);bx=bx||0;
+  for(const d of NET.dips){const P=NET_PH[d.dbl?'dbl':'one'],u=(now-d.t0)/(D*P[4]),k=netSm((u-P[0])/(P[1]-P[0]));
+    if(!d.done)for(const c of d.cs)if(!c.p._collected&&!c.p.dying){c.p.x=d.x+c.ox*(1-k);c.p.y=d.y+c.oy*(1-k);c.p.vx=c.p.vy=0;} // drawn in to the hoop's middle (a double dab's as it shrinks back)
+    if(d.dbl&&!d.ap&&u>=P[0]){d.ap=1;netRipple(d.x,d.y,d.R1,0.8);} // at its widest
+    if(!d.done&&u>=P[3]){d.done=true;const live=d.cs.filter(c=>!c.p._collected&&!c.p.dying&&active.indexOf(c.p)>=0);
+      if(mouseDown)NET.held.push(...live); // pressed again before it came up: they stay in the net and follow it until the press ends
+      else{for(const c of d.cs)c.p._netAt=0;
+        if(live.length>1){_batchSnd=true;let n=0,rep1=null;try{for(const c of live){if(collectRemnant(c)===false)break;n++;if(!rep1)rep1=c.p;}}finally{_batchSnd=false;}if(rep1&&rep1.remKind)_playRemnantActionSoundInner(rep1,false,Math.min(1.6,1+n*0.05));}
+        else for(const c of live)collectRemnant(c);lastCollectDoneAt=now;}
+      netRipple(d.x,d.y,d.R0*0.8,0.7);netRipple(d.x+d.R0*0.5,d.y-d.R0*0.3,d.R0*0.45,0.5);if(d.dbl)splashAdd(NET.spl,d.x,d.y,d.R0*1.8,10);}}
+  NET.dips=NET.dips.filter(d=>now-d.t0<D*NET_PH[d.dbl?'dbl':'one'][4]);NET.rip=NET.rip.filter(r=>now-r.t0<(T.netRippleMs||700));
+  if(!mouseDown&&NET.held.length){const h=NET.held;NET.held=[];for(const c of h)c.p._netAt=0;netScoop(h,NET.x,NET.y,NET.R,false);}} // the press is over: the net flips and collects what it carried
+function netDraw(cx,now,cR,col,on){ // the net on the cursor, the scoops, the wake, the ripples and the splashes (the cursor layer)
+  const D=Math.max(60,T.netScoopMs||320),RM=T.netRippleMs||700,ua=T.netUnderA!=null?T.netUnderA:0.45,x=mouse.x,y=mouse.y,dt=NET.last?Math.min(100,now-NET.last):16,f=dt/16;NET.last=now;
+  const mv=Math.hypot(x-NET.x,y-NET.y);if(mv>0.3&&mv<W*0.5){NET.fx+=((x-NET.x)/mv-NET.fx)*0.35;NET.fy+=((y-NET.y)/mv-NET.fy)*0.35;const l=Math.hypot(NET.fx,NET.fy)||1;NET.fx/=l;NET.fy/=l;}
+  NET.s+=(Math.min(mv,W*0.5)/f-NET.s)*(1-Math.exp(-dt/90));NET.x=x;NET.y=y;NET.R=cR;const s=Math.min(1,NET.s/Math.max(1,T.netWakeSpd||24)); // how fast the net is moving: 0 still, 1 at Net wake spd or past it
+  on=on&&!NET.dips.length;NET.v+=((on?1:0)-NET.v)*(1-Math.exp(-dt/(on?70:160)));NET.w+=((collectHold?1:0)-NET.w)*(1-Math.exp(-dt/60)); // up quickly, away more slowly (as the nib); w: dipped (held)
+  const N=6,L=cR*0.45,r=NET.rope||(NET.rope=Array.from({length:N},(_,i)=>({x,y:y+i*L,px:x,py:y+i*L}))),wet=NET.w*s,g=cR*0.06*(1-wet),dm=Math.pow(NET.w>0.5?0.78:0.88,f); // the net's line: it follows the hoop, its weight drooping it the slower it goes
+  r[0].x=r[0].px=x;r[0].y=r[0].py=y;for(let i=1;i<N;i++){const n=r[i],vx=(n.x-n.px)*dm,vy=(n.y-n.py)*dm;n.px=n.x;n.py=n.y;n.x+=vx;n.y+=vy+g*f*f;}
+  for(let it=0;it<2;it++)for(let i=1;i<N;i++){const a=r[i-1],n=r[i],dx=n.x-a.x,dy=n.y-a.y,dd=Math.hypot(dx,dy)||1;n.x=a.x+dx/dd*L;n.y=a.y+dy/dd*L;}
+  for(const c of NET.held){const p=c.p,n=r[N-2];p.x=n.x+Math.cos(c.j)*cR*0.25;p.y=n.y+Math.sin(c.j)*cR*0.25;p.vx=p.vy=0;} // what it gathered rides in the bottom of the net
+  if(!T.netOn){NET.spl.length=0;return;}cx.save();cx.lineCap='round';
+  for(const rp of NET.rip){const u=(now-rp.t0)/RM;for(let k=0;k<2;k++){const v=u-k*0.18;if(v<=0)continue;cx.beginPath();cx.arc(rp.x,rp.y,rp.R*(0.9+v*1.6),0,6.2832);cx.strokeStyle=`rgba(${col},${(0.45*rp.a*(1-v)*(1-v)).toFixed(3)})`;cx.lineWidth=1.2*(1-v)+0.3;cx.stroke();}}
+  if(NET.w>0.01){NET.wi+=((NET.s>0.6?1:0)-NET.wi)*(1-Math.exp(-dt/120));const cc=col.split(',').map(Number);drawWakeShape(cx,x,y,NET.fx,NET.fy,cR*2.5,s,T.wakeMaxA*NET.wi*NET.w,cc,cc);} // wiping: the one wake, its shape by speed
+  for(const d of NET.dips){const P=NET_PH[d.dbl?'dbl':'one'],u=Math.min(1,(now-d.t0)/(D*P[4])),Rd=d.dbl?(u<P[0]?d.R0+(d.R1-d.R0)*netSm(u/P[0]):d.R1+(d.R0-d.R1)*netSm((u-P[0])/(P[1]-P[0]))):d.R0,
+    fk=netSm((u-P[2])/(P[3]-P[2])),out=netSm((u-P[3])/(1-P[3])),dip=Math.min(1,u/0.12)*(1-out),sq=Math.cos(Math.PI*fk),by=Rd*2.2*sq; // the half circle flip: the hoop goes over on edge, the net swinging up over it (the whole net swelling with a double dab's hoop)
+    netHoop(cx,d.x,d.y,Rd,sq,(1-out)*(1-(1-ua)*dip),col,Array.from({length:N},(_,i)=>[d.x+Math.sin(now/90+i)*d.R0*0.08*(i/N)*(1-fk*fk),d.y+by*i/(N-1)]));}
+  if(NET.v>0.01){const e=NET.v*NET.v*(3-2*NET.v),amp=cR*(NET.w>0.5?0.06+0.16*(1-s):0.22),wt=now/300; // wavier the slower it goes (as loose as on hover once still)
+    netHoop(cx,x,y,cR*(1+0.35*(1-e)),1-0.78*NET.w,e*(1-(1-ua)*NET.w),col,r.map((n,i)=>{const a=r[Math.max(0,i-1)],b=r[Math.min(N-1,i+1)],dx=b.x-a.x,dy=b.y-a.y,l=Math.hypot(dx,dy)||1,o=amp*Math.sin(wt-i*1.2)*i/(N-1);return[n.x-dy/l*o,n.y+dx/l*o];}));}
+  splashDraw(cx,NET.spl,now,dt);cx.restore();}
+function netHoop(cx,x,y,R,sq,A,col,pts){ // the hoop (squashed by sq: 1 flat, 0 on edge, its flat side across the net's way) and the net along pts (from the hoop's middle to its bottom)
+  const N=pts.length,tx=pts[N-1][0]-x,ty=pts[N-1][1]-y,tl=Math.hypot(tx,ty),ux=tl>0.5?tx/tl:0,uy=tl>0.5?ty/tl:1,ry=Math.max(0.6,R*Math.abs(sq)),
+    at=(i,fr)=>{const p=pts[i],q=pts[Math.min(N-1,i+1)],o=pts[Math.max(0,i-1)];let dx=q[0]-o[0],dy=q[1]-o[1];const l=Math.hypot(dx,dy);if(l<0.01){dx=ux;dy=uy;}else{dx/=l;dy/=l;}const w=R*Math.pow(1-i/(N-1),0.8)*fr;return[p[0]-dy*w,p[1]+dx*w];};
   cx.strokeStyle=`rgba(${col},${(0.5*A).toFixed(3)})`;cx.lineWidth=0.7;cx.beginPath(); // the net: lines from the hoop's rim gathering to its bottom, and two bands across
-  for(let i=0;i<=8;i++){const a=Math.PI*(i/8),px=Math.cos(a)*R,py=Math.sin(a)*ry;cx.moveTo(px,py);cx.quadraticCurveTo(px*0.55+bx*0.3,py*0.4+by*0.6,bx*0.25+px*0.08,by);}
-  for(const f of [0.4,0.72]){cx.moveTo(-R*(1-f*0.75)+bx*f*0.25,by*f);cx.quadraticCurveTo(bx*f*0.25,by*f+R*0.35*(1-f),R*(1-f*0.75)+bx*f*0.25,by*f);}
-  cx.stroke();cx.beginPath();cx.ellipse(0,0,R,ry,0,0,6.2832);cx.strokeStyle=`rgba(${col},${(0.9*A).toFixed(3)})`;cx.lineWidth=1.4;cx.stroke();cx.restore();}
+  for(let j=0;j<=8;j++){const fr=Math.cos(Math.PI*j/8),al=Math.sin(Math.PI*j/8)*ry;cx.moveTo(x-uy*fr*R+ux*al,y+ux*fr*R+uy*al);
+    for(let i=1;i<N-1;i++){const p=at(i,fr),q=at(i+1,fr);cx.quadraticCurveTo(p[0],p[1],(p[0]+q[0])/2,(p[1]+q[1])/2);}cx.lineTo(pts[N-1][0],pts[N-1][1]);}
+  for(const i of [2,3]){let p=at(i,-1);cx.moveTo(p[0],p[1]);for(let fr=-0.5;fr<=1;fr+=0.5){p=at(i,fr);cx.lineTo(p[0],p[1]);}}
+  cx.stroke();cx.beginPath();cx.ellipse(x,y,R,ry,Math.atan2(uy,ux)+Math.PI/2,0,6.2832);cx.strokeStyle=`rgba(${col},${(0.9*A).toFixed(3)})`;cx.lineWidth=1.4;cx.stroke();}
 let lastCollectDoneAt=0,collectFeed={kind:null,n:0,got:0,t:0};const COLLECT_NAME={dim:'dim remnant',bright:'bright remnant',neutron:'neutron remnant',magnetic:'magnetic remnant',pulsing:'pulsing remnant'};
 let collectHold=false,downOnRemnant=null;const collectSeen=new Set();
 let lastCollectSeenAt=0,lastCollectTarget=null; // a brief grace window so a click doesn't miss a target the cursor JUST slid off of
@@ -5389,11 +5406,11 @@ function handleCollectHold(now){
   if(!collectHold){
     if(dragMode||now-mouseDownAt<HOLD_CHARGE_DELAY_MS)return;
     collectHold=true;collectSeen.clear();
-    collectSeen.add(downOnRemnant.p.id);collectRemnant(downOnRemnant);
+    collectSeen.add(downOnRemnant.p.id);netKeep(downOnRemnant);
   }
-  collectUnder(mouse.x,mouse.y,collectSeen);
+  collectUnder(mouse.x,mouse.y,collectSeen,true);
 }
-function collectUnder(x,y,seen){if(x<0||y<0||x>=W||y>=H)return;const c=collectableAt(x,y);if(c&&!seen.has(c.p.id)){seen.add(c.p.id);collectRemnant(c);}} // a collecting sweep takes what is under it, once each
+function collectUnder(x,y,seen,keep){if(x<0||y<0||x>=W||y>=H)return;const c=collectableAt(x,y);if(c&&!seen.has(c.p.id)){seen.add(c.p.id);(keep?netKeep:collectRemnant)(c);}} // a collecting sweep takes what is under it, once each (keep: into the net, collected when the press ends)
 let levelCleared=false,clearInfo=null,totalActivations=0,levelStartTime=0,simulationStarted=false;
 let clearShift=null;
 function drawClearShift(ctx,now){
@@ -5533,7 +5550,7 @@ function bhContactSweep(now){
   if(!bh||bh.complete)return;
   if(bh._spawnPurge){ // whatever was already under it when it appeared is deleted silently — no wake, impact or sound
     bh._spawnPurge=false; // debris in flight would settle into nebula particles after the accounting — drop it
-    for(let i=active.length-1;i>=0;i--){const q=active[i];const rr=(q.isRemnant||q.failedCollapse)?pointVisibleRadius(q):Math.max(0.5,q.displayR||0.5);
+    for(let i=active.length-1;i>=0;i--){const q=active[i];if(q._netAt)continue;const rr=(q.isRemnant||q.failedCollapse)?pointVisibleRadius(q):Math.max(0.5,q.displayR||0.5);
       if(Math.hypot(...bhVec(bh,q.x,q.y))<bh.targetR+rr){tallyLost(q);bh.scoreMass+=q.mass;bh.scoreEnergy+=q.energy;pressedIDs.delete(q.id);pendingActs.delete(q.id);active.splice(i,1);}}
   }
   if(!(bh.consumeR>0)||bh.phase==='active')return;
@@ -5571,7 +5588,7 @@ function bhEnqueue(bh,p){
   q.splice(lo,0,p);
 }
 function bhDrawIn(bh,now,dt){
-  if(!bh.queue){bh.queue=[];bh.qi=0;bh.flying=[];bh._acc=0;for(let i=0;i<active.length;i++){const p=active[i];p._bhQ=true;p.birthProgress=1;p.vx=0;p.vy=0;p.pvx=0;p.pvy=0;p.rot=0;p._bhD=Math.hypot(...bhVec(bh,p.x,p.y));bh.queue.push(p);}
+  if(!bh.queue){bh.queue=[];bh.qi=0;bh.flying=[];bh._acc=0;for(let i=0;i<active.length;i++){const p=active[i];if(p._netAt)continue;p._bhQ=true;p.birthProgress=1;p.vx=0;p.vy=0;p.pvx=0;p.pvy=0;p.rot=0;p._bhD=Math.hypot(...bhVec(bh,p.x,p.y));bh.queue.push(p);}
     bh.queue.sort((a,b)=>a._bhD-b._bhD);}
   bh._acc+=Math.max(0,dt)*T.blackLaunchPerMs;
   if(bh._batch===undefined)bh._batch=1;
@@ -8528,7 +8545,7 @@ wrap.addEventListener('mousemove',e=>{
   }
   if(!dragMode||overUI)return;
   if(downOnRemnant&&!createActive()&&!conMode){ // dragging from a remnant is a collecting sweep — nothing else
-    if(!collectHold){collectHold=true;collectSeen.clear();collectSeen.add(downOnRemnant.p.id);collectRemnant(downOnRemnant);}
+    if(!collectHold){collectHold=true;collectSeen.clear();collectSeen.add(downOnRemnant.p.id);netKeep(downOnRemnant);}
     return;
   }
   if(armedInvItem&&(ITEM_TOOLS.has(armedInvItem.kind)||armedInvItem.kind==='dial')&&!createActive())return; // these tools run from the held press (handleItemHold / handleDialHold), not from swipe-activation
@@ -9885,13 +9902,13 @@ _pm('point-update');
   // this still runs completely normally.
   if(!blackHole)
   for(let i=0;i<an;i++){
-    if(dead[i]||!active[i]||active[i].captured||active[i].dying||active[i]._embed||active[i].unwind)continue; // embedded in a Lens: nothing can collide with it
+    if(dead[i]||!active[i]||active[i].captured||active[i].dying||active[i]._embed||active[i]._netAt||active[i].unwind)continue; // embedded in a Lens, or in the net: nothing can collide with it
     const a=active[i],aIdle=isIdleRemnant(a);
     const ra=placedRadius(a); // includes a Neutron's scale (own size cycle and any override) so collision matches what is drawn
     const gx=Math.min(agW-1,Math.max(0,(a.x/ACELL)|0)),gy=Math.min(agH-1,Math.max(0,(a.y/ACELL)|0));
     fillNearbyCells(gx,gy);
     for(let ci2=0;ci2<_nearLen;ci2++){
-      const j=_nearBuf[ci2];if(j<=i||j>=active.length||dead[j]||!active[j]||active[j].captured||active[j].dying||active[j]._embed||active[j].unwind)continue;
+      const j=_nearBuf[ci2];if(j<=i||j>=active.length||dead[j]||!active[j]||active[j].captured||active[j].dying||active[j]._embed||active[j]._netAt||active[j].unwind)continue;
       const b=active[j];
       if(aIdle&&isIdleRemnant(b))continue; // two resting remnants never touch each other: skip before any maths
       const rb=placedRadius(b);
@@ -10987,15 +11004,8 @@ function drawSymbolFor(cx,x,y,cR,sp,holdT){
     cx.fillStyle=col(0.95);
     cx.font='bold 10px monospace';cx.textAlign='center';cx.textBaseline='middle';
     cx.fillText(sp.rem>0?String(sp.rem):'⟲',x,y+cR*0.8);
-  } else if((sp.type==='collect'||sp.type==='hold')&&T.netOn){ // the net: hanging from the hoop (hover), or dipped and dragged (holding, wiping)
-    const hold=sp.type==='hold',ua=T.netUnderA!=null?T.netUnderA:0.45;
-    if(!hold){NET.wantT=performance.now();NET.at={x,y,R:cR,k:clickK};} // (hanging well below the hoop: drawn with the scoops, netDraw, so it can come and go)
-    else{const tr=NET.trail,last=tr[tr.length-1],now=performance.now();if(!last||Math.hypot(x-last[0],y-last[1])>2)tr.push([x,y]);while(tr.length>8)tr.shift();
-      let dx=0,dy=1;if(tr.length>2){const f=tr[0];const vx=f[0]-x,vy=f[1]-y,l=Math.hypot(vx,vy);if(l>3){dx=vx/l;dy=vy/l;}}
-      NET.v=1;NET.wantT=now;NET.at={x,y,R:cR,k:clickK};const B=NET.bag;if(B){B.vx+=(x-B.x)*0.05;B.vy+=(y-B.y)*0.05;B.vx*=0.85;B.vy*=0.85;B.x+=B.vx;B.y+=B.vy;}const lag=B?Math.hypot(B.x-x,B.y-y)/cR:0; // (the net's weight drags behind the hoop, and swings as it turns)
-      netHoop(cx,x,y,cR,0.22,Math.atan2(dy,dx)-Math.PI/2,ua,netCol(now),1.2+Math.min(0.8,lag*0.4),Math.sin(now/260)*cR*0.12*Math.min(1,lag)); // (turned so the net trails behind the way it is being dragged)
-      if(now-NET.lastRip>70&&last&&Math.hypot(x-last[0],y-last[1])>1){NET.lastRip=now;NET.wake.push({x,y,R:cR,a:Math.atan2(-dy,-dx),t0:now});}}
-    if(sp.p)drawCollectPreview(cx,sp.p,x,y,heldK,clickK);
+  } else if((sp.type==='collect'||sp.type==='hold')&&T.netOn){ // the net (netDraw) is the ring; hovering, what is about to be netted is shown drawn in
+    if(sp.p&&sp.type==='collect')drawCollectPreview(cx,sp.p,x,y,heldK,clickK);
   } else if(sp.type==='collect'||sp.type==='hold'){
     // Collect: four small inward chevrons closing on the target, idly pulsing. Hold-collect: a slowly turning dashed
     // ring with the chevrons drawn tighter and steadier. A fresh click snaps the chevrons in sharply either way.
@@ -11097,15 +11107,15 @@ function computeHoverAndCursor(now){
     // Darken interior — gives the ring/dot contrast when hovering over
     // highly saturated nebula colors instead of just blending in.
     const itemRing=!!(armedInvItem&&!heatLocked&&!inCreate&&ITEM_TOOLS.has(armedInvItem.kind)&&armedInvItem.kind!=='leash'); // a remnant item's own ring replaces the standard ring + centre dot
-    const wipe=collectHold&&T.netOn; // wiping with the net: its hoop, on edge, is the ring (no flat ring as well)
+    const netK=T.netOn?(collectHold?1:NET.v):0,wipe=netK>0.99; // the net's hoop takes the ring's place as it comes up (wiping: on edge, no flat ring at all)
     cursorTrailRecord(mouse.x,mouse.y,now,!overUI&&mouseInBounds);if(!wipe)cursorBase(cx,mouse.x,mouse.y,cR,dimA,tintK,edgeCol,cLw); // (shared.js: the same cursor, and its trail, on the Surface Map)
     if(itemRing){const ac0=armedCursorRGB();drawItemRing(cx,mouse.x,mouse.y,cR,armedInvItem.kind,armedInvItem.effect||0,`${ac0.r|0},${ac0.g|0},${ac0.b|0}`,dimA,cLw,now,Math.max(0,holdT));}
-    else if(!wipe)cursorRing(cx,mouse.x,mouse.y,cR,dimA,edgeCol,cLw);
+    else if(!wipe)cursorRing(cx,mouse.x,mouse.y,cR,dimA*(1-netK),edgeCol,cLw);
     drawHeatArc(cx,mouse.x,mouse.y,cR,now,heat); // heat (or the cooldown draining) runs round the inside of the ring
     // Center dot, with its own small glow
     if(!itemRing)cursorDot(cx,mouse.x,mouse.y,dimA,edgeCol);
     if(T.cursorNibOn&&mouseInBounds)cursorNib(cx,mouse.x,mouse.y,cR,dimA,canvas,W,H,T,!armedInvItem&&!inCreate&&!conMode&&!collectHold&&!heatLocked&&!overUI&&!!hoverObj&&!hoverCollect&&!hoverObj.isRemnant); // the nib, with its lens: only over something that can be shone (a collectable: the net instead)
-    netTick(now);netDraw(cx,now,cR,netCol(now)); // the net's scoops and ripples
+    netTick(now);netDraw(cx,now,cR,netCol(now),!!hoverCollect||collectHold||NET.held.length>0); // the net: on the cursor, its scoops, wake and ripples
     let symCol=edgeCol;
     if(armedInvItem&&!inCreate){const ac=armedCursorRGB();symCol=`${ac.r|0},${ac.g|0},${ac.b|0}`;} // the ring is the standard cursor; only the item's symbol carries the item colour
     { // symbol layer: the current state's symbol fades in while the previous one fades out
