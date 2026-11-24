@@ -120,11 +120,12 @@ body.focus-clock #turn-label,body.focus-items #hdock{z-index:59;filter:drop-shad
 #shop .srow.poor{opacity:.38}#shop .srow.own{opacity:.5;cursor:default}#shop .srow.just{animation:rowJust 1.4s ease-out}#shop .srow.just.no{animation:rowNo 1.4s ease-out}@keyframes rowJust{0%{background:rgba(140,255,160,.4)}100%{background:transparent}}@keyframes rowNo{0%{background:rgba(255,130,110,.4)}100%{background:transparent}}
 #shop .stt tr.chg td{animation:stChg 2s ease-out}@keyframes stChg{0%{background:rgba(255,215,106,.45);color:#fff}100%{background:transparent}}
 #shop .srow.c{justify-content:center;text-align:center;margin:10px 0}
-#shop .scard.shelf{width:min(680px,92vw)}#shop .srows.shelf{display:grid;grid-template-columns:repeat(4,1fr);grid-auto-rows:252px;row-gap:14px;column-gap:14px;max-height:532px;overflow-y:auto;padding:4px 16px 0 4px;background:repeating-linear-gradient(to bottom,transparent 0 252px,#4a3624 252px 259px,transparent 259px 266px)} /* the shelves: four cards to a shelf, two shelves in view, the rest scrolled to */
+#shop .scard.shelf{width:min(680px,92vw)}#shop .srows.shelf{display:grid;grid-template-columns:repeat(4,1fr);grid-auto-rows:268px;row-gap:14px;column-gap:14px;max-height:564px;overflow-y:auto;padding:4px 16px 0 4px;background:repeating-linear-gradient(to bottom,transparent 0 268px,#4a3624 268px 275px,transparent 275px 282px);background-attachment:local} /* the shelves: four cards to a shelf, two shelves in view, the rest scrolled to */
 #shop .sitem{display:flex;flex-direction:column;cursor:pointer;min-width:0}#shop .sitem .sc{flex:1;display:flex;flex-direction:column;background:#0b0b0e;border:1px solid rgba(255,255,255,.7);border-radius:7px;padding:6px;min-height:0;transition:transform .15s}#shop .sitem:hover .sc{transform:translateY(-4px);border-color:#fff}
 #shop .snm{font:600 11px/1.25 system-ui,sans-serif;text-align:center;min-height:28px;display:flex;align-items:center;justify-content:center}#shop .sart2{position:relative;height:92px;background:#000;border-radius:4px;overflow:hidden;display:flex;align-items:center;justify-content:center;margin:4px 0}#shop .sart2 img{max-width:80%;max-height:70%;opacity:.8}#shop .sart2 iframe{position:absolute;inset:0;width:100%;height:100%;border:0;pointer-events:none}
 #shop .sfx{font:10px/1.3 ui-monospace,monospace;opacity:.75;overflow:hidden;flex:1;border-top:1px solid rgba(255,255,255,.2);padding-top:4px}#shop .sprice{text-align:center;font-weight:600;padding:5px 0 2px;white-space:nowrap}#shop .sprice i{font-style:normal;opacity:.6;font-weight:400}
-#shop .sitem.nw .sc{border-color:#ffd76a;box-shadow:0 0 10px rgba(255,215,106,.45)}#shop .sitem.nw .snm::before{content:'NEW · ';color:#ffd76a}#shop .sitem.poor{opacity:.45}#shop .sitem.own{opacity:.5;cursor:default}#shop .sitem.just .sc{animation:rowJust 1.4s ease-out}#shop .sitem.just.no .sc{animation:rowNo 1.4s ease-out}
+#shop .sitem.nw .sc{border-color:#ffd76a;box-shadow:0 0 10px rgba(255,215,106,.45)}#shop .sitem.nw .snm::before{content:'NEW · ';color:#ffd76a}#shop .sstock{text-align:center;font:10px/1.2 ui-monospace,monospace;opacity:.75;padding-bottom:2px}#shop .sstock.up{color:#9fd7ff}#shop .sstock.gear{color:#ffd76a}#shop .sitem.out .sstock{color:#ff7a5a}
+#shop .sitem.poor{opacity:.45}#shop .sitem.own{opacity:.5;cursor:default}#shop .sitem.just .sc{animation:rowJust 1.4s ease-out}#shop .sitem.just.no .sc{animation:rowNo 1.4s ease-out}
 #shop .sitem.out{cursor:default;opacity:.8}#shop .sitem.out .soos{flex:1;display:flex;align-items:center;justify-content:center;border:2px dashed rgba(255,255,255,.3);border-radius:7px;font:800 15px/1.1 system-ui,sans-serif;letter-spacing:2px;color:#ff7a5a;text-align:center;transform:rotate(-6deg)}#shop .sitem.out .snm{opacity:.6}
 #shop .srows{min-height:108px;margin-bottom:6px}#shop .stabs{display:flex;justify-content:center;gap:4px;margin:-12px 0 12px;flex-wrap:wrap}#shop .stabs span{display:flex;align-items:center;justify-content:center;width:26px;height:24px;border:1px solid rgba(255,255,255,.35);cursor:pointer;opacity:.55}#shop .stabs span svg{width:16px;height:16px;color:#fff}#shop .stabs span.on{opacity:1;border-color:#fff;background:rgba(255,255,255,.12)}#shop .scur{font-style:normal}#shop .scur svg{width:13px;height:13px;vertical-align:-2px;color:#fff} /* a currency by its symbol (XACT's lots) */
 body.shop-open #hdock{z-index:59}#hinv .slot.wal::before{border-color:rgba(255,255,255,.6);background:rgba(255,255,255,.12)}
@@ -400,7 +401,8 @@ function riftWreck(k){ // you tore a Rift: your buoy is wrecked (things go overb
   const lost=wreckCheck('rift'),saved=atHelm()&&kitOn(f=>f.rudder||f.motor);if(saved){feed(txt('map.wreck.helm'),txt('map.wreck.helm_d'));return false;}
   const r0=cellRing(...parseK(k));let to=null;for(let n=r0+1;n<=ringMax()&&!to;n++){const L=ring(n).filter(([q,r])=>{const c=cells[K(q,r)];return c&&!c.isVoid&&!c.cap&&!c.flot&&!c.shop&&!c.rift&&!pdHas(K(q,r));});if(L.length)to=L[(Math.random()*L.length)|0];}
   if(!to)return false;const o=cells[K(pQ,pR)];if(o)o.isP=false;pQ=to[0];pR=to[1];cells[K(pQ,pR)].isP=true;buoy.under=false;buoy.dunk={t0:performance.now(),d:-1,ms:900};buoyGo('sail');focusCam(true,1);
-  const L=lost.map(id=>(shopItem(id)||{n:id}).n).join(', ');feed(txt('map.wreck.rift'),lost.length?txt('map.wreck.lost',L):txt('map.wreck.rift_d'),'no');return true;}
+  const L=lost.map(id=>(shopItem(id)||{n:id}).n).join(', ');wreckNote=[txt('map.wreck.rift'),(lost.length?txt('map.wreck.lost',L)+' ':'')+txt('map.wreck.rift_d')];feed(wreckNote[0],wreckNote[1],'no');jot('wreck',{n:lost.length});return true;}
+let wreckNote=null;
 function riftCell(k,ang,mine){ // a Rift tore the surface: the hex is gone (a scar), and the open hexes beside it are brightened, cleared as a bright clear is (their value theirs, kept). Gone at Midnight (a new map). mine: you tore it (riftWreck)
   const c=cells[k];if(!c||c.cap||c.isVoid)return;const lost=c.v;Object.assign(c,{isVoid:true,v:0,rift:{a:ang||0,t0:performance.now()}});
   for(const[q,r]of neighbors(c.q,c.r)){const nk=K(q,r),n=cells[nk];if(!n||n.isVoid||n.cap)continue;Object.assign(n,{cap:true,capVal:n.v,kind:'bright',shop:null,tally:{}});delete n.shot;delete n._im;dayCnt.b++;score=Math.round((score+n.v)*100)/100;captureOrder.push({keys:[nk],mergeId:null});clearFx[nk]={t0:null};}riftFxAdd(k,[]);
@@ -488,25 +490,25 @@ function singDraw(toys){toys=toys||{};if(!deck.length&&discard.length&&reshuffle
   const hand=pri.concat(rest).slice(0,n);deck=deck.filter(c=>!hand.includes(c));for(let i=0;i<Math.min(hand.length,toys.up||0);i++){const u=singCard(hand[i].t+1,hand[i].m,hand[i].fl);u.id=hand[i].id;hand[i]=u;} // (Pinwheel: a card a tier better)
   singHand=hand;if(currentView==='map'){currentView='overlay';showNeb(true);}neb({cmd:'singDraw',cards:hand,skip:(toys.skip||0)>0});saveMap();} // (shown by the surface, over the map)
 function singPicked(m){if(!singHand)return;jot('sing',{n:m.title||''});for(const c of singHand)if(c.id!==m.id)discard.push(c);singHand=null;feed(m.title||txt('map.sing.passed'),m.text||'');saveMap();}
-const plantBud=()=>Math.max(2,Math.round(T.mapPlantBud!=null?T.mapPlantBud:4)),plantStage=p=>p.bloom?5:!p.n?0:p.n>=plantBud()?4:p.n>=plantBud()-1?3:p.n>=2?2:1;
+const plantBud=()=>Math.max(2,Math.round(T.mapPlantBud!=null?T.mapPlantBud:4)),plantBloom=()=>Math.max(plantBud(),Math.round(T.mapPlantBloom!=null?T.mapPlantBloom:5)),plantStage=p=>p.bloom?5:!p.n?0:p.n>=plantBud()?4:p.n>=plantBud()-1?3:p.n>=2?2:1;
 const plantType=p=>'plant:'+(p.m||'paper')+':'+Math.max(1,plantStage(p))+':'+Math.max(0,plantBud()-4),plantTier=k=>{const c=cells[k],g=c&&c.mergeId!=null?mergeGroups.find(x=>x.id===c.mergeId):null;return g?(g.type==='hex'?3:2):1;};
 function trashGot(m,k){trashBag.push({m,k});jot('trash',{m});feed(txt('map.trash.got',txt('trash.'+m)),txt('map.trash.bag',trashBag.length));syncDock();saveMap();}
-function trashOK(k){const c=cells[k],t=trashBag[0];if(!c||!t||hexD(c,here())>1||k===K(pQ,pR))return false;const p=plants[k];return!!(c.rift||(p&&(!p.m||p.m===t.m)&&p.n<plantBud())||(!c.cap&&!c.isVoid&&!c.flot&&!c.shop&&!c.isP));}
+function trashOK(k){const c=cells[k],t=trashBag[0];if(!c||!t||hexD(c,here())>1||k===K(pQ,pR))return false;const p=plants[k];return!!(c.rift||(p&&(!p.m||p.m===t.m)&&p.n<plantBloom())||(!c.cap&&!c.isVoid&&!c.flot&&!c.shop&&!c.isP));}
 function trashAt(k){const c=cells[k],t=trashBag[0];if(!trashOK(k)){hexTap(k);return;}trashBag.shift();const nm=txt('trash.'+t.m),p=plants[k];
   if(c.rift)feed(txt('map.trash.rift',nm),txt('map.trash.bag',trashBag.length));
-  else if(p){const s0=plantStage(p);p.m=p.m||t.m;p.n++;jot('feed',{m:t.m});plantSync();feed(txt('map.plant.fed',nm),txt(plantStage(p)>=4?'map.plant.bud':'map.plant.grew',p.n,plantBud()));if(plantStage(p)!==s0)splashes.push({x:a2w(c.q,c.r)[0],y:a2w(c.q,c.r)[1],t:performance.now(),n:6,a:0});}
+  else if(p){const s0=plantStage(p);p.m=p.m||t.m;p.n++;jot('feed',{m:t.m});plantSync();feed(txt('map.plant.fed',nm),txt(p.n>=plantBloom()?'map.plant.ready':plantStage(p)>=4?'map.plant.bud':'map.plant.grew',p.n,plantBloom()));if(plantStage(p)!==s0)splashes.push({x:a2w(c.q,c.r)[0],y:a2w(c.q,c.r)[1],t:performance.now(),n:6,a:0});}
   else{c.flot={kind:t.k||'box',shop:''};flotPond(k);feed(txt('map.trash.set',nm),txt('good.flotsam_d',c.q,c.r));}
   if(!trashBag.length&&armed==='trash')armed=null;updateHint();syncDock();saveMap();}
 function seedOK(k){const c=cells[k];return!!(c&&seeds>0&&c.cap&&c.kind==='dark'&&!plants[k]&&hexD(c,here())<=1);}
-function plantSeed(k){if(!seedOK(k)){hexTap(k);return;}seeds--;plants[k]={m:null,n:0};jot('seed');plantSync();feed(txt('map.plant.seed'),txt('map.plant.seed_d',plantBud()));if(!seeds&&armed==='seed')armed=null;updateHint();syncDock();saveMap();}
+function plantSeed(k){if(!seedOK(k)){hexTap(k);return;}seeds--;plants[k]={m:null,n:0};jot('seed');plantSync();feed(txt('map.plant.seed'),txt('map.plant.seed_d',plantBloom()));if(!seeds&&armed==='seed')armed=null;updateHint();syncDock();saveMap();}
 function plantSync(){for(const k in plants){if(!cells[k]){delete plants[k];continue;}if(plants[k].n&&!pond.some(d=>d.plant===k)){const[x,y]=a2w(cells[k].q,cells[k].r);pond.push({type:plantType(plants[k]),plant:k,x,y,hd:Math.random()*6.28,sp:0,cur:0,next:1e15,born:performance.now(),seen:true,lastRip:0,ph:0});}}} // each growing plant stands on its hex (drawn as the lake's ducks and goods are)
-function plantsMidnight(){const out=[],h=here();for(const k in plants){const p=plants[k];if(plantStage(p)<4)continue;p.bloom=1;const t=plantTier(k),c=cells[k],pick=hexD(c,h)<=1;
+function plantsMidnight(){const out=[],h=here();for(const k in plants){const p=plants[k];if(p.n<plantBloom())continue;p.bloom=1; /* (a bud short of its trash: it falls in with the spill) */const t=plantTier(k),c=cells[k],pick=hexD(c,h)<=1;
     if(pick){const n=Math.round((T.mapFlowerDim!=null?T.mapFlowerDim:50000)*(t===3?100:t===2?10:1));neb({cmd:'award',kind:'dim',n});feed(txt('map.plant.picked',txt('trash.'+p.m)),txt('map.plant.picked_d',fmtN(n)));}
     out.push({m:p.m,t,k,picked:pick?1:0});jot('bloom',{m:p.m,picked:pick?1:0});}
   if(out.length&&out.some(f=>!f.picked))feed(txt('map.plant.bloomed',out.filter(f=>!f.picked).length),txt('map.plant.bloomed_d'));return out;}
-function plantInfo(k,c){const t=trashBag[0];if(k==='seed')return c?[txt('map.plant.seed_here'),seedOK(K(c.q,c.r))?txt('map.plant.seed_ok'):txt('map.plant.seed_no')]:[txt('map.plant.seeds',seeds),txt('map.plant.seed_d',plantBud())];
+function plantInfo(k,c){const t=trashBag[0];if(k==='seed')return c?[txt('map.plant.seed_here'),seedOK(K(c.q,c.r))?txt('map.plant.seed_ok'):txt('map.plant.seed_no')]:[txt('map.plant.seeds',seeds),txt('map.plant.seed_d',plantBloom())];
   if(!t)return[txt('map.trash.none'),txt('map.trash.none_d')];const nm=txt('trash.'+t.m);if(!c)return[txt('map.trash.slot',trashBag.length,nm),txt('map.trash.slot_d')];const ck=K(c.q,c.r),p=plants[ck];
-  return[txt('map.trash.here',nm),!trashOK(ck)?txt(p&&p.m&&p.m!==t.m?'map.trash.wrongmat':'map.trash.cannot',p&&txt('trash.'+p.m)):c.rift?txt('map.trash.into_rift'):p?txt('map.trash.into_plant',p.n+1,plantBud()):txt('map.trash.onto_hex')];}
+  return[txt('map.trash.here',nm),!trashOK(ck)?txt(p&&p.m&&p.m!==t.m?'map.trash.wrongmat':'map.trash.cannot',p&&txt('trash.'+p.m)):c.rift?txt('map.trash.into_rift'):p?txt('map.trash.into_plant',p.n+1,plantBloom()):txt('map.trash.onto_hex')];}
 function lakeTrash(d){const g=d.good,m=TRASH_OF[g.kind];if(!m)return false;const[bx,by]=a2w(pQ,pR);if(Math.hypot(d.x-bx,d.y-by)>HEX*2.2){feed(goodNameM(g),txt('good.ring_far'),'no');return true;}if(!trashNet(m,k=>disc.has(k))){feed(goodNameM(g),txt('good.trash_nonet',txt('trash.'+m)),'no');return true;} // trash on the lake (or on a hex beside you): scooped up with your net
   if(d.flot&&cells[d.flot])delete cells[d.flot].flot;pond.splice(pond.indexOf(d),1);ripples.push({x:d.x,y:d.y,t:performance.now(),dk:onWhite(d.x,d.y),big:1});trashGot(m,g.kind);return true;}
 function doMove(tq,tr){
@@ -1030,7 +1032,7 @@ document.addEventListener('click',e=>{if(currentView!=='map'||menuOpen||shopUI||
 document.addEventListener('click',e=>{ // a lake duck clicked (even under a read-out like the legend): dunked, it comes back up — and the click goes no further
   if(drag&&drag.moved)return;if(currentView!=='map'||menuOpen||shopUI||!(e.target===sc||(e.target.closest&&!e.target.closest('button,.slot,.shop,input,select,#hdock,#tuneP,#mModes,#shop,#menu,#day-report,#letter,#nameAsk'))))return;
   if(!SCENE&&buoyHit(e.clientX,e.clientY)){e.stopPropagation();cabinOpen();return;} // your buoy: down its hatch, below deck (cabin.js), where Status and your collections open from what is in the cabin
-  const du=duckUnder(e.clientX,e.clientY);if(!du||du.dunk)return;e.stopPropagation();if(du.bottle&&!du.empty){openBottle(du);return;}if(du.good&&!du.good.open&&du.flot&&hexD(cells[du.flot],here())>1){feed(goodNameM(du.good),txt('good.ring_far'),'no');return;}if(du.good&&!du.good.open&&!TRASH_ONLY.includes(du.good.kind)){openLakeGood(du);return;}if(du.good&&lakeTrash(du))return;if(du.plant){const p=plants[du.plant];feed(txt('map.plant.name',p&&p.m?txt('trash.'+p.m):'—'),txt('map.plant.stat',p?p.n:0,plantBud()));return;}
+  const du=duckUnder(e.clientX,e.clientY);if(!du||du.dunk)return;e.stopPropagation();if(du.bottle&&!du.empty){openBottle(du);return;}if(du.good&&!du.good.open&&du.flot&&hexD(cells[du.flot],here())>1){feed(goodNameM(du.good),txt('good.ring_far'),'no');return;}if(du.good&&!du.good.open&&!TRASH_ONLY.includes(du.good.kind)){openLakeGood(du);return;}if(du.good&&lakeTrash(du))return;if(du.plant){const p=plants[du.plant];feed(txt('map.plant.name',p&&p.m?txt('trash.'+p.m):'—'),txt('map.plant.stat',p?p.n:0,plantBloom()));return;}
   du.dunk=performance.now();ripples.push({x:du.x,y:du.y,t:du.dunk,dk:onWhite(du.x,du.y),big:1});neb({cmd:'quack',type:du.type,v:1});},true);
 document.addEventListener('keydown',e=>{if(currentView==='cabin'){if(e.key==='Escape'){e.preventDefault();cabinClose();}return;} // below deck: Esc climbs back up
   if(document.getElementById('nameAsk').classList.contains('show'))return; // naming your buoy: Enter sets it
@@ -1347,9 +1349,10 @@ function enterNebula(cellKey){hubLearn('hubcell');jot('dive');if(wxOn('hot'))wat
 }
 let _enter=null; // going into a surface (the dunk and the camera's move), and how to come back out
 function exitNebula(){riftFxStart(performance.now()+500); // (a Rift made in there opens as the map comes back)
-  if(_enter&&_enter.back&&cam){const now=performance.now(),ms=T.mapEnterMs||3000,cl=cells[_enter.key],gone=cl&&(cl.cap||cl.rift||cl.isVoid);diveStart(_enter.key,-1,null,_enter.back);buoy.under=!!gone;buoy.dunk=gone?{t0:now,d:1,ms:1}:{t0:now+ms*0.62,d:-1,ms:ms*0.33};}_enter=null; // back out: the same, backwards (the buoy bobs up at the end; a surface you cleared leaves it under until you pick the hex to move to: buoyGo)
+  if(_enter&&_enter.back&&cam){const now=performance.now(),ms=T.mapEnterMs||3000,cl=cells[_enter.key],thrown=_enter.key!==K(pQ,pR),gone=!thrown&&cl&&(cl.cap||cl.rift||cl.isVoid); /* (thrown: the Rift you tore wrecked you outward — you come up where it threw you) */diveStart(_enter.key,-1,null,_enter.back);buoy.under=!!gone;buoy.dunk=gone?{t0:now,d:1,ms:1}:{t0:now+ms*0.62,d:-1,ms:ms*0.33};}_enter=null; // back out: the same, backwards (the buoy bobs up at the end; a surface you cleared leaves it under until you pick the hex to move to: buoyGo)
   if(MP.on&&MP.surf&&MP.surf.owner===MP.me){netOut({t:'surf',owner:MP.me,on:false});MP.surf=null;neb({cmd:'remoteClear'});neb({cmd:'mpShare',on:false});}
-  currentView='map';_loadAt=performance.now();loading('back',true);const t=performance.now();for(const k in clearFx)if(clearFx[k].t0==null)clearFx[k].t0=t+250;showNeb(false);mapResize();pondSpawn();startMapLoop();updateHint();evPump();}
+  currentView='map';_loadAt=performance.now();loading('back',true);const t=performance.now();for(const k in clearFx)if(clearFx[k].t0==null)clearFx[k].t0=t+250;showNeb(false);mapResize();pondSpawn();startMapLoop();updateHint();evPump();
+  if(wreckNote){const w=wreckNote;wreckNote=null;setTimeout(()=>{focusCam(true,1);feed(w[0],w[1],'no');},(T.mapEnterMs||3000)*0.7);}} // (wrecked outward while you were down there: the camera follows you to where you came up, and says so)
 let evQ=[];
 const evAsked=new Set(); // (asked for once a session: the surface's reply may take a moment to say it is seen)
 const MAP_EV={};for(const r of csvRead('events'))MAP_EV[r.id]=r;
@@ -1393,14 +1396,14 @@ window.addEventListener('message',e=>{
   else if(m.type==='bought')shopBought(m);
   else if(m.type==='picked'){if(m.sing)singPicked(m);else shopPicked(m);} // the hex is captured right away; the player returns with a right-click
   else if(m.type==='demo')shelfDemoShow(m);
-  else if(m.type==='trash')trashGot(m.m,m.k); // the net scooped trash on the surface: into your trash bag // a shelf card's live demo
+  else if(m.type==='trashGot')trashGot(m.m,m.k); // the net scooped trash on the surface: into your trash bag // a shelf card's live demo
   else if(m.type==='music')musicToggle(); // the surface's Esc menu: Music on / off
   else if(m.type==='return')exitNebula();
   else if(m.type==='levelReady'){loading('level',false);neb({cmd:'music',on:!!(MUSIC.cur&&MUSIC.pref.on)});if(_enter)_enter.ready=true;}
   else if(m.type==='pondDuck'&&DUCK_TYPES[m.duck])pondAsk.push(m.duck);
   else if(m.type==='pondGood'&&m.good)lakeGood(m.good,performance.now(),true); // Create → a commodity for the lake (a treasure chest)
   else if(m.type==='trash')for(const g of m.list||[])flotPut(g); // packaging left on a cleared surface: it surfaces with you, on a random hex
-  else if(m.type==='unboxed'){const d=pond.find(x=>x.good&&x.good.id===m.id);feed(txt('good.unboxed',d?goodNameM(d.good):''),m.got||'');}
+  else if(m.type==='unboxed'){if(m.item&&currentView==='map'){currentView='overlay';showNeb(true);} /* (its card, over the map) */const d=pond.find(x=>x.good&&x.good.id===m.id);feed(txt('good.unboxed',d?goodNameM(d.good):''),m.got||'');}
   else if(m.type==='chested')chestDone(m);
   else if(m.type==='quit'){
     const c=cells[m.key];
@@ -1470,7 +1473,7 @@ function testUnset(k){ // back to an open surface (no clear, no Rift, no shop)
     score=Math.round((score-c.capVal)*100)/100;clearFx[k]={t0:performance.now(),un:true,dk:c.kind==='dark'};captureOrder=captureOrder.map(e=>({keys:e.keys.filter(x=>x!==k),mergeId:e.mergeId})).filter(e=>e.keys.length);}
   Object.assign(c,{cap:false,capVal:0,v:0});for(const f of ['kind','shop','tally','missed','full','unw'])delete c[f];if(nebulaCellKey===k)dropSession();}
 function testHex(k,kind){const c=cells[k];if(!c)return;const ph=phase;testUnset(k);checkConstellations();redistribute();checkVoidAccess();
-  if(kind==='rift')riftCell(k,Math.random()*Math.PI);else if(kind!=='particles'){completeCaptureForCell(k,kind,{});if(clearFx[k])clearFx[k].t0=performance.now();}
+  if(kind==='rift')riftCell(k,Math.random()*Math.PI,k===K(pQ,pR));else /* (a Rift torn where you are: you are wrecked by it, as by your own) */ if(kind!=='particles'){completeCaptureForCell(k,kind,{});if(clearFx[k])clearFx[k].t0=performance.now();}
   if(ph==='move'&&phase==='captured')phase='move';feed(txt('test.title'),txt('test.hex_done',c.q,c.r,txt('test.to_'+kind)));updateHint();saveMap();}
 function testShop(k,id,rank){const c=cells[k];if(!c)return;if(!(c.q===0&&c.r===0)&&!isBright(k))testHex(k,'bright'); /* (a shop stands on a bright clear) */
   const hs=hubPop.findIndex(x=>x&&x.id===id);if(hs>=0)hubPop[hs]=null;for(const j in cells)if(cells[j].shop&&cells[j].shop.id===id)delete cells[j].shop; /* one of each: the old one goes */
@@ -1686,11 +1689,15 @@ function renderShop(){const el=document.getElementById('shop');if(SCENE)requestA
   card.querySelectorAll('.srow,.sitem').forEach(r=>{const row=pr[+r.dataset.i];r.onclick=()=>{if(!row.own)row.go();};r.onmouseenter=()=>{shopHover=row.it?[row.fn||row.n,row.note||'']:null;if(row.it&&!row.out)shelfDemo(r,itemScene(row.it));};r.onmouseleave=()=>{shopHover=null;};});
   card.querySelectorAll('.stabs span').forEach(t=>{t.onclick=()=>{u.tab=t.dataset.t;renderShop();};t.onmouseenter=()=>{const c=t.dataset.t;shopHover=[curName(c),txt(rows.length===1?'map.shop.tab1':'map.shop.tab',fmtN(shopWallet(c)),rows.length)];};t.onmouseleave=()=>{shopHover=null;};});
   applyDisc();}
-function shelfCard(r,i){ // an item on a shop's shelf: a card (its name, its live demo, what it does) with its price under it; a stock of several is a deck that many deep; none left: an Out of stock sign where it stood
-  const it=r.it,j=r.it&&shopFlash&&shopFlash.id===r.it.id&&performance.now()-shopFlash.at<1500?' just'+(shopFlash.ok?'':' no'):'';
-  if(r.out)return`<div class="sitem out" data-i="${i}"><div class="soos">${txt('map.shop.oos')}</div><div class="snm">${r.n}</div><div class="sprice">${r.p}</div></div>`;
-  const n=Math.min(5,(r.left===Infinity?1:r.left)-1),sh=[];for(let k=1;k<=n;k++)sh.push(`${k*3}px ${k*3}px 0 -1px #000,${k*3}px ${k*3}px 0 0 rgba(255,255,255,${(0.7-k*0.1).toFixed(2)})`);
-  return`<div class="sitem${r.poor?' poor':''}${r.own?' own':''}${r.nw?' nw':''}${j}" data-i="${i}"${r.disc?` data-disc="${r.disc}" data-hov`:''}><div class="sc" style="${sh.length?'box-shadow:'+sh.join(','):''}"><div class="snm">${r.n}</div><div class="sart2"><img src="shops/sign_${it.shop}.svg" alt=""></div><div class="sfx">${gEsc(it.note||'')}</div></div><div class="sprice">${r.p}${r.left!==Infinity&&r.left>1&&!r.own?' <i>× '+r.left+'</i>':''}</div></div>`;}
+function shelfCard(r,i){ // an item on a shop's shelf: a card (its name, its live demo, what it does), its price and its stock under it. Three kinds (shelfKind): an upgrade (bought
+  // once, never lost: Owned once yours), gear (one: Out of stock while it is yours — back on the shelf, at its price, if a wreck takes it) and goods (a deck as deep as its stock,
+  // or a deck with no bottom; Out of stock when none are left)
+  const it=r.it,j=it&&shopFlash&&shopFlash.id===it.id&&performance.now()-shopFlash.at<1500?' just'+(shopFlash.ok?'':' no'):'',kd=shelfKind(it);
+  if(r.out||kd==='gear'&&r.own)return`<div class="sitem out" data-i="${i}"><div class="soos">${txt('map.shop.oos')}</div><div class="snm">${r.n}</div><div class="sprice">${r.p}</div><div class="sstock">${txt('map.shop.stock',0)}</div></div>`;
+  const n=kd==='goods'?Math.min(5,(r.left===Infinity?4:r.left)-1):0,sh=[];for(let k=1;k<=n;k++)sh.push(`${k*3}px ${k*3}px 0 -1px #000,${k*3}px ${k*3}px 0 0 rgba(255,255,255,${(0.7-k*0.1).toFixed(2)})`);
+  const st=kd==='up'?txt(r.own?'map.shop.owned':'map.shop.upgrade'):kd==='gear'?txt('map.shop.stock',1):r.left===Infinity?txt('map.shop.stock_any'):txt('map.shop.stock',r.left);
+  return`<div class="sitem${r.poor?' poor':''}${r.own?' own':''}${r.nw?' nw':''}${j}" data-i="${i}"${r.disc?` data-disc="${r.disc}" data-hov`:''}><div class="sc" style="${sh.length?'box-shadow:'+sh.join(','):''}"><div class="snm">${r.n}</div><div class="sart2"><img src="shops/sign_${it.shop}.svg" alt=""></div><div class="sfx">${gEsc(it.note||'')}</div></div><div class="sprice">${r.own&&kd==='up'?'':r.p}</div><div class="sstock ${kd}">${st}</div></div>`;}
+const shelfKind=it=>shopOnce(it)?(it.fx.mount?'gear':'up'):'goods'; // an upgrade (kept for good), gear (one, and a wreck can take it) or goods (by the one)
 let _demo=null;function shelfDemo(el,name){if(_demo&&_demo.el===el)return;document.querySelectorAll('#shop .sart2 iframe').forEach(f=>f.remove());_demo={el,name};neb({cmd:'demo',name});} // the card pointed at plays its live demo (one at a time; the surface sends its page)
 function shelfDemoShow(m){if(!_demo||_demo.name!==m.name||!_demo.el.isConnected)return;const a=_demo.el.querySelector('.sart2');if(!a)return;const f=document.createElement('iframe');if(m.src)f.src=m.src;else f.srcdoc=m.srcdoc;a.appendChild(f);}
 function shopBuy(it,arg){hubLearn('shopbuy');
