@@ -98,6 +98,7 @@ button:hover{background:rgba(255,255,255,0.15);}
     <button id="tlb" onclick="toggleTelemetry()" data-tx="surf.ui.telemetry_off"></button>
     <button id="dyb" onclick="toggleDynamics()" data-tx="surf.ui.dynamics_off"></button>
     <button id="clb" onclick="toggleClass()" data-tx="surf.ui.class_off"></button>
+    <button id="edb" onclick="toggleEdm()" data-tx="surf.ui.edm_off"></button>
     <button id="bpb" onclick="toggleBuildPlay()" style="display:none"></button>
     <div class="div"></div>
     <button onclick="clearStage()" data-tx="surf.ui.clear_stage"></button>
@@ -3433,6 +3434,7 @@ function drawPlate(ctx,sh,now){
   }
 }
 function playBell(ci,vol){ // a struck metal bell: inharmonic partials, the high ones dying first
+  if(EDM_ON){edmNote('stab',noteFreq(ci,1),vol||1);return;} // (EDM sounds: edmNote)
   if(!canPlay())return;reserveVoice();
   const t0=audioCtx.currentTime,f0=noteFreq(ci,1.5),ratios=[1,2.76,5.4,8.93],amps=[1,0.5,0.28,0.16],durs=[2.2,1.4,0.9,0.5],v=vol*0.09*(T.volGatePost||1)*2;
   let first=null,fg=null;
@@ -3592,6 +3594,7 @@ function gateCols(sh){
   sh._lbb=[mnx,mny,mxx,mxy];sh._cols=cols;sh._colsK=key;return cols;
 }
 function playXylo(ci,vol){ // bright wooden-bar xylophone note (the colour's own note)
+  if(EDM_ON){edmNote('pluck',noteFreq(ci,2),vol||1);return;} // (EDM sounds: edmNote)
   if(!canPlay())return;reserveVoice();
   const t0=audioCtx.currentTime,f=noteFreq(ci,2),v=(vol||1)*0.16*(T.volGatePost||1);
   const parts=[[1,1,0.55],[3.9,0.34,0.16],[9.4,0.12,0.06]];let first=null,fg=null;
@@ -5529,6 +5532,7 @@ function triggerBlackRemnant(x,y,now,mass,energy,fromGate,rift){ // rift: a Rift
   if(asDuck){spawnDuck(x,y,now);return;} // the nova still fires; the surface carries on
   const targetR=Math.min(T.whiteEffMax,Math.max(T.whiteEffMin,40))*remEnScaleOf(energy);
   if(!rift)fireEvent('dark',{x,y});
+  if(EDM_ON)edmDrop(!!rift,1); // (EDM sounds: it lands as a drop)
   blackHole={x,y,targetR,consumeR:0,waveR:0,growStart:now,phase:'grow',activateR:0,scoreMass:0,scoreEnergy:0,collapsedMass:mass||0,collapsedEnergy:energy||0,complete:false,wakes:[],impacts:[],inv:invertMode};
   if(fromGate==='nogrow')blackHole.growStart=now-T.blackGrowMs-1; // released from a Gate: already full size, no re-appearing
   if(rift){const f=rift.a!=null,a=f?rift.a:Math.random()*Math.PI,w0=T.riftWMin||40,w=w0+Math.random()*Math.max(0,(T.riftWMax||80)-w0);Object.assign(blackHole,{rift:{a,nx:-Math.sin(a),ny:Math.cos(a),seed:f?rift.seed:Math.random()*100},targetR:w/2,phase:f?'grow':'crack',crackStart:now});blackHole.rift.pts=riftSpine(x,y,blackHole.rift);} // (its line: the crack's own legs, riftSpine) // (rift: a crack that formed (riftForms) opens along its own line at once) // a Rift: a line across the screen at a random angle (through where the mass was), its black stripe 40–80 px wide
@@ -6902,6 +6906,7 @@ function chordFreqsForColor(ci,octMul){
 }
 function playViolin(ci,mass,up,ownerId){
   if(_batchSnd&&up){_batchCis.set(ci,Math.max(_batchCis.get(ci)||0,mass));return;} // a batch selection sounds as ONE chord (flushBatchChord)
+  if(EDM_ON){edmNote('lead',noteFreq(ci,up?1:0.75),Math.min(1.3,0.45+Math.log10(Math.max(1,mass||1))/4));return;} // (EDM sounds: edmNote)
   if(!canPlay())return;
   const voices=[];
   const now=audioCtx.currentTime;
@@ -6999,6 +7004,7 @@ function syncActivationSounds(){
 
 // ── Flute: point-on-point collisions — clean, airy, softer than the horn ────
 function playFlute(ci,mass){
+  if(EDM_ON){edmNote('chop',noteFreq(ci,2),Math.min(1.3,0.45+Math.log10(Math.max(1,mass||1))/4));return;} // (EDM sounds: edmNote)
   if(!canPlay())return;
   const now=audioCtx.currentTime;
   reserveVoice();
@@ -7038,6 +7044,7 @@ const CHIME_SCALE=(()=>{ // extend the base 6-note pentatonic across 3 octaves, 
 // not a separate effect. Not voice-tracked: chimes fire in dense bursts and
 // must never starve other instruments (timpani, horn, etc.) of playback budget.
 function playChimeCollisionHit(freq,vol,delay,pitchRank){
+  if(EDM_ON){edmNote('pluck',freq,(vol||0.1)*8,delay);return;} // (EDM sounds: edmNote)
   if(!audioCtx||audioMuted)return;
   const now=audioCtx.currentTime+Math.max(0,delay||0);
   const dur=(0.5+(pitchRank||0)*0.55)*(0.92+Math.random()*0.16)+durJitter(); // higher bars ring a little longer as things settle
@@ -7064,7 +7071,7 @@ function playChimeCollisionHit(freq,vol,delay,pitchRank){
 function playNovaChime(slotHues,mass,nebR){
   if(!audioCtx||audioMuted)return;
   const dominant=slotHues.slice().sort((a,b)=>b.w-a.w)[0];
-  const startCi=dominant?hueToCI(dominant.hue):0;
+  const startCi=dominant?hueToCI(dominant.hue):0;if(EDM_ON){edmNote('stab',noteFreq(startCi,1),Math.min(1.3,0.45+Math.log10(Math.max(1,mass||1))/4));edmNote('kick',0,1);return;} // (EDM sounds)
   const startIdx=(startCi*3)%CHIME_SCALE.length;
   const rangeSize=Math.max(6,Math.min(14,Math.round(6+nebR/14)));
   const hitCount=Math.max(12,Math.min(34,Math.round(14+nebR/6)));
@@ -7085,6 +7092,7 @@ function playNovaChime(slotHues,mass,nebR){
 // The finale's opening cascade — the mirror image: starts at the top of the
 // range and sweeps down, dense and overlapping like the nova cluster.
 function playDescendingChimeCascade(mass,volMul){
+  if(EDM_ON){edmArp(0,8,-1,Math.min(1.3,0.45+Math.log10(Math.max(1,mass||1))/4)*(volMul==null?1:volMul));return;} // (EDM sounds: edmNote)
   if(!audioCtx||audioMuted)return;
   const topIdx=CHIME_SCALE.length-1;
   const hitCount=22;
@@ -7104,6 +7112,7 @@ function playDescendingChimeCascade(mass,volMul){
 // three bars struck together as a resolving chord. Different from the nova's dense cluster and the finale's
 // descending cascade.
 function playSynthGliss(up,volMul){ // a real synth glissando: overlapping stepped notes up (or down) the chime scale
+  if(EDM_ON){edmArp(0,(T.glissNotes|0)||8,up?1:-1,volMul==null?1:volMul);return;} // (EDM sounds: edmNote)
   if(!audioCtx||audioMuted||T.glissVol<=0)return;
   const gUp=T.glissWave==='scale up'?true:T.glissWave==='scale down'?false:up,n=Math.max(2,T.glissNotes|0),gap=T.glissGapMs/1000,ling=T.glissLingerMs/1000,vm=T.glissVol*(volMul==null?1:volMul),t0=audioCtx.currentTime,top=Math.min(CHIME_SCALE.length-1,Math.round((CHIME_SCALE.length-1)*0.85));
   for(let i=0;i<n;i++){
@@ -7129,6 +7138,7 @@ function playGateRestoreChimes(){
 // Triangle (the instrument): a very short strike then a long, thin, inharmonic ring. Each connected Pattern
 // point walks its own colour's note set (same pattern the other instruments use), so a drawn shape reads as a phrase.
 function playTriangleNote(ci,step,seal,delay,volOverride){
+  if(EDM_ON){edmNote('hat',0,volOverride!=null?volOverride*4:1,delay);return;} // (EDM sounds: edmNote)
   if(!canPlay())return;
   reserveVoice();
   const now=audioCtx.currentTime+(delay||0);
@@ -7161,6 +7171,7 @@ function playTriangleNote(ci,step,seal,delay,volOverride){
 // phrase, not one note. Used for earning a String (orbit) or a Spindle (flock) — the two achievements that previously
 // had no sound of their own at all.
 function playAchievementScale(ci,volMul){
+  if(EDM_ON){edmArp(ci,5,1,volMul==null?1:volMul);return;} // (EDM sounds: edmNote)
   if(!audioCtx||audioMuted)return;
   const steps=5,gapS=0.075,vm=volMul===undefined?1:volMul;
   for(let i=0;i<steps;i++){
@@ -7170,13 +7181,48 @@ function playAchievementScale(ci,volMul){
 // Clarinet: odd harmonics only (hollow, woody), soft attack, a little breath — used whenever an inventory item
 // acts on a point (String, Spindle, Prism, Knot).
 let lastGlassTap=0;
+// ── EDM sounds (Modes → EDM sounds for now; gear will turn them on later: edmOn): every instrument the surface plays, played instead as a house track's —
+// the violin a supersaw lead, chimes and the xylophone plucks, bells and the horn chord stabs, the clarinet an acid line, the flute a vocal chop, the tuba a reese bass,
+// the timpani a kick (pumping what else plays), the cymbal a crash, glissandos and scales an arpeggio; and a Dark Remnant or a Rift appearing lands as a drop ──
+let EDM_ON=(()=>{try{return localStorage.getItem('il_edm_v1')==='1';}catch(e){return false;}})();
+function toggleEdm(){EDM_ON=!EDM_ON;try{localStorage.setItem('il_edm_v1',EDM_ON?'1':'0');}catch(e){}syncEdmBtn();if(EDM_ON){edmNote('kick',0,1);edmNote('stab',noteFreq(0,1),1,0.24);}}
+function syncEdmBtn(){const b=document.getElementById('edb');if(b)b.textContent=txt('surf.edm',txt(EDM_ON?'surf.on_2':'surf.off_2'));}setTimeout(syncEdmBtn,0);
+let _edmBus=null;function edmBus(){const ac=audioCtx;if(!_edmBus||_edmBus.ctx!==ac){const g=ac.createGain(),d=ac.createGain();g.gain.value=1;d.gain.value=1;g.connect(d);d.connect(masterGain);_edmBus={ctx:ac,node:g,duck:d};}return _edmBus;} // (its own bus, ducked by its kick: the pump)
+const EDM_BEAT=60/126; // (a house tempo: 126 bpm)
+function edmNote(k,f,v,dl){if(!audioCtx||audioMuted)return;const ac=audioCtx,t=ac.currentTime+Math.max(0,dl||0)+0.005,E=edmBus(),B=E.node,V=Math.min(1.6,v==null?1:v)*(T.volEdm!=null?T.volEdm:1);
+  const env=(g,a,pk,dur,sus)=>{const n=ac.createGain();n.gain.setValueAtTime(0.0001,t);n.gain.exponentialRampToValueAtTime(Math.max(0.0002,pk),t+a);n.gain.exponentialRampToValueAtTime(Math.max(0.0002,pk*(sus||0.001)),t+dur);n.gain.exponentialRampToValueAtTime(0.0001,t+dur+0.08);n.connect(g||B);return n;};
+  const lp=(to,f0,f1,f2,q,dur)=>{const fl=ac.createBiquadFilter();fl.type='lowpass';fl.Q.value=q||1;fl.frequency.setValueAtTime(f0,t);fl.frequency.exponentialRampToValueAtTime(f1,t+Math.min(0.03,dur*0.2));fl.frequency.exponentialRampToValueAtTime(f2,t+dur);fl.connect(to);return fl;};
+  const osc=(to,type,fr,det,dur,glide)=>{const o=ac.createOscillator();o.type=type;o.frequency.setValueAtTime(glide||fr,t);if(glide)o.frequency.exponentialRampToValueAtTime(fr,t+0.06);o.detune.value=det||0;o.connect(to);o.start(t);o.stop(t+dur+0.15);return o;};
+  const noise=(to,dur)=>{const s=ac.createBufferSource();s.buffer=sfxNoise(ac,'white');s.loop=true;s.connect(to);s.start(t,Math.random()*3);s.stop(t+dur+0.1);};
+  const sup=(to,fr,n,cents,dur,type)=>{for(let i=0;i<n;i++)osc(to,type||'sawtooth',fr,n>1?(i/(n-1)-0.5)*2*cents:0,dur);}; // a supersaw: n detuned saws
+  if(f&&!(f>0))f=220;f=Math.max(20,Math.min(5000,f||220));
+  if(k==='lead'){const d=0.42;sup(lp(env(null,0.01,0.05*V,d,0.6),1400,5200,1800,1,d),f,6,28,d);osc(lp(env(null,0.01,0.03*V,d,0.6),2000,2000,2000,1,d),'square',f*0.5,0,d,f*0.97);}
+  else if(k==='pluck'){const d=0.28;sup(lp(env(null,0.003,0.08*V,d),7000,7000,350,2,d),f,2,12,d);osc(env(null,0.003,0.025*V,d*0.6),'square',f*2,0,d);}
+  else if(k==='stab'){const d=0.3;for(const r of[1,1.189,1.498,1.782])sup(lp(env(null,0.004,0.035*V,d),3600,3600,700,1.5,d),f*r,3,14,d);}
+  else if(k==='acid'){const d=0.32;osc(lp(env(null,0.004,0.11*V,d,0.4),300,2800,380,14,d),'sawtooth',f,0,d,f*1.5);}
+  else if(k==='chop'){const d=0.12;for(const[o,r]of[[0,1],[0.13,1.5],[0.26,1]]){const tt=t+o,g=ac.createGain();g.gain.setValueAtTime(0.0001,tt);g.gain.exponentialRampToValueAtTime(0.3*V,tt+0.01);g.gain.exponentialRampToValueAtTime(0.0001,tt+d);g.connect(B);for(const fm of[800,1150,2600]){const bp=ac.createBiquadFilter();bp.type='bandpass';bp.frequency.value=fm;bp.Q.value=6;bp.connect(g);const x=ac.createOscillator();x.type='sawtooth';x.frequency.value=f*r;x.connect(bp);x.start(tt);x.stop(tt+d+0.05);}}} // a vocal chop: 'ah' formants, cut in three
+  else if(k==='reese'){const d=0.85,fl=lp(env(null,0.02,0.16*V,d,0.7),380,380,260,3,d),lf=ac.createOscillator(),lg=ac.createGain();lf.frequency.value=4.5;lg.gain.value=220;lf.connect(lg);lg.connect(fl.frequency);lf.start(t);lf.stop(t+d+0.1);sup(fl,f,2,22,d);osc(env(null,0.02,0.12*V,d,0.8),'sine',f,0,d);}
+  else if(k==='kick'){const o=ac.createOscillator(),g=env(null,0.002,0.55*V,0.42);o.frequency.setValueAtTime(160,t);o.frequency.exponentialRampToValueAtTime(44,t+0.11);o.connect(g);o.start(t);o.stop(t+0.6);const hp=ac.createBiquadFilter();hp.type='highpass';hp.frequency.value=3000;hp.connect(env(null,0.001,0.12*V,0.012));noise(hp,0.03);
+    const dg=E.duck.gain;dg.cancelScheduledValues(t);dg.setValueAtTime(0.3,t+0.01);dg.linearRampToValueAtTime(1,t+EDM_BEAT*0.55);} // the kick, and the pump it gives everything else
+  else if(k==='hat'){const hp=ac.createBiquadFilter();hp.type='highpass';hp.frequency.value=8500;hp.connect(env(null,0.001,0.09*V,0.05));noise(hp,0.08);}
+  else if(k==='clap'){const bp=ac.createBiquadFilter();bp.type='bandpass';bp.frequency.value=1500;bp.Q.value=0.8;const g=ac.createGain();g.connect(B);g.gain.setValueAtTime(0.0001,t);for(const o of[0,0.012,0.024]){g.gain.setValueAtTime(0.25*V,t+o);g.gain.exponentialRampToValueAtTime(0.02,t+o+0.01);}g.gain.exponentialRampToValueAtTime(0.0001,t+0.22);bp.connect(g);noise(bp,0.25);}
+  else if(k==='crash'){const hp=ac.createBiquadFilter();hp.type='highpass';hp.frequency.value=4500;hp.connect(env(null,0.003,0.12*V,1.8,0.2));noise(hp,1.9);}
+  else if(k==='sub'){const o=ac.createOscillator(),g=env(null,0.005,0.5*V,1.6,0.3);o.frequency.setValueAtTime(f*1.4,t);o.frequency.exponentialRampToValueAtTime(f,t+0.25);o.connect(g);o.start(t);o.stop(t+1.8);}
+  else if(k==='down'){const bp=lp(env(null,0.01,0.2*V,1.4,0.05),6000,4000,160,1,1.4);noise(bp,1.5);}}
+function edmArp(ci,n,dir,v){const st=EDM_BEAT/4,sc=[0,3,5,7,10,12,15,17];for(let i=0;i<n;i++){const j=dir>0?i:n-1-i;edmNote('pluck',noteFreq(ci,1)*Math.pow(2,sc[j%sc.length]/12+Math.floor(j/sc.length)),v*(0.7+0.3*i/n),i*st);}} // a run up (or down) the scale in sixteenths
+function edmDrop(rift,v){v=(v||1)*0.7;const b=EDM_BEAT,f=noteFreq(0,0.25); // a Dark Remnant (or a Rift) arriving: the drop — the kick, a sub boom, a reese bass, a crash and a downlifter; then a bar of it pumping (a Rift's: glitched)
+  edmNote('kick',0,1.3*v);edmNote('sub',f,v);edmNote('crash',0,v);edmNote('down',0,v);edmNote('stab',noteFreq(0,1),v);edmNote('reese',f*2,v);
+  for(let i=1;i<4;i++){edmNote('kick',0,v,i*b);edmNote('reese',f*2*(i===3?1.189:1),v*0.8,i*b+b/2);if(i%2)edmNote('clap',0,v,i*b);edmNote('hat',0,v*0.7,i*b+b/2);}
+  if(rift){for(let i=0;i<8;i++)edmNote('stab',noteFreq(0,1)*Math.pow(2,-i/12),v*0.6,b*0.5+i*b/8);for(let i=0;i<6;i++)edmNote(i%2?'hat':'chop',noteFreq(0,2)*(i%3?1:0.5),v*0.6,b*2+i*b/16);}} // (a Rift: a stuttering stab sliding down, a glitched chop)
 function playGlassTap(){ // a short, bright 'tink' of a fingertip on glass
+  if(EDM_ON){edmNote('hat',0,0.8);return;} // (EDM sounds: edmNote)
   if(!canPlay())return;reserveVoice();
   let first=null;const t0=audioCtx.currentTime,g=audioCtx.createGain();g.gain.setValueAtTime(0,t0);g.gain.linearRampToValueAtTime(0.09*T.volGlassTap,t0+0.003);g.gain.exponentialRampToValueAtTime(0.0005,t0+0.16);
   g.connect(masterGain);
   for(const [fr,am] of [[2350,1],[3520,0.55],[5210,0.3]]){const o=audioCtx.createOscillator(),og=audioCtx.createGain();o.type='sine';o.frequency.setValueAtTime(fr*(0.97+Math.random()*0.06),t0);og.gain.value=am;o.connect(og);og.connect(g);o.start(t0);o.stop(t0+0.2);if(!first){first=o;}}releaseVoiceOn(first,g);
 }
 function playClarinet(ci,mass,volMul,oct){
+  if(EDM_ON){edmNote('acid',noteFreq(ci,(oct||1)*0.5),Math.min(1.3,0.45+Math.log10(Math.max(1,mass||1))/4)*(volMul==null?1:volMul));return;} // (EDM sounds: edmNote)
   if(!canPlay())return;
   reserveVoice();
   const now=audioCtx.currentTime;
@@ -7209,6 +7255,7 @@ function playClarinet(ci,mass,volMul,oct){
 }
 // A warmer, longer bell tone used only for the finale's high shimmer voices.
 function playChimeNote(ci,mass,octMul,delay,volMul){
+  if(EDM_ON){edmNote('pluck',noteFreq(ci,octMul||2),Math.min(1.3,0.45+Math.log10(Math.max(1,mass||1))/4)*(volMul==null?1:volMul),delay);return;} // (EDM sounds: edmNote)
   if(!audioCtx||audioMuted)return;
   const now=audioCtx.currentTime+Math.max(0,delay||0);
   const freq=noteFreq(ci,octMul||2);
@@ -7232,6 +7279,7 @@ function playChimeNote(ci,mass,octMul,delay,volMul){
 // (the two discs' rings beating against and echoing off each other) rides
 // under the shimmer for the whole drawn-out tail.
 function playCymbalCrash(mass,volMul){
+  if(EDM_ON){edmNote('crash',0,Math.min(1.3,0.45+Math.log10(Math.max(1,mass||1))/4)*(volMul==null?1:volMul));return;} // (EDM sounds: edmNote)
   if(!canPlay())return;
   const now=audioCtx.currentTime;
   reserveVoice();
@@ -7281,6 +7329,7 @@ function playCymbalCrash(mass,volMul){
   clack.start(now);clack.stop(now+0.12);
 }
 function playTubaBlast(mass,ci,volMul){
+  if(EDM_ON){edmNote('reese',noteFreq(ci||0,0.5),Math.min(1.3,0.45+Math.log10(Math.max(1,mass||1))/4)*(volMul==null?1:volMul));return;} // (EDM sounds: edmNote)
   if(!canPlay())return;
   const now=audioCtx.currentTime;
   reserveVoice();
@@ -7416,7 +7465,7 @@ let _colBus=null;
 function playCollectNote(c,got){
   if(!audioCtx||audioMuted)return;
   const ac=audioCtx;if(!_colBus||_colBus.ctx!==ac){const g=ac.createGain();g.gain.value=1;g.connect(masterGain);_colBus={ctx:ac,node:g};}
-  const tier=Math.min(1,Math.log2(Math.max(1,got)+1)/7),ci=(c.p&&c.p.ci!=null)?c.p.ci:0;
+  const tier=Math.min(1,Math.log2(Math.max(1,got)+1)/7),ci=(c.p&&c.p.ci!=null)?c.p.ci:0;if(EDM_ON){edmNote('pluck',noteFreq(ci,2+tier*2),0.6+tier);return;} // (EDM sounds)
   let f=pickBaseFreq(ci);while(f<330)f*=2;while(f>660)f/=2;f*=Math.pow(2,Math.min(2,tier*2)); // 1 energy ≈ mid register, big hauls ring two octaves up
   const t0=ac.currentTime,dur=0.45+tier*1.9,vol=0.16+tier*0.30;
   const partials=[[1,1],[2.0,0.35],[2.76,0.22*(0.4+tier)]];if(tier>0.35)partials.push([1.5,0.4*tier],[3.0,0.18*tier]); // a fifth and a high octave join as the haul grows
@@ -7435,6 +7484,7 @@ function timpBus(){ // everything percussive goes through a limiter so stacked h
   const g=audioCtx.createGain();g.gain.value=0.85;c.connect(g);g.connect(masterGain);_timpBusObj={ctx:audioCtx,node:c};return c;
 }
 function playTimpani(ci,mass,volMul,delay){
+  if(EDM_ON){edmNote('kick',noteFreq(ci,0.5),Math.min(1.3,0.45+Math.log10(Math.max(1,mass||1))/4)*(volMul==null?1:volMul),delay);return;} // (EDM sounds: edmNote)
   const scheduled=delay!=null&&delay>0;
   if(!scheduled&&!canPlay())return;
   if(scheduled&&(!audioCtx||audioMuted))return;
@@ -7472,6 +7522,7 @@ function playTimpani(ci,mass,volMul,delay){
 // earlier passes and held out properly: a real attack, a sung plateau, and a
 // distinct two-stage release so it resolves rather than just cutting off.
 function playFrenchHorn(ci,mass,mood){
+  if(EDM_ON){edmNote('stab',noteFreq(ci,1),Math.min(1.3,0.45+Math.log10(Math.max(1,mass||1))/4));return;} // (EDM sounds: edmNote)
   if(!canPlay())return;
   const now=audioCtx.currentTime;
   reserveVoice();
@@ -7543,6 +7594,7 @@ function playFinaleVoice(freq,type,vol,onset,dur){
   o1.stop(now+dur+0.3);o2.stop(now+dur+0.3);
 }
 function playOrchestraFinale(mass,energy){
+  if(EDM_ON){edmDrop(false,1.3);return;} // (EDM sounds: edmNote)
   if(!audioCtx||audioMuted)return;
   const root=4; // fixed root pitch-class for the finale, regardless of what was absorbed
   const rootFreq=pickBaseFreq(root); // chosen once so every voice below is truly the same harmonized chord
@@ -13506,7 +13558,7 @@ function jFit(body){ // a book never scrolls: a page whose words do not fit is g
   for(const pe of body.querySelectorAll('.bk-p')){const c=pe.querySelector('.bk-c'),k=(pe.querySelector('.bk-w')||{}).dataset;if(!c||!k||c.querySelector('#mapCv'))continue;const over=()=>c.scrollHeight>c.clientHeight+2||c.scrollWidth>c.clientWidth+2;
     if(!over())continue;if(!pe.classList.contains('sp')){_jSpan.add(k.nk);_jGo=k.nk;rulesRender();return true;}for(let f=0.95;f>=0.6&&over();f-=0.05)c.style.fontSize=f.toFixed(2)+'em';}return false;}
 function journalRender(body){const P=journalPages(),ns=P.length/2,go=_jGo;_jGo=null;let sp=_bookPg.guide; // the Journal's open spread (turned to a page, a page's notes key or a chapter: _jGo)
-  if(go!=null)sp=(typeof go==='number'?go:Math.max(0,P.findIndex(p=>p.nk===go||p.ch===go&&p.k==='chap')))>>1;sp=Math.max(0,Math.min(ns-1,sp));const dir=Math.sign(sp-_bookPg.guide);_bookPg.guide=sp;_rulesTab=P[sp*2+1].ch;
+  if(go!=null)sp=(typeof go==='number'?go:Math.max(0,P.findIndex(p=>p.nk===go||p.ch===go&&p.k==='chap')))>>1;sp=Math.max(0,Math.min(ns-1,sp));const dir=Math.sign(sp-_bookPg.guide);_bookPg.guide=sp;if(dir&&!audioMuted)sfxPlay(audioCtx,masterGain,'page',T.volPage!=null?T.volPage:0.8); /* a page turned */_rulesTab=P[sp*2+1].ch;
   body.innerHTML=`<div class="bk jr${dir>0?' tf':dir<0?' tb':''}">${pageHTML(P,sp*2)}${pageHTML(P,sp*2+1)}<div class="bk-tabs">${RULE_TABS.filter(([k])=>P.some(p=>p.ch===k)).map(([k,n])=>`<button data-ch="${k}" class="${k===_rulesTab?'on':''}${P.some(p=>p.ch===k&&p.key&&ilNew(p.key))?' isnew':''}">${n}</button>`).join('')}</div></div><div class="bk-nav"><button id="bkP"${sp?'':' disabled'}>‹ Back</button><span>${sp*2+1} – ${sp*2+2} of ${P.length}</span><button id="bkN"${sp<ns-1?'':' disabled'}>Next ›</button></div>`;
   body.querySelectorAll('.bk-tabs button').forEach(b=>b.onclick=()=>{_jGo=b.dataset.ch;rulesRender();});body.querySelectorAll('[data-pg]').forEach(l=>l.onclick=()=>{_jGo=+l.dataset.pg;rulesRender();});
   body.querySelectorAll('.bk-w').forEach(t=>{t.oninput=()=>{if(t.value)_jNotes[t.dataset.nk]=t.value;else delete _jNotes[t.dataset.nk];try{localStorage.setItem('il_jnotes_v1',JSON.stringify(_jNotes));}catch(e){}};t.onkeydown=e=>e.stopPropagation();}); // your own notes, on what is left of the page (kept as you write)
@@ -13550,7 +13602,7 @@ function rulesRender(){
 }
 function rulesTick(now){if(!_rulesOpen){_rulesLoop=0;return;}if(_rulesMode==='guide'){mapDraw(now);document.querySelectorAll('.bk-p canvas.sk').forEach(c=>skTick(c,now));} /* the Journal: its lifecycle page, and each picture's drawing */if(_rulesTab==='coll')duckPondDraw(now);if(_rulesTab==='buoy')buoyViewDraw(now);_rulesLoop=requestAnimationFrame(rulesTick);}
 function openCollections(tab){if(tab&&String(tab).startsWith('buoy:')){_buoySub=tab.slice(5);tab='buoy';}openRules('coll',tab);} // ('buoy:kit': the buoy's Mounts page — the Hull Compartment below deck) // Status, ducks, letters and souvenirs
-function openRules(mode,tab){mode=mode==='coll'?'coll':'guide';if(tab==='status')tab='buoy'; /* (Status is on the Buoy page) */const tabs=mode==='coll'?COLL_TABS:RULE_TABS;
+function openRules(mode,tab){if(!_rulesOpen&&!audioMuted)sfxPlay(audioCtx,masterGain,'book',T.volPage!=null?T.volPage:0.8); /* the Journal (or your collections) opened */mode=mode==='coll'?'coll':'guide';if(tab==='status')tab='buoy'; /* (Status is on the Buoy page) */const tabs=mode==='coll'?COLL_TABS:RULE_TABS;
   if(_rulesOpen&&_rulesMode===mode&&!tab)return;_rulesLast[_rulesMode]=_rulesTab;_rulesMode=mode;_rulesTab=tab&&tabs.some(t=>t[0]===tab)?tab:tabs.some(t=>t[0]===_rulesLast[mode])?_rulesLast[mode]:tabs[0][0];if(mode==='guide'&&tab)_jGo=_rulesTab; // (the Journal opened at a chapter)
   if(_rulesOpen){rulesHead();rulesRender();return;}_rulesOpen=true;window._rulesOpen=true;guideCSS();wrap.classList.add('rules-open');_rulesWasPaused=isPaused;if(!isPaused)togglePause();
   let ov=document.getElementById('rulesOverlay');
