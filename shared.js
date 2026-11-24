@@ -616,7 +616,7 @@ const SHOPS={};for(const r of csvRead('shops'))SHOPS[r.id]={n:r.name,tag:r.tag,a
 // hold to discover it: the dc_si_<id> tuner), note]. fx: give {kind:n} · cap {kind:max} (raises a purse cap, once) · clock h (turns the map's clock) ·
 // duck roll | exotic | pick | Size | Colour | Material (a duck of that kind) · disc id (reveals an interface element, once) · souv (a Gift Shop souvenir) ·
 // up (an upgrade, once: its effect is still to come). stock: how many the shop has each run (0: no limit; shopLeft)
-const SHOP_ITEMS=csvRead('shop_items').map(r=>[r.id,r.shop,r.name,cellV(r.cost),r.currency,cellV(r.rank),cvJ(r.effect)||{},r.requires,cellV(r.discover_dim),r.note,cellV(r.stock)]).map(([id,shop,n,cost,cur,r,fx,req,dc,note,stock])=>({id,shop,n,cost,cur:cur||SHOPS[shop].cur||'bright',r,fx,req:req||null,dc:dc||0,note:note||'',stock:stock>0?stock:0}));
+const SHOP_ITEMS=csvRead('shop_items').map(r=>[r.id,r.shop,r.name,cellV(r.cost),r.currency,cellV(r.rank),cvJ(r.effect)||{},r.requires,cellV(r.discover_dim),r.note,cellV(r.stock),r.demo]).map(([id,shop,n,cost,cur,r,fx,req,dc,note,stock,demo])=>({id,shop,n,cost,cur:cur||SHOPS[shop].cur||'bright',r,fx,req:req||null,dc:dc||0,note:note||'',stock:stock>0?stock:0,demo:demo||''})); // (demo: its live demo on its shelf card, a scene's name; empty: itemScene picks one)
 const shopItem=id=>SHOP_ITEMS.find(i=>i.id===id);
 // The tuner's Shops tab: an item's shop, price, currency, stock, rank and the item it needs, changed in this browser (il_shopedit_v1) over content/shop_items.csv
 const SHOP_EDIT_KEY='il_shopedit_v1',SHOP_EDIT_F=['shop','cost','cur','stock','r','req'],SHOP_BASE=SHOP_ITEMS.map(i=>Object.fromEntries(['id',...SHOP_EDIT_F].map(k=>[k,i[k]])));
@@ -628,7 +628,7 @@ shopEditApply();
 // An item's live demo on its shelf card (its scene: a surface demo, or the map's own 'hub:…'; else its shop's)
 const ITEM_SCENE={leash:'unwind',dial:'stringhome',weave:'weave',prism:'prism',knot:'knot',lens:'lens',gate:'gate',key:'itemcache',shine:'cap',bright:'collect',dim:'collect',neutron:'neutron',magnetic:'magnetic',pulsing:'pulsing',
   p_dim:'depth',p_bright:'balance',p_neu:'dynamism',p_mag:'harmony',p_pul:'rhythm',swoop:'collect',hoop1:'collect',hoop2:'collect',strainer:'magnetic',mesh:'neutron',fence:'pulsing',proc_relic:'relic',wipe:'wipe',dbl:'dbl',mop:'mop'};
-function itemScene(it){const f=it.fx,o=f.give||f.cap||f.heat;if(ITEM_SCENE[it.id])return ITEM_SCENE[it.id];if(o){const k=Object.keys(o)[0];if(ITEM_SCENE[k])return ITEM_SCENE[k];}
+function itemScene(it){const f=it.fx,o=f.give||f.cap||f.heat;if(it.demo)return it.demo;if(ITEM_SCENE[it.id])return ITEM_SCENE[it.id];if(o){const k=Object.keys(o)[0];if(ITEM_SCENE[k])return ITEM_SCENE[k];}
   if(f.proc)return ITEM_SCENE[f.proc]||'collect';if(f.xbuy||f.xsell)return 'collect';if(f.duck||it.shop==='duck')return 'duck';if(f.clock!=null||f.wake||it.id==='alarm')return 'hub:time';if(f.water||f.fridge)return 'hub:bottle';
   if(f.mount||f.part||f.hold)return 'hub:move';return 'hub:shop:'+it.shop;}
 const _signBk=new Map();let _clkSvg=null;const _clkImg={};
@@ -702,7 +702,7 @@ const runBad=(run,id)=>!!(run&&run.fortune&&!run.fortune.good&&run.fortune.id===
 // Singularities: the cards the collapse deals from what it took in (a Dark Remnant each; merged, a flower on one, better). Each is a good fortune's effect with a dim
 // fortune's catch, worse the better it is (content/singularities.csv: each tier's goods and catches); the one picked holds while you are awake, through the day
 const SING_POOL={};for(const r of csvRead('singularities')){const k=r.tier+r.side;(SING_POOL[k]=SING_POOL[k]||[]).push(r.id);}
-function singCard(t,m,fl){t=Math.max(1,Math.min(4,t|0));const P=s=>{const L=SING_POOL[t+s]||SING_POOL['1'+s];return L[(Math.random()*L.length)|0];};return{id:Math.random().toString(36).slice(2,9),t,m:m||'paper',g:P('good'),b:P('bad'),fl:fl?1:0};}
+function singCard(t,m,fl){t=Math.max(1,Math.min(4,t|0));const P=s=>{const L=SING_POOL[t+s]||SING_POOL['1'+s];return L[(Math.random()*L.length)|0];},F=fl&&SING_POOL['*'+(m||'paper')];return{id:Math.random().toString(36).slice(2,9),t,m:m||'paper',g:F?F[(Math.random()*F.length)|0]:P('good'),b:P('bad'),fl:fl?1:0};} // a flower's card: its material's own flavour (singularities.csv tier *: paper items, metal riches, glass luck, plastic ducks, fabric trade); a Dark Remnant's: any of its tier
 const runFx=run=>[...(run&&run.fortune&&run.fortune.good?[run.fortune]:[]),...MP_RUN.fx.filter(f=>f&&f.good),...((run&&run.sing)||[]).map(s=>({id:s.g}))].map(f=>FORTUNE_GOOD[f.id]||{}); // every good fortune's effect that holds now (yours, a friend's, a singularity's)
 const FORTUNE_ROWS={},FORTUNE_GOOD={},FORTUNE_BAD={};for(const r of csvRead('fortunes')){FORTUNE_ROWS[r.kind+':'+r.id+(r.item?':'+r.item:'')]=r;if(r.kind==='good')FORTUNE_GOOD[r.id]=cvJ(r.effect)||{};if(r.kind==='dim')FORTUNE_BAD[r.id]=r.does;} // content/fortunes.csv: good (one per duck: its effect), dim, and the Daily Wonders
 
