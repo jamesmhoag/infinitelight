@@ -373,6 +373,7 @@ surf.dynamics,Dynamics: {state},surface,state = $0 — ON or OFF
 surf.on_2, ON,surface,
 surf.off_2, OFF,surface,
 surf.trails,Trails:{state},surface,state = $0 — ON or OFF
+surf.edm,EDM sounds:{state},surface,"state = $0 — ON or OFF (every instrument played as a house track's: Modes, until gear turns it on)"
 surf.pause,Pause:{state},surface,state = $0 — ON or OFF
 surf.gate_mode_loop_lit," Gate mode — loop lit points, or click inside a Pattern",surface,
 surf.lens_mode_link_a," Lens mode — link a loop of lit points or remnants (they are consumed), or click inside a completed Pattern to fill it (uses 1 Lens)",surface,
@@ -732,6 +733,7 @@ surf.ui.effect_radii_off,Effect radii: OFF,chromatic_nebula.html,
 surf.ui.telemetry_off,Telemetry: OFF,chromatic_nebula.html,
 surf.ui.dynamics_off,Dynamics: OFF,chromatic_nebula.html,
 surf.ui.class_off,Class: OFF,chromatic_nebula.html,
+surf.ui.edm_off,EDM sounds: OFF,chromatic_nebula.html,
 surf.ui.clear_stage,Clear stage,chromatic_nebula.html,
 surf.ui.save_map,Save map,chromatic_nebula.html,
 surf.ui.load_map,Load map,chromatic_nebula.html,
