@@ -21,7 +21,7 @@ const DUCK_MAT={plastic:0,wood:1,metal:2,glass:3,dim:4,bright:5,shining:6,gold:7
 const duckStar=v=>v&&v.rare?'★ ':v&&v.mid?'☆ ':''; // a rare exotic's mark; a mid-tier one's
 const _duckModels=new Map();let _duckTex=null;
 function duckModel(type){ // a type = one of the two baked meshes + its own colours and material (or 'bottle:<colour>:<part>', a message in a bottle's glass, cork or letter)
-  if(_duckModels.has(type))return _duckModels.get(type);if(type.slice(0,7)==='bottle:')return bottleModel(type);if(type.slice(0,5)==='good:')return goodModel(type);
+  if(_duckModels.has(type))return _duckModels.get(type);if(type.slice(0,7)==='bottle:')return bottleModel(type);if(type.slice(0,5)==='good:')return goodModel(type);if(type.slice(0,6)==='plant:')return plantModel(type);
   const v=DUCK_TYPES[type]||DUCK_TYPES.classic,geo=duckGeo(v.head?'bighead':'classic');if(!geo)return null;
   const M={g:geo,mat:v.tex==='rainbow'?8:DUCK_MAT[v.mat||'plastic'],c1:(v.col||DUCK_YEL).map(c=>c/255),c2:(v.col2||DUCK_ORA).map(c=>c/255)};
   _duckModels.set(type,M);return M;}
@@ -150,7 +150,10 @@ function buoyCanModel(){ // the buoy's can light: a short metal can, its lit len
 // box (cardboard, the shop's logo on its side, a plain shipping label, its seams sealed with shiny clear tape), can (an aluminium can, the DUCK SHOP's
 // logo, a pull tab), chest (wood bound in gold, an ornate lock), sign (a shop's sign on its board, lit and blinking while open); state: '' whole, open
 // (opened, empty: what is left floats away), lit / off (a sign). Their logos are the shops' own signs (goodLogo) ──
-const GOOD_KINDS=['soda','coffee','box','can','chest','sign'],GOOD_SHOP={soda:'pulsing',coffee:'corner',can:'duck'}; // (a box and a sign: any shop's)
+const GOOD_KINDS=['soda','coffee','box','can','chest','sign','ticket','letter','catalog','bottle','bag','rag'],GOOD_SHOP={soda:'pulsing',coffee:'corner',can:'duck'}; // (a box and a sign: any shop's; ticket … rag: only ever trash)
+// Trash, by what it is made of (the net scoops paper from the start; BRiGHT IDEAS' Trash can, then each material's own, for the rest): what a recycling plant grows from
+const TRASH_KINDS=['paper','metal','glass','fabric','plastic'],TRASH_OF={soda:'metal',can:'metal',coffee:'paper',box:'paper',ticket:'paper',letter:'paper',catalog:'paper',bottle:'glass',bag:'plastic',rag:'fabric'},TRASH_ONLY=['ticket','letter','catalog','bottle','bag','rag'];
+const trashMat=g=>g&&(g.open||TRASH_ONLY.includes(g.kind))?TRASH_OF[g.kind]||null:null,trashNet=(m,has)=>m==='paper'||(has('up:trashcan')&&has('up:tr_'+m)); // a good that is trash: its material; can your net scoop it
 const _goodLogo={};
 function goodLogo(shop){if(!shop||shop==='-')return null;let im=_goodLogo[shop];if(!im){im=_goodLogo[shop]=new Image();im.onload=()=>{for(const k of [..._duckModels.keys()])if(k.slice(0,5)==='good:'&&k.split(':')[2]===shop)_duckModels.delete(k);if(window.onSignChange)onSignChange();};im.src='shops/sign_'+shop+'.svg';}return im.complete&&im.naturalWidth?im:null;}
 function goodModel(type){const[,kind,shop0,st]=type.split(':'),shop=shop0||GOOD_SHOP[kind]||'corner',open=st==='open',lit=st==='lit',A=512,tx=document.createElement('canvas');tx.width=tx.height=A;const c=tx.getContext('2d');
@@ -160,6 +163,10 @@ function goodModel(type){const[,kind,shop0,st]=type.split(':'),shop=shop0||GOOD_
   if(kind==='soda'){half(0,256,eff);half(256,512,'#0d0d10');} else if(kind==='can'){c.fillStyle='#f3e7c9';c.fillRect(0,64,512,192);c.fillStyle='#c0392b';c.fillRect(0,64,512,26);c.fillRect(0,230,512,26);c.fillStyle='#7a3b12';c.font='bold 22px Georgia,serif';c.textAlign='center';c.fillText('DUCK',90,170);c.fillText('DUCK',420,170);} else{c.fillStyle=kind==='coffee'?'#f1ece4':kind==='sign'?(lit?'#202128':'#141418'):'#b98b57';c.fillRect(0,64,512,192);}
   if(lg){const r=Math.min(170/lg.naturalWidth,170/lg.naturalHeight),w=lg.naturalWidth*r,h=lg.naturalHeight*r,x=kind==='soda'?256+(256-w)/2:(512-w)/2;if(kind==='sign'&&!lit)c.filter='brightness(0.35) saturate(0.5)';c.drawImage(lg,x,64+(192-h)/2,w,h);c.filter='none';} // the logo (a soda's on its dark half)
   c.fillStyle='#f6f3ea';c.fillRect(0,288,256,128);c.fillStyle='#1b1b20';for(let i=0;i<5;i++)c.fillRect(16,304+i*20,i===0?120:200-i*22,6);c.fillRect(180,300,60,40); // a plain shipping label: lines, a block
+  if(TRASH_ONLY.includes(kind)){c.fillStyle='#f0b6c4';c.fillRect(256,288,256,64);c.fillStyle='#5a1d2c';c.font='bold 28px Georgia,serif';c.textAlign='center';c.fillText('ADMIT ONE',384,330);c.setLineDash([4,4]);c.strokeStyle='#5a1d2c';c.beginPath();c.moveTo(470,292);c.lineTo(470,348);c.stroke();c.setLineDash([]); // an admission ticket, its stub perforated
+    c.fillStyle='#f7f4ec';c.fillRect(256,352,256,64);c.strokeStyle='#b8b2a2';c.lineWidth=3;c.beginPath();c.moveTo(256,352);c.lineTo(384,392);c.lineTo(512,352);c.stroke();c.fillStyle='#c0392b';c.fillRect(470,358,30,22); // a letter: its flap, a stamp
+    c.fillStyle='#2b5d8a';c.fillRect(0,416,256,96);c.fillStyle='#fff';c.font='bold 30px system-ui,sans-serif';c.textAlign='center';c.fillText('CATALOG',128,462);c.fillRect(40,476,176,8); // a catalog's cover
+    if(kind==='bottle'){c.fillStyle='#3f8f6a';c.fillRect(12*32,0,32,32);}if(kind==='rag'){for(let y=0;y<32;y+=8)for(let x=0;x<32;x+=8){c.fillStyle=((x+y)/8)%2?'#c0392b':'#f3e7c9';c.fillRect(13*32+x,y,8,8);}}} // a green glass bottle; a checked rag
   const K=meshKit(A,false),{quad,box,lathe,uv,beam}=K,L0=uv.length,img=(x0,y0,x1,y1)=>[[x0/A,y1/A],[x1/A,y1/A],[x1/A,y0/A],[x0/A,y0/A]],sw=K.sw_,lit1=n=>{for(let k=n;k<uv.length/4;k++)uv[k*4+2]=1;};
   const cyl=(ya,yb,r,seg,U0,U1,ti)=>{for(let j=0;j<seg;j++){const t0=j/seg*6.2832,t1=(j+1)/seg*6.2832,a0=Math.cos(t0),b0=Math.sin(t0),a1=Math.cos(t1),b1=Math.sin(t1),u0=U0+(U1-U0)*j/seg,u1=U0+(U1-U0)*(j+1)/seg,tm=(t0+t1)/2; // a label wrapped round a can: the image's width once round
       quad([[r*a0,ya,r*b0],[r*a1,ya,r*b1],[r*a1,yb,r*b1],[r*a0,yb,r*b0]],[Math.cos(tm),0,Math.sin(tm)],ti!=null?sw(ti):[[u0/A,256/A],[u1/A,256/A],[u1/A,64/A],[u0/A,64/A]]);}};
@@ -168,7 +175,13 @@ function goodModel(type){const[,kind,shop0,st]=type.split(':'),shop=shop0||GOOD_
   const crum=(ya,yb,r0,amp,ti,inner,U0,U1)=>{const seg=28,rows=8,R=(j,k)=>{const t=j/seg*6.2832,u=k/rows;return r0*(1-amp*Math.sin(Math.PI*u)*(0.55+0.45*Math.sin(t*5+u*7+1.3))*(0.7+0.3*Math.cos(t*3-u*5)));}; // crumpled: its sides pressed in and folded (its height and width kept); inner: its inside showing too
     for(let j=0;j<seg;j++)for(let k=0;k<rows;k++){const P=(jj,kk,dr)=>{const t=jj/seg*6.2832,rr=R(jj,kk)-dr;return[rr*Math.cos(t),ya+(yb-ya)*kk/rows,rr*Math.sin(t)];},tm=(j+0.5)/seg*6.2832,n=[Math.cos(tm),0,Math.sin(tm)],u0=U0!=null?U0+(U1-U0)*j/seg:0,u1=U0!=null?U0+(U1-U0)*(j+1)/seg:0,v0=256-192*k/rows,v1=256-192*(k+1)/rows;
       quad([P(j,k,0),P(j+1,k,0),P(j+1,k+1,0),P(j,k+1,0)],n,U0!=null?[[u0/A,v0/A],[u1/A,v0/A],[u1/A,v1/A],[u0/A,v1/A]]:sw(ti));if(inner!=null)quad([P(j,k+1,0.012),P(j+1,k+1,0.012),P(j+1,k,0.012),P(j,k,0.012)],n.map(v=>-v),sw(inner));}};
-  if(kind==='soda'&&open){lathe([[-0.82,0],[-0.82,0.19],[-0.77,0.22]],20,[0,0],0);crum(-0.77,0.66,0.22,0.3,0,null,512,0);lathe([[0.66,0.22],[0.78,0.17],[0.8,0.17],[0.8,0]],20,[0,0,14],0);box(-0.03,0.8,0.02,0.03,0.93,0.04,15);} // opened, and crushed: the same can, pressed and folded, its height and width about the same
+  if(kind==='ticket'){box(-0.55,-0.015,-0.22,0.55,0.015,0.22,13);quad([[-0.55,0.017,0.22],[0.55,0.017,0.22],[0.55,0.017,-0.22],[-0.55,0.017,-0.22]],[0,1,0],img(256,288,512,352));}
+  else if(kind==='letter'){box(-0.5,-0.02,-0.32,0.5,0.02,0.32,5);quad([[-0.5,0.022,0.32],[0.5,0.022,0.32],[0.5,0.022,-0.32],[-0.5,0.022,-0.32]],[0,1,0],img(256,352,512,416));}
+  else if(kind==='catalog'){box(-0.42,-0.06,-0.58,0.42,0.06,0.58,13);quad([[-0.42,0.062,0.58],[0.42,0.062,0.58],[0.42,0.062,-0.58],[-0.42,0.062,-0.58]],[0,1,0],img(0,416,256,512));}
+  else if(kind==='bottle')lathe([[-0.62,0],[-0.62,0.21],[-0.6,0.23],[0.18,0.23],[0.38,0.09],[0.6,0.08],[0.64,0.09],[0.66,0]],20,[12,12,12,12,12,12,15],0); // a glass bottle, upright
+  else if(kind==='bag')crum(-0.5,0.5,0.36,0.4,5,7); // a plastic bag, crumpled
+  else if(kind==='rag'){for(let i=0;i<6;i++){const x0=-0.6+i*0.2,y0=0.08*Math.sin(i*1.9),y1=0.08*Math.sin((i+1)*1.9);plate([[x0,y0,0.4],[x0+0.2,y1,0.4],[x0+0.2,y1,-0.4],[x0,y0,-0.4]],[0,1,0],0.01,13);}} // a rag, crumpled into folds
+  else if(kind==='soda'&&open){lathe([[-0.82,0],[-0.82,0.19],[-0.77,0.22]],20,[0,0],0);crum(-0.77,0.66,0.22,0.3,0,null,512,0);lathe([[0.66,0.22],[0.78,0.17],[0.8,0.17],[0.8,0]],20,[0,0,14],0);box(-0.03,0.8,0.02,0.03,0.93,0.04,15);} // opened, and crushed: the same can, pressed and folded, its height and width about the same
   else if(kind==='soda'){lathe([[-0.82,0],[-0.82,0.19],[-0.77,0.22]],20,[0,0],0);cyl(-0.77,0.66,0.22,28,512,0);lathe([[0.66,0.22],[0.78,0.17],[0.8,0.17],[0.8,0]],20,[0,0,open?14:0],0); // a tall, slim can: its base, its body (the label round it), its neck and lid
     if(!open)box(-0.03,0.8,-0.11,0.03,0.82,0.04,15);else{box(-0.03,0.8,0.02,0.03,0.93,0.04,15);quad([[-0.05,0.805,-0.13],[0.05,0.805,-0.13],[0.05,0.805,-0.03],[-0.05,0.805,-0.03]],[0,1,0],sw(14));}} // its pull tab (open: standing up over the hole)
   else if(kind==='can'){const R=0.4;lathe([[-0.5,0],[-0.5,R-0.02],[-0.48,R+0.01],[-0.45,R]],24,[15,15,15],0);cyl(-0.45,-0.33,R,28,0,0,15);cyl(-0.33,0.33,R,28,512,0);cyl(0.33,0.45,R,28,0,0,15);for(const y of[-0.4,0.39])lathe([[y,R+0.012],[y+0.02,R+0.012]],24,[0],0); // a tin of beans: steel, ribbed above and below its paper label
@@ -193,6 +206,32 @@ function goodModel(type){const[,kind,shop0,st]=type.split(':'),shop=shop0||GOOD_
     const su=img(x0,y0,x0+W2,y0+H2),n=uv.length/4;quad([[-X,-Y,0.06],[X,-Y,0.06],[X,Y,0.06],[-X,Y,0.06]],[0,0,1],su);if(lit)lit1(n);for(let i=1;i<=6;i++){const z=0.06-0.12*i/6;quad([[X,-Y,z],[-X,-Y,z],[-X,Y,z],[X,Y,z]],[0,0,-1],su);quad([[-X,-Y,z+0.004],[X,-Y,z+0.004],[X,Y,z+0.004],[-X,Y,z+0.004]],[0,0,1],su);}
     for(const x of[-X*0.6,X*0.4])beam([x,-Y*0.8,-0.08],[x+0.05,-Y*0.8-0.35,-0.1],0.06,2);} // (and the stubs of its scaffolding, torn off with it)
   _duckModels.set(type,{g:K.geo(1),nomk:1,mat:13,c1:[1,1,1],c2:[1,1,1],img:tx});return _duckModels.get(type);}
+// ── Recycling plants (the Surface Map): a seed planted on a Dark Remnant clear grows on the trash it is fed. plant:<material>:<stage>:<stems> — stage 1 the tip of
+// its stem, 2 one stem out of the water, 3 a second stem (its base leaves grown out), 4 a bud on top, 5 bloomed (at Midnight), a Dark Remnant's black in its middle
+// ringed in orange. Its pieces are plants/*.svg, laid as they sit in RecyclingPlant.svg (65 × 108). Paper: the drawing itself, flat as the paper duck. The rest are built
+// round it in their material (plants/ drawings crossed, so they stand from every side, a round bud and a round black middle): metal shines, glass is a bottle's, plastic a
+// duck's, fabric woven with its seams sewn ──
+const PLANT_ART={base:['Stem2base',11.72,51.13,43,57],top:['Stem1top',14.72,20.13,35,57],bud:['Bud',25.76,2.99,14,24],flower:['FlowerTop',0,0,65,25]},_plantImg={};
+const PLANT_MAT={paper:{t:'flat',c:[246,242,232]},metal:{t:'metal',c:[196,204,214]},glass:{t:'glass',c:[120,200,160]},plastic:{t:'paint',c:[255,214,40]},fabric:{t:'cloth',c:[96,150,86]}};
+function plantImg(n){let im=_plantImg[n];if(!im){im=_plantImg[n]=new Image();im.onload=()=>{for(const k of [..._duckModels.keys()])if(k.slice(0,6)==='plant:')_duckModels.delete(k);};im.src='plants/'+n+'.svg';}return im.complete&&im.naturalWidth?im:null;}
+function plantPic(c,X,Y,S,st,stems){ // the plant at its stage, in the 65 × 108 frame of RecyclingPlant.svg, S px a unit
+  const put=(k,f,ax,ay)=>{const[n,x,y,w,h]=PLANT_ART[k],im=plantImg(n);if(!im)return false;f=f||1;ax=ax!=null?ax:x+w/2;ay=ay!=null?ay:y+h;c.drawImage(im,X+(ax-(ax-x)*f)*S,Y+(ay-(ay-y)*f)*S,w*f*S,h*f*S);return true;};
+  if(st<=1)return put('top',0.38,33,108);if(st===2)return put('base',0.78);let ok=put('base');for(let i=0;i<stems;i++)ok=put('top',0.9-i*0.12,33-(i%2?-6:6)*(i+1)*0.5,70-i*8)&&ok;ok=put('top')&&ok; // (more stems the more trash a bud needs)
+  if(st===4)ok=put('bud')&&ok;if(st>=5)ok=put('flower')&&ok;return ok;}
+function plantModel(type){const[,m,st0,ex]=type.split(':'),st=+st0||1,M=PLANT_MAT[m]||PLANT_MAT.paper,A=512,tx=document.createElement('canvas');tx.width=tx.height=A;const c=tx.getContext('2d'),S=4,Y0=48;
+  matTile(c,0,0,'#060608','paint');matTile(c,32,0,'#ff7a00','flat');matTile(c,64,0,`rgb(${M.c})`,M.t);
+  const ok=plantPic(c,0,Y0,S,st,Math.max(0,+ex||0));
+  {const d=c.getImageData(0,Y0,65*S,108*S),D=d.data,sp={metal:0.85,glass:0.9,paint:0.55,cloth:0.05}[M.t]||0; // recoloured in its material: its drawing's light and dark kept (outlines, veins), the material's colour and grain over it, its shine in the alpha
+    for(let i=0;i<D.length;i+=4){if(D[i+3]<128){D[i+3]=0;continue;}const r=D[i],g=D[i+1],b=D[i+2],px=(i>>2)%(65*S),py=((i>>2)/(65*S))|0;if(r>200&&g>90&&g<190&&b<90){D[i+3]=255;continue;} // (the orange ring stays as it is)
+      let l=(0.3*r+0.59*g+0.11*b)/255;if(M.t==='metal')l*=0.9+0.2*Math.sin(py*1.7+px*0.05);else if(M.t==='cloth'){l*=((px>>1)+(py>>1))%2?1.06:0.94;if(px%14===0&&py%4<2)l*=0.55;} // brushed metal; a weave, its seams' stitches
+      const k=M.t==='glass'?0.55+0.6*l:M.t==='flat'?0.15+0.95*l:0.2+1.05*l;D[i]=Math.min(255,M.c[0]*k);D[i+1]=Math.min(255,M.c[1]*k);D[i+2]=Math.min(255,M.c[2]*k);D[i+3]=Math.round(255*(1-sp/2));}
+    c.putImageData(d,0,Y0);}
+  const K=meshKit(A,false,true),{quad,lathe,uv}=K,u=2/108,W=65*u/2,yb=-0.06,yt=yb+2,U=[[0,(Y0+108*S)/A],[65*S/A,(Y0+108*S)/A],[65*S/A,Y0/A],[0,Y0/A]],Ub=[U[1],U[0],U[3],U[2]];
+  const sheet=(a)=>{const ca=Math.cos(a),sa=Math.sin(a);quad([[-W*ca,yb,-W*sa],[W*ca,yb,W*sa],[W*ca,yt,W*sa],[-W*ca,yt,-W*sa]],[-sa,0,ca],U);quad([[W*ca,yb,W*sa],[-W*ca,yb,-W*sa],[-W*ca,yt,-W*sa],[W*ca,yt,W*sa]],[sa,0,-ca],Ub);}; // the drawing on both faces
+  sheet(0);if(m!=='paper'){sheet(Math.PI/2); // crossed: it stands from every side
+    if(st===4)lathe([[0,0.002],[0.06,0.11],[0.24,0.14],[0.38,0.08],[0.46,0.002]],14,[2,2,2,2],yt-27*u); // the bud, round
+    if(st>=5){const y=yt-7.6*u;lathe([[-0.13,0.002],[-0.1,0.22],[0,0.3],[0.1,0.22],[0.13,0.002]],18,[0,0,0,0],y);const n=uv.length/4;lathe([[-0.02,0.31],[0.02,0.31]],24,[1],y);for(let k=n;k<uv.length/4;k++)uv[k*4+2]=1;}} // its black middle (a Dark Remnant), ringed in orange, lit
+  const M2={g:K.geo(2.1),nomk:1,mat:13,c1:[1,1,1],c2:[1,1,1],img:tx};if(ok)_duckModels.set(type,M2);return M2;} // (until its drawings have loaded: drawn without, and built again)
 // ── A shop: its building as a 3D model the duck renderer draws (material 13, painted): walls with window and door openings, the lit room
 // behind them, frames and a roof edge, scaffolding on the roof and the sign mounted on it. One texture holds its colours, the room and the sign. ──
 function shopModel(id,bk,lit,fl,si,open,soon,ph){ // si: the sign's loaded image; open: its doors stand open (its menu is open); soon: Coming soon (closed, its sign saying so, lit) → the model's type, for drawDuck3D

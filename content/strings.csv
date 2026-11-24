@@ -1028,6 +1028,55 @@ good.chest,a treasure chest,Commodities,
 good.opened, (opened),Commodities,
 good.opened_fx,"{0}, opened",Commodities,
 good.opened_feed,"Opened {0}: {1}. Its packaging drifts on, empty.",Commodities,
+good.ticket,an admission ticket,Commodities,
+good.letter,a letter,Commodities,
+good.catalog,a catalog,Commodities,
+good.bottle,a glass bottle,Commodities,
+good.bag,a plastic bag,Commodities,
+good.rag,a rag,Commodities,
+good.trash_m,"Trash: {0}. {1}",Commodities,"0 = its material; 1 = whether your net can scoop it"
+good.trash_net,Click it: your net scoops it into your trash bag.,Commodities,
+good.trash_nonet,"Your net cannot scoop {0} yet (BRiGHT IDEAS: a Trash can, then its own scoop).",Commodities,0 = the material
+good.trash_got,"Scooped {0}: {1}, into your trash bag",Commodities,"0 = what; 1 = its material"
+trash.paper,paper,Commodities,
+trash.metal,metal,Commodities,
+trash.glass,glass,Commodities,
+trash.fabric,fabric,Commodities,
+trash.plastic,plastic,Commodities,
+map.trash.got,"Trash bag: + {0}",Surface Map feed,0 = material
+map.trash.bag,"{0} in your trash bag (the oldest goes first)",Surface Map feed,0 = how many
+map.trash.slot,"Trash bag: {0} · next out: {1}",Surface Map dock,"0 = how many; 1 = the oldest's material"
+map.trash.slot_d,"Take it, then click a hex beside you: a Rift (gone), an open hex (left there as flotsam) or a recycling plant of its material.",Surface Map dock,
+map.trash.none,Trash bag: empty,Surface Map dock,
+map.trash.none_d,"Scoop trash with your net, on a surface or off the lake beside you.",Surface Map dock,
+map.trash.here,"Trash ({0}) here",Surface Map dock,0 = material
+map.trash.into_rift,Into the Rift: gone for good.,Surface Map dock,
+map.trash.into_plant,"Feed the plant: {0} / {1}",Surface Map dock,"0 = trash it will have; 1 = its bud"
+map.trash.onto_hex,"Leave it here, as flotsam: nothing can move onto it until it drifts off.",Surface Map dock,
+map.trash.cannot,"Only beside you: a Rift, an open hex or a plant of its material.",Surface Map dock,
+map.trash.wrongmat,"This plant grows on {0}: your oldest trash is not.",Surface Map dock,0 = the plant's material
+map.trash.rift,"{0} trash into the Rift",Surface Map feed,0 = material
+map.trash.set,"{0} trash left on the hex",Surface Map feed,0 = material
+map.plant.bought,A recycling plant seed,Surface Map feed,
+map.plant.seeds,"Recycling plant seeds: {0}",Surface Map dock,0 = how many
+map.plant.seed,A seed planted,Surface Map feed,
+map.plant.seed_d,"On a Dark Remnant clear beside you. Feed it trash of one material ({0} for a bud) and by Midnight it blooms.",Surface Map feed,0 = trash for a bud
+map.plant.seed_here,Plant a seed here,Surface Map dock,
+map.plant.seed_ok,"A Dark Remnant clear beside you: it grows here.",Surface Map dock,
+map.plant.seed_no,"Only a Dark Remnant clear beside you, with no plant on it.",Surface Map dock,
+map.plant.fed,"The plant takes {0}",Surface Map feed,0 = material
+map.plant.grew,"It grows: {0} / {1}",Surface Map feed,"0 = trash it has; 1 = for its bud"
+map.plant.bud,"A bud: it blooms at Midnight ({0} / {1})",Surface Map feed,"0, 1 = trash"
+map.plant.name,"A recycling plant ({0})",Surface Map feed,0 = its material
+map.plant.stat,"{0} / {1} trash for its bud",Surface Map feed,"0, 1"
+map.plant.picked,"Picked: a {0} flower",Surface Map feed,0 = material
+map.plant.picked_d,"+ {0} Dim",Surface Map feed,0 = Dim
+map.plant.bloomed,"{0} flower(s) bloomed",Surface Map feed,0 = how many
+map.plant.bloomed_d,"Left unpicked, they fall in with the spill: each will be a card at the new day.",Surface Map feed,
+map.dim.ticket,"Your admission ticket, torn at the gate",Surface Map feed,
+map.dim.ticket_d,"In for the day: Dim's Carnival of Discovery.",Surface Map feed,
+map.dim.admitted,Admitted,Surface Map feed,
+map.dim.admitted_d,"In for the day: Dim's Carnival of Discovery.",Surface Map feed,
 good.box_item,"Opened {0}: {1}, free — {2}",Commodities,"0 = the box; 1 = the item; 2 = what it does"
 good.box_good,"Opened {0}: inside, {1}",Commodities,"0 = the box; 1 = the commodity in it"
 good.unboxed,"Opened {0}",Commodities,

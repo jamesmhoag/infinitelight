@@ -5337,6 +5337,7 @@ function collectAllOfKind(kind,limit){
 }
 function tryPickupRemnant(mx,my){
   if(performance.now()-mouseDownAt>=HOLD_CHARGE_DELAY_MS)return false; // a hold is not a click
+  {const tg=goodAt(mx,my,true),tm=trashMat(tg);if(tm){scoopTrash(tg,tm,mx,my);return true;}} // trash under the net: scooped up (paper from the start; the rest with BRiGHT IDEAS' Trash can and the material's own)
   {const gd=goodAt(mx,my);if(gd){openGood(gd);return true;}} // a commodity under the cursor is opened (its packaging floats away)
   {const dk=duckAt(mx,my);if(dk){collectDuck(dk);return true;}} // a duck under the cursor is collected first
   { const nta=performance.now();
@@ -11247,7 +11248,7 @@ function updateInfoAndStats(now,hoverObj){
   } else if(!hoverInvKind&&!overUI&&duckAt(mouse.x,mouse.y)){
     const di=duckInfo(duckAt(mouse.x,mouse.y));setFeed('🦆 '+di[0],di[1],'rgba(255,236,140,0.95)');
   } else if(!hoverInvKind&&!overUI&&goodAt(mouse.x,mouse.y,1)){const g=goodAt(mouse.x,mouse.y,1); // a commodity, sign or its packaging (trash): named, and what it is for
-    setFeed(goodName(g),txt(g.kind==='sign'?'good.sign_d':g.open?'good.trash_d':g.kind==='chest'?'chest.need_key':'good.closed_d'),'rgba(255,255,255,0.92)');
+    {const tm=trashMat(g);setFeed(goodName(g),tm?txt('good.trash_m',txt('trash.'+tm),txt(BUILD||trashNet(tm,k=>discSeen.has(k))?'good.trash_net':'good.trash_nonet',txt('trash.'+tm))):txt(g.kind==='sign'?'good.sign_d':g.open?'good.trash_d':g.kind==='chest'?'chest.need_key':'good.closed_d'),'rgba(255,255,255,0.92)');} // trash: what it is made of, and whether your net can scoop it
   } else if(hoverInvKind){
     const pr=invHoverParts(hoverInvKind);setFeed(pr[0],pr[1],'rgba(255,255,255,0.92)');
   } else if(conMode){
@@ -14113,11 +14114,14 @@ function drawDucks(c,now){
 // drawn by the duck renderer (goodModel in shared.js). A click opens it: what it holds comes out where it is (GOOD_HOLDS: remnants to collect, or a duck), and its
 // packaging floats away. Packaging still here when the surface is cleared never stops the clear: it surfaces with you, as flotsam on the map. A sign is lit and
 // blinks while its shop is open (the map's clock); it is never opened ──
-const GOOD_SHOPS=Object.keys(SHOPS),GOOD_VARIANTS={commodity:['soda','coffee','can',...GOOD_SHOPS.map(sh=>'box:'+sh),'chest','chest|lake'],sign:GOOD_SHOPS.flatMap(sh=>['sign:'+sh,'sign:'+sh+'|lake']),trash:['soda|open','coffee|open','can|open',...GOOD_SHOPS.map(sh=>'box:'+sh+'|open'),'chest|open']}; // Create's three kinds: commodities, signs, trash
+const GOOD_SHOPS=Object.keys(SHOPS),GOOD_VARIANTS={commodity:['soda','coffee','can',...GOOD_SHOPS.map(sh=>'box:'+sh),'chest','chest|lake'],sign:GOOD_SHOPS.flatMap(sh=>['sign:'+sh,'sign:'+sh+'|lake']),trash:['soda|open','coffee|open','can|open',...TRASH_ONLY.map(k=>k+'|open'),...GOOD_SHOPS.map(sh=>'box:'+sh+'|open'),'chest|open']}; // Create's three kinds: commodities, signs, trash
 for(const t of CREATE_TYPES)if(GOOD_VARIANTS[t.cat])t.variants=GOOD_VARIANTS[t.cat]; // Create → a commodity, a sign or trash, of any kind
 const goodParse=v=>{const[a,st]=String(v).split('|'),[kind,shop]=a.split(':');return{kind,shop:shop||GOOD_SHOP[kind]||(kind==='soda'?String((Math.random()*6)|0):''),open:st==='open',lake:st==='lake'};}; // (lake: it floats on the Surface Map's lake — a chest only ever does) // a Create variant → a commodity (a soda's "shop": the effect colour of its can)
 const GOOD_REM={bright:'white',dim:'brown',neutron:'neutron',magnetic:'magnetic',pulsing:'pulsing'},GOOD_SHOP_HOLDS={bright:{bright:40},dim:{dim:40},neutron:{neutron:2},magnetic:{magnetic:2},pulsing:{pulsing:2},duck:{duck:1},corner:{bright:20},gift:{bright:20},xact:{dim:30},clock:{bright:20}};
 function boxItem(shop){const has=k=>discSeen.has(k);const L=SHOP_ITEMS.filter(i=>i.shop===shop&&!i.fx.souv&&!i.fx.part&&!i.fx.draw&&!i.fx.duck&&!i.fx.xbuy&&!i.fx.xsell&&i.fx.clock==null&&(i.fx.give||shopOnce(i)&&!has('up:'+i.id))&&(!i.req||has('up:'+i.req))&&!achLocked('item',i.id,has)&&!(i.fx.give&&Object.keys(i.fx.give).some(invFull)));return L.length?L[(Math.random()*L.length)|0]:null;} // something its shop sells that could be yours (free, from the box)
+function scoopTrash(g,m,x,y){const nm=txt('trash.'+m);if(!BUILD&&!trashNet(m,k=>discSeen.has(k))){flashSaveStatus(txt('good.trash_nonet',nm));netRipple(x,y,NET.R,0.6);return;}
+  const i=goods.indexOf(g);if(i>=0)goods.splice(i,1);netRipple(x,y,NET.R,1);splashRing(NET.spl,g.x,g.y,NET.R*(T.netSplashR||2.2),T.netSplashN||12);playGlassTap();stat('trash:'+m);
+  earnFx.push({kind:'plus',x:g.x,y:g.y-14,text:'♻ '+nm,born:performance.now(),dur:1300});flashSaveStatus(txt('good.trash_got',goodName(g),nm));if(HUB)hubPost({type:'trash',m,k:g.kind});} // into your trash bag (the map keeps it: dropped in a Rift, set on a hex, or fed to a recycling plant)
 function goodHolds(g){if(g.give)return g.give;return g.kind==='soda'?{pulsing:1}:g.kind==='coffee'?{bright:15}:g.kind==='can'?{duck:1}:g.kind==='box'?GOOD_SHOP_HOLDS[g.shop]||{bright:20}:{};} // what one holds: a delivery box, what was ordered (give)
 const goodName=g=>txt('good.'+g.kind,g.kind==='box'||g.kind==='sign'?(SHOPS[g.shop]||{}).n||'':'')+(g.open?txt('good.opened'):'')+(g.lake&&g.kind!=='chest'?txt('good.on_lake'):'');
 const goodType=g=>'good:'+g.kind+':'+(g.shop||'')+':'+(g.kind==='sign'?(g.lit?'lit':'off'):g.open?'open':g.kind==='chest'?'shut':'');
@@ -14150,7 +14154,7 @@ function chestOpen(){ // a treasure chest, opened with a Key (no challenge): a h
   if(!((inventory.key||0)>0)&&!TEST.get('free'))return{ok:0,msg:txt('chest.need_key')};if(!TEST.get('free'))inventory.key--;const R=()=>Math.random(),got={},add=(k,n)=>{n=Math.max(0,Math.min(n,invMaxFor(k)-(inventory[k]||0)));if(n>0){addInventory(k,n,true);got[k]=(got[k]||0)+n;surfaceTally[k]=(surfaceTally[k]||0)+n;}};
   add('bright',Math.round((T.chestBright||400)*(0.6+R()*0.8)));add('dim',Math.round((T.chestBright||400)*0.5*(0.5+R())));for(const k of['neutron','magnetic','pulsing'])if(R()<0.6)add(k,1+((R()*3)|0));if(R()<(T.chestRelic||0.5))add(R()<0.5?'bright':'dim',100*(1+((R()*3)|0))); // (a relic counts ×100)
   saveInventory();updateInventoryUI();return{ok:1,got};}
-function goodDrift(now){if(!HUB||!(Math.random()<(T.goodChance!=null?T.goodChance:0.15)))return;const v=GOOD_VARIANTS.commodity.filter(x=>x!=='chest'),g=goodParse(v[(Math.random()*v.length)|0]),s=(Math.random()*4)|0,u=Math.random(),x=s===0?-20:s===1?W+20:u*W,y=s===2?-20:s===3?H+20:u*H,o=spawnGood(x,y,now,g),dx=W/2-x,dy=H/2-y,l=Math.hypot(dx,dy)||1;o.vx=dx/l*T.duckDrift/30;o.vy=dy/l*T.duckDrift/30;} // now and then one drifts in from an edge (Commodity chance)
+function goodDrift(now){if(!HUB||!(Math.random()<(T.goodChance!=null?T.goodChance:0.15)))return;const tr=Math.random()<(T.trashShare!=null?T.trashShare:0.4),v=tr?TRASH_ONLY.map(k=>k+'|open'):GOOD_VARIANTS.commodity.filter(x=>x!=='chest'),g=goodParse(v[(Math.random()*v.length)|0]),s=(Math.random()*4)|0,u=Math.random(),x=s===0?-20:s===1?W+20:u*W,y=s===2?-20:s===3?H+20:u*H,o=spawnGood(x,y,now,g),dx=W/2-x,dy=H/2-y,l=Math.hypot(dx,dy)||1;o.vx=dx/l*T.duckDrift/30;o.vy=dy/l*T.duckDrift/30;} // now and then one drifts in from an edge (Commodity chance)
 // ── The collection (Guide → Ducks): every collected type, and a viewer to turn and zoom it ──
 const DUCK_ICON_Q=quatTurn(quatTurn([0,0,0,1],0,Math.PI*0.3,0),0.25,0,0);
 function duckCollectionHTML(){
