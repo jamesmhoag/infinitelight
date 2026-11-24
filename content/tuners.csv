@@ -46,6 +46,9 @@ cursorIdleBorderDark,0.4,Idle dark,0,1,0.05,Cursor,theme,,,,How far the idle rin
 cursorNibOn,1,Pen nib,0,1,1,Cursor,theme,,,,"The plain cursor carries the Fountain Pen's nib, its lens showing what is under it (0: off)",
 cursorNibScale,1,Nib size,0.4,2,0.05,Cursor,theme,,,,"The nib cursor (nib and microscope lens, drawn from Nib.svg) × its size against the cursor ring",
 cursorNibLensK,1,Nib lens size,0.5,2,0.05,Cursor,theme,,,,"The microscope lens below-left of the cursor ring (× its size in the art): it overlaps the ring, the ring hidden inside it",
+cursorNibLift,0.7,Nib hover lift,0,2,0.05,Cursor,theme,,,,"Over something it can shine, the nib hovers this far above the cursor's centre (× the ring's radius); a dab dips it to the centre and back",
+cursorNibDabMs,110,Nib dab ms,0,600,10,Cursor,theme,,,,"The least time a dab holds the nib down at the cursor's centre before it rises again (a double dab: twice; a wipe or mop: down while held)",
+cursorNibDipMs,45,Nib dip ease ms,5,300,5,Cursor,theme,,,,"How quickly the nib drops to the centre and rises back",
 cursorNibZoom,2.4,Nib zoom,1,6,0.1,Cursor,theme,,,,"How much the nib's lens magnifies what is under the cursor",
 pauseStopMs,650,Stop ms,0,3000,50,Pause,gameplay,,,,Time to ramp from full speed down to a full stop when pausing,ms: ramp time from full speed down to a full stop
 pauseResumeMs,650,Resume ms,0,3000,50,Pause,gameplay,,,,Time to ramp from a full stop back up to full speed when resuming,ms: ramp time from a full stop back up to full speed
@@ -124,12 +127,24 @@ earnPathW,2,Path width,0.5,6,0.1,Achievements & Pattern — Visual,theme,,,,Line
 earnTextRise,26,Text rise,0,80,2,Achievements & Pattern — Visual,theme,,,,"How far the ""+1"" text floats up",
 earnTextSize,13,Text size,8,28,1,Achievements & Pattern — Visual,theme,,,,"Size of the achievement ""+1"" text",
 collectGraceMs,260,Collect grace ms,0,1000,20,Achievements & Pattern — Visual,theme,,,,"A click still collects the target the cursor just slid off of, for this long after","ms: a click still collects the target the cursor just slid off of, for this long after (must cover the collect cursor's own fade-out, so the two never disagree)"
-netOn,1,Net,0,1,1,Achievements & Pattern — Visual,theme,,,,"Collecting draws the net: its hoop the ring on hover, trailing behind; dipped and dragged while held (0: the old chevrons)",
-netScoopMs,750,Net scoop ms,60,2500,10,Achievements & Pattern — Visual,theme,,,,"ms: a dab's scoop: splash in, drawn in, a pause, a half circle flip with a snap, collected as one catch (a double dab's takes 1.5×)",
-netDblMult,3,Net double ×,1,8,0.1,Achievements & Pattern — Visual,theme,,,,"A double dab's reach: this × Touch rad; the hoop swells just far enough to take in every remnant of the kind clicked within it",
-netRippleMs,900,Net ripple ms,100,3000,10,Achievements & Pattern — Visual,theme,,,,"ms: a ripple from the net entering or leaving the surface",
-netWakeSpd,24,Net wake spd,2,80,1,Cursor,theme,,,,"px a frame: wiping this fast or faster, the net streams straight behind and its wake (the pigment's bow wake, Wake tuners) takes its max-speed shape; slower, both ease to their min (the net drooping and waving) until, still, it hangs as on hover",
-netUnderA,0.45,Net under α,0,1,0.05,Achievements & Pattern — Visual,theme,,,,"How visible the hoop and net are under the surface",
+netOn,1,Net,0,1,1,Net,theme,,,,"Collecting draws the net: its hoop the ring on hover, trailing behind; dipped and dragged while held (0: the old chevrons)",
+netScoopMs,750,Net scoop ms,60,2500,10,Net,theme,,,,"ms: a dab's scoop: splash in, drawn in, a pause, a half circle flip with a snap, collected as one catch (a double dab's takes 1.5×)",
+netDblMult,3,Net double dab reach ×,1,8,0.1,Net,theme,,,,"A double dab's reach (the pen nib's double dab picks the nearest; the net's takes every remnant of the kind clicked within this range, any number): this × Touch rad. The hoop swells just far enough to take them in",
+netRippleMs,900,Net ripple ms,100,3000,10,Net,theme,,,,"ms: a ripple from the net entering or leaving the surface",
+netWakeSpd,24,Net wake spd,2,80,1,Net,theme,,,,"px a frame: wiping this fast or faster, the net streams straight behind and its wake (the pigment's bow wake, Wake tuners) takes its max-speed shape; slower, both ease to their min (the net drooping and waving) until, still, it hangs as on hover",
+netUnderA,0.45,Net under α,0,1,0.05,Net,theme,,,,"How visible the hoop and net are under the surface",
+netLen,0.5,Net length,0.1,2,0.05,Net,theme,,,,"How long the net hangs back behind its hoop (× the cursor's radius, a knot; longer the faster it goes)",
+netMeshW,0.7,Net mesh width,0.1,3,0.05,Net,theme,,,,"The width of the net's mesh lines",
+netMeshA,0.5,Net mesh α,0,1,0.05,Net,theme,,,,"How strong the net's mesh is drawn",
+netLines,8,Net mesh lines,2,24,1,Net,theme,,,,"How many lines run from the hoop's rim to the net's bottom",
+netRimW,1.4,Net hoop width,0.3,4,0.05,Net,theme,,,,"The width of the hoop's rim",
+netWave,0.16,Net wave,0,0.6,0.01,Net,theme,,,,"How much the net waves (× the cursor's radius); wiping fast it streams straighter",
+netRippleRings,2,Net ripple rings,0,5,1,Net,theme,,,,"Rings in each ripple as the net goes in and comes out (a dab, a double dab: one ripple each way)",
+netSplashN,12,Net splash drops,0,40,1,Net,theme,,,,"Drops in the net's splash: one even ring, thrown out at once",
+netSplashR,2.2,Net splash reach,0.5,6,0.1,Net,theme,,,,"How far the splash's drops spread (× the hoop)",
+netSplashMs,520,Net splash ms,100,2000,10,Net,theme,,,,"How long the splash's drops fly",
+netGlowOutMs,150,Net glow out ms,10,2000,10,Net,theme,,,,"A wipe starting: how quickly the net's glow (its wake, its ripples) fades away",
+netGlowInMs,1400,Net glow in ms,10,6000,10,Net,theme,,,,"Wiping, once it has gathered: how slowly its glow comes back",
 metalReflA,0.55,Metal reflection,0,1,0.05,Achievements & Pattern — Visual,theme,,,,Scene reflection strength on Barrier edges and Gate posts,strength of the scene reflection on metal (Barrier edge / Gate posts)
 metalLightA,1,Metal glint,0,3,0.05,Achievements & Pattern — Visual,theme,,,,How strongly nearby lights glint on Barrier edges and Gate posts,how strongly nearby lights glint on metal
 lensMeshN,5,Fish-eye mesh N,3,40,1,Achievements & Pattern — Visual,theme,,,,"Fish-eye mesh is N×N cells (2N² triangles): more = smoother curve, slower","fish-eye mesh divisions: N×N cells = 2N² triangles (more = smoother curve, slower)"
@@ -253,6 +268,7 @@ particleMassJitter,2,Mass jitter,0,5,1,World,gameplay,,,,+/- spread (whole ints)
 maxActive,150000,Max active,0,150000,1000,World,gameplay,,,,Active particle hard cap,
 heatMax,60,Heat max,2,200,1,World,gameplay,,,,"Cursor HEAT: extra unique selections (each additional object from a swipe, a double-click or an item use) the cursor can take before it overheats. A full ring = this value",HEAT: how many extra unique selections (swipe / double-click / item use) the cursor can make before it overheats
 heatDecay,19,Heat cools /s,0,60,0.5,World,gameplay,,,,Heat the cursor sheds each second,heat lost per second
+mopHeatMs,250,Mop heat ms,20,3000,10,World,gameplay,,,,"Mopping (holding on shining objects) adds a heat each this many ms, as a wipe does passing over objects",
 heatCooldownMs,1000,Cooldown ms,100,10000,100,World,gameplay,,,,How long an overheated cursor is shut down; then it needs a new press,ms the cursor is shut down once it overheats (it then needs a fresh press)
 implodeForce,1.4,Implosion force,0,6,0.1,World,gameplay,,,,DYNAMISM implosion: pull speed (x max speed) that drags everything in reach inward for the whole shrink duration,DYNAMISM implosion: pull speed (× max speed) dragging everything in reach toward the shrunk point for the whole shrink duration
 implodeNull,0.84,Implosion nullify,0,0.95,0.02,World,gameplay,,,,DYNAMISM implosion: how strongly existing motion is cancelled in favour of the inward pull,DYNAMISM implosion: how fast existing motion is nullified in favour of the pull (0..0.95 per 16ms)
@@ -472,7 +488,8 @@ wakeLenMax,0.8,Len max,0,3,0.05,Wake,theme,,,,Length at max speed,
 wakeWidMax,1,Wid max,0,6,0.05,Wake,theme,,,,Width at max speed,
 wakeCrvMax,5,Crv max,0,10,0.1,Wake,theme,,,,Curve at max speed,
 wakeOffMax,-2,Off max,-6,4,0.1,Wake,theme,,,,Offset at max speed,
-sizeVarPct,0.05,Size variation,0,0.2,0.01,"Enhancements — scale, fields, straightening",gameplay,,,,Each pigment / Point gets a size within +/- this fraction of its mass-derived size (two-decimal steps),
+sizeVarPct,0.15,Size variation,0,0.4,0.01,"Enhancements — scale, fields, straightening",gameplay,,,,"Each pigment / Point gets a size within +/- this fraction of its mass-derived size, after its max radius (so a heavy surface's points never all sit at one size)",
+alphaVarPct,0.15,Opacity variation,0,0.5,0.01,"Enhancements — scale, fields, straightening",gameplay,,,,"Each pigment / Point is up to this much fainter than its energy's opacity (0.15: its fullest between 0.85 and 1, even at max energy)",
 remEnScaleMin,0.8,Rem scale @0 E,0.2,2,0.05,"Enhancements — scale, fields, straightening",gameplay,,,,Remnant base size multiplier at zero energy (Dim remnants excluded; Dark Remnant included),
 remEnScaleMax,1.6,Rem scale @max E,0.2,4,0.05,"Enhancements — scale, fields, straightening",gameplay,,,,Remnant base size multiplier at the energy below,
 remEnScaleE,5,Rem scale energy,0.1,20,0.1,"Enhancements — scale, fields, straightening",gameplay,,,,Energy at which a remnant reaches its max size multiplier,
