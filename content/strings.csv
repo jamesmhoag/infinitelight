@@ -149,9 +149,9 @@ map.saved_where_you_left, · saved where you left it,Surface Map,
 map.covered,{state}covered {pct}%{saved},Surface Map,"state = $0 — wound up, when it is
 pct = $1 — how much of the hex is covered (%)
 saved = $2 — ""· saved where you left it"" on the surface you left"
-map.unwinds_a_cleared_hex,"Unwinds a cleared hex back to a surface (a great Dark Remnant takes 3), or winds an open one below 1.00 up to 1.00",Surface Map,
-map.goes_straight_to_any,"Goes straight to any open hex: 1 per hex of distance, and no time passes",Surface Map,
-map.joins_3_to_5,"Joins 3 to 5 bright clears into a constellation: 3 pays a Prism each time of day, 4 a Gate or Knot, 5 a Key or Lens",Surface Map,
+map.unwinds_a_cleared_hex,"Unwinds a cleared hex back to a surface, or winds an open one below 1.00 up to 1.00: 9 a hex (a great Dark Remnant 27)",Surface Map,
+map.goes_straight_to_any,"Goes straight along one of your six lines to an open hex: 5 a hex of distance, and no time passes",Surface Map,
+map.joins_3_to_5,"Joins 3 to 5 bright clears into a constellation, a Weave for each clear: 3 pays 5 Prisms each time of day, 4 Gates or Knots, 5 Keys or Lenses",Surface Map,
 map.used_on_a_surface,Used on a surface: a loop round the first point you pick recolours everything inside to match it,Surface Map,
 map.used_on_a_surface_2,Used on a surface: a 3-point loop turns everything inside it into Dim Remnants,Surface Map,
 map.used_on_a_surface_3,Used on a surface: a loop of lit points becomes a barrier that locks what is inside it in,Surface Map,
@@ -172,6 +172,13 @@ map.spindle,Spindle,Surface Map,
 map.you_have_none,You have none,Surface Map,
 map.surface_wound_up_to,Surface wound up to 1.00 · it holds until cleared,Surface Map,
 map.this_takes_you_have,This takes {cost} (you have {have}),Surface Map,"cost = $0 — Spindles it takes
+map.takes,takes {0},Surface Map,0 = how many
+map.string_straight,"A String goes only along one of your six straight lines",Surface Map,
+map.key.dr,Keys: a Dark Remnant,Surface Map,
+map.key.dr_d,"{0} Keys locked the hex shut: a Dark Remnant",Surface Map,0 = keys
+map.key.dr_here,"Lock this hex shut into a Dark Remnant: {0} Keys",Surface Map,0 = keys
+map.key.dr_no,"Only an open hex beside you",Surface Map,
+map.key_note,"Opens a treasure chest (on a surface or the lake); 5 lock an open hex beside you shut into a Dark Remnant",Surface Map,
 have = $1 — Spindles you have"
 map.unwound,Unwound,Surface Map,
 map.the_great_dark_remnant,The great Dark Remnant is a surface again,Surface Map,
@@ -191,7 +198,7 @@ map.at_most_5_click,At most 5: click the first to close it,Surface Map,
 map.you_have_no_weave,You have no Weave,Surface Map,
 map.constellation,{kind} constellation,Surface Map,kind = $0 — what the constellation pays
 map.broke_older, · broke {broken} older,Surface Map,broken = $0 — older constellations it broke
-map.gives_a_every_time,Gives a {kind} every time of day{broke},Surface Map,"kind = $0 — what it pays
+map.gives_a_every_time,Gives 5 {kind} every time of day{broke},Surface Map,"kind = $0 — what it pays
 broke = $1 — ""· broke N older"" when it broke some"
 map.constellations,Constellations,Surface Map,
 map.neither_midnight,Collapse · midnight,Surface Map,
@@ -480,6 +487,7 @@ surf.round_get_ready,Round {round} — get ready,surface,round = $0 — the roun
 surf.wrong_the_key_is,Wrong — the key is lost.,surface,
 surf.a_burst_needs_neutrons,A burst needs {cost} Neutrons.,surface,cost = $0 — Neutrons a burst takes (Neutron burst cost tuner)
 surf.moment_captured,⛩ Moment captured,surface,
+surf.item_cost,"· this takes {0} {1} (you have {2})",surface,"0 = how many; 1 = the item; 2 = held"
 surf.is_full,{item} is full,surface,item = $0 — the item
 surf.item_unbought,"{item} is not yours to use yet: {buy} ({shop})",surface,"item = $0 — DEPTH, BALANCE, …; buy = $1 — the upgrade; shop = $2"
 surf.s,s,surface,
@@ -1047,6 +1055,9 @@ good.catalog,a catalog,Commodities,
 good.bottle,a glass bottle,Commodities,
 good.bag,a plastic bag,Commodities,
 good.rag,a rag,Commodities,
+good.armoire,an armoire,Commodities,
+good.armoire_got,The Armoire,Commodities,
+good.armoire_got_d,"Hauled aboard and set below deck: THE PULSE has apparel for you now (crossing gear for your riser mounts).",Commodities,
 good.trash_m,"Trash: {0}. {1}",Commodities,"0 = its material; 1 = whether your net can scoop it"
 good.trash_net,Click it: your net scoops it into your trash bag.,Commodities,
 good.trash_nonet,"Your net cannot scoop {0} yet (BRiGHT IDEAS: a Trash can, then its own scoop).",Commodities,0 = the material

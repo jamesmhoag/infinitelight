@@ -4757,6 +4757,7 @@ function gestureNearest(mx,my,g,now){ // DOUBLE-CLICK: exactly what autoSelectCl
   out.sort((a,b)=>a.d2-b.d2);
   return out.slice(0,shineMax()); // the same single cap as every other activation: T.maxActivePoints ("Max shining")
 }
+const itemCost=(kind,o)=>kind==='leash'&&o&&o.collapsed&&!o.isRemnant?Math.max(1,T.spindlePointCost!=null?T.spindlePointCost:5):1; // what a use takes from your purse (a bright Point unwound: 5 Spindles)
 function gestureStep(kind,mx,my,g,now){
   if(!g.first&&!g.dbl&&!g.moved)return; // a single dab only ever touches ONE object
   const single=g.first&&!g.dbl&&!g.moved;
@@ -4773,8 +4774,8 @@ function gestureStep(kind,mx,my,g,now){
     } else if(kind==='pulsing'){
       if(t.px){_dormantFadeOnRemove=true;const idx=t.idx;if(dormant[idx]===o){removeDormant(idx,now);initWoken(o,0);active.push(o);}else continue;}
       applyMotionPreset(o,g);did=true;earnFx.push({kind:'arrow',x:o.x,y:o.y,dir:g.dir,sp:g.preset[0],cv:g.preset[1],sg:g.sg,born:performance.now(),dur:T.earnUseMs}); // an arrow (straight or curved) showing the impulse given
-    } else if(kind==='leash'){ // SPINDLE: unwind a Point / Pigment back into particles
-      if(t.px||!startUnwind(o,now))continue;did=true;earnFx.push({kind:'use',x:o.x,y:o.y,rgb:[255,215,120],born:performance.now(),dur:T.earnUseMs});
+    } else if(kind==='leash'){ // SPINDLE: unwind a Point / Pigment back into particles (a bright Point takes Spindle on a Point of them: itemCost)
+      if(t.px||have()<itemCost('leash',o)||!startUnwind(o,now))continue;did=true;t._c=itemCost('leash',o);earnFx.push({kind:'use',x:o.x,y:o.y,rgb:[255,215,120],born:performance.now(),dur:T.earnUseMs});
     } else if(kind==='neutron'){
       let big=g.state==='max';o._itemAt=now;
       let tpx=t.px; // a targeted particle is woken into a real point so it is visible, can be stopped, and can be scaled out of the nebula
@@ -4798,7 +4799,7 @@ function gestureStep(kind,mx,my,g,now){
       earnFx.push({kind:'use',x:o.x,y:o.y,rgb:big?[255,205,130]:[150,205,255],born:performance.now(),dur:T.earnUseMs});
       did=true;
     }
-    if(did)spent++;
+    if(did)spent+=t._c||1;
   }
   if(spent>0){addInventory(kind,-spent);if(inventory[kind]<=0)armedInvItem=null;updateInventoryUI();playItemGestureSound(kind,g,now);}
 }
@@ -11273,7 +11274,7 @@ function updateInfoAndStats(now,hoverObj){
     }
     setFeed(INV_ICON[armedInvItem&&CREATE_KINDS.includes(armedInvItem.kind)?armedInvItem.kind:'create']+' '+createLabel(),d,'rgba(255,255,255,0.92)');
   } else if(armedInvItem&&ITEM_USE[armedInvItem.kind]&&!(armedInvItem.kind==='prism'&&hoverObj&&prismValidTarget(hoverObj))){ // an item active: the feed says which, and how it is used
-    const k=armedInvItem.kind;setFeed(txt('surf.item_active',INV_ICON[k],INV_LABEL[k]),ITEM_USE[k],'rgba(255,225,140,0.95)');
+    const k=armedInvItem.kind,c=hoverObj&&!hoverObj.isRemnant?itemCost(k,hoverObj):1;setFeed(txt('surf.item_active',INV_ICON[k],INV_LABEL[k]),ITEM_USE[k]+(c>1?' '+txt('surf.item_cost',c,INV_LABEL[k],inventory[k]||0):''),'rgba(255,225,140,0.95)'); // (what this one would take: a bright Point, 5 Spindles)
   } else if(armedInvItem&&armedInvItem.kind==='prism'&&hoverObj&&prismValidTarget(hoverObj)){
     // Prism, hovering a valid target: show both what it currently is AND the active-word it will become, e.g.
     // "Orbit → Attract" — not just its current state, which is all the generic info readout below shows.

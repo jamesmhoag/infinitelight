@@ -319,13 +319,16 @@ function restTide(){ // resting with the barrel dry: a time of day passes and th
   const r0=cellRing(pQ,pR);let best=null;for(const m of getMoves()){if(!cells[K(m.q,m.r)]||cells[K(m.q,m.r)].isVoid)continue;const r=cellRing(m.q,m.r);if(r<r0&&(!best||r<best.r))best={q:m.q,r:m.r,rr:r};}
   if(best){const ok=cells[K(pQ,pR)];if(ok)ok.isP=false;pQ=best.q;pR=best.r;cells[K(pQ,pR)].isP=true;buoyGo('sail');focusCam(true,1);feed(txt('map.water.tide'),txt('map.water.tide_d'));}else feed(txt('map.water.rest'),txt('map.water.rest_d'));
   advanceTurn();waterNear();updateHint();saveMap();}
+// Crossing (Crossing needs gear on): a move across cleared hexes to the open hex past them needs apparel hung on your riser mounts — Diamond-soled shoes for bright clears, a
+// Black Heart bow tie for Dark Remnants (not one a recycling plant grows on), Rift waders for Rifts (THE PULSE, once you have the Armoire). Gear off: bright and dark as before
+const crossOK=c=>c.rift?kitOn(f=>f.cross==='rift'):!(T.mapCrossGear!=null?T.mapCrossGear:1)?true:c.kind==='dark'?!plants[K(c.q,c.r)]&&kitOn(f=>f.cross==='dark'):kitOn(f=>f.cross==='bright');
 function getMoves(){
   const out=[];
   for(const[dq,dr]of DIRS){let q=pQ+dq,r=pR+dr;const c=cells[K(q,r)];if(!c||pdHas(K(q,r))||c.flot)continue; // (a hex the Parade Day parade is in, or flotsam floats on: not moved into)
     if(c.isVoid){if(voidOpen&&q===0&&r===0)out.push({q,r,path:[]});continue;}
-    if(!c.cap){out.push({q,r,path:[]});continue;}
+    if(!c.cap){out.push({q,r,path:[]});continue;}if(!crossOK(c))continue;
     const path=[{q,r}];q+=dq;r+=dr;
-    while(true){const c2=cells[K(q,r)];if(!c2||c2.rift||pdHas(K(q,r))||c2.flot)break;if(c2.isVoid){if(voidOpen&&q===0&&r===0)out.push({q,r,path:[...path]});if(!(q===0&&r===0)){path.push({q,r});q+=dq;r+=dr;continue;}break;}if(!c2.cap){out.push({q,r,path:[...path]});break;}path.push({q,r});q+=dq;r+=dr;}}
+    while(true){const c2=cells[K(q,r)];if(!c2||pdHas(K(q,r))||c2.flot)break;if(c2.rift){if(!crossOK(c2))break;path.push({q,r});q+=dq;r+=dr;continue;}if(c2.cap&&!crossOK(c2))break;if(c2.isVoid){if(voidOpen&&q===0&&r===0)out.push({q,r,path:[...path]});if(!(q===0&&r===0)){path.push({q,r});q+=dq;r+=dr;continue;}break;}if(!c2.cap){out.push({q,r,path:[...path]});break;}path.push({q,r});q+=dq;r+=dr;}}
   const here=cells[K(pQ,pR)];if(buoy.under&&here&&here.rift)for(const[q,r]of neighbors(pQ,pR)){const b=cells[K(q,r)];if(!b||!b.cap)continue; // under, after a Rift: up on any open hex beside a bright clear round the tear (not only the ones straight across)
     for(const[q2,r2]of neighbors(q,r)){const k2=K(q2,r2),c2=cells[k2];if(c2&&!c2.cap&&!c2.isVoid&&!c2.flot&&!pdHas(k2)&&!out.some(m=>m.q===q2&&m.r===r2))out.push({q:q2,r:r2,path:[{q,r}]});}}
   return out;
@@ -515,20 +518,29 @@ function hexInfo(c){ // what hovering a hex tells you
 const ITEM_NOTE={leash:txt('map.unwinds_a_cleared_hex'),dial:txt('map.goes_straight_to_any'),
   weave:txt('map.joins_3_to_5'),prism:txt('map.used_on_a_surface'),
   knot:txt('map.used_on_a_surface_2'),gate:txt('map.used_on_a_surface_3'),
-  key:txt('map.used_on_a_surface_4'),lens:txt('map.used_on_a_surface_5')};
+  key:txt('map.key_note'),lens:txt('map.used_on_a_surface_5')};
 function itemInfo(k,c){ // an item in the dock: what it does; in hand over a hex, what it would do there (and what it costs)
   if(k==='buoy')return[txt('map.buoy.deck'),txt('map.buoy.deck_d')];if(k==='trash'||k==='seed')return plantInfo(k,c);if(k==='test')return[txt('test.tool'),txt('test.tool_hint')]; // the test tool in hand
   const n=inv[k]||0,nm=KIND_NAME[k]||k;if(!ITEM_NOTE[k])return[curName(k),txt('map.you_have',fmtN(shopWallet(k)))];
   if(!c)return[nm+' × '+n+((armed===k?txt('map.in_hand'):(DOCK_ITEMS.includes(k)?txt('map.click_to_take_it'):txt('map.earned_on_the_map')))),ITEM_NOTE[k]];
   const ck=K(c.q,c.r),g=c.mergeId!=null?mergeGroups.find(x=>x.id===c.mergeId):null,have=(m,u)=>m+(n<u?txt('map.item.youhave',n):'');
-  if(k==='leash')return[txt('map.here',nm),(c.cap?have(txt('map.unwind_this_clear_spindle',g&&g.type==='dark3'?3:1,(g&&g.type==='dark3'?txt('map.s'):'')),g&&g.type==='dark3'?3:1):(!c.isVoid&&c.v<1&&!c.full?have(txt('map.wind_it_up_from',c.v.toFixed(2)),1):txt('map.nothing_to_do_here')))];
-  if(k==='dial'){if(c.cap||c.isVoid||ck===K(pQ,pR))return[txt('map.here',nm),txt('map.only_an_open_hex')];const d=dist(pQ,pR,c.q,c.r);return[txt('map.here',nm),have(txt('map.go_straight_here_string',d,(d>1?txt('map.s'):'')),d)];}
+  if(k==='leash')return[txt('map.here',nm),(c.cap?have(txt('map.unwind_this_clear_spindle',spinCost(ck),txt('map.s')),spinCost(ck)):(!c.isVoid&&c.v<1&&!c.full?have(txt('map.wind_it_up_from',c.v.toFixed(2))+' · '+txt('map.takes',MC('mapSpindleCost')),MC('mapSpindleCost')):txt('map.nothing_to_do_here')))];
+  if(k==='dial'){if(c.cap||c.isVoid||ck===K(pQ,pR))return[txt('map.here',nm),txt('map.only_an_open_hex')];if(!straight(c.q,c.r))return[txt('map.here',nm),txt('map.string_straight')];const d=dist(pQ,pR,c.q,c.r)*MC('mapStringCost');return[txt('map.here',nm),have(txt('map.go_straight_here_string',d,txt('map.s')),d)];}
+  if(k==='key')return[txt('map.here',nm),keyOK(ck)?have(txt('map.key.dr_here',MC('mapKeyDR')),MC('mapKeyDR')):txt('map.key.dr_no')];
   if(k==='weave')return[txt('map.here',nm),(isBright(ck)?(weaveSel.includes(ck)?(weaveSel[0]===ck&&weaveSel.length>=3?txt('map.click_to_close_the'):txt('map.chosen_2',weaveSel.length)):txt('map.add_this_bright_clear',weaveSel.length)):txt('map.only_bright_clears_can'))];
   return[nm,ITEM_NOTE[k]];}
 // ── Items on the map: Spindle unwinds a clear; String moves without time; Weave joins bright hexes into constellations ──
 const isBright=k=>{const c=cells[k];return!!(c&&c.cap&&c.kind!=='dark');};
+// What an item takes on the map (tuners): a Spindle on a hex Map spindle (9; × 3 a great Dark Remnant), a String Map string a hex of the straight line (5), a Weave one for each
+// bright clear it joins (it then pays Map weave pay a time of day), Keys Map key DR (5) to make an open hex beside you a Dark Remnant
+const MC=k=>Math.max(1,Math.round(T[k]!=null?T[k]:{mapSpindleCost:9,mapStringCost:5,mapKeyDR:5}[k])),spinCost=k=>{const c=cells[k],g=c&&c.mergeId!=null?mergeGroups.find(x=>x.id===c.mergeId):null;return MC('mapSpindleCost')*(g&&g.type==='dark3'?3:1);};
+const straight=(q,r)=>q===pQ||r===pR||q+r===pQ+pR; // one of the six straight lines from your hex
+function keyOK(k){const c=cells[k];return!!(c&&!c.cap&&!c.isVoid&&!c.rift&&!c.shop&&!c.flot&&k!==K(pQ,pR)&&hexD(c,here())<=1);}
+function keyDark(k){if(!keyOK(k)){hexTap(k);return;}const n=MC('mapKeyDR');if((inv.key||0)<n){feed(txt('map.key.dr'),txt('map.this_takes_you_have',n,inv.key||0),'no');return;} // Keys: an open hex beside you locked shut into a Dark Remnant (its value with it)
+  spend('key',n);const c=cells[k];Object.assign(c,{cap:true,capVal:c.v,kind:'dark',shop:null,tally:{}});dayCnt.d++;jot('clear',{kind:'dark',v:+(c.v||0).toFixed(2)});clearFx[k]={t0:performance.now(),dk:true};score=Math.round((score+c.v)*100)/100;
+  captureOrder.push({keys:[k],mergeId:null});detectMerges();redistribute();feed(txt('map.key.dr'),txt('map.key.dr_d',n));armed=null;ringCheck();updateHint();syncDock();saveMap();}
 function itemOK(k){const c=cells[k];if(!c)return false;if(armed==='test')return true;if(armed==='trash')return trashOK(k);if(armed==='seed')return seedOK(k); // what the armed item can act on: a Spindle a clear (or a hex not yet full), a String an open hex it has a straight line to, a Weave a bright clear
-  return armed==='leash'?!!(c.cap||(!c.isVoid&&c.v<1)):armed==='dial'?!c.cap&&!c.isVoid&&k!==K(pQ,pR)&&!riftBetween(pQ,pR,c.q,c.r):isBright(k);}
+  return armed==='leash'?!!(c.cap||(!c.isVoid&&c.v<1)):armed==='dial'?!c.cap&&!c.isVoid&&k!==K(pQ,pR)&&straight(c.q,c.r)&&!riftBetween(pQ,pR,c.q,c.r):armed==='key'?keyOK(k):isBright(k);}
 function hexLine(q0,r0,q1,r1){const n=dist(q0,r0,q1,r1),out=[];for(let i=0;i<=n;i++){const t=n?i/n:0,x=q0+(q1-q0)*t+1e-6,z=r0+(r1-r0)*t+1e-6,y=-x-z;let rx=Math.round(x),rz=Math.round(z),ry=Math.round(y);const dx=Math.abs(rx-x),dy=Math.abs(ry-y),dz=Math.abs(rz-z);
   if(dx>dy&&dx>dz)rx=-ry-rz;else if(dy<=dz)rz=-rx-ry;out.push([rx,rz]);}return out;} // the hexes a straight line from one hex to another passes over
 const riftBetween=(q0,r0,q1,r1)=>hexLine(q0,r0,q1,r1).some(([q,r])=>{const c=cells[K(q,r)];return!!(c&&c.rift)||pdHas(K(q,r));}); // (a Rift, or the Parade Day parade, in the way) // a Rift in the way of a String's straight line
@@ -536,10 +548,10 @@ function armItem(kind){if(phase==='ended'||phase==='collapse')return;armed=armed
 function spend(kind,n){if(_mpFor){netOut({t:'spend',kind,n},_mpFor);return;} // (a friend's: off their own)
   inv[kind]=Math.max(0,(inv[kind]||0)-n);neb({cmd:'spend',kind,n});syncDock();}
 function spindleFill(k){ // Spindle on an open hex below 1.00: wound up to 1.00, and held there until it is cleared
-  const c=cells[k];if(!c||c.cap||c.isVoid||c.v>=1)return;if((inv.leash||0)<1){feed(txt('map.spindle'),txt('map.you_have_none'),'no');return;}
-  spend('leash',1);c.v=1;c.full=true;redistribute();feed(txt('map.spindle'),txt('map.surface_wound_up_to'));updateHint();saveMap();}
+  const c=cells[k];if(!c||c.cap||c.isVoid||c.v>=1)return;if((inv.leash||0)<MC('mapSpindleCost')){feed(txt('map.spindle'),txt('map.this_takes_you_have',MC('mapSpindleCost'),inv.leash||0),'no');return;}
+  spend('leash',MC('mapSpindleCost'));c.v=1;c.full=true;redistribute();feed(txt('map.spindle'),txt('map.surface_wound_up_to'));updateHint();saveMap();}
 function unclear(k){ // Spindle: a cleared hex back to an open surface (the value spreads over one more hex)
-  const c=cells[k];if(!c||!c.cap)return;const g=c.mergeId!=null?mergeGroups.find(x=>x.id===c.mergeId):null,big=g&&g.type==='dark3',cost=big?3:1;
+  const c=cells[k];if(!c||!c.cap)return;const g=c.mergeId!=null?mergeGroups.find(x=>x.id===c.mergeId):null,big=g&&g.type==='dark3',cost=spinCost(k);
   if((inv.leash||0)<cost){feed(txt('map.spindle'),txt('map.this_takes_you_have',cost,inv.leash||0),'no');return;}
   const ks=big?g.cells:[k];spend('leash',cost);
   if(g){mergeGroups=mergeGroups.filter(x=>x!==g);for(const gk of g.cells)if(cells[gk])cells[gk].mergeId=null;}
@@ -548,11 +560,11 @@ function unclear(k){ // Spindle: a cleared hex back to an open surface (the valu
   checkConstellations();redistribute();checkVoidAccess();
   feed(txt('map.unwound'),(big?txt('map.the_great_dark_remnant'):txt('map.the_hex_is_a')));updateHint();saveMap();}
 function stringMove(q,r){ // String: straight to any open hex, 1 per hex of distance, no time
-  const c=cells[K(q,r)];if(!c||c.cap||c.isVoid||(q===pQ&&r===pR))return;const n=dist(pQ,pR,q,r);
+  const c=cells[K(q,r)];if(!c||c.cap||c.isVoid||(q===pQ&&r===pR))return;if(!straight(q,r)){feed(txt('map.string'),txt('map.string_straight'),'no');return;}const d=dist(pQ,pR,q,r),n=d*MC('mapStringCost');
   if(riftBetween(pQ,pR,q,r)){feed(txt('map.string'),txt('map.rift_in_the_way'),'no');return;}
   if((inv.dial||0)<n){feed(txt('map.string'),txt('map.that_is_away_you',n,inv.dial||0),'no');return;}
   spend('dial',n);const ok=cells[K(pQ,pR)];if(ok)ok.isP=false;dropSession();pQ=q;pR=r;c.isP=true;buoyGo('fire');focusCam(true,1);phase='move';const dim=runBad(run,'slowmove');if(dim)advanceTurn(); // a dim fortune: a String takes a time of day
-  if(phase==='collapse'){updateHint();saveMap();return;}feed(txt('map.string'),txt('map.hex',n,(n>1?txt('map.es'):''),(dim?txt('map.a_time_of_day'):txt('map.no_time_passed'))));updateHint();saveMap();}
+  if(phase==='collapse'){updateHint();saveMap();return;}feed(txt('map.string'),txt('map.hex',d,(d>1?txt('map.es'):''),(dim?txt('map.a_time_of_day'):txt('map.no_time_passed'))));updateHint();saveMap();}
 const WEAVE_KINDS={3:['prism'],4:['gate','knot'],5:['key','lens']}; // (KIND_NAME: shared.js)
 const weaveKinds=n=>runBonus(run,'glasses')?['lens']:WEAVE_KINDS[n].filter(k=>!(k==='key'&&run.keysGone)); // Broken Glasses: only Lens; Keys lost: no Key
 function weaveClick(k){
@@ -564,14 +576,14 @@ function segX(a,b,c,d){const o=(p,q,r)=>Math.sign((q[0]-p[0])*(r[1]-p[1])-(q[1]-
 const constEdges=c=>c.keys.map((k,i)=>[k,c.keys[(i+1)%c.keys.length]]);
 function makeConstellation(type){
   if(MP.role==='guest'&&!_mpFor){if(!mpMine()){feed(txt('mp.title'),txt('mp.not_your_turn',(mpP(mpTurn())||{}).name||''),'no');return;}mpSend('weave',{type,sel:weaveSel.slice()});weaveSel=[];weaveAsk=null;armed=null;syncDock();return;} // a friend: the host makes it
-  if((inv.weave||0)<1){feed(txt('map.weave'),txt('map.you_have_no_weave'),'no');weaveSel=[];weaveAsk=null;return;}
+  if((inv.weave||0)<weaveSel.length){feed(txt('map.weave'),txt('map.this_takes_you_have',weaveSel.length,inv.weave||0),'no');weaveSel=[];weaveAsk=null;return;} // (one Weave for each bright clear it joins)
   const nc={keys:weaveSel.slice(),type},P=k=>a2w(...parseK(k)),broken=[];
   for(const o of constel)if(constEdges(nc).some(([a,b])=>constEdges(o).some(([c,d])=>![c,d].includes(a)&&![c,d].includes(b)&&segX(P(a),P(b),P(c),P(d)))))broken.push(o); // a newer one crossing an older one breaks it
-  constel=constel.filter(o=>!broken.includes(o));constel.push(nc);spend('weave',1);weaveSel=[];weaveAsk=null;armed=null;
+  constel=constel.filter(o=>!broken.includes(o));constel.push(nc);spend('weave',nc.keys.length);weaveSel=[];weaveAsk=null;armed=null;
   feed(txt('map.constellation',KIND_NAME[type]),txt('map.gives_a_every_time',KIND_NAME[type],(broken.length?txt('map.broke_older',broken.length):'')));hubEvent('map_constellation');updateHint();syncDock();saveMap();}
 function checkConstellations(){constel=constel.filter(c=>c.keys.every(isBright));}
 function awardConstellations(){checkConstellations();const got={},laps=runBad(run,'laps'),gl=runBonus(run,'glasses');for(const c of constel){c.n=(c.n||0)+1;if(laps&&c.n%2)continue; // a dim fortune: every other time of day
-    for(const k of gl&&c.type==='lens'?['prism','knot','gate'].concat(run.keysGone?[]:['key']):[c.type]){neb({cmd:'award',kind:k,n:1});got[k]=(got[k]||0)+1;}} // Broken Glasses: a Lens one pays the others
+    for(const k of gl&&c.type==='lens'?['prism','knot','gate'].concat(run.keysGone?[]:['key']):[c.type]){const w=Math.max(1,Math.round(T.mapWeavePay!=null?T.mapWeavePay:5));neb({cmd:'award',kind:k,n:w});got[k]=(got[k]||0)+w;}} // Broken Glasses: a Lens one pays the others
   const t=Object.keys(got);if(t.length)feed(txt('map.constellations'),t.map(k=>'+'+got[k]+' '+KIND_NAME[k]).join(' · '));}
 // ── Collapse: a ring of hexes all of one kind (all bright, all dark or all Rift) falls into the source, with everything inside it; the rings past it close in ──
 function ringCheck(){checkVoidAccess();
@@ -950,7 +962,7 @@ function mapClick(q,r){const k=K(q,r);if(armed)hubLearn('hubitems'); // a click 
   if(armed==='leash'){if(cells[k]&&cells[k].cap)unclear(k);else spindleFill(k);return;} // an armed map item takes the click
   if(armed==='dial'){stringMove(q,r);return;}
   if(armed==='weave'){if(!weaveAsk)weaveClick(k);return;}
-  if(armed==='trash'){trashAt(k);return;}if(armed==='seed'){plantSeed(k);return;}
+  if(armed==='trash'){trashAt(k);return;}if(armed==='key'){keyDark(k);return;}if(armed==='seed'){plantSeed(k);return;}
   if(q===pQ&&r===pR){doCapture();return;}
   const moves=getMoves();if(moves.find(m=>m.q===q&&m.r===r))doMove(q,r); // (at Midnight it only says you are too tired)
 }
@@ -1071,9 +1083,11 @@ function lakeGood(g,now,up){g=Object.assign({id:++goodSeq},g);if(!water.pts.leng
   pond.push(d);ripples.push({x:d.x,y:d.y,t:now,dk:onWhite(d.x,d.y),big:1});return d;}
 function goodsSpawn(now){if(SCENE||parade||pdOn()||water.frac<=0.05)return;if(!goodNext)goodNext=now+(T.mapGoodMs||150000)*(0.4+0.6*Math.random());if(!chestNext)chestNext=now+(T.mapChestMs||300000)*(0.5+Math.random());
   if(now>goodNext){goodNext=now+(T.mapGoodMs||150000)*(0.6+0.8*Math.random());const seen=Object.keys(SHOPS).filter(id=>disc.has('ev:shop_'+id)),k=['soda','coffee','can','box'][(Math.random()*4)|0];if(Math.random()<(T.trashShare!=null?T.trashShare:0.4))lakeGood({kind:TRASH_ONLY[(Math.random()*TRASH_ONLY.length)|0],open:true},now);else if(k!=='box'||seen.length)lakeGood({kind:k,shop:k==='box'?seen[(Math.random()*seen.length)|0]:k==='soda'?String((Math.random()*6)|0):''},now);}
+  if(!disc.has('up:armoire')&&disc.has('ev:shop_pulsing')&&!pond.some(d=>d.good&&d.good.kind==='armoire')&&Math.random()<0.002)lakeGood({kind:'armoire'},now); // the Armoire, adrift (once you know THE PULSE): it opens the apparel there
   if(now>chestNext){chestNext=now+(T.mapChestMs||300000)*(0.6+0.8*Math.random());if(!pond.some(d=>d.good&&d.good.kind==='chest'))lakeGood({kind:'chest'},now);}}
 function openLakeGood(d){const g=d.good,now=performance.now();ripples.push({x:d.x,y:d.y,t:now,dk:onWhite(d.x,d.y),big:1});
   if(g.kind==='sign'){feed(goodNameM(g),txt('good.sign_d'));return;}
+  if(g.kind==='armoire'){const[bx,by]=a2w(pQ,pR);if(Math.hypot(d.x-bx,d.y-by)>HEX*2.2){feed(goodNameM(g),txt('good.ring_far'),'no');return;}pond.splice(pond.indexOf(d),1);neb({cmd:'discover',id:'up:armoire'});jot('armoire');feed(txt('good.armoire_got'),txt('good.armoire_got_d'));return;} // hauled aboard: below deck now
   if(g.kind==='chest'){if(!((inv&&inv.key)||0)&&!TEST.get('free')){if(!d.dunk)d.dunk=now;feed(txt('good.chest'),txt('chest.need_key'),'no');return;}neb({cmd:'chest',id:g.id});return;} // (the surface keeps the purse: it spends the Key and counts the hoard)
   if(g.kind==='box'&&SHOPS[g.shop]&&!g.give&&!disc.has('cat:'+g.shop))catTake(g.shop); // a box from a shop: its catalogue inside
   if(!g.give&&g.kind!=='chest'&&Math.random()<(T.recFind!=null?T.recFind:0.12)){const L=RECORDS.filter(r=>r.g!=='hybrid'&&!disc.has('up:'+r.id)),r=L[(Math.random()*L.length)|0];if(r){disc.add('up:'+r.id);neb({cmd:'discover',id:'up:'+r.id});feed(txt('map.rec.found',r.n),txt('map.rec.g_'+r.g));}} // a record in the trash
@@ -1760,11 +1774,11 @@ function mpViewItems(){const v=document.getElementById('mpView');if(!v)return;le
 // ╔══════════════════════════════════════════════════════════════════════════════╗
 // ║  DOCK, FEED AND CURSOR — the surface's own slots, feed line and cursor       ║
 // ╚══════════════════════════════════════════════════════════════════════════════╝
-let icons={};const DUCK_ICO='<svg viewBox="0 0 22 22"><path fill="currentColor" d="M8 4a3.5 3.5 0 0 1 3.4 4.4L15 8l-2.2 2.2c2.6.2 5.2 1 6.2-1 .6 3.6-1.6 8.8-8 8.8-4.4 0-7-2.4-7-5.4 0-2 1.3-3.2 2.4-3.8A3.5 3.5 0 0 1 8 4z"/></svg>';const DOCK_ITEMS=['leash','dial','weave'];
+let icons={};const DUCK_ICO='<svg viewBox="0 0 22 22"><path fill="currentColor" d="M8 4a3.5 3.5 0 0 1 3.4 4.4L15 8l-2.2 2.2c2.6.2 5.2 1 6.2-1 .6 3.6-1.6 8.8-8 8.8-4.4 0-7-2.4-7-5.4 0-2 1.3-3.2 2.4-3.8A3.5 3.5 0 0 1 8 4z"/></svg>';const DOCK_ITEMS=['leash','dial','weave','key'];
 function syncDock(){const box=document.getElementById('hinv');if(!box)return;
   const nw=k=>disc.has('sn:')&&ilNew('hk_'+k)?' isnew':''; // (a slot never yet used: new)
   box.innerHTML=DOCK_ITEMS.map(k=>`<div class="slot${armed===k?' armed':''}${(inv[k]||0)<=0?' empty':nw(k)}" data-k="${k}" data-new="hk_${k}" title="${KIND_NAME[k]}">${icons[k]||KIND_NAME[k][0]}<b>${inv[k]||0}</b></div>`).join('')+
-    '<div class="sep"></div>'+['prism','knot','gate','key','lens'].filter(k=>(inv[k]||0)>0).map(k=>`<div class="slot empty" data-k="${k}" title="${KIND_NAME[k]} (earned)">${icons[k]||KIND_NAME[k][0]}<b>${inv[k]}</b></div>`).join('')+
+    '<div class="sep"></div>'+['prism','knot','gate','lens'].filter(k=>(inv[k]||0)>0).map(k=>`<div class="slot empty" data-k="${k}" title="${KIND_NAME[k]} (earned)">${icons[k]||KIND_NAME[k][0]}<b>${inv[k]}</b></div>`).join('')+
     (shopUI?'<div class="sep"></div>'+(shopUI.gift?['gift']:['bright','dim','neutron','magnetic','pulsing','duck']).map(c=>`<div class="slot${c===shopUI.tab?' wal':''}" data-k="${c}" title="${curName(c)}">${curIcon(c)}<b>${fmtN(shopWallet(c))}</b></div>`).join(''):''); // in a shop: every purse, the open tab's lit
   if(!SCENE&&buoyKit&&buoyKit.slots.hull.slice(0,kitCounts(buoyKit).hull).some(id=>{const it=shopItem(id);return it&&it.fx.anchor;}))box.insertAdjacentHTML('afterbegin',`<div class="slot anchor${anchored()?' armed':''}" data-k="anchor" title="${txt(anchored()?'map.anchor.down':'map.anchor.up')}" onclick="anchorSet(!anchored())">⚓<b>${txt(anchored()?'map.anchor.down_s':'map.anchor.up_s')}</b></div>`); // the anchor: down (the tide holds off) or up
   if(!SCENE&&recPlayer())box.insertAdjacentHTML('afterbegin',`<div class="slot rec${MUSIC.cur&&MUSIC.pref.on?' armed':''}" data-k="rec" title="${txt('map.rec.slot',MUSIC.cur?MUSIC.cur.n:txt('map.rec.off'))}" onclick="recordsOpen()">♪<b>${MUSIC.cur?txt('map.rec.on_s'):txt('map.rec.off_s')}</b></div>`); // the record player: your records

@@ -233,3 +233,6 @@ kaleido,dim,Kaleidoscope,1000,dim,1,,"{""up"":1,""mount"":""top"",""look"":""box
 pinwheel,dim,Pinwheel,2000,dim,2,,"{""up"":1,""mount"":""top"",""look"":""flag"",""toy"":""up""}",,,Mast mount (a toy). A singularity in the new day's draw is a tier better
 yoyo,dim,Yo-yo,1500,dim,1,,"{""up"":1,""mount"":""top"",""look"":""box"",""col"":11,""toy"":""skip""}",,,Mast mount (a toy). You may pass on the new day's singularities
 snowglobe,dim,Snow globe,3000,dim,3,,"{""up"":1,""mount"":""top"",""look"":""box"",""col"":6,""toy"":""shuffle""}",,,"Mast mount (a toy). Each Midnight it earns a reshuffle: once your deck of singularities runs out, the discards go back in"
+shoes,pulsing,Diamond-soled shoes,500,pulsing,1,,"{""up"":1,""mount"":""mast"",""look"":""lamp"",""col"":6,""cross"":""bright""}",armoire,,Riser mount (apparel). Move across bright clears to the open hex past them
+bowtie,pulsing,Black Heart bow tie,1500,pulsing,2,,"{""up"":1,""mount"":""mast"",""look"":""flag"",""cross"":""dark""}",armoire,,Riser mount (apparel). Move across Dark Remnants (not one a recycling plant grows on)
+waders,pulsing,Rift waders,3000,pulsing,3,,"{""up"":1,""mount"":""mast"",""look"":""lamp"",""col"":11,""cross"":""rift""}",armoire,,Riser mount (apparel). Wade across Rifts to the open hex past them
