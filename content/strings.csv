@@ -172,6 +172,7 @@ map.spindle,Spindle,Surface Map,
 map.you_have_none,You have none,Surface Map,
 map.surface_wound_up_to,Surface wound up to 1.00 · it holds until cleared,Surface Map,
 map.this_takes_you_have,This takes {cost} (you have {have}),Surface Map,"cost = $0 — Spindles it takes
+have = $1 — Spindles you have"
 map.takes,takes {0},Surface Map,0 = how many
 map.string_straight,"A String goes only along one of your six straight lines",Surface Map,
 map.key.dr,Keys: a Dark Remnant,Surface Map,
@@ -179,7 +180,6 @@ map.key.dr_d,"{0} Keys locked the hex shut: a Dark Remnant",Surface Map,0 = keys
 map.key.dr_here,"Lock this hex shut into a Dark Remnant: {0} Keys",Surface Map,0 = keys
 map.key.dr_no,"Only an open hex beside you",Surface Map,
 map.key_note,"Opens a treasure chest (on a surface or the lake); 5 lock an open hex beside you shut into a Dark Remnant",Surface Map,
-have = $1 — Spindles you have"
 map.unwound,Unwound,Surface Map,
 map.the_great_dark_remnant,The great Dark Remnant is a surface again,Surface Map,
 map.the_hex_is_a,The hex is a surface again · the value spreads over it,Surface Map,
@@ -1264,12 +1264,38 @@ unlocks = $1 — what it unlocks"
 ach.milestone,a milestone,Achievements,said when an achievement unlocks nothing
 ach.needs,Needs the achievement {name},Achievements,name = $0 — the achievement still needed
 map.water.slot,"Fresh water: {water} of {max} · every move drinks one; a bright clear, or being beside a bright hex or the Point, fills it",Surface Map (water),"water = $0 — drinks left
+max = $1 — the barrel's size"
 map.water.refilled,Barrel refilled,Surface Map,
 map.batt.got,"+ {0} batteries",Surface Map,0 = how many
 map.batt.have,"{0} batteries",Surface Map,0 = how many
 map.batt.out,Out of batteries,Surface Map,
 map.batt.out_d,"Not working today: {0} (batteries left: {1})",Surface Map,"0 = gear; 1 = batteries"
-max = $1 — the barrel's size"
+wx.calm,Calm,Surface Map (weather),
+wx.wind,Windy,Surface Map (weather),
+wx.rain,Rainy,Surface Map (weather),
+wx.hot,Hot,Surface Map (weather),
+wx.cold,Cold,Surface Map (weather),
+wx.fog,Foggy,Surface Map (weather),
+wx.storm,Stormy,Surface Map (weather),
+wx.snow,Snow,Surface Map (weather),
+wx.blizzard,Blizzard,Surface Map (weather),
+wx.now,"Weather: {0}",Surface Map (weather),0 = the weather
+wx.change_d,"Windy: against it a move drinks twice, at your back none. Rainy: the barrel fills, hull mounts are soggy. Hot: moves and dives drink more. Cold: ice. Foggy: you see less far.",Surface Map (weather),
+wx.storm_d,"Rain, heat and wind: a tornado rides the wind and lightning strikes.",Surface Map (weather),
+wx.snow_d,"Cold and rain: the barrel is frozen, and the ice binds and grows.",Surface Map (weather),
+wx.blizzard_d,"Snow in fog: frozen, and you can hardly see.",Surface Map (weather),
+wx.tornado,A tornado,Surface Map (weather),
+wx.tornado_d,"It moves with the wind each time of day: whatever it passes over, it takes.",Surface Map (weather),
+wx.flung,Flung by the tornado,Surface Map (weather),
+wx.flung_d,"You came down at {0},{1}",Surface Map (weather),"0,1 = the hex"
+wx.shop_lost,"The tornado took {0}",Surface Map (weather),0 = the shop
+wx.shop_lost_t,"Gone with the wind (main street's shops are back tomorrow).",Surface Map (weather),
+wx.shop_lost_l,"Gone.",Surface Map (weather),
+wx.bolt,"Lightning struck {0}",Surface Map (weather),0 = the shop
+wx.bolt_d,Shut for the rest of the day.,Surface Map (weather),
+wx.struck,Lightning struck your buoy,Surface Map (weather),
+wx.struck_d,"A wreck roll, and your next move is lost.",Surface Map (weather),
+wx.stun_d,"Still reeling from the strike: this move is lost, and a time of day passes.",Surface Map (weather),
 map.water.slot_bottle,a bottle drunk: your next move is on it,Surface Map (water),
 map.water.filled,The barrel is full,Surface Map (water),
 map.water.filled_clear,"A bright clear: fresh water, {water} drinks",Surface Map (water),water = $0 — drinks
