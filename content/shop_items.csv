@@ -14,7 +14,7 @@ afternoon,clock,Afternoon,2000,,1,,"{""clock"":15}",,,"Each time of day away cos
 dusk,clock,Dusk,2000,,1,,"{""clock"":18}",,,"Each time of day away costs more (×2, ×3, ×5, ×8, ×13, ×21, ×34)"
 night,clock,Evening,2000,,1,,"{""clock"":21}",,,"Each time of day away costs more (×2, ×3, ×5, ×8, ×13, ×21, ×34)"
 midnight,clock,Midnight,2000,,1,,"{""clock"":24}",,,"Each time of day away costs more (×2, ×3, ×5, ×8, ×13, ×21, ×34)"
-alarm,clock,Alarm clock,5000,,1,,"{""up"":1}",,,"Kept (on your gadget shelf): Rest any time, and sleep two times of day"
+alarm,clock,Alarm clock,5000,,1,,"{""up"":1}",,,"Kept (on your gadget shelf): Rest any time, and sleep two times of day. Runs on 1 battery a day"
 wakecall,clock,Wake-up call,150,,1,,"{""wake"":1}",,,Tomorrow you wake at Dawn instead of Morning
 yesterday,clock,"Yesterday, this time",250000,,1,,"{""clock"":""yesterday""}",,,The map back as it was at the start of this time of day yesterday (you where you were)
 tomorrow,clock,"Tomorrow, this time",250000,,1,,"{""clock"":""tomorrow""}",,,"A clean new map, a day on, at this time of day, before any move (you beside main street)"
@@ -143,7 +143,7 @@ rudder,magnetic,Rudder,50,magnetic,2,,"{""up"":1,""mount"":""hull"",""look"":""r
 motor,magnetic,Motor,100,magnetic,3,,"{""up"":1,""mount"":""hull"",""look"":""motor"",""motor"":1}",,,"Hull mount. Keeps your buoy from wrecking, at Midnight and in a Rift"
 magnet,magnetic,Horseshoe magnet,60,magnetic,2,,"{""up"":1,""mount"":""hull"",""look"":""magnet"",""magnet"":1}",,,"Hull mount. Goods floating on the lake are drawn your way, and do not drift off while it is on"
 drone,hull,Drone,40000,bright,2,,"{""up"":1,""mount"":""top"",""look"":""drone"",""drone"":1}",,,Mast mount. Click a shop you are not beside: it flies there and you shop as if you were (once a day; it must be home before it flies again)
-record,pulsing,Record player,100,,1,,"{""up"":1,""mount"":""deck"",""look"":""record""}",,,"Deck mount. Plays your records (the dock's ♪); comes with its own album, Infinite Light. Every buoy starts with one"
+record,pulsing,Gramophone,100,,1,,"{""up"":1,""mount"":""deck"",""look"":""record""}",,,"Deck mount. Plays your records (the dock's ♪) through its great horn; comes with its own album of symphonies, Infinite Light. Every buoy starts with one"
 rec_e1,pulsing,Record: Pulse Width,25,,1,,"{""up"":1,""record"":1}",record,,"EDM, 128 bpm: plays on your record player"
 rec_e2,pulsing,Record: Neutron Drop,25,,1,,"{""up"":1,""record"":1}",record,,"EDM, 126 bpm: plays on your record player"
 rec_e3,pulsing,Record: Magnetic North,25,,1,,"{""up"":1,""record"":1}",record,,"EDM, 124 bpm: plays on your record player"
@@ -236,3 +236,15 @@ snowglobe,dim,Snow globe,3000,dim,3,,"{""up"":1,""mount"":""top"",""look"":""box
 shoes,pulsing,Diamond-soled shoes,500,pulsing,1,,"{""up"":1,""mount"":""mast"",""look"":""lamp"",""col"":6,""cross"":""bright""}",armoire,,Riser mount (apparel). Move across bright clears to the open hex past them
 bowtie,pulsing,Black Heart bow tie,1500,pulsing,2,,"{""up"":1,""mount"":""mast"",""look"":""flag"",""cross"":""dark""}",armoire,,Riser mount (apparel). Move across Dark Remnants (not one a recycling plant grows on)
 waders,pulsing,Rift waders,3000,pulsing,3,,"{""up"":1,""mount"":""mast"",""look"":""lamp"",""col"":11,""cross"":""rift""}",armoire,,Riser mount (apparel). Wade across Rifts to the open hex past them
+barrel,magnetic,Fresh water barrel,30,magnetic,1,,"{""up"":1,""barrel"":3}",,,Below deck: holds 3 drinks (every move drinks one); it fills where you clear white. Every buoy starts with one
+cooler,magnetic,Water cooler,300,magnetic,2,,"{""up"":1,""barrel"":6}",barrel,,The barrel upside down on a cooler: it holds 6 drinks
+refill,corner,Barrel refill,99,,1,,"{""refill"":1}",,,"Your barrel (or cooler) filled to the top, delivered now"
+walkman,corner,Walkman,120,,1,,"{""up"":1}",,,"Music anywhere, gramophone or none: it plays tapes, on 2 batteries a day (on sale once your gramophone is lost)"
+tape_1,corner,Tape: Pocket Spill,60,,1,1,"{""up"":1}",walkman,,A tape for the Walkman
+tape_2,pulsing,Tape: Tide on Side B,200,pulsing,1,1,"{""up"":1}",walkman,,A tape for the Walkman
+tape_3,pulsing,"Tape: Overture, Dubbed",400,pulsing,2,1,"{""up"":1}",walkman,,A tape for the Walkman
+batt_corner,corner,Batteries (4),30,,1,,"{""battery"":4}",,,"Four batteries: gear that runs on them takes its share at the start of each day (Alarm clock 1, Walkman 2)"
+batt_bright,bright,Batteries (4),60,bright,1,,"{""battery"":4}",,,"Four batteries: gear that runs on them takes its share at the start of each day (Alarm clock 1, Walkman 2)"
+batt_magnetic,magnetic,Batteries (4),6,magnetic,1,,"{""battery"":4}",,,"Four batteries: gear that runs on them takes its share at the start of each day (Alarm clock 1, Walkman 2)"
+batt_pulsing,pulsing,Batteries (4),6,pulsing,1,,"{""battery"":4}",,,"Four batteries: gear that runs on them takes its share at the start of each day (Alarm clock 1, Walkman 2)"
+batt_neutron,neutron,Batteries (4),6,neutron,1,,"{""battery"":4}",,,"Four batteries: gear that runs on them takes its share at the start of each day (Alarm clock 1, Walkman 2)"

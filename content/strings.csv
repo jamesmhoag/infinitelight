@@ -1264,6 +1264,11 @@ unlocks = $1 — what it unlocks"
 ach.milestone,a milestone,Achievements,said when an achievement unlocks nothing
 ach.needs,Needs the achievement {name},Achievements,name = $0 — the achievement still needed
 map.water.slot,"Fresh water: {water} of {max} · every move drinks one; a bright clear, or being beside a bright hex or the Point, fills it",Surface Map (water),"water = $0 — drinks left
+map.water.refilled,Barrel refilled,Surface Map,
+map.batt.got,"+ {0} batteries",Surface Map,0 = how many
+map.batt.have,"{0} batteries",Surface Map,0 = how many
+map.batt.out,Out of batteries,Surface Map,
+map.batt.out_d,"Not working today: {0} (batteries left: {1})",Surface Map,"0 = gear; 1 = batteries"
 max = $1 — the barrel's size"
 map.water.slot_bottle,a bottle drunk: your next move is on it,Surface Map (water),
 map.water.filled,The barrel is full,Surface Map (water),
