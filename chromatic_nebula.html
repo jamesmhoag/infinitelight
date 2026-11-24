@@ -13855,7 +13855,7 @@ window.addEventListener('message',e=>{
   else if(m.cmd==='singDraw'){runState.draw={kind:'sing',cards:m.cards,skip:!!m.skip};saveInventory();hubOverlay_(true);showDraw();} // the new day's singularities: pick one
   else if(m.cmd==='demo')hubPost(Object.assign({type:'demo',name:m.name},sceneSrc(m.name))); // a shop shelf card's live demo, for the map to play
   else if(m.cmd==='shopEdit'){shopEditApply();hubState();} // the tuner's Shops tab changed an item
-  else if(m.cmd==='music'){hubMusicOn=!!m.on;syncGameMenu();} // the map's music on / off (said back after the Esc menu's Music)
+  else if(m.cmd==='music'){hubMusicOn=!!m.on;hubMusicNone=!!m.none;syncGameMenu();} // the map's music on / off (said back after the Esc menu's Music)
   else if(m.cmd==='unbox'){const H=m.give||{},got=[];if(m.item){const it=boxItem(m.item);if(it){if(it.fx.give)for(const k in it.fx.give)H[k]=(H[k]||0)+it.fx.give[k];if(shopOnce(it))discSeen.add('up:'+it.id);if(it.fx.disc)discSeen.add(it.fx.disc);discSeen.add('si_'+it.id);applyDisc();got.push(it.n);hubOverlay_(true);boxCard(it);}else H[CHEST_KINDS.includes((SHOPS[m.item]||{}).cur)?SHOPS[m.item].cur:'bright']=20;} /* (something its shop sells: free; nothing left to give, its remnants) */for(const k in H){if(k==='duck'){for(let i=0;i<H[k];i++){const t=rollDuckType();duckLog[t]=(duckLog[t]||0)+1;got.push('🦆 '+DUCK_TYPES[t].name);}continue;}addInventory(k,H[k],true);got.push(fmtCount(H[k])+' '+(INV_LABEL[k]||k));}saveInventory();updateInventoryUI();hubPost({type:'unboxed',id:m.id,got:got.join(', '),item:m.item&&hubOverlay?1:0});hubState();} // a box (or a can, a cup) opened on the lake: what it held is yours
   else if(m.cmd==='chest'){const r=chestOpen();hubPost(Object.assign({type:'chested',id:m.id},r));hubState();} // a treasure chest on the lake: a Key opens it
   else if(m.cmd==='giveDuck'){if(DUCK_TYPES[m.type]){duckLog[m.type]=(duckLog[m.type]||0)+1;saveInventory();hubState();}} // a duck from a bottle on the lake
@@ -13987,10 +13987,11 @@ function mpDrawGuest(cx,now){ // the friend's cursor over this surface: a gold r
     cx.fillStyle='rgba(255,205,90,0.9)';cx.font='10px system-ui';cx.textAlign='center';cx.fillText('Friend',GUEST.x,GUEST.y-R-4);cx.restore();drawHeatArc(cx,GUEST.x,GUEST.y,R,now,GUEST.heat);}
   cx.save();cx.font='12px system-ui';cx.textAlign='right';cx.fillStyle='rgba(255,255,255,0.75)';cx.fillText('You '+fmtCount(MP.score.host)+' · Friend '+fmtCount(MP.score.guest),W-12,H-12);cx.restore();}
 // ── Pause menu (Esc) ──
-let hubMusicOn=false;
+let hubMusicOn=false,hubMusicNone=false;const hubMusic=()=>{try{return HUB&&typeof window.parent.musicToggle==='function';}catch(e){return false;}}; // (only the Surface Map plays records: the title's Guide has no Music)
+if(HUB)addEventListener('pointerdown',e=>{if(!hubMusicOn&&!hubMusicNone&&!(e.target&&e.target.id==='gmMus'))hubPost({type:'gesture'});},true); // (your first click here starts the map's record, as one there does)
 function syncGameMenu(){
   const m=document.getElementById('gameMenu');if(!m)return;const q=s=>m.querySelector(s);
-  q('#gmSnd').textContent=txt(audioMuted?'menu.sound.off':'menu.sound.on');if(q('#gmMus'))q('#gmMus').textContent=txt(hubMusicOn?'menu.music.on':'menu.music.off');q('#gmVol').value=T.masterVol;
+  q('#gmSnd').textContent=txt(audioMuted?'menu.sound.off':'menu.sound.on');if(q('#gmMus')){q('#gmMus').textContent=txt(hubMusicNone?'menu.music.none':hubMusicOn?'menu.music.on':'menu.music.off');q('#gmMus').title=hubMusicNone?txt('map.music.none'):'';}q('#gmVol').value=T.masterVol;
   for(const [id,on] of [['gmTel',telemetryOn],['gmRisk',risksOn],['gmDyn',dynamicsOn],['gmCls',classOn],['gmRad',showRadii]])q('#'+id).classList.toggle('on',!!on);
 }
 function toggleGameMenu(){if(_menuOpen)closeGameMenu();else openGameMenu();}
@@ -14010,7 +14011,7 @@ function openGameMenu(){
     document.head.appendChild(st);
     m=document.createElement('div');m.id='gameMenu';
     m.innerHTML=`<div class="gm"><h2>${txt('menu.paused')}</h2><button id="gmResume">${txt('menu.resume')}</button>
-<div class="gl">${txt('menu.sound')}</div><div class="row"><button id="gmSnd"></button><input id="gmVol" type="range" min="0" max="1" step="0.05" title="${txt('menu.volume')}"></div>${HUB?'<div class="row"><button id="gmMus"></button></div>':''}
+<div class="gl">${txt('menu.sound')}</div><div class="row"><button id="gmSnd"></button><input id="gmVol" type="range" min="0" max="1" step="0.05" title="${txt('menu.volume')}"></div>${hubMusic()?'<div class="row"><button id="gmMus"></button></div>':''}
 <div class="gl">${txt('menu.readouts')}</div><div class="row"><button id="gmTel" data-disc="mode_telemetry">${txt('menu.telemetry')}</button><button id="gmRisk">${txt('menu.risks')}</button><button id="gmDyn" data-disc="mode_dynamics">${txt('menu.dynamics')}</button><button id="gmCls" data-disc="mode_class">${txt('menu.class')}</button><button id="gmRad" data-disc="mode_radii">${txt('menu.radii')}</button></div>
 <div class="gl">${txt('menu.help')}</div><button id="gmGuide" data-disc="slot_guide">${txt('menu.guide')}</button>
 <div class="gl">${txt('menu.together')}</div><button id="gmInvite">${txt('menu.invite')}</button><div id="gmLink" style="display:none;font-size:11px;line-height:1.4;word-break:break-all"></div>
@@ -14020,7 +14021,7 @@ function openGameMenu(){
     for(const t of ['mousedown','mouseup','dblclick','contextmenu'])m.addEventListener(t,e=>{e.stopPropagation();if(t==='contextmenu')e.preventDefault();});
     m.addEventListener('wheel',e=>e.stopPropagation(),{passive:true});
     const on=(id,f)=>m.querySelector('#'+id).addEventListener('click',()=>{f();syncGameMenu();});
-    on('gmResume',closeGameMenu);on('gmSnd',()=>setSound(audioMuted));if(HUB)on('gmMus',()=>hubPost({type:'music'}));
+    on('gmResume',closeGameMenu);on('gmSnd',()=>setSound(audioMuted));if(hubMusic())on('gmMus',()=>hubPost({type:'music'}));
     m.querySelector('#gmVol').addEventListener('input',e=>setSound(true,e.target.value));
     on('gmTel',()=>toggleReadout('tel'));on('gmRisk',()=>toggleReadout('risk'));on('gmDyn',()=>toggleReadout('dyn'));on('gmCls',()=>toggleReadout('cls'));on('gmRad',()=>toggleReadout('rad'));
     on('gmGuide',openRules);on('gmInvite',mpHost);on('gmMain',()=>quitTo('main'));if(HUB)on('gmMap',()=>quitTo('map'));
