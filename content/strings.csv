@@ -49,6 +49,19 @@ ev.shop.type,Event — Shop,events,
 ev.shop.street,"A main street shop, round the Point, open for the first time. It is lit only while it is open.",events,
 ev.shop.popup,"A pop-up, open for the first time: a cleared surface that collected enough {currency} opened it.",events,currency = $0 — what the surface collected
 ev.shop.popup0,"A pop-up, open for the first time: a bright clear where nothing was collected opened it.",events,
+sing.name1,"A {0} Singularity",cards,0 = its material
+sing.name2,"A Deep {0} Singularity",cards,0 = its material
+sing.name3,"A Great {0} Singularity",cards,0 = its material
+sing.name4,"A Total {0} Singularity",cards,0 = its material
+sing.but,"But: {0}",cards,0 = its catch
+sing.skip,Pass (Yo-yo),cards,
+card.sing.type,"Singularity · tier {0} · holds while you are awake today",cards,0 = tier
+card.draw.sing,"The collapse deals your singularities: pick one",cards,
+map.sing.dealt,"{0} singularity card(s) dealt",Surface Map feed,0 = how many
+map.sing.deck,"{0} in your deck",Surface Map feed,0 = how many
+map.sing.passed,Passed on the singularities,Surface Map feed,
+map.sing.reshuffled,Reshuffled,Surface Map feed,
+map.sing.reshuffled_d,"The discards go back into your deck ({0})",Surface Map feed,0 = how many
 ev.shop.card,Its card is in the Guide (Shops).,events,
 map.twilight,Twilight,Surface Map,
 map.dawn,Dawn,Surface Map,
@@ -1161,6 +1174,7 @@ cabin.tod,"{0} · Day {1}",below deck (the desk map's time of day: the time it i
 cabin.tod_d,"{0} more times of day before Midnight",below deck (the desk map's time of day),
 cabin.cards,Fortune cards,Below deck,
 cabin.cards_d,"Yesterday: {0} · today: {1} · tomorrow: {2}",Below deck,
+cabin.deck,"Your deck of singularities: {0} to come, {1} discarded, {2} reshuffle(s).",Below deck,"0, 1, 2 = counts"
 cabin.untold,"untold (Dim's Carnival tells it)",Below deck,
 cabin.ink,The Ink Well,Below deck,
 cabin.ink_d,"Dim (ink): exactly {0}",Below deck,

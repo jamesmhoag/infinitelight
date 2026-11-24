@@ -28,7 +28,7 @@ function cabinClick(){const h=CABIN.hov;if(!h)return;ilSee('cab_'+h);const d=CAB
   if(d==='up'){cabinClose();return;}if(d==='guide'){currentView='map';openGuide();return;}if(d==='drawer'){cabinClose();drawerOpen();return;} /* its drawer: your shop catalogues */if(d){currentView='map';openCollections(d);return;}}
 function cabinInfo(id){const n=k=>Math.floor(inv&&inv[k]||0).toLocaleString('en-US'),f=r=>{const F=r&&(FORTUNE_ROWS[(r.good?'good:':'dim:')+r.id]||{});return r?(F.name||r.id):txt('cabin.none');};
   switch(id){case 'ink':return[txt('cabin.ink'),txt('cabin.ink_d',n('dim'))];case 'chest':return[txt('cabin.chest'),txt('cabin.chest_d',n('bright'),n('neutron'),n('magnetic'),n('pulsing'))];
-    case 'cards':return[txt('cabin.cards'),txt('cabin.cards_d',f(run&&run.prevFortune),f(run&&run.fortune),run&&run.dimDone&&run.dimDone.fortune?f(run.dimNext):txt('cabin.untold'))];
+    case 'cards':return[txt('cabin.cards'),txt('cabin.cards_d',f(run&&run.prevFortune),f(run&&run.fortune),run&&run.dimDone&&run.dimDone.fortune?f(run.dimNext):txt('cabin.untold'))+(typeof deck!=='undefined'&&deck.length?' '+txt('cabin.deck',deck.length,discard.length,reshuffles):'')]; // (and your deck of singularities, beside them)
     case 'day':return[txt('cabin.tod',clockStr(),day),txt('cabin.tod_d',CAB_HRS.filter(h=>h>clock).length)];case 'map':case 'desk':return[txt('cabin.desk'),txt('cabin.desk_d',dayCnt.b,dayCnt.d,Object.keys(SHOPS).filter(k=>disc.has('cat:'+k)).length)];
     default:return[txt('cabin.'+id),txt('cabin.'+id+'_d')];}}
 const cabinHint=()=>CABIN.hov?cabinInfo(CABIN.hov):[txt('cabin.title'),txt('cabin.hint')]; // the feed's resting line below deck (never the surface's)
