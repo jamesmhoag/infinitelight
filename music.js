@@ -55,3 +55,27 @@ function musicPlay(id){const r=RECORDS.find(x=>x.id===id),c=musicInit();if(!r||!
   MUSIC.cur=r;MUSIC.arr=musicArrange(r);MUSIC.bar=0;MUSIC.step=0;MUSIC.at=c.currentTime+0.1;MUSIC.pref={on:true,id};musicSave();const g=MUSIC.out.gain,v=(typeof T!=='undefined'&&T.musicVol!=null?T.musicVol:0.8);g.cancelScheduledValues(c.currentTime);g.setValueAtTime(g.value,c.currentTime);g.linearRampToValueAtTime(v,c.currentTime+1.2);
   if(!MUSIC.timer)MUSIC.timer=setInterval(musicTick,25);}
 function musicStop(){MUSIC.pref.on=false;musicSave();if(!MUSIC.ctx)return;const c=MUSIC.ctx,g=MUSIC.out.gain;g.cancelScheduledValues(c.currentTime);g.setValueAtTime(g.value,c.currentTime);g.linearRampToValueAtTime(0,c.currentTime+0.8);setTimeout(()=>{if(!MUSIC.pref.on){MUSIC.cur=null;clearInterval(MUSIC.timer);MUSIC.timer=null;}},900);}
+
+// ═════════════════════════ THE MAP'S SOUNDS (on Sound and its volume; makers in shared.js: SFX_MAKE) ═════════════════════════
+// Round your buoy: the sea's swell and the hiss of its crests, wind in gusts, rain (and drops on the deck; snow hushes everything), a foghorn in fog, thunder with the
+// lightning, a gull on a calm day; the hexes near you hum — Bright a high glass tone, Dark a low drone, and near a Rift a tone that glitches in and out. Below deck: the
+// water lapping and knocking at the hull, the candle's flame and its crackle. In a surface it all sits under it, muffled. And what you do: moving, firing across, diving
+// in, coming up, the hatch, a shop's bell, a catalogue opened (sfx)
+const AMB={bus:null,mf:null,fx:null,ch:{},next:{},rift:null};
+function ambInit(){const c=musicInit();if(!c)return null;if(AMB.bus)return c;AMB.bus=c.createGain();AMB.bus.gain.value=0;AMB.mf=c.createBiquadFilter();AMB.mf.type='lowpass';AMB.mf.frequency.value=20000;AMB.mf.connect(AMB.bus);AMB.bus.connect(c.destination);AMB.fx=c.createGain();AMB.fx.connect(c.destination);
+  const loop=(kind,type,f,q)=>{const s=c.createBufferSource(),fl=c.createBiquadFilter(),g=c.createGain();s.buffer=sfxNoise(c,kind);s.loop=true;fl.type=type;fl.frequency.value=f;fl.Q.value=q||0.7;g.gain.value=0;s.connect(fl);fl.connect(g);g.connect(AMB.mf);s.start(0,Math.random()*3);return{g,fl};};
+  const hum=(fs,type,lp)=>{const g=c.createGain(),fl=c.createBiquadFilter();fl.type='lowpass';fl.frequency.value=lp||8000;g.gain.value=0;const os=fs.map(f=>{const o=c.createOscillator();o.type=type||'sine';o.frequency.value=f;o.connect(fl);o.start();return o;});fl.connect(g);g.connect(AMB.mf);return{g,fl,os};};
+  Object.assign(AMB.ch,{sea:loop('brown','lowpass',420),surf:loop('white','bandpass',2200,0.5),wind:loop('white','bandpass',600,1.4),rain:loop('white','highpass',5000),lap:loop('brown','lowpass',220),flame:loop('brown','bandpass',180,0.8),
+    bright:hum([880,1320.5,1761.2]),dark:hum([55,55.35,82.4],'triangle',300),rift:hum([110,166.4],'sawtooth',1400)});return c;}
+const ambSet=(k,v,tc)=>{const ch=AMB.ch[k];if(ch)ch.g.gain.setTargetAtTime(Math.max(0,v),MUSIC.ctx.currentTime,tc||0.4);};
+function ambTick(o){const c=MUSIC.ctx;if(!c||c.state!=='running'||!ambInit())return;const now=c.currentTime,V=o.on?(T.masterVol!=null?T.masterVol:0.7)*(T.ambVol!=null?T.ambVol:0.7):0,out=o.where!=='cabin',map=o.where==='map'; // o: where you are (map, level, cabin), the weather, how near Bright, Dark and a Rift are (0…1)
+  AMB.bus.gain.setTargetAtTime(V*(o.where==='level'?0.35:1),now,0.4);AMB.mf.frequency.setTargetAtTime(o.where==='level'?450:o.snow?1800:o.where==='cabin'?5000:16000,now,0.5);
+  const sw=0.5+0.5*Math.sin(now*0.52)*Math.sin(now*0.21+1),gu=0.5+0.5*Math.sin(now*0.7)*Math.sin(now*0.29+2),w=o.wind||0,r=o.rain||0,at=(k,ms,p)=>{if(now>(AMB.next[k]||0)){AMB.next[k]=now+ms*(0.5+Math.random());return Math.random()<p;}return false;},fx=(k,v)=>sfxPlay(c,AMB.bus,k,v); // (swell and gusts: slow, never quite repeating)
+  ambSet('sea',out?0.22+0.22*sw+0.1*w:0);ambSet('surf',out?0.05*sw*sw*(1+w):0);ambSet('wind',out?0.09*w*(0.35+0.65*gu):0,0.25);AMB.ch.wind.fl.frequency.setTargetAtTime(350+900*gu*Math.min(1,w),now,0.3);
+  ambSet('rain',(out?0.07:0.03)*r*(o.snow?0.25:1));if(out&&r&&!o.snow){for(let i=0;i<Math.ceil(r*2);i++)if(Math.random()<0.5)fx('drop',0.6);}
+  if(out&&o.fog&&at('horn',28,0.8))fx('horn',0.8);if(map&&!w&&!r&&!o.fog&&at('gull',40,0.35))fx('gull',0.7);
+  ambSet('lap',out?0:0.22*(0.55+0.45*Math.sin(now*1.25)));if(!out&&at('knock',4,0.6))fx('knock',0.7);ambSet('flame',out?0:0.05);if(!out&&Math.random()<0.18)fx('crackle',0.5);
+  const tn=T.ambTones!=null?T.ambTones:1,rf=map?o.rift||0:0,gl=rf>0&&Math.random()<0.35*rf; // the hexes' tones (only on the map; near a Rift they stutter, and it glitches)
+  ambSet('bright',map?0.01*tn*(o.bright||0)*(gl?0.2:1):0,gl?0.01:0.5);ambSet('dark',map?0.035*tn*(o.dark||0)*(gl?0.3:1):0,gl?0.01:0.5);
+  if(rf>0){const on=Math.random()<0.55;ambSet('rift',on?0.025*tn*rf:0,0.008);if(on)AMB.ch.rift.os.forEach((x,i)=>x.frequency.setValueAtTime([110,98,123.5,82.4,146.8][(Math.random()*5)|0]*(i?1.51:1)*(Math.random()<0.2?2:1),now));AMB.ch.rift.fl.frequency.setValueAtTime(400+Math.random()*2400,now);}else ambSet('rift',0,0.2);}
+function sfx(k,v){if(typeof SCENE!=='undefined'&&SCENE||!T.soundOn)return;const c=ambInit();if(!c)return;AMB.fx.gain.value=(T.masterVol!=null?T.masterVol:0.7)*(T.sfxVol!=null?T.sfxVol:0.8);sfxPlay(c,AMB.fx,k,v);} // a sound of something you did
