@@ -22,6 +22,7 @@ tune.tab.gameplay,Gameplay,Tune menu,
 tune.tab.sounds,Sounds,Tune menu,
 tune.tab.discoveries,Discoveries,Tune menu,
 tune.tab.map,Surface Map,Tune menu,
+tune.tab.achievements,Achievements,Tune menu,
 kind.prism,Prism,names of things,
 kind.gate,Gate,names of things,
 kind.knot,Knot,names of things,
@@ -199,9 +200,13 @@ map.a_duck_was_in,A duck was in the bottle.,Surface Map,
 map.added_to_your_collection,Added to your collection · now {count} of this kind,Surface Map,count = $0 — how many of this duck you now have
 map.of_letters_collected_kept,{found} of {total} letters collected · kept in the Guide (Letters),Surface Map,"found = $0 — letters found
 total = $1 — letters there are"
+map.music,Music: {state},Surface Map,state = $0 — ON or OFF
+map.music.none,"No record to play: your record player and a record (deck mount) play music.",Surface Map,
+menu.music.off,Music: OFF,menus,
+menu.music.on,Music: ON,menus,
 map.on,ON,Surface Map,
 map.off,OFF,Surface Map,
-map.sound,Sound: {state},Surface Map,state = $0 — ON or OFF
+map.sound,Sound effects: {state},Surface Map,state = $0 — ON or OFF
 map.dim,{cost} Dim,Surface Map,cost = $0 — Dim it takes
 map.a_pop_up_moved,A pop-up moved up: ,Surface Map,
 map.a_pop_up_opened,A pop-up opened: ,Surface Map,
@@ -289,7 +294,7 @@ map.ui.merged,merged,Surface_Map_HUB.html,
 map.ui.void,void,Surface_Map_HUB.html,
 map.ui.paused,PAUSED,Surface_Map_HUB.html,
 map.ui.resume_esc,Resume (Esc),Surface_Map_HUB.html,
-map.ui.sound,Sound,Surface_Map_HUB.html,
+map.ui.sound,Sound & music,Surface_Map_HUB.html,
 map.ui.help,Help,Surface_Map_HUB.html,
 map.ui.performance,Performance,Surface_Map_HUB.html,
 map.ui.days,Days,Surface_Map_HUB.html,
@@ -317,8 +322,8 @@ menu.tomap,Rise to the surface (this surface is kept as it is),menus,
 menu.tomain,Main menu,menus,
 menu.tomain.save,Main menu (this surface is kept as it is),menus,
 menu.tilde,~ hides the panels · H also works,menus,
-menu.sound.off,Sound: OFF,menus,
-menu.sound.on,Sound: ON,menus,
+menu.sound.off,Sound effects: OFF,menus,
+menu.sound.on,Sound effects: ON,menus,
 title.continue,Continue,title screen,
 title.start,Start,title screen,
 title.guide,Guide,title screen,
@@ -1028,6 +1033,9 @@ map.cat.ordering,"its catalogue: delivered on a life preserver",Shops,
 map.cat.away,"Not on the lake today.",Shops,
 map.cat.none,No catalogues yet,Shops,
 map.cat.none_d,"Each shop has one on its counter: take it the first time you are in. Boxes from shops on the lake may hold one too.",Shops,
+good.trash_d,"Empty packaging: trash, drifting. A bright clear brings it up with you; a Dark Remnant or a Rift takes it.",Commodities,
+good.closed_d,"Unopened: click it to open it and take what it holds.",Commodities,
+good.ring_near,"Beside you: click it to open your order.",Commodities,
 good.sign_d,"Lit and blinking while its shop is open.",Commodities,
 good.flotsam,Flotsam,Commodities,
 good.flotsam_d,"Packaging from that surface came up with you, at {0},{1}. Nothing can move onto it; it drifts outwards a hex after every move.",Commodities,
@@ -1061,6 +1069,7 @@ emax = $2 — the highest energy
 speed = $3 — their mean speed"
 build.sel_mixed,mixed,Build menu,shown in a Selection box when the selected objects differ
 build.sel_box,"The value every selected object shares (empty: they differ). Type one to set it on all of them.",Build menu,the Selection boxes' tooltip
+build.sel_cleared,Selection cleared,Build menu,
 build.sel_set,"Set on {count} selected.",Build menu,count = $0 — objects changed
 ev.desk,✦ {0} to review,Events,
 ev.desk_tip,"Discoveries you have not looked at yet: events captured while another was happening, and any still new. Click to review them.",Events,
