@@ -147,21 +147,21 @@ m_four,hull,Four-mount mast,10000,bright,1,,"{""part"":""mast"",""mounts"":4}",,
 m_twin,hull,Twin-hook mast,25000,bright,2,,"{""part"":""mast"",""mounts"":2,""dbl"":1}",,,"Two mounts, each holding two of what is hung on it: its effect doubled"
 m_triple,hull,Triple twin-hook mast,100000,bright,3,,"{""part"":""mast"",""mounts"":3,""dbl"":1}",,,"Three mounts, each doubling what is hung on it"
 m_six,hull,Six-mount mast,250000,bright,3,,"{""part"":""mast"",""mounts"":6}",,,Six supports: a mount on each
-l_twin,hull,Twin-hook spotlight,20000,bright,2,,"{""part"":""light"",""top"":2}",,,The top mount under it holds two
-pennant,hull,Pennant,1000,bright,1,,"{""up"":1,""mount"":""top"",""look"":""flag""}",,,Flown from the top mount
-chime,hull,Wind chime,500,bright,1,,"{""up"":1,""mount"":""mast"",""look"":""box"",""col"":5}",,,Hung from a mast mount
+l_twin,hull,Twin-hook spotlight,20000,bright,2,,"{""part"":""light"",""top"":2}",,,The mast mount under it holds two
+pennant,hull,Pennant,1000,bright,1,,"{""up"":1,""mount"":""top"",""look"":""flag""}",,,Flown from the mast mount
+chime,hull,Wind chime,500,bright,1,,"{""up"":1,""mount"":""mast"",""look"":""box"",""col"":5}",,,Hung from a riser mount
 anchor,magnetic,Anchor,25,magnetic,1,,"{""up"":1,""mount"":""hull"",""look"":""anchor"",""anchor"":1}",,,"Hull mount. Down, the tide cannot carry you when you rest (moving raises it; the dock drops it again)"
 fridge,magnetic,Mini fridge,40,magnetic,1,,"{""up"":1,""fridge"":3}",,,"Kept below deck: bottles of water you buy go in it (it holds 3), not down you. A move with the barrel dry takes one; click the water in the dock to drink one now"
-rudder,magnetic,Rudder,50,magnetic,2,,"{""up"":1,""mount"":""hull"",""look"":""rudder"",""rudder"":1}",,,Hull mount. Keeps your buoy from wrecking (wrecks: to come)
-motor,magnetic,Motor,100,magnetic,3,,"{""up"":1,""mount"":""hull"",""look"":""motor"",""motor"":1}",,,Hull mount. Keeps your buoy from wrecking (wrecks: to come)
+rudder,magnetic,Rudder,50,magnetic,2,,"{""up"":1,""mount"":""hull"",""look"":""rudder"",""rudder"":1}",,,"Hull mount. At the helm (awake), it steers you through the wreck a Rift you tear would make; asleep at Midnight it cannot"
+motor,magnetic,Motor,100,magnetic,3,,"{""up"":1,""mount"":""hull"",""look"":""motor"",""motor"":1}",,,"Hull mount. Keeps your buoy from wrecking, at Midnight and in a Rift"
 magnet,magnetic,Horseshoe magnet,60,magnetic,2,,"{""up"":1,""mount"":""hull"",""look"":""magnet"",""magnet"":1}",,,"Hull mount. Goods floating on the lake are drawn your way, and do not drift off while it is on"
 chest_comp,bright,Compartmented chest,500,bright,1,,"{""up"":1}",,,"Each remnant its own compartment: Bright and Dim 999 each, each exotic 99 (instead of 999 shared)"
 chest_exo,bright,Exotic compartments,5000,bright,2,,"{""up"":1}",chest_comp,,Each exotic remnant's compartment holds 999
 chest_bri,bright,Bright compartments,20000,bright,2,,"{""up"":1}",chest_comp,,"Bright and Dim compartments hold 99,999 each"
 chest_energy,bright,Energy Value,250000,bright,3,,"{""up"":1}",chest_comp,,Every capacity of your chest × 10
 chest_vault,bright,Bright vault,5000000,bright,3,,"{""up"":1}",chest_energy,,Bright holds × 10 again
-drone,hull,Drone,40000,bright,2,,"{""up"":1,""mount"":""top"",""look"":""drone"",""drone"":1}",,,"Top mount. Click a shop you are not beside: it flies there and you shop as if you were (once a day; it must be home before it flies again)"
-record,pulsing,Record player,100,,1,,"{""up"":1,""mount"":""mast"",""look"":""record""}",,,"Mast mount. Plays your records (the dock's ♪); comes with its own album, Infinite Light. Every buoy starts with one"
+drone,hull,Drone,40000,bright,2,,"{""up"":1,""mount"":""top"",""look"":""drone"",""drone"":1}",,,"Mast mount. Click a shop you are not beside: it flies there and you shop as if you were (once a day; it must be home before it flies again)"
+record,pulsing,Record player,100,,1,,"{""up"":1,""mount"":""deck"",""look"":""record""}",,,"Deck mount. Plays your records (the dock's ♪); comes with its own album, Infinite Light. Every buoy starts with one"
 rec_e1,pulsing,"Record: Pulse Width",25,,1,,"{""up"":1,""record"":1}",record,,"EDM, 128 bpm: plays on your record player"
 rec_e2,pulsing,"Record: Neutron Drop",25,,1,,"{""up"":1,""record"":1}",record,,"EDM, 126 bpm: plays on your record player"
 rec_e3,pulsing,"Record: Magnetic North",25,,1,,"{""up"":1,""record"":1}",record,,"EDM, 124 bpm: plays on your record player"
@@ -172,3 +172,27 @@ rec_s2,hull,"Record: Lantern Waltz",5000,bright,1,,"{""up"":1,""record"":1}",rec
 rec_s3,hull,"Record: Adagio of the Spill",5000,bright,1,,"{""up"":1,""record"":1}",record,,"Symphony, 60 bpm: plays on your record player"
 rec_s4,hull,"Record: Hull Overture",5000,bright,1,,"{""up"":1,""record"":1}",record,,"Symphony, 96 bpm: plays on your record player"
 rec_s5,hull,"Record: Dim Carnival Suite",5000,bright,1,,"{""up"":1,""record"":1}",record,,"Symphony, 90 bpm: plays on your record player"
+hold_top1,bright,Mast mount strength I,100,bright,1,,"{""up"":1,""hold"":{""top"":0.25}}",,,"Mast mount: what is on it holds on through a wreck 25% of the time"
+hold_top2,bright,Mast mount strength II,1000,bright,2,,"{""up"":1,""hold"":{""top"":0.4}}",hold_top1,,"Mast mount: what is on it holds on through a wreck 40% of the time"
+hold_top3,bright,Mast mount strength III,10000,bright,3,,"{""up"":1,""hold"":{""top"":0.55}}",hold_top2,,"Mast mount: what is on it holds on through a wreck 55% of the time"
+hold_top4,hull,Mast mount strength IV,100000,bright,1,,"{""up"":1,""hold"":{""top"":0.7}}",hold_top3,,"Mast mount: what is on it holds on through a wreck 70% of the time"
+hold_top5,hull,Mast mount strength V,1000000,bright,2,,"{""up"":1,""hold"":{""top"":0.85}}",hold_top4,,"Mast mount: what is on it holds on through a wreck 85% of the time"
+hold_top6,hull,Mast mount strength VI,10000000,bright,3,,"{""up"":1,""hold"":{""top"":1.0}}",hold_top5,,"Mast mount: what is on it holds on through a wreck 100% of the time (never lost)"
+hold_mast1,bright,Riser mounts strength I,100,bright,1,,"{""up"":1,""hold"":{""mast"":0.25}}",,,"Riser mounts: what is on them holds on through a wreck 25% of the time"
+hold_mast2,bright,Riser mounts strength II,1000,bright,2,,"{""up"":1,""hold"":{""mast"":0.4}}",hold_mast1,,"Riser mounts: what is on them holds on through a wreck 40% of the time"
+hold_mast3,bright,Riser mounts strength III,10000,bright,3,,"{""up"":1,""hold"":{""mast"":0.55}}",hold_mast2,,"Riser mounts: what is on them holds on through a wreck 55% of the time"
+hold_mast4,hull,Riser mounts strength IV,100000,bright,1,,"{""up"":1,""hold"":{""mast"":0.7}}",hold_mast3,,"Riser mounts: what is on them holds on through a wreck 70% of the time"
+hold_mast5,hull,Riser mounts strength V,1000000,bright,2,,"{""up"":1,""hold"":{""mast"":0.85}}",hold_mast4,,"Riser mounts: what is on them holds on through a wreck 85% of the time"
+hold_mast6,hull,Riser mounts strength VI,10000000,bright,3,,"{""up"":1,""hold"":{""mast"":1.0}}",hold_mast5,,"Riser mounts: what is on them holds on through a wreck 100% of the time (never lost)"
+hold_deck1,bright,Deck mount strength I,100,bright,1,,"{""up"":1,""hold"":{""deck"":0.25}}",,,"Deck mount: what is on it holds on through a wreck 25% of the time"
+hold_deck2,bright,Deck mount strength II,1000,bright,2,,"{""up"":1,""hold"":{""deck"":0.4}}",hold_deck1,,"Deck mount: what is on it holds on through a wreck 40% of the time"
+hold_deck3,bright,Deck mount strength III,10000,bright,3,,"{""up"":1,""hold"":{""deck"":0.55}}",hold_deck2,,"Deck mount: what is on it holds on through a wreck 55% of the time"
+hold_deck4,hull,Deck mount strength IV,100000,bright,1,,"{""up"":1,""hold"":{""deck"":0.7}}",hold_deck3,,"Deck mount: what is on it holds on through a wreck 70% of the time"
+hold_deck5,hull,Deck mount strength V,1000000,bright,2,,"{""up"":1,""hold"":{""deck"":0.85}}",hold_deck4,,"Deck mount: what is on it holds on through a wreck 85% of the time"
+hold_deck6,hull,Deck mount strength VI,10000000,bright,3,,"{""up"":1,""hold"":{""deck"":1.0}}",hold_deck5,,"Deck mount: what is on it holds on through a wreck 100% of the time (never lost)"
+hold_hull1,bright,Hull mount strength I,100,bright,1,,"{""up"":1,""hold"":{""hull"":0.25}}",,,"Hull mount: what is on it holds on through a wreck 25% of the time"
+hold_hull2,bright,Hull mount strength II,1000,bright,2,,"{""up"":1,""hold"":{""hull"":0.4}}",hold_hull1,,"Hull mount: what is on it holds on through a wreck 40% of the time"
+hold_hull3,bright,Hull mount strength III,10000,bright,3,,"{""up"":1,""hold"":{""hull"":0.55}}",hold_hull2,,"Hull mount: what is on it holds on through a wreck 55% of the time"
+hold_hull4,hull,Hull mount strength IV,100000,bright,1,,"{""up"":1,""hold"":{""hull"":0.7}}",hold_hull3,,"Hull mount: what is on it holds on through a wreck 70% of the time"
+hold_hull5,hull,Hull mount strength V,1000000,bright,2,,"{""up"":1,""hold"":{""hull"":0.85}}",hold_hull4,,"Hull mount: what is on it holds on through a wreck 85% of the time"
+hold_hull6,hull,Hull mount strength VI,10000000,bright,3,,"{""up"":1,""hold"":{""hull"":1.0}}",hold_hull5,,"Hull mount: what is on it holds on through a wreck 100% of the time (never lost)"

@@ -350,10 +350,15 @@ function riftFxDraw(now){const c=mctx;riftFx=riftFx.filter(f=>f.t0==null||now-f.
       if(p.shard){c.save();c.globalCompositeOperation='source-over';c.translate(px,py);c.rotate(p.rot+p.vr*pu*40);c.fillStyle=`rgba(${p.col},${a.toFixed(3)})`;c.fillRect(-HEX*0.06,-HEX*0.03,HEX*0.12,HEX*0.06);c.restore();continue;}
       const col=p.col||(p._c||(p._c=EFFECT_HEX[(Math.random()*6)|0].slice(1).match(/../g).map(h=>parseInt(h,16)).join(',')));c.fillStyle=`rgba(${col},${a.toFixed(3)})`;c.beginPath();c.arc(px,py,Math.max(0.6,HEX*0.035*(1-pu*0.5)),0,6.2832);c.fill();} // drawn in, faster and faster
     c.restore();}}
-function riftCell(k,ang){ // a Rift tore the surface: the hex is gone (a scar), and the open hexes beside it are brightened, cleared as a bright clear is (their value theirs, kept). Gone at Midnight (a new map)
+function riftWreck(k){ // you tore a Rift: your buoy is wrecked (things go overboard) and thrown outward onto an open hex a ring further from the Point — unless you are at the helm with a rudder (or motor)
+  const lost=wreckCheck('rift'),saved=atHelm()&&!!buoyKit&&KIT_SLOTS.some(s=>buoyKit.slots[s].slice(0,kitCounts(buoyKit)[s]).some(id=>{const it=shopItem(id);return it&&(it.fx.rudder||it.fx.motor);}));if(saved){feed(txt('map.wreck.helm'),txt('map.wreck.helm_d'));return false;}
+  const r0=cellRing(...parseK(k));let to=null;for(let n=r0+1;n<=ringMax()&&!to;n++){const L=ring(n).filter(([q,r])=>{const c=cells[K(q,r)];return c&&!c.isVoid&&!c.cap&&!c.flot&&!c.shop&&!c.rift&&!pdHas(K(q,r));});if(L.length)to=L[(Math.random()*L.length)|0];}
+  if(!to)return false;const o=cells[K(pQ,pR)];if(o)o.isP=false;pQ=to[0];pR=to[1];cells[K(pQ,pR)].isP=true;buoy.under=false;buoy.dunk={t0:performance.now(),d:-1,ms:900};buoyGo('sail');focusCam(true,1);
+  const L=lost.map(id=>(shopItem(id)||{n:id}).n).join(', ');feed(txt('map.wreck.rift'),lost.length?txt('map.wreck.lost',L):txt('map.wreck.rift_d'),'no');return true;}
+function riftCell(k,ang,mine){ // a Rift tore the surface: the hex is gone (a scar), and the open hexes beside it are brightened, cleared as a bright clear is (their value theirs, kept). Gone at Midnight (a new map). mine: you tore it (riftWreck)
   const c=cells[k];if(!c||c.cap||c.isVoid)return;const lost=c.v;Object.assign(c,{isVoid:true,v:0,rift:{a:ang||0,t0:performance.now()}});
   for(const[q,r]of neighbors(c.q,c.r)){const nk=K(q,r),n=cells[nk];if(!n||n.isVoid||n.cap)continue;Object.assign(n,{cap:true,capVal:n.v,kind:'bright',shop:null,tally:{}});delete n.shot;delete n._im;dayCnt.b++;score=Math.round((score+n.v)*100)/100;captureOrder.push({keys:[nk],mergeId:null});clearFx[nk]={t0:null};}riftFxAdd(k,[]);
-  pool=Math.max(0,pool-lost);nebulaCellKey=null;phase='captured';detectMerges();redistribute();feed(txt('map.rift'),txt('map.rift_tore'));riftEvict(k);dangerift();if(ringCheck()){updateHint();saveMap();return;}updateHint();saveMap();}
+  pool=Math.max(0,pool-lost);nebulaCellKey=null;phase='captured';detectMerges();redistribute();feed(txt('map.rift'),txt('map.rift_tore'));if(!(mine&&!SCENE&&!MP.on&&riftWreck(k)))riftEvict(k);dangerift();if(ringCheck()){updateHint();saveMap();return;}updateHint();saveMap();}
 function dangerift(){ // the dim fortune Dangerift (checked after every clear, of any kind): a bright clear beside a Rift is removed, a dark one becomes Rift too, and so on
   if(!runBad(run,'dangerift'))return;let n=0,more=true;const now=performance.now();
   while(more){more=false;for(const k in cells){const c=cells[k];if(!c.rift)continue;for(const[q,r]of neighbors(c.q,c.r)){const nk=K(q,r),d=cells[nk];if(!d||!d.cap||d.isVoid)continue;
@@ -569,13 +574,15 @@ function fireworksDraw(now){ // over the scene (the beam's layer): a rocket up f
 // Wrecks: the collapse at Midnight tosses your buoy about. Everything on its mounts may go overboard, each its own chance: the further from the Point you were, the
 // likelier (Wreck chance a ring, at most Wreck chance max). What is lost is gone: no longer yours, to be bought again. Below deck is safe, and so are you if an
 // anchor, a rudder or a motor is on your hull (it holds you through it). The feed says so in the morning, and the day's log lists what went overboard
-function wreckCheck(){if(SCENE||MP.on||!buoyKit)return[];const C=kitCounts(buoyKit),on=[];for(const s of KIT_SLOTS)buoyKit.slots[s].slice(0,C[s]).forEach((id,i)=>{if(id)on.push({s,i,id});});
-  if(!on.length||on.some(m=>{const it=shopItem(m.id);return it&&(it.fx.anchor||it.fx.rudder||it.fx.motor);}))return[];
-  const p=Math.min(T.mapWreckMax!=null?T.mapWreckMax:0.9,cellRing(pQ,pR)*(T.mapWreckPerRing!=null?T.mapWreckPerRing:0.12)),lost=on.filter(()=>Math.random()<p);
+function holdChance(s){let h=T.mapWreckHold!=null?T.mapWreckHold:0.1;for(const it of SHOP_ITEMS)if(it.fx.hold&&it.fx.hold[s]!=null&&disc.has('up:'+it.id))h=Math.max(h,+it.fx.hold[s]);return Math.min(1,h);} // how likely a thing on that kind of mount holds on through a wreck (its strength: Bright Ideas, then Custom Hulls)
+const atHelm=()=>!asleep; // awake: at the helm (a rudder steers you through a Rift's wreck); resting past Midnight you are asleep at the wheel
+function wreckCheck(why){if(SCENE||MP.on||!buoyKit)return[];const C=kitCounts(buoyKit),on=[];for(const s of KIT_SLOTS)buoyKit.slots[s].slice(0,C[s]).forEach((id,i)=>{if(id)on.push({s,i,id});}); // why: 'midnight' (the collapse) or 'rift' (a Rift you tore)
+  const has=f=>on.some(m=>{const it=shopItem(m.id);return it&&f(it.fx);});if(!on.length||(why==='rift'?atHelm()&&has(f=>f.rudder||f.motor):has(f=>f.anchor||f.motor)))return[]; // at Midnight an anchor or motor holds you (asleep, a rudder cannot steer); a Rift's wreck: a rudder or motor, at the helm
+  const p=why==='rift'?(T.mapWreckRift!=null?T.mapWreckRift:0.5):Math.min(T.mapWreckMax!=null?T.mapWreckMax:0.9,cellRing(pQ,pR)*(T.mapWreckPerRing!=null?T.mapWreckPerRing:0.12)),lost=on.filter(m=>Math.random()<p&&Math.random()>=holdChance(m.s));
   if(!lost.length)return[];for(const m of lost)buoyKit.slots[m.s][m.i]=null;kitSave(buoyKit);neb({cmd:'lose',ids:lost.map(m=>m.id)});return lost.map(m=>m.id);}
 function endDay(){ // Midnight passed: it all falls into the source (the outer rings first, each faster), a flash, and a new spill at Twilight
   {const n=Object.values(cells).filter(c=>c.flot&&c.flot.give).length;if(n)feed(txt('good.ring_lost'),txt('good.ring_lost_d',n),'no');} // orders not opened: lost as it falls
-  pendingEnd={how:'midnight',n:0,win:false,lost:wreckCheck()};phase='collapse';armed=null;weaveSel=[];weaveAsk=null;dropSession();
+  pendingEnd={how:'midnight',n:0,win:false,lost:wreckCheck('midnight')};phase='collapse';armed=null;weaveSel=[];weaveAsk=null;dropSession();
   const base=T.mapCollapseMs||1400;let t=0;for(let i=ringMax(),j=0;i>0;i--,j++){const dur=Math.max(110,base*0.55*Math.pow(0.7,j)),ri=i;at(t,()=>fallRing(ri,dur));t+=dur;}
   at(t,()=>{burstFx={t0:performance.now(),kind:'flash',dur:700};});at(t+420,finishDay);
   {const R=1,ks=[];for(let i=1;i<=R;i++)for(const[q,r]of ring(i))ks.push(K(q,r));camTweenTo(ks,t+420);}
@@ -1254,7 +1261,7 @@ window.addEventListener('message',e=>{
     if(currentView==='overlay'){currentView='map';showNeb(false);if(shopUI)renderShop();cabinBack();evPump();}}
   else if(m.type==='hint')feed(m.a,m.b,'hint'); // something pointed at in the Guide / Status over the map: said in the map's feed
   else if(m.type==='buoy')buoyLoad(); // its name or colour changed (Status & collections → Buoy)
-  else if(m.type==='cleared'){if(MP.role==='guest')mpSend('cleared',{key:m.key,kind:m.kind,tally:m.tally,ang:m.ang});else if(m.kind==='rift')riftCell(m.key,m.ang);else completeCaptureForCell(m.key,m.kind,m.tally);}
+  else if(m.type==='cleared'){if(MP.role==='guest')mpSend('cleared',{key:m.key,kind:m.kind,tally:m.tally,ang:m.ang});else if(m.kind==='rift')riftCell(m.key,m.ang,true);else completeCaptureForCell(m.key,m.kind,m.tally);}
   else if(m.type==='frame'){if(MP.on)netOut({t:'frame',url:m.url});} // my surface, for everyone watching
   else if(m.type==='mpSpend'){if(MP.on)netOut({t:'spend',kind:m.kind,n:m.n},m.pid);} // a friend used their item in my surface: it comes off theirs
   else if(m.type==='mpGot'){if(MP.on)netOut({t:'got',kind:m.kind,n:m.n},m.pid);} // what a friend collected in my surface: theirs
@@ -1493,7 +1500,7 @@ function openShop(key){const el=shopEls[key],s=el&&el._s;if(!s||phase==='collaps
 // Ordering from one: what it gives floats to you on a life preserver from that shop (flotPut), a hex a time of day (flotDrift); open it beside it
 function catTake(id){disc.add('cat:'+id);neb({cmd:'discover',id:'cat:'+id});feed(txt('map.cat.took',SHOPS[id].n),txt('map.cat.took_d'));}
 function drawerOpen(){shopUI={drawer:true,id:null};renderShop();}
-// The record player (a starting item on a mast mount, music.js): its dock slot lists the records you own; one clicked plays (again: stops); a record plays
+// The record player (a starting item on the deck mount, music.js): its dock slot lists the records you own; one clicked plays (again: stops); a record plays
 // 48 bars, then the next you own. Mounted and on, it starts with your first click on the map (a browser plays sound only after one)
 const recPlayer=()=>kitOn('record')&&disc.has('up:record'),recMine=()=>RECORDS.filter(r=>recOwned(r,k=>disc.has(k)));
 function recordsOpen(){shopUI={records:true,id:null};renderShop();}
