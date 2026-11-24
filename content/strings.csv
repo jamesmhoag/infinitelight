@@ -1151,9 +1151,39 @@ ev.desk_tip,"Discoveries you have not looked at yet: events captured while anoth
 journal.notes,"your notes…",the Journal,
 journal.empty,"Nothing is known yet.",the Journal,
 journal.map,"How everything becomes everything else. Point at a step to read it; click to keep it.",the Journal,
-journal.ch.days,"The days of this run, each in its turn: what was found that day. What each thing is follows, chapter by chapter.",the Journal,
+journal.ch.days,"My days, each in its turn: what I did, and each thing I came upon as I came upon it. What each thing is follows, chapter by chapter.",the Journal,
 journal.day,Day {0},the Journal,
 journal.day_d,"Found today:",the Journal,
+jn.and,and,the Journal (my words),
+jn.wake,"I woke at {0} on the {1} day.",the Journal (my words),"0 = time of day; 1 = which day (5th)"
+jn.spill_up,"The spill had come out fuller than the day before — {0}% more of it, out of what the night had taken in.",the Journal (my words),0 = percent
+jn.spill_down,"The spill was thinner than the day before — {0}% less; the Rifts had taken their share.",the Journal (my words),0 = percent
+jn.spill_same,"The spill lay as it always had round the Point.",the Journal (my words),
+jn.move,"I sailed a hex.",the Journal (my words),
+jn.moves,"I sailed {0} hexes.",the Journal (my words),0 = how many
+jn.dive,"I went down into a surface.",the Journal (my words),
+jn.dives,"I went down into {0} surfaces.",the Journal (my words),0 = how many
+jn.clears,"I cleared {0} bright and {1} dark.",the Journal (my words),"0, 1 = clears"
+jn.rift,"A Rift tore open under my hands, and the sea there would not close.",the Journal (my words),
+jn.shop,"I called in at {0}.",the Journal (my words),0 = shops
+jn.buy,"I came away with {0}.",the Journal (my words),0 = what I bought
+jn.trash,"Into my bag went {0}.",the Journal (my words),0 = materials
+jn.trash_many,"The surface had become quite the mess, littered with what seemed the wrappings of my insatiable needs. What I could do about it, I was uncertain.",the Journal (my words),
+jn.seed,"I planted a seed in the dark of a Dark Remnant, and wondered what it would make of what I fed it.",the Journal (my words),
+jn.feed,"I fed my plant {0} piece(s) of {1}.",the Journal (my words),"0 = how many; 1 = material"
+jn.bloom,"At Midnight it bloomed: a {0} flower, a Dark Remnant beating in its heart. I left it to the collapse.",the Journal (my words),0 = material
+jn.bloom_picked,"At Midnight it bloomed — a {0} flower, a Dark Remnant beating in its heart — and I picked it.",the Journal (my words),0 = material
+jn.sing,"From the collapse I drew {0}.",the Journal (my words),0 = the card
+jn.sleep,"I rested, and slept until {0}.",the Journal (my words),0 = time of day
+jn.wreck,"The collapse tossed my buoy about: {0} thing(s) went overboard.",the Journal (my words),0 = how many
+jn.end,"Then Midnight came, and it all fell back into the Point.",the Journal (my words),
+jn.quiet,"A quiet stretch: little worth writing down.",the Journal (my words),
+jn.unknown0,"There is more to {0} than I understand yet.",the Journal (my words),0 = a chapter
+jn.unknown1,"I keep wondering what else {0} holds, if I ever come upon it.",the Journal (my words),0 = a chapter
+jn.unknown2,"Something about {0} still escapes me; I mean to find it out.",the Journal (my words),0 = a chapter
+jn.saw,"Then I witnessed it: {0}. {1}",the Journal (my words),"0 = the event; 1 = what is said of it"
+jn.learned,"I learned something: {0} — {1}",the Journal (my words),"0 = the subject; 1 = in short"
+jn.shop_new,"{0} opened its doors to me for the first time. “{1}”",the Journal (my words),"0 = the shop; 1 = its motto"
 guide.tab.days,Days,"cards, Guide, Status",
 journal.ch.disc,"What you have found, and each event as you first saw it.",the Journal,
 journal.ch.map,"How every thing becomes every other.",the Journal,

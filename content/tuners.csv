@@ -558,7 +558,7 @@ dilMin,0.05,Dilation min nova,0,0.5,0.01,Time dilation & Risks,gameplay,,,,Game-
 dilMax,0.5,Dilation max nova,0,0.9,0.01,Time dilation & Risks,gameplay,,,,Game-speed reduction of a max-scale nova; scales linearly between min and max,
 dilFloor,0.25,Dilation floor,0.05,1,0.05,Time dilation & Risks,gameplay,,,,Stacked novas never slow the game below this speed (0.25 = at most 75% slow),
 dilFadeMs,250,Dilation release ms,0,1500,50,Time dilation & Risks,gameplay,,,,"Once a nova's timer (Nova fresh grace) has passed, its slow eases out over this long (game time)",
-cacheKeyR,16,Cache keyhole pane R,6,40,1,Time dilation & Risks,gameplay,,,,Radius of the central keyhole glass pane of a Cache,
+cacheKeyR,28,Cache key pane R,6,60,1,Time dilation & Risks,gameplay,,,,"Radius of the Cache's central glass pane (a small key in its middle, a lock ring round it)",
 masterVol,0.7,Master volume,0,1,0.05,Master volume,sounds,,,,Overall volume (also in the Esc menu),
 duckChance,0.25,Duck chance,0,1,0.01,Ducks,gameplay,,,,Chance a Dark Remnant comes out as a duck instead (the surface then carries on),
 duckExoticChance,0.2,Exotic chance,0,1,0.01,Ducks,gameplay,,,,"Chance a duck is an exotic (one colour, size or material change)",
