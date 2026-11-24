@@ -251,7 +251,7 @@ const MAP_POOL=36; // what the spill holds: at Twilight the source bursts into r
 function newMap(rings){flotLake(()=>true); // a new map, a descent and every midnight: the source at the centre bursts out into ring 1 (rings: a demo's own), the player beside it
   dropSession();cells={};totalCells=0;captureOrder=[];mergeGroups=[];mergeIdCounter=0;voidOpen=false;phase='move';gameOverReason='';prev={};constel=[];weaveSel=[];weaveAsk=null;armed=null;
   cells[K(0,0)]={q:0,r:0,v:0,cap:false,capVal:0,isP:false,mergeId:null,isVoid:true};totalCells++;
-  turn=Math.max(1,rings||1);for(let n=1;n<=turn;n++)addRing(n);pool=MAP_POOL;const N=totalCells-1;for(const k in cells)if(!cells[k].isVoid)cells[k].v=Math.round(MAP_POOL/N*10000)/10000;
+  turn=Math.max(1,rings||1);for(let n=1;n<=turn;n++)addRing(n);pool=Math.round(MAP_POOL*(1+(spill.pct||0)/100)*100)/100;const N=totalCells-1;for(const k in cells)if(!cells[k].isVoid)cells[k].v=Math.round(pool/N*10000)/10000; // (what the last collapse took in: ±20% at most)
   const r1=ring(1),si=Math.floor(Math.random()*r1.length);pQ=r1[si][0];pR=r1[si][1];
   if(MP.on&&MP.role==='host'){const h=mpP('h');if(h){h.q=pQ;h.r=pR;}for(const P of MP.players)if(P.id!=='h'){const sp=mpSpot();P.q=sp[0];P.r=sp[1];}} // (playing together: everyone starts the new day beside the source)
   cells[K(pQ,pR)].isP=true;burstFx={t0:performance.now(),kind:'burst'};
@@ -424,6 +424,24 @@ function trawl(path){if(!path||SCENE||MP.on||!kitOn(f=>f.troll))return;let n=0,h
 // blooms: picked from beside you it pays Flower Dim (× 10 on a merged Dark Remnant, × 100 on a merged hex of seven); left, it is a flower for the night's cards (lastFlowers).
 // A plant that had not budded is gone with the collapse ──
 let trashBag=[],seeds=0,plants={},lastFlowers=[],dimAdmit=-1;
+// ── The collapse's singularities: at Midnight everything on the map falls into the source and shapes the next spill (spillOf): each bright clear +1% of its mass and 2
+// CRYSTALIZE particles in every surface, each Rift −1% (their sum, ±20% at most: 36.00 becomes 43.20 at best), each Dark Remnant clear 2 ECLIPSE particles (each 100 at
+// most). Each Dark Remnant (a merged three as one, a merged hex of seven as one) deals a card into your deck (singEarn): tier 1, a merged three 2, a hex 3; a flower left
+// on it one better and in its material (else paper). The new day's draw (singDraw) shows three (Kaleidoscope: more), the best and the flowers' first; you must pick one
+// (Yo-yo: you may pass), and it holds while you are awake today; the rest are discarded, back in only with a reshuffle (Snow globe) once the deck runs out. Toys
+// (on your mounts, two on a doubled riser) count even if the collapse wrecks them ──
+let deck=[],discard=[],reshuffles=0,spill={pct:0,w:0,b:0},singHand=null;
+const toyN=t=>{if(!buoyKit)return 0;const C=kitCounts(buoyKit);let n=0;for(const s of KIT_SLOTS)for(const id of buoyKit.slots[s].slice(0,C[s])){const it=id&&shopItem(id);if(it&&it.fx.toy===t)n+=s==='mast'&&C.dbl?2:1;}return n;};
+function spillOf(){let b=0,r=0,d=0;for(const k in cells){const c=cells[k];if(c.rift)r++;else if(c.cap)c.kind==='dark'?d++:b++;}const C=v=>Math.max(-20,Math.min(20,v));return{pct:C(Math.min(20,b)-Math.min(20,r)),w:2*Math.min(100,b),b:2*Math.min(100,d)};}
+function singEarn(fl){const out=[],seen=new Set(),F={};for(const f of fl||[])if(!f.picked&&f.k)F[f.k]=f;
+  for(const k in cells){const c=cells[k];if(!c.cap||c.kind!=='dark'||seen.has(k))continue;const g=c.mergeId!=null?mergeGroups.find(x=>x.id===c.mergeId):null,ks=g?g.cells:[k];ks.forEach(x=>seen.add(x));
+    const t=g?(g.type==='hex'?3:2):1,f=ks.map(x=>F[x]).find(Boolean);out.push(singCard(f?t+1:t,f?f.m:'paper',!!f));}
+  return out;}
+function singDraw(toys){toys=toys||{};if(!deck.length&&discard.length&&reshuffles>0){reshuffles--;deck=discard;discard=[];feed(txt('map.sing.reshuffled'),txt('map.sing.reshuffled_d',deck.length));}
+  if(!deck.length||SCENE||MP.on)return;const n=Math.min(deck.length,3+(toys.more||0)),top=Math.max(...deck.map(c=>c.t)),sh=L=>L.slice().sort(()=>Math.random()-0.5),pri=sh(deck.filter(c=>c.fl||c.t===top)),rest=sh(deck.filter(c=>!(c.fl||c.t===top)));
+  const hand=pri.concat(rest).slice(0,n);deck=deck.filter(c=>!hand.includes(c));for(let i=0;i<Math.min(hand.length,toys.up||0);i++){const u=singCard(hand[i].t+1,hand[i].m,hand[i].fl);u.id=hand[i].id;hand[i]=u;} // (Pinwheel: a card a tier better)
+  singHand=hand;if(currentView==='map'){currentView='overlay';showNeb(true);}neb({cmd:'singDraw',cards:hand,skip:(toys.skip||0)>0});saveMap();} // (shown by the surface, over the map)
+function singPicked(m){if(!singHand)return;for(const c of singHand)if(c.id!==m.id)discard.push(c);singHand=null;feed(m.title||txt('map.sing.passed'),m.text||'');saveMap();}
 const plantBud=()=>Math.max(2,Math.round(T.mapPlantBud!=null?T.mapPlantBud:4)),plantStage=p=>p.bloom?5:!p.n?0:p.n>=plantBud()?4:p.n>=plantBud()-1?3:p.n>=2?2:1;
 const plantType=p=>'plant:'+(p.m||'paper')+':'+Math.max(1,plantStage(p))+':'+Math.max(0,plantBud()-4),plantTier=k=>{const c=cells[k],g=c&&c.mergeId!=null?mergeGroups.find(x=>x.id===c.mergeId):null;return g?(g.type==='hex'?3:2):1;};
 function trashGot(m,k){trashBag.push({m,k});feed(txt('map.trash.got',txt('trash.'+m)),txt('map.trash.bag',trashBag.length));syncDock();saveMap();}
@@ -438,7 +456,7 @@ function plantSeed(k){if(!seedOK(k)){hexTap(k);return;}seeds--;plants[k]={m:null
 function plantSync(){for(const k in plants){if(!cells[k]){delete plants[k];continue;}if(plants[k].n&&!pond.some(d=>d.plant===k)){const[x,y]=a2w(cells[k].q,cells[k].r);pond.push({type:plantType(plants[k]),plant:k,x,y,hd:Math.random()*6.28,sp:0,cur:0,next:1e15,born:performance.now(),seen:true,lastRip:0,ph:0});}}} // each growing plant stands on its hex (drawn as the lake's ducks and goods are)
 function plantsMidnight(){const out=[],h=here();for(const k in plants){const p=plants[k];if(plantStage(p)<4)continue;p.bloom=1;const t=plantTier(k),c=cells[k],pick=hexD(c,h)<=1;
     if(pick){const n=Math.round((T.mapFlowerDim!=null?T.mapFlowerDim:50000)*(t===3?100:t===2?10:1));neb({cmd:'award',kind:'dim',n});feed(txt('map.plant.picked',txt('trash.'+p.m)),txt('map.plant.picked_d',fmtN(n)));}
-    out.push({m:p.m,t,picked:pick?1:0});}
+    out.push({m:p.m,t,k,picked:pick?1:0});}
   if(out.length&&out.some(f=>!f.picked))feed(txt('map.plant.bloomed',out.filter(f=>!f.picked).length),txt('map.plant.bloomed_d'));return out;}
 function plantInfo(k,c){const t=trashBag[0];if(k==='seed')return c?[txt('map.plant.seed_here'),seedOK(K(c.q,c.r))?txt('map.plant.seed_ok'):txt('map.plant.seed_no')]:[txt('map.plant.seeds',seeds),txt('map.plant.seed_d',plantBud())];
   if(!t)return[txt('map.trash.none'),txt('map.trash.none_d')];const nm=txt('trash.'+t.m);if(!c)return[txt('map.trash.slot',trashBag.length,nm),txt('map.trash.slot_d')];const ck=K(c.q,c.r),p=plants[ck];
@@ -619,7 +637,7 @@ function wreckCheck(why){if(SCENE||MP.on||!buoyKit)return[];const C=kitCounts(bu
   if(!lost.length)return[];for(const m of lost)buoyKit.slots[m.s][m.i]=null;kitSave(buoyKit);neb({cmd:'lose',ids:lost.map(m=>m.id)});return lost.map(m=>m.id);}
 function endDay(){ // Midnight passed: it all falls into the source (the outer rings first, each faster), a flash, and a new spill at Twilight
   {const n=Object.values(cells).filter(c=>c.flot&&c.flot.give).length;if(n)feed(txt('good.ring_lost'),txt('good.ring_lost_d',n),'no');} // orders not opened: lost as it falls
-  pendingEnd={how:'midnight',n:0,win:false,lost:wreckCheck('midnight'),fl:plantsMidnight()};phase='collapse';armed=null;weaveSel=[];weaveAsk=null;dropSession();
+  {const toys={more:toyN('more'),up:toyN('up'),skip:toyN('skip'),shuffle:toyN('shuffle')},fl=plantsMidnight();pendingEnd={how:'midnight',n:0,win:false,toys,fl,spill:spillOf(),sing:singEarn(fl),lost:wreckCheck('midnight')};}phase='collapse';armed=null;weaveSel=[];weaveAsk=null;dropSession();
   const base=T.mapCollapseMs||1400;let t=0;for(let i=ringMax(),j=0;i>0;i--,j++){const dur=Math.max(110,base*0.55*Math.pow(0.7,j)),ri=i;at(t,()=>fallRing(ri,dur));t+=dur;}
   at(t,()=>{burstFx={t0:performance.now(),kind:'flash',dur:700};});at(t+420,finishDay);
   {const R=1,ks=[];for(let i=1;i<=R;i++)for(const[q,r]of ring(i))ks.push(K(q,r));camTweenTo(ks,t+420);}
@@ -629,9 +647,9 @@ function fallRing(i,dur){ // one ring falls into the source
   burstFx={t0:performance.now(),kind:'fall',r:i,dur};}
 function finishDay(){ // after Midnight's flash: the day goes into the log, a new spill bursts out and a new day begins at Twilight
   const e=pendingEnd;if(!e)return;pendingEnd=null;
-  dayLog.push({day,end:e.how,ring:0,b:dayCnt.b,d:dayCnt.d,win:false,col:dayCnt.col,lost:e.lost&&e.lost.length?e.lost:undefined,fl:e.fl&&e.fl.length?e.fl:undefined});lastFlowers=(e.fl||[]).filter(f=>!f.picked);plants={};pond=pond.filter(d=>!d.plant);const wreck=e.lost&&e.lost.length?e.lost.map(id=>(shopItem(id)||{n:id}).n).join(', '):'';dayCnt={b:0,d:0};
+  dayLog.push({day,end:e.how,ring:0,b:dayCnt.b,d:dayCnt.d,win:false,col:dayCnt.col,lost:e.lost&&e.lost.length?e.lost:undefined,fl:e.fl&&e.fl.length?e.fl:undefined});lastFlowers=(e.fl||[]).filter(f=>!f.picked);plants={};pond=pond.filter(d=>!d.plant);if(e.spill)spill=e.spill;if(e.sing&&e.sing.length){deck=deck.concat(e.sing);feed(txt('map.sing.dealt',e.sing.length),txt('map.sing.deck',deck.length));}if(e.toys&&e.toys.shuffle)reshuffles+=e.toys.shuffle;const wreck=e.lost&&e.lost.length?e.lost.map(id=>(shopItem(id)||{n:id}).n).join(', '):'';dayCnt={b:0,d:0};
   clock=3;day++;neb({cmd:'day',day});popSoonOpen();newMap();feed(txt('map.day_ended_at_midnight',day-1),txt('map.bright_dark_a_new',dayLog[dayLog.length-1].b,dayLog[dayLog.length-1].d));
-  focusCam(true);showTurn();updateHint();saveMap();if(!SCENE&&!MP.on)sleepUntil(wakeFor===day?6:9);if(wreck)setTimeout(()=>feed(txt('map.wreck.tossed'),txt('map.wreck.lost',wreck),'no'),1200);} // (wrecked: said as you fall asleep, and kept in the day's log) // asleep until Morning (a wake-up call for today: Dawn)
+  focusCam(true);showTurn();updateHint();saveMap();setTimeout(()=>singDraw(e.toys),900);if(!SCENE&&!MP.on)sleepUntil(wakeFor===day?6:9);if(wreck)setTimeout(()=>feed(txt('map.wreck.tossed'),txt('map.wreck.lost',wreck),'no'),1200);} // (wrecked: said as you fall asleep, and kept in the day's log) // asleep until Morning (a wake-up call for today: Dawn)
 function dayLogHTML(){
   if(!dayLog.length)return '<div class="dsum">'+txt('map.days.none')+'</div>';let tb=0,td=0;
   const rows=dayLog.map(e=>{tb+=e.b;td+=e.d;return `<tr${e.win?' class="w"':''}><td>Day ${e.day}</td><td>${END_NAME[e.end]||e.end}${e.ring?' · ring '+e.ring:''}${e.win?' · won':''}</td><td>${e.b}</td><td>${e.d}</td></tr>`+(e.lost?`<tr class="lost"><td></td><td colspan="3">${txt('map.wreck.manifest',e.lost.map(id=>(shopItem(id)||{n:id}).n).join(', '))}</td></tr>`:'');}).join(''); // (a wreck's manifest: what went overboard that night)
@@ -1236,14 +1254,14 @@ function saveMap(){
   if(SCENE)return; // a demo never touches your map
   if(MP.on){if(MP.role==='guest')return;mpSync();} // (playing together: the host's map is everyone's; a friend's own map is left as it was)
   const out={};for(const k in cells){const c=Object.assign({},cells[k]);delete c._im;out[k]=c;}
-  const rec=()=>JSON.stringify({v:3,hist:mapHist,cells:out,turn,clock,day,pool,constel,dayLog,dayCnt,pendingEnd,score,pQ,pR,totalCells,phase,depth,gameOverReason,captureOrder,mergeGroups,mergeIdCounter,voidOpen,hubPop,playLog,unlockDay,trashBag,seeds,plants,lastFlowers,dimAdmit,session:nebulaCellKey,drinks,bottle,bottleAt,fridge,asleep,wakeFor,droneDay});
+  const rec=()=>JSON.stringify({v:3,hist:mapHist,cells:out,turn,clock,day,pool,constel,dayLog,dayCnt,pendingEnd,score,pQ,pR,totalCells,phase,depth,gameOverReason,captureOrder,mergeGroups,mergeIdCounter,voidOpen,hubPop,playLog,unlockDay,trashBag,seeds,plants,lastFlowers,dimAdmit,deck,discard,reshuffles,spill,singHand,session:nebulaCellKey,drinks,bottle,bottleAt,fridge,asleep,wakeFor,droneDay});
   try{localStorage.setItem(MAP_KEY,rec());}catch(e){for(const k in out)delete out[k].shot;try{localStorage.setItem(MAP_KEY,rec());}catch(x){}} // full: an unfinished hex's picture is the first thing to go
 }
 function loadMap(){
   let d=null;try{d=JSON.parse(localStorage.getItem(MAP_KEY)||'null');}catch(e){}
   if(!d||!d.cells)return false;
   if(d.v!==3)return false; // a map from before the times of day starts over
-  ({cells,turn,clock,day,pool,constel,dayLog,dayCnt,pendingEnd,score,pQ,pR,totalCells,phase,depth,gameOverReason,captureOrder,mergeGroups,mergeIdCounter,voidOpen}=d);mapHist=d.hist||{};playLog=d.playLog||[];if(phase==='collapse'&&!d.pendingEnd){phase='move';for(const k in cells)delete cells[k].stain;} /* (left mid-collapse: it is over) */nebulaCellKey=d.session||null;hubPop=d.hubPop||[null,null];unlockDay=d.unlockDay||null;trashBag=d.trashBag||[];seeds=d.seeds||0;plants=d.plants||{};lastFlowers=d.lastFlowers||[];dimAdmit=d.dimAdmit!=null?d.dimAdmit:-1;drinks=d.drinks!=null?d.drinks:waterMax();bottle=d.bottle||0;bottleAt=d.bottleAt!=null?d.bottleAt:-1;fridge=d.fridge||0;droneDay=d.droneDay||0;asleep=d.asleep||null;wakeFor=d.wakeFor!=null?d.wakeFor:-1;if(asleep&&!pendingEnd){buoy.rested=true;setTimeout(sleepStep,1200);} /* (left asleep: the sleep goes on) */_sunH=clock;_sun={from:clock,to:clock,t0:0};dayLog=dayLog||[];dayCnt=dayCnt||{b:0,d:0};
+  ({cells,turn,clock,day,pool,constel,dayLog,dayCnt,pendingEnd,score,pQ,pR,totalCells,phase,depth,gameOverReason,captureOrder,mergeGroups,mergeIdCounter,voidOpen}=d);mapHist=d.hist||{};playLog=d.playLog||[];if(phase==='collapse'&&!d.pendingEnd){phase='move';for(const k in cells)delete cells[k].stain;} /* (left mid-collapse: it is over) */nebulaCellKey=d.session||null;hubPop=d.hubPop||[null,null];unlockDay=d.unlockDay||null;trashBag=d.trashBag||[];seeds=d.seeds||0;plants=d.plants||{};lastFlowers=d.lastFlowers||[];dimAdmit=d.dimAdmit!=null?d.dimAdmit:-1;deck=d.deck||[];discard=d.discard||[];reshuffles=d.reshuffles||0;spill=d.spill||{pct:0,w:0,b:0};singHand=d.singHand||null;drinks=d.drinks!=null?d.drinks:waterMax();bottle=d.bottle||0;bottleAt=d.bottleAt!=null?d.bottleAt:-1;fridge=d.fridge||0;droneDay=d.droneDay||0;asleep=d.asleep||null;wakeFor=d.wakeFor!=null?d.wakeFor:-1;if(asleep&&!pendingEnd){buoy.rested=true;setTimeout(sleepStep,1200);} /* (left asleep: the sleep goes on) */_sunH=clock;_sun={from:clock,to:clock,t0:0};dayLog=dayLog||[];dayCnt=dayCnt||{b:0,d:0};
   if(pendingEnd)finishDay();else if(phase==='collapse')phase='move';else if(phase==='ended')showDayReport(); // a day left falling in finishes at once; a won run shows its report
   mapResize();focusCam(false);updateHint();return true;
 }
@@ -1263,7 +1281,7 @@ function enterNebula(cellKey){hubLearn('hubcell');
   else{const ms=T.mapEnterMs||3000;currentView='entering';_enter={key:cellKey,ready:false,back:null};buoy.dunk={t0:now,d:1,ms:ms*0.33};ripples.push({x:buoy.x,y:buoy.y,t:now,dk:onWhite(buoy.x,buoy.y),big:1});startMapLoop(); // your buoy is dunked the whole way while the camera comes over the hex, turns to look straight down on it and goes down into it; then the surface fades in
     _enter.back=diveStart(cellKey,1,()=>{if(currentView!=='entering')return;currentView='level';if(!_enter.ready){loading('level',true);setTimeout(()=>loading('level',false),12000);}showNeb(true);});} // (not drawn yet: the clean loading screen until it is)
   const resume=nebulaCellKey===cellKey;nebulaCellKey=cellKey;saveMap();
-  neb({cmd:'level',key:cellKey,seed:cellSeed(c),cov:cellCov(c),boost:Math.max(0,c.v/(T.mapCovFull||1)-1),q:c.q,r:c.r,white:c.unw==='bright',label:`(${c.q},${c.r}) · value ${c.v.toFixed(2)}`,resume,clock}); // clock: the hour its ducks are lit for
+  neb({cmd:'level',key:cellKey,tint:{w:spill.w||0,b:spill.b||0},seed:cellSeed(c),cov:cellCov(c),boost:Math.max(0,c.v/(T.mapCovFull||1)-1),q:c.q,r:c.r,white:c.unw==='bright',label:`(${c.q},${c.r}) · value ${c.v.toFixed(2)}`,resume,clock}); // clock: the hour its ducks are lit for
 }
 let _enter=null; // going into a surface (the dunk and the camera's move), and how to come back out
 function exitNebula(){riftFxStart(performance.now()+500); // (a Rift made in there opens as the map comes back)
@@ -1311,7 +1329,7 @@ window.addEventListener('message',e=>{
   else if(m.type==='dockmin')dockMinSet(m.v,true);
   else if(m.type==='ui')document.body.classList.toggle('ui-hidden',!!m.hidden); // ~ on a surface hides the map's time of day over it too
   else if(m.type==='bought')shopBought(m);
-  else if(m.type==='picked')shopPicked(m); // the hex is captured right away; the player returns with a right-click
+  else if(m.type==='picked'){if(m.sing)singPicked(m);else shopPicked(m);} // the hex is captured right away; the player returns with a right-click
   else if(m.type==='demo')shelfDemoShow(m);
   else if(m.type==='trash')trashGot(m.m,m.k); // the net scooped trash on the surface: into your trash bag // a shelf card's live demo
   else if(m.type==='music')musicToggle(); // the surface's Esc menu: Music on / off
@@ -1543,7 +1561,7 @@ function shopTap(s){const now=performance.now();tapN=now-tapAt<900?tapN+1:1;tapA
   if(tapN===5)feed(txt('map.tap.yell'),txt('map.tap.yell2',SHOPS[s.id].n),'tap');} // the fifth: someone inside has had enough
 function openShop(key){const el=shopEls[key],s=el&&el._s;if(!s||phase==='collapse')return;
   if(!s.lit){shopTap(s); // a tap on its glass
-    const g=runGood(run);if(!(g&&(FORTUNE_GOOD[g.id]||{}).knock)){if(tapN<5)feed(txt('map.is_closed',SHOPS[s.id].n),txt('map.open',shopHours(s.id),(runBad(run,'holiday')?txt('map.a_holiday_it_closes'):'')));return;}
+    if(!runFx(run).some(f=>f.knock)){if(tapN<5)feed(txt('map.is_closed',SHOPS[s.id].n),txt('map.open',shopHours(s.id),(runBad(run,'holiday')?txt('map.a_holiday_it_closes'):'')));return;}
     feed(txt('map.tap.knock',SHOPS[s.id].n),txt('map.tap.knock2'),'tap');} // Friendly Neighborhood (a good fortune): a knock opens it up
   if(s.id!=='gift'&&!shopHere(key)){if(droneOwned()&&!drone&&droneDay!==day){droneDay=day;drone={key,wx:s.wx,wy:s.wy,t0:performance.now()};feed(txt('map.drone.off'),SHOPS[s.id].n);saveMap();return;} /* the drone: off to it */
     feed(SHOPS[s.id].n,txt(droneOwned()?(drone?'map.drone.out':'map.drone.today'):disc.has('cat:'+s.id)?'map.cat.far_has':'map.cat.far'),'no');return;} // too far: go beside it, or order from its catalogue (the desk drawer, below deck)

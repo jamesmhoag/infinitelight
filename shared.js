@@ -667,7 +667,7 @@ const shopLeft=(it,run)=>it.stock?Math.max(0,it.stock-((run.sold||{})[it.id]||[]
 const shopOnce=it=>!!(it.fx.cap||it.fx.up||it.fx.disc||it.fx.perm||it.fx.part); // bought once and kept (as the discovery 'up:<id>'); the rest can be bought again
 const CLOCK_HOURS=[3,6,9,12,15,18,21,24],CLOCK_MULT=[1,2,3,5,8,13,21,34,55]; // the Clock smith: each time of day away from now costs more (×2 next to it, then ×3, ×5, ×8…)
 const XACT={dim:{buy:9,sell:8.5,up:1.5,down:3.5},magnetic:{buy:0.1,sell:0.085,up:0.015,down:0.035},neutron:{buy:0.1,sell:0.085,up:0.015,down:0.035},pulsing:{buy:0.1,sell:0.085,up:0.015,down:0.035}}; // XACT change: how many of each for one Bright; sold back at sell / buy of what it cost (a little less); a fortune moves the sell rate, a wonder both (×1.1 / ×0.9)
-function xactRate(k,run){const X=XACT[k],g=runGood(run),w=runBonus(run,'xup')?1.1:runBonus(run,'xdown')?0.9:1,sell=Math.max(0,X.sell+(g&&(FORTUNE_GOOD[g.id]||{}).xsell?X.up:0)-(runBad(run,'xsell')?X.down:0));return{buy:X.buy*w,sell:sell/X.buy*w/X.buy};} // buy: units per Bright; sell: Bright per unit
+function xactRate(k,run){const X=XACT[k],g=runFx(run).some(f=>f.xsell),w=runBonus(run,'xup')?1.1:runBonus(run,'xdown')?0.9:1,sell=Math.max(0,X.sell+(g?X.up:0)-(runBad(run,'xsell')?X.down:0));return{buy:X.buy*w,sell:sell/X.buy*w/X.buy};} // buy: units per Bright; sell: Bright per unit
 const xactGets=(it,run)=>it.fx.xbuy?Math.floor(it.cost*xactRate(it.fx.xbuy,run).buy):it.fx.xsell?Math.floor(it.cost*xactRate(it.fx.xsell,run).sell):0; // what a lot gets you
 // ── Tuners (the surface's Tune panel, Build mode's, and the Surface Map's: one behaviour) ──
 function tuneFmt(v,step){if(step>=1&&v>=10000)return Math.round(v).toLocaleString('en-US');return step<0.005?v.toFixed(4):step<0.01?v.toFixed(3):step<0.1?v.toFixed(2):step<1?v.toFixed(1):v.toString();} // as many places as its step has
@@ -694,9 +694,14 @@ const KIND_NAME={};for(const k of ['prism','gate','knot','key','lens','leash','d
 const CHEST_KINDS=['bright','dim','neutron','magnetic','pulsing']; // the remnants a purse (the treasure chest) holds
 const ACCUM_KINDS=['leash','dial','weave','prism','knot','gate','key','lens']; // what is earned by play (and a good fortune can triple)
 const MP_RUN={fx:[],bx:[]}; // playing together: everyone else's fortunes and Daily Wonders: what changes the map or what drops counts for everyone
-const runBad=(run,id)=>!!(run&&run.fortune&&!run.fortune.good&&run.fortune.id===id)||MP_RUN.fx.some(f=>f&&!f.good&&f.id===id),runGood=run=>(run&&run.fortune&&run.fortune.good?run.fortune:null)||MP_RUN.fx.find(f=>f&&f.good)||null,runBonus=(run,id)=>!!(run&&run.bonus&&run.bonus.id===id)||MP_RUN.bx.some(b=>b&&b.id===id);
+const runBad=(run,id)=>!!(run&&run.fortune&&!run.fortune.good&&run.fortune.id===id)||MP_RUN.fx.some(f=>f&&!f.good&&f.id===id)||!!(run&&run.sing&&run.sing.some(s=>s.b===id)),runGood=run=>(run&&run.fortune&&run.fortune.good?run.fortune:null)||MP_RUN.fx.find(f=>f&&f.good)||null,runBonus=(run,id)=>!!(run&&run.bonus&&run.bonus.id===id)||MP_RUN.bx.some(b=>b&&b.id===id);
 // Good fortunes: one for each duck, which names it. x3: that item (or all) comes in threes when earned · luck: +20% duck (d), exotic (e) or rare exotic (r) chance ·
 // next: the next Dark Remnant is a duck / an exotic / a rare exotic (the rare one costs every Key, and Keys and Key constellations, for the rest of the run)
+// Singularities: the cards the collapse deals from what it took in (a Dark Remnant each; merged, a flower on one, better). Each is a good fortune's effect with a dim
+// fortune's catch, worse the better it is (content/singularities.csv: each tier's goods and catches); the one picked holds while you are awake, through the day
+const SING_POOL={};for(const r of csvRead('singularities')){const k=r.tier+r.side;(SING_POOL[k]=SING_POOL[k]||[]).push(r.id);}
+function singCard(t,m,fl){t=Math.max(1,Math.min(4,t|0));const P=s=>{const L=SING_POOL[t+s]||SING_POOL['1'+s];return L[(Math.random()*L.length)|0];};return{id:Math.random().toString(36).slice(2,9),t,m:m||'paper',g:P('good'),b:P('bad'),fl:fl?1:0};}
+const runFx=run=>[...(run&&run.fortune&&run.fortune.good?[run.fortune]:[]),...MP_RUN.fx.filter(f=>f&&f.good),...((run&&run.sing)||[]).map(s=>({id:s.g}))].map(f=>FORTUNE_GOOD[f.id]||{}); // every good fortune's effect that holds now (yours, a friend's, a singularity's)
 const FORTUNE_ROWS={},FORTUNE_GOOD={},FORTUNE_BAD={};for(const r of csvRead('fortunes')){FORTUNE_ROWS[r.kind+':'+r.id+(r.item?':'+r.item:'')]=r;if(r.kind==='good')FORTUNE_GOOD[r.id]=cvJ(r.effect)||{};if(r.kind==='dim')FORTUNE_BAD[r.id]=r.does;} // content/fortunes.csv: good (one per duck: its effect), dim, and the Daily Wonders
 
 function fortuneParts(f,duckName){ // [what it says, what it does]: the telling, and the change it makes to play (content/fortunes.csv)

@@ -229,3 +229,7 @@ tr_glass,bright,Glass scoop,3000,bright,2,,"{""up"":1}",trashcan,,The net scoops
 tr_fabric,bright,Fabric scoop,3000,bright,2,,"{""up"":1}",trashcan,,The net scoops fabric trash: rags
 seed,bright,Recycling plant seed,2500,bright,1,3,"{""seed"":1}",,,"Plant it on a Dark Remnant clear beside you, then feed it trash of one material: budded by Midnight, it blooms"
 admission,dim,Admission,100,dim,1,,"{""admit"":1}",,,In through Dim's gate for today (an admission ticket in your trash bag lets you in free)
+kaleido,dim,Kaleidoscope,1000,dim,1,,"{""up"":1,""mount"":""top"",""look"":""box"",""col"":7,""toy"":""more""}",,,"Mast mount (a toy). The new day's draw of singularities shows a card more (two, doubled)"
+pinwheel,dim,Pinwheel,2000,dim,2,,"{""up"":1,""mount"":""top"",""look"":""flag"",""toy"":""up""}",,,Mast mount (a toy). A singularity in the new day's draw is a tier better
+yoyo,dim,Yo-yo,1500,dim,1,,"{""up"":1,""mount"":""top"",""look"":""box"",""col"":11,""toy"":""skip""}",,,Mast mount (a toy). You may pass on the new day's singularities
+snowglobe,dim,Snow globe,3000,dim,3,,"{""up"":1,""mount"":""top"",""look"":""box"",""col"":6,""toy"":""shuffle""}",,,"Mast mount (a toy). Each Midnight it earns a reshuffle: once your deck of singularities runs out, the discards go back in"
