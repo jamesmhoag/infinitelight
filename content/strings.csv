@@ -233,6 +233,7 @@ map.music,Music: {state},Surface Map,state = $0 — ON or OFF
 map.music.none,"No record to play: your record player and a record (deck mount) play music.",Surface Map,
 menu.music.off,Music: OFF,menus,
 menu.music.on,Music: ON,menus,
+menu.music.none,Music: no record player,menus,(nothing to play: the record player is off its deck mount or has no record)
 map.on,ON,Surface Map,
 map.off,OFF,Surface Map,
 map.sound,Sound effects: {state},Surface Map,state = $0 — ON or OFF
