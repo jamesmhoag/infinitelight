@@ -351,7 +351,7 @@ function riftFxDraw(now){const c=mctx;riftFx=riftFx.filter(f=>f.t0==null||now-f.
       const col=p.col||(p._c||(p._c=EFFECT_HEX[(Math.random()*6)|0].slice(1).match(/../g).map(h=>parseInt(h,16)).join(',')));c.fillStyle=`rgba(${col},${a.toFixed(3)})`;c.beginPath();c.arc(px,py,Math.max(0.6,HEX*0.035*(1-pu*0.5)),0,6.2832);c.fill();} // drawn in, faster and faster
     c.restore();}}
 function riftWreck(k){ // you tore a Rift: your buoy is wrecked (things go overboard) and thrown outward onto an open hex a ring further from the Point — unless you are at the helm with a rudder (or motor)
-  const lost=wreckCheck('rift'),saved=atHelm()&&!!buoyKit&&KIT_SLOTS.some(s=>buoyKit.slots[s].slice(0,kitCounts(buoyKit)[s]).some(id=>{const it=shopItem(id);return it&&(it.fx.rudder||it.fx.motor);}));if(saved){feed(txt('map.wreck.helm'),txt('map.wreck.helm_d'));return false;}
+  const lost=wreckCheck('rift'),saved=atHelm()&&kitOn(f=>f.rudder||f.motor);if(saved){feed(txt('map.wreck.helm'),txt('map.wreck.helm_d'));return false;}
   const r0=cellRing(...parseK(k));let to=null;for(let n=r0+1;n<=ringMax()&&!to;n++){const L=ring(n).filter(([q,r])=>{const c=cells[K(q,r)];return c&&!c.isVoid&&!c.cap&&!c.flot&&!c.shop&&!c.rift&&!pdHas(K(q,r));});if(L.length)to=L[(Math.random()*L.length)|0];}
   if(!to)return false;const o=cells[K(pQ,pR)];if(o)o.isP=false;pQ=to[0];pR=to[1];cells[K(pQ,pR)].isP=true;buoy.under=false;buoy.dunk={t0:performance.now(),d:-1,ms:900};buoyGo('sail');focusCam(true,1);
   const L=lost.map(id=>(shopItem(id)||{n:id}).n).join(', ');feed(txt('map.wreck.rift'),lost.length?txt('map.wreck.lost',L):txt('map.wreck.rift_d'),'no');return true;}
@@ -409,6 +409,8 @@ const dry=()=>!SCENE&&!MP.on&&!asleep&&drinks<=0&&!bottle&&!fridge; // out of wa
 function waterFill(why){if(drinks>=waterMax())return;drinks=waterMax();if(why)feed(txt('map.water.filled'),txt('map.water.filled_'+why,drinks));syncDock();}
 function waterNear(){if(pQ===0&&pR===0||neighbors(pQ,pR).some(([q,r])=>(q===0&&r===0)||isBright(K(q,r))))waterFill('near');} // beside a bright hex or the Point: the barrel is filled
 function waterDrink(){if(SCENE||MP.on)return;if(bottle){bottle=0;}else if(drinks>0)drinks--;else if(fridge>0)fridge--;syncDock();} // (the barrel dry: a bottle from the fridge)
+function trawl(path){if(!path||SCENE||MP.on||!kitOn(f=>f.troll))return;let n=0,h=0;for(const p of path){const c=cells[K(p.q,p.r)];if(c&&c.cap&&c.kind!=='dark'){n+=Math.ceil((c.capVal||0)*(T.mapTrollMult!=null?T.mapTrollMult:10));h++;}} // the Trolling net (a hull mount): sailing across bright clears, each one pays its value in Bright
+  if(n>0){neb({cmd:'award',kind:'bright',n});feed(txt('map.troll',fmtN(n)),txt('map.troll_d',h));}}
 function doMove(tq,tr){
   if(phase==='gameover'||phase==='collapse')return;if(tired()){feed(txt('map.too_tired_to_move'),txt('map.rest_under_midnight_to'),'no');return;}
   if(asleep){feed(txt('map.sleep.asleep'),txt('map.sleep.until',clockStr(asleep.until)),'no');return;}
@@ -417,7 +419,7 @@ function doMove(tq,tr){
   hubLearn('hubmove');hubLearn('hubtime');hubLearn('hublight');
   const tc=cells[K(tq,tr)];
   if(tc&&tc.isVoid&&voidOpen&&tq===0&&tr===0){const ok=cells[K(pQ,pR)];if(ok)ok.isP=false;descendDepth();return;}
-  const ok=cells[K(pQ,pR)];if(ok)ok.isP=false;
+  const ok=cells[K(pQ,pR)];if(ok)ok.isP=false;trawl((getMoves().find(m=>m.q===tq&&m.r===tr)||{}).path);
   playRec('⛵ '+tq+','+tr,'from '+pQ+','+pR+(tc.kind?' · '+tc.kind:''),'move');pQ=tq;pR=tr;tc.isP=true;buoyGo('sail');focusCam(true,1);waterDrink();waterNear(); // (a move drinks; beside bright or the Point, the barrel fills)
   advanceTurn();if(!MP.on&&runBad(run,'slowmove')&&phase!=='collapse'&&phase!=='gameover')advanceTurn();if(phase==='collapse'){updateHint();saveMap();return;}if(phase!=='gameover')phase='move';
   if(phase==='move'&&!tired()&&!getMoves().length){phase='gameover';gameOverReason=txt('map.go.nomoves');}
@@ -1091,7 +1093,7 @@ function buoySouv(){const sv=souvenirs();return SHOP_ITEMS.filter(i=>i.fx.souv&&
 // The drone (a top-mount gadget): a shop you are not beside, clicked, sends it there (once a day). It flies over, the shop opens as if you were there (what you
 // buy comes back with it), and once you leave the shop it flies home. Out, it is off its mount
 let drone=null,droneDay=0; // drone: its flight {key, wx,wy (the shop), t0, open (arrived), back (heading home)}; droneDay: the day it last flew
-const kitOn=id=>!!(buoyKit&&KIT_SLOTS.some(s=>buoyKit.slots[s].slice(0,kitCounts(buoyKit)[s]).includes(id))),droneOwned=()=>kitOn('drone'); // kitOn: on one of your buoy's mounts now
+const kitOn=x=>!!(buoyKit&&KIT_SLOTS.some(s=>buoyKit.slots[s].slice(0,kitCounts(buoyKit)[s]).some(id=>id&&(typeof x==='function'?!!(shopItem(id)&&x(shopItem(id).fx)):id===x)))),droneOwned=()=>kitOn('drone'); // kitOn: on one of your buoy's mounts now (an item's id, or a test of its effect: kitOn(f=>f.troll))
 function droneAt(now){const d=drone,ms=T.mapDroneMs||1800;if(!d)return null;let u=d.back?1-(now-d.back)/ms:(now-d.t0)/ms;if(d.back&&u<=0){drone=null;return null;}u=Math.max(0,Math.min(1,u));const e=u*u*(3-2*u);
   if(u>=1&&!d.open&&!d.back){d.open=1;if(!shopUI)openShop(d.key);if(!shopUI)d.back=now;} // there: its counter opens (closed: it turns back)
   return{x:buoy.x+(d.wx-buoy.x)*e,y:buoy.y+(d.wy-buoy.y)*e,z:HEX*(0.35+0.6*Math.sin(Math.PI*Math.min(1,e*1.6))),yaw:Math.atan2(d.wy-buoy.y,d.wx-buoy.x)+now/900};}
@@ -1390,12 +1392,12 @@ function popupFor(tally,skip){ // the pop-up a cleared surface earns. Each shop 
   // a better rank moves it, and the old one is torn down). First the Duck Shop, then the best-ranked exotic shop (a tie: at random), then BRiGHT IDEAS, last Dim's
   if(runBad(run,'holiday'))return{p:null,closed:[]};const c=[];
   for(const id in SHOPS){const S=SHOPS[id];if(S.street||(skip&&skip.includes(id))||achLocked('shop',id,k=>disc.has(k)))continue; // (a shop an achievement opens: not until it is reached)
-    const n=(tally||{})[S.cur]||0;let r=0;for(let i=1;i<=3;i++){const t=T[shopTK(S.cur)+i];if(t>0&&n>=t)r=i;}if(!r)continue;
+    const n=(tally||{})[S.tal]||0;let r=0;if(!S.at)r=CHEST_KINDS.some(k=>(tally||{})[k]>0)?0:1;else for(let i=1;i<=3;i++){const t=T[shopTK(S.cur)+i];if(t>0&&n>=t)r=i;}if(!r)continue; // (the Gift Shop, which has no thresholds: a bright clear where nothing was collected)
     const hs=hubPop.findIndex(x=>x&&x.id===id),from=hs>=0?'hub'+hs:Object.keys(cells).find(k=>cells[k].shop&&cells[k].shop.id===id&&isBright(k)),had=from?(hs>=0?hubPop[hs]:cells[from].shop).rank:0;
     if(from&&had>=r)continue;c.push({id,rank:r,from,tier:SHOP_TIER(id),z:Math.random(),open:shopIsOpen(id,clock,run)});}
   c.sort((a,b)=>a.tier-b.tier||b.rank-a.rank||a.z-b.z);const o=c.find(x=>x.open);return{p:o?{id:o.id,rank:o.rank,from:o.from}:null,closed:c.filter(x=>!x.open)};} // (only a shop open at this time of day can pop up: one closed now is missed, and comes to main street tomorrow)
 function popPlace(k){ // opens (or moves up) the pop-up hex k's surface earned: on its own bright hex, or for a Dark Remnant clear on the nearest open bright hex or free spot in the source hex
-  const c=cells[k];if(!c||!c.cap||!c.tally)return false;const dark=!isBright(k);if(!dark&&c.shop)return false;const P=popupFor(c.tally,c.missed),p=P.p;
+  const c=cells[k];if(!c||!c.cap||!c.tally)return false;const dark=!isBright(k);if(!dark&&c.shop)return false;const P=popupFor(c.tally,dark?(c.missed||[]).concat('gift'):c.missed),p=P.p; // (the Gift Shop: only on a bright clear)
   if(P.closed.length){c.missed=(c.missed||[]).concat(P.closed.map(x=>x.id));for(const x of P.closed){const has=hubPop.find(h=>h&&h.id===x.id)||Object.values(cells).map(c=>c.shop).find(o=>o&&o.id===x.id);if(has&&!has.soon&&has.rank>=x.rank)continue;hubPut(x.id,Math.max(x.rank,has&&has.soon?has.rank:0),1,k);} /* (one of each: not when one already stands at that rank or better) */
     feed(txt('map.shop.missed',P.closed.map(x=>SHOPS[x.id].n).join(', ')),txt('map.shop.missed_info'));} /* (this hex will not try them again: each is Coming soon on main street, open tomorrow) */
   if(!p)return false;let at=k;
@@ -1462,8 +1464,8 @@ function shopRise(o){ // a new pop-up: hidden while its hex's clear plays (clear
 function shopList(){ // every shop on the map now: main street hugging the source (two behind it, two in front), pop-ups on their bright clears
   const out=[],R=HEX*(T.mapStreetRing!=null?T.mapStreetRing:0.8);
   for(const id in SHOPS){const S=SHOPS[id],a=(S.a||0)*Math.PI/180;if(S.street)out.push({key:id,id,bk:S.bk||'s',wx:R*Math.cos(a),wy:R*Math.sin(a),yaw:streetYaw(S.a||0),lit:shopIsOpen(id,clock,run)});} // (turned so its front, or its back behind the source, runs along the source's edge)
-  hubPop.forEach((h,i)=>{if(!h)return;const a=HUB_SLOTS[i]*Math.PI/180,u=shopRise(h);out.push({key:'hub'+i,id:h.id,rank:h.rank,bk:SHOP_RANK_BLD[h.rank-1],wx:R*1.15*Math.cos(a),wy:R*1.15*Math.sin(a),rise:u,soon:!!h.soon,lit:u>=1&&!h.soon&&shopIsOpen(h.id,clock,run)});}); // (a little further out than main street) // pop-ups from dark clears, in the source hex
-  for(const k in cells){const c=cells[k];if(c.shop&&isBright(k)){const[wx,wy]=popSpot(c.q,c.r),u=shopRise(c.shop);out.push({key:k,id:c.shop.id,rank:c.shop.rank,bk:SHOP_RANK_BLD[c.shop.rank-1],wx,wy,rise:u,lit:u>=1&&shopIsOpen(c.shop.id,clock,run)});}}
+  hubPop.forEach((h,i)=>{if(!h||SHOPS[h.id].street)return;const a=HUB_SLOTS[i]*Math.PI/180,u=shopRise(h);out.push({key:'hub'+i,id:h.id,rank:h.rank,bk:SHOP_RANK_BLD[h.rank-1],wx:R*1.15*Math.cos(a),wy:R*1.15*Math.sin(a),rise:u,soon:!!h.soon,lit:u>=1&&!h.soon&&shopIsOpen(h.id,clock,run)});}); // (a little further out than main street) // pop-ups from dark clears, in the source hex
+  for(const k in cells){const c=cells[k];if(c.shop&&isBright(k)&&!SHOPS[c.shop.id].street){ /* (a pop-up from before it moved to main street: gone) */const[wx,wy]=popSpot(c.q,c.r),u=shopRise(c.shop);out.push({key:k,id:c.shop.id,rank:c.shop.rank,bk:SHOP_RANK_BLD[c.shop.rank-1],wx,wy,rise:u,lit:u>=1&&shopIsOpen(c.shop.id,clock,run)});}}
   return out;}
 let _rfl=null;
 function curLights(X,Y){ // the cursor's own light, on what is near it on the map (a duck, a bottle, your buoy: glints on metal and glass, light on a painted one), as on the ground

@@ -47,9 +47,9 @@ cursorNibOn,1,Pen nib,0,1,1,Cursor,theme,,,,"The plain cursor carries the Founta
 cursorNibScale,1,Nib size,0.4,2,0.05,Cursor,theme,,,,"The nib cursor (nib and microscope lens, drawn from Nib.svg) × its size against the cursor ring",
 cursorNibLensK,1,Nib lens size,0.5,2,0.05,Cursor,theme,,,,"The microscope lens below-left of the cursor ring (× its size in the art): it overlaps the ring, the ring hidden inside it",
 cursorNibLift,0.7,Nib hover lift,0,2,0.05,Cursor,theme,,,,"Over something it can shine, the nib hovers this far above the cursor's centre (× the ring's radius); a dab dips it to the centre and back",
-cursorNibDabMs,110,Nib dab ms,0,600,10,Cursor,theme,,,,"The least time a dab holds the nib down at the cursor's centre before it rises again (a double dab: twice; a wipe or mop: down while held)",
-cursorNibDipMs,45,Nib dip ease ms,5,300,5,Cursor,theme,,,,"How quickly the nib drops to the centre and rises back",
-cursorNibZoom,2.4,Nib zoom,1,6,0.1,Cursor,theme,,,,"How much the nib's lens magnifies what is under the cursor",
+cursorNibDabMs,110,Nib dab ms,0,600,10,Cursor,theme,,,,The least time a dab holds the nib down at the cursor's centre before it rises again (a double dab: twice; a wipe or mop: down while held),
+cursorNibDipMs,45,Nib dip ease ms,5,300,5,Cursor,theme,,,,How quickly the nib drops to the centre and rises back,
+cursorNibZoom,2.4,Nib zoom,1,6,0.1,Cursor,theme,,,,How much the nib's lens magnifies what is under the cursor,
 pauseStopMs,650,Stop ms,0,3000,50,Pause,gameplay,,,,Time to ramp from full speed down to a full stop when pausing,ms: ramp time from full speed down to a full stop
 pauseResumeMs,650,Resume ms,0,3000,50,Pause,gameplay,,,,Time to ramp from a full stop back up to full speed when resuming,ms: ramp time from a full stop back up to full speed
 evResumeMs,1800,After a card ms,0,6000,100,Pause,gameplay,,,,"Time to ramp back up to full speed after closing a discovery card (slower, to pick up where you were)",ms: the slower ramp back up after a discovery card closes
@@ -129,20 +129,21 @@ earnTextSize,13,Text size,8,28,1,Achievements & Pattern — Visual,theme,,,,"Siz
 collectGraceMs,260,Collect grace ms,0,1000,20,Achievements & Pattern — Visual,theme,,,,"A click still collects the target the cursor just slid off of, for this long after","ms: a click still collects the target the cursor just slid off of, for this long after (must cover the collect cursor's own fade-out, so the two never disagree)"
 netOn,1,Net,0,1,1,Net,theme,,,,"Collecting draws the net: its hoop the ring on hover, trailing behind; dipped and dragged while held (0: the old chevrons)",
 netScoopMs,750,Net scoop ms,60,2500,10,Net,theme,,,,"ms: a dab's scoop: splash in, drawn in, a pause, a half circle flip with a snap, collected as one catch (a double dab's takes 1.5×)",
-netDblMult,3,Net double dab reach ×,1,8,0.1,Net,theme,,,,"A double dab's reach (the pen nib's double dab picks the nearest; the net's takes every remnant of the kind clicked within this range, any number): this × Touch rad. The hoop swells just far enough to take them in",
-netRippleMs,900,Net ripple ms,100,3000,10,Net,theme,,,,"ms: a ripple from the net entering or leaving the surface",
+netDblMult,3,Net big hoop reach ×,1,8,0.1,Net,theme,,,,"Big hoop (BRiGHT IDEAS): a double dab's reach — the net takes every remnant of the kind clicked within this × Touch rad, any number. The hoop swells just far enough to take them in",
+netDbl2Mult,6,Net really big hoop reach ×,1,16,0.1,Net,theme,,,,"Really big hoop (BRiGHT IDEAS): a double dab's reach with it, × Touch rad",
+netRippleMs,900,Net ripple ms,100,3000,10,Net,theme,,,,ms: a ripple from the net entering or leaving the surface,
 netWakeSpd,24,Net wake spd,2,80,1,Net,theme,,,,"px a frame: wiping this fast or faster, the net streams straight behind and its wake (the pigment's bow wake, Wake tuners) takes its max-speed shape; slower, both ease to their min (the net drooping and waving) until, still, it hangs as on hover",
-netUnderA,0.45,Net under α,0,1,0.05,Net,theme,,,,"How visible the hoop and net are under the surface",
+netUnderA,0.45,Net under α,0,1,0.05,Net,theme,,,,How visible the hoop and net are under the surface,
 netLen,0.5,Net length,0.1,2,0.05,Net,theme,,,,"How long the net hangs back behind its hoop (× the cursor's radius, a knot; longer the faster it goes)",
-netMeshW,0.7,Net mesh width,0.1,3,0.05,Net,theme,,,,"The width of the net's mesh lines",
-netMeshA,0.5,Net mesh α,0,1,0.05,Net,theme,,,,"How strong the net's mesh is drawn",
-netLines,8,Net mesh lines,2,24,1,Net,theme,,,,"How many lines run from the hoop's rim to the net's bottom",
-netRimW,1.4,Net hoop width,0.3,4,0.05,Net,theme,,,,"The width of the hoop's rim",
-netWave,0.16,Net wave,0,0.6,0.01,Net,theme,,,,"How much the net waves (× the cursor's radius); wiping fast it streams straighter",
+netMeshW,0.7,Net mesh width,0.1,3,0.05,Net,theme,,,,The width of the net's mesh lines,
+netMeshA,0.5,Net mesh α,0,1,0.05,Net,theme,,,,How strong the net's mesh is drawn,
+netLines,8,Net mesh lines,2,24,1,Net,theme,,,,How many lines run from the hoop's rim to the net's bottom,
+netRimW,1.4,Net hoop width,0.3,4,0.05,Net,theme,,,,The width of the hoop's rim,
+netWave,0.16,Net wave,0,0.6,0.01,Net,theme,,,,How much the net waves (× the cursor's radius); wiping fast it streams straighter,
 netRippleRings,2,Net ripple rings,0,5,1,Net,theme,,,,"Rings in each ripple as the net goes in and comes out (a dab, a double dab: one ripple each way)",
 netSplashN,12,Net splash drops,0,40,1,Net,theme,,,,"Drops in the net's splash: one even ring, thrown out at once",
-netSplashR,2.2,Net splash reach,0.5,6,0.1,Net,theme,,,,"How far the splash's drops spread (× the hoop)",
-netSplashMs,520,Net splash ms,100,2000,10,Net,theme,,,,"How long the splash's drops fly",
+netSplashR,2.2,Net splash reach,0.5,6,0.1,Net,theme,,,,How far the splash's drops spread (× the hoop),
+netSplashMs,520,Net splash ms,100,2000,10,Net,theme,,,,How long the splash's drops fly,
 netGlowOutMs,150,Net glow out ms,10,2000,10,Net,theme,,,,"A wipe starting: how quickly the net's glow (its wake, its ripples) fades away",
 netGlowInMs,1400,Net glow in ms,10,6000,10,Net,theme,,,,"Wiping, once it has gathered: how slowly its glow comes back",
 metalReflA,0.55,Metal reflection,0,1,0.05,Achievements & Pattern — Visual,theme,,,,Scene reflection strength on Barrier edges and Gate posts,strength of the scene reflection on metal (Barrier edge / Gate posts)
@@ -208,7 +209,7 @@ triadMin,0.01,Triad min,0,0.2,0.01,Collapse Triggers,gameplay,,,,Min per-primary
 collMass,202,Mass req,0,500,1,Collapse Triggers,gameplay,,,,Min mass for collapse,
 collEnergy,1,Energy req,0,10,0.1,Collapse Triggers,gameplay,,,,Min energy for white (below=brown),
 mergeAbsorb,1,Feed absorb %,0,1,0.01,Energy & Merge,gameplay,,,,Energy kept when feeding on inert dust/dormant material (NOT a live-object merge — those always conserve 100% of both objects' energy),
-massScaleMin,1,Min mass (shared fallback),1,50,1,Mass → Size Curve,gameplay,,,,"Mass at/below which every object sits at its own min radius — only actually used now by any type that leaves its own mass-domain override below at its default","mass at/below which every object sits at its min radius (fallback for any type below that doesn't set its own mass domain)"
+massScaleMin,1,Min mass (shared fallback),1,50,1,Mass → Size Curve,gameplay,,,,Mass at/below which every object sits at its own min radius — only actually used now by any type that leaves its own mass-domain override below at its default,mass at/below which every object sits at its min radius (fallback for any type below that doesn't set its own mass domain)
 massScaleMax,4030,Max mass (shared fallback),10,5000,10,Mass → Size Curve,gameplay,,,,Mass at/above which every object sits at its own max radius — see Min mass note,mass at/above which every object sits at its max radius (see massScaleMin note)
 massCurvePow,1.7,Curve taper,1,4,0.1,Mass → Size Curve,gameplay,,,,"Shape between min and max mass: 1 = straight linear, higher = mostly linear early then tapers off approaching the max",>1 = mostly linear then taper near the cap; 1 = straight linear
 pigmentMassMin,13,Pigment min mass,1,200,1,Mass → Size Curve,gameplay,,,,Mass at/below which a Pigment sits at its own min radius (Pigm min/max below),
@@ -275,7 +276,7 @@ implodeNull,0.84,Implosion nullify,0,0.95,0.02,World,gameplay,,,,DYNAMISM implos
 fxNovaMix,0.22,FX nova colour mix,0,1,0.02,World,gameplay,,,,Share of an ECLIPSE / CRYSTALIZE Point nova particles that keep a colour instead of the opposite grey,share of a CRYSTALIZE / ECLIPSE Point's nova particles that keep their own colour instead of the opposite grey
 implodeMs,300,Implosion ms,200,3000,50,World,gameplay,,,,DYNAMISM implosion: how long the reverse nova ring takes to collapse inward,DYNAMISM implosion: ms the reverse nova ring takes to close
 fxTieMs,500,FX tie ms,200,8000,100,World,gameplay,,,,An object touched by an active CRYSTALIZE and an active ECLIPSE at once becomes a random pigment colour and ignores both for this long,ms an object stays its random pigment colour after being touched by an active CRYSTALIZE and an active ECLIPSE together
-maxActivePoints,15,Max shining,1,60,1,World,gameplay,,,,Cap on simultaneously shining points — exceeding it stops the oldest one shining (snake-style),
+maxActivePoints,1,Nib shine (base),1,60,1,World,gameplay,,,,"How many things the nib can have shining at once before it buys more at INFINITE LINE (Nib shine 5, 15, 30) — exceeding it stops the oldest one shining (snake-style)",
 wakeBudgetPerFrame,400,Wake budget,20,5000,20,World,gameplay,,,,Max particles woken per frame. Any past it are queued and woken over the next frames (never missed),cap on NEW active promotions per frame; a surge past it is queued (never dropped) and woken over the next frames
 wakeBusyBudget,60,Wake budget busy,5,1000,5,World,gameplay,,,,Wake budget while the simulation is running behind (Sim busy ms),…and the cap while the simulation is running behind (Sim busy ms)
 simBusyMs,12,Sim busy ms,4,40,1,World,gameplay,,,,"Smoothed sim time above which settling stops, glides and fade-ins finish at once, and waking uses the busy budget","ms: when the smoothed sim time is above this, eye-candy steps aside (no settling, glides / fade-ins finish at once) and waking spreads thinner"
@@ -308,7 +309,7 @@ novaBlastForce,30,Blast force,0,30,0.5,Death Nova — Behavior,gameplay,,,,Push 
 novaDebrisGrace,1500,Debris grace,0,3000,100,Death Nova — Behavior,gameplay,,,,ms blast debris ignores freshly spawned nova-ring particles,ms: blast-ejected debris ignores freshly spawned nova-ring particles
 novaFreshGrace,1500,Ring grace,0,5000,100,Death Nova — Behavior,gameplay,,,,ms freshly spawned nova-ring particles are immune to ambient absorption,ms: freshly spawned nova-ring particles are immune to ambient absorption
 effRadGrowMs,400,Radius grow ms,0,3000,50,Death Nova — Behavior,gameplay,,,,"How long an effect radius takes to ease out to a bigger scale (a pigment's from 0, its base); paired with Radius shrink ms. 0 = jumps. A Pulsing beam keeps its own animated pattern",
-effRadShrinkMs,300,Radius shrink ms,0,3000,50,Death Nova — Behavior,gameplay,,,,"How long an effect radius takes to ease in to a smaller scale (back to 0 for a pigment that stops). 0 = jumps",
+effRadShrinkMs,300,Radius shrink ms,0,3000,50,Death Nova — Behavior,gameplay,,,,How long an effect radius takes to ease in to a smaller scale (back to 0 for a pigment that stops). 0 = jumps,
 effFlowN,6,Effect arrows,0,16,1,Death Nova — Behavior,gameplay,,,,"Arrows drawn inside an effect radius, in its ring's colour, showing which way it moves what is in it (0 = none)",
 effFlowLen,0.3,Effect arrow len,0.05,1,0.05,Death Nova — Behavior,gameplay,,,,"An effect arrow's length at full force, × its radius (shorter as the colour's force K is turned down)",
 remSize,3,Diamond ◇,1,10,0.5,Remnant — Scale (gameplay: sets actual collision size),gameplay,,,,"Remnant diamond half-size (px) — this IS its collision radius, not just how it looks",
@@ -316,9 +317,9 @@ pulseRateMult,1,Pulse rate ×,0.1,5,0.1,Remnant — Visual,theme,,,,Speed multip
 remGlowR,4,Glow rad,0,20,1,Remnant — Visual,theme,,,,Remnant glow radius,
 remGlowA,0.3,Glow α,0,0.6,0.05,Remnant — Visual,theme,,,,Remnant glow alpha,
 remChromaR,4,Glow chroma ×,1,6,0.1,Remnant — Visual,theme,,,,"How far a remnant's or relic's chromatic glow reaches, × Glow rad (Bright, Neutron, Pulsing and every relic: the title splash's colours; a Magnetic one keeps its two colours, breathing)",
-remChromaA,0.7,Glow chroma α,0,1,0.05,Remnant — Visual,theme,,,,"How bright a remnant's or relic's chromatic glow is (the title splash's and The Point's light: its lobes drifting and blending toward white)",
+remChromaA,0.7,Glow chroma α,0,1,0.05,Remnant — Visual,theme,,,,How bright a remnant's or relic's chromatic glow is (the title splash's and The Point's light: its lobes drifting and blending toward white),
 chromaTurnS,33,Chroma turn s,4,120,1,Remnant — Visual,theme,,,,"Seconds for chromatic light (The Point, remnant and relic glows) to run once round the rainbow, as the title splash's glow turns",
-chromaBreatheMs,9000,Chroma breathe ms,1000,30000,250,Remnant — Visual,theme,,,,"How long chromatic light takes to breathe its vibrancy up and down (ever changing: two rates beating)",
+chromaBreatheMs,9000,Chroma breathe ms,1000,30000,250,Remnant — Visual,theme,,,,How long chromatic light takes to breathe its vibrancy up and down (ever changing: two rates beating),
 dimGlowRMult,3,Dim glow radius ×,0,10,0.25,Remnant — Visual,theme,,,,"Dim Remnant glow radius, as a multiplier over the remnant's own current (mass-scaled) radius","Dim Remnant glow radius, as a multiplier over the remnant's OWN current (mass-scaled) radius, so a big Dim Remnant's glow actually grows with it instead of staying a fixed size"
 dimGlowA,0.6,Dim glow α,0,1,0.05,Remnant — Visual,theme,,,,Dim Remnant glow strength,(glow radius is dimGlowRMult below)
 dimGlowRed,255,Dim glow R,0,255,5,Remnant — Visual,theme,,,,Dim Remnant glow colour — red,(glow radius is dimGlowRMult below)
@@ -334,6 +335,7 @@ remAlpha,1,Core α,0,1,0.1,Remnant — Visual,theme,,,,Remnant core alpha,
 remBounceNovaThresh,2.5,Nova thresh,0,4,0.1,Exotic Remnant,gameplay,,,,"Combined motion score (each object's speed/maxSpeed + rot/maxRotSpeed fraction, summed across both — 0=both still, 4=both maxed) a Bright/Exotic remnant collision needs to break into a nova instead of just bouncing",combined motion score (0..4) needed for a Bright/Exotic remnant collision to nova instead of bounce
 remBounceSpinK,0.1,Bounce spin,0,0.1,0.001,Exotic Remnant,gameplay,,,,"How much rotation a Bright/Exotic remnant picks up from a bounce collision, per unit of tangential impact speed",rotation gained per unit of tangential bounce-impact speed
 statusEnergy,2,Status energy,0,20,0.5,Exotic Remnant,gameplay,,,,"Energy a Dim / Bright / relic (or exotic remnant) gains for each status an exotic remnant gives it (Enlarged, Shrunk, colour, pulse). x10 when collected",energy a remnant gains per status from exotic remnants · share of a Point's / pigment's mass and energy a remnant keeps
+relicRefine,10,Relic refinery ×,1,100,1,Exotic Remnant,gameplay,,,,Relic refinery (BRiGHT IDEAS): a relic collected is worth this many times more,
 activeStatusMax,4,Exotic status max,0,8,1,Exotic Remnant,gameplay,,,,"How many distinct statuses (Enlarged, Shrunk, each colour pair, each Pulsing beat) an exotic remnant can stack from the other active types",energy a remnant gains per status from exotic remnants · share of a Point's / pigment's mass and energy a remnant keeps
 remMassFrac,0.2,Remnant mass %,0,1,0.01,Exotic Remnant,gameplay,,,,Share of its mass (and colour mix) a remnant keeps when made from a Point or a failed collapse,energy a remnant gains per status from exotic remnants · share of a Point's / pigment's mass and energy a remnant keeps
 remEnergyFrac,0.2,Remnant energy %,0,1,0.01,Exotic Remnant,gameplay,,,,Share of its energy a remnant keeps when made from a Point or a failed collapse,energy a remnant gains per status from exotic remnants · share of a Point's / pigment's mass and energy a remnant keeps
@@ -343,12 +345,12 @@ whirlExp,5.5,Depth curve,1,8,0.5,Exotic Remnant,gameplay,,,,Dim DEPTH: how expon
 whirlTwist,1.5,Depth twist,0,6,0.25,Exotic Remnant,gameplay,,,,Dim DEPTH: how far the picture is wound round at the centre (stretches things along the spiral),Dim DEPTH: radians the picture is wound round at the centre (the stretch of the spiral)
 dimWhirlR,120,Depth radius,20,400,5,Exotic Remnant,gameplay,,,,Dim item: radius of the stationary DEPTH it places,Dim item: radius (px) of the stationary WHIRL it holds open
 dimWhirlCost,1,Depth cost,1,1000,1,Exotic Remnant,gameplay,,,,"Dim spent to place a DEPTH, and again each interval while it stands",Dim spent per interval while the WHIRL is held
-dimWhirlIntervalMs,400,Depth interval ms,1,5000,1,Exotic Remnant,gameplay,,,,"How often the Dim cost is paid while a DEPTH stands (1 at the least: every millisecond)",
+dimWhirlIntervalMs,400,Depth interval ms,1,5000,1,Exotic Remnant,gameplay,,,,How often the Dim cost is paid while a DEPTH stands (1 at the least: every millisecond),
 neutronBurstMass,700,Burst mass,20,20000,20,Exotic Remnant,gameplay,,,,The mass the Neutron burst stands for: it sets the burst radius and blast just as it does for a real nova (no nebula particles are made),the mass the Neutron burst stands for — it sets the burst radius and blast exactly as it does for a nova
 neutronBurstEnergy,0.34,Burst energy,0.01,5,0.01,Exotic Remnant,gameplay,,,,The energy the Neutron burst stands for,
 brightStasisR,90,Balance half-side,20,400,5,Exotic Remnant,gameplay,,,,Bright item: radius of the stationary BALANCE it places,Bright item: radius (px) of the stasis area held under the cursor
 brightStasisCost,1,Balance cost,1,1000,1,Exotic Remnant,gameplay,,,,"Bright spent to place a BALANCE, and again each interval while it stands (as DEPTH: 1)",Bright spent per interval while stasis is held
-brightStasisIntervalMs,400,Balance interval ms,1,5000,1,Exotic Remnant,gameplay,,,,"How often the Bright cost is paid while a BALANCE stands (as DEPTH: 400; 1 at the least: every millisecond)",
+brightStasisIntervalMs,400,Balance interval ms,1,5000,1,Exotic Remnant,gameplay,,,,How often the Bright cost is paid while a BALANCE stands (as DEPTH: 400; 1 at the least: every millisecond),
 lightMergeGrow,0.01,Merged light size,0,0.3,0.01,Exotic Remnant,gameplay,,,,How much a merged light grows with the number of lights it stands for (0 = the size of one),"how much a merged light grows with how many it stands for (× log2 of the count, max ×3)"
 lightMergeGain,0.1,Merged light gain,0,1.5,0.05,Exotic Remnant,gameplay,,,,How much of the EXTRA radiance from the other lights in a merged group is added (a merged light is never dimmer than its brightest member; 1 = full accumulation),how much of the combined radiance a merged light keeps (1 = full accumulation)
 seedSpread,0.3,Seed spread,0,1,0.05,Exotic Remnant,gameplay,,,,"How far generated particles (starting world and nova regrowth) stray from their primary colour: 0 = exactly the primary, 1 = the whole colour range","how far generated particles may stray from their primary colour (0 = exactly the primary, 1 = the full colour range)"
@@ -404,17 +406,17 @@ pulsingArcWidth,0,Pulsing arc,0,3.2,0.1,Exotic Remnant,gameplay,,,,Angular width
 prismRemnantAddFrac,0.5,Prism add frac,0,2,0.05,Exotic Remnant,gameplay,,,,"Neutron/Pulsing only: how much of the target's own total mass the Prism's colour adds in, as a fraction (added to the existing composition, not a replacement — Magnetic and plain Bright targets always fully replace)",Neutron/Pulsing only: fraction of the target's own total mass that the Prism's colour adds into the existing composition
 invMaxBright,9999999,Max Bright,0,9999999,1,Inventory,gameplay,,,,Purse cap for collected Bright remnants,
 invMaxDim,9999999,Max Dim,0,9999999,1,Inventory,gameplay,,,,Purse cap for collected Dim remnants,
-invMaxDial,99,Max String,0,99,1,Inventory,gameplay,,,,Purse cap for collected Strings,
+invMaxDial,10,Max String,0,99,1,Inventory,gameplay,,,,Purse cap for collected Strings,
 invMaxLeash,10,Max Spindle,0,99,1,Inventory,gameplay,,,,Purse cap for collected Spindles,
-invMaxLens,5,Max Lens,0,99,1,Inventory,gameplay,,,,Purse cap for collected Lenses,
-invMaxPrism,5,Max Prism,0,99,1,Inventory,gameplay,,,,Purse cap for collected Prisms,
-invMaxGate,5,Max Gate,0,99,1,Inventory,gameplay,,,,Purse cap for collected Gates,
+invMaxLens,10,Max Lens,0,99,1,Inventory,gameplay,,,,Purse cap for collected Lenses,
+invMaxPrism,10,Max Prism,0,99,1,Inventory,gameplay,,,,Purse cap for collected Prisms,
+invMaxGate,10,Max Gate,0,99,1,Inventory,gameplay,,,,Purse cap for collected Gates,
 invMaxNeutron,9999,Max Neutron,0,9999,1,Inventory,gameplay,,,,Purse cap for collected Neutron remnants,
 invMaxMagnetic,9999,Max Magnetic,0,9999,1,Inventory,gameplay,,,,Purse cap for collected Magnetic remnants,
 invMaxPulsing,9999,Max Pulsing,0,9999,1,Inventory,gameplay,,,,Purse cap for collected Pulsing remnants,
 knotFadeMs,600,Knot fade ms,100,4000,100,Inventory,gameplay,,,,How long a point removed by a Knot takes to fade out,ms: how long a Knot-removed point takes to fade out
-invMaxKnot,5,Max Knot,0,99,1,Inventory,gameplay,,,,Purse cap for collected Knots,
-invMaxKey,5,Max Key,0,99,1,Inventory,gameplay,,,,Purse cap for collected Keys,
+invMaxKnot,10,Max Knot,0,99,1,Inventory,gameplay,,,,Purse cap for collected Knots,
+invMaxKey,10,Max Key,0,99,1,Inventory,gameplay,,,,Purse cap for collected Keys,
 orbitsPerDial,3,Orbits/Spindle,1,100,1,Inventory,gameplay,,,,Full orbits of one white point around another needed to earn 1 Spindle,full orbits of one white point around another needed to earn 1 String
 orbitDistTolerance,0.1,Orbit range,0.05,4,0.05,Inventory,gameplay,,,,"How much the orbit radius may drift (fraction of the radius) and still count as orbiting — raise it to accept wider, looser orbits","fraction the orbit radius may drift by frame-to-frame and still count as ""orbiting"""
 flockSecondsPerLeash,3,String seconds,1,60,1,Inventory,gameplay,,,,"Seconds a trailing point must follow a leading one (same speed and spin, steady distance) to earn 1 String",continuous seconds a flock must hold together to earn 1 Spindle
@@ -426,12 +428,6 @@ leashFadeInMs,100,String fade ms,0,5000,100,Inventory,gameplay,,,,How long the l
 invMaxWeave,10,Max Weave,0,99,1,Inventory,gameplay,,,,Purse cap for collected Weaves,
 chestOn,1,Chest,0,1,1,Inventory,gameplay,,,,"1: remnants are held in the treasure chest (its capacities below, bought at BRiGHT IDEAS); 0: the Max tuners above",
 chestStart,999,Chest start,1,9999999,1,Inventory,gameplay,,,,"The starting chest: Bright, Dim and exotic remnants share this much, each at the value it was collected at",
-chestRem,999,Chest remnants,1,9999999,1,Inventory,gameplay,,,,"Compartmented chest: Bright and Dim hold this much each",
-chestExo,99,Chest exotic,1,9999999,1,Inventory,gameplay,,,,"Compartmented chest: each exotic remnant holds this much",
-chestExoUp,999,Chest exotic up,1,9999999,1,Inventory,gameplay,,,,"Exotic compartments: each exotic remnant holds this much",
-chestBriUp,99999,Chest bright up,1,9999999,1,Inventory,gameplay,,,,"Bright compartments: Bright and Dim hold this much each",
-chestEnergyMult,10,Chest energy ×,1,100,1,Inventory,gameplay,,,,"Energy Value: every capacity × this",
-chestVaultMult,10,Chest vault ×,1,100,1,Inventory,gameplay,,,,"Bright vault: Bright × this again",
 stringHomeR,60,String homing R,0,300,5,Inventory,gameplay,,,,String shots lock onto the nearest object within this distance of where they were aimed and keep following it (0 = off),Spindle unwind: mass per tick · ms per tick · widest spread · ms still to reach it
 unwindPct,5,Unwind % per tick,0.5,50,0.5,Inventory,gameplay,,,,Spindle: share of its starting mass a Point / Pigment gives back each tick — every size unwinds in the same time (100 ÷ % ticks × tick ms),Spindle unwind: mass per tick · ms per tick · widest spread · ms still to reach it
 unwindMs,200,Unwind tick ms,1,1000,1,Inventory,gameplay,,,,Spindle: ms per unwind tick,Spindle unwind: mass per tick · ms per tick · widest spread · ms still to reach it
@@ -496,7 +492,7 @@ remEnScaleE,5,Rem scale energy,0.1,20,0.1,"Enhancements — scale, fields, strai
 bhWakeMinVar,0.3,DR min spike var,0,0.9,0.05,"Enhancements — scale, fields, straightening",gameplay,,,,Dark Remnant spikes shorter than the max height vary by +/- this fraction,
 kStraighten,6,THROW/CATCH straighten,0,20,0.5,"Enhancements — scale, fields, straightening",gameplay,,,,How fast THROW / CATCH cancel sideways drift and spin so targets travel straight in or out,
 dimWhirlRMin,30,Depth min radius,5,400,5,"Enhancements — scale, fields, straightening",gameplay,,,,DEPTH radius from the lightest Dim remnant (the heaviest gives Depth radius),
-brightStasisRMin,30,Balance min half-side,5,400,5,"Enhancements — scale, fields, straightening",gameplay,,,,"BALANCE size from a Bright Remnant with no energy (one of Balance energy max or more gives Balance half-side)",
+brightStasisRMin,30,Balance min half-side,5,400,5,"Enhancements — scale, fields, straightening",gameplay,,,,BALANCE size from a Bright Remnant with no energy (one of Balance energy max or more gives Balance half-side),
 brightStasisEMax,1,Balance energy max,0.05,10,0.05,"Enhancements — scale, fields, straightening",gameplay,,,,"A Bright Remnant's energy that opens the biggest BALANCE (Balance half-side); less energy, smaller, down to Balance min half-side",
 fieldGrowMs,600,Field grow ms,0,3000,50,"Enhancements — scale, fields, straightening",gameplay,,,,How long the consumed remnant takes to grow into its DEPTH / BALANCE,
 globeRPerSpeed,60,Globe px per speed,10,150,5,"Enhancements — scale, fields, straightening",gameplay,,,,String globe radius = the pair speed x this,
@@ -590,9 +586,9 @@ riftWMax,80,Rift width max px,10,300,2,Rift,gameplay,,,,The widest a Rift's blac
 riftCrackMs,260,Rift crack ms,200,5000,50,Rift,gameplay,,,,"How long each crack takes to run its quarter of the screen (and the last, the whole crack, before the Rift opens)",
 riftStageMs,3000,Rift stage ms,250,20000,250,Rift,gameplay,,,,"While the mass that cracked an area holds, the next crack (a quarter of the screen further, branching off at a slight angle) forms after this long; the fourth fills the screen and the Rift opens",
 riftSealMs,1500,Rift seal ms,100,20000,100,Rift,gameplay,,,,"Once an area's mass drops below Rift mass its crack seals back, one crack every this long (it picks up again if the mass comes back)",
-riftBend,5,Rift stage bend °,0,30,1,Rift,gameplay,,,,"How many degrees each new stage of a forming crack may turn from the last (a crack runs a quarter of its way to the edge per stage; the fourth reaches the edges)",
+riftBend,5,Rift stage bend °,0,30,1,Rift,gameplay,,,,How many degrees each new stage of a forming crack may turn from the last (a crack runs a quarter of its way to the edge per stage; the fourth reaches the edges),
 riftPinch,0.25,Rift pinch,0.05,1,0.05,Rift,theme,,,,"How wide a Rift is in its middle (× its width): pinched thin there, widening toward its ends; on the surface and in the Surface Map's scars",
-riftOpenMs,120,Rift opening ms,20,2000,10,Rift,gameplay,,,,"How long the crack takes to snap open into the black stripe (faster than the wave it sends out)",
+riftOpenMs,120,Rift opening ms,20,2000,10,Rift,gameplay,,,,How long the crack takes to snap open into the black stripe (faster than the wave it sends out),
 prefabEdgeBuf,20,Prefab edge buffer px,0,200,2,Build mode,gameplay,,,,"How far past the screen's edge a prefab (or a Move / Duplicate) placed at an edge is pushed, to wait until its motion carries it on",
 prefabEdgeW,24,Prefab edge px,4,60,1,Build mode,gameplay,,,,"How far a placed prefab's edge (Build mode) reaches past its parts: the band drawn round them, and how close to it a Select click picks the whole prefab",
 prefabMax3,1,Prefabs at Twilight,0,8,1,Build mode,gameplay,,,,"The most prefabs that can appear on a surface entered at Twilight (from 0 up to it: how likely each count is, Prefab curve at Twilight)",
@@ -612,7 +608,7 @@ prefabCurve21,1.6,Prefab curve at Night,-4,4,0.1,Build mode,gameplay,,,,"How lik
 prefabMax24,1,Prefabs at Midnight,0,8,1,Build mode,gameplay,,,,"The most prefabs that can appear on a surface entered at Midnight (from 0 up to it: how likely each count is, Prefab curve at Midnight)",
 prefabCurve24,1.6,Prefab curve at Midnight,-4,4,0.1,Build mode,gameplay,,,,"How likely each count of prefabs is at Midnight: each as likely as (count+1)^this (0: every count alike; 1.6 with up to 1: none 25%, one 75%; below 0 favours fewer)",
 prefabPhaseMs,900,Prefab phase ms,50,6000,50,Build mode,gameplay,,,,"How long every prefab (and part) takes to phase in, and the same to phase out",
-prefabOpenBias,2,Prefab open bias,0,8,0.25,Build mode,gameplay,,,,"How strongly a prefab tends to phase in where the nebula is thinnest (0: anywhere; it can always still go over the nebula)",
+prefabOpenBias,2,Prefab open bias,0,8,0.25,Build mode,gameplay,,,,How strongly a prefab tends to phase in where the nebula is thinnest (0: anywhere; it can always still go over the nebula),
 mapHexSize,34,Hex size,20,90,1,Surface Map — the map and camera,map,,,,Radius (px) of a Surface Map hex,
 mapTilt,32,Map tilt°,0,60,1,Surface Map — the map and camera,map,,,,How far the Surface Map leans away (0 = straight down),
 mapPersp,1400,Map perspective px,400,4000,50,Surface Map — the map and camera,map,,,,Viewing distance for the tilt: smaller = stronger perspective,
@@ -628,7 +624,8 @@ mapCollapseMs,1400,Day end collapse ms,200,5000,100,Surface Map — the day,map,
 mapWreckPerRing,0.12,Wreck chance a ring,0,1,0.01,Surface Map — the day,map,,,,"At Midnight's collapse each thing on your buoy's mounts may go overboard: this chance for each ring you were from the Point (an anchor, rudder or motor on the hull: none)",
 mapWreckMax,0.9,Wreck chance max,0,1,0.01,Surface Map — the day,map,,,,"The most a thing on your mounts can be at risk of going overboard at Midnight, however far out",
 mapWreckHold,0.1,Mount hold base,0,1,0.01,Surface Map — the day,map,,,,"How likely a thing on any mount holds on through a wreck before its mount is strengthened (Bright Ideas, then Custom Hulls: up to 100%)",
-mapWreckRift,0.5,Rift wreck chance,0,1,0.01,Surface Map — the day,map,,,,"Tearing a Rift wrecks your buoy (unless at the helm with a rudder): this chance each thing on your mounts goes overboard (then its mount's hold)",
+mapTrollMult,10,Trolling net ×,0,100,1,Surface Map — the day,map,,,,The Trolling net (a hull mount): each bright clear you sail across pays its value × this in Bright,
+mapWreckRift,0.5,Rift wreck chance,0,1,0.01,Surface Map — the day,map,,,,Tearing a Rift wrecks your buoy (unless at the helm with a rudder): this chance each thing on your mounts goes overboard (then its mount's hold),
 mapSunMs,4500,Light shift ms,0,10000,100,Surface Map — the day,map,,,,"How long the light (on the ducks, the bottles, their ripples and wakes) takes to move round to a new time of day",
 mapZoom,1,Hex zoom,0.25,8,0.05,Surface Map — hex pictures,map,,,,How much of its surface a hex shows: 1 = the middle square of the screen; higher zooms in,
 mapClearBlur,0.6,Clear edge blur,0,1.5,0.05,Surface Map — hex pictures,map,,,,How far a bright cleared hex blurs into its neighbours (× hex size),
@@ -654,9 +651,9 @@ mapDuckRefl,0.4,Duck reflection,0,1,0.05,Surface Map — lake and bottles,map,,,
 mapSpotMs,30000,Buoy spot light lap ms,4000,60000,500,Surface Map — your buoy,map,,,,How long your buoy's spot light takes to circle the hexes next to it once (clockwise),
 mapSpotTurn,1.6,Buoy spot light swing rad/s,0.2,8,0.1,Surface Map — your buoy,map,,,,"How fast the spot light swings onto a hex you point at, and back (one steady rate, the short way round)",
 mapBuoySway,0.09,Buoy sway,0,0.4,0.01,Surface Map — your buoy,map,,,,How far your buoy rocks as it floats (radians),
-mapEnterMs,3000,Enter a surface ms,0,6000,50,Surface Map — your buoy,map,,,,"How long your buoy takes to dunk and the camera to go down into the hex before its surface fades in",
+mapEnterMs,3000,Enter a surface ms,0,6000,50,Surface Map — your buoy,map,,,,How long your buoy takes to dunk and the camera to go down into the hex before its surface fades in,
 mapBottleMs,90000,Bottle every ms,5000,600000,5000,Surface Map — lake and bottles,map,,,,About how long between messages in a bottle floating onto the lake (one at a time),
-mapWaterMax,6,Water max,1,30,1,Surface Map — water,map,,,,"How many drinks the fresh water barrel holds: every move drinks one",
+mapWaterMax,6,Water max,1,30,1,Surface Map — water,map,,,,How many drinks the fresh water barrel holds: every move drinks one,
 mapBottleDuck,0.25,Bottle duck chance,0,1,0.05,Surface Map — lake and bottles,map,,,,Chance a message in a bottle holds a duck instead of a letter (opening it adds the duck to your collection),
 mapStreetSize,0.75,Shop size,0.15,1.5,0.01,Surface Map — shops,map,,,,"Width of a main street shop (× hex size); every shop, pop-ups too, is drawn at this scale",
 mapStreetRing,0.8,Main street ring,0,2,0.05,Surface Map — shops,map,,,,"How far from the centre of the Point the main street shops stand (× hex size): two behind it, two in front",
@@ -714,13 +711,13 @@ recFind,0.12,Record in the trash,0,1,0.01,Music,map,,,,"The chance an opened can
 mapChestOpenMs,1600,Chest open ms,200,6000,100,Commodities,map,,,,How long an opened chest glows before it sinks,
 mapChestBurnMs,2600,Chest burn ms,500,8000,100,Commodities,map,,,,How long an emptied chest takes to sink and burn away,
 evSlow,0.5,Event slow,0,0.9,0.05,Events — capture,gameplay,,,,"How much an event's capture slows the game, added to the novas' slows (0.5 = half speed)",
-inkCharMs,14,Pen: ms a letter,2,60,1,Events — capture,gameplay,,,,"How long the pen takes over each letter as something discovered is written in (a picture counts as ten letters)",
+inkCharMs,14,Pen: ms a letter,2,60,1,Events — capture,gameplay,,,,How long the pen takes over each letter as something discovered is written in (a picture counts as ten letters),
 inkMaxMs,4200,Pen: longest writing ms,500,12000,100,Events — capture,gameplay,,,,"The longest a page or a card takes to be written in, however much it holds (a button or a feed line: 900 ms at most)",
 inkSketchMs,2400,Pen: drawing ms,300,8000,100,Events — capture,gameplay,,,,"How long a Journal page's drawing takes to be drawn, line by line",
 evPreMs,600,Event pre ms,0,3000,50,Events — capture,gameplay,,,,How much of the moment before an event its recording keeps,
 evStillMs,700,Picture: hold first ms,0,4000,50,Events — capture,gameplay,,,,"Pointed at, how long a Journal picture's scene holds on its last frame before it plays from its beginning",
-evReplayZoomMax,1.6,Replay: max zoom,1,4,0.1,Events — capture,gameplay,,,,"The most a live recording is enlarged (screen pixels per pixel of the game): more and it shows pixels",
-evReplayPauseMs,1500,Scene: pause ms,0,8000,100,Events — capture,gameplay,,,,"How long a live scene (a recording or a demo) holds on its last frame before it plays again",
+evReplayZoomMax,1.6,Replay: max zoom,1,4,0.1,Events — capture,gameplay,,,,The most a live recording is enlarged (screen pixels per pixel of the game): more and it shows pixels,
+evReplayPauseMs,1500,Scene: pause ms,0,8000,100,Events — capture,gameplay,,,,How long a live scene (a recording or a demo) holds on its last frame before it plays again,
 evCaptureMs,2400,Event capture ms,300,8000,100,Events — capture,gameplay,,,,How long an event is framed and recorded as it unfolds,
 evSoloMs,1600,Event solo ms,0,8000,100,Events — capture,gameplay,,,,"If no other event happens for this long, the game pauses and its card shows (else it goes to the discovery desk)",
 evSnapMs,250,Event snapshot ms,50,1000,10,Events — capture,gameplay,,,,"How often the surface's state is kept for a recording (the moment before an event, Event pre ms, is played from the nearest)",
@@ -730,25 +727,25 @@ evAdoptR,90,Event follow px,10,400,5,Events,gameplay,,,,"When an event's subject
 evZoomIn,2.2,Event zoom in,1,6,0.1,Events,gameplay,,,,"How far an event's frame, and its replay, close in on its subject (times its frame; never a whole-surface event)",
 evZoomInMs,1400,Event zoom in ms,100,6000,50,Events,gameplay,,,,"How long that closing in takes, from when it happens",
 evFrameS,55,Event frame small,20,400,5,Events — capture,theme,,,,"Half the size of a small event's frame (most events: what matters is small, whatever went on round it)",
-evFrameL,160,Event frame large,40,1000,10,Events — capture,theme,,,,"Half the size of a large event's frame (a Dark Remnant); a Rift's is the whole screen",
+evFrameL,160,Event frame large,40,1000,10,Events — capture,theme,,,,Half the size of a large event's frame (a Dark Remnant); a Rift's is the whole screen,
 evEmphMs,500,Event emphasis ms,0,3000,50,Events — capture,theme,,,,How long the frame shines brighter as the event first triggers,
-cabinMoveMs,1400,Below deck move ms,300,5000,100,Surface Map — below deck,map,,,,"How long the climb down the ladder (and back up) takes",
+cabinMoveMs,1400,Below deck move ms,300,5000,100,Surface Map — below deck,map,,,,How long the climb down the ladder (and back up) takes,
 cabinLook,0.14,Below deck look,0,0.5,0.01,Surface Map — below deck,map,,,,How far the view leans toward the cursor,
 cabinSway,0.018,Below deck sway,0,0.1,0.002,Surface Map — below deck,map,,,,How much the room rocks with the buoy on the water,
 cabinFov,1.5,Below deck field of view,0.8,2.2,0.05,Surface Map — below deck,map,,,,"How wide the view is (radians, before the fisheye)",
-cabinFish,0.35,Below deck fisheye,0,1,0.02,Surface Map — below deck,map,,,,"How much the view bows outward at its edges: more of the room in view (0 = none)",
-cabinTilt,0.12,Below deck look down,0,0.8,0.01,Surface Map — below deck,map,,,,"How far the view looks down at the desk at rest (radians); never past the desk drawer's bottom",
-cabinEyeY,1.3,Below deck eye height,0.9,2.2,0.05,Surface Map — below deck,map,,,,"How high the view is: seated at the desk (its top at 0.75)",
+cabinFish,0.35,Below deck fisheye,0,1,0.02,Surface Map — below deck,map,,,,How much the view bows outward at its edges: more of the room in view (0 = none),
+cabinTilt,0.12,Below deck look down,0,0.8,0.01,Surface Map — below deck,map,,,,How far the view looks down at the desk at rest (radians); never past the desk drawer's bottom,
+cabinEyeY,1.3,Below deck eye height,0.9,2.2,0.05,Surface Map — below deck,map,,,,How high the view is: seated at the desk (its top at 0.75),
 cabinUiPad,0.03,Below deck foot room,0,0.3,0.01,Surface Map — below deck,map,,,,"Extra room (radians) between the desk drawer's bottom and the feed and dock at the screen's foot, when looking all the way down",
-cabinEyeZ,-2.15,Below deck seat,-2.9,-1.9,0.05,Surface Map — below deck,map,,,,"How far back from the desk you sit (the desk's near edge is at -1.98): close enough to see the pool over it",
+cabinEyeZ,-2.15,Below deck seat,-2.9,-1.9,0.05,Surface Map — below deck,map,,,,How far back from the desk you sit (the desk's near edge is at -1.98): close enough to see the pool over it,
 cabinBloom,2.2,Below deck bloom,0,6,0.1,Surface Map — below deck,map,,,,"How bright the glow off the tools' white and the hoard is (only what can be seen of them glows; it spreads past them, overlapping to white), and the hoard's chromatic glow with it",
 buoyBump,0.012,Buoy relief,0,0.06,0.001,Surface Map — below deck,map,,,,"How deep the buoy's materials read (its planks, brushed metal, rivets): their relief under the light",
 cabinBloomR,2.2,Below deck bloom spread,0.5,6,0.1,Surface Map — below deck,map,,,,"How far that glow spreads (see-through at its edges), the hoard's chromatic glow with it",
 cabinRes,1,Below deck resolution,0.5,2,0.05,Surface Map — below deck,map,,,,"How many pixels below deck is drawn at, times the screen (above 1: smoother edges, slower; below 1: faster, softer)",
-cabinLookDown,0.75,Below deck look down,0,1.4,0.05,Surface Map — below deck,map,,,,"How far the view tips down as the cursor goes toward the bottom (radians at the very bottom): far enough to see the whole desk map from where you stand",
-loadBgInMs,450,Black fade in ms,0,2000,10,Loading screen,theme,,,,"How long the loading screen's black takes to fade in",
-loadSpinDelayMs,500,Spinner delay ms,0,3000,10,Loading screen,theme,,,,"How long the black shows on its own before the ∞ spinner and its words fade in (a quick load never shows them)",
-loadSpinInMs,300,Spinner fade in ms,0,2000,10,Loading screen,theme,,,,"How long the ∞ spinner and its words take to fade in",
-loadSpinOutMs,250,Spinner fade out ms,0,2000,10,Loading screen,theme,,,,"Once the scene is ready: how long the spinner takes to fade out",
-loadBgOutMs,250,Black fade out ms,0,2000,10,Loading screen,theme,,,,"Then: how long the black takes to fade off the ready scene",
-loadMinMs,250,Least shown ms,0,2000,10,Loading screen,theme,,,,"The least time the loading screen stays up once shown",
+cabinLookDown,0.75,Below deck look down,0,1.4,0.05,Surface Map — below deck,map,,,,How far the view tips down as the cursor goes toward the bottom (radians at the very bottom): far enough to see the whole desk map from where you stand,
+loadBgInMs,450,Black fade in ms,0,2000,10,Loading screen,theme,,,,How long the loading screen's black takes to fade in,
+loadSpinDelayMs,500,Spinner delay ms,0,3000,10,Loading screen,theme,,,,How long the black shows on its own before the ∞ spinner and its words fade in (a quick load never shows them),
+loadSpinInMs,300,Spinner fade in ms,0,2000,10,Loading screen,theme,,,,How long the ∞ spinner and its words take to fade in,
+loadSpinOutMs,250,Spinner fade out ms,0,2000,10,Loading screen,theme,,,,Once the scene is ready: how long the spinner takes to fade out,
+loadBgOutMs,250,Black fade out ms,0,2000,10,Loading screen,theme,,,,Then: how long the black takes to fade off the ready scene,
+loadMinMs,250,Least shown ms,0,2000,10,Loading screen,theme,,,,The least time the loading screen stays up once shown,

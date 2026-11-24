@@ -15,12 +15,12 @@ dusk,clock,Dusk,2000,,1,,"{""clock"":18}",,,"Each time of day away costs more (�
 night,clock,Evening,2000,,1,,"{""clock"":21}",,,"Each time of day away costs more (×2, ×3, ×5, ×8, ×13, ×21, ×34)"
 midnight,clock,Midnight,2000,,1,,"{""clock"":24}",,,"Each time of day away costs more (×2, ×3, ×5, ×8, ×13, ×21, ×34)"
 alarm,clock,Alarm clock,5000,,1,,"{""up"":1}",,,"Kept (on your gadget shelf): Rest any time, and sleep two times of day"
-wakecall,clock,Wake-up call,150,,1,,"{""wake"":1}",,,"Tomorrow you wake at Dawn instead of Morning"
+wakecall,clock,Wake-up call,150,,1,,"{""wake"":1}",,,Tomorrow you wake at Dawn instead of Morning
 yesterday,clock,"Yesterday, this time",250000,,1,,"{""clock"":""yesterday""}",,,The map back as it was at the start of this time of day yesterday (you where you were)
 tomorrow,clock,"Tomorrow, this time",250000,,1,,"{""clock"":""tomorrow""}",,,"A clean new map, a day on, at this time of day, before any move (you beside main street)"
-xb_dim_100,xact,Dim,100,bright,1,,"{""xbuy"":""dim""}",,,
-xb_dim_10000,xact,Dim,10000,bright,1,,"{""xbuy"":""dim""}",,,
-xb_dim_1000000,xact,Dim,1000000,bright,1,,"{""xbuy"":""dim""}",,,
+xb_dim_100,line,Ink,100,bright,1,,"{""xbuy"":""dim""}",,,"Dim, by the lot (it was XACT change’s)"
+xb_dim_10000,line,Ink,10000,bright,1,,"{""xbuy"":""dim""}",,,"Dim, by the lot (it was XACT change’s)"
+xb_dim_1000000,line,Ink,1000000,bright,1,,"{""xbuy"":""dim""}",,,"Dim, by the lot (it was XACT change’s)"
 xb_magnetic_100,xact,Magnetic,100,bright,1,,"{""xbuy"":""magnetic""}",,,
 xb_magnetic_10000,xact,Magnetic,10000,bright,1,,"{""xbuy"":""magnetic""}",,,
 xb_magnetic_1000000,xact,Magnetic,1000000,bright,1,,"{""xbuy"":""magnetic""}",,,
@@ -47,20 +47,18 @@ keychain,gift,Key Chain,199999,,1,,"{""souv"":1}",,,
 hat,gift,Hat,1999999,,1,,"{""souv"":1}",,,
 stuffy,gift,Stuffy,9999999,,1,,"{""souv"":1}",,,
 tshirt,gift,T-shirt,9999999,,1,,"{""souv"":1}",,,
-vinyl_e,gift,"Souvenir vinyl: Strobe Lake",49999,,1,,"{""souv"":1,""rec"":""rec_e4""}",,,"A souvenir: the EDM record, yours on every buoy from now on (it plays on your record player)"
-vinyl_s,gift,"Souvenir vinyl: Lantern Waltz",49999,,1,,"{""souv"":1,""rec"":""rec_s2""}",,,"A souvenir: the symphony record, yours on every buoy from now on (it plays on your record player)"
+vinyl_e,gift,Souvenir vinyl: Strobe Lake,49999,,1,,"{""souv"":1,""rec"":""rec_e4""}",,,"A souvenir: the EDM record, yours on every buoy from now on (it plays on your record player)"
+vinyl_s,gift,Souvenir vinyl: Lantern Waltz,49999,,1,,"{""souv"":1,""rec"":""rec_s2""}",,,"A souvenir: the symphony record, yours on every buoy from now on (it plays on your record player)"
 cl4,bright,Constellation light limit 3>4,3000,,1,,"{""up"":1}",,,Constellations are formed by leashes
 sh4,bright,Item shape light limit 3>4,5000,,1,,"{""up"":1}",,,"Item shapes: Prisms, Knots, Lens and Gates"
 c_gate,bright,Gates on the Center,1000,pulsing,1,,"{""up"":1}",,,
-cap_gate,bright,Max Gates 1>5,200,neutron,1,,"{""cap"":{""gate"":5}}",,,
-p_dim,bright,Dim as an item from the pouch,100,magnetic,1,,"{""up"":1}",,,
-p_bright,bright,Bright as an item from the pouch,100,magnetic,1,,"{""up"":1}",,,
+p_dim,line,Deeper Well,100,magnetic,1,,"{""up"":1}",,,"DEPTH: a Dim Remnant from the pouch opens a WHIRL that holds what enters it (without it, the pouch’s Dim cannot be used)"
+p_bright,bright,Freeze frame,100,magnetic,1,,"{""up"":1}",,,"BALANCE: a Bright Remnant from the pouch freezes a square of the surface (without it, the pouch’s Bright cannot be used)"
 cl5,bright,Constellation light limit 4>5,30000,,2,,"{""up"":1}",cl4,,
 sh5,bright,Item shape light limit 4>5,50000,,2,,"{""up"":1}",sh4,,
 spd05,bright,0.5 × game speed,50000,,2,,"{""up"":1}",,,
 spd2,bright,2.0 × game speed,50000,,2,,"{""up"":1}",,,
 c_key,bright,Keys on the Center,5000,pulsing,2,,"{""up"":1}",,,
-cap_key,bright,Max Keys 1>5,5000,neutron,2,,"{""cap"":{""key"":5}}",,,
 cl_lens,bright,Fill constellations with Lens,200000,,2,,"{""up"":1}",,,
 cl_gate,bright,Fill constellations with Gates,200000,,2,,"{""up"":1}",,,
 sh_lens,bright,Fill item shapes with Lens,200000,,2,,"{""up"":1}",,,
@@ -83,13 +81,10 @@ secret,dim,A Card of Secrets,50,bright,1,,"{""draw"":""secret""}",,,Pick one of 
 fortune,dim,Fortune Telling,200,bright,1,,"{""draw"":""fortune""}",,,"Pick one of three face-down cards: a good fortune or a dim one (50 / 50), for tomorrow · once a day"
 wonder,dim,A Daily Wonder,2000,bright,1,,"{""draw"":""daily""}",,,"Draw three powerful bonuses, each with a catch, and keep one for a full day (until this time of day tomorrow) · once a day"
 recprize,dim,Carnival prize: a record,500,bright,1,,"{""recprize"":1}",,,"Win a record you do not have (EDM or symphony), at random · while there are any left to win"
-cap_dial1,neutron,Max Strings 5>10,10,,1,,"{""cap"":{""dial"":10}}",,,
-cap_knot,neutron,Max Knots 1>5,100,,1,,"{""cap"":{""knot"":5}}",,,
 s_knot,neutron,Knots on Sectors,100,pulsing,1,,"{""up"":1}",,,
 s_lens,neutron,Lens on Sectors,200,,2,,"{""up"":1}",,,
-cap_lens,neutron,Max Lens 1>5,200,,2,,"{""cap"":{""lens"":5}}",,,
 c_knot,neutron,Knots on the Center,1000,pulsing,2,,"{""up"":1}",,,
-p_neu,neutron,Neutron as an item from the pouch,500,magnetic,2,,"{""up"":1}",,,
+p_neu,neutron,Neutron as an item from the pouch,500,magnetic,2,,"{""up"":1}",,,DYNAMISM: the pouch’s Neutron can be used
 c_lens,neutron,Lens on the Center,2000,,3,,"{""up"":1}",,,
 w_lens_s,neutron,Wrap Lens with item shapes,500000,bright,3,,"{""up"":1}",,,
 radii,neutron,Protractor,2000,,2,,"{""disc"":""mode_radii""}",,,"A gadget for your shelf: effect radii (Modes → Radii, and the R read-out)"
@@ -100,15 +95,11 @@ spool,neutron,Spool of chromatic yarn,250,,1,,"{""up"":1}",,,"Gear for below dec
 loom,neutron,Weaving Loom,1000,,2,,"{""up"":1}",,,"Gear for below deck: you see Patterns coming, the star of points holding still for a Weave, drawn in as it holds"
 pure_neu,neutron,Pure Density,9999,,3,,"{""up"":1}",,,
 d_neu,neutron,Random Duck Variant,9999,,3,,"{""duck"":""Size""}",,,A size variant (dupes possible)
-act5,line,Active maximum 1>5,10,magnetic,1,,"{""up"":1}",,,
-sweep,line,Sweep selection,20,magnetic,1,,"{""up"":1}",,,
-blotch,line,Blotch selection,50,magnetic,1,,"{""up"":1}",,,
+act5,line,Nib shine 1>5,10,magnetic,1,,"{""cap"":{""shine"":5}}",,,Up to 5 things shine at once (the oldest gives way)
 s_prism,corner,Prisms on Sectors,50,magnetic,1,,"{""up"":1}",,,
-act15,line,Active maximum 5>15,100,magnetic,2,,"{""up"":1}",act5,,
-cap_prism,corner,Max Prisms 1>5,500,magnetic,2,,"{""cap"":{""prism"":5}}",,,
-p_mag,magnetic,Magnetic as an item from the pouch,500,,2,,"{""up"":1}",,,
+act15,line,Nib shine 5>15,100,magnetic,2,,"{""cap"":{""shine"":15}}",act5,,Up to 15 things shine at once
+p_mag,magnetic,Magnetic as an item from the pouch,500,,2,,"{""up"":1}",,,HARMONY: the pouch’s Magnetic can be used
 c_prism,corner,Prisms on the Center,500,magnetic,2,,"{""up"":1}",,,
-act20,line,Active maximum 15>20,1000,magnetic,3,,"{""up"":1}",act15,,
 dk_hue,dim,Dark Remnant takes the predominant hue,2000,magnetic,3,,"{""up"":1}",,,
 dk_rainbow,dim,Rainbow Dark Remnant when the balance is bright,5000,magnetic,3,,"{""up"":1}",,,
 pure_mag,magnetic,Pure Harmony,9999,,3,,"{""up"":1}",,,
@@ -116,17 +107,13 @@ d_mag,duck,Random Duck Variant,9999,magnetic,3,,"{""duck"":""Colour""}",,,A colo
 s_dial,pulsing,Strings on Sectors,10,,1,,"{""up"":1}",,,
 s_leash,pulsing,Spindles on Sectors,50,,1,,"{""up"":1}",,,
 c_dial,pulsing,Strings on the Center,100,,1,,"{""up"":1}",,,
-p_pul,pulsing,Pulsing as an item from the pouch,500,magnetic,1,,"{""up"":1}",,,
+p_pul,pulsing,Pulsing as an item from the pouch,500,magnetic,1,,"{""up"":1}",,,RHYTHM: the pouch’s Pulsing can be used
 s_gate,pulsing,Gates on Sectors,200,,2,,"{""up"":1}",,,
 c_leash,pulsing,Spindles on the Center,300,,2,,"{""up"":1}",,,
 s_key,pulsing,Keys on Sectors,500,,2,,"{""up"":1}",,,
-cap_leash1,pulsing,Max Spindles 5>10,500,,2,,"{""cap"":{""leash"":10}}",,,
-cap_dial2,pulsing,Max Strings 10>50,100,,2,,"{""cap"":{""dial"":50}}",cap_dial1,,
 autofire,pulsing,String auto-fire,10000,,3,,"{""up"":1}",,,
 rapid,pulsing,String rapid fire rate,10000,,3,,"{""up"":1}",,,
 blast,pulsing,String double-click blast,10000,,3,,"{""up"":1}",,,
-cap_dial3,pulsing,Max Strings 50>99,2000,,3,,"{""cap"":{""dial"":99}}",cap_dial2,,
-cap_leash2,pulsing,Max Spindles 10>50,2000,,3,,"{""cap"":{""leash"":50}}",cap_leash1,,
 telem,neutron,Telescope,500,,1,,"{""disc"":""mode_telemetry""}",,,"A gadget for your shelf: telemetry, how things move (Modes → Telemetry, and the T read-out)"
 pure_pul,pulsing,Pure Rhythm,9999,,3,,"{""up"":1}",,,
 d_pul,pulsing,Random Duck Variant,9999,,3,,"{""duck"":""Material""}",,,A material variant (dupes possible)
@@ -155,44 +142,83 @@ fridge,magnetic,Mini fridge,40,magnetic,1,,"{""up"":1,""fridge"":3}",,,"Kept bel
 rudder,magnetic,Rudder,50,magnetic,2,,"{""up"":1,""mount"":""hull"",""look"":""rudder"",""rudder"":1}",,,"Hull mount. At the helm (awake), it steers you through the wreck a Rift you tear would make; asleep at Midnight it cannot"
 motor,magnetic,Motor,100,magnetic,3,,"{""up"":1,""mount"":""hull"",""look"":""motor"",""motor"":1}",,,"Hull mount. Keeps your buoy from wrecking, at Midnight and in a Rift"
 magnet,magnetic,Horseshoe magnet,60,magnetic,2,,"{""up"":1,""mount"":""hull"",""look"":""magnet"",""magnet"":1}",,,"Hull mount. Goods floating on the lake are drawn your way, and do not drift off while it is on"
-chest_comp,bright,Compartmented chest,500,bright,1,,"{""up"":1}",,,"Each remnant its own compartment: Bright and Dim 999 each, each exotic 99 (instead of 999 shared)"
-chest_exo,bright,Exotic compartments,5000,bright,2,,"{""up"":1}",chest_comp,,Each exotic remnant's compartment holds 999
-chest_bri,bright,Bright compartments,20000,bright,2,,"{""up"":1}",chest_comp,,"Bright and Dim compartments hold 99,999 each"
-chest_energy,bright,Energy Value,250000,bright,3,,"{""up"":1}",chest_comp,,Every capacity of your chest × 10
-chest_vault,bright,Bright vault,5000000,bright,3,,"{""up"":1}",chest_energy,,Bright holds × 10 again
-drone,hull,Drone,40000,bright,2,,"{""up"":1,""mount"":""top"",""look"":""drone"",""drone"":1}",,,"Mast mount. Click a shop you are not beside: it flies there and you shop as if you were (once a day; it must be home before it flies again)"
+drone,hull,Drone,40000,bright,2,,"{""up"":1,""mount"":""top"",""look"":""drone"",""drone"":1}",,,Mast mount. Click a shop you are not beside: it flies there and you shop as if you were (once a day; it must be home before it flies again)
 record,pulsing,Record player,100,,1,,"{""up"":1,""mount"":""deck"",""look"":""record""}",,,"Deck mount. Plays your records (the dock's ♪); comes with its own album, Infinite Light. Every buoy starts with one"
-rec_e1,pulsing,"Record: Pulse Width",25,,1,,"{""up"":1,""record"":1}",record,,"EDM, 128 bpm: plays on your record player"
-rec_e2,pulsing,"Record: Neutron Drop",25,,1,,"{""up"":1,""record"":1}",record,,"EDM, 126 bpm: plays on your record player"
-rec_e3,pulsing,"Record: Magnetic North",25,,1,,"{""up"":1,""record"":1}",record,,"EDM, 124 bpm: plays on your record player"
-rec_e4,pulsing,"Record: Strobe Lake",25,,1,,"{""up"":1,""record"":1}",record,,"EDM, 130 bpm: plays on your record player"
-rec_e5,pulsing,"Record: Duck Bass",25,,1,,"{""up"":1,""record"":1}",record,,"EDM, 122 bpm: plays on your record player"
-rec_s1,hull,"Record: Nocturne for a Buoy",5000,bright,1,,"{""up"":1,""record"":1}",record,,"Symphony, 72 bpm: plays on your record player"
-rec_s2,hull,"Record: Lantern Waltz",5000,bright,1,,"{""up"":1,""record"":1}",record,,"Symphony, 84 bpm: plays on your record player"
-rec_s3,hull,"Record: Adagio of the Spill",5000,bright,1,,"{""up"":1,""record"":1}",record,,"Symphony, 60 bpm: plays on your record player"
-rec_s4,hull,"Record: Hull Overture",5000,bright,1,,"{""up"":1,""record"":1}",record,,"Symphony, 96 bpm: plays on your record player"
-rec_s5,hull,"Record: Dim Carnival Suite",5000,bright,1,,"{""up"":1,""record"":1}",record,,"Symphony, 90 bpm: plays on your record player"
-hold_top1,bright,Mast mount strength I,100,bright,1,,"{""up"":1,""hold"":{""top"":0.25}}",,,"Mast mount: what is on it holds on through a wreck 25% of the time"
-hold_top2,bright,Mast mount strength II,1000,bright,2,,"{""up"":1,""hold"":{""top"":0.4}}",hold_top1,,"Mast mount: what is on it holds on through a wreck 40% of the time"
-hold_top3,bright,Mast mount strength III,10000,bright,3,,"{""up"":1,""hold"":{""top"":0.55}}",hold_top2,,"Mast mount: what is on it holds on through a wreck 55% of the time"
-hold_top4,hull,Mast mount strength IV,100000,bright,1,,"{""up"":1,""hold"":{""top"":0.7}}",hold_top3,,"Mast mount: what is on it holds on through a wreck 70% of the time"
-hold_top5,hull,Mast mount strength V,1000000,bright,2,,"{""up"":1,""hold"":{""top"":0.85}}",hold_top4,,"Mast mount: what is on it holds on through a wreck 85% of the time"
-hold_top6,hull,Mast mount strength VI,10000000,bright,3,,"{""up"":1,""hold"":{""top"":1.0}}",hold_top5,,"Mast mount: what is on it holds on through a wreck 100% of the time (never lost)"
-hold_mast1,bright,Riser mounts strength I,100,bright,1,,"{""up"":1,""hold"":{""mast"":0.25}}",,,"Riser mounts: what is on them holds on through a wreck 25% of the time"
-hold_mast2,bright,Riser mounts strength II,1000,bright,2,,"{""up"":1,""hold"":{""mast"":0.4}}",hold_mast1,,"Riser mounts: what is on them holds on through a wreck 40% of the time"
-hold_mast3,bright,Riser mounts strength III,10000,bright,3,,"{""up"":1,""hold"":{""mast"":0.55}}",hold_mast2,,"Riser mounts: what is on them holds on through a wreck 55% of the time"
-hold_mast4,hull,Riser mounts strength IV,100000,bright,1,,"{""up"":1,""hold"":{""mast"":0.7}}",hold_mast3,,"Riser mounts: what is on them holds on through a wreck 70% of the time"
-hold_mast5,hull,Riser mounts strength V,1000000,bright,2,,"{""up"":1,""hold"":{""mast"":0.85}}",hold_mast4,,"Riser mounts: what is on them holds on through a wreck 85% of the time"
-hold_mast6,hull,Riser mounts strength VI,10000000,bright,3,,"{""up"":1,""hold"":{""mast"":1.0}}",hold_mast5,,"Riser mounts: what is on them holds on through a wreck 100% of the time (never lost)"
-hold_deck1,bright,Deck mount strength I,100,bright,1,,"{""up"":1,""hold"":{""deck"":0.25}}",,,"Deck mount: what is on it holds on through a wreck 25% of the time"
-hold_deck2,bright,Deck mount strength II,1000,bright,2,,"{""up"":1,""hold"":{""deck"":0.4}}",hold_deck1,,"Deck mount: what is on it holds on through a wreck 40% of the time"
-hold_deck3,bright,Deck mount strength III,10000,bright,3,,"{""up"":1,""hold"":{""deck"":0.55}}",hold_deck2,,"Deck mount: what is on it holds on through a wreck 55% of the time"
-hold_deck4,hull,Deck mount strength IV,100000,bright,1,,"{""up"":1,""hold"":{""deck"":0.7}}",hold_deck3,,"Deck mount: what is on it holds on through a wreck 70% of the time"
-hold_deck5,hull,Deck mount strength V,1000000,bright,2,,"{""up"":1,""hold"":{""deck"":0.85}}",hold_deck4,,"Deck mount: what is on it holds on through a wreck 85% of the time"
-hold_deck6,hull,Deck mount strength VI,10000000,bright,3,,"{""up"":1,""hold"":{""deck"":1.0}}",hold_deck5,,"Deck mount: what is on it holds on through a wreck 100% of the time (never lost)"
-hold_hull1,bright,Hull mount strength I,100,bright,1,,"{""up"":1,""hold"":{""hull"":0.25}}",,,"Hull mount: what is on it holds on through a wreck 25% of the time"
-hold_hull2,bright,Hull mount strength II,1000,bright,2,,"{""up"":1,""hold"":{""hull"":0.4}}",hold_hull1,,"Hull mount: what is on it holds on through a wreck 40% of the time"
-hold_hull3,bright,Hull mount strength III,10000,bright,3,,"{""up"":1,""hold"":{""hull"":0.55}}",hold_hull2,,"Hull mount: what is on it holds on through a wreck 55% of the time"
-hold_hull4,hull,Hull mount strength IV,100000,bright,1,,"{""up"":1,""hold"":{""hull"":0.7}}",hold_hull3,,"Hull mount: what is on it holds on through a wreck 70% of the time"
-hold_hull5,hull,Hull mount strength V,1000000,bright,2,,"{""up"":1,""hold"":{""hull"":0.85}}",hold_hull4,,"Hull mount: what is on it holds on through a wreck 85% of the time"
-hold_hull6,hull,Hull mount strength VI,10000000,bright,3,,"{""up"":1,""hold"":{""hull"":1.0}}",hold_hull5,,"Hull mount: what is on it holds on through a wreck 100% of the time (never lost)"
+rec_e1,pulsing,Record: Pulse Width,25,,1,,"{""up"":1,""record"":1}",record,,"EDM, 128 bpm: plays on your record player"
+rec_e2,pulsing,Record: Neutron Drop,25,,1,,"{""up"":1,""record"":1}",record,,"EDM, 126 bpm: plays on your record player"
+rec_e3,pulsing,Record: Magnetic North,25,,1,,"{""up"":1,""record"":1}",record,,"EDM, 124 bpm: plays on your record player"
+rec_e4,pulsing,Record: Strobe Lake,25,,1,,"{""up"":1,""record"":1}",record,,"EDM, 130 bpm: plays on your record player"
+rec_e5,pulsing,Record: Duck Bass,25,,1,,"{""up"":1,""record"":1}",record,,"EDM, 122 bpm: plays on your record player"
+rec_s1,hull,Record: Nocturne for a Buoy,5000,bright,1,,"{""up"":1,""record"":1}",record,,"Symphony, 72 bpm: plays on your record player"
+rec_s2,hull,Record: Lantern Waltz,5000,bright,1,,"{""up"":1,""record"":1}",record,,"Symphony, 84 bpm: plays on your record player"
+rec_s3,hull,Record: Adagio of the Spill,5000,bright,1,,"{""up"":1,""record"":1}",record,,"Symphony, 60 bpm: plays on your record player"
+rec_s4,hull,Record: Hull Overture,5000,bright,1,,"{""up"":1,""record"":1}",record,,"Symphony, 96 bpm: plays on your record player"
+rec_s5,hull,Record: Dim Carnival Suite,5000,bright,1,,"{""up"":1,""record"":1}",record,,"Symphony, 90 bpm: plays on your record player"
+hold_top1,bright,Mast mount strength I,100,bright,1,,"{""up"":1,""hold"":{""top"":0.25}}",,,Mast mount: what is on it holds on through a wreck 25% of the time
+hold_top2,bright,Mast mount strength II,1000,bright,2,,"{""up"":1,""hold"":{""top"":0.4}}",hold_top1,,Mast mount: what is on it holds on through a wreck 40% of the time
+hold_top3,bright,Mast mount strength III,10000,bright,3,,"{""up"":1,""hold"":{""top"":0.55}}",hold_top2,,Mast mount: what is on it holds on through a wreck 55% of the time
+hold_top4,hull,Mast mount strength IV,100000,bright,1,,"{""up"":1,""hold"":{""top"":0.7}}",hold_top3,,Mast mount: what is on it holds on through a wreck 70% of the time
+hold_top5,hull,Mast mount strength V,1000000,bright,2,,"{""up"":1,""hold"":{""top"":0.85}}",hold_top4,,Mast mount: what is on it holds on through a wreck 85% of the time
+hold_top6,hull,Mast mount strength VI,10000000,bright,3,,"{""up"":1,""hold"":{""top"":1.0}}",hold_top5,,Mast mount: what is on it holds on through a wreck 100% of the time (never lost)
+hold_mast1,bright,Riser mounts strength I,100,bright,1,,"{""up"":1,""hold"":{""mast"":0.25}}",,,Riser mounts: what is on them holds on through a wreck 25% of the time
+hold_mast2,bright,Riser mounts strength II,1000,bright,2,,"{""up"":1,""hold"":{""mast"":0.4}}",hold_mast1,,Riser mounts: what is on them holds on through a wreck 40% of the time
+hold_mast3,bright,Riser mounts strength III,10000,bright,3,,"{""up"":1,""hold"":{""mast"":0.55}}",hold_mast2,,Riser mounts: what is on them holds on through a wreck 55% of the time
+hold_mast4,hull,Riser mounts strength IV,100000,bright,1,,"{""up"":1,""hold"":{""mast"":0.7}}",hold_mast3,,Riser mounts: what is on them holds on through a wreck 70% of the time
+hold_mast5,hull,Riser mounts strength V,1000000,bright,2,,"{""up"":1,""hold"":{""mast"":0.85}}",hold_mast4,,Riser mounts: what is on them holds on through a wreck 85% of the time
+hold_mast6,hull,Riser mounts strength VI,10000000,bright,3,,"{""up"":1,""hold"":{""mast"":1.0}}",hold_mast5,,Riser mounts: what is on them holds on through a wreck 100% of the time (never lost)
+hold_deck1,bright,Deck mount strength I,100,bright,1,,"{""up"":1,""hold"":{""deck"":0.25}}",,,Deck mount: what is on it holds on through a wreck 25% of the time
+hold_deck2,bright,Deck mount strength II,1000,bright,2,,"{""up"":1,""hold"":{""deck"":0.4}}",hold_deck1,,Deck mount: what is on it holds on through a wreck 40% of the time
+hold_deck3,bright,Deck mount strength III,10000,bright,3,,"{""up"":1,""hold"":{""deck"":0.55}}",hold_deck2,,Deck mount: what is on it holds on through a wreck 55% of the time
+hold_deck4,hull,Deck mount strength IV,100000,bright,1,,"{""up"":1,""hold"":{""deck"":0.7}}",hold_deck3,,Deck mount: what is on it holds on through a wreck 70% of the time
+hold_deck5,hull,Deck mount strength V,1000000,bright,2,,"{""up"":1,""hold"":{""deck"":0.85}}",hold_deck4,,Deck mount: what is on it holds on through a wreck 85% of the time
+hold_deck6,hull,Deck mount strength VI,10000000,bright,3,,"{""up"":1,""hold"":{""deck"":1.0}}",hold_deck5,,Deck mount: what is on it holds on through a wreck 100% of the time (never lost)
+hold_hull1,bright,Hull mount strength I,100,bright,1,,"{""up"":1,""hold"":{""hull"":0.25}}",,,Hull mount: what is on it holds on through a wreck 25% of the time
+hold_hull2,bright,Hull mount strength II,1000,bright,2,,"{""up"":1,""hold"":{""hull"":0.4}}",hold_hull1,,Hull mount: what is on it holds on through a wreck 40% of the time
+hold_hull3,bright,Hull mount strength III,10000,bright,3,,"{""up"":1,""hold"":{""hull"":0.55}}",hold_hull2,,Hull mount: what is on it holds on through a wreck 55% of the time
+hold_hull4,hull,Hull mount strength IV,100000,bright,1,,"{""up"":1,""hold"":{""hull"":0.7}}",hold_hull3,,Hull mount: what is on it holds on through a wreck 70% of the time
+hold_hull5,hull,Hull mount strength V,1000000,bright,2,,"{""up"":1,""hold"":{""hull"":0.85}}",hold_hull4,,Hull mount: what is on it holds on through a wreck 85% of the time
+hold_hull6,hull,Hull mount strength VI,10000000,bright,3,,"{""up"":1,""hold"":{""hull"":1.0}}",hold_hull5,,Hull mount: what is on it holds on through a wreck 100% of the time (never lost)
+act30,line,Nib shine 15>30,1000,magnetic,3,,"{""cap"":{""shine"":30}}",act15,,Up to 30 things shine at once
+wipe_up,line,Light wipe,50,magnetic,1,,"{""up"":1,""heat"":{""wipe"":0.5}}",act5,,Wiping heats the nib half as fast
+dbl_up,line,Quick double dab,300,magnetic,2,,"{""up"":1,""heat"":{""dbl"":0.5}}",act15,,A double dab heats the nib half as much
+mop_up,line,Easy mop,2000,magnetic,3,,"{""up"":1,""heat"":{""mop"":0.5}}",act30,,Mopping heats the nib half as fast
+swoop,bright,Swoop net,500,bright,1,,"{""up"":1}",,,Collect by wiping: hold on a remnant and sweep; the net takes every one of that kind it passes over
+hoop1,bright,Big hoop,2000,bright,1,,"{""up"":1}",swoop,,Collect by double dabbing: the hoop swells out to its reach (Net double dab reach) round every remnant of the kind
+hoop2,bright,Really big hoop,20000,bright,2,,"{""up"":1}",hoop1,,A double dab’s hoop swells out further (Net really big hoop reach)
+strainer,bright,Metal strainer,5000,bright,2,,"{""up"":1,""net"":""magnetic""}",,,The net catches Magnetic Remnants (it takes only Bright and Dim without it)
+mesh,bright,Vast mesh,5000,bright,2,,"{""up"":1,""net"":""neutron""}",,,The net catches Neutron Remnants
+fence,bright,Electric fence,5000,bright,2,,"{""up"":1,""net"":""pulsing""}",,,The net catches Pulsing Remnants
+troll,bright,Trolling net,10000,bright,2,,"{""up"":1,""mount"":""hull"",""look"":""net"",""troll"":1}",,,"Hull mount. Sailing across bright clears, it trawls their Bright: each one crossed pays its value in Bright"
+proc_bright,bright,Bright processing,1000,bright,1,,"{""up"":1,""proc"":""bright""}",,,"Bright and Dim Remnants are worth 10 × their energy (without it, 1 each)"
+proc_magnetic,bright,Magnetic processing,10000,bright,2,,"{""up"":1,""proc"":""magnetic""}",strainer,,A Magnetic Remnant is worth what it was infected with too: each status on it adds its energy
+proc_neutron,bright,Neutron processing,10000,bright,2,,"{""up"":1,""proc"":""neutron""}",mesh,,A Neutron Remnant is worth what it was infected with too
+proc_pulsing,bright,Pulsing processing,10000,bright,2,,"{""up"":1,""proc"":""pulsing""}",fence,,A Pulsing Remnant is worth what it was infected with too
+proc_relic,bright,Relic refinery,100000,bright,3,,"{""up"":1,""proc"":""relic""}",proc_bright,,Relics are worth Relic refinery × more again (a processed relic: 100 × its energy)
+chest_bright,bright,Bright compartment,500,bright,1,,"{""up"":1,""cap"":{""bright"":999}}",,,"Bright gets its own compartment: 999, out of the shared chest"
+chest_bright2,bright,"Bright compartment 99,999",20000,bright,2,,"{""up"":1,""cap"":{""bright"":99999}}",chest_bright,,"Bright’s compartment holds 99,999"
+chest_bright3,bright,"Bright compartment 9,999,999",2000000,bright,3,,"{""up"":1,""cap"":{""bright"":9999999}}",chest_bright2,,"Bright’s compartment holds 9,999,999"
+chest_dim,bright,Dim compartment,500,bright,1,,"{""up"":1,""cap"":{""dim"":999}}",,,Dim gets its own compartment: 999
+chest_dim2,bright,"Dim compartment 99,999",20000,bright,2,,"{""up"":1,""cap"":{""dim"":99999}}",chest_dim,,"Dim’s compartment holds 99,999"
+chest_dim3,bright,"Dim compartment 9,999,999",2000000,bright,3,,"{""up"":1,""cap"":{""dim"":9999999}}",chest_dim2,,"Dim’s compartment holds 9,999,999"
+chest_magnetic,bright,Magnetic compartment,2000,bright,1,,"{""up"":1,""cap"":{""magnetic"":999}}",,,Magnetic gets its own compartment: 999
+chest_magnetic2,bright,"Magnetic compartment 9,999",50000,bright,2,,"{""up"":1,""cap"":{""magnetic"":9999}}",chest_magnetic,,"Magnetic’s compartment holds 9,999"
+chest_neutron,bright,Neutron compartment,2000,bright,1,,"{""up"":1,""cap"":{""neutron"":999}}",,,Neutron gets its own compartment: 999
+chest_neutron2,bright,"Neutron compartment 9,999",50000,bright,2,,"{""up"":1,""cap"":{""neutron"":9999}}",chest_neutron,,"Neutron’s compartment holds 9,999"
+chest_pulsing,bright,Pulsing compartment,2000,bright,1,,"{""up"":1,""cap"":{""pulsing"":999}}",,,Pulsing gets its own compartment: 999
+chest_pulsing2,bright,"Pulsing compartment 9,999",50000,bright,2,,"{""up"":1,""cap"":{""pulsing"":9999}}",chest_pulsing,,"Pulsing’s compartment holds 9,999"
+cap_leash50,bright,Max Spindles 10>50,1000,bright,2,,"{""cap"":{""leash"":50}}",,,You can hold 50
+cap_leash99,bright,Max Spindles 50>99,20000,bright,3,,"{""cap"":{""leash"":99}}",cap_leash50,,You can hold 99
+cap_dial50,bright,Max Strings 10>50,1000,bright,2,,"{""cap"":{""dial"":50}}",,,You can hold 50
+cap_dial99,bright,Max Strings 50>99,20000,bright,3,,"{""cap"":{""dial"":99}}",cap_dial50,,You can hold 99
+cap_weave50,bright,Max Weaves 10>50,1000,bright,2,,"{""cap"":{""weave"":50}}",,,You can hold 50
+cap_weave99,bright,Max Weaves 50>99,20000,bright,3,,"{""cap"":{""weave"":99}}",cap_weave50,,You can hold 99
+cap_prism50,line,Max Prisms 10>50,100,magnetic,2,,"{""cap"":{""prism"":50}}",,,You can hold 50
+cap_prism99,line,Max Prisms 50>99,2000,magnetic,3,,"{""cap"":{""prism"":99}}",cap_prism50,,You can hold 99
+cap_knot50,line,Max Knots 10>50,100,magnetic,2,,"{""cap"":{""knot"":50}}",,,You can hold 50
+cap_knot99,line,Max Knots 50>99,2000,magnetic,3,,"{""cap"":{""knot"":99}}",cap_knot50,,You can hold 99
+cap_lens50,line,Max Lens 10>50,100,magnetic,2,,"{""cap"":{""lens"":50}}",,,You can hold 50
+cap_lens99,line,Max Lens 50>99,2000,magnetic,3,,"{""cap"":{""lens"":99}}",cap_lens50,,You can hold 99
+cap_key50,line,Max Keys 10>50,100,magnetic,2,,"{""cap"":{""key"":50}}",,,You can hold 50
+cap_key99,line,Max Keys 50>99,2000,magnetic,3,,"{""cap"":{""key"":99}}",cap_key50,,You can hold 99
+cap_gate50,line,Max Gates 10>50,100,magnetic,2,,"{""cap"":{""gate"":50}}",,,You can hold 50
+cap_gate99,line,Max Gates 50>99,2000,magnetic,3,,"{""cap"":{""gate"":99}}",cap_gate50,,You can hold 99
