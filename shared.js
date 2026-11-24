@@ -903,3 +903,29 @@ function drawHeatArc(cx,x,y,R,now,heat){ // heat (or its cooldown draining) roun
   cx.strokeStyle=col;cx.beginPath();cx.arc(x,y,r,-Math.PI/2,-Math.PI/2+d*6.2832);cx.stroke();
   cx.restore();
 }
+
+// ── Sounds of the world, made as they play (Web Audio, no files), natural rather than gamey: for the Surface Map (music.js: its sea, weather, tones and what you
+// do there) and the surface (its own audio: the Journal's pages) alike. Each maker: (c an AudioContext, o the node it plays into, t when, v how loud, a its variant) ──
+const _sfxNz=new WeakMap();function sfxNoise(c,kind){let m=_sfxNz.get(c);if(!m)_sfxNz.set(c,m={});if(!m[kind]){const L=c.sampleRate*4,b=c.createBuffer(1,L,c.sampleRate),d=b.getChannelData(0);let x=0;for(let i=0;i<L;i++){const w=Math.random()*2-1;if(kind==='brown'){x=(x+0.02*w)/1.02;d[i]=x*3.5;}else d[i]=w;}m[kind]=b;}return m[kind];} // 4 s of noise (white, or brown: deep, like surf)
+function sfxBurst(c,o,t,dur,g,type,f0,f1,q,kind){const s=c.createBufferSource(),fl=c.createBiquadFilter(),v=c.createGain();s.buffer=sfxNoise(c,kind||'white');s.loop=true;fl.type=type;fl.Q.value=q||1;fl.frequency.setValueAtTime(f0,t);if(f1)fl.frequency.exponentialRampToValueAtTime(f1,t+dur); // noise, shaped and swept: the stuff of water, paper, wind and wood
+  v.gain.setValueAtTime(0.0001,t);v.gain.exponentialRampToValueAtTime(Math.max(0.0002,g),t+Math.min(0.03,dur*0.2));v.gain.exponentialRampToValueAtTime(0.0001,t+dur);s.connect(fl);fl.connect(v);v.connect(o);s.start(t,Math.random()*3);s.stop(t+dur+0.05);}
+function sfxTone(c,o,t,f,dur,g,type,f1){const os=c.createOscillator(),v=c.createGain();os.type=type||'sine';os.frequency.setValueAtTime(f,t);if(f1)os.frequency.exponentialRampToValueAtTime(f1,t+dur);v.gain.setValueAtTime(0.0001,t);v.gain.exponentialRampToValueAtTime(Math.max(0.0002,g),t+0.005);v.gain.exponentialRampToValueAtTime(0.0001,t+dur);os.connect(v);v.connect(o);os.start(t);os.stop(t+dur+0.05);}
+const SFX_MAKE={
+  page:(c,o,t,v)=>{sfxBurst(c,o,t,0.18,0.25*v,'bandpass',1200,4200,0.8);sfxBurst(c,o,t+0.12,0.22,0.18*v,'bandpass',3500,1500,0.7);sfxBurst(c,o,t+0.3,0.08,0.12*v,'lowpass',400,0,1,'brown');}, // a page turned: a dry swish, the sheet settling
+  book:(c,o,t,v)=>{sfxBurst(c,o,t,0.12,0.3*v,'lowpass',600,0,1,'brown');SFX_MAKE.page(c,o,t+0.08,v*0.7);}, // a book or a catalogue opened: its cover, then its pages
+  bell:(c,o,t,v)=>{for(const[f,a,d]of[[1318,1,1.6],[1975,0.5,1.1],[2794,0.3,0.7],[3520,0.2,0.5]]){sfxTone(c,o,t,f,d,0.1*v*a);sfxTone(c,o,t+0.16,f*0.94,d*0.8,0.07*v*a);}}, // a shop door's bell, struck twice as it swings
+  move:(c,o,t,v)=>{sfxBurst(c,o,t,1.1,0.22*v,'bandpass',300,900,0.9,'brown');sfxBurst(c,o,t+0.15,0.9,0.07*v,'highpass',2500,0,0.5);SFX_MAKE.creak(c,o,t+0.3,v*0.35);}, // under way: water pushed aside, a hiss of spray, the mast creaking
+  shot:(c,o,t,v)=>{sfxBurst(c,o,t,0.35,0.28*v,'bandpass',1800,400,1.2);sfxBurst(c,o,t+0.2,0.6,0.2*v,'lowpass',500,0,1,'brown');}, // fired across: a rush of air, a slap of water
+  dive:(c,o,t,v)=>{sfxBurst(c,o,t,0.5,0.35*v,'lowpass',2200,300,0.8);sfxBurst(c,o,t,0.25,0.14*v,'highpass',3000,0,0.6);for(let i=0;i<7;i++){const f=300+Math.random()*500;sfxTone(c,o,t+0.25+i*0.07+Math.random()*0.05,f,0.09,0.05*v,'sine',f*2.2);}}, // under: a splash, then bubbles rising
+  surface:(c,o,t,v)=>{sfxBurst(c,o,t,0.7,0.25*v,'lowpass',400,1800,0.8,'brown');sfxBurst(c,o,t+0.3,0.5,0.08*v,'highpass',3000,0,0.6);}, // back up: water streaming off
+  creak:(c,o,t,v)=>{const s=c.createOscillator(),fl=c.createBiquadFilter(),g=c.createGain(),lf=c.createOscillator(),lg=c.createGain();s.type='sawtooth';s.frequency.setValueAtTime(70,t);s.frequency.linearRampToValueAtTime(95,t+0.4);lf.frequency.value=23;lg.gain.value=18;lf.connect(lg);lg.connect(s.frequency); // wood under strain: a slow stick-slip
+    fl.type='bandpass';fl.frequency.value=900;fl.Q.value=6;g.gain.setValueAtTime(0.0001,t);g.gain.exponentialRampToValueAtTime(Math.max(0.0002,0.12*v),t+0.08);g.gain.exponentialRampToValueAtTime(0.0001,t+0.45);s.connect(fl);fl.connect(g);g.connect(o);s.start(t);lf.start(t);s.stop(t+0.5);lf.stop(t+0.5);},
+  hatch:(c,o,t,v)=>{SFX_MAKE.creak(c,o,t,v);sfxBurst(c,o,t+0.45,0.18,0.35*v,'lowpass',350,0,1,'brown');}, // the hatch: its hinge creaks, its lid thuds
+  thunder:(c,o,t,v)=>{sfxBurst(c,o,t,0.25,0.5*v,'lowpass',3000,800,0.7);sfxBurst(c,o,t+0.1,3.5,0.6*v,'lowpass',260,60,0.8,'brown');sfxBurst(c,o,t+0.8,2.2,0.35*v,'lowpass',180,50,0.8,'brown');}, // a crack, then the rumble rolling away
+  horn:(c,o,t,v)=>{for(const f of[98,98.6,147]){const s=c.createOscillator(),fl=c.createBiquadFilter(),g=c.createGain();s.type='sawtooth';s.frequency.value=f;fl.type='lowpass';fl.frequency.value=420;g.gain.setValueAtTime(0.0001,t);g.gain.exponentialRampToValueAtTime(0.05*v,t+0.4);g.gain.setValueAtTime(0.05*v,t+2);g.gain.exponentialRampToValueAtTime(0.0001,t+3.2);s.connect(fl);fl.connect(g);g.connect(o);s.start(t);s.stop(t+3.3);}}, // a foghorn, far off
+  drop:(c,o,t,v)=>{const f=1800+Math.random()*2600;sfxTone(c,o,t,f,0.05,0.05*v,'sine',f*0.6);}, // a raindrop on the deck
+  crackle:(c,o,t,v)=>{sfxBurst(c,o,t,0.02+Math.random()*0.03,0.12*v,'highpass',2500+Math.random()*3000,0,0.7);}, // a candle's wick spitting
+  knock:(c,o,t,v)=>{sfxBurst(c,o,t,0.3,0.4*v,'lowpass',240,90,1.2,'brown');}, // water slapping the hull, heard from inside
+  gull:(c,o,t,v)=>{for(let i=0;i<2;i++){const s=t+i*0.35;sfxTone(c,o,s,1400,0.3,0.03*v,'triangle',900);}}, // a gull, far off, on a calm day
+};
+function sfxPlay(c,o,k,v,a){if(!c||!o||!SFX_MAKE[k]||c.state!=='running')return;try{SFX_MAKE[k](c,o,c.currentTime+0.01,v==null?1:v,a);}catch(e){}}

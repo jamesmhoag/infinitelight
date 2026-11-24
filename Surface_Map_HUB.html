@@ -344,7 +344,7 @@ function wxTick(){if(SCENE||MP.on)return;const P=T.wxChance!=null?T.wxChance:0.0
   if(wxOn('cold'))for(let i=0;i<wx.cold;i++){const k=wxOpenHex();if(k)cells[k].ice=1;}
   if(wxStorm()){if(!tornado){const k=wxOpenHex();if(k){const[q,r]=parseK(k);tornado={q,r};feed(txt('wx.tornado'),txt('wx.tornado_d'));}}
     else{const d=DIRS[(wxDir+[-1,0,0,1][(Math.random()*4)|0]+6)%6];tornado.q+=d[0];tornado.r+=d[1];const k=K(tornado.q,tornado.r);if(!cells[k]||cells[k].isVoid&&!(tornado.q===0&&tornado.r===0))tornado=null;else{wxShopHit(k,'tornado');if(tornado.q===pQ&&tornado.r===pR)wxFling();}}
-    if(Math.random()<(T.wxLightning!=null?T.wxLightning:0.5)){wxFlash=performance.now();if(Math.random()<0.25){wxStun=1;const lost=wreckCheck('rift');feed(txt('wx.struck'),txt('wx.struck_d')+(lost.length?' '+txt('map.wreck.lost',lost.map(id=>(shopItem(id)||{}).n||id).join(', ')):''),'no');}
+    if(Math.random()<(T.wxLightning!=null?T.wxLightning:0.5)){wxFlash=performance.now();setTimeout(()=>sfx('thunder'),300+Math.random()*900);if(Math.random()<0.25){wxStun=1;const lost=wreckCheck('rift');feed(txt('wx.struck'),txt('wx.struck_d')+(lost.length?' '+txt('map.wreck.lost',lost.map(id=>(shopItem(id)||{}).n||id).join(', ')):''),'no');}
       else{const L=Object.keys(SHOPS).filter(id=>shopIsOpen(id,clock,run));if(L.length){const id=L[(Math.random()*L.length)|0];wxDown[id]=day;feed(txt('wx.bolt',SHOPS[id].n),txt('wx.bolt_d'));}}}}
   else tornado=null;
   const now=wxName();if(now!==was){feed(txt('wx.now',now),txt(wxStorm()?'wx.storm_d':wxBliz()?'wx.blizzard_d':wxSnow()?'wx.snow_d':'wx.change_d'));jot('wx',{n:now});}syncDock();}
@@ -1185,7 +1185,7 @@ function askName(){const el=document.getElementById('nameAsk'),i=el.querySelecto
   const up=()=>{b.disabled=!i.value.trim();n.textContent=i.value.length+' / 20';};i.value=playerName;up();i.oninput=up;buoyColours(el.querySelector('.ncols'));
   const go=()=>{const v=i.value.trim().slice(0,20);if(!v)return;playerName=v;try{localStorage.setItem(NAME_KEY,v);}catch(e){}el.classList.remove('show');feed(v,txt('map.name.set'));};
   b.onclick=go;i.onkeydown=e=>{if(e.key==='Enter'){e.preventDefault();go();}e.stopPropagation();};el.classList.add('show');setTimeout(()=>i.focus(),50);}
-function buoyGo(mode){if(_mpFor){(MP.ob[_mpFor]=MP.ob[_mpFor]||{}).go=mode;return;}if(buoy.under){buoy.under=false;buoy.go=null;buoy.dunk={t0:performance.now(),d:-1,ms:900};return;}buoy.go=mode;} // (still under after a clear: it comes up at the hex you chose, not sailing there) // the next move of yours is a sail ('sail') or a String's shot ('fire')
+function buoyGo(mode){if(mode==='sail')sfx('move');else if(mode==='fire')sfx('shot');if(_mpFor){(MP.ob[_mpFor]=MP.ob[_mpFor]||{}).go=mode;return;}if(buoy.under){buoy.under=false;buoy.go=null;buoy.dunk={t0:performance.now(),d:-1,ms:900};return;}buoy.go=mode;} // (still under after a clear: it comes up at the hex you chose, not sailing there) // the next move of yours is a sail ('sail') or a String's shot ('fire')
 function mpBuoys(dt){if(!MP.on)return;for(const P of MP.players){if(P.id===MP.me)continue;const[tx,ty]=buoySpot(P.q,P.r),b=MP.ob[P.id]=MP.ob[P.id]||{};if(b.x==null){b.x=tx;b.y=ty;b.yaw=Math.random()*6.28;b.spin=0;b.ph=Math.random()*6.28;} // everyone else's buoy: sails to their hex, turns slowly
   const k=Math.min(1,0.05*dt);b.x+=(tx-b.x)*k;b.y+=(ty-b.y)*k;b.yaw+=0.004*dt;if(b.dunk&&b.dunk.d<0&&performance.now()-b.dunk.t0>b.dunk.ms)b.dunk=null;}}
 function buoyStep(now,dt){mpBuoys(dt);if(_held&&currentView==='map'&&!mapBusy()){const h=_held;_held=null;mapPress(h);}if(buoy.dunk&&buoy.dunk.d<0&&now-buoy.dunk.t0>buoy.dunk.ms)buoy.dunk=null;if(buoy.dip&&now-buoy.dip>450)buoy.dip=0;
@@ -1338,7 +1338,7 @@ function loadMap(){
 const nebEl=document.getElementById('neb');
 function neb(m){if(nebEl.contentWindow)nebEl.contentWindow.postMessage(m,'*');}
 function showNeb(on){nebEl.classList.toggle('show',on);musicUnder(on&&currentView==='level');if(on){nebEl.focus();try{nebEl.contentWindow.focus();}catch(e){}}else window.focus();}
-function enterNebula(cellKey){hubLearn('hubcell');jot('dive');if(wxOn('hot'))waterDrink(); /* (Hot: a dive drinks one) */
+function enterNebula(cellKey){sfx('dive');hubLearn('hubcell');jot('dive');if(wxOn('hot'))waterDrink(); /* (Hot: a dive drinks one) */
   if(_mpFor){netOut({t:'enter',key:cellKey},_mpFor);return;} // a friend's surface: they play it, everyone watches
   if(MP.on){MP.surf={owner:MP.me,key:cellKey};netOut({t:'surf',owner:MP.me,key:cellKey,on:true});neb({cmd:'mpShare',on:true});} // (its frames, for everyone watching)
   const c=cells[cellKey];
@@ -1350,7 +1350,7 @@ function enterNebula(cellKey){hubLearn('hubcell');jot('dive');if(wxOn('hot'))wat
   neb({cmd:'level',key:cellKey,tint:{w:spill.w||0,b:spill.b||0},seed:cellSeed(c),cov:cellCov(c),boost:Math.max(0,c.v/(T.mapCovFull||1)-1),q:c.q,r:c.r,white:c.unw==='bright',label:`(${c.q},${c.r}) · value ${c.v.toFixed(2)}`,resume,clock}); // clock: the hour its ducks are lit for
 }
 let _enter=null; // going into a surface (the dunk and the camera's move), and how to come back out
-function exitNebula(){riftFxStart(performance.now()+500); // (a Rift made in there opens as the map comes back)
+function exitNebula(){sfx('surface');riftFxStart(performance.now()+500); // (a Rift made in there opens as the map comes back)
   if(_enter&&_enter.back&&cam){const now=performance.now(),ms=T.mapEnterMs||3000,cl=cells[_enter.key],thrown=_enter.key!==K(pQ,pR),gone=!thrown&&cl&&(cl.cap||cl.rift||cl.isVoid); /* (thrown: the Rift you tore wrecked you outward — you come up where it threw you) */diveStart(_enter.key,-1,null,_enter.back);buoy.under=!!gone;buoy.dunk=gone?{t0:now,d:1,ms:1}:{t0:now+ms*0.62,d:-1,ms:ms*0.33};}_enter=null; // back out: the same, backwards (the buoy bobs up at the end; a surface you cleared leaves it under until you pick the hex to move to: buoyGo)
   if(MP.on&&MP.surf&&MP.surf.owner===MP.me){netOut({t:'surf',owner:MP.me,on:false});MP.surf=null;neb({cmd:'remoteClear'});neb({cmd:'mpShare',on:false});}
   currentView='map';_loadAt=performance.now();loading('back',true);const t=performance.now();for(const k in clearFx)if(clearFx[k].t0==null)clearFx[k].t0=t+250;showNeb(false);mapResize();pondSpawn();startMapLoop();updateHint();evPump();
@@ -1627,7 +1627,7 @@ function shopTap(s){const now=performance.now();tapN=now-tapAt<900?tapN+1:1;tapA
   const el=shopEls[s.key];if(el){const gm=el._cv&&el._cv._glass;if(gm){let f=el.querySelector('canvas.tapf');if(!f){f=document.createElement('canvas');f.className='tapf';el.appendChild(f);}if(f._src!==gm){f._src=gm;f.width=gm.width;f.height=gm.height;f.getContext('2d').drawImage(gm,0,0);}f.style.transform=el.firstChild?el.firstChild.style.transform:'';f.classList.remove('go');void f.offsetWidth;f.classList.add('go');} // its glass flashes, as a hex's does when a click does nothing there
     if(tapN===5){el.classList.remove('rattle');void el.offsetWidth;el.classList.add('rattle');}} // only the fifth (the yell) shakes it
   if(tapN===5)feed(txt('map.tap.yell'),txt('map.tap.yell2',SHOPS[s.id].n),'tap');} // the fifth: someone inside has had enough
-function openShop(key){const el=shopEls[key],s=el&&el._s;if(!s||phase==='collapse')return;if(s.lit)jot('shop',{id:s.id});
+function openShop(key){const el=shopEls[key],s=el&&el._s;if(!s||phase==='collapse')return;if(s.lit){jot('shop',{id:s.id});sfx('bell');}
   if(!s.lit){shopTap(s); // a tap on its glass
     if(!runFx(run).some(f=>f.knock)){if(tapN<5)feed(txt('map.is_closed',SHOPS[s.id].n),txt('map.open',shopHours(s.id),(runBad(run,'holiday')?txt('map.a_holiday_it_closes'):'')));return;}
     feed(txt('map.tap.knock',SHOPS[s.id].n),txt('map.tap.knock2'),'tap');} // Friendly Neighborhood (a good fortune): a knock opens it up
@@ -1649,9 +1649,12 @@ function musicToggle(){if(MUSIC.cur&&MUSIC.pref.on)musicStop();else{const L=recM
 MUSIC.next=()=>{const L=recMine(),i=L.findIndex(r=>r===MUSIC.cur);if(L.length&&recPlayer())musicPlay(L[(i+1)%L.length].id);else musicStop();syncDock();};
 const musicNone=()=>!recPlayer()||!recMine().length; // (nothing to play: no record player on its mount, or no record for it)
 function musicSay(){neb({cmd:'music',on:!!(MUSIC.cur&&MUSIC.pref.on),none:musicNone()});} // the surface's Esc menu shows what the map's player is doing
-function musicAuto(){if(!MUSIC.cur&&MUSIC.pref.on&&recPlayer()&&!SCENE){const L=recMine();if(L.length){musicPlay((L.find(r=>r.id===MUSIC.pref.id)||L[0]).id);musicSay();syncMenu();}syncDock();}} // on: it starts with your first click anywhere, the map or a surface (a browser plays sound only after one)
+function musicAuto(){{const c=ambInit();if(c&&c.state==='suspended')c.resume().catch(()=>{});} /* (the map's sounds start with your first click too) */if(!MUSIC.cur&&MUSIC.pref.on&&recPlayer()&&!SCENE){const L=recMine();if(L.length){musicPlay((L.find(r=>r.id===MUSIC.pref.id)||L[0]).id);musicSay();syncMenu();}syncDock();}} // on: it starts with your first click anywhere, the map or a surface (a browser plays sound only after one)
 addEventListener('pointerdown',musicAuto,true);
-function catOpen(id){const s=shopList().find(x=>x.id===id);if(!s){feed(SHOPS[id].n,txt('map.cat.away'),'no');return;}shopUI={id,rank:s.rank||3,key:s.key,cat:true};renderShop();}
+setInterval(()=>{if(!MUSIC.ctx)return;const h=typeof pQ==='number'&&cells[K(pQ,pR)],near=(f,R)=>{let n=0,best=99;if(!h)return[0,99];for(const k in cells){const c=cells[k],d=hexD(c,h);if(d<=R&&f(c)){n++;best=Math.min(best,d);}}return[n,best];}; // the map's sounds, kept up with where you are (ambTick)
+  const b=near(c=>c.cap&&c.kind==='bright',2),d=near(c=>c.cap&&c.kind==='dark',2),r=near(c=>c.isVoid&&c.rift,3);
+  ambTick({on:soundOn()&&!SCENE,where:typeof CABIN!=='undefined'&&CABIN.on?'cabin':currentView==='level'?'level':'map',wind:Math.min(1.5,(wx.wind||0)*0.6+(tornado?0.8:0)),rain:Math.min(1.5,(wx.rain||0)*0.6),snow:wxSnow(),fog:wxOn('fog'),bright:Math.min(1,b[0]/4),dark:Math.min(1,d[0]/4),rift:r[0]?(4-r[1])/3:0});},150);
+function catOpen(id){sfx('book');const s=shopList().find(x=>x.id===id);if(!s){feed(SHOPS[id].n,txt('map.cat.away'),'no');return;}shopUI={id,rank:s.rank||3,key:s.key,cat:true};renderShop();}
 function closeShop(){if(shopUI&&shopUI.gift){quitMain();return;} // leaving the Gift Shop: the run is over
   if(drone&&drone.open&&!drone.back)drone.back=performance.now(); /* (the drone: home again) */shopUI=null;renderShop();evPump();}
 // Unlocks wait for the next day: an upgrade bought or an achievement reached (whatever it opens: the next item in its line, a shop) is stamped with the day it came (unlockDay),
