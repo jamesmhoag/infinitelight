@@ -1398,8 +1398,9 @@ window.addEventListener('message',e=>{
   else if(m.type==='demo')shelfDemoShow(m);
   else if(m.type==='trashGot')trashGot(m.m,m.k); // the net scooped trash on the surface: into your trash bag // a shelf card's live demo
   else if(m.type==='music')musicToggle(); // the surface's Esc menu: Music on / off
+  else if(m.type==='gesture')musicAuto(); // your first click on a surface
   else if(m.type==='return')exitNebula();
-  else if(m.type==='levelReady'){loading('level',false);neb({cmd:'music',on:!!(MUSIC.cur&&MUSIC.pref.on)});if(_enter)_enter.ready=true;}
+  else if(m.type==='levelReady'){loading('level',false);musicSay();if(_enter)_enter.ready=true;}
   else if(m.type==='pondDuck'&&DUCK_TYPES[m.duck])pondAsk.push(m.duck);
   else if(m.type==='pondGood'&&m.good)lakeGood(m.good,performance.now(),true); // Create → a commodity for the lake (a treasure chest)
   else if(m.type==='trash')for(const g of m.list||[])flotPut(g); // packaging left on a cleared surface: it surfaces with you, on a random hex
@@ -1426,7 +1427,7 @@ function toggleMenu(){menuOpen=!menuOpen;if(menuOpen)hubLearn('menu');document.g
 const soundOn=()=>!!T.soundOn;
 function setSound(on,vol){T.soundOn=on?1:0;if(vol!=null)T.masterVol=+vol;neb({cmd:'sound',on,vol:vol!=null?+vol:null});syncMenu();}
 function syncMenu(){syncModes();
-  document.getElementById('mMus').textContent=txt('map.music',txt(MUSIC.cur&&MUSIC.pref.on?'map.on':'map.off'));
+  document.getElementById('mMus').textContent=musicNone()?txt('menu.music.none'):txt('map.music',txt(MUSIC.cur&&MUSIC.pref.on?'map.on':'map.off'));
 
   document.getElementById('mSnd').textContent=txt('map.sound',(soundOn()?txt('map.on'):txt('map.off')));document.getElementById('mVol').value=T.masterVol!=null?T.masterVol:0.7;
   for(const el of document.querySelectorAll('#tuneP [data-k]')){if(T[el.dataset.k]==null)continue;el.value=T[el.dataset.k];const v=el.nextElementSibling;if(v&&v._show&&document.activeElement!==v)v._show();}
@@ -1642,9 +1643,12 @@ function drawerOpen(){shopUI={drawer:true,id:null};renderShop();}
 const gramOn=()=>kitOn('record')&&disc.has('up:record'),walkOn=()=>disc.has('up:walkman')&&powered('walkman'),recPlayer=()=>gramOn()||walkOn(),recMine=()=>RECORDS.filter(r=>recOwned(r,k=>disc.has(k))&&(r.tape?walkOn():gramOn())); // the gramophone plays records, the Walkman (batteries) tapes
 function recordsOpen(){shopUI={records:true,id:null};renderShop();}
 function recPlay(id){if(MUSIC.cur&&MUSIC.cur.id===id&&MUSIC.pref.on)musicStop();else{musicPlay(id);feed('♪ '+RECORDS.find(r=>r.id===id).n,txt('map.rec.g_'+RECORDS.find(r=>r.id===id).g));}if(shopUI&&shopUI.records)renderShop();syncDock();}
-function musicToggle(){if(MUSIC.cur&&MUSIC.pref.on)musicStop();else{const L=recMine();if(recPlayer()&&L.length)musicPlay((L.find(r=>r.id===MUSIC.pref.id)||L[0]).id);else feed(txt('map.music',txt('map.off')),txt('map.music.none'),'no');}syncMenu();syncDock();neb({cmd:'music',on:!!(MUSIC.cur&&MUSIC.pref.on)});} // Music on / off (the record on your player), apart from the sound effects (Sound)
+function musicToggle(){if(MUSIC.cur&&MUSIC.pref.on)musicStop();else{const L=recMine();if(recPlayer()&&L.length)musicPlay((L.find(r=>r.id===MUSIC.pref.id)||L[0]).id);else feed(txt('map.music',txt('map.off')),txt('map.music.none'),'no');}syncMenu();syncDock();musicSay();} // Music on / off (the record on your player), apart from the sound effects (Sound)
 MUSIC.next=()=>{const L=recMine(),i=L.findIndex(r=>r===MUSIC.cur);if(L.length&&recPlayer())musicPlay(L[(i+1)%L.length].id);else musicStop();syncDock();};
-addEventListener('pointerdown',()=>{if(!MUSIC.cur&&MUSIC.pref.on&&recPlayer()&&!SCENE){const L=recMine();if(L.length)musicPlay((L.find(r=>r.id===MUSIC.pref.id)||L[0]).id);syncDock();}},true);
+const musicNone=()=>!recPlayer()||!recMine().length; // (nothing to play: no record player on its mount, or no record for it)
+function musicSay(){neb({cmd:'music',on:!!(MUSIC.cur&&MUSIC.pref.on),none:musicNone()});} // the surface's Esc menu shows what the map's player is doing
+function musicAuto(){if(!MUSIC.cur&&MUSIC.pref.on&&recPlayer()&&!SCENE){const L=recMine();if(L.length){musicPlay((L.find(r=>r.id===MUSIC.pref.id)||L[0]).id);musicSay();syncMenu();}syncDock();}} // on: it starts with your first click anywhere, the map or a surface (a browser plays sound only after one)
+addEventListener('pointerdown',musicAuto,true);
 function catOpen(id){const s=shopList().find(x=>x.id===id);if(!s){feed(SHOPS[id].n,txt('map.cat.away'),'no');return;}shopUI={id,rank:s.rank||3,key:s.key,cat:true};renderShop();}
 function closeShop(){if(shopUI&&shopUI.gift){quitMain();return;} // leaving the Gift Shop: the run is over
   if(drone&&drone.open&&!drone.back)drone.back=performance.now(); /* (the drone: home again) */shopUI=null;renderShop();evPump();}
