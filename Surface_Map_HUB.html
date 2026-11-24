@@ -171,7 +171,7 @@ body.shop-open #hdock{z-index:59}#hinv .slot.wal::before{border-color:rgba(255,2
 <div id="veil"></div>
 <div id="bfx"></div>
 <iframe id="neb" data-tt="map.ui.surface"></iframe>
-<script src="content.js?v=20261124a"></script><script src="shared.js?v=20261124a"></script><script src="cabin.js?v=20261124a"></script><script src="music.js?v=20261124a"></script>
+<script src="content.js?v=20261124b"></script><script src="shared.js?v=20261124b"></script><script src="cabin.js?v=20261124b"></script><script src="music.js?v=20261124b"></script>
 <script>
 // ╔══════════════════════════════════════════════════════════════════════════════╗
 // ║  MAP ENGINE                                                                 ║
@@ -190,7 +190,7 @@ let playLog=[],clock=3,day=1,pool=6,burstFx=null,dayLog=[],dayCnt={b:0,d:0},pend
 // // clock: the hour (3 = Twilight … 24 = Midnight, the day's last turn); day: your attempts; pool: what the source put out at its last burst; fresh: no ring added yet since it
 let constel=[],armed=null,weaveSel=[],weaveAsk=null,clearFx={},mergeFx=[],feedMsg={t:'',d:'',at:-1e9}; // constellations {keys,type}; the armed map item; a Weave being drawn; animations; the final count
 const STEP_H=3; // the day: eight turns of three hours
-const CACHE_V='20261124a'; // the build: bump with shared.js's
+const CACHE_V='20261124b'; // the build: bump with shared.js's
 const SCENE=new URLSearchParams(location.search).get('scene'); // a Guide / event demo: the map plays a scripted moment (no surface behind it)
 let phase='move',turnTimer=0,mergeTimer=0;
 let gameOverReason='';
@@ -1130,10 +1130,11 @@ function lakeGood(g,now,up){g=Object.assign({id:++goodSeq},g);if(!water.pts.leng
   pond.push(d);ripples.push({x:d.x,y:d.y,t:now,dk:onWhite(d.x,d.y),big:1});return d;}
 function goodsSpawn(now){if(SCENE||parade||pdOn()||water.frac<=0.05)return;if(!goodNext)goodNext=now+(T.mapGoodMs||150000)*(0.4+0.6*Math.random());if(!chestNext)chestNext=now+(T.mapChestMs||300000)*(0.5+Math.random());
   if(now>goodNext){goodNext=now+(T.mapGoodMs||150000)*(0.6+0.8*Math.random());const seen=Object.keys(SHOPS).filter(id=>disc.has('ev:shop_'+id)),k=['soda','coffee','can','box'][(Math.random()*4)|0];if(Math.random()<(T.trashShare!=null?T.trashShare:0.4))lakeGood({kind:TRASH_ONLY[(Math.random()*TRASH_ONLY.length)|0],open:true},now);else if(k!=='box'||seen.length)lakeGood({kind:k,shop:k==='box'?seen[(Math.random()*seen.length)|0]:k==='soda'?String((Math.random()*6)|0):''},now);}
+  if(Math.random()<(T.signFind!=null?T.signFind:0.0015)&&!pond.some(d=>d.good&&d.good.kind==='sign')){const L=Object.keys(SHOPS).filter(id=>!disc.has('up:sign_'+id)&&id!=='gift');if(L.length)lakeGood({kind:'sign',shop:L[(Math.random()*L.length)|0]},now);} // a shop's sign, adrift (one you have not got)
   if(!disc.has('up:armoire')&&disc.has('ev:shop_pulsing')&&!pond.some(d=>d.good&&d.good.kind==='armoire')&&Math.random()<0.002)lakeGood({kind:'armoire'},now); // the Armoire, adrift (once you know THE PULSE): it opens the apparel there
   if(now>chestNext){chestNext=now+(T.mapChestMs||300000)*(0.6+0.8*Math.random());if(!pond.some(d=>d.good&&d.good.kind==='chest'))lakeGood({kind:'chest'},now);}}
 function openLakeGood(d){const g=d.good,now=performance.now();ripples.push({x:d.x,y:d.y,t:now,dk:onWhite(d.x,d.y),big:1});
-  if(g.kind==='sign'){feed(goodNameM(g),txt('good.sign_d'));return;}
+  if(g.kind==='sign'){const[bx,by]=a2w(pQ,pR);if(Math.hypot(d.x-bx,d.y-by)>HEX*2.2){feed(goodNameM(g),txt('good.sign_far'),'no');return;}pond.splice(pond.indexOf(d),1);disc.add('up:sign_'+g.shop);neb({cmd:'discover',id:'up:sign_'+g.shop});if(!disc.has('cat:'+g.shop))catTake(g.shop);jot('sign');feed(txt('sign.got',SHOPS[g.shop].n),txt('sign.got_d',SHOPS[g.shop].n));return;} // hauled aboard: a sign to mount (its shop 10% cheaper while it is up), and its catalogue
   if(g.kind==='armoire'){const[bx,by]=a2w(pQ,pR);if(Math.hypot(d.x-bx,d.y-by)>HEX*2.2){feed(goodNameM(g),txt('good.ring_far'),'no');return;}pond.splice(pond.indexOf(d),1);neb({cmd:'discover',id:'up:armoire'});jot('armoire');feed(txt('good.armoire_got'),txt('good.armoire_got_d'));return;} // hauled aboard: below deck now
   if(g.kind==='chest'){if(!((inv&&inv.key)||0)&&!TEST.get('free')){if(!d.dunk)d.dunk=now;feed(txt('good.chest'),txt('chest.need_key'),'no');return;}neb({cmd:'chest',id:g.id});return;} // (the surface keeps the purse: it spends the Key and counts the hoard)
   if(g.kind==='box'&&SHOPS[g.shop]&&!g.give&&!disc.has('cat:'+g.shop))catTake(g.shop); // a box from a shop: its catalogue inside
@@ -1207,7 +1208,7 @@ function buoyPlane(now){ // on the plane, under it: its spot light, its ripples,
   if(Math.abs(da)<=rate){S.a=ta;if(!aim)S.cyc=S.a+6.2832*dms/(T.mapSpotMs||30000);}else S.a+=Math.sign(da)*rate;if(aim)S.cyc=S.a; // the cycle carries on from wherever the light is (not from where it would have been)
   S.d+=Math.max(-lr,Math.min(lr,td-S.d));
   const px=bx+Math.cos(S.a)*S.d,py=by+Math.sin(S.a)*S.d,h=buoyFrame(now).lamp[2],Rs=HEX*0.36*(T.mapSpotSize!=null?T.mapSpotSize:1),ma=Rs*Math.min(2.2,Math.sqrt(1+(S.d/Math.max(1,h))**2)); // the spot: where the lantern's cone meets the surface, stretched away from it (it comes in at a slant)
-  buoy.spotAt={x:px,y:py,a:S.a,ma,mi:Rs}; // (lit by the ground's own shader: sceneRender)
+  buoy.spotAt=spotUp()?{x:px,y:py,a:S.a,ma,mi:Rs}:null; // (lit by the ground's own shader: sceneRender; no spotlight on the nest mount: no spot)
   if(now>buoy.ripAt){buoy.ripAt=now+2200+Math.random()*900;ripples.push({x:buoy.x,y:buoy.y,t:now,dk:onWhite(buoy.x,buoy.y)});} // it ripples the surface it floats in
   if(buoy.mv&&!buoy.mv.fire){const ink=onWhite(buoy.x,buoy.y)?[20,24,32]:sunInk();drawWakeShape(c,bx,by,Math.cos(buoy.hd),Math.sin(buoy.hd),HEX*0.4,0.7,0.4,ink,ink);if(now-(buoy.lastRip||0)>180){buoy.lastRip=now;ripples.push({x:buoy.x,y:buoy.y,t:now,dk:onWhite(buoy.x,buoy.y)});}}
   if(buoy.trail){const t=(now-buoy.trail.t0)/700;if(t>=1)buoy.trail=null;else{const[ax,ay]=w2s(buoy.trail.x0,buoy.trail.y0);c.save();c.globalCompositeOperation='screen';c.lineCap='round';c.strokeStyle=`rgba(255,250,235,${(0.8*(1-t)).toFixed(3)})`;c.lineWidth=HEX*0.12*(1-t)+1;c.filter=`blur(${(HEX*0.04).toFixed(1)}px)`;c.beginPath();c.moveTo(ax,ay);c.lineTo(bx,by);c.stroke();c.restore();}}} // a String's shot: a streak, like a Point fired
@@ -1221,7 +1222,8 @@ function droneAt(now){const d=drone,ms=T.mapDroneMs||1800;if(!d)return null;let 
   return{x:buoy.x+(d.wx-buoy.x)*e,y:buoy.y+(d.wy-buoy.y)*e,z:HEX*(0.35+0.6*Math.sin(Math.PI*Math.min(1,e*1.6))),yaw:Math.atan2(d.wy-buoy.y,d.wx-buoy.x)+now/900};}
 function droneDraw(now,mirror){const a=droneAt(now);if(!a||!cam)return;const o=buoyOpts(now,mirror),m=mirror?-1:1,c=Math.cos(a.yaw),sn=Math.sin(a.yaw),[px,py]=w2s(a.x,a.y),[X,Y,k]=proj(px,py);
   Object.assign(o,{rot:new Float32Array([c,sn,0, 0,0,m, -sn,c,0]),pos:[px-MW/2,py-MH/2,a.z*m],env:{x:X,y:Y,lights:[]},px:o.size*k,L3:null});drawDuckScene(G3.duck,droneModel(),o);}
-function buoyDraw(now,mirror){drawDuckScene(G3.duck,buoyModel(playerName,buoySouv(),buoyCol,drone?Object.assign({},buoyKit,{slots:Object.assign({},buoyKit.slots,{top:buoyKit.slots.top.map(id=>id==='drone'?null:id)})}):buoyKit),buoyOpts(now,mirror));droneDraw(now,mirror);{const o=buoyCan(now,mirror);if(o)drawDuckScene(G3.duck,buoyCanModel(),o);} // (its can light, turned to its spot)
+const buoyWx=()=>wxSnow()?'snow':wxOn('rain')?'rain':wxOn('wind')?'wind':'calm',spotUp=()=>!buoyKit||kitOn('spot'); // the weather your flags fly in; your spotlight on its nest mount
+function buoyDraw(now,mirror){drawDuckScene(G3.duck,buoyModel(playerName,buoySouv(),buoyCol,Object.assign({},buoyKit,drone?{slots:Object.assign({},buoyKit.slots,{top:buoyKit.slots.top.map(id=>id==='drone'?null:id)})}:{},{_f:Math.floor(now/(T.signAnimMs||180))%8,_wx:buoyWx()})),buoyOpts(now,mirror));droneDraw(now,mirror);{const o=spotUp()&&buoyCan(now,mirror);if(o)drawDuckScene(G3.duck,buoyCanModel(),o);} // (its can light, turned to its spot)
   if(MP.on)for(const P of MP.players){if(P.id===MP.me)continue;const b=MP.ob[P.id];if(b&&b.x!=null)drawDuckScene(G3.duck,buoyModel(P.name,[],P.col),buoyOpts(now,mirror,b));}} // (playing together: everyone else's buoy, on their hex) // the buoy, then its sign (facing you)
 function buoyFrame(now,b){b=b||buoy; // how it floats now: its turn, a slow rocking sway (its up tipped, about an axis that wanders round), its bob; and where its lantern is
   const size=HEX*BUOY_SIZE,f=[Math.cos(b.yaw),Math.sin(b.yaw)],ph=b.ph||0,sw=(T.mapBuoySway!=null?T.mapBuoySway:0.09)*(Math.sin(now/1300+ph)+0.35*Math.sin(now/610+1.7+ph))+Math.min(0.12,(b.spin||0)*1.5),ua=now/3700+ph,u=[Math.cos(ua),Math.sin(ua),0],cs=Math.cos(sw),sn=Math.sin(sw);
@@ -1736,7 +1738,7 @@ const ITEM_DRAW={ // each (c, W, H, t seconds, arg): one frame
   speed:(c,W,H,t,x)=>{x=+x;for(const[cx,sp,lab]of[[W*0.3,1,'1×'],[W*0.7,x,x+'×']]){const r=Math.min(W,H)*0.26;c.strokeStyle='#fff';c.lineWidth=1.5;c.beginPath();c.arc(cx,H*0.45,r,0,6.2832);c.stroke();const a=t*sp*2-1.57;c.beginPath();c.moveTo(cx,H*0.45);c.lineTo(cx+Math.cos(a)*r*0.85,H*0.45+Math.sin(a)*r*0.85);c.strokeStyle=sp===1?'#fff':'#ffd76a';c.lineWidth=2;c.stroke();dText(c,lab,cx,H*0.88,11);}},
   cross:(c,W,H,t,k)=>{const r=Math.min(W,H)*0.17,y=H*0.55,xs=[W*0.2,W*0.5,W*0.8],fill={bright:'rgba(255,243,207,.55)',dark:'rgba(20,10,30,.95)',rift:'rgba(80,20,40,.8)'}[k];xs.forEach((x,i)=>dHex(c,x,y,r,i===1?fill:null));if(k==='rift'){c.strokeStyle='#ff4a6a';c.lineWidth=2;c.beginPath();c.moveTo(xs[1]-r*0.6,y-r*0.3);c.lineTo(xs[1],y+r*0.2);c.lineTo(xs[1]+r*0.6,y-r*0.3);c.stroke();}
     const p=(t%2.5)/2.5,bx=xs[0]+(xs[2]-xs[0])*Math.min(1,p*1.3);dBuoy(c,bx,y-r*0.2-Math.sin(Math.min(1,p*1.3)*3.14)*r*0.8,r*0.9);},
-  hold:(c,W,H,t,a)=>{const[mt,pc]=String(a).split('/'),tilt=Math.sin(t*3)*0.35;c.strokeStyle='rgba(120,180,255,.7)';c.lineWidth=2;c.beginPath();for(let x=0;x<=W;x+=4)c[x?'lineTo':'moveTo'](x,H*0.7+Math.sin(x*0.06+t*4)*5);c.stroke();dBuoy(c,W/2,H*0.66,Math.min(W,H)*0.5,tilt);const ly={top:-0.48,mast:-0.3,deck:-0.08,hull:0.02}[mt]||-0.2;c.save();c.translate(W/2,H*0.66);c.rotate(tilt);dDot(c,Math.min(W,H)*0.12,ly*Math.min(W,H),5,'#ffd76a');c.restore();dText(c,'holds '+pc+'%',W/2,H*0.12,11,'#ffd76a');},
+  hold:(c,W,H,t,a)=>{const[mt,pc]=String(a).split('/'),tilt=Math.sin(t*3)*0.35;c.strokeStyle='rgba(120,180,255,.7)';c.lineWidth=2;c.beginPath();for(let x=0;x<=W;x+=4)c[x?'lineTo':'moveTo'](x,H*0.7+Math.sin(x*0.06+t*4)*5);c.stroke();dBuoy(c,W/2,H*0.66,Math.min(W,H)*0.5,tilt);const ly={nest:-0.62,top:-0.48,mast:-0.3,deck:-0.08,hull:0.02}[mt]||-0.2;c.save();c.translate(W/2,H*0.66);c.rotate(tilt);dDot(c,Math.min(W,H)*0.12,ly*Math.min(W,H),5,'#ffd76a');c.restore();dText(c,'holds '+pc+'%',W/2,H*0.12,11,'#ffd76a');},
   troll:(c,W,H,t)=>{const r=Math.min(W,H)*0.14,y=H*0.55,p=(t%3)/3;for(let i=0;i<4;i++)dHex(c,W*(0.15+i*0.23),y,r,i>0&&i<3?'rgba(255,243,207,.5)':null);const bx=W*(0.15+0.69*p);dBuoy(c,bx,y-r*0.3,r*1.4);c.strokeStyle='rgba(255,255,255,.5)';c.beginPath();c.moveTo(bx,y);c.lineTo(bx-r*1.4,y+r*0.4);c.stroke();if(p>0.3)dText(c,'+'+(p>0.55?2:1)*72+' ✦',bx,y-r*2,11,'#fff3cf');},
   clock:(c,W,H,t,h)=>{const back=h==='yesterday';h=back?-15:h==='tomorrow'?33:+h||9;const r=Math.min(W,H)*0.36,cx=W/2,cy=H/2,p=Math.min(1,(t%3)/2),a=(9+((h-9+24)%24)*p)/12*6.2832-1.57;c.strokeStyle='#fff';c.lineWidth=1.5;c.beginPath();c.arc(cx,cy,r,0,6.2832);c.stroke();for(let i=0;i<12;i++){const b=i/12*6.2832;c.beginPath();c.moveTo(cx+Math.cos(b)*r*0.85,cy+Math.sin(b)*r*0.85);c.lineTo(cx+Math.cos(b)*r,cy+Math.sin(b)*r);c.stroke();}c.strokeStyle='#ffd76a';c.lineWidth=3;c.beginPath();c.moveTo(cx,cy);c.lineTo(cx+Math.cos(a)*r*0.6,cy+Math.sin(a)*r*0.6);c.stroke();},
   give:(c,W,H,t,a)=>{const[k,n]=String(a).split('/'),p=(t%2.6)/2.6,y=H*(0.15+0.45*Math.min(1,p*1.6));c.strokeStyle='#e0b040';c.lineWidth=2;c.beginPath();c.moveTo(W*0.33,H*0.6);c.quadraticCurveTo(W*0.3,H*0.92,W/2,H*0.92);c.quadraticCurveTo(W*0.7,H*0.92,W*0.67,H*0.6);c.stroke();
@@ -1750,9 +1752,13 @@ const ITEM_DRAW={ // each (c, W, H, t seconds, arg): one frame
     seq.forEach((n,i)=>{const im=glyphImg('plants/'+n+'.svg');if(im&&im.complete&&im.naturalWidth){const w=h*im.naturalWidth/im.naturalHeight;c.drawImage(im,W/2-w/2,H*0.9-h*(seq.length-i),w,h);}});c.restore();if(st===3)dDot(c,W/2,H*0.9-h*seq.length+h*0.4,4,'#ffd76a',0.5+0.5*Math.sin(t*4));},
   trash:(c,W,H,t,m)=>{const p=(t%3)/3,x=W/2,y=H*0.6;c.save();c.globalAlpha=p<0.55?1:Math.max(0,1-(p-0.55)*4);c.fillStyle=DK[m]||'#fff';c.fillRect(x-9,y-6,18,12);c.restore();c.strokeStyle='#fff';c.lineWidth=2;const ny=y-H*0.35*(1-Math.min(1,p*2));c.beginPath();c.arc(x,ny,15,0,6.2832);c.stroke();dNib(c,x,ny,Math.min(W,H)/130);if(p>0.6)dText(c,'♻ '+(txt('trash.'+m)||m),x,H*0.18,11,DK[m]);},
   cards:(c,W,H,t,n)=>{n=+n||3;const p=(t%3)/3;for(let i=0;i<n;i++){const q=Math.min(1,Math.max(0,p*n*1.3-i)),x=W/2+(i-(n-1)/2)*W*0.2*q,y=H*0.5;c.save();c.translate(x,y);c.rotate((i-(n-1)/2)*0.12*q);c.fillStyle='#1b1030';c.strokeStyle='#e0b040';c.lineWidth=1.5;c.fillRect(-W*0.08,-H*0.28,W*0.16,H*0.56);c.strokeRect(-W*0.08,-H*0.28,W*0.16,H*0.56);c.restore();}},
+  plate:(c,W,H,t,id)=>{const it=shopItem(id),k=kitGet(),o=(it&&it.fx.plate)||{},f=Math.floor(t*1000/(T.signAnimMs||180))%8; // a name plate option or style (or a flag pattern): your own plate (or flag) with it
+    if(o.flag||(it&&it.fx.look==='flag')){const x=W*0.22,y=H*0.22;c.strokeStyle='#c9ced6';c.lineWidth=3;c.beginPath();c.moveTo(x,y-6);c.lineTo(x,H*0.9);c.stroke();c.save();c.translate(x,y);c.transform(1,0.06*Math.sin(t*3),0,1,0,0);flagTex(c,0,0,W*0.6,W*0.4,Object.assign({},k.flag,o.flag?{pat:o.flag}:{}),'calm');c.restore();return;}
+    plateTex(c,W*0.06,H*0.3,W*0.88,H*0.38,playerName||txt('kit.plate'),Object.assign({},k.plate,o),f);},
   music:(c,W,H,t)=>{const r=Math.min(W,H)*0.32;c.save();c.translate(W*0.4,H/2);c.rotate(t*2);c.fillStyle='#0a0a0c';c.beginPath();c.arc(0,0,r,0,6.2832);c.fill();c.strokeStyle='rgba(255,255,255,.15)';for(let i=3;i<10;i++){c.beginPath();c.arc(0,0,r*i/10,0,6.2832);c.stroke();}c.fillStyle='#d03a2a';c.beginPath();c.arc(0,0,r*0.3,0,6.2832);c.fill();c.restore();for(let i=0;i<3;i++){const q=(t*0.5+i/3)%1;dText(c,'♪',W*(0.72+0.1*Math.sin(q*6+i)),H*(0.8-0.6*q),14,`rgba(255,215,106,${(1-q).toFixed(2)})`);}},
 };
 function itemDraw(it){const f=it.fx,id=it.id,k=f.give?Object.keys(f.give)[0]:f.cap?Object.keys(f.cap)[0]:null; // [name, arg]: its drawn demo (null: its live scene)
+  if(f.plate||f.look==='plate'||f.look==='flag')return['plate',id];if(f.look==='spot')return['troll'];
   if(f.cap&&f.cap.shine)return['shine',f.cap.shine];if(f.heat)return['heat',Object.keys(f.heat)[0]];if(/^swoop$|^hoop/.test(id))return['net',id];if(f.net)return['netx',f.net];
   if(f.cap&&CHEST_KINDS.includes(k))return['chest',k+'/'+f.cap[k]];if(f.cap){const L=SHOP_ITEMS.filter(i=>i.fx.cap&&i.fx.cap[k]!=null).map(i=>i.fx.cap[k]).sort((a,b)=>a-b),j=L.indexOf(f.cap[k]);return['cap',k+'/'+(j>0?L[j-1]:T[{leash:'invMaxLeash',dial:'invMaxDial',weave:'invMaxWeave',prism:'invMaxPrism',knot:'invMaxKnot',lens:'invMaxLens',gate:'invMaxGate',key:'invMaxKey'}[k]]||10)+'/'+f.cap[k]];}
   if(f.proc)return['proc',f.proc];if(f.xbuy)return['xchg','bright/'+f.xbuy];if(f.xsell)return['xchg',f.xsell+'/bright'];if(/^spd/.test(id))return['speed',({spd0:'0',spd05:'0.5',spd2:'2',spd8:'8'})[id]];
@@ -1814,7 +1820,8 @@ function mpLoadLib(go){if(window.Peer||MPBC){go();return;}const s=document.creat
 function netOut(o,to){o.from=MP.me;if(to)o.to=to; // to a player (the host forwards), or (host) to everyone
   try{if(MP.bc){MP.bc.postMessage(o);return;}if(MP.role==='guest'){if(MP.host&&MP.host.open)MP.host.send(o);return;}
     if(to){const c=MP.conns.get(to);if(c&&c.open)c.send(o);return;}for(const c of MP.conns.values())if(c.open)c.send(o);}catch(e){}}
-function netHost(){if(MP.on){mpInviteShow();return;}MP.room='ilm-'+Math.random().toString(36).slice(2,8);MP.role='host';MP.me='h';MP.on=true;
+const plateUp=()=>{const k=kitGet(),C=kitCounts(k);return KIT_SLOTS.some(s=>k.slots[s].slice(0,C[s]).includes('plate'));}; // your name plate on its mount: playing together needs it (it is how the others know your buoy)
+function netHost(){if(MP.on){mpInviteShow();return;}if(!plateUp()){feed(txt('mp.title'),txt('mp.need_plate'),'no');return;}MP.room='ilm-'+Math.random().toString(36).slice(2,8);MP.role='host';MP.me='h';MP.on=true;
   MP.players=[{id:'h',name:playerName||txt('mp.host'),col:buoyCol,q:pQ,r:pR}];MP.order=['h'];MP.turnI=0;
   if(MPBC){MP.bc=new BroadcastChannel(MP.room);MP.bc.onmessage=e=>{const m=e.data;if(m&&m.from!=='h'&&(!m.to||m.to==='h'))netHostOn(m,m.from);};mpInviteShow();mpSync();return;} // (two tabs: everyone hears everything; each takes what is theirs)
   mpLoadLib(()=>{MP.peer=new Peer(MP.room);MP.peer.on('open',mpInviteShow);MP.peer.on('error',e=>feed(txt('mp.title'),txt('mp.error',e.type||e)));
@@ -1999,7 +2006,7 @@ function sceneLook(F){if(!F||!cam)return;let b;if(F.pts){if(!F.pts.length)return
 function sceneLoop(){const f=SCENES[SCENE]||SCENES.map;zoomT=null;camV.x=camV.y=camV.z=0;const ms=f(),fk=SCENE_FOCUS[SCENE];if(fk){sceneLook(fk());at(1300,()=>sceneLook(fk()));at(3500,()=>sceneLook(fk()));}setTimeout(sceneLoop,ms);} // (looked at again as its ducks swim in and its hexes clear)
 // ═══ START ═══
 if(SCENE){document.body.classList.add('scene');if(SCENE==='shops'||SCENE==='street'||SCENE==='shop')document.body.classList.add('scene-shops');if(SCENE==='fortune')document.body.classList.add('scene-calm');try{const u=new URLSearchParams(location.search);T=JSON.parse(u.get('T')||'{}');DUCK_TYPES=JSON.parse(u.get('D')||'{}');}catch(e){T={};}HEX=T.mapHexSize||HEX;viewZoom=1.3;mapResize();camUpdate&&SW&&camUpdate();sceneLoop();startMapLoop();}
-else{nebEl.src='chromatic_nebula.html?hub=1&v='+CACHE_V;if(MPJOIN){newMap();mapResize();netJoin();}else if(!loadMap())initGame();startMapLoop();neb({cmd:'state'});} // (joining a friend: their map comes in its place)
+else{nebEl.src='chromatic_nebula.html?hub=1&v='+CACHE_V;if(MPJOIN&&plateUp()){newMap();mapResize();netJoin();}else{if(MPJOIN)setTimeout(()=>feed(txt('mp.title'),txt('mp.need_plate'),'no'),1500);if(!loadMap())initGame();}startMapLoop();neb({cmd:'state'});} // (joining a friend: their map comes in its place)
 </script>
 </body>
 </html>
