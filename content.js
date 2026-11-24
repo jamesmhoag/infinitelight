@@ -87,13 +87,13 @@ function cursorNib(cx,x,y,cR,dimA,src,W,H,t,on,down){ // down: pressed where the
   const now=performance.now(),dt=NIB.last?Math.min(100,now-NIB.last):16;NIB.last=now;if(down&&!NIB.down)NIB.dipTo=now+(t.cursorNibDabMs!=null?t.cursorNibDabMs:110);NIB.down=!!down; // a quick click still dips for a moment (twice for a double dab)
   const dip=down||now<(NIB.dipTo||0);NIB.lift=(NIB.lift==null?1:NIB.lift)+((dip?0:1)-(NIB.lift==null?1:NIB.lift))*(1-Math.exp(-dt/(t.cursorNibDipMs||45)));
   const want=on||dip||NIB.lift<0.9;NIB.on=want;NIB.v+=((want?1:0)-NIB.v)*(1-Math.exp(-dt/(want?70:160)));if(NIB.v<0.01)return; // (in quickly, out more slowly; over nothing it fades in for the dab and back out to the plain cursor)
-  const ny=y-NIB.lift*cR*(t.cursorNibLift!=null?t.cursorNibLift:0.7); // hovering: the nib's tip a little above the cursor's centre (the lens stays on it)
+  const ny=y-NIB.lift*cR*(t.cursorNibLift!=null?t.cursorNibLift:0.7); // hovering: the nib's tip a little above the cursor's centre — the lens lifts with it (one piece: they never part)
   const v=NIB.v,e=v*v*(3-2*v),s=cR/NIB_U*(t.cursorNibScale!=null?t.cursorNibScale:1)*(1+0.35*(1-e)),A=(1-(1-dimA)*0.5)*e,z=t.cursorNibZoom||2.4,m=4; // s: art units to px (larger while still deep)
   const def=Math.atan2(NIB_LENS[1],NIB_LENS[0]),d=Math.hypot(NIB_LENS[0],NIB_LENS[1])*s,lr=NIB_LENS[2]*s*(t.cursorNibLensK!=null?t.cursorNibLensK:1);
-  const fits=a=>{const ex=x+Math.cos(a)*d,ey=y+Math.sin(a)*d;return ex-lr>=m&&ex+lr<=W-m&&ey-lr>=m&&ey+lr<=H-m;};
+  const fits=a=>{const ex=x+Math.cos(a)*d,ey=ny+Math.sin(a)*d;return ex-lr>=m&&ex+lr<=W-m&&ey-lr>=m&&ey+lr<=H-m;};
   let tgt=def;if(!fits(def)){tgt=null;for(let q=Math.PI/12;q<=Math.PI+1e-6&&tgt==null;q+=Math.PI/12){if(fits(def-q))tgt=def-q;else if(fits(def+q))tgt=def+q;}if(tgt==null)tgt=def;}
   if(NIB.a==null)NIB.a=def;let da=((tgt-NIB.a)%(2*Math.PI)+3*Math.PI)%(2*Math.PI)-Math.PI;NIB.a+=da*(1-Math.exp(-dt/110)); // turned away from the screen's edges, eased round the shorter way
-  const lx=x+Math.cos(NIB.a)*d,ly=y+Math.sin(NIB.a)*d,rot=NIB.a-def;
+  const lx=x+Math.cos(NIB.a)*d,ly=ny+Math.sin(NIB.a)*d,rot=NIB.a-def;
   cx.save();cx.beginPath();cx.arc(lx,ly,lr,0,6.2832);cx.clip();cx.fillStyle=`rgba(0,0,0,${e.toFixed(3)})`;cx.fill(); // the lens, over the ring: what is under the tip, magnified, upright
   if(src){cx.globalAlpha=A;const w=lr*2/z,g=NIB.cv;try{if(g)cx.drawImage(g,x-w/2-NIB.ox,y-w/2-NIB.oy,w,w,lx-lr,ly-lr,lr*2,lr*2);else cx.drawImage(src,x-w/2,y-w/2,w,w,lx-lr,ly-lr,lr*2,lr*2);}catch(e){}}cx.restore(); /* (from nibGrab: the scene without the cursor's light) */
   cx.beginPath();cx.arc(lx,ly,lr,0,6.2832);cx.strokeStyle=`rgba(255,255,255,${(0.85*A).toFixed(3)})`;cx.lineWidth=Math.max(1,2*s);cx.stroke(); // its rim
