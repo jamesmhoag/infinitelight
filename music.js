@@ -3,7 +3,7 @@
 //  hybrid   (the record player's own album): strings and a horn line over EDM drums, bass and an arpeggio when it drops
 //  edm      (the PULSE): four on the floor, off-beat bass, a plucked arpeggio, a pad that ducks under the kick; builds, drops and breaks
 //  symphony (CUSTOM HULLS): strings, cellos, a horn melody, pizzicato and timpani; it swells and settles
-// A record plays 48 bars, then the next one you own. Also: a souvenir copy from the GIFT SHOP (kept through its wipe), and Dim's Carnival's record prize. The record player is a starting item on a mast mount (START_ITEMS, shared.js);
+// A record plays 48 bars, then the next one you own. Also: a souvenir copy from the GIFT SHOP (kept through its wipe), and Dim's Carnival's record prize. The record player is a starting item on the deck mount (START_ITEMS, shared.js);
 // its dock slot (♪) lists your records. A record: owned as up:<id> (the hybrid album comes with the player)
 const RECORDS=csvRead('records').map(r=>({id:r.id,n:r.name,g:r.genre,bpm:+r.bpm||120,root:+r.root||45,minor:r.scale!=='major',prog:String(r.prog||'0 5 3 4').split(/\s+/).map(Number),seed:+r.seed||1}));
 const MUSIC={ctx:null,cur:null,bar:0,step:0,at:0,timer:null,out:null,rev:null,duck:null,pref:(()=>{try{return JSON.parse(localStorage.getItem('il_music_v1')||'null')||{on:true,id:null};}catch(e){return{on:true,id:null};}})()};

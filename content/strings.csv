@@ -1174,8 +1174,9 @@ kit.part.mast,Mast,Status (Mounts),
 kit.part.light,Spotlight,Status (Mounts),
 kit.basic,Basic,Status (Mounts),
 kit.slot.hull,Hull mount ({n}),Status (Mounts),n = $0 — how many
-kit.slot.mast,Mast mounts ({n}),Status (Mounts),n = $0 — how many
-kit.slot.top,Top mount ({n}),Status (Mounts),n = $0 — how many
+kit.slot.deck,Deck mount ({n}),Status (Mounts),n = $0 — how many
+kit.slot.mast,Riser mounts ({n}),Status (Mounts),n = $0 — how many
+kit.slot.top,Mast mount ({n}),Status (Mounts),n = $0 — how many
 kit.dbl,each holds two,Status (Mounts),
 kit.empty,— empty —,Status (Mounts),
 kit.stowed,Stowed below deck,Status (Mounts),
@@ -1193,6 +1194,10 @@ map.anchor.held,Anchored,Surface Map (anchor),
 map.anchor.held_d,"The tide cannot carry you: raise the anchor to drift in",Surface Map (anchor),
 map.anchor.raised,Anchor up,Surface Map (anchor),
 map.anchor.raised_d,Moving raises it,Surface Map (anchor),
+map.wreck.rift,Wrecked in the Rift,Surface Map (wrecks),
+map.wreck.rift_d,"The tear threw your buoy outward, a ring further from the Point. Everything held on.",Surface Map (wrecks),
+map.wreck.helm,"At the helm, you rode it out",Surface Map (wrecks),
+map.wreck.helm_d,"Your rudder steered you through the tear's wreck: nothing went overboard.",Surface Map (wrecks),
 map.wreck.tossed,You were tossed and turned all night,Surface Map (wrecks),
 map.wreck.lost,"Lost overboard: {items}. Buy them again to have them back.",Surface Map (wrecks),items = $0 — what went overboard
 map.wreck.manifest,"Wrecked at Midnight · lost overboard: {items}",Surface Map (wrecks),items = $0 — what went overboard (the day's log)
