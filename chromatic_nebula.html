@@ -210,6 +210,7 @@ const wrap=document.getElementById('wrap'),statsEl=document.getElementById('stat
 // and then needs a NEW press before it works again. heat.disp is the smoothed amount shown on the cursor (full ring = T.heatMax).
 let heat={v:0,disp:0,until:0,dur:1,needNew:false,last:0}; // (let: a second player's own heat is swapped in while their input runs — withHeat)
 function withHeat(h,fn){const o=heat;heat=h;try{return fn();}finally{heat=o;}}
+const heatK=g=>window.__SCENE?1:shopLeast('heat',g,k=>discSeen.has(k)); // how much a gesture heats the nib (INFINITE LINE: Light wipe, Quick double dab, Easy mop)
 function heatBlocked(now){return heat.until>now||heat.needNew;}
 function heatAdd(n,now){
   if(!(n>0)||heat.until>now)return;
@@ -329,7 +330,7 @@ function setPendingStatus(p,on,dorm){
 // The same snake-style cap as real activation (T.maxActivePoints), applied to the WANTED status while paused: activated objects in
 // the order they were activated (already-active first, then queued ones); anything past the cap loses its oldest.
 function enforcePendingCap(){
-  const cap=Math.max(1,Math.floor(T.maxActivePoints)),order=[];
+  const cap=shineMax(),order=[];
   for(const id of pressedIDs){const e=pendingActs.get(id);if(!(e&&!e.on))order.push({id,pressed:true});}
   pendingActs.forEach((e,id)=>{if(e.on&&!pressedIDs.has(id))order.push({id,pressed:false});});
   for(let i=0,over=order.length-cap;over>0&&i<order.length;i++,over--){
@@ -442,7 +443,7 @@ let baseScale=1,dilations=[],dilLast=0,dilSlow=0,risksOn=false,_glAt=0,_bhSF=-1,
 
 
 TUNE_DEFS.push({sec:txt('tune.sec.popranks'),tab:'map'});
-for(const id in SHOPS){const S=SHOPS[id];if(S.street)continue;for(let i=1;i<=3;i++){const k=shopTK(S.cur)+i;T[k]=S.at[i-1];TUNE_DEFS.push({key:k,label:txt('tune.poprank.label',S.n.slice(0,18),i),min:0,max:9999999,step:1,tip:txt('tune.poprank.tip',S.cur,i,S.n)});}} // (their defaults: content/shops.csv)
+for(const id in SHOPS){const S=SHOPS[id];if(S.street||!S.at)continue;for(let i=1;i<=3;i++){const k=shopTK(S.cur)+i;T[k]=S.at[i-1];TUNE_DEFS.push({key:k,label:txt('tune.poprank.label',S.n.slice(0,18),i),min:0,max:9999999,step:1,tip:txt('tune.poprank.tip',S.cur,i,S.n)});}} // (their defaults: content/shops.csv)
 let tuneTab='gameplay',tuneFilter='';
 TUNE_DEFS.push({sec:'Achievements — the count each needs',tab:'achievements'});for(const a of ACH){T['ach_'+a.id]=a.at;TUNE_DEFS.push({key:'ach_'+a.id,label:a.n,min:0,max:1e9,step:1,tip:a.stat+' ≥ this: '+(a.un.length?'unlocks '+a.un.map(u=>u.k+' '+u.id).join(', '):'(a milestone: unlocks nothing)')+(a.note?' · '+a.note:'')});}
 const tuneTabs=()=>{const all=[...new Set(TUNE_DEFS.map(d=>d.tab).filter(Boolean))],P=['theme','gameplay','sounds','map','discoveries','achievements'];return all.sort((a,b)=>(P.indexOf(a)+99)%99-(P.indexOf(b)+99)%99);}; // (in this order, any other after)
@@ -2121,13 +2122,11 @@ function runT(k){ // a tuner as today's fortune, daily wonder, Luck Charms and t
   if(k==='riftMass')return v>0&&runBad(r,'rift')?Math.max(1000,v-10000):v;return v;}
 function invFull(kind){return !BUILD&&inventory[kind]>=invMaxFor(kind);} // a purse with no room left: nothing more of that kind is collected, earned or bought. Never in Build mode, where every item is endless: collecting and earning still happen there, so nothing on a surface is out of reach
 // The treasure chest (Chest on): the remnants you hold (Bright, Dim, Neutron, Magnetic, Pulsing, each at the value it was collected at) share one chest of Chest
-// start (999). BRiGHT IDEAS sells its compartments (each kind its own: Bright and Dim Chest remnants, each exotic Chest exotic), then bigger ones (exotics Chest
-// exotic up, Bright and Dim Chest bright up), Energy Value (every capacity × Chest energy ×) and the Bright vault (Bright × Chest vault × again)
-const CHEST_KINDS=['bright','dim','neutron','magnetic','pulsing'];
-function chestHas(id){return discSeen.has('up:'+id);}
-function chestCap(kind){const m=(chestHas('chest_energy')?(T.chestEnergyMult||10):1)*(kind==='bright'&&chestHas('chest_vault')?(T.chestVaultMult||10):1),ex=kind!=='bright'&&kind!=='dim';
-  if(!chestHas('chest_comp')){const S=Math.round((T.chestStart||999)*m);let o=0;for(const k of CHEST_KINDS)if(k!==kind)o+=inventory[k]||0;return Math.max(0,S-o);} // one chest, shared: what is left of it, plus what this kind already holds
-  return Math.round((ex?(chestHas('chest_exo')?T.chestExoUp||999:T.chestExo||99):(chestHas('chest_bri')?T.chestBriUp||99999:T.chestRem||999))*m);}
+// start (999). BRiGHT IDEAS sells each kind its own compartment (999: out of the shared chest), then bigger ones (exotics 9,999; Bright and Dim 99,999, then
+// 9,999,999): a compartment is a purse cap bought (fx.cap, shopCap), as every other
+function gearOn(id){return !!window.__SCENE||discSeen.has('up:'+id);} // an upgrade bought and kept ('up:<id>'; a journal scene: shown)
+function chestCap(kind){const has=k=>discSeen.has(k),own=shopCap(kind,has);if(own)return own;let o=0;for(const k of CHEST_KINDS)if(k!==kind&&!shopCap(k,has))o+=inventory[k]||0;return Math.max(0,(T.chestStart||999)-o);} // its own compartment, or what is left of the shared chest (plus what this kind already holds)
+function shineMax(){return Math.max(1,T.maxActivePoints|0,window.__SCENE?0:shopCap('shine',k=>discSeen.has(k)));} // how many things the nib can have shining at once (Nib shine: the tuner, or more bought at INFINITE LINE)
 function invMaxFor(kind){if(kind==='key'&&runState.keysGone)return 0;if(T.chestOn&&!BUILD&&CHEST_KINDS.includes(kind))return chestCap(kind);return Math.max(T['invMax'+kind[0].toUpperCase()+kind.slice(1)],shopCap(kind,k=>discSeen.has(k)));} // the tuner, or a bigger cap bought in a shop
 // Adds (or, with a negative amount, spends) units of one inventory kind,
 // clamped between 0 and that kind's current tunable max.
@@ -2142,7 +2141,10 @@ function addInventory(kind,amount,bought,at){ // (at: where it was earned, for i
   updateInventoryUI();
 }
 // Bright/Dim remnants left over at Surface Clear are "collected artifacts."
-function remnantValue(p,kind){const e=!!p.enriched,k=e?100:10;if(kind==='bright'||kind==='dim')return Math.max(1,Math.ceil((p.energy||0)*k));if(runBad(runState,'exo1'))return 1;return (e?100:1)+((p._stB&&p._stB.length)||0)*Math.ceil(T.statusEnergy*k);} // what collecting this remnant is worth (Neutron / Magnetic / Pulsing: 1, enriched 100, plus each stacked status) // (a dim fortune: exotic remnants collect as 1)
+function remnantValue(p,kind){const e=!!p.enriched,pr=gearOn('proc_'+(kind==='dim'?'bright':kind)),rf=e&&gearOn('proc_relic')?(T.relicRefine||10):1,k=e?100:10; // what collecting this remnant is worth. BRiGHT IDEAS' processing: Bright / Dim 10 × their energy (1 each without it); an exotic one counts what it was
+  // infected with (each stacked status) as well; a relic is worth 10 × as much unprocessed, as before processed, and Relic refinery × more again
+  if(kind==='bright'||kind==='dim')return pr||e?Math.max(1,Math.ceil((p.energy||0)*(pr?k:10)*rf)):1;if(runBad(runState,'exo1'))return 1; // (a dim fortune: exotic remnants collect as 1)
+  return (e?(pr?100:10)*rf:1)+(pr?((p._stB&&p._stB.length)||0)*Math.ceil(T.statusEnergy*k):0);}
 let surfaceTally={},surfaceLost={};
 function tallyLost(p){const k=collectKindOf(p);if(k)surfaceLost[k]=(surfaceLost[k]||0)+remnantValue(p,k);}
 function boomBust(n){return runBonus(runState,'boom')?(Math.random()<0.5?n*5:0):n;} // a Boom or Bust day: ×5 or nothing
@@ -4411,6 +4413,7 @@ function armInventoryItem(kind){
     updateInventoryUI();return;
   }
   if(inventory[kind]<=0)return;
+  if(ITEM_BUY[kind]&&!BUILD&&!gearOn(ITEM_BUY[kind])){const it=shopItem(ITEM_BUY[kind]);flashSaveStatus(txt('surf.item_unbought',ITEM_RULE[kind],it.n,SHOPS[it.shop].n));return;} // (Freeze frame, Deeper Well, …: not bought yet)
   const wasArmed=armedInvItem&&armedInvItem.kind===kind;
   armedInvItem=wasArmed?null:{kind,effect:0};if(kind==='dial'){dialLoaded=[];if(armedInvItem)dialLoadPressed();} // String starts in STOP
   if(armedInvItem&&kind==='magnetic'){
@@ -4655,6 +4658,7 @@ function dialOutcome(t,e){
 //  Neutron  : hold = a stationary stasis area; everything in it is frozen (trails shown, lifespans paused), the outside bounces
 //             things off; release and it all moves on. Costs Neutrons every interval
 //  Pulsing  : click / swipe / double-click = everything in reach (particles are woken) gets a random direction + spin (1 each)
+const ITEM_BUY={dim:'p_dim',bright:'p_bright',neutron:'p_neu',magnetic:'p_mag',pulsing:'p_pul'}; // the pouch's remnants are used only once their upgrade is bought
 const ITEM_TOOLS=new Set(['dim','bright','magnetic','neutron','pulsing','leash']),ITEM_RULE={dim:'DEPTH',bright:'BALANCE',neutron:'DYNAMISM',magnetic:'HARMONY',pulsing:'RHYTHM',leash:'Spindle',dial:'String'};
 let _nullNow=0,itemHold=null,itemHoldSeq=0,itemTouched=new Map(),itemPressSeen=-1,itemPressDbl=false,lastItemPressAt=0,lastItemPressX=0,lastItemPressY=0,itemLastT=0;
 function spreadRGB(ci,q){ // a colour effect is applied across the colour's FULL range (each object keeps its own place in it)
@@ -4749,7 +4753,7 @@ function gestureNearest(mx,my,g,now){ // DOUBLE-CLICK: exactly what autoSelectCl
   const side=_zoneList.length?gateSide(mx,my):0,out=[]; // only the side of a Gate / barrier the click is on (same rule as autoSelectClosestTargets)
   for(const c of cands)if(!_zoneList.length||gateSide(c.o.x,c.o.y)===side)out.push(c);
   out.sort((a,b)=>a.d2-b.d2);
-  return out.slice(0,Math.max(1,T.maxActivePoints|0)); // the same single cap as every other activation: T.maxActivePoints ("Max shining")
+  return out.slice(0,shineMax()); // the same single cap as every other activation: T.maxActivePoints ("Max shining")
 }
 function gestureStep(kind,mx,my,g,now){
   if(!g.first&&!g.dbl&&!g.moved)return; // a single dab only ever touches ONE object
@@ -4970,7 +4974,7 @@ function drawHoverExtras(ctx,now){ // the hover read-outs for what the point rea
   if(!showRadii)return;ctx.save();ctx.setLineDash([3,4]);ctx.lineWidth=1;
   const dabR=armedInvItem&&armedInvItem.kind==='neutron'?T.dynamismR:T.touchR;ctx.strokeStyle='rgba(255,255,255,0.55)';ctx.beginPath();ctx.arc(x,y,dabR,0,6.2832);ctx.stroke();lab(txt('hover.dab'),x,y-dabR-2,'#ffffff');
   const c=!armedInvItem&&collectableAt(x,y);if(c){const R=Math.max(T.touchR,placedRadius(c.p)+2);ctx.setLineDash([]);ctx.strokeStyle='rgba(255,214,110,0.8)';ctx.beginPath();ctx.arc(c.p.x,c.p.y,R,0,6.2832);ctx.stroke();lab(txt('hover.collect'),c.p.x,c.p.y+R+12,'#ffd66e');}
-  if(now-_aoe.t>150||Math.hypot(x-_aoe.x,y-_aoe.y)>12){const L=armedInvItem?gestureNearest(x,y,{},now):dblTargets(x,y).slice(0,Math.max(1,T.maxActivePoints|0)),f=L[L.length-1];_aoe={t:now,x,y,r:f?Math.sqrt(f.d2):0};} // (cached: it looks at every particle)
+  if(now-_aoe.t>150||Math.hypot(x-_aoe.x,y-_aoe.y)>12){const L=armedInvItem?gestureNearest(x,y,{},now):dblTargets(x,y).slice(0,shineMax()),f=L[L.length-1];_aoe={t:now,x,y,r:f?Math.sqrt(f.d2):0};} // (cached: it looks at every particle)
   if(_aoe.r>dabR){ctx.setLineDash([1,5]);ctx.strokeStyle='rgba(120,220,255,0.6)';ctx.beginPath();ctx.arc(x,y,_aoe.r,0,6.2832);ctx.stroke();lab(txt('hover.dbl'),x,y-_aoe.r-2,'#78dcff');}
   ctx.restore();}
 function drawTrailsUnder(ctx){drawDialTrails(ctx);if(timeScale<=0.0005)drawPausePaths(ctx);drawStasisTrails(ctx);} // String, pause and stasis trails sit UNDER the points they belong to
@@ -5195,7 +5199,7 @@ function performInventoryDrop(mx,my,now){
     if(mx<0||my<0||mx>=W||my>=H)return refuse('String inside the surface.');
     const nowDc=performance.now(),dbl=!_dialHoldCall&&(nowDc-lastDialClickAt<T.dblClickMs&&Math.hypot(mx-lastDialClickX,my-lastDialClickY)<40);
     if(!_dialHoldCall){lastDialClickAt=nowDc;lastDialClickX=mx;lastDialClickY=my;}
-    const cap=Math.max(1,T.maxActivePoints|0),loaded=dialLoadList();
+    const cap=shineMax(),loaded=dialLoadList();
     if(_dialHoldCall){if(loaded.length)dialFire([loaded[0]],mx,my,'one',nowDc);return true;}
     if(dbl){dialPending=null;if(loaded.length)dialFire(loaded,mx,my,'dbl',nowDc);for(const q of dialNearest(mx,my,cap-dialLoaded.length))dialLoad(q);return true;} // fire all, then reload the nearest (or just load them)
     const tgt=dialPick(mx,my);
@@ -5287,12 +5291,13 @@ function collectKindOf(p){
   if(p.failedCollapse)return 'dim';
   return null;
 }
+const NET_GEAR={magnetic:'strainer',neutron:'mesh',pulsing:'fence'},netCan=k=>BUILD||!NET_GEAR[k]||gearOn(NET_GEAR[k]); // the net catches Bright and Dim; an exotic only with its gear (BRiGHT IDEAS)
 function collectRank(p){const act=p.remKind==='neutron'||p.remKind==='magnetic'||p.remKind==='pulsing';return p.isRemnant?(p.enriched?(act?0:1):(act?2:3)):4;} // Enriched active, Enriched basic, active, basic (then a dim point)
 function collectableAt(mx,my){
   let best=null,bd=Infinity,bk=null,br=99;
   for(let i=0;i<active.length;i++){
     const p=active[i],kind=collectKindOf(p);
-    if(!kind||p._netAt||underGlass(p.x,p.y)||eclipsed(p.x,p.y,pointVisibleRadius(p),p))continue;
+    if(!kind||!netCan(kind)||p._netAt||underGlass(p.x,p.y)||eclipsed(p.x,p.y,pointVisibleRadius(p),p))continue;
     const dx=_wrapD(p.x-mx,W),dy=_wrapD(p.y-my,H),d2=dx*dx+dy*dy,R=Math.max(T.touchR,placedRadius(p)+2);
     const rk=collectRank(p);if(d2>R*R||rk>br||(rk===br&&d2>=bd))continue;
     bd=d2;best=p;bk=kind;br=rk;
@@ -5335,8 +5340,8 @@ function tryPickupRemnant(mx,my){
   {const gd=goodAt(mx,my);if(gd){openGood(gd);return true;}} // a commodity under the cursor is opened (its packaging floats away)
   {const dk=duckAt(mx,my);if(dk){collectDuck(dk);return true;}} // a duck under the cursor is collected first
   { const nta=performance.now();
-    if(lastCollectAll&&nta-lastCollectAll.t<380&&Math.hypot(mx-lastCollectAll.x,my-lastCollectAll.y)<34){ // second quick click: sweep up the NEAREST remnants of the same type, anywhere on screen, up to the snake length in all
-      const k=lastCollectAll.kind;lastCollectAll=null;const R=T.touchR*(T.netDblMult||3); // the net slashed in wide: every remnant of that kind within its hoop
+    if(lastCollectAll&&(BUILD||gearOn('hoop1'))&&nta-lastCollectAll.t<380&&Math.hypot(mx-lastCollectAll.x,my-lastCollectAll.y)<34){ // second quick click: sweep up the NEAREST remnants of the same type, anywhere on screen, up to the snake length in all
+      const k=lastCollectAll.kind;lastCollectAll=null;const R=T.touchR*(gearOn('hoop2')?T.netDbl2Mult||6:T.netDblMult||3); // the net slashed in wide: every remnant of that kind within its hoop
       const cs=[];for(const q of active){if(q.dying||q.captured||q._collected||collectKindOf(q)!==k||underGlass(q.x,q.y)||bondOf(q))continue;if(Math.hypot(_wrapD(q.x-mx,W),_wrapD(q.y-my,H))<=R)cs.push({p:q,kind:k});}
       netScoop(cs,mx,my,R,true)||netRipple(mx,my,R,0.8);
       lastCollectDoneAt=nta;
@@ -5414,7 +5419,7 @@ function handleCollectHold(now){
     return;
   }
   if(!collectHold){
-    if(dragMode||now-mouseDownAt<HOLD_CHARGE_DELAY_MS)return;
+    if(dragMode||now-mouseDownAt<HOLD_CHARGE_DELAY_MS||!(BUILD||gearOn('swoop')))return; // wiping collects only with the Swoop net
     collectHold=true;collectSeen.clear();
     collectSeen.add(downOnRemnant.p.id);netKeep(downOnRemnant);
   }
@@ -8475,7 +8480,7 @@ let _dialHoldCall=false,lastDialClickAt=0,lastDialClickX=0,lastDialClickY=0;
 let dialLoaded=[],dialQueue=[],dialPending=null,_dialSw=false;
 function dialCandidate(p){return !!p&&!p.isRemnant&&!p.failedCollapse&&!p.dying&&!p.captured&&p.dialT===undefined&&!underGlass(p.x,p.y);}
 function dialLoadList(){const set=new Set(dialLoaded),m=new Map();for(const p of active)if(set.has(p.id)&&dialCandidate(p))m.set(p.id,p);dialLoaded=dialLoaded.filter(id=>m.has(id));return dialLoaded.map(id=>m.get(id));}
-function dialLoad(p){if(!p||dialLoaded.includes(p.id)||dialLoaded.length>=Math.max(1,T.maxActivePoints|0))return false;dialLoaded.push(p.id);return true;}
+function dialLoad(p){if(!p||dialLoaded.includes(p.id)||dialLoaded.length>=shineMax())return false;dialLoaded.push(p.id);return true;}
 function dialLoadPressed(){for(const p of active)if(pressedIDs.has(p.id)&&dialCandidate(p))dialLoad(p);}
 function dialPick(mx,my){let best=null,bd=1e9;const set=new Set(dialLoaded);for(const p of active){if(!dialCandidate(p)||set.has(p.id))continue;const d=Math.hypot(_wrapD(p.x-mx,W),_wrapD(p.y-my,H));if(d<=T.touchR+(p.displayR||0)&&d<bd){bd=d;best=p;}}return best;}
 function dialNearest(mx,my,n){const set=new Set(dialLoaded),l=[];for(const p of active)if(dialCandidate(p)&&!set.has(p.id))l.push({p,d:Math.hypot(_wrapD(p.x-mx,W),_wrapD(p.y-my,H))});l.sort((a,b)=>a.d-b.d);return l.slice(0,Math.max(0,n)).map(e=>e.p);}
@@ -8483,7 +8488,7 @@ function dialFire(list,mx,my,mode,now){ruleLearn(ITEM_RULE.dial,{x:mx,y:my}); //
   const g={x:mx,y:my},one=mode==='one',gap=one?0:T.dialStaggerMs;
   if(!one){let hm=null,bd=T.stringHomeR;for(const q of active){if(q.dying||q.captured||list.includes(q))continue;const d=Math.hypot(_wrapD(q.x-mx,W),_wrapD(q.y-my,H));if(d<bd){bd=d;hm=q;}}if(hm)g.follow=hm;} // String shots home on whatever they were aimed at
   dialGoal={x:mx,y:my,until:now+T.dialIconMs};lastDialShot=now;dialShotAt=now;dialShotMode=mode==='dbl'?'dbl':one?'hold':'click';
-  if(one)heatAdd(1,now);else if(mode==='dbl')heatAdd(Math.max(1,T.maxActivePoints|0),now);
+  if(one)heatAdd(1,now);else if(mode==='dbl')heatAdd(shineMax(),now);
   list.forEach((p,i)=>{dialQueue.push({p,g,at:now+i*gap});const r=nodeRingR(p,9);for(let k=0;k<10;k++){const a0=k/10*6.2832,a1=(k+1)/10*6.2832;spawnEdgeSparks({x:p.x+Math.cos(a0)*r,y:p.y+Math.sin(a0)*r},{x:p.x+Math.cos(a1)*r,y:p.y+Math.sin(a1)*r},[255,215,120],now);}}); // the loaded ring breaks into particles
   const ids=new Set(list.map(p=>p.id));dialLoaded=dialLoaded.filter(id=>!ids.has(id));
   addDialMark(mx,my,list,one?g:null,list.length*gap);playClarinet(1,40,T.volDialUse);
@@ -8714,7 +8719,7 @@ let lastActivatedId=-1;
 // fresh activation pushes past T.maxActivePoints, that oldest one gets
 // deactivated (with the normal release chord) to make room.
 function enforceMaxActivePoints(){
-  const cap=Math.max(1,Math.floor(T.maxActivePoints));
+  const cap=shineMax();
   while(pressedIDs.size>cap){
     const oldestId=pressedIDs.values().next().value;
     if(oldestId===undefined)break;
@@ -8793,7 +8798,7 @@ function heldActivateAt(mx,my,heldSeen,now){ // a held press sweeping at (mx,my)
   if(activationSounds.has('wipe')){if(activationSounds.get('wipe').ci!==best.ci)retuneActivationSound('wipe',best.ci);} // wiping: ONE violin chord that glides to each new colour
   else playViolin(best.ci,best.mass,true,'wipe');
   enforceMaxActivePoints();
-  heatAdd(1,now); // every swiped-over object after the first adds heat
+  heatAdd(heatK('wipe'),now); // every swiped-over object after the first adds heat (Light wipe: less)
 }
 // Deactivates everything currently pressed, exactly like a right-click:
 // touchStart cleared, one release chord per distinct color present, then
@@ -8855,8 +8860,8 @@ function autoSelectClosestTargets(mx,my,now){
   // separate double-click variable. activateAt already runs enforceMaxActivePoints() after each new activation
   // below, so the snake-style eviction happens continuously through this loop exactly like it does for a normal
   // click or a swipe, keeping every input method under the exact same single limit.
-  const n=Math.min(cands.length,Math.max(1,T.maxActivePoints|0));
-  heatAdd(n,now); // a double-click spends heat for every object it activates (T.maxActivePoints of them)
+  const n=Math.min(cands.length,shineMax());
+  heatAdd(n*heatK('dbl'),now); // a double-click spends heat for every object it activates (Nib shine of them; Quick double dab: less)
   _batchSnd=true;try{for(let i=0;i<n;i++)activateAt(cands[i].x,cands[i].y,now,false,cands[i].p?{p:cands[i].p}:{idx:cands[i].idx});}finally{_batchSnd=false;}flushBatchChord(); // each call wakes EXACTLY its own target (it used to re-pick the best thing near it, so neighbours were chosen twice and fewer particles woke); each call's own point is at distance 0 from itself, so it's always found regardless of T.touchR
 }
 function activateAt(mx,my,now,allowToggleOff,exact){
@@ -9590,7 +9595,7 @@ let _telHover=null,telDbl=null,sceneFocus=[];const telMap=new Map();
 function drawTelemetry(ctx,now){ // Telemetry = motion · Dynamics = mass/energy/life · Class = names. Selected points stay locked on; the hovered target (and a double-click's would-be targets) join them.
   const _rk=[];for(let i=0;i<active.length;i++){const q=active[i];if(risksOn&&!q.dying&&!q.captured&&riskOf(q)>0)_rk.push(q);}
   if(!telemetryOn&&!dynamicsOn&&!classOn&&!risksOn){telMap.clear();return;}
-  const want=new Map(),cap=Math.max(1,T.maxActivePoints|0),oldest=pressedIDs.size>=cap?pressedIDs.values().next().value:undefined,h=(_telHover&&!overUI)?_telHover:null;
+  const want=new Map(),cap=shineMax(),oldest=pressedIDs.size>=cap?pressedIDs.values().next().value:undefined,h=(_telHover&&!overUI)?_telHover:null;
   const snake=!!(h&&!isInertPoint(h)&&!pressedIDs.has(h.id)&&oldest!==undefined); // a new selection would snake the oldest off
   const add=(p,px,link,grey)=>{if(p&&!want.has(p.id))want.set(p.id,{p,px,link,grey});};
   for(const p of active)if(!p.dying&&!p.captured&&effActive(p))add(p,false,false,snake&&p.id===oldest);
@@ -9740,7 +9745,7 @@ _pm('white-wake');
       if(R<=0)continue;
       _dormantFadeOnRemove=true;
       if(remnantWakesParticles(p))wakeRing(p.x,p.y,0,R,now,(dp)=>{initWoken(dp,0);applyActiveRemnantEffect(p,dp);wokenByRem.push(dp);},
-        (dp)=>{if(!remnantReaches(p,dp))return false;if(p.remKind==='pulsing'){const bsw=pulsingBeamState(p);if(bsw.side!==0)return false;if(p._wakeEp!==bsw.ep){p._wakeEp=bsw.ep;p._wakeN=0;}if(p._wakeN>=Math.max(1,T.maxActivePoints|0))return false;p._wakeN++;} // a beam wakes no more particles per pass than the cursor could keep activated
+        (dp)=>{if(!remnantReaches(p,dp))return false;if(p.remKind==='pulsing'){const bsw=pulsingBeamState(p);if(bsw.side!==0)return false;if(p._wakeEp!==bsw.ep){p._wakeEp=bsw.ep;p._wakeN=0;}if(p._wakeN>=shineMax())return false;p._wakeN++;} // a beam wakes no more particles per pass than the cursor could keep activated
       return true;},2);
       _dormantFadeOnRemove=false;
       fillRadiusBuf(p.x,p.y,R);
@@ -10168,7 +10173,7 @@ _pm('collisions');
           if(!_hdOn&&p._hd)p._hd=undefined; // released: every point's drain clock is cleared
           if(_hdOn&&dt>0&&pressedIDs.has(p.id)&&p.lifespan!==Infinity){
             _hdAny=true;let h=p._hd;if(!h)h=p._hd={l0:p.lifespan,t:0,Td:Math.max(250,T.holdDrainK*704*Math.pow(Math.max(0.5,p.lifespan/1000),0.648))};
-            if(!_mopTick){_mopTick=true;_mopAcc+=dt/Math.max(20,T.mopHeatMs||250);if(_mopAcc>=1){heatAdd(_mopAcc|0,performance.now());_mopAcc%=1;}} // mopping heats the cursor as wiping does: a heat each Mop heat ms
+            if(!_mopTick){_mopTick=true;_mopAcc+=heatK('mop')*dt/Math.max(20,T.mopHeatMs||250);if(_mopAcc>=1){heatAdd(_mopAcc|0,performance.now());_mopAcc%=1;}} // mopping heats the cursor as wiping does: a heat each Mop heat ms
             h.t+=dt;const f=Math.min(1,h.t/h.Td);
             p.lifespan=Math.min(p.lifespan-dt,h.l0*(1-f*f));_holdDrainUsed=true;ruleLearn('mop');
           } else p.lifespan-=dt;
@@ -10268,7 +10273,7 @@ function pulsePhaseState(off){const cycle=1100/Math.max(0.1,T.pulseRateMult),pha
 // A tinted Neutron wears its PRIMARY colour while big and its SECONDARY colour while small.
 function pulseTintCI(p,side){return (side===0||p.magTintCI2===undefined)?p.magTintCI:p.magTintCI2;} // Pulsing: PRIMARY colour on its first side, SECONDARY on its second
 function pulseEnforceCap(){ // the cursor's snake rule (T.maxActivePoints): the OLDEST activation gives way — silently, a beam can drop many at once
-  const cap=Math.max(1,Math.floor(T.maxActivePoints));
+  const cap=shineMax();
   while(pressedIDs.size>cap){const id=pressedIDs.values().next().value;if(id===undefined)break;pressedIDs.delete(id);if(lastActivatedId===id)lastActivatedId=-1;
     for(let i=0;i<active.length;i++){const p=active[i];if(p.id===id){p.touchStart=-1;break;}}}
 }
@@ -12327,7 +12332,6 @@ function strokeWrappedLine(ctx,a,b){
 //           appear after a delay and then fades in.  Neither shows while its inventory is full.
 //   Weave   — the star between the points holding still, drawn in as it accrues, with the seconds held / needed.
 // Each needs its gear from Premium Neutrinos (below deck): the Needle shows Spindles, the Spool Strings, the Loom Patterns (Weaves).
-const gearOn=id=>!!window.__SCENE||discSeen.has('up:'+id); // (a journal scene: shown)
 function drawAchievementProgress(ctx){
   if(T.achProgAlpha<=0)return;
   const dialOpen=inventory.leash<invMaxFor('leash')&&gearOn('needle'),leashOpen=inventory.dial<invMaxFor('dial')&&gearOn('spool'); // orbit counts Spindles, chase counts Strings
@@ -13152,7 +13156,7 @@ function shopBackHTML(k){return `<div class="mtg back sb"><div class="art"><img 
 function shopCardHTML(k){const S=SHOPS[k],t=S.street?0:SHOP_TIER(k)===0?2:1,f=n=>(+n).toLocaleString('en-US'); // a shop's page: what it is, when it opens, what it sells
   if(!evSeen('shop_'+k))return shopBackHTML(k);
   const hrs=S.open==null||S.open<=0&&S.close>=27?'Open all day':'Open '+(TIMES[S.open]||'')+' – '+(TIMES[S.close]||''),how=S.street?hrs+' · on main street, round the source'
-    :hrs+' · a pop-up: opens on a cleared surface that collected '+S.cur+' (rank 1 at '+f(T[shopTK(S.cur)+1])+', rank 2 at '+f(T[shopTK(S.cur)+2])+', rank 3 at '+f(T[shopTK(S.cur)+3])+'). A bigger rank carries more.';
+    :!S.at?hrs+' · a pop-up: opens on a bright clear where nothing was collected':hrs+' · a pop-up: opens on a cleared surface that collected '+S.tal+' (rank 1 at '+f(T[shopTK(S.cur)+1])+', rank 2 at '+f(T[shopTK(S.cur)+2])+', rank 3 at '+f(T[shopTK(S.cur)+3])+'). A bigger rank carries more.';
   const its=SHOP_ITEMS.filter(i=>i.shop===k),cu=i=>i.fx.souv?'souvenirs':KIND_NAME[i.cur]||i.cur,curs=[...new Set(its.map(cu))]; // a tab for each thing it takes
   const items=(curs.length>1?'<div class="ctabs">'+curs.map((c,j)=>`<span class="${j?'':'on'}" data-t="${j}">${gEsc(c)}</span>`).join('')+'</div>':'')+curs.map((c,j)=>`<div class="clist" data-t="${j}"${j?' style="display:none"':''}>`+its.filter(i=>cu(i)===c).map(i=>`<div class="si" data-disc="si_${i.id}"><span>${gEsc(i.n)}${S.street?'':' <i>(rank '+i.r+')</i>'}</span><b>${f(i.cost)}</b></div>`).join('')+'</div>').join('');
   return `<div class="mtg full" data-shop="${k}" style="--rc:${TIER_COL[t]}"><div class="nm"><b>${gEsc(S.n)}</b><span class="gem"></span></div><div class="art" data-k="sign:${k}"><div class="art-live" data-scene="hub:shop:${k}"></div></div><div class="ty"><span>Shop · ${S.street?'main street':'pop-up'}</span><span>Tier ${TIER[t]}</span></div><div class="tx"><p>${gEsc(S.tag)}</p><p>${gEsc(how)}</p><p>${gEsc(S.about||'')}</p><p><b>Sells</b> (each found by discovery):</p>${items}</div></div>`;}
@@ -13985,7 +13989,7 @@ RULE_TAB_COST.surf=5;
 Object.assign(RULE_EV,{hublake:'duck'}); /* (hublight, hubview, shopbuy: learned where they happen, on the map) */Object.assign(RULE_SCENES,{shopstreet:['hub:street'],shoppop:['hub:shops']});
 // ── a shop's event: the first time you go into it (its card then shows in the Guide, with what it sells) ──
 {const at=EVENTS.findIndex(e=>e.id==='brightrelic')+1,sh=[];for(const k in SHOPS){const S=SHOPS[k];sh.push({id:'shop_'+k,name:S.n,type:txt('ev.shop.type'),rar:S.street?'c':'u',scene:'hub:shop:'+k,ico:'sign:'+k,
-  facts:()=>[S.street?txt('ev.shop.street'):txt('ev.shop.popup',S.cur),S.about||'',txt('ev.shop.card')],flavor:S.tag});}EVENTS.splice(at,0,...sh);} // a shop's first opening (its text: content/strings.csv)
+  facts:()=>[S.street?txt('ev.shop.street'):(S.at?txt('ev.shop.popup',S.tal):txt('ev.shop.popup0')),S.about||'',txt('ev.shop.card')],flavor:S.tag});}EVENTS.splice(at,0,...sh);} // a shop's first opening (its text: content/strings.csv)
 Object.assign(RULE_EV,{shopstreet:Object.keys(SHOPS).filter(k=>SHOPS[k].street).map(k=>'shop_'+k),shoppop:Object.keys(SHOPS).filter(k=>!SHOPS[k].street).map(k=>'shop_'+k),hubbottle:'map_bottle',hubmap:'map',hubclear:'map_clear',hubmerge:'map_merge',hubconst:'map_constellation',hubring:'map_ring',hubdescend:'map_descend'});
 Object.assign(RULE_SCENES,{hubmap:['hub:map'],hubtime:['hub:time'],hubcell:['surface'],hubmove:['hub:move'],hubclear:['hub:clear'],hubmerge:['hub:merge'],hubitems:['hub:items'],hubconst:['hub:constellation'],hubring:['hub:ring','hub:brightstar','hub:darkstar'],hubdescend:['hub:descend'],hublight:['hub:light'],hublake:['hub:lake'],hubview:['hub:view'],hubbottle:['hub:bottle'],menu:['readouts']});
 
