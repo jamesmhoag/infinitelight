@@ -481,7 +481,7 @@ function buildTunePanel(){
     if(currentTab!==tuneTab)continue;
     if(tq&&!((def.label||'')+' '+def.key+' '+(def.tip||'')).toLowerCase().includes(tq))continue;
     if(pendingSec){panel.appendChild(pendingSec);pendingSec=null;}
-    const row=document.createElement('div');row.className='row';row.title=def.tip||'';
+    const row=document.createElement('div');row.className='row';row.title=def.tip||'';row.dataset.keeptip=1;
     const lbl=document.createElement('label');lbl.textContent=def.label;
     const addTestBtn=()=>{
       if(!def.test)return;
@@ -7988,7 +7988,7 @@ const buildSel=()=>BUILD&&!buildTest&&!buildPlayOn&&!armedInvItem&&!conMode; // 
 const selTool=()=>buildSel()||createActive()&&currentType().cat==='select'; // Select's clicks: the tool, or Build mode with Play off
 const selVar=()=>createActive()?currentVariant():'wipe';
 function toggleBuildPlay(){buildPlayOn=!buildPlayOn;if(buildPlayOn){selNodes=[];selCircle=null;}updateBuildPlayBtn();flashSaveStatus(txt(buildPlayOn?'build.play_on_said':'build.play_off_said'));}
-function updateBuildPlayBtn(){const b=document.getElementById('bpb');if(!b)return;b.style.display=BUILD?'':'none';b.textContent=txt('build.play',txt(buildPlayOn?'surf.on':'surf.off'));b.title=txt('build.play_tip');b.classList.toggle('on',buildPlayOn);}
+function updateBuildPlayBtn(){const b=document.getElementById('bpb');if(!b)return;b.style.display=BUILD?'':'none';b.textContent=txt('build.play',txt(buildPlayOn?'surf.on':'surf.off'));b.dataset.more=txt('build.play_tip');b.classList.toggle('on',buildPlayOn);}
 window.toggleBuildPlay=toggleBuildPlay; // Select's shape in progress: its nodes (nodes), or a circle's centre (circle)
 function selKind(o){return objKey(o)+'|'+(o.isRemnant?'':(o.whiteFx?'w':o.blackFx?'b':o.ci));} // the exact type and variation (a double click selects every one alike)
 function selAlive(e){const o=e.obj;if(e.shape)return fixedShapes.indexOf(o)>=0;if(e.isDormant)return dormant[dormIdxOf(o)]===o;return !o.captured&&!o.dying&&!o._collected;}
@@ -9302,13 +9302,14 @@ function selApply(v,i){ // v: {mass} / {energy} / {ch:i, val}: one colour set to
     if(v.ch!=null){if(!o.masses||o.isRemnant||o.whiteFx||o.blackFx)continue;const t=o.mass||1,f=o.masses.map(x=>x/t),rest=f.reduce((a,b,j)=>j===v.ch?a:a+b,0),w=Math.max(0,Math.min(1,v.val));objSet(o,{bal:f.map((x,j)=>j===v.ch?w:(rest>0?x/rest*(1-w):(1-w)/5))},!!e.isDormant);}
     else objSet(o,v,!!e.isDormant);n++;}
   flashSaveStatus(txt('build.sel_set',n));selPanel();}
+function selSummary(){const cnt={};let M=0,E0=Infinity,E1=0,S=0,n=0;for(const e of inertSel){if(e.shape||!selAlive(e))continue;n++;const o=e.obj,k=e.isDormant?'particle':objKey(o);cnt[k]=(cnt[k]||0)+1;M+=o.mass||0;E0=Math.min(E0,o.energy||0);E1=Math.max(E1,o.energy||0);S+=Math.hypot(o.vx||0,o.vy||0);} // what is selected, by kind, and its totals: the Build menu's Selection row and the feed
+  const shapes=inertSel.length-n;return{counts:Object.entries(cnt).map(([k,c])=>c+' '+k).join(' · ')+(shapes?' · '+shapes+' '+txt('build.sel_shapes'):''),tel:n?txt('build.sel_tel',tuneFmt(M,0.01),tuneFmt(E0,0.001),tuneFmt(E1,0.001),(S/n).toFixed(2)):''};}
 function selPanel(){const el=document.getElementById('selRow');if(!el)return;selPrune();const V=selVals();
   if(!V.objs.length){el.innerHTML=`<b>${txt('build.sel')}</b><span>${txt('build.sel_none')}</span>`;return;}
-  const cnt={};let M=0,E0=Infinity,E1=0,S=0;for(const e of inertSel){if(e.shape||!selAlive(e))continue;const o=e.obj,k=e.isDormant?'particle':objKey(o);cnt[k]=(cnt[k]||0)+1;M+=o.mass||0;E0=Math.min(E0,o.energy||0);E1=Math.max(E1,o.energy||0);S+=Math.hypot(o.vx||0,o.vy||0);}
-  const shapes=inertSel.length-V.objs.length;
-  el.innerHTML=`<b>${txt('build.sel')} · ${inertSel.length}</b><span>${Object.entries(cnt).map(([k,c])=>c+' '+k).join(' · ')}${shapes?' · '+shapes+' '+txt('build.sel_shapes'):''}</span><span>${txt('build.sel_tel',tuneFmt(M,0.01),tuneFmt(E0,0.001),tuneFmt(E1,0.001),(S/V.objs.length).toFixed(2))}</span>
+  const Q=selSummary();
+  el.innerHTML=`<b>${txt('build.sel')} · ${inertSel.length}</b><span>${Q.counts}</span><span>${Q.tel}</span>
 <label>${txt('build.next_mass')}<span id="slM"></span></label><label>${txt('build.next_energy')}<span id="slE"></span></label>${[0,1,2,3,4,5].map(i=>`<label><i style="color:${EFFECT_HEX[i]}">${EFFECT_NAMES[i]}</i><span id="slC${i}"></span></label>`).join('')}`;
-  const box=(id,d,get,set)=>{const b=tuneValInput({...d,empty:true,ph:()=>txt('build.sel_mixed')},get,v=>{if(v!=null)set(v);});b.title=txt('build.sel_box');document.getElementById(id).appendChild(b);};
+  const box=(id,d,get,set)=>{const b=tuneValInput({...d,empty:true,ph:()=>txt('build.sel_mixed')},get,v=>{if(v!=null)set(v);});b.dataset.more=txt('build.sel_box');document.getElementById(id).appendChild(b);};
   box('slM',nextDef('mass'),()=>V.mass,v=>selApply({mass:v}));box('slE',nextDef('energy'),()=>V.energy,v=>selApply({energy:v}));
   for(let i=0;i<6;i++)box('slC'+i,{min:0,max:1,step:0.01},()=>V.bal[i],v=>selApply({ch:i,val:v}));}
 function nextShowMade(){for(const id of ['nxM','nxE']){const el=document.querySelector('#'+id+' .tval');if(el&&el._show&&document.activeElement!==el)el._show();}} // the empty boxes show what was made last
@@ -9319,7 +9320,7 @@ function nextBarHTML(esc){const sl=(id,v,a,b,st,l)=>`<label>${l}<span class="nxS
 function nextBarWire(){const $=id=>document.getElementById(id);if(!$('nxOn'))return;const balD={min:0,max:1,step:0.01};
   const sv=(id,i)=>{const r=$(id),box=tuneValInput(balD,()=>NEXT.bal[i],v=>{NEXT.bal[i]=v;r.value=v;NEXT.useBal=true;$('nxB').checked=true;});$(id+'v').replaceWith(box);r.oninput=()=>{NEXT.bal[i]=+r.value;NEXT.useBal=true;$('nxB').checked=true;box._show();};}; // a colour moved or typed: the exact balance is used (it did nothing until its box was ticked)
   const asMade=k=>({...nextDef(k),empty:true,ph:()=>NEXT.made?tuneFmt(NEXT.made[k],nextDef(k).step):''}); // left empty: as the game makes it; the box shows the last one made
-  for(const [id,k] of [['nxM','mass'],['nxE','energy']]){const box=tuneValInput(asMade(k),()=>NEXT[k],v=>{NEXT[k]=v;});box.title=txt('build.next_as_made');$(id).appendChild(box);} // typed, as a Tune menu value: corrected into range and onto its step
+  for(const [id,k] of [['nxM','mass'],['nxE','energy']]){const box=tuneValInput(asMade(k),()=>NEXT[k],v=>{NEXT[k]=v;});box.dataset.more=txt('build.next_as_made');$(id).appendChild(box);} // typed, as a Tune menu value: corrected into range and onto its step
   $('nxOn').onchange=()=>{NEXT.on=$('nxOn').checked;};$('nxB').onchange=()=>{NEXT.useBal=$('nxB').checked;};
   for(let i=0;i<6;i++)sv('nxC'+i,i);$('nxG').oninput=()=>{NEXT.give=Math.max(0,+$('nxG').value||0);};$('nxK').onchange=()=>{NEXT.giveKind=$('nxK').value;};}
 function createAt(mx,my){
@@ -9475,6 +9476,7 @@ wrap.addEventListener('contextmenu',e=>{
   }
   if(armedInvItem&&(armedInvItem.kind==='dim'||armedInvItem.kind==='bright')&&!createActive()){armedInvItem=null;updateInventoryUI();cursorRClickAt=performance.now();return;} // DEPTH / BALANCE: right-click cancels the tool
   if(overUI)return; // right-click on any other interface element does nothing to the scene
+  if(buildSel()&&inertSel.length){inertSel=[];inertBox=null;selPanel();cursorRClickAt=performance.now();flashSaveStatus(txt('build.sel_cleared'));return;} // Build mode: a right click lets go of the whole selection
   if(whiteChain.length>0){ // right-click deactivates Pattern creation
     whiteChain.length=0;flashSaveStatus(txt('surf.pattern_cancelled'));cursorRClickAt=performance.now();return;
   }
@@ -11238,6 +11240,8 @@ function updateInfoAndStats(now,hoverObj){
     setFeed(feedAlert.text,'','rgba(255,225,140,0.98)');
   } else if(!hoverInvKind&&!overUI&&duckAt(mouse.x,mouse.y)){
     const di=duckInfo(duckAt(mouse.x,mouse.y));setFeed('🦆 '+di[0],di[1],'rgba(255,236,140,0.95)');
+  } else if(!hoverInvKind&&!overUI&&goodAt(mouse.x,mouse.y,1)){const g=goodAt(mouse.x,mouse.y,1); // a commodity, sign or its packaging (trash): named, and what it is for
+    setFeed(goodName(g),txt(g.kind==='sign'?'good.sign_d':g.open?'good.trash_d':g.kind==='chest'?'chest.need_key':'good.closed_d'),'rgba(255,255,255,0.92)');
   } else if(hoverInvKind){
     const pr=invHoverParts(hoverInvKind);setFeed(pr[0],pr[1],'rgba(255,255,255,0.92)');
   } else if(conMode){
@@ -11245,6 +11249,8 @@ function updateInfoAndStats(now,hoverObj){
     const kindWord=conKind==='knot'?'Knot':conKind==='prism'?'Prism':conKind==='gate'?'Gate':conKind==='lens'?'Lens':'Weave';
     if(n===0)setFeed(txt('surf.mode',kindWord),txt('surf.no_eligible_targets_available'),'rgba(255,220,140,0.95)');
     else setFeed(txt('surf.mode',kindWord),txt('surf.targets_available_chain_bonds',n,whiteChain.length,activeBonds.length),'rgba(255,220,140,0.95)');
+  } else if(BUILD&&inertSel.length&&!hoverObj){selPrune();const Q=selSummary(); // Build mode: the selection, what it is and how many of each
+    setFeed(txt('build.sel')+' · '+inertSel.length,Q.counts+(Q.tel?'  ·  '+Q.tel:''),'rgba(255,255,255,0.92)');
   } else if(createActive()){
     // Additive to the plain type/variant label this already showed: the mass/energy the placed object will start
     // with, AND — while hovering an existing object with the create tool armed — that object's own current
@@ -11339,7 +11345,7 @@ function updateInfoAndStats(now,hoverObj){
   const blackThresh=T.darkMass|0;
   const spdTxt=isPaused?(timeScale>0.01?'⏸ pausing…':'⏸ PAUSED'):(timeScale<0.99&&!dilations.length?'▶ resuming…':'▶ '+speedLabel(speedMult)),
     pauseTag=spdTxt+(dilations.length?' · nova slow −'+Math.round(dilSlow*100)+'% ('+dilations.length+' nova'+(dilations.length>1?'s':'')+')':'')+'\n'+(isPaused&&timeScale<=0.01&&conMode?(conKind==='knot'?'✂ KNOT MODE — link a 3-point loop · '+inventory.knot+' Knot left · right-click: leave\n':'⛓ STRING MODE — link points · '+inventory.leash+' Spindle left · right-click: leave\n'):'');
-  statsEl.title=perfHudText().trim(); // the full cause of the slowest frames lives in the tooltip
+  statsEl.dataset.more=perfHudText().trim(); // the full cause of the slowest frames lives in the tooltip
   statsEl.textContent=txt('surf.fps_sim_ms_draw',pauseTag,fpsDisplay,perfPeaks().fps,perfStep.toFixed(1),perfPeaks().sim,perfDraw.toFixed(1),perfPeaks().draw,pressedIDs.size,cC,maxWhites,fC,rC,dC>0?'\n☠ '+dC:'',peakE.toFixed(3),pEn,peakM|0,pMn,blackThresh,universeMass.toFixed(0),universeEnergy.toFixed(2),GW,GH);
 }
 // Traces the current cell shape (circle/square/triangle, matching nebShape)
@@ -13105,7 +13111,7 @@ function evReplayMount(h,rec){if(!h||h.firstChild)return;const f=document.create
     for(const ox of[-rec.w,0,rec.w])for(const oy of[-rec.h,0,rec.h]){const L=aw/2+(ox-mx)*kk,U=ah/2+(oy-my)*kk;if(L>=aw||U>=ah||L+rec.w*kk<=0||U+rec.h*kk<=0)continue;g.setTransform(kk*dp,0,0,kk*dp,L*dp,U*dp);g.drawImage(cv,0,0,rec.w,rec.h);if(cu&&cu.width&&w.getComputedStyle(cu).display!=='none')g.drawImage(cu,0,0,rec.w,rec.h);}};pan();}
 function evDeskSync(){let el=document.getElementById('evDesk');const n=new Set([..._evDesk,...evNew()]).size;if(!el){el=document.createElement('button');el.id='evDesk';el.style.cssText='position:absolute;right:12px;bottom:calc(var(--dock-h,0px) + 14px);z-index:30;background:rgba(0,0,0,.75);color:#fff;border:1px solid rgba(255,255,255,.35);border-radius:14px;font:11px monospace;padding:4px 10px;display:none';
     el.onmousedown=e=>e.stopPropagation();el.onclick=e=>{e.stopPropagation();const ids=[...new Set([..._evDesk,...evNew()])].filter(i=>EVENTS.some(v=>v.id===i));if(!ids.length)return;_evDesk=[];_evDeskOpen=true;_evHand=ids;_evAct=0;showEventCard(ids[0],true);};wrap.appendChild(el);}
-  el.textContent=txt('ev.desk',n);el.title=txt('ev.desk_tip');el.style.display=n&&!window.__SCENE&&!BUILD?'':'none';el.classList.toggle('new',_evDesk.length>0);}
+  el.textContent=txt('ev.desk',n);el.dataset.more=txt('ev.desk_tip');el.style.display=n&&!window.__SCENE&&!BUILD?'':'none';el.classList.toggle('new',_evDesk.length>0);}
 function eventPump(){evCapTick(performance.now());if(!_evQ.length||_evCap||_rulesOpen||_menuOpen||(_evOpen&&!_evHand.length))return;const n=_evHand.length;_evHand.push(..._evQ.splice(0));showEventCard(_evHand[n?_evAct:0],false);} // new ones join an open hand
 const gEsc=s=>String(s).replace(/[&<>]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[c]));
 // Tiers (instead of rarity): how deep in the game a card sits. Muted tones: a card only explains, it has no use of its own
@@ -13803,6 +13809,7 @@ window.addEventListener('message',e=>{
   else if(m.cmd==='collections'){if(m.hist)mapHist=m.hist;hubOverlay_(true);openCollections(m.tab);} // your buoy on the map (or its slot in the map's dock)
   else if(m.cmd==='event'){const ids=(m.ids||[m.id]).filter(i=>!discSeen.has('ev:'+i));if(!ids.length){hubState('overlayDone');return;}hubOverlay_(true);ids.forEach(fireEvent);}
   else if(m.cmd==='sound')setSound(m.on,m.vol);
+  else if(m.cmd==='music'){hubMusicOn=!!m.on;syncGameMenu();} // the map's music on / off (said back after the Esc menu's Music)
   else if(m.cmd==='unbox'){const H=m.give||{},got=[];for(const k in H){if(k==='duck'){for(let i=0;i<H[k];i++){const t=rollDuckType();duckLog[t]=(duckLog[t]||0)+1;got.push('🦆 '+DUCK_TYPES[t].name);}continue;}addInventory(k,H[k],true);got.push(fmtCount(H[k])+' '+(INV_LABEL[k]||k));}saveInventory();updateInventoryUI();hubPost({type:'unboxed',id:m.id,got:got.join(', ')});hubState();} // a box (or a can, a cup) opened on the lake: what it held is yours
   else if(m.cmd==='chest'){const r=chestOpen();hubPost(Object.assign({type:'chested',id:m.id},r));hubState();} // a treasure chest on the lake: a Key opens it
   else if(m.cmd==='giveDuck'){if(DUCK_TYPES[m.type]){duckLog[m.type]=(duckLog[m.type]||0)+1;saveInventory();hubState();}} // a duck from a bottle on the lake
@@ -13927,9 +13934,10 @@ function mpDrawGuest(cx,now){ // the friend's cursor over this surface: a gold r
     cx.fillStyle='rgba(255,205,90,0.9)';cx.font='10px system-ui';cx.textAlign='center';cx.fillText('Friend',GUEST.x,GUEST.y-R-4);cx.restore();drawHeatArc(cx,GUEST.x,GUEST.y,R,now,GUEST.heat);}
   cx.save();cx.font='12px system-ui';cx.textAlign='right';cx.fillStyle='rgba(255,255,255,0.75)';cx.fillText('You '+fmtCount(MP.score.host)+' · Friend '+fmtCount(MP.score.guest),W-12,H-12);cx.restore();}
 // ── Pause menu (Esc) ──
+let hubMusicOn=false;
 function syncGameMenu(){
   const m=document.getElementById('gameMenu');if(!m)return;const q=s=>m.querySelector(s);
-  q('#gmSnd').textContent=txt(audioMuted?'menu.sound.off':'menu.sound.on');q('#gmVol').value=T.masterVol;
+  q('#gmSnd').textContent=txt(audioMuted?'menu.sound.off':'menu.sound.on');if(q('#gmMus'))q('#gmMus').textContent=txt(hubMusicOn?'menu.music.on':'menu.music.off');q('#gmVol').value=T.masterVol;
   for(const [id,on] of [['gmTel',telemetryOn],['gmRisk',risksOn],['gmDyn',dynamicsOn],['gmCls',classOn],['gmRad',showRadii]])q('#'+id).classList.toggle('on',!!on);
 }
 function toggleGameMenu(){if(_menuOpen)closeGameMenu();else openGameMenu();}
@@ -13949,7 +13957,7 @@ function openGameMenu(){
     document.head.appendChild(st);
     m=document.createElement('div');m.id='gameMenu';
     m.innerHTML=`<div class="gm"><h2>${txt('menu.paused')}</h2><button id="gmResume">${txt('menu.resume')}</button>
-<div class="gl">${txt('menu.sound')}</div><div class="row"><button id="gmSnd"></button><input id="gmVol" type="range" min="0" max="1" step="0.05" title="${txt('menu.volume')}"></div>
+<div class="gl">${txt('menu.sound')}</div><div class="row"><button id="gmSnd"></button><input id="gmVol" type="range" min="0" max="1" step="0.05" title="${txt('menu.volume')}"></div>${HUB?'<div class="row"><button id="gmMus"></button></div>':''}
 <div class="gl">${txt('menu.readouts')}</div><div class="row"><button id="gmTel" data-disc="mode_telemetry">${txt('menu.telemetry')}</button><button id="gmRisk">${txt('menu.risks')}</button><button id="gmDyn" data-disc="mode_dynamics">${txt('menu.dynamics')}</button><button id="gmCls" data-disc="mode_class">${txt('menu.class')}</button><button id="gmRad" data-disc="mode_radii">${txt('menu.radii')}</button></div>
 <div class="gl">${txt('menu.help')}</div><button id="gmGuide" data-disc="slot_guide">${txt('menu.guide')}</button>
 <div class="gl">${txt('menu.together')}</div><button id="gmInvite">${txt('menu.invite')}</button><div id="gmLink" style="display:none;font-size:11px;line-height:1.4;word-break:break-all"></div>
@@ -13959,7 +13967,7 @@ function openGameMenu(){
     for(const t of ['mousedown','mouseup','dblclick','contextmenu'])m.addEventListener(t,e=>{e.stopPropagation();if(t==='contextmenu')e.preventDefault();});
     m.addEventListener('wheel',e=>e.stopPropagation(),{passive:true});
     const on=(id,f)=>m.querySelector('#'+id).addEventListener('click',()=>{f();syncGameMenu();});
-    on('gmResume',closeGameMenu);on('gmSnd',()=>setSound(audioMuted));
+    on('gmResume',closeGameMenu);on('gmSnd',()=>setSound(audioMuted));if(HUB)on('gmMus',()=>hubPost({type:'music'}));
     m.querySelector('#gmVol').addEventListener('input',e=>setSound(true,e.target.value));
     on('gmTel',()=>toggleReadout('tel'));on('gmRisk',()=>toggleReadout('risk'));on('gmDyn',()=>toggleReadout('dyn'));on('gmCls',()=>toggleReadout('cls'));on('gmRad',()=>toggleReadout('rad'));
     on('gmGuide',openRules);on('gmInvite',mpHost);on('gmMain',()=>quitTo('main'));if(HUB)on('gmMap',()=>quitTo('map'));
@@ -14105,7 +14113,7 @@ const goodName=g=>txt('good.'+g.kind,g.kind==='box'||g.kind==='sign'?(SHOPS[g.sh
 const goodType=g=>'good:'+g.kind+':'+(g.shop||'')+':'+(g.kind==='sign'?(g.lit?'lit':'off'):g.open?'open':g.kind==='chest'?'shut':'');
 let goods=[];
 function spawnGood(x,y,now,g,keep){const a=Math.random()*6.2832,sp=T.duckDrift/60,yaw=Math.random()*6.2832,o={x,y,vx:keep&&g.vx!=null?g.vx:Math.cos(a)*sp,vy:keep&&g.vy!=null?g.vy:Math.sin(a)*sp,q:g.q||quatTurn([0,0,0,1],0.3,yaw,0),spin:g.spin||(Math.random()<0.5?-1:1)*(0.4+Math.random()*0.6),born:now,kind:g.kind,shop:g.shop||'',open:!!g.open,give:g.give||null,ph:Math.random()*6.2832};goods.push(o);return o;}
-function goodAt(mx,my){let best=null,bd=1e9;for(const g of goods){if(g.kind==='sign'||g.open)continue;const d=Math.hypot(_wrapD(mx-g.x,W),_wrapD(my-g.y,H));if(d<T.goodSize*0.55&&d<bd){bd=d;best=g;}}return best;}
+function goodAt(mx,my,all){let best=null,bd=1e9;for(const g of goods){if(!all&&(g.kind==='sign'||g.open))continue;const d=Math.hypot(_wrapD(mx-g.x,W),_wrapD(my-g.y,H));if(d<T.goodSize*0.55&&d<bd){bd=d;best=g;}}return best;}
 function openGood(g){if(g.open||g.kind==='sign')return;stat('good:'+g.kind);const now=performance.now();
   if(g.kind==='chest'){const r=chestOpen();if(!r.ok){flashSaveStatus(r.msg);return;}g.open=true;const L=Object.entries(r.got);let i=0;for(const[k,n]of L){earnFx.push({kind:'plus',x:g.x,y:g.y-T.goodSize*0.6-16*i++,text:INV_ICON[k]+' +'+fmtCount(n),born:now,dur:1600});for(let j=0;j<Math.min(8,Math.ceil(n/50));j++)spawnCollectSparks({x:g.x+(Math.random()-0.5)*30,y:g.y+(Math.random()-0.5)*20,remKind:GOOD_REM[k]||'white',isRemnant:true,mass:20,energy:1,r:255,g:240,b:200});} // the lid cracks open, glowing at its seam: its hoard collected as if every gem were clicked
     flashSaveStatus(txt('chest.opened')+': '+L.map(([k,n])=>fmtCount(n)+' '+(INV_LABEL[k]||k)).join(', '));playGlassTap();g.burn=now+(T.mapChestOpenMs||1600);return;} // then it burns away, as a crate does
