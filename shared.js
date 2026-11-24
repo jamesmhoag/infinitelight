@@ -177,7 +177,7 @@ function goodModel(type){const[,kind,shop0,st]=type.split(':'),shop=shop0||GOOD_
   else if(kind==='coffee'){lathe([[-0.55,0],[-0.55,0.3]],18,[11],0);cyl(-0.55,0.42,0.3,24,512,0);lathe([[0.42,0.3],[0.48,0.34],[0.56,0.33],[0.6,0.2],...(open?[]:[[0.62,0]])],18,[10,10,10,10],0);} // a cup (tapering), its sleeve with the logo, its lid
   else if(kind==='box'){const X=0.85,Y=0.62,Z=0.62,t=0.03;if(st==='ring'){const R=0.6,r=0.14,y0=-Y-r*0.55,S=32,P=10,pt=(j,k)=>{const a=j/S*6.2832,b=k/P*6.2832,rr=R+r*Math.cos(b);return[rr*Math.cos(a),y0+r*Math.sin(b),rr*Math.sin(a)];}; // an order: seated on a life preserver a little narrower than it (white, banded gold)
       for(let j=0;j<S;j++)for(let k=0;k<P;k++){const a=(j+0.5)/S*6.2832,b=(k+0.5)/P*6.2832;quad([pt(j,k),pt(j+1,k),pt(j+1,k+1),pt(j,k+1)],[Math.cos(b)*Math.cos(a),Math.sin(b),Math.cos(b)*Math.sin(a)],sw((j>>2)%2?8:5));}}if(open){box(-X,-Y,-Z,X,-Y+t,Z,2);box(-X,-Y,-Z,X,Y,-Z+t,2);box(-X,-Y,Z-t,X,Y,Z,2);box(-X,-Y,-Z,-X+t,Y,Z,2);box(X-t,-Y,-Z,X,Y,Z,2);}else box(-X,-Y,-Z,X,Y,Z,2); // (open: its walls and floor, empty inside)
-    quad([[-0.42,-0.3,Z+0.002],[0.42,-0.3,Z+0.002],[0.42,0.3,Z+0.002],[-0.42,0.3,Z+0.002]],[0,0,1],img(96,64,416,256));quad([[0.42,-0.3,-Z-0.002],[-0.42,-0.3,-Z-0.002],[-0.42,0.3,-Z-0.002],[0.42,0.3,-Z-0.002]],[0,0,-1],img(96,64,416,256)); // cardboard; the shop's label on its sides
+    quad([[-0.8,-0.52,Z+0.002],[0.8,-0.52,Z+0.002],[0.8,0.52,Z+0.002],[-0.8,0.52,Z+0.002]],[0,0,1],img(96,64,416,256));quad([[0.8,-0.52,-Z-0.002],[-0.8,-0.52,-Z-0.002],[-0.8,0.52,-Z-0.002],[0.8,0.52,-Z-0.002]],[0,0,-1],img(96,64,416,256)); // cardboard; the shop's sign on its sides, nearly as big as they are (which shop it is, from afar)
     quad([[X+0.002,-0.32,0.3],[X+0.002,-0.32,-0.05],[X+0.002,-0.12,-0.05],[X+0.002,-0.12,0.3]],[1,0,0],img(0,288,256,416)); // a small shipping label
     if(!open){box(-X-0.005,Y,-0.07,X+0.005,Y+0.006,0.07,4);box(-X-0.006,0.2,-0.07,-X,Y+0.006,0.07,4);box(X,0.2,-0.07,X+0.006,Y+0.006,0.07,4);} // its seam, taped over and down the ends (shiny)
     else{const a=1.95,ca=Math.cos(a),sa=Math.sin(a),lz=Z*0.98,lx=Z*0.5; // opened: all four flaps folded right out and a little down (each with its thickness), the box empty
@@ -577,6 +577,19 @@ const SHOPS={};for(const r of csvRead('shops'))SHOPS[r.id]={n:r.name,tag:r.tag,a
 // up (an upgrade, once: its effect is still to come). stock: how many the shop has each run (0: no limit; shopLeft)
 const SHOP_ITEMS=csvRead('shop_items').map(r=>[r.id,r.shop,r.name,cellV(r.cost),r.currency,cellV(r.rank),cvJ(r.effect)||{},r.requires,cellV(r.discover_dim),r.note,cellV(r.stock)]).map(([id,shop,n,cost,cur,r,fx,req,dc,note,stock])=>({id,shop,n,cost,cur:cur||SHOPS[shop].cur||'bright',r,fx,req:req||null,dc:dc||0,note:note||'',stock:stock>0?stock:0}));
 const shopItem=id=>SHOP_ITEMS.find(i=>i.id===id);
+// The tuner's Shops tab: an item's shop, price, currency, stock, rank and the item it needs, changed in this browser (il_shopedit_v1) over content/shop_items.csv
+const SHOP_EDIT_KEY='il_shopedit_v1',SHOP_EDIT_F=['shop','cost','cur','stock','r','req'],SHOP_BASE=SHOP_ITEMS.map(i=>Object.fromEntries(['id',...SHOP_EDIT_F].map(k=>[k,i[k]])));
+function shopEdits(){try{return JSON.parse(localStorage.getItem(SHOP_EDIT_KEY)||'{}')||{};}catch(e){return{};}}
+function shopEditApply(){const E=shopEdits();for(const b of SHOP_BASE){const it=shopItem(b.id),e=E[b.id]||{};for(const k of SHOP_EDIT_F)it[k]=e[k]!==undefined&&(k!=='shop'||SHOPS[e[k]])?e[k]:b[k];}} // (a shop that is no more: its own)
+function shopEditSet(id,k,v){const E=shopEdits(),b=SHOP_BASE.find(x=>x.id===id);if(!b)return;const o=E[id]||{};if(v===b[k]||v==null)delete o[k];else o[k]=v;if(Object.keys(o).length)E[id]=o;else delete E[id];try{localStorage.setItem(SHOP_EDIT_KEY,JSON.stringify(E));}catch(e){}shopEditApply();}
+function shopEditReset(){try{localStorage.removeItem(SHOP_EDIT_KEY);}catch(e){}shopEditApply();}
+shopEditApply();
+// An item's live demo on its shelf card (its scene: a surface demo, or the map's own 'hub:…'; else its shop's)
+const ITEM_SCENE={leash:'unwind',dial:'stringhome',weave:'weave',prism:'prism',knot:'knot',lens:'lens',gate:'gate',key:'itemcache',shine:'cap',bright:'collect',dim:'collect',neutron:'neutron',magnetic:'magnetic',pulsing:'pulsing',
+  p_dim:'depth',p_bright:'balance',p_neu:'dynamism',p_mag:'harmony',p_pul:'rhythm',swoop:'collect',hoop1:'collect',hoop2:'collect',strainer:'magnetic',mesh:'neutron',fence:'pulsing',proc_relic:'relic',wipe:'wipe',dbl:'dbl',mop:'mop'};
+function itemScene(it){const f=it.fx,o=f.give||f.cap||f.heat;if(ITEM_SCENE[it.id])return ITEM_SCENE[it.id];if(o){const k=Object.keys(o)[0];if(ITEM_SCENE[k])return ITEM_SCENE[k];}
+  if(f.proc)return ITEM_SCENE[f.proc]||'collect';if(f.xbuy||f.xsell)return 'collect';if(f.duck||it.shop==='duck')return 'duck';if(f.clock!=null||f.wake||it.id==='alarm')return 'hub:time';if(f.water||f.fridge)return 'hub:bottle';
+  if(f.mount||f.part||f.hold)return 'hub:move';return 'hub:shop:'+it.shop;}
 const _signBk=new Map();let _clkSvg=null;const _clkImg={};
 function clockSign(h){ // the Clock smith's sign with its hand at the time of day (12, 3, 6, 9 and round again: noon back to midnight)
   const a=(((h|0)%12)+12)%12*30;if(_clkSvg===null){_clkSvg='';fetch('shops/sign_clock.svg').then(r=>r.text()).then(t=>{_clkSvg=t;for(const k in _clkImg)delete _clkImg[k];if(window.onSignChange)onSignChange();}).catch(()=>{});}
