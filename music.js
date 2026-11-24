@@ -1,17 +1,19 @@
 // ═════════════════════════ MUSIC (the map page: your buoy's record player) ═════════════════════════
 // The records (content/records.csv) are made as they play, by Web Audio: nothing to download. Each is a seed for its genre's arranger:
-//  hybrid   (the record player's own album): strings and a horn line over EDM drums, bass and an arpeggio when it drops
+//  hybrid   (strings and a horn line over EDM drums, bass and an arpeggio when it drops)
 //  edm      (the PULSE): four on the floor, off-beat bass, a plucked arpeggio, a pad that ducks under the kick; builds, drops and breaks
 //  symphony (CUSTOM HULLS): strings, cellos, a horn melody, pizzicato and timpani; it swells and settles
 // A record plays 48 bars, then the next one you own. Also: a souvenir copy from the GIFT SHOP (kept through its wipe), and Dim's Carnival's record prize. The record player is a starting item on the deck mount (START_ITEMS, shared.js);
-// its dock slot (♪) lists your records. A record: owned as up:<id> (the hybrid album comes with the player)
-const RECORDS=csvRead('records').map(r=>({id:r.id,n:r.name,g:r.genre,bpm:+r.bpm||120,root:+r.root||45,minor:r.scale!=='major',prog:String(r.prog||'0 5 3 4').split(/\s+/).map(Number),seed:+r.seed||1}));
+// its dock slot (♪) lists your records. A record: owned as up:<id> (the gramophone's own album, records.csv album=1, comes with it)
+const RECORDS=csvRead('records').map(r=>({id:r.id,n:r.name,g:r.genre,album:r.album==='1',tape:r.tape==='1',bpm:+r.bpm||120,root:+r.root||45,minor:r.scale!=='major',prog:String(r.prog||'0 5 3 4').split(/\s+/).map(Number),seed:+r.seed||1}));
 const MUSIC={ctx:null,cur:null,bar:0,step:0,at:0,timer:null,out:null,rev:null,duck:null,pref:(()=>{try{return JSON.parse(localStorage.getItem('il_music_v1')||'null')||{on:true,id:null};}catch(e){return{on:true,id:null};}})()};
-const recOwned=(r,has)=>r.g==='hybrid'?has('up:record'):has('up:'+r.id)||SHOP_ITEMS.some(i=>i.fx.rec===r.id&&(souvenirs()[i.id]||0)>0); // (or a souvenir copy from the Gift Shop: yours whatever comes next)
+const recOwned=(r,has)=>r.album?has('up:record'):has('up:'+r.id)||SHOP_ITEMS.some(i=>i.fx.rec===r.id&&(souvenirs()[i.id]||0)>0); // (or a souvenir copy from the Gift Shop: yours whatever comes next)
+function musicUnder(on){MUSIC.under=!!on;const c=MUSIC.ctx;if(!c||!MUSIC.lp)return;const t=c.currentTime,f=on?(T.musicUnderHz||650):20000,g=on?(T.musicUnderGain!=null?T.musicUnderGain:0.45):1; // down in a surface the record plays on above you: muffled and quieter, under the surface's own sounds
+  MUSIC.lp.frequency.cancelScheduledValues(t);MUSIC.lp.frequency.setTargetAtTime(f,t,0.25);MUSIC.lvl.gain.cancelScheduledValues(t);MUSIC.lvl.gain.setTargetAtTime(g,t,0.25);}
 function musicSave(){try{localStorage.setItem('il_music_v1',JSON.stringify(MUSIC.pref));}catch(e){}}
 function musicRng(s){return()=>{s|=0;s=s+0x6D2B79F5|0;let t=Math.imul(s^s>>>15,1|s);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296;};}
 function musicInit(){if(MUSIC.ctx)return MUSIC.ctx;const A=window.AudioContext||window.webkitAudioContext;if(!A)return null;const c=MUSIC.ctx=new A();
-  const comp=c.createDynamicsCompressor();comp.threshold.value=-16;comp.ratio.value=12;comp.attack.value=0.003;comp.release.value=0.15;MUSIC.out=c.createGain();MUSIC.out.gain.value=0;MUSIC.out.connect(comp);comp.connect(c.destination);
+  const comp=c.createDynamicsCompressor();comp.threshold.value=-16;comp.ratio.value=12;comp.attack.value=0.003;comp.release.value=0.15;MUSIC.out=c.createGain();MUSIC.out.gain.value=0;MUSIC.out.connect(comp);MUSIC.lp=c.createBiquadFilter();MUSIC.lp.type='lowpass';MUSIC.lp.frequency.value=20000;MUSIC.lp.Q.value=0.5;MUSIC.lvl=c.createGain();comp.connect(MUSIC.lp);MUSIC.lp.connect(MUSIC.lvl);MUSIC.lvl.connect(c.destination);musicUnder(MUSIC.under); // (heard from under the surface: musicUnder)
   const L=c.sampleRate*2.6,ir=c.createBuffer(2,L,c.sampleRate);for(let ch=0;ch<2;ch++){const d=ir.getChannelData(ch);for(let i=0;i<L;i++)d[i]=(Math.random()*2-1)*Math.pow(1-i/L,3);} // a hall: decaying noise
   MUSIC.rev=c.createConvolver();MUSIC.rev.buffer=ir;const rg=c.createGain();rg.gain.value=0.35;MUSIC.rev.connect(rg);rg.connect(MUSIC.out);
   MUSIC.duck=c.createGain();MUSIC.duck.connect(MUSIC.out); // (the pad and strings: ducked under the kick when the drums are in)
