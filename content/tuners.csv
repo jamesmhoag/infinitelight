@@ -701,6 +701,8 @@ goodChance,0.15,Commodity chance,0,1,0.01,Commodities,gameplay,,,,Chance one com
 signBlinkMs,700,Sign blink ms,100,3000,50,Commodities,theme,,,,"An open shop's sign blinks: off one beat in four, a beat this long",
 chestBright,400,Chest hoard,50,5000,50,Commodities,gameplay,,,,"About how much Bright a treasure chest holds (Dim about half; Neutron, Magnetic and Pulsing a few each, by chance)",
 chestRelic,0.5,Chest relic chance,0,1,0.05,Commodities,gameplay,,,,Chance a treasure chest also holds a relic (counts ×100),
+boxItemChance,0.3,Box item chance,0,1,0.05,Commodities,gameplay,,,,"Chance a box off the lake holds something its shop sells (free: an upgrade you do not have, or what it sells by the one)",
+boxGoodChance,0.25,Box commodity chance,0,1,0.05,Commodities,gameplay,,,,"Chance a box off the lake holds another commodity instead (full, or trash; even a treasure chest)",
 mapGoodScale,1.1,Lake commodity size,0.2,2,0.05,Commodities,map,,,,"How big commodities and flotsam are on the lake, × a duck's",
 mapGoodMs,150000,Lake goods ms,10000,900000,5000,Commodities,map,,,,"About how often a can, a cup or a box floats in on the lake",
 mapChestMs,300000,Chest ms,10000,1800000,10000,Commodities,map,,,,About how often a treasure chest floats in (one at a time),
