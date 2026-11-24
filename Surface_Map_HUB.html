@@ -418,6 +418,33 @@ function waterNear(){if(pQ===0&&pR===0||neighbors(pQ,pR).some(([q,r])=>(q===0&&r
 function waterDrink(){if(SCENE||MP.on)return;if(bottle){bottle=0;}else if(drinks>0)drinks--;else if(fridge>0)fridge--;syncDock();} // (the barrel dry: a bottle from the fridge)
 function trawl(path){if(!path||SCENE||MP.on||!kitOn(f=>f.troll))return;let n=0,h=0;for(const p of path){const c=cells[K(p.q,p.r)];if(c&&c.cap&&c.kind!=='dark'){n+=Math.ceil((c.capVal||0)*(T.mapTrollMult!=null?T.mapTrollMult:10));h++;}} // the Trolling net (a hull mount): sailing across bright clears, each one pays its value in Bright
   if(n>0){neb({cmd:'award',kind:'bright',n});feed(txt('map.troll',fmtN(n)),txt('map.troll_d',h));}}
+// ── Trash and recycling plants: trash your net scooped (on a surface, or off the lake beside you) is kept in your trash bag, oldest first. Over a hex beside you it goes:
+// into a Rift (gone), onto an open hex (flotsam: nothing moves onto it), or to a recycling plant of its material. A seed (BRiGHT IDEAS) is planted on a Dark Remnant clear beside
+// you; its first trash sets its material and it grows a stage with each piece (Plant bud: the trash its bud takes; no more once it has one). At Midnight a plant that budded
+// blooms: picked from beside you it pays Flower Dim (× 10 on a merged Dark Remnant, × 100 on a merged hex of seven); left, it is a flower for the night's cards (lastFlowers).
+// A plant that had not budded is gone with the collapse ──
+let trashBag=[],seeds=0,plants={},lastFlowers=[],dimAdmit=-1;
+const plantBud=()=>Math.max(2,Math.round(T.mapPlantBud!=null?T.mapPlantBud:4)),plantStage=p=>p.bloom?5:!p.n?0:p.n>=plantBud()?4:p.n>=plantBud()-1?3:p.n>=2?2:1;
+const plantType=p=>'plant:'+(p.m||'paper')+':'+Math.max(1,plantStage(p))+':'+Math.max(0,plantBud()-4),plantTier=k=>{const c=cells[k],g=c&&c.mergeId!=null?mergeGroups.find(x=>x.id===c.mergeId):null;return g?(g.type==='hex'?3:2):1;};
+function trashGot(m,k){trashBag.push({m,k});feed(txt('map.trash.got',txt('trash.'+m)),txt('map.trash.bag',trashBag.length));syncDock();saveMap();}
+function trashOK(k){const c=cells[k],t=trashBag[0];if(!c||!t||hexD(c,here())>1||k===K(pQ,pR))return false;const p=plants[k];return!!(c.rift||(p&&(!p.m||p.m===t.m)&&p.n<plantBud())||(!c.cap&&!c.isVoid&&!c.flot&&!c.shop&&!c.isP));}
+function trashAt(k){const c=cells[k],t=trashBag[0];if(!trashOK(k)){hexTap(k);return;}trashBag.shift();const nm=txt('trash.'+t.m),p=plants[k];
+  if(c.rift)feed(txt('map.trash.rift',nm),txt('map.trash.bag',trashBag.length));
+  else if(p){const s0=plantStage(p);p.m=p.m||t.m;p.n++;plantSync();feed(txt('map.plant.fed',nm),txt(plantStage(p)>=4?'map.plant.bud':'map.plant.grew',p.n,plantBud()));if(plantStage(p)!==s0)splashes.push({x:a2w(c.q,c.r)[0],y:a2w(c.q,c.r)[1],t:performance.now(),n:6,a:0});}
+  else{c.flot={kind:t.k||'box',shop:''};flotPond(k);feed(txt('map.trash.set',nm),txt('good.flotsam_d',c.q,c.r));}
+  if(!trashBag.length&&armed==='trash')armed=null;updateHint();syncDock();saveMap();}
+function seedOK(k){const c=cells[k];return!!(c&&seeds>0&&c.cap&&c.kind==='dark'&&!plants[k]&&hexD(c,here())<=1);}
+function plantSeed(k){if(!seedOK(k)){hexTap(k);return;}seeds--;plants[k]={m:null,n:0};plantSync();feed(txt('map.plant.seed'),txt('map.plant.seed_d',plantBud()));if(!seeds&&armed==='seed')armed=null;updateHint();syncDock();saveMap();}
+function plantSync(){for(const k in plants){if(!cells[k]){delete plants[k];continue;}if(plants[k].n&&!pond.some(d=>d.plant===k)){const[x,y]=a2w(cells[k].q,cells[k].r);pond.push({type:plantType(plants[k]),plant:k,x,y,hd:Math.random()*6.28,sp:0,cur:0,next:1e15,born:performance.now(),seen:true,lastRip:0,ph:0});}}} // each growing plant stands on its hex (drawn as the lake's ducks and goods are)
+function plantsMidnight(){const out=[],h=here();for(const k in plants){const p=plants[k];if(plantStage(p)<4)continue;p.bloom=1;const t=plantTier(k),c=cells[k],pick=hexD(c,h)<=1;
+    if(pick){const n=Math.round((T.mapFlowerDim!=null?T.mapFlowerDim:50000)*(t===3?100:t===2?10:1));neb({cmd:'award',kind:'dim',n});feed(txt('map.plant.picked',txt('trash.'+p.m)),txt('map.plant.picked_d',fmtN(n)));}
+    out.push({m:p.m,t,picked:pick?1:0});}
+  if(out.length&&out.some(f=>!f.picked))feed(txt('map.plant.bloomed',out.filter(f=>!f.picked).length),txt('map.plant.bloomed_d'));return out;}
+function plantInfo(k,c){const t=trashBag[0];if(k==='seed')return c?[txt('map.plant.seed_here'),seedOK(K(c.q,c.r))?txt('map.plant.seed_ok'):txt('map.plant.seed_no')]:[txt('map.plant.seeds',seeds),txt('map.plant.seed_d',plantBud())];
+  if(!t)return[txt('map.trash.none'),txt('map.trash.none_d')];const nm=txt('trash.'+t.m);if(!c)return[txt('map.trash.slot',trashBag.length,nm),txt('map.trash.slot_d')];const ck=K(c.q,c.r),p=plants[ck];
+  return[txt('map.trash.here',nm),!trashOK(ck)?txt(p&&p.m&&p.m!==t.m?'map.trash.wrongmat':'map.trash.cannot',p&&txt('trash.'+p.m)):c.rift?txt('map.trash.into_rift'):p?txt('map.trash.into_plant',p.n+1,plantBud()):txt('map.trash.onto_hex')];}
+function lakeTrash(d){const g=d.good,m=TRASH_OF[g.kind];if(!m)return false;const[bx,by]=a2w(pQ,pR);if(Math.hypot(d.x-bx,d.y-by)>HEX*2.2){feed(goodNameM(g),txt('good.ring_far'),'no');return true;}if(!trashNet(m,k=>disc.has(k))){feed(goodNameM(g),txt('good.trash_nonet',txt('trash.'+m)),'no');return true;} // trash on the lake (or on a hex beside you): scooped up with your net
+  if(d.flot&&cells[d.flot])delete cells[d.flot].flot;pond.splice(pond.indexOf(d),1);ripples.push({x:d.x,y:d.y,t:performance.now(),dk:onWhite(d.x,d.y),big:1});trashGot(m,g.kind);return true;}
 function doMove(tq,tr){
   if(phase==='gameover'||phase==='collapse')return;if(tired()){feed(txt('map.too_tired_to_move'),txt('map.rest_under_midnight_to'),'no');return;}
   if(asleep){feed(txt('map.sleep.asleep'),txt('map.sleep.until',clockStr(asleep.until)),'no');return;}
@@ -446,6 +473,7 @@ function updateHint(){ // the feed's resting line: what you can do now
   else if(armed==='dial'){a=txt('map.string_click_any_open');b=txt('map.1_string_per_hex');}
   else if(armed==='leash'){a=txt('map.spindle_click_a_cleared');b=txt('map.a_great_dark_remnant');}
   else if(armed==='test'){a=txt('test.tool_hint');b=txt('map.right_click_esc_or');}
+  else if(armed==='trash'||armed==='seed'){[a,b]=plantInfo(armed);}
   else if(c&&!c.cap&&!c.isVoid&&phase==='move'){a=(c.v<=0?txt('map.no_value_here_nothing'):txt('map.space_click_to',(nebulaCellKey===K(pQ,pR)?txt('map.continue_this_surface'):txt('map.enter_this_surface')),c.v.toFixed(2)));b=txt('map.day_or_move',clockStr(),day);if(tired()){a=txt('map.too_tired_to_move');b=txt('map.rest_under_midnight_to_2',(c.v>0?txt('map.or_this_surface',(nebulaCellKey===K(pQ,pR)?txt('map.continue'):txt('map.enter')),c.v.toFixed(2)):''));}}
   hintLine=[a,b];}
 window.ilHint=(a,b)=>feed(a,b,'hint'); // a menu button's bracketed context, in the feed (content.js parenHints)
@@ -468,7 +496,7 @@ const ITEM_NOTE={leash:txt('map.unwinds_a_cleared_hex'),dial:txt('map.goes_strai
   knot:txt('map.used_on_a_surface_2'),gate:txt('map.used_on_a_surface_3'),
   key:txt('map.used_on_a_surface_4'),lens:txt('map.used_on_a_surface_5')};
 function itemInfo(k,c){ // an item in the dock: what it does; in hand over a hex, what it would do there (and what it costs)
-  if(k==='buoy')return[txt('map.buoy.deck'),txt('map.buoy.deck_d')];if(k==='test')return[txt('test.tool'),txt('test.tool_hint')]; // the test tool in hand
+  if(k==='buoy')return[txt('map.buoy.deck'),txt('map.buoy.deck_d')];if(k==='trash'||k==='seed')return plantInfo(k,c);if(k==='test')return[txt('test.tool'),txt('test.tool_hint')]; // the test tool in hand
   const n=inv[k]||0,nm=KIND_NAME[k]||k;if(!ITEM_NOTE[k])return[curName(k),txt('map.you_have',fmtN(shopWallet(k)))];
   if(!c)return[nm+' × '+n+((armed===k?txt('map.in_hand'):(DOCK_ITEMS.includes(k)?txt('map.click_to_take_it'):txt('map.earned_on_the_map')))),ITEM_NOTE[k]];
   const ck=K(c.q,c.r),g=c.mergeId!=null?mergeGroups.find(x=>x.id===c.mergeId):null,have=(m,u)=>m+(n<u?txt('map.item.youhave',n):'');
@@ -478,7 +506,7 @@ function itemInfo(k,c){ // an item in the dock: what it does; in hand over a hex
   return[nm,ITEM_NOTE[k]];}
 // ── Items on the map: Spindle unwinds a clear; String moves without time; Weave joins bright hexes into constellations ──
 const isBright=k=>{const c=cells[k];return!!(c&&c.cap&&c.kind!=='dark');};
-function itemOK(k){const c=cells[k];if(!c)return false;if(armed==='test')return true; // what the armed item can act on: a Spindle a clear (or a hex not yet full), a String an open hex it has a straight line to, a Weave a bright clear
+function itemOK(k){const c=cells[k];if(!c)return false;if(armed==='test')return true;if(armed==='trash')return trashOK(k);if(armed==='seed')return seedOK(k); // what the armed item can act on: a Spindle a clear (or a hex not yet full), a String an open hex it has a straight line to, a Weave a bright clear
   return armed==='leash'?!!(c.cap||(!c.isVoid&&c.v<1)):armed==='dial'?!c.cap&&!c.isVoid&&k!==K(pQ,pR)&&!riftBetween(pQ,pR,c.q,c.r):isBright(k);}
 function hexLine(q0,r0,q1,r1){const n=dist(q0,r0,q1,r1),out=[];for(let i=0;i<=n;i++){const t=n?i/n:0,x=q0+(q1-q0)*t+1e-6,z=r0+(r1-r0)*t+1e-6,y=-x-z;let rx=Math.round(x),rz=Math.round(z),ry=Math.round(y);const dx=Math.abs(rx-x),dy=Math.abs(ry-y),dz=Math.abs(rz-z);
   if(dx>dy&&dx>dz)rx=-ry-rz;else if(dy<=dz)rz=-rx-ry;out.push([rx,rz]);}return out;} // the hexes a straight line from one hex to another passes over
@@ -591,7 +619,7 @@ function wreckCheck(why){if(SCENE||MP.on||!buoyKit)return[];const C=kitCounts(bu
   if(!lost.length)return[];for(const m of lost)buoyKit.slots[m.s][m.i]=null;kitSave(buoyKit);neb({cmd:'lose',ids:lost.map(m=>m.id)});return lost.map(m=>m.id);}
 function endDay(){ // Midnight passed: it all falls into the source (the outer rings first, each faster), a flash, and a new spill at Twilight
   {const n=Object.values(cells).filter(c=>c.flot&&c.flot.give).length;if(n)feed(txt('good.ring_lost'),txt('good.ring_lost_d',n),'no');} // orders not opened: lost as it falls
-  pendingEnd={how:'midnight',n:0,win:false,lost:wreckCheck('midnight')};phase='collapse';armed=null;weaveSel=[];weaveAsk=null;dropSession();
+  pendingEnd={how:'midnight',n:0,win:false,lost:wreckCheck('midnight'),fl:plantsMidnight()};phase='collapse';armed=null;weaveSel=[];weaveAsk=null;dropSession();
   const base=T.mapCollapseMs||1400;let t=0;for(let i=ringMax(),j=0;i>0;i--,j++){const dur=Math.max(110,base*0.55*Math.pow(0.7,j)),ri=i;at(t,()=>fallRing(ri,dur));t+=dur;}
   at(t,()=>{burstFx={t0:performance.now(),kind:'flash',dur:700};});at(t+420,finishDay);
   {const R=1,ks=[];for(let i=1;i<=R;i++)for(const[q,r]of ring(i))ks.push(K(q,r));camTweenTo(ks,t+420);}
@@ -601,7 +629,7 @@ function fallRing(i,dur){ // one ring falls into the source
   burstFx={t0:performance.now(),kind:'fall',r:i,dur};}
 function finishDay(){ // after Midnight's flash: the day goes into the log, a new spill bursts out and a new day begins at Twilight
   const e=pendingEnd;if(!e)return;pendingEnd=null;
-  dayLog.push({day,end:e.how,ring:0,b:dayCnt.b,d:dayCnt.d,win:false,col:dayCnt.col,lost:e.lost&&e.lost.length?e.lost:undefined});const wreck=e.lost&&e.lost.length?e.lost.map(id=>(shopItem(id)||{n:id}).n).join(', '):'';dayCnt={b:0,d:0};
+  dayLog.push({day,end:e.how,ring:0,b:dayCnt.b,d:dayCnt.d,win:false,col:dayCnt.col,lost:e.lost&&e.lost.length?e.lost:undefined,fl:e.fl&&e.fl.length?e.fl:undefined});lastFlowers=(e.fl||[]).filter(f=>!f.picked);plants={};pond=pond.filter(d=>!d.plant);const wreck=e.lost&&e.lost.length?e.lost.map(id=>(shopItem(id)||{n:id}).n).join(', '):'';dayCnt={b:0,d:0};
   clock=3;day++;neb({cmd:'day',day});popSoonOpen();newMap();feed(txt('map.day_ended_at_midnight',day-1),txt('map.bright_dark_a_new',dayLog[dayLog.length-1].b,dayLog[dayLog.length-1].d));
   focusCam(true);showTurn();updateHint();saveMap();if(!SCENE&&!MP.on)sleepUntil(wakeFor===day?6:9);if(wreck)setTimeout(()=>feed(txt('map.wreck.tossed'),txt('map.wreck.lost',wreck),'no'),1200);} // (wrecked: said as you fall asleep, and kept in the day's log) // asleep until Morning (a wake-up call for today: Dawn)
 function dayLogHTML(){
@@ -901,6 +929,7 @@ function mapClick(q,r){const k=K(q,r);if(armed)hubLearn('hubitems'); // a click 
   if(armed==='leash'){if(cells[k]&&cells[k].cap)unclear(k);else spindleFill(k);return;} // an armed map item takes the click
   if(armed==='dial'){stringMove(q,r);return;}
   if(armed==='weave'){if(!weaveAsk)weaveClick(k);return;}
+  if(armed==='trash'){trashAt(k);return;}if(armed==='seed'){plantSeed(k);return;}
   if(q===pQ&&r===pR){doCapture();return;}
   const moves=getMoves();if(moves.find(m=>m.q===q&&m.r===r))doMove(q,r); // (at Midnight it only says you are too tired)
 }
@@ -923,7 +952,7 @@ document.addEventListener('click',e=>{if(currentView!=='map'||menuOpen||shopUI||
 document.addEventListener('click',e=>{ // a lake duck clicked (even under a read-out like the legend): dunked, it comes back up — and the click goes no further
   if(drag&&drag.moved)return;if(currentView!=='map'||menuOpen||shopUI||!(e.target===sc||(e.target.closest&&!e.target.closest('button,.slot,.shop,input,select,#hdock,#tuneP,#mModes,#shop,#menu,#day-report,#letter,#nameAsk'))))return;
   if(!SCENE&&buoyHit(e.clientX,e.clientY)){e.stopPropagation();cabinOpen();return;} // your buoy: down its hatch, below deck (cabin.js), where Status and your collections open from what is in the cabin
-  const du=duckUnder(e.clientX,e.clientY);if(!du||du.dunk)return;e.stopPropagation();if(du.bottle&&!du.empty){openBottle(du);return;}if(du.good&&!du.good.open&&du.flot&&hexD(cells[du.flot],here())>1){feed(goodNameM(du.good),txt('good.ring_far'),'no');return;}if(du.good&&!du.good.open){openLakeGood(du);return;}
+  const du=duckUnder(e.clientX,e.clientY);if(!du||du.dunk)return;e.stopPropagation();if(du.bottle&&!du.empty){openBottle(du);return;}if(du.good&&!du.good.open&&du.flot&&hexD(cells[du.flot],here())>1){feed(goodNameM(du.good),txt('good.ring_far'),'no');return;}if(du.good&&!du.good.open&&!TRASH_ONLY.includes(du.good.kind)){openLakeGood(du);return;}if(du.good&&lakeTrash(du))return;if(du.plant){const p=plants[du.plant];feed(txt('map.plant.name',p&&p.m?txt('trash.'+p.m):'—'),txt('map.plant.stat',p?p.n:0,plantBud()));return;}
   du.dunk=performance.now();ripples.push({x:du.x,y:du.y,t:du.dunk,dk:onWhite(du.x,du.y),big:1});neb({cmd:'quack',type:du.type,v:1});},true);
 document.addEventListener('keydown',e=>{if(currentView==='cabin'){if(e.key==='Escape'){e.preventDefault();cabinClose();}return;} // below deck: Esc climbs back up
   if(document.getElementById('nameAsk').classList.contains('show'))return; // naming your buoy: Enter sets it
@@ -1020,7 +1049,7 @@ function lakeGood(g,now,up){g=Object.assign({id:++goodSeq},g);if(!water.pts.leng
   if(!up){const[bx,by]=a2w(pQ,pR),dx=d.x-bx,dy=d.y-by,l=Math.hypot(dx,dy)||1;d.hd=Math.atan2(-dy,-dx);for(let k=0;k<60;k++){d.x+=dx/l*HEX*0.5;d.y+=dy/l*HEX*0.5;const[X,Y]=w2sc(d.x,d.y);if(offView(X,Y,HEX*1.2)||!isWater(d.x,d.y))break;}} // a delivery: in from off the screen, heading for your buoy
   pond.push(d);ripples.push({x:d.x,y:d.y,t:now,dk:onWhite(d.x,d.y),big:1});return d;}
 function goodsSpawn(now){if(SCENE||parade||pdOn()||water.frac<=0.05)return;if(!goodNext)goodNext=now+(T.mapGoodMs||150000)*(0.4+0.6*Math.random());if(!chestNext)chestNext=now+(T.mapChestMs||300000)*(0.5+Math.random());
-  if(now>goodNext){goodNext=now+(T.mapGoodMs||150000)*(0.6+0.8*Math.random());const seen=Object.keys(SHOPS).filter(id=>disc.has('ev:shop_'+id)),k=['soda','coffee','can','box'][(Math.random()*4)|0];if(k!=='box'||seen.length)lakeGood({kind:k,shop:k==='box'?seen[(Math.random()*seen.length)|0]:k==='soda'?String((Math.random()*6)|0):''},now);}
+  if(now>goodNext){goodNext=now+(T.mapGoodMs||150000)*(0.6+0.8*Math.random());const seen=Object.keys(SHOPS).filter(id=>disc.has('ev:shop_'+id)),k=['soda','coffee','can','box'][(Math.random()*4)|0];if(Math.random()<(T.trashShare!=null?T.trashShare:0.4))lakeGood({kind:TRASH_ONLY[(Math.random()*TRASH_ONLY.length)|0],open:true},now);else if(k!=='box'||seen.length)lakeGood({kind:k,shop:k==='box'?seen[(Math.random()*seen.length)|0]:k==='soda'?String((Math.random()*6)|0):''},now);}
   if(now>chestNext){chestNext=now+(T.mapChestMs||300000)*(0.6+0.8*Math.random());if(!pond.some(d=>d.good&&d.good.kind==='chest'))lakeGood({kind:'chest'},now);}}
 function openLakeGood(d){const g=d.good,now=performance.now();ripples.push({x:d.x,y:d.y,t:now,dk:onWhite(d.x,d.y),big:1});
   if(g.kind==='sign'){feed(goodNameM(g),txt('good.sign_d'));return;}
@@ -1047,7 +1076,7 @@ function flotDrift(){ // after your move: each piece of flotsam drifts a hex out
     const nk=best&&K(...best),n=nk&&cells[nk];if(!n){const p=pond.find(d=>d.flot===k);if(p){delete p.flot;p.leave=performance.now();}delete c.flot;continue;} // off the spill: onto the lake, floating off
     if(n.flot||n.isP||n.isVoid||K(pQ,pR)===nk)continue;n.flot=c.flot;delete c.flot;const p=pond.find(d=>d.flot===k);if(p)p.flot=nk;}}
 function flotLake(sel){for(const k in cells){const c=cells[k];if(!c.flot||!sel(k))continue;const p=pond.find(d=>d.flot===k);if(p){delete p.flot;if(c.flot.give)p.burn=performance.now();else p.leave=performance.now()+800;}delete c.flot;}} // (an order not opened: it sinks, lost) // its hexes fall in: it floats on the lake like a bottle, off the screen or sinking
-function flotSync(){for(const k in cells)if(cells[k].flot&&!pond.some(d=>d.flot===k))flotPond(k);} // (the map shows: its flotsam on its hexes)
+function flotSync(){plantSync();for(const k in cells)if(cells[k].flot&&!pond.some(d=>d.flot===k))flotPond(k);} // (the map shows: its flotsam on its hexes)
 let pondAsk=[]; // ducks made on a surface (Create → Duck on the pond), put on the lake once the map is showing
 function pondPut(type,x,y,now){pond.push({type,x,y,hd:Math.random()*6.2832,sp:0,cur:0,next:now+1500,born:now,splash:true,seen:true,lastRip:0,ph:Math.random()*6.28});ripples.push({x,y,t:now,dk:onWhite(x,y),big:1});} // a duck bobbing up out of the water there
 function openBottle(d){ // clicked: the cork comes out and the letter is unrolled to read (one you have not read yet, while there are any)
@@ -1143,6 +1172,7 @@ function pondStep(now){
   if(cw&&_cwPrev&&now>_cwPrev.t){const dx=cw[0]-_cwPrev.x,dy=cw[1]-_cwPrev.y;cv=Math.hypot(dx,dy)/(now-_cwPrev.t);ca=Math.atan2(dy,dx);}_cwPrev=cw?{x:cw[0],y:cw[1],t:now}:null;_cvLast=cv/(T.mapDuckBumpV||0.35);
   goodsSpawn(now);
   pond=pond.filter(d=>{
+    if(d.plant){const p=plants[d.plant],c=cells[d.plant];if(!p||!c)return false;const[x,y]=a2w(c.q,c.r);d.x=x;d.y=y;d.type=plantType(p);d._s=HEX*(T.mapPlantScale!=null?T.mapPlantScale:0.9);d._sink=0;return true;} // a recycling plant on its hex
     if(d.good&&d.good.kind==='sign')d.type=goodTypeM(d.good); // a sign on the lake: lit and blinking while its shop is open
     if(d.flot){const c=cells[d.flot];if(!c||!c.flot){if(d.good.give&&!d.good.open){delete d.flot;d.burn=now;return true;}return false;} /* (its hex fell in, an order on it: it sinks, lost) */const[x,y]=a2w(c.q,c.r);d.x+=(x-d.x)*0.04*dt;d.y+=(y-d.y)*0.04*dt;d.hd+=0.002*dt;d._s=HEX*0.62*(T.mapGoodScale||0.7)*(d.good.id?(T.mapOrderScale||0.5):1); /* (an order: about your buoy's size, box and preserver together) */return true;} // flotsam on its hex: it drifts to it, turning slowly
     if(d.burn){const u=(now-d.burn)/(T.mapChestBurnMs||2600);d._sink=Math.min(1,u)*0.8;d.fade=Math.max(0,1-u);if(u>=1)return false;if(Math.random()<0.3)splashes.push({x:d.x,y:d.y,t:now,n:2,a:Math.random()*6.28});d._s=HEX*0.62*(T.mapGoodScale||0.7);return true;} // an emptied chest: it sinks and burns away as a crate does
@@ -1206,14 +1236,14 @@ function saveMap(){
   if(SCENE)return; // a demo never touches your map
   if(MP.on){if(MP.role==='guest')return;mpSync();} // (playing together: the host's map is everyone's; a friend's own map is left as it was)
   const out={};for(const k in cells){const c=Object.assign({},cells[k]);delete c._im;out[k]=c;}
-  const rec=()=>JSON.stringify({v:3,hist:mapHist,cells:out,turn,clock,day,pool,constel,dayLog,dayCnt,pendingEnd,score,pQ,pR,totalCells,phase,depth,gameOverReason,captureOrder,mergeGroups,mergeIdCounter,voidOpen,hubPop,playLog,unlockDay,session:nebulaCellKey,drinks,bottle,bottleAt,fridge,asleep,wakeFor,droneDay});
+  const rec=()=>JSON.stringify({v:3,hist:mapHist,cells:out,turn,clock,day,pool,constel,dayLog,dayCnt,pendingEnd,score,pQ,pR,totalCells,phase,depth,gameOverReason,captureOrder,mergeGroups,mergeIdCounter,voidOpen,hubPop,playLog,unlockDay,trashBag,seeds,plants,lastFlowers,dimAdmit,session:nebulaCellKey,drinks,bottle,bottleAt,fridge,asleep,wakeFor,droneDay});
   try{localStorage.setItem(MAP_KEY,rec());}catch(e){for(const k in out)delete out[k].shot;try{localStorage.setItem(MAP_KEY,rec());}catch(x){}} // full: an unfinished hex's picture is the first thing to go
 }
 function loadMap(){
   let d=null;try{d=JSON.parse(localStorage.getItem(MAP_KEY)||'null');}catch(e){}
   if(!d||!d.cells)return false;
   if(d.v!==3)return false; // a map from before the times of day starts over
-  ({cells,turn,clock,day,pool,constel,dayLog,dayCnt,pendingEnd,score,pQ,pR,totalCells,phase,depth,gameOverReason,captureOrder,mergeGroups,mergeIdCounter,voidOpen}=d);mapHist=d.hist||{};playLog=d.playLog||[];if(phase==='collapse'&&!d.pendingEnd){phase='move';for(const k in cells)delete cells[k].stain;} /* (left mid-collapse: it is over) */nebulaCellKey=d.session||null;hubPop=d.hubPop||[null,null];unlockDay=d.unlockDay||null;drinks=d.drinks!=null?d.drinks:waterMax();bottle=d.bottle||0;bottleAt=d.bottleAt!=null?d.bottleAt:-1;fridge=d.fridge||0;droneDay=d.droneDay||0;asleep=d.asleep||null;wakeFor=d.wakeFor!=null?d.wakeFor:-1;if(asleep&&!pendingEnd){buoy.rested=true;setTimeout(sleepStep,1200);} /* (left asleep: the sleep goes on) */_sunH=clock;_sun={from:clock,to:clock,t0:0};dayLog=dayLog||[];dayCnt=dayCnt||{b:0,d:0};
+  ({cells,turn,clock,day,pool,constel,dayLog,dayCnt,pendingEnd,score,pQ,pR,totalCells,phase,depth,gameOverReason,captureOrder,mergeGroups,mergeIdCounter,voidOpen}=d);mapHist=d.hist||{};playLog=d.playLog||[];if(phase==='collapse'&&!d.pendingEnd){phase='move';for(const k in cells)delete cells[k].stain;} /* (left mid-collapse: it is over) */nebulaCellKey=d.session||null;hubPop=d.hubPop||[null,null];unlockDay=d.unlockDay||null;trashBag=d.trashBag||[];seeds=d.seeds||0;plants=d.plants||{};lastFlowers=d.lastFlowers||[];dimAdmit=d.dimAdmit!=null?d.dimAdmit:-1;drinks=d.drinks!=null?d.drinks:waterMax();bottle=d.bottle||0;bottleAt=d.bottleAt!=null?d.bottleAt:-1;fridge=d.fridge||0;droneDay=d.droneDay||0;asleep=d.asleep||null;wakeFor=d.wakeFor!=null?d.wakeFor:-1;if(asleep&&!pendingEnd){buoy.rested=true;setTimeout(sleepStep,1200);} /* (left asleep: the sleep goes on) */_sunH=clock;_sun={from:clock,to:clock,t0:0};dayLog=dayLog||[];dayCnt=dayCnt||{b:0,d:0};
   if(pendingEnd)finishDay();else if(phase==='collapse')phase='move';else if(phase==='ended')showDayReport(); // a day left falling in finishes at once; a won run shows its report
   mapResize();focusCam(false);updateHint();return true;
 }
@@ -1282,7 +1312,8 @@ window.addEventListener('message',e=>{
   else if(m.type==='ui')document.body.classList.toggle('ui-hidden',!!m.hidden); // ~ on a surface hides the map's time of day over it too
   else if(m.type==='bought')shopBought(m);
   else if(m.type==='picked')shopPicked(m); // the hex is captured right away; the player returns with a right-click
-  else if(m.type==='demo')shelfDemoShow(m); // a shelf card's live demo
+  else if(m.type==='demo')shelfDemoShow(m);
+  else if(m.type==='trash')trashGot(m.m,m.k); // the net scooped trash on the surface: into your trash bag // a shelf card's live demo
   else if(m.type==='music')musicToggle(); // the surface's Esc menu: Music on / off
   else if(m.type==='return')exitNebula();
   else if(m.type==='levelReady'){loading('level',false);neb({cmd:'music',on:!!(MUSIC.cur&&MUSIC.pref.on)});if(_enter)_enter.ready=true;}
@@ -1412,7 +1443,7 @@ function popupFor(tally,skip){ // the pop-up a cleared surface earns. Each shop 
   // a better rank moves it, and the old one is torn down). First the Duck Shop, then the best-ranked exotic shop (a tie: at random), then BRiGHT IDEAS, last Dim's
   if(runBad(run,'holiday'))return{p:null,closed:[]};const c=[];
   for(const id in SHOPS){const S=SHOPS[id];if(S.street||(skip&&skip.includes(id))||achLocked('shop',id,ready))continue; // (a shop an achievement opens: not until it is reached)
-    const n=(tally||{})[S.tal]||0;let r=0;if(!S.at)r=CHEST_KINDS.some(k=>(tally||{})[k]>0)?0:1;else for(let i=1;i<=3;i++){const t=T[shopTK(S.cur)+i];if(t>0&&n>=t)r=i;}if(!r)continue; // (the Gift Shop, which has no thresholds: a bright clear where nothing was collected)
+    const n=(tally||{})[S.tal]||0;let r=id==='dim'&&trashBag.some(t=>t.k==='ticket')?1:0;if(!S.at)r=CHEST_KINDS.some(k=>(tally||{})[k]>0)?0:1;else for(let i=1;i<=3;i++){const t=T[shopTK(S.cur)+i];if(t>0&&n>=t)r=i;}if(!r)continue; // (the Gift Shop, which has no thresholds: a bright clear where nothing was collected)
     const hs=hubPop.findIndex(x=>x&&x.id===id),from=hs>=0?'hub'+hs:Object.keys(cells).find(k=>cells[k].shop&&cells[k].shop.id===id&&isBright(k)),had=from?(hs>=0?hubPop[hs]:cells[from].shop).rank:0;
     if(from&&had>=r)continue;c.push({id,rank:r,from,tier:SHOP_TIER(id),nw:achFresh('shop',id)?1:0,z:Math.random(),open:shopIsOpen(id,clock,run)});}
   c.sort((a,b)=>b.nw-a.nw||a.tier-b.tier||b.rank-a.rank||a.z-b.z);const o=c.find(x=>x.open);return{p:o?{id:o.id,rank:o.rank,from:o.from}:null,closed:c.filter(x=>!x.open)};} // (only a shop open at this time of day can pop up: one closed now is missed, and comes to main street tomorrow)
@@ -1517,6 +1548,7 @@ function openShop(key){const el=shopEls[key],s=el&&el._s;if(!s||phase==='collaps
   if(s.id!=='gift'&&!shopHere(key)){if(droneOwned()&&!drone&&droneDay!==day){droneDay=day;drone={key,wx:s.wx,wy:s.wy,t0:performance.now()};feed(txt('map.drone.off'),SHOPS[s.id].n);saveMap();return;} /* the drone: off to it */
     feed(SHOPS[s.id].n,txt(droneOwned()?(drone?'map.drone.out':'map.drone.today'):disc.has('cat:'+s.id)?'map.cat.far_has':'map.cat.far'),'no');return;} // too far: go beside it, or order from its catalogue (the desk drawer, below deck)
   if(s.id!=='gift'&&!SCENE&&!disc.has('cat:'+s.id))catTake(s.id); // (its catalogue: taken on the way in)
+  if(s.id==='dim'&&dimAdmit!==day&&!SCENE){const i=trashBag.findIndex(t=>t.k==='ticket');if(i>=0){trashBag.splice(i,1);dimAdmit=day;feed(txt('map.dim.ticket'),txt('map.dim.ticket_d'));saveMap();}} // Dim's: an admission ticket from your trash bag lets you in for the day (else admission is bought at the gate)
   shopUI={id:s.id,rank:s.rank||3,exit:s.id==='gift',key};renderShop();hubEvent('shop_'+s.id);}
 // Catalogues: one for each shop, taken from its counter the first time you are in, or found in a box from it on the lake; kept in the desk drawer below deck.
 // Ordering from one: what it gives floats to you on a life preserver from that shop (flotPut), a hex a time of day (flotDrift); open it beside it
@@ -1545,7 +1577,7 @@ function shopRows(){const u=shopUI,has=k=>disc.has(k);
   if(u.exit)return[{c:1,n:txt('map.gift.yes'),sub:txt('map.gift.yessub'),go:giftEnter},{c:1,n:txt('map.gift.no'),sub:txt('map.gift.nosub'),go:closeShop}];
   if(u.pick)return Object.keys(DUCK_TYPES).map(t=>({n:duckStar(DUCK_TYPES[t])+DUCK_TYPES[t].name,p:'× '+(duckLog[t]||0),go:()=>shopBuy(shopItem('pickduck'),t)}));
   const ducks=Object.values(duckLog).reduce((a,b)=>a+(b|0),0),souv=souvenirs();
-  return SHOP_ITEMS.filter(i=>i.shop===u.id&&i.r<=u.rank&&(!i.req||ready('up:'+i.req))&&!achLocked('item',i.id,ready)&&!(i.fx.draw==='secret'&&run.secrets===0)&&i.fx.clock!==clock&&!(i.fx.clock==='yesterday'&&day<=1)&&!(i.fx.recprize&&!RECORDS.some(r=>r.g!=='hybrid'&&!recOwned(r,has)))).map(i=>{ /* (the time you are at is not for sale; yesterday only when there was one) */const own=shopOnce(i)&&has('up:'+i.id),held=i.fx.souv?giftWallet:i.cur==='duck'?ducks:(inv[i.cur]||0);
+  const gate=u.id==='dim'&&dimAdmit!==day&&!SCENE;return SHOP_ITEMS.filter(i=>i.shop===u.id&&(gate?!!i.fx.admit:!i.fx.admit)&&i.r<=u.rank&&(!i.req||ready('up:'+i.req))&&!achLocked('item',i.id,ready)&&!(i.fx.draw==='secret'&&run.secrets===0)&&i.fx.clock!==clock&&!(i.fx.clock==='yesterday'&&day<=1)&&!(i.fx.recprize&&!RECORDS.some(r=>r.g!=='hybrid'&&!recOwned(r,has)))).map(i=>{ /* (the time you are at is not for sale; yesterday only when there was one) */const own=shopOnce(i)&&has('up:'+i.id),held=i.fx.souv?giftWallet:i.cur==='duck'?ducks:(inv[i.cur]||0);
     const pr=shopPrice(i,Object.assign({},run,{clock})),done=!!(i.fx.draw&&(run.dimDone||{})[i.fx.draw]),left=shopLeft(i,Object.assign({},run,{clock,day})),out=!own&&!left;
     const noTime=i.fx.clock!=null&&runBonus(run,'xup'),xg=(i.fx.xbuy||i.fx.xsell)?fmtN(xactGets(i,Object.assign({},run,{clock}))):null,nm=xg?xg+' <i class="scur">'+curIcon(i.fx.xbuy||'bright')+'</i>':i.n,fn=xg?xg+' '+i.n:i.n; // (XACT: how many you get, at today's rates, by the currency's symbol; fn: said in the feed)
     const fit=own&&i.fx.part&&buoyKit&&buoyKit.parts[i.fx.part]!==i.id; // a part you own, not fitted: fitted again here, free (only Custom Hulls changes parts)
@@ -1596,7 +1628,7 @@ function buyShow(){ // what a purchase did, everywhere it shows: the feed sums i
   for(const k of BUY_KINDS){const d=got[k]-had[k];if(!d)continue;(d<0?gone:came).push((d<0?'−':'+')+fmtN(Math.abs(d))+' '+curName(k));dockFx[k]={at:now,up:d>0};dockUp[k]=now;
     const el=document.querySelector('#hinv .slot[data-k="'+k+'"]');if(el&&lay){const r=el.getBoundingClientRect(),i=document.createElement('i');i.className=d>0?'up':'dn';i.textContent=(d<0?'−':'+')+fmtN(Math.abs(d));i.style.left=(r.left+r.width/2)+'px';i.style.top=(r.top-6)+'px';lay.appendChild(i);setTimeout(()=>i.remove(),1600);}}
   if(gone.length||came.length)feed(txt('map.buy.title',b.it.n),[...gone,...came].join(' · '));syncDock();}
-function shopBought(m){const it=shopItem(m.id);if(!it)return;if(m.ok&&it.fx.recprize){const L=RECORDS.filter(r=>r.g!=='hybrid'&&!recOwned(r,k=>disc.has(k))),r=L[(Math.random()*L.length)|0];if(r){disc.add('up:'+r.id);neb({cmd:'discover',id:'up:'+r.id});feed(txt('map.rec.found',r.n),txt('map.rec.g_'+r.g));syncDock();}} /* Dim's Carnival: a record won */if(m.ok&&it.fx.wake){wakeFor=day+1;feed(txt('map.sleep.call'),txt('map.sleep.call_d'));saveMap();}if(m.ok&&it.fx.water){if(fridgeCap()>0){fridge=Math.min(fridgeCap(),fridge+1);feed(txt('map.water.bottle'),txt('map.water.in_fridge',fridge,fridgeCap()));}else{bottle=1;bottleAt=day*24+clock;feed(txt('map.water.bottle'),txt('map.water.bottle_d'));}syncDock();saveMap();} /* (a fridge: kept cold, not drunk) */if(m.ok&&m.ship){flotPut({kind:'box',shop:it.shop,give:m.ship},shopHex(shopUI&&shopUI.key));feed(txt('good.ordered',it.n),txt('good.ordered_d',SHOPS[it.shop].n));}shopFlash={id:m.id,at:performance.now(),ok:!!m.ok};if(!m.ok)buySnap=null;feed((m.ok?txt('map.bought',m.msg):it.n),m.ok?SHOPS[it.shop].n:m.msg);
+function shopBought(m){const it=shopItem(m.id);if(!it)return;if(m.ok&&it.fx.admit){dimAdmit=day;feed(txt('map.dim.admitted'),txt('map.dim.admitted_d'));saveMap();if(shopUI)renderShop();}if(m.ok&&it.fx.seed){seeds+=it.fx.seed;feed(txt('map.plant.bought'),txt('map.plant.seed_d',plantBud()));syncDock();saveMap();}if(m.ok&&it.fx.recprize){const L=RECORDS.filter(r=>r.g!=='hybrid'&&!recOwned(r,k=>disc.has(k))),r=L[(Math.random()*L.length)|0];if(r){disc.add('up:'+r.id);neb({cmd:'discover',id:'up:'+r.id});feed(txt('map.rec.found',r.n),txt('map.rec.g_'+r.g));syncDock();}} /* Dim's Carnival: a record won */if(m.ok&&it.fx.wake){wakeFor=day+1;feed(txt('map.sleep.call'),txt('map.sleep.call_d'));saveMap();}if(m.ok&&it.fx.water){if(fridgeCap()>0){fridge=Math.min(fridgeCap(),fridge+1);feed(txt('map.water.bottle'),txt('map.water.in_fridge',fridge,fridgeCap()));}else{bottle=1;bottleAt=day*24+clock;feed(txt('map.water.bottle'),txt('map.water.bottle_d'));}syncDock();saveMap();} /* (a fridge: kept cold, not drunk) */if(m.ok&&m.ship){flotPut({kind:'box',shop:it.shop,give:m.ship},shopHex(shopUI&&shopUI.key));feed(txt('good.ordered',it.n),txt('good.ordered_d',SHOPS[it.shop].n));}shopFlash={id:m.id,at:performance.now(),ok:!!m.ok};if(!m.ok)buySnap=null;feed((m.ok?txt('map.bought',m.msg):it.n),m.ok?SHOPS[it.shop].n:m.msg);
   if(m.ok&&(it.fx.clock==='yesterday'||it.fx.clock==='tomorrow')){if(MP.role==='guest')mpSend('clock',{clock:it.fx.clock});else timeTravel(it.fx.clock);}
   else if(m.ok&&it.fx.clock&&MP.role==='guest')mpSend('clock',{clock:it.fx.clock});else if(m.ok&&it.fx.clock){timeShift(it.fx.clock);showTurn();const tl=document.getElementById('turn-label');tl.classList.add('bought');setTimeout(()=>tl.classList.remove('bought'),1800);updateHint();saveMap();} // the Clock smith turns the day's clock
   if(m.ok&&m.draw){document.getElementById('shop').classList.remove('show');currentView='overlay';showNeb(true);} // a Carnival card: the surface shows the draw (and the card picked) over the map; the shop comes back when it closes
@@ -1716,6 +1748,7 @@ function syncDock(){const box=document.getElementById('hinv');if(!box)return;
   if(!SCENE&&buoyKit&&buoyKit.slots.hull.slice(0,kitCounts(buoyKit).hull).some(id=>{const it=shopItem(id);return it&&it.fx.anchor;}))box.insertAdjacentHTML('afterbegin',`<div class="slot anchor${anchored()?' armed':''}" data-k="anchor" title="${txt(anchored()?'map.anchor.down':'map.anchor.up')}" onclick="anchorSet(!anchored())">⚓<b>${txt(anchored()?'map.anchor.down_s':'map.anchor.up_s')}</b></div>`); // the anchor: down (the tide holds off) or up
   if(!SCENE&&recPlayer())box.insertAdjacentHTML('afterbegin',`<div class="slot rec${MUSIC.cur&&MUSIC.pref.on?' armed':''}" data-k="rec" title="${txt('map.rec.slot',MUSIC.cur?MUSIC.cur.n:txt('map.rec.off'))}" onclick="recordsOpen()">♪<b>${MUSIC.cur?txt('map.rec.on_s'):txt('map.rec.off_s')}</b></div>`); // the record player: your records
   if(!SCENE)box.insertAdjacentHTML('afterbegin',`<div class="slot water${dry()?' empty':''}" data-k="drinks" title="${txt('map.water.slot',drinks,waterMax())}${bottle?' · '+txt('map.water.slot_bottle'):''}"><svg viewBox="0 0 22 22" width="18" height="18"><path d="M11 2C8 7 5 10.5 5 14a6 6 0 0 0 12 0c0-3.5-3-7-6-12z" fill="${bottle?'#9fe6ff':'currentColor'}" opacity=".9"/></svg><b>${drinks}${bottle?'+1':''}${fridge?' ❄'+fridge:''}</b></div><div class="sep"></div>`);{const w=box.querySelector('.slot.water');if(w)w.onclick=fridgeDrink;} // the fresh drinks barrel (and a bottle, drunk, waiting for your next move)
+  if(!SCENE&&(trashBag.length||seeds)){box.insertAdjacentHTML('beforeend','<div class="sep"></div>'+(trashBag.length?`<div class="slot${armed==='trash'?' armed':''}" data-k="trash" title="${txt('map.trash.slot',trashBag.length,txt('trash.'+trashBag[0].m))}">♻<b>${trashBag.length}</b></div>`:'')+(seeds?`<div class="slot${armed==='seed'?' armed':''}" data-k="seed" title="${txt('map.plant.seeds',seeds)}">🌱<b>${seeds}</b></div>`:''));for(const el of box.querySelectorAll('.slot[data-k="trash"],.slot[data-k="seed"]'))el.onclick=()=>armItem(el.dataset.k);} // your trash bag (oldest first) and seeds
   box.insertAdjacentHTML('beforeend',`<div class="slot buoy${nw('buoy')}" data-k="buoy" data-new="hk_buoy" title="${txt('map.buoy.deck')}">${BUOY_ICO}</div>`);box.querySelector('.buoy').onclick=()=>currentView==='cabin'?cabinClose():cabinOpen(); // your buoy: below deck, or back up (its Status is the mirror there)
   box.insertAdjacentHTML('beforeend',ilDockArrow(dockMin));
   for(const k of [...DOCK_ITEMS,'prism','knot','gate','key','lens'])if((inv[k]||0)!==dockSeen[k]){if(dockSeen[k]!=null)dockUp[k]=performance.now();dockSeen[k]=inv[k]||0;} // a count that changed shows for a while

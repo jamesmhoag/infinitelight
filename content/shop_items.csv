@@ -222,3 +222,10 @@ cap_key50,line,Max Keys 10>50,100,magnetic,2,,"{""cap"":{""key"":50}}",,,You can
 cap_key99,line,Max Keys 50>99,2000,magnetic,3,,"{""cap"":{""key"":99}}",cap_key50,,You can hold 99
 cap_gate50,line,Max Gates 10>50,100,magnetic,2,,"{""cap"":{""gate"":50}}",,,You can hold 50
 cap_gate99,line,Max Gates 50>99,2000,magnetic,3,,"{""cap"":{""gate"":99}}",cap_gate50,,You can hold 99
+trashcan,bright,Trash can,1000,bright,1,,"{""up"":1}",,,Your net is ready for more than paper: each material is then its own (paper it scoops from the start)
+tr_metal,bright,Metal scoop,2000,bright,1,,"{""up"":1}",trashcan,,The net scoops metal trash: cans
+tr_plastic,bright,Plastic scoop,2000,bright,1,,"{""up"":1}",trashcan,,The net scoops plastic trash: bags
+tr_glass,bright,Glass scoop,3000,bright,2,,"{""up"":1}",trashcan,,The net scoops glass trash: bottles
+tr_fabric,bright,Fabric scoop,3000,bright,2,,"{""up"":1}",trashcan,,The net scoops fabric trash: rags
+seed,bright,Recycling plant seed,2500,bright,1,3,"{""seed"":1}",,,"Plant it on a Dark Remnant clear beside you, then feed it trash of one material: budded by Midnight, it blooms"
+admission,dim,Admission,100,dim,1,,"{""admit"":1}",,,In through Dim's gate for today (an admission ticket in your trash bag lets you in free)
