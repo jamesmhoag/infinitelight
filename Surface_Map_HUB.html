@@ -365,7 +365,7 @@ function riftWreck(k){ // you tore a Rift: your buoy is wrecked (things go overb
 function riftCell(k,ang,mine){ // a Rift tore the surface: the hex is gone (a scar), and the open hexes beside it are brightened, cleared as a bright clear is (their value theirs, kept). Gone at Midnight (a new map). mine: you tore it (riftWreck)
   const c=cells[k];if(!c||c.cap||c.isVoid)return;const lost=c.v;Object.assign(c,{isVoid:true,v:0,rift:{a:ang||0,t0:performance.now()}});
   for(const[q,r]of neighbors(c.q,c.r)){const nk=K(q,r),n=cells[nk];if(!n||n.isVoid||n.cap)continue;Object.assign(n,{cap:true,capVal:n.v,kind:'bright',shop:null,tally:{}});delete n.shot;delete n._im;dayCnt.b++;score=Math.round((score+n.v)*100)/100;captureOrder.push({keys:[nk],mergeId:null});clearFx[nk]={t0:null};}riftFxAdd(k,[]);
-  pool=Math.max(0,pool-lost);nebulaCellKey=null;phase='captured';detectMerges();redistribute();feed(txt('map.rift'),txt('map.rift_tore'));if(!(mine&&!SCENE&&!MP.on&&riftWreck(k)))riftEvict(k);dangerift();if(ringCheck()){updateHint();saveMap();return;}updateHint();saveMap();}
+  pool=Math.max(0,pool-lost);nebulaCellKey=null;phase='captured';detectMerges();redistribute();feed(txt('map.rift'),txt('map.rift_tore'));jot('rift');if(!(mine&&!SCENE&&!MP.on&&riftWreck(k)))riftEvict(k);dangerift();if(ringCheck()){updateHint();saveMap();return;}updateHint();saveMap();}
 function dangerift(){ // the dim fortune Dangerift (checked after every clear, of any kind): a bright clear beside a Rift is removed, a dark one becomes Rift too, and so on
   if(!runBad(run,'dangerift'))return;let n=0,more=true;const now=performance.now();
   while(more){more=false;for(const k in cells){const c=cells[k];if(!c.rift)continue;for(const[q,r]of neighbors(c.q,c.r)){const nk=K(q,r),d=cells[nk];if(!d||!d.cap||d.isVoid)continue;
@@ -383,7 +383,7 @@ function riftsDraw(now){ // every Rift's scar, in the Dark Remnant's pulsing glo
   drawRiftGlow(mctx,P,now,HEX/160);}
 function completeCaptureForCell(cellKey,kind,tally){
   const c=cells[cellKey];if(!c||c.cap)return;
-  c.cap=true;c.capVal=c.v;c.kind=kind;c.shop=null;c.tally=tally||{};popPlace(cellKey);if(kind!=='dark')waterFill('clear');delete c.shot;delete c._im;if(kind==='dark')dayCnt.d++;else dayCnt.b++;
+  c.cap=true;c.capVal=c.v;c.kind=kind;c.shop=null;c.tally=tally||{};popPlace(cellKey);if(kind!=='dark')waterFill('clear');delete c.shot;delete c._im;if(kind==='dark')dayCnt.d++;else dayCnt.b++;jot('clear',{kind:kind==='dark'?'dark':'bright',v:+(c.v||0).toFixed(2)});
   score=Math.round((score+c.v)*100)/100;
   captureOrder.push({keys:[cellKey],mergeId:null});
   phase='captured';
@@ -402,7 +402,7 @@ const tired=()=>clock===24&&!SCENE; // Midnight: no more moves (Rest ends the da
 // Sleep: after Midnight you sleep through Twilight and Dawn, waking at Morning (a wake-up call from the Clock smith: at Dawn); with the Clock smith's alarm clock
 // you can Rest any time and sleep two times of day. Asleep, the day goes on without you (the spill spreads a ring each time of day) and nothing can be done
 let asleep=null,wakeFor=-1; // asleep: {until: the clock you wake at}; wakeFor: the day a wake-up call is for
-function sleepUntil(h){asleep={until:h};buoy.rested=true;buoy.dunk={t0:performance.now(),d:1,ms:900};feed(txt('map.sleep.asleep'),txt('map.sleep.until',clockStr(h)));updateHint();saveMap();setTimeout(sleepStep,T.mapSleepStepMs||900);}
+function sleepUntil(h){jot('sleep',{until:h});asleep={until:h};buoy.rested=true;buoy.dunk={t0:performance.now(),d:1,ms:900};feed(txt('map.sleep.asleep'),txt('map.sleep.until',clockStr(h)));updateHint();saveMap();setTimeout(sleepStep,T.mapSleepStepMs||900);}
 function sleepStep(){if(!asleep)return;if(phase==='collapse'||pendingEnd)return; // (Midnight's collapse wakes into the new day's sleep: finishDay)
   if(clock>=asleep.until){asleep=null;buoy.rested=false;buoy.under=false;buoy.dunk={t0:performance.now(),d:-1,ms:900};feed(txt('map.sleep.woke',clockStr()),txt('map.sleep.woke_d'));updateHint();saveMap();return;}
   advanceTurn();if(asleep&&phase!=='collapse'&&!pendingEnd)setTimeout(sleepStep,T.mapSleepStepMs||900);updateHint();saveMap();}
@@ -441,22 +441,22 @@ function singDraw(toys){toys=toys||{};if(!deck.length&&discard.length&&reshuffle
   if(!deck.length||SCENE||MP.on)return;const n=Math.min(deck.length,3+(toys.more||0)),top=Math.max(...deck.map(c=>c.t)),sh=L=>L.slice().sort(()=>Math.random()-0.5),pri=sh(deck.filter(c=>c.fl||c.t===top)),rest=sh(deck.filter(c=>!(c.fl||c.t===top)));
   const hand=pri.concat(rest).slice(0,n);deck=deck.filter(c=>!hand.includes(c));for(let i=0;i<Math.min(hand.length,toys.up||0);i++){const u=singCard(hand[i].t+1,hand[i].m,hand[i].fl);u.id=hand[i].id;hand[i]=u;} // (Pinwheel: a card a tier better)
   singHand=hand;if(currentView==='map'){currentView='overlay';showNeb(true);}neb({cmd:'singDraw',cards:hand,skip:(toys.skip||0)>0});saveMap();} // (shown by the surface, over the map)
-function singPicked(m){if(!singHand)return;for(const c of singHand)if(c.id!==m.id)discard.push(c);singHand=null;feed(m.title||txt('map.sing.passed'),m.text||'');saveMap();}
+function singPicked(m){if(!singHand)return;jot('sing',{n:m.title||''});for(const c of singHand)if(c.id!==m.id)discard.push(c);singHand=null;feed(m.title||txt('map.sing.passed'),m.text||'');saveMap();}
 const plantBud=()=>Math.max(2,Math.round(T.mapPlantBud!=null?T.mapPlantBud:4)),plantStage=p=>p.bloom?5:!p.n?0:p.n>=plantBud()?4:p.n>=plantBud()-1?3:p.n>=2?2:1;
 const plantType=p=>'plant:'+(p.m||'paper')+':'+Math.max(1,plantStage(p))+':'+Math.max(0,plantBud()-4),plantTier=k=>{const c=cells[k],g=c&&c.mergeId!=null?mergeGroups.find(x=>x.id===c.mergeId):null;return g?(g.type==='hex'?3:2):1;};
-function trashGot(m,k){trashBag.push({m,k});feed(txt('map.trash.got',txt('trash.'+m)),txt('map.trash.bag',trashBag.length));syncDock();saveMap();}
+function trashGot(m,k){trashBag.push({m,k});jot('trash',{m});feed(txt('map.trash.got',txt('trash.'+m)),txt('map.trash.bag',trashBag.length));syncDock();saveMap();}
 function trashOK(k){const c=cells[k],t=trashBag[0];if(!c||!t||hexD(c,here())>1||k===K(pQ,pR))return false;const p=plants[k];return!!(c.rift||(p&&(!p.m||p.m===t.m)&&p.n<plantBud())||(!c.cap&&!c.isVoid&&!c.flot&&!c.shop&&!c.isP));}
 function trashAt(k){const c=cells[k],t=trashBag[0];if(!trashOK(k)){hexTap(k);return;}trashBag.shift();const nm=txt('trash.'+t.m),p=plants[k];
   if(c.rift)feed(txt('map.trash.rift',nm),txt('map.trash.bag',trashBag.length));
-  else if(p){const s0=plantStage(p);p.m=p.m||t.m;p.n++;plantSync();feed(txt('map.plant.fed',nm),txt(plantStage(p)>=4?'map.plant.bud':'map.plant.grew',p.n,plantBud()));if(plantStage(p)!==s0)splashes.push({x:a2w(c.q,c.r)[0],y:a2w(c.q,c.r)[1],t:performance.now(),n:6,a:0});}
+  else if(p){const s0=plantStage(p);p.m=p.m||t.m;p.n++;jot('feed',{m:t.m});plantSync();feed(txt('map.plant.fed',nm),txt(plantStage(p)>=4?'map.plant.bud':'map.plant.grew',p.n,plantBud()));if(plantStage(p)!==s0)splashes.push({x:a2w(c.q,c.r)[0],y:a2w(c.q,c.r)[1],t:performance.now(),n:6,a:0});}
   else{c.flot={kind:t.k||'box',shop:''};flotPond(k);feed(txt('map.trash.set',nm),txt('good.flotsam_d',c.q,c.r));}
   if(!trashBag.length&&armed==='trash')armed=null;updateHint();syncDock();saveMap();}
 function seedOK(k){const c=cells[k];return!!(c&&seeds>0&&c.cap&&c.kind==='dark'&&!plants[k]&&hexD(c,here())<=1);}
-function plantSeed(k){if(!seedOK(k)){hexTap(k);return;}seeds--;plants[k]={m:null,n:0};plantSync();feed(txt('map.plant.seed'),txt('map.plant.seed_d',plantBud()));if(!seeds&&armed==='seed')armed=null;updateHint();syncDock();saveMap();}
+function plantSeed(k){if(!seedOK(k)){hexTap(k);return;}seeds--;plants[k]={m:null,n:0};jot('seed');plantSync();feed(txt('map.plant.seed'),txt('map.plant.seed_d',plantBud()));if(!seeds&&armed==='seed')armed=null;updateHint();syncDock();saveMap();}
 function plantSync(){for(const k in plants){if(!cells[k]){delete plants[k];continue;}if(plants[k].n&&!pond.some(d=>d.plant===k)){const[x,y]=a2w(cells[k].q,cells[k].r);pond.push({type:plantType(plants[k]),plant:k,x,y,hd:Math.random()*6.28,sp:0,cur:0,next:1e15,born:performance.now(),seen:true,lastRip:0,ph:0});}}} // each growing plant stands on its hex (drawn as the lake's ducks and goods are)
 function plantsMidnight(){const out=[],h=here();for(const k in plants){const p=plants[k];if(plantStage(p)<4)continue;p.bloom=1;const t=plantTier(k),c=cells[k],pick=hexD(c,h)<=1;
     if(pick){const n=Math.round((T.mapFlowerDim!=null?T.mapFlowerDim:50000)*(t===3?100:t===2?10:1));neb({cmd:'award',kind:'dim',n});feed(txt('map.plant.picked',txt('trash.'+p.m)),txt('map.plant.picked_d',fmtN(n)));}
-    out.push({m:p.m,t,k,picked:pick?1:0});}
+    out.push({m:p.m,t,k,picked:pick?1:0});jot('bloom',{m:p.m,picked:pick?1:0});}
   if(out.length&&out.some(f=>!f.picked))feed(txt('map.plant.bloomed',out.filter(f=>!f.picked).length),txt('map.plant.bloomed_d'));return out;}
 function plantInfo(k,c){const t=trashBag[0];if(k==='seed')return c?[txt('map.plant.seed_here'),seedOK(K(c.q,c.r))?txt('map.plant.seed_ok'):txt('map.plant.seed_no')]:[txt('map.plant.seeds',seeds),txt('map.plant.seed_d',plantBud())];
   if(!t)return[txt('map.trash.none'),txt('map.trash.none_d')];const nm=txt('trash.'+t.m);if(!c)return[txt('map.trash.slot',trashBag.length,nm),txt('map.trash.slot_d')];const ck=K(c.q,c.r),p=plants[ck];
@@ -472,7 +472,7 @@ function doMove(tq,tr){
   const tc=cells[K(tq,tr)];
   if(tc&&tc.isVoid&&voidOpen&&tq===0&&tr===0){const ok=cells[K(pQ,pR)];if(ok)ok.isP=false;descendDepth();return;}
   const ok=cells[K(pQ,pR)];if(ok)ok.isP=false;trawl((getMoves().find(m=>m.q===tq&&m.r===tr)||{}).path);
-  playRec('⛵ '+tq+','+tr,'from '+pQ+','+pR+(tc.kind?' · '+tc.kind:''),'move');pQ=tq;pR=tr;tc.isP=true;buoyGo('sail');focusCam(true,1);waterDrink();waterNear(); // (a move drinks; beside bright or the Point, the barrel fills)
+  jot('move',{q:tq,r:tr});playRec('⛵ '+tq+','+tr,'from '+pQ+','+pR+(tc.kind?' · '+tc.kind:''),'move');pQ=tq;pR=tr;tc.isP=true;buoyGo('sail');focusCam(true,1);waterDrink();waterNear(); // (a move drinks; beside bright or the Point, the barrel fills)
   advanceTurn();if(!MP.on&&runBad(run,'slowmove')&&phase!=='collapse'&&phase!=='gameover')advanceTurn();if(phase==='collapse'){updateHint();saveMap();return;}if(phase!=='gameover')phase='move';
   if(phase==='move'&&!tired()&&!getMoves().length){phase='gameover';gameOverReason=txt('map.go.nomoves');}
   updateHint();saveMap();
@@ -495,6 +495,9 @@ function updateHint(){ // the feed's resting line: what you can do now
   else if(c&&!c.cap&&!c.isVoid&&phase==='move'){a=(c.v<=0?txt('map.no_value_here_nothing'):txt('map.space_click_to',(nebulaCellKey===K(pQ,pR)?txt('map.continue_this_surface'):txt('map.enter_this_surface')),c.v.toFixed(2)));b=txt('map.day_or_move',clockStr(),day);if(tired()){a=txt('map.too_tired_to_move');b=txt('map.rest_under_midnight_to_2',(c.v>0?txt('map.or_this_surface',(nebulaCellKey===K(pQ,pR)?txt('map.continue'):txt('map.enter')),c.v.toFixed(2)):''));}}
   hintLine=[a,b];}
 window.ilHint=(a,b)=>feed(a,b,'hint'); // a menu button's bracketed context, in the feed (content.js parenHints)
+// The Journal's log (jlog): what you did, as it happened (a move, a clear, a shop, a purchase, trash, a plant, a wreck, sleep), each with its day, time of day and moment,
+// for the Journal to tell in your own words between what you discovered (the surface writes it: jStory)
+let jlog=[];function jot(k,o){if(SCENE||MP.on&&MP.role==='guest')return;jlog.push(Object.assign({day,c:clock,k,at:Date.now()},o||{}));if(jlog.length>3000)jlog.shift();}
 function playRec(t,d,nz){if(SCENE||!t)return;const l=playLog[playLog.length-1];if(l&&l.t===String(t)&&l.d===String(d||''))return; // the run's log: everything that happened, and where and when, for the record (and a replay); nz: noise (a tap, a no) — kept, but not in the play-by-play (Status → Buoy → History)
   playLog.push({day,clock,t:String(t),d:String(d||''),at:Date.now(),q:pQ,r:pR,sc:Math.round(score),...(nz?{n:nz}:{})});if(playLog.length>1200)playLog.shift();}
 function feed(t,d,nz){feedPop();playRec(t,d,nz);
@@ -648,7 +651,7 @@ function fallRing(i,dur){ // one ring falls into the source
 function finishDay(){ // after Midnight's flash: the day goes into the log, a new spill bursts out and a new day begins at Twilight
   const e=pendingEnd;if(!e)return;pendingEnd=null;
   dayLog.push({day,end:e.how,ring:0,b:dayCnt.b,d:dayCnt.d,win:false,col:dayCnt.col,lost:e.lost&&e.lost.length?e.lost:undefined,fl:e.fl&&e.fl.length?e.fl:undefined});lastFlowers=(e.fl||[]).filter(f=>!f.picked);plants={};pond=pond.filter(d=>!d.plant);if(e.spill)spill=e.spill;if(e.sing&&e.sing.length){deck=deck.concat(e.sing);feed(txt('map.sing.dealt',e.sing.length),txt('map.sing.deck',deck.length));}if(e.toys&&e.toys.shuffle)reshuffles+=e.toys.shuffle;const wreck=e.lost&&e.lost.length?e.lost.map(id=>(shopItem(id)||{n:id}).n).join(', '):'';dayCnt={b:0,d:0};
-  clock=3;day++;neb({cmd:'day',day});popSoonOpen();newMap();feed(txt('map.day_ended_at_midnight',day-1),txt('map.bright_dark_a_new',dayLog[dayLog.length-1].b,dayLog[dayLog.length-1].d));
+  if(wreck)jot('wreck',{n:e.lost.length});jot('end',{how:e.how});clock=3;day++;jot('day',{pct:spill.pct||0});neb({cmd:'day',day});popSoonOpen();newMap();feed(txt('map.day_ended_at_midnight',day-1),txt('map.bright_dark_a_new',dayLog[dayLog.length-1].b,dayLog[dayLog.length-1].d));
   focusCam(true);showTurn();updateHint();saveMap();setTimeout(()=>singDraw(e.toys),900);if(!SCENE&&!MP.on)sleepUntil(wakeFor===day?6:9);if(wreck)setTimeout(()=>feed(txt('map.wreck.tossed'),txt('map.wreck.lost',wreck),'no'),1200);} // (wrecked: said as you fall asleep, and kept in the day's log) // asleep until Morning (a wake-up call for today: Dawn)
 function dayLogHTML(){
   if(!dayLog.length)return '<div class="dsum">'+txt('map.days.none')+'</div>';let tb=0,td=0;
@@ -1254,14 +1257,14 @@ function saveMap(){
   if(SCENE)return; // a demo never touches your map
   if(MP.on){if(MP.role==='guest')return;mpSync();} // (playing together: the host's map is everyone's; a friend's own map is left as it was)
   const out={};for(const k in cells){const c=Object.assign({},cells[k]);delete c._im;out[k]=c;}
-  const rec=()=>JSON.stringify({v:3,hist:mapHist,cells:out,turn,clock,day,pool,constel,dayLog,dayCnt,pendingEnd,score,pQ,pR,totalCells,phase,depth,gameOverReason,captureOrder,mergeGroups,mergeIdCounter,voidOpen,hubPop,playLog,unlockDay,trashBag,seeds,plants,lastFlowers,dimAdmit,deck,discard,reshuffles,spill,singHand,session:nebulaCellKey,drinks,bottle,bottleAt,fridge,asleep,wakeFor,droneDay});
+  const rec=()=>JSON.stringify({v:3,hist:mapHist,cells:out,turn,clock,day,pool,constel,dayLog,dayCnt,pendingEnd,score,pQ,pR,totalCells,phase,depth,gameOverReason,captureOrder,mergeGroups,mergeIdCounter,voidOpen,hubPop,playLog,jlog,unlockDay,trashBag,seeds,plants,lastFlowers,dimAdmit,deck,discard,reshuffles,spill,singHand,session:nebulaCellKey,drinks,bottle,bottleAt,fridge,asleep,wakeFor,droneDay});
   try{localStorage.setItem(MAP_KEY,rec());}catch(e){for(const k in out)delete out[k].shot;try{localStorage.setItem(MAP_KEY,rec());}catch(x){}} // full: an unfinished hex's picture is the first thing to go
 }
 function loadMap(){
   let d=null;try{d=JSON.parse(localStorage.getItem(MAP_KEY)||'null');}catch(e){}
   if(!d||!d.cells)return false;
   if(d.v!==3)return false; // a map from before the times of day starts over
-  ({cells,turn,clock,day,pool,constel,dayLog,dayCnt,pendingEnd,score,pQ,pR,totalCells,phase,depth,gameOverReason,captureOrder,mergeGroups,mergeIdCounter,voidOpen}=d);mapHist=d.hist||{};playLog=d.playLog||[];if(phase==='collapse'&&!d.pendingEnd){phase='move';for(const k in cells)delete cells[k].stain;} /* (left mid-collapse: it is over) */nebulaCellKey=d.session||null;hubPop=d.hubPop||[null,null];unlockDay=d.unlockDay||null;trashBag=d.trashBag||[];seeds=d.seeds||0;plants=d.plants||{};lastFlowers=d.lastFlowers||[];dimAdmit=d.dimAdmit!=null?d.dimAdmit:-1;deck=d.deck||[];discard=d.discard||[];reshuffles=d.reshuffles||0;spill=d.spill||{pct:0,w:0,b:0};singHand=d.singHand||null;drinks=d.drinks!=null?d.drinks:waterMax();bottle=d.bottle||0;bottleAt=d.bottleAt!=null?d.bottleAt:-1;fridge=d.fridge||0;droneDay=d.droneDay||0;asleep=d.asleep||null;wakeFor=d.wakeFor!=null?d.wakeFor:-1;if(asleep&&!pendingEnd){buoy.rested=true;setTimeout(sleepStep,1200);} /* (left asleep: the sleep goes on) */_sunH=clock;_sun={from:clock,to:clock,t0:0};dayLog=dayLog||[];dayCnt=dayCnt||{b:0,d:0};
+  ({cells,turn,clock,day,pool,constel,dayLog,dayCnt,pendingEnd,score,pQ,pR,totalCells,phase,depth,gameOverReason,captureOrder,mergeGroups,mergeIdCounter,voidOpen}=d);mapHist=d.hist||{};playLog=d.playLog||[];jlog=d.jlog||[];if(phase==='collapse'&&!d.pendingEnd){phase='move';for(const k in cells)delete cells[k].stain;} /* (left mid-collapse: it is over) */nebulaCellKey=d.session||null;hubPop=d.hubPop||[null,null];unlockDay=d.unlockDay||null;trashBag=d.trashBag||[];seeds=d.seeds||0;plants=d.plants||{};lastFlowers=d.lastFlowers||[];dimAdmit=d.dimAdmit!=null?d.dimAdmit:-1;deck=d.deck||[];discard=d.discard||[];reshuffles=d.reshuffles||0;spill=d.spill||{pct:0,w:0,b:0};singHand=d.singHand||null;drinks=d.drinks!=null?d.drinks:waterMax();bottle=d.bottle||0;bottleAt=d.bottleAt!=null?d.bottleAt:-1;fridge=d.fridge||0;droneDay=d.droneDay||0;asleep=d.asleep||null;wakeFor=d.wakeFor!=null?d.wakeFor:-1;if(asleep&&!pendingEnd){buoy.rested=true;setTimeout(sleepStep,1200);} /* (left asleep: the sleep goes on) */_sunH=clock;_sun={from:clock,to:clock,t0:0};dayLog=dayLog||[];dayCnt=dayCnt||{b:0,d:0};
   if(pendingEnd)finishDay();else if(phase==='collapse')phase='move';else if(phase==='ended')showDayReport(); // a day left falling in finishes at once; a won run shows its report
   mapResize();focusCam(false);updateHint();return true;
 }
@@ -1272,7 +1275,7 @@ function loadMap(){
 const nebEl=document.getElementById('neb');
 function neb(m){if(nebEl.contentWindow)nebEl.contentWindow.postMessage(m,'*');}
 function showNeb(on){nebEl.classList.toggle('show',on);if(on){nebEl.focus();try{nebEl.contentWindow.focus();}catch(e){}}else window.focus();}
-function enterNebula(cellKey){hubLearn('hubcell');
+function enterNebula(cellKey){hubLearn('hubcell');jot('dive');
   if(_mpFor){netOut({t:'enter',key:cellKey},_mpFor);return;} // a friend's surface: they play it, everyone watches
   if(MP.on){MP.surf={owner:MP.me,key:cellKey};netOut({t:'surf',owner:MP.me,key:cellKey,on:true});neb({cmd:'mpShare',on:true});} // (its frames, for everyone watching)
   const c=cells[cellKey];
@@ -1296,7 +1299,7 @@ function hubEvent(id){if(SCENE)return;if(disc.has('ev:'+id)||evAsked.has(id))ret
   const r=MAP_EV[id];if(r)feed(r.name,tpl(String(r.facts||'').split('\n')[0]));disc.add('ev:'+id);neb({cmd:'discover',id:'ev:'+id});}
 function evPump(){if(currentView==='overlay'&&evQ.length&&nebReady){neb({cmd:'event',ids:evQ.splice(0)});return;} // joins the hand already showing
   if(currentView!=='map'||menuOpen||shopUI||letter||!nebReady||!evQ.length)return;const ids=evQ.splice(0).filter(i=>!disc.has('ev:'+i));if(!ids.length)return;currentView='overlay';showNeb(true);neb({cmd:'event',ids});} // together, as one hand
-function openGuide(){if(!nebReady||currentView!=='map')return;currentView='overlay';showNeb(true);neb({cmd:'guide'});}
+function openGuide(){if(!nebReady||currentView!=='map')return;currentView='overlay';showNeb(true);neb({cmd:'guide',jlog});} // (the Journal tells your days from your log)
 function openCollections(tab){if(!nebReady||currentView!=='map'||shopUI)return;currentView='overlay';showNeb(true);dockTell();neb({cmd:'collections',tab,hist:{day,depth,score,days:dayLog.map(e=>({day:e.day,end:END_NAME[e.how||e.end]||e.end,b:e.b,d:e.d,win:e.win})),plays:playLog.filter(e=>!e.n).slice(-120).map(({day,clock,t,d})=>({day,clock,t,d}))}});} // (the run so far, for its History) // your buoy: Status and your collections, shown by the surface
 function takeState(m){
   // a tuner just set here wins over a message the surface sent before it got it
@@ -1559,7 +1562,7 @@ function shopTap(s){const now=performance.now();tapN=now-tapAt<900?tapN+1:1;tapA
   const el=shopEls[s.key];if(el){const gm=el._cv&&el._cv._glass;if(gm){let f=el.querySelector('canvas.tapf');if(!f){f=document.createElement('canvas');f.className='tapf';el.appendChild(f);}if(f._src!==gm){f._src=gm;f.width=gm.width;f.height=gm.height;f.getContext('2d').drawImage(gm,0,0);}f.style.transform=el.firstChild?el.firstChild.style.transform:'';f.classList.remove('go');void f.offsetWidth;f.classList.add('go');} // its glass flashes, as a hex's does when a click does nothing there
     if(tapN===5){el.classList.remove('rattle');void el.offsetWidth;el.classList.add('rattle');}} // only the fifth (the yell) shakes it
   if(tapN===5)feed(txt('map.tap.yell'),txt('map.tap.yell2',SHOPS[s.id].n),'tap');} // the fifth: someone inside has had enough
-function openShop(key){const el=shopEls[key],s=el&&el._s;if(!s||phase==='collapse')return;
+function openShop(key){const el=shopEls[key],s=el&&el._s;if(!s||phase==='collapse')return;if(s.lit)jot('shop',{id:s.id});
   if(!s.lit){shopTap(s); // a tap on its glass
     if(!runFx(run).some(f=>f.knock)){if(tapN<5)feed(txt('map.is_closed',SHOPS[s.id].n),txt('map.open',shopHours(s.id),(runBad(run,'holiday')?txt('map.a_holiday_it_closes'):'')));return;}
     feed(txt('map.tap.knock',SHOPS[s.id].n),txt('map.tap.knock2'),'tap');} // Friendly Neighborhood (a good fortune): a knock opens it up
@@ -1646,7 +1649,7 @@ function buyShow(){ // what a purchase did, everywhere it shows: the feed sums i
   for(const k of BUY_KINDS){const d=got[k]-had[k];if(!d)continue;(d<0?gone:came).push((d<0?'−':'+')+fmtN(Math.abs(d))+' '+curName(k));dockFx[k]={at:now,up:d>0};dockUp[k]=now;
     const el=document.querySelector('#hinv .slot[data-k="'+k+'"]');if(el&&lay){const r=el.getBoundingClientRect(),i=document.createElement('i');i.className=d>0?'up':'dn';i.textContent=(d<0?'−':'+')+fmtN(Math.abs(d));i.style.left=(r.left+r.width/2)+'px';i.style.top=(r.top-6)+'px';lay.appendChild(i);setTimeout(()=>i.remove(),1600);}}
   if(gone.length||came.length)feed(txt('map.buy.title',b.it.n),[...gone,...came].join(' · '));syncDock();}
-function shopBought(m){const it=shopItem(m.id);if(!it)return;if(m.ok&&it.fx.admit){dimAdmit=day;feed(txt('map.dim.admitted'),txt('map.dim.admitted_d'));saveMap();if(shopUI)renderShop();}if(m.ok&&it.fx.seed){seeds+=it.fx.seed;feed(txt('map.plant.bought'),txt('map.plant.seed_d',plantBud()));syncDock();saveMap();}if(m.ok&&it.fx.recprize){const L=RECORDS.filter(r=>r.g!=='hybrid'&&!recOwned(r,k=>disc.has(k))),r=L[(Math.random()*L.length)|0];if(r){disc.add('up:'+r.id);neb({cmd:'discover',id:'up:'+r.id});feed(txt('map.rec.found',r.n),txt('map.rec.g_'+r.g));syncDock();}} /* Dim's Carnival: a record won */if(m.ok&&it.fx.wake){wakeFor=day+1;feed(txt('map.sleep.call'),txt('map.sleep.call_d'));saveMap();}if(m.ok&&it.fx.water){if(fridgeCap()>0){fridge=Math.min(fridgeCap(),fridge+1);feed(txt('map.water.bottle'),txt('map.water.in_fridge',fridge,fridgeCap()));}else{bottle=1;bottleAt=day*24+clock;feed(txt('map.water.bottle'),txt('map.water.bottle_d'));}syncDock();saveMap();} /* (a fridge: kept cold, not drunk) */if(m.ok&&m.ship){flotPut({kind:'box',shop:it.shop,give:m.ship},shopHex(shopUI&&shopUI.key));feed(txt('good.ordered',it.n),txt('good.ordered_d',SHOPS[it.shop].n));}shopFlash={id:m.id,at:performance.now(),ok:!!m.ok};if(!m.ok)buySnap=null;feed((m.ok?txt('map.bought',m.msg):it.n),m.ok?SHOPS[it.shop].n:m.msg);
+function shopBought(m){const it=shopItem(m.id);if(!it)return;if(m.ok)jot('buy',{id:m.id});if(m.ok&&it.fx.admit){dimAdmit=day;feed(txt('map.dim.admitted'),txt('map.dim.admitted_d'));saveMap();if(shopUI)renderShop();}if(m.ok&&it.fx.seed){seeds+=it.fx.seed;feed(txt('map.plant.bought'),txt('map.plant.seed_d',plantBud()));syncDock();saveMap();}if(m.ok&&it.fx.recprize){const L=RECORDS.filter(r=>r.g!=='hybrid'&&!recOwned(r,k=>disc.has(k))),r=L[(Math.random()*L.length)|0];if(r){disc.add('up:'+r.id);neb({cmd:'discover',id:'up:'+r.id});feed(txt('map.rec.found',r.n),txt('map.rec.g_'+r.g));syncDock();}} /* Dim's Carnival: a record won */if(m.ok&&it.fx.wake){wakeFor=day+1;feed(txt('map.sleep.call'),txt('map.sleep.call_d'));saveMap();}if(m.ok&&it.fx.water){if(fridgeCap()>0){fridge=Math.min(fridgeCap(),fridge+1);feed(txt('map.water.bottle'),txt('map.water.in_fridge',fridge,fridgeCap()));}else{bottle=1;bottleAt=day*24+clock;feed(txt('map.water.bottle'),txt('map.water.bottle_d'));}syncDock();saveMap();} /* (a fridge: kept cold, not drunk) */if(m.ok&&m.ship){flotPut({kind:'box',shop:it.shop,give:m.ship},shopHex(shopUI&&shopUI.key));feed(txt('good.ordered',it.n),txt('good.ordered_d',SHOPS[it.shop].n));}shopFlash={id:m.id,at:performance.now(),ok:!!m.ok};if(!m.ok)buySnap=null;feed((m.ok?txt('map.bought',m.msg):it.n),m.ok?SHOPS[it.shop].n:m.msg);
   if(m.ok&&(it.fx.clock==='yesterday'||it.fx.clock==='tomorrow')){if(MP.role==='guest')mpSend('clock',{clock:it.fx.clock});else timeTravel(it.fx.clock);}
   else if(m.ok&&it.fx.clock&&MP.role==='guest')mpSend('clock',{clock:it.fx.clock});else if(m.ok&&it.fx.clock){timeShift(it.fx.clock);showTurn();const tl=document.getElementById('turn-label');tl.classList.add('bought');setTimeout(()=>tl.classList.remove('bought'),1800);updateHint();saveMap();} // the Clock smith turns the day's clock
   if(m.ok&&m.draw){document.getElementById('shop').classList.remove('show');currentView='overlay';showNeb(true);} // a Carnival card: the surface shows the draw (and the card picked) over the map; the shop comes back when it closes

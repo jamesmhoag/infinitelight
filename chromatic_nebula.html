@@ -2098,7 +2098,7 @@ function invMerge(saved){if(!saved)return false;let ch=false;const rk=_discReset
   return ch;}
 function saveInventory(){
   if(window.__SCENE||BUILD)return; // (Build mode: nothing it does is kept)
-  {const d=runState.day||0;if(!_jKnown)_jKnown=new Set(discSeen);for(const id of discSeen)if(!_jKnown.has(id)){_jKnown.add(id);if(d&&jName(id)){const L=(runState.jd=runState.jd||{})[d]||(runState.jd[d]=[]);L.push(id);}}} // the Journal's day entries: each rule, event and shop found, under the day it was found (runState.jd)
+  {const d=runState.day||0;if(!_jKnown)_jKnown=new Set(discSeen);for(const id of discSeen)if(!_jKnown.has(id)){_jKnown.add(id);if(d&&jName(id)){const L=(runState.jd=runState.jd||{})[d]||(runState.jd[d]=[]);L.push({id,at:Date.now()});}}} // the Journal's day entries: each rule, event and shop found, under the day it was found (runState.jd)
   syncKeyShapes();
   try{const raw=localStorage.getItem(INV_STORAGE_KEY);if(raw)invMerge(JSON.parse(raw));}catch(e){}
   const js=JSON.stringify(invPayload());_discReset=false;
@@ -4037,6 +4037,7 @@ function drawCrateSheen(ctx,L){ // low-specular sheen where lights are near
 function drawCrateDepth(ctx,sh,s){ // a Crate, Case or Cache in 3D, locked to the surface's plane as it is: its face as before, its depth (Crate depth px, toward Crate depth angle) behind it — the back, then
   // every side that faces that way, all of them the crate's own planks (a Cache keeps its coloured glass on its face only; a Case its glass on its face)
   const D=(T.crateDepth||0)*s;if(!(D>0.5)||!sh._gatep)return;const a=(T.crateDepthAng!=null?T.crateDepthAng:-50)*Math.PI/180,dx=Math.cos(a)*D,dy=Math.sin(a)*D,P=sh._gatep,n=P.length,L=crateLight(sh),c=sh._gc;
+  if(sh.cache){ctx.save();ctx.lineWidth=1;for(let i=0;i<n;i++){const A=P[i],B=P[(i+1)%n];ctx.beginPath();ctx.moveTo(A.x,A.y);ctx.lineTo(B.x,B.y);ctx.lineTo(B.x+dx,B.y+dy);ctx.lineTo(A.x+dx,A.y+dy);ctx.closePath();ctx.fillStyle='rgba(220,235,255,0.05)';ctx.fill();ctx.strokeStyle='rgba(235,245,255,0.32)';ctx.stroke();}ctx.restore();return;} // a Cache's sides and back: clear glass, only their edges catching the light
   ctx.save();ctx.beginPath();P.forEach((q,i)=>ctx[i?'lineTo':'moveTo'](q.x+dx,q.y+dy));ctx.closePath();ctx.fillStyle='#2a0d06';ctx.fill();ctx.restore(); // its back
   for(let i=0;i<n;i++){const A=P[i],B=P[(i+1)%n],Ln=Math.hypot(B.x-A.x,B.y-A.y)||1;let nx=(B.y-A.y)/Ln,ny=-(B.x-A.x)/Ln;if(nx*((A.x+B.x)/2-c[0])+ny*((A.y+B.y)/2-c[1])<0){nx=-nx;ny=-ny;}if(nx*dx+ny*dy<=0)continue; // (only the sides facing the way it goes back)
     ctx.save();ctx.beginPath();ctx.moveTo(A.x,A.y);ctx.lineTo(B.x,B.y);ctx.lineTo(B.x+dx,B.y+dy);ctx.lineTo(A.x+dx,A.y+dy);ctx.closePath();ctx.clip();plankFill(ctx,A.x,A.y,(B.x-A.x)/Ln,(B.y-A.y)/Ln,dx/D,dy/D,Ln,D,L.Lw,L.lights,sh._gbb,i+11);
@@ -4061,10 +4062,11 @@ function drawCache(ctx,sh,now,s){ // four tinted glass panes in a metal cross fr
       if(inv){g.addColorStop(0,'rgb(18,22,40)');g.addColorStop(0.3,'rgb(120,128,160)');g.addColorStop(0.6,'rgb(60,66,94)');g.addColorStop(1,'rgb(14,18,34)');}
       else{g.addColorStop(0,'rgb(140,146,164)');g.addColorStop(0.3,'rgb(255,255,255)');g.addColorStop(0.6,'rgb(222,227,240)');g.addColorStop(1,'rgb(118,124,142)');}
       cc.fillStyle=g;cc.fillRect(x,y,w,h);};
-    cc.save();cc.beginPath();cc.rect(-R,-R,2*R,2*R);cc.arc(0,0,14,0,6.2832);cc.clip('evenodd');bar(-R,-3.5,2*R,7,false);bar(-3.5,-R,7,2*R,true);cc.restore(); // the bars stop at the lock plate: its open middle stays clear
-    const pg=cc.createRadialGradient(-4,-4,2,0,0,17);if(inv){pg.addColorStop(0,'rgb(130,138,170)');pg.addColorStop(1,'rgb(24,28,48)');}else{pg.addColorStop(0,'rgb(255,255,255)');pg.addColorStop(1,'rgb(128,134,152)');}
-    cc.fillStyle=pg;cc.beginPath();cc.arc(0,0,15,0,6.2832);cc.moveTo(12.5,0);cc.arc(0,0,12.5,0,6.2832);const k=2.2; // keyhole through the lock plate
-    cc.moveTo(2*k,-0.5*k);cc.lineTo(3.4*k,7*k);cc.lineTo(-3.4*k,7*k);cc.lineTo(-2*k,-0.5*k);cc.arc(0,-3*k,3.2*k,2.246,0.896+6.2832,false);cc.closePath();cc.fill('evenodd');
+    const Rk=T.cacheKeyR||16,Ro=Rk+4,Ri=Rk+0.5;cc.save();cc.beginPath();cc.rect(-R,-R,2*R,2*R);cc.arc(0,0,Ro-1,0,6.2832);cc.clip('evenodd');bar(-R,-3.5,2*R,7,false);bar(-3.5,-R,7,2*R,true);cc.restore(); // the bars stop at the lock ring: its middle stays clear glass
+    const pg=cc.createRadialGradient(-Ro*0.3,-Ro*0.3,2,0,0,Ro+2);if(inv){pg.addColorStop(0,'rgb(130,138,170)');pg.addColorStop(1,'rgb(24,28,48)');}else{pg.addColorStop(0,'rgb(255,255,255)');pg.addColorStop(1,'rgb(128,134,152)');}
+    cc.fillStyle=pg;cc.beginPath();cc.arc(0,0,Ro,0,6.2832);cc.moveTo(Ri,0);cc.arc(0,0,Ri,0,6.2832);cc.fill('evenodd'); // the lock ring round the key pane
+    {const k=Rk/16,gk=cc.createLinearGradient(-8*k,-3*k,8*k,3*k);if(inv){gk.addColorStop(0,'rgb(60,50,20)');gk.addColorStop(0.5,'rgb(200,170,80)');gk.addColorStop(1,'rgb(40,34,14)');}else{gk.addColorStop(0,'rgb(170,128,40)');gk.addColorStop(0.45,'rgb(255,226,140)');gk.addColorStop(1,'rgb(150,110,30)');}
+      cc.save();cc.rotate(-0.6);cc.fillStyle=gk;cc.beginPath();cc.arc(-6*k,0,3.2*k,0,6.2832);cc.moveTo(-6*k+1.5*k,0);cc.arc(-6*k,0,1.5*k,0,6.2832,true);cc.rect(-3*k,-0.9*k,10*k,1.8*k);cc.rect(4.2*k,0.9*k,1.3*k,2*k);cc.rect(6.2*k,0.9*k,1.1*k,1.4*k);cc.fill('evenodd');cc.restore();} // a small key in the middle (its bow, its shaft, its bit)
     cc.restore();
   },now,true);
   ctx.restore();
@@ -13270,6 +13272,7 @@ function guideCSS(){
   if(document.getElementById('guideCss'))return;const st=document.createElement('style');st.id='guideCss';
   st.textContent=`
 #evOverlay .mtg.sing{background:var(--mat)!important}#evOverlay .mtg.sing .tx{background:rgba(10,10,12,.9);color:#eee}
+#rlBody .bk-p p.jn{font-style:italic;line-height:1.45;margin:0 0 .5em}
 #evDesk.new{border-color:#ffd66e;box-shadow:0 0 10px rgba(255,214,110,.5)}
 #rulesOverlay{position:absolute;inset:2% 4%;z-index:60;display:flex;flex-direction:column;background:rgba(0,0,0,.96);color:#fff;border:1px solid #fff;border-radius:0;font:13px/1.5 system-ui,'Inter',sans-serif;letter-spacing:.4px;box-shadow:0 10px 50px rgba(0,0,0,.6);overflow:hidden} /* as the main and shop menus: black, a white line, plain type */
 #rulesOverlay.coll{left:auto;right:2%;max-width:96%;top:calc(2% + var(--dkT,0px));bottom:calc(2% + var(--dkB,0px))} /* (over the map: clear of its feed and items, at whichever edge they are) */html.see,html.see body,html.see #wrap{background:transparent!important}#rulesOverlay.coll .bk{max-width:100%}
@@ -13453,20 +13456,46 @@ function skTick(cv,now){const a=cv.parentNode,lv=a.querySelector('.lv'),f=lv&&lv
 function journalPages(){ // every page, in order: {ch: its chapter, k: its kind, id, key: its discovery (new until its page is turned to), n: its subject, ok: discovered, tx: its words (the Glossary's page references), nk: its notes' key}. Only what is witnessed has a page (none is left to fill)
   const P=[],cnt={},nk=p=>{const c=p.ch+'.'+p.k;cnt[c]=(cnt[c]||0)+1;return p.nk=p.key||c+cnt[c];},ru=ch=>e=>({ch,k:'rule',id:e[0],key:'g_'+e[0],n:e[2],ok:ruleOk(e[0]),tx:[e[2],e[4],...e[5].map(r=>r.join(' '))].join(' ')}),
     put=p=>{const w=p.k==='map'||_jSpan.has(nk(p));if(w&&P.length%2)P.push({ch:p.ch,k:'blank'});P.push(p);if(w)P.push({ch:p.ch,k:'skip'});}; // (a page whose words do not fit takes both sides of a spread: the lifecycle map always)
-  for(const[ch,n]of RULE_TABS){const E=ch==='book'?[]:ch==='days'?Object.keys(runState.jd||{}).map(Number).sort((a,b)=>a-b).map(d=>({ch,k:'day',id:d,key:'jd:'+d,n:txt('journal.day',d),ok:true,tx:runState.jd[d].map(jName).join(' ')})):RULES.filter(e=>(RULE_HOME[e[1]]||[e[1]])[0]===ch).map(ru(ch));
-    if(ch==='disc')E.push(...EVENTS.map(e=>({ch,k:'ev',id:e.id,key:'ev:'+e.id,n:e.name,ok:evSeen(e.id),tx:e.name+' '+(e.seen||'')+' '+e.facts().join(' ').replace(/\u0001[^\u0002]*\u0002|\u0003/g,'')+' '+(e.flavor||'')})));
+  for(const[ch,n]of RULE_TABS){if(ch==='disc')continue; // (no Discoveries chapter: each discovery is in the day it was made)
+    if(ch==='days'){jDays(P,put,n);continue;}const E=ch==='book'?[]:RULES.filter(e=>(RULE_HOME[e[1]]||[e[1]])[0]===ch).map(ru(ch));
     if(ch==='shops')E.push(...Object.keys(SHOPS).map(k=>({ch,k:'shop',id:k,key:'ev:shop_'+k,n:SHOPS[k].n,ok:evSeen('shop_'+k),tx:[SHOPS[k].n,SHOPS[k].tag,SHOPS[k].about||''].join(' ')})));
     const K=E.filter(p=>p.ok);if(!K.length&&ch!=='map'&&ch!=='book')continue; // (a chapter with nothing witnessed yet is not in the book)
     if(P.length%2)P.push({ch,k:'blank'});if(!_jSpan.has(ch+'.chap1'))P.push({ch,k:'blank'});put({ch,k:'chap',n});if(ch==='map')put({ch,k:'map'});K.forEach(put);
     if(ch==='book'){const kn=P.map((p,i)=>[p,i+1]).filter(([p])=>p.key),rows=[...new Set(kn.map(([p])=>p.n))].sort((x,y)=>x.localeCompare(y)).map(s=>{const re=new RegExp('(^|[^A-Za-z])'+s.replace(/[.*+?^${}()|[\]\\]/g,'\\$&')+'([^A-Za-z]|$)','i');return[s,kn.filter(([p])=>p.n===s||s.length>2&&re.test(p.tx)).map(q=>q[1])];});
       for(let i=0;i<Math.max(1,rows.length);i+=15)put({ch,k:'idx',rows:rows.slice(i,i+15)});}} // the Glossary: each subject, then every page that speaks of it
   if(P.length%2)P.push({ch:'book',k:'blank'});for(const p of P)if(!p.nk)nk(p);return P;}
+const jId=x=>typeof x==='string'?x:x&&x.id;
+// The days, as I lived them (the Journal's first chapter): each day opens with how it began and what I did until I first came upon something; then each discovery takes a
+// spread — on the left what led me to it and what I made of it, on the right its page — and what I did after the last closes the day. Told in the first person from the map's
+// log (_jlog: jStory), with a hint at what I have still to learn
+let _jlog=[];
+const jOrd=n=>{const s=['th','st','nd','rd'],v=n%100;return n+(s[(v-20)%10]||s[v]||s[0]);},jList=L=>L.length<2?L.join(''):L.slice(0,-1).join(', ')+' '+txt('jn.and')+' '+L[L.length-1];
+function jStory(log,d,first){const S=[],n=k=>log.filter(e=>e.k===k),uniq=L=>[...new Set(L)];
+  if(first){const w=log.find(e=>e.k!=='sleep'&&e.k!=='day'&&e.k!=='end'),pc=(log.find(e=>e.k==='day')||{}).pct||0;S.push(txt('jn.wake',TIMES[w?w.c:9]||TIMES[9],jOrd(d)));S.push(txt(pc>0?'jn.spill_up':pc<0?'jn.spill_down':'jn.spill_same',Math.abs(pc)));}
+  const mv=n('move').length,cb=n('clear').filter(e=>e.kind==='bright').length,cd=n('clear').filter(e=>e.kind==='dark').length,dv=n('dive').length;
+  if(mv)S.push(txt(mv>1?'jn.moves':'jn.move',mv));if(dv)S.push(txt(dv>1?'jn.dives':'jn.dive',dv));if(cb||cd)S.push(txt('jn.clears',cb,cd));if(n('rift').length)S.push(txt('jn.rift'));
+  const sh=uniq(n('shop').map(e=>(SHOPS[e.id]||{}).n).filter(Boolean)),by=n('buy').map(e=>(shopItem(e.id)||{}).n).filter(Boolean);if(sh.length)S.push(txt('jn.shop',jList(sh)));if(by.length)S.push(txt('jn.buy',jList(uniq(by))));
+  const tr=n('trash');if(tr.length){S.push(txt('jn.trash',jList(uniq(tr.map(e=>txt('trash.'+e.m))))));if(tr.length>=4)S.push(txt('jn.trash_many'));}
+  if(n('seed').length)S.push(txt('jn.seed'));{const f=n('feed');if(f.length)S.push(txt('jn.feed',f.length,txt('trash.'+f[0].m)));}for(const b of n('bloom'))S.push(txt(b.picked?'jn.bloom_picked':'jn.bloom',txt('trash.'+b.m)));
+  for(const s of n('sing'))if(s.n)S.push(txt('jn.sing',s.n));for(const s of n('sleep'))S.push(txt('jn.sleep',TIMES[s.until]||''));for(const w of n('wreck'))S.push(txt('jn.wreck',w.n));for(const e of n('end'))S.push(txt('jn.end'));
+  if(first){const U=RULES.filter(e=>!ruleOk(e[0])&&(RULE_HOME[e[1]]||[e[1]])[0]!=='disc');if(U.length){const e=U[(d*7)%U.length],ch=(RULE_TABS.find(t=>t[0]===(RULE_HOME[e[1]]||[e[1]])[0])||[0,''])[1];if(ch)S.push(txt('jn.unknown'+(d%3),ch));}}
+  if(!S.length||!first&&!log.length)S.push(txt('jn.quiet'));return S;}
+function jSaw(id){const m=/^(g_|ev:)(.*)$/.exec(id)||[];if(m[1]==='g_'){const e=RULES.find(x=>x[0]===m[2]);return e?txt('jn.learned',e[2],e[4]):'';}if(String(m[2]).slice(0,5)==='shop_'){const S=SHOPS[m[2].slice(5)]||{};return txt('jn.shop_new',S.n||'',S.tag||'');}const e=EVENTS.find(x=>x.id===m[2]);return e?txt('jn.saw',e.name,e.flavor||''):'';} // what I made of a discovery
+function jPage(id){const m=/^(g_|ev:)(.*)$/.exec(id)||[];return m[1]==='g_'?{k:'rule',id:m[2]}:String(m[2]).slice(0,5)==='shop_'?{k:'shop',id:m[2].slice(5)}:{k:'ev',id:m[2]};} // its page: a rule's, a shop's or an event's card
+function jDays(P,put,nm){const D=Object.keys(runState.jd||{}).map(Number).sort((a,b)=>a-b);if(!D.length)return;if(P.length%2)P.push({ch:'days',k:'blank'});if(!_jSpan.has('days.chap1'))P.push({ch:'days',k:'blank'});put({ch:'days',k:'chap',n:nm});
+  for(const d of D){const L=runState.jd[d].map(x=>typeof x==='string'?{id:x}:x).filter(x=>jName(x.id)),day=_jlog.filter(e=>e.day===d),at=x=>x&&x.at||0,first=L.find(at);
+    if(P.length%2)P.push({ch:'days',k:'blank'});const st=jStory(first?day.filter(e=>e.at<=at(first)):day,d,true);put({ch:'days',k:'day',id:d,key:'jd:'+d,n:txt('journal.day',d),ok:true,st,tx:st.join(' ')});
+    L.forEach((x,i)=>{const pv=i?at(L[i-1]):0,seg=at(x)&&pv?day.filter(e=>e.at>pv&&e.at<=at(x)):[],st=(i?jStory(seg,d,false):[]).concat(jSaw(x.id)).filter(Boolean);if(P.length%2)P.push({ch:'days',k:'blank'});
+      put({ch:'days',k:'jn',n:jName(x.id),st,nk:'jn:'+d+':'+i,tx:st.join(' ')});put(Object.assign({ch:'days',key:x.id,n:jName(x.id),ok:true,tx:jName(x.id)},jPage(x.id)));});
+    const last=L.length?at(L[L.length-1]):0,tail=last?day.filter(e=>e.at>last):[];if(tail.length){const st=jStory(tail,d,false);put({ch:'days',k:'jn',n:txt('journal.day',d),st,nk:'jn:'+d+':end',tx:st.join(' ')});}}}
+function jFirst(){const P=journalPages(),f=p=>p.ch==='days'&&p.key&&p.k!=='day'&&p.k!=='chap';let i=P.findIndex(p=>f(p)&&ilNew(p.key));if(i<0)i=P.findIndex(f);return i>=0?i:null;} // reviewing: the first discovery not yet read (else the first of all) // a day's discovery (from before they kept their moment: just its id)
 function jName(id){const m=/^(g_|ev:)(.*)$/.exec(id);if(!m)return'';if(m[1]==='g_'){const e=RULES.find(x=>x[0]===m[2]);return e?e[2]:'';}if(m[2].slice(0,5)==='shop_')return(SHOPS[m[2].slice(5)]||{}).n||'';const e=EVENTS.find(x=>x.id===m[2]);return e?e.name:'';} // a discovery's name in the Journal ('' : none of its own)
 function pageHTML(P,i){const p=P[i];if(!p||p.k==='skip')return ''; // one page: what it holds (the entry's card as a page, the chapter's contents, the Glossary's lines), your notes under it, its number (a page over both sides: both numbers)
   const e=p.k==='rule'?RULES.find(x=>x[0]===p.id):p.k==='ev'?EVENTS.find(x=>x.id===p.id):null,w=(P[i+1]||{}).k==='skip';
   const h=p.k==='chap'?`<h2 class="bk-h">${gEsc(p.n)}</h2><p>${txt('journal.ch.'+p.ch)}</p><div class="bk-toc">${P.map((q,j)=>q.ch===p.ch&&q.key?`<a data-pg="${j}"><span>${gEsc(q.n)}</span><i>${j+1}</i></a>`:'').join('')}</div>`
     :p.k==='idx'?`<h2 class="bk-h" style="margin-top:0">${gEsc(txt('guide.tab.book'))}</h2>${p.rows.map(r=>`<div class="bk-ix"><b>${gEsc(r[0])}</b> &nbsp;${r[1].map(n=>`<a data-pg="${n-1}">${n}</a>`).join(', ')}</div>`).join('')||`<p>${txt('journal.empty')}</p>`}`
-    :p.k==='day'?`<h2 class="bk-h" style="margin-top:0">${gEsc(p.n)}</h2><p>${txt('journal.day_d')}</p>${(runState.jd[p.id]||[]).map(id=>{const j=P.findIndex(q=>q.key===id);return `<div class="bk-ix"><b>${gEsc(jName(id))}</b>${j>=0?` &nbsp;<a data-pg="${j}">${j+1}</a>`:''}</div>`;}).join('')}` // a day: what was found that day, each with its page
+    :p.k==='day'?`<h2 class="bk-h" style="margin-top:0">${gEsc(p.n)}</h2><p class="jn">${(p.st||[]).map(gEsc).join(' ')}</p><p>${txt('journal.day_d')}</p>${(runState.jd[p.id]||[]).map(jId).map(id=>{const j=P.findIndex(q=>q.key===id);return jName(id)?`<div class="bk-ix"><b>${gEsc(jName(id))}</b>${j>=0?` &nbsp;<a data-pg="${j}">${j+1}</a>`:''}</div>`:'';}).join('')}` // a day: how it began, in my words, then what I found that day, each with its page
+    :p.k==='jn'?`<h3 class="bk-h" style="margin-top:0">${gEsc(p.n||'')}</h3>${(p.st||[]).map(t=>`<p class="jn">${gEsc(t)}</p>`).join('')}` // what led me to it, and what I made of it
     :p.k==='map'?`<div class="lc"><div class="lc-l"><p class="rl-note">${txt('journal.map')}</p><canvas id="mapCv" width="900" height="500"></canvas></div><div id="mapInfo" class="lc-r" data-e="x"></div></div>`
     :p.k==='rule'?ruleCardHTML(e,true):p.k==='ev'?cardHTML(e,false,true):p.k==='shop'?shopCardHTML(p.id):'';
   return `<div class="bk-p${w?' wide':''}${w&&p.k!=='map'?' sp':''}"${p.key?` data-key="${p.key}"`:''}><div class="bk-c">${h}</div><textarea class="bk-w" data-nk="${p.nk}" placeholder="${gEsc(txt('journal.notes'))}" spellcheck="false">${gEsc(_jNotes[p.nk]||'')}</textarea><div class="bk-n">${w?(i+1)+' – '+(i+2):i+1}</div></div>`;}
@@ -13815,7 +13844,7 @@ window.addEventListener('message',e=>{
   if(m.cmd==='level')hubStartLevel(m);
   else if(m.cmd==='preview')hubPreviews(m.items,m.size);
   else if(m.cmd==='drop')IDB.del('session').catch(()=>{});
-  else if(m.cmd==='guide'){hubOverlay_(true);openRules('guide',m.tab);}
+  else if(m.cmd==='guide'){if(m.jlog)_jlog=m.jlog;hubOverlay_(true);if(!m.tab&&!_rulesOpen)_jGo=jFirst();openRules('guide',m.tab);} // (reviewing: the Journal opens at the first discovery not yet read, else the first)
   else if(m.cmd==='dock'){const r=document.documentElement.style,g=(m.h||0)+8;r.setProperty('--dkB',m.top?'0px':g+'px');r.setProperty('--dkT',Math.max(m.top?g:0,(m.lab||0)+6)+'px');} // the map's feed and items: which edge, how tall (Status keeps clear of them)
   else if(m.cmd==='collections'){if(m.hist)mapHist=m.hist;hubOverlay_(true);openCollections(m.tab);} // your buoy on the map (or its slot in the map's dock)
   else if(m.cmd==='event'){const ids=(m.ids||[m.id]).filter(i=>!discSeen.has('ev:'+i));if(!ids.length){hubState('overlayDone');return;}hubOverlay_(true);ids.forEach(fireEvent);}
