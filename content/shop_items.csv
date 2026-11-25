@@ -292,6 +292,8 @@ pg_canton,line,Flag: canton,20,magnetic,1,,"{""up"":1,""plate"":{""flag"":""cant
 pg_chevron,line,Flag: chevron,10,magnetic,1,,"{""up"":1,""plate"":{""flag"":""chevron""}}",,,Your flags in the chevron pattern,,
 pg_border,line,Flag: border,10,magnetic,1,,"{""up"":1,""plate"":{""flag"":""border""}}",,,Your flags in the border pattern,,
 pg_diagonal,line,Flag: diagonal,10,magnetic,1,,"{""up"":1,""plate"":{""flag"":""diagonal""}}",,,Your flags in the diagonal pattern,,
+blank_slate,line,Blank slate,10,magnetic,1,,"{""blank"":""plate""}",,,"A blank name plate: give it your words and style in Status → Outfit, then hang it on a mount",,
+blank_sheet,line,Blank sheet,10,magnetic,1,,"{""blank"":""flag""}",,,"A blank flag: give it a pattern and colours in Status → Outfit, then fly it from a mount",,
 ps_diner,hull,Diner style,500,bright,1,,"{""up"":1,""plate"":{""font"":""script"",""edge"":""round"",""back"":""pill"",""mat"":""neon"",""anim"":""flicker""},""style"":1}",,,"A neon diner sign: script in tubes on a pill, flickering",,
 ps_marquee,hull,Marquee style,2000,bright,2,,"{""up"":1,""plate"":{""font"":""display"",""edge"":""dots"",""back"":""board"",""mat"":""bulb"",""anim"":""chase""},""style"":1}",,,A theatre marquee: bold letters ringed with chasing bulbs,,
 ps_harbour,hull,Harbour style,500,bright,1,,"{""up"":1,""plate"":{""font"":""serif"",""edge"":""double"",""back"":""round"",""mat"":""paint"",""anim"":""none""},""style"":1}",,,"A painted harbour board: serif letters, a double edge",,
