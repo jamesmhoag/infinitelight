@@ -171,7 +171,7 @@ body.shop-open #hdock{z-index:59}#hinv .slot.wal::before{border-color:rgba(255,2
 <div id="veil"></div>
 <div id="bfx"></div>
 <iframe id="neb" data-tt="map.ui.surface"></iframe>
-<script src="content.js?v=20261124c"></script><script src="shared.js?v=20261124c"></script><script src="cabin.js?v=20261124c"></script><script src="music.js?v=20261124c"></script>
+<script src="content.js?v=20261124d"></script><script src="shared.js?v=20261124d"></script><script src="cabin.js?v=20261124d"></script><script src="music.js?v=20261124d"></script>
 <script>
 // ╔══════════════════════════════════════════════════════════════════════════════╗
 // ║  MAP ENGINE                                                                 ║
@@ -190,7 +190,7 @@ let playLog=[],clock=3,day=1,pool=6,burstFx=null,dayLog=[],dayCnt={b:0,d:0},pend
 // // clock: the hour (3 = Twilight … 24 = Midnight, the day's last turn); day: your attempts; pool: what the source put out at its last burst; fresh: no ring added yet since it
 let constel=[],armed=null,weaveSel=[],weaveAsk=null,clearFx={},mergeFx=[],feedMsg={t:'',d:'',at:-1e9}; // constellations {keys,type}; the armed map item; a Weave being drawn; animations; the final count
 const STEP_H=3; // the day: eight turns of three hours
-const CACHE_V='20261124c'; // the build: bump with shared.js's
+const CACHE_V='20261124d'; // the build: bump with shared.js's
 const SCENE=new URLSearchParams(location.search).get('scene'); // a Guide / event demo: the map plays a scripted moment (no surface behind it)
 let phase='move',turnTimer=0,mergeTimer=0;
 let gameOverReason='';
@@ -784,7 +784,7 @@ function sceneRender(now){
     drawDuckScene(G3.duck,d.type,{rot:duckRot(d,now,-1),size,pos:[px-MW/2,py-MH/2,-bob],view:cam.view,proj:cam.proj,viewRot:cam.viewRot,env:{x:X,y:Y,lights:[]},px:size*k,alpha:ra*(d.fade!=null?d.fade:1),mirror:true,clip:-1});}
     shopsScene(now,true);if(!SCENE)buoyDraw(now,true);gl.clear(gl.DEPTH_BUFFER_BIT);} // (your buoy and the shops, mirrored too)
   for(const d of pond)if(d._s&&d.bottle){if(!envd){duckEnvUpdate(mc,now,G3.duck);envd=true;}drawBottleScene(G3.duck,d,bottleOpts(d,now,1,1));} // glass: it reflects the scene round it
-  for(const d of pond){if(!d._s||d.bottle)continue;const v=DUCK_TYPES[d.type]||{},refl=v.mat==='metal'||v.mat==='gold'||v.mat==='glass',[px,py]=w2s(d.x,d.y),[X,Y,k]=proj(px,py);
+  for(const d of pond){if(!d._s||d.bottle)continue;const M=duckModel(d.type),refl=!!M&&(M.mat===2||M.mat===3||M.mat===7),[px,py]=w2s(d.x,d.y),[X,Y,k]=proj(px,py); // (metal, gold and glass — a duck's or a plant's — reflect the scene)
     if(refl&&!envd){duckEnvUpdate(mc,now,G3.duck);envd=true;}
     const size=d._s; // upright on the plane: its forward along its heading, its up out of the plane
     drawDuckScene(G3.duck,d.type,{rot:duckRot(d,now,1),size,pos:[px-MW/2,py-MH/2,duckBob(d,now)],view:cam.view,proj:cam.proj,viewRot:cam.viewRot,env:{x:X,y:Y,lights:curLights(X,Y)},px:size*k,clip:1});}
