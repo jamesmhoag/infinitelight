@@ -121,7 +121,7 @@ button:hover{background:rgba(255,255,255,0.15);}
   <div id="dock" class="bottom"><div id="inventoryPanel"></div><div id="touch-info"></div></div>
   <canvas id="cur"></canvas>
 </div>
-<script src="content.js?v=20261124b"></script><script src="shared.js?v=20261124b"></script>
+<script src="content.js?v=20261124c"></script><script src="shared.js?v=20261124c"></script>
 <script>
 txtApply(); // the page's own labels (content/strings.csv)
 const _SRC=document.documentElement.outerHTML; // kept so the Encyclopedia can run live scenes as embedded copies of the game
@@ -4540,6 +4540,7 @@ function testOff(){let s=null;try{s=JSON.parse(localStorage.getItem(TEST_SNAP)||
     _discReset='all';saveInventory();} /* (nothing merged back: the save is exactly as it was) */
   try{localStorage.removeItem(TEST_SNAP);}catch(e){}applyDisc();updateInventoryUI();testSync();if(HUB)hubPost({type:'testRestored'});else location.reload();}
 function testMode(){if(HUB){hubPost({type:'testMode'});return;}if(TEST.get('mode'))testOff();else testOn();} // (on the map, the map runs it: its own save is snapshotted too)
+function testRun(a){a=a||{};if('fortune' in a){runState.fortune=a.fortune;fortuneStart();}if(a.sing){runState.sing=a.sing;for(const x of a.sing)if(x.g)fortuneStart({good:1,id:x.g});}saveInventory();updateInventoryUI();applyDisc();if(HUB)hubState();} // the map's test tool: today's fortune, and the singularities that hold (each good one taking hold as a card's does)
 function testFill(){for(const k in inventory)inventory[k]=Math.max(inventory[k]||0,invMaxFor(k));saveInventory();updateInventoryUI();if(HUB)hubState();flashSaveStatus(txt('test.filled'));}
 function testClear(kind){if(levelCleared)return;const now=performance.now();simulationStarted=true;
   if(kind==='bright'){const keep=[];_dormantInstant=true;for(let i=0;i<dormant.length;i++){const p=dormant[i];if(!p)continue;if(keep.length<12&&Math.random()<0.02)keep.push([p.x,p.y]);removeDormant(i,now);}_dormantInstant=false; /* every particle goes; a few bright remnants are left where some were, and the clear is the usual one */
@@ -13196,7 +13197,7 @@ function cardHTML(ev,mini,pg){ // the one card format: name bar, art box, type l
 function mountScene(h,w,hh){if(!h||h.firstChild||document.querySelectorAll('.rl-live iframe:not(.held),.mtg .art iframe:not(.held)').length>=5)return; /* (a page's picture holding on its last frame does not count) */{const R=(h.dataset.ev||'').split(',').map(evRecFor).find(Boolean);if(R&&!w){evReplayMount(h,R);return;}} /* something you witnessed: your own recording of it, live (a demo only for what you have not) */const f=document.createElement('iframe'),nm=h.dataset.s||h.dataset.scene;f.style.cssText='border:0;max-width:100%;pointer-events:none;background:#000;border-radius:6px;'+(w?`width:${w}px;height:${hh}px`:'width:100%;height:100%');
   Object.assign(f,sceneSrc(nm,h.dataset.hold));if(h.dataset.hold&&nm.slice(0,4)!=='hub:')f.className='held';h.appendChild(f);}
 function sceneSrc(nm,hold){if(nm.slice(0,4)!=='hub:')return{srcdoc:liveSrc(nm,null,hold)};const[sn,dk]=nm.slice(4).split(':'); // a demo's page (a Surface Map demo is played by the map itself): mountScene's, and a shop shelf card's
-  return{src:'Surface_Map_HUB.html?v=20261124b&scene='+sn+(sn==='shop'?'&k='+encodeURIComponent(dk||''):'')+'&T='+encodeURIComponent(JSON.stringify(mapSceneT()))+'&D='+encodeURIComponent(JSON.stringify(dk&&DUCK_TYPES[dk]?{[dk]:DUCK_TYPES[dk]}:Object.fromEntries(Object.entries(DUCK_TYPES).slice(0,4))))};}
+  return{src:'Surface_Map_HUB.html?v=20261124c&scene='+sn+(sn==='shop'?'&k='+encodeURIComponent(dk||''):'')+'&T='+encodeURIComponent(JSON.stringify(mapSceneT()))+'&D='+encodeURIComponent(JSON.stringify(dk&&DUCK_TYPES[dk]?{[dk]:DUCK_TYPES[dk]}:Object.fromEntries(Object.entries(DUCK_TYPES).slice(0,4))))};}
 function mapSceneT(){const o={};for(const k in T)if(/^(map|bh|duck|wake|glass|metal|dimGlow|glowHalo|maxSpeed)/.test(k))o[k]=T[k];return o;} // what a map demo needs of the tuners
 function showCardHTML(html){ // a Guide card (an entry or a shop) opened over the Guide, where an event card shows
   guideCSS();if(!_evOpen)_evPausedIt=false;_evOpen=true;_evReview=true;const ov=evOverlayEl();ov.innerHTML=`<div class="ev-box">${html}<button id="evOk">${txt('card.close')}</button></div>`;ov.style.display='flex';wrap.classList.add('ev-open');
@@ -13922,7 +13923,7 @@ window.addEventListener('message',e=>{
   else if(m.cmd==='dockmin')dockMinToggle(!!m.v);
   else if(m.cmd==='ui')wrap.classList.toggle('ui-hidden',!!m.hidden); // ~ on the map: one hide / show for both
   else if(m.cmd==='tune'){applyLoadedConfig(m.T,true);debounceSave();}
-  else if(m.cmd==='test'&&['discAll','testFill','unlockAll','testOn','testOff'].includes(m.f)){window[m.f]();}
+  else if(m.cmd==='test'&&['discAll','testFill','unlockAll','testOn','testOff','testRun'].includes(m.f)){window[m.f](m.a);}
   else if(m.cmd==='discover'){if(m.id.slice(0,2)==='g_'){ruleLearn(m.id.slice(2));return;}discSeen.add(m.id);saveInventory();hubState();}
   else if(m.cmd==='spend'){inventory[m.kind]=Math.max(0,(inventory[m.kind]||0)-(m.n||1));saveInventory();updateInventoryUI();hubState();} // the map used an item (Spindle, String, Weave)
   else if(m.cmd==='award'){addInventory(m.kind,m.n||1);hubState();} // a map constellation paid out
