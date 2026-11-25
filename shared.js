@@ -48,15 +48,23 @@ function meshKit(A,fl,tile){ // fl: mirrored left to right (but for what is kept
     if(cz>=0)idx.push(b,b+1,b+2,b,b+2,b+3);else idx.push(b,b+2,b+1,b,b+3,b+2);}; // wound to face its normal
   const box=(x0,y0,a0,x1,y1,a1,i)=>{const U=sw_(i);quad([[x0,y0,a1],[x1,y0,a1],[x1,y1,a1],[x0,y1,a1]],[0,0,1],U);quad([[x1,y0,a0],[x0,y0,a0],[x0,y1,a0],[x1,y1,a0]],[0,0,-1],U);
     quad([[x1,y0,a1],[x1,y0,a0],[x1,y1,a0],[x1,y1,a1]],[1,0,0],U);quad([[x0,y0,a0],[x0,y0,a1],[x0,y1,a1],[x0,y1,a0]],[-1,0,0],U);quad([[x0,y1,a1],[x1,y1,a1],[x1,y1,a0],[x0,y1,a0]],[0,1,0],U);quad([[x0,y0,a0],[x1,y0,a0],[x1,y0,a1],[x0,y0,a1]],[0,-1,0],U);};
-  const beam=(p,q,t,i)=>{const d=q.map((v,j)=>v-p[j]),l=Math.hypot(...d)||1,u=d.map(v=>v/l),up=Math.abs(u[1])<0.9?[0,1,0]:[1,0,0],cr=(a,b)=>[a[1]*b[2]-a[2]*b[1],a[2]*b[0]-a[0]*b[2],a[0]*b[1]-a[1]*b[0]],nz=v=>{const k=Math.hypot(...v)||1;return v.map(x=>x/k);},
+  const cr=(a,b)=>[a[1]*b[2]-a[2]*b[1],a[2]*b[0]-a[0]*b[2],a[0]*b[1]-a[1]*b[0]],nz=v=>{const k=Math.hypot(...v)||1;return v.map(x=>x/k);},sub=(a,b)=>a.map((v,j)=>v-b[j]); // (vectors)
+  const beam=(p,q,t,i)=>{const d=q.map((v,j)=>v-p[j]),l=Math.hypot(...d)||1,u=d.map(v=>v/l),up=Math.abs(u[1])<0.9?[0,1,0]:[1,0,0],
     e1=nz(cr(u,up)),e2=nz(cr(u,e1)),h=t/2,U=sw_(i),C=(o,s1,s2)=>o.map((v,j)=>v+e1[j]*s1*h+e2[j]*s2*h); // a square beam from p to q
     for(const [s1,s2,s3,s4,n] of [[1,-1,1,1,e1],[-1,1,-1,-1,e1.map(v=>-v)],[1,1,-1,1,e2],[-1,-1,1,-1,e2.map(v=>-v)]])quad([C(p,s1,s2),C(q,s1,s2),C(q,s3,s4),C(p,s3,s4)],n,U);};
   const lathe=(prof,seg,cols,y0,cx,cz)=>{cx=cx||0;cz=cz||0; // a round part (prof: [[y, r], …] round the y axis, from y0 up); cols[i]: the swatch of each band (a band starting on the axis starts just off it: a quad with two corners in one place cannot tell which way it faces, and was culled — the can light's back was seen through)
     for(let i=0;i<prof.length-1;i++){const[ya,ra0]=prof[i],[yb,rb]=prof[i+1],ra=ra0||1e-4,dy=yb-ya,dr=rb-ra,l=Math.hypot(dy,dr)||1,ny=-dr/l,nr=dy/l,U=sw_(cols[Math.min(i,cols.length-1)]);
       for(let j=0;j<seg;j++){const t0=j/seg*6.2832,t1=(j+1)/seg*6.2832,c0=Math.cos(t0),s0=Math.sin(t0),c1=Math.cos(t1),s1=Math.sin(t1),tm=(t0+t1)/2;
         quad([[cx+ra*c0,y0+ya,cz+ra*s0],[cx+ra*c1,y0+ya,cz+ra*s1],[cx+rb*c1,y0+yb,cz+rb*s1],[cx+rb*c0,y0+yb,cz+rb*s0]],[nr*Math.cos(tm),ny,nr*Math.sin(tm)],U);}}};
+  const tube=(P,R,seg,i)=>{const U=sw_(i);let n0=null,last=null; // a round tube through the points P (R: its radius at each, a number for all), its ring turned along with it (parallel transport)
+    for(let k=0;k<P.length;k++){const t=nz(sub(P[Math.min(P.length-1,k+1)],P[Math.max(0,k-1)]));n0=n0?nz(cr(cr(t,n0),t)):nz(cr(t,Math.abs(t[1])<0.9?[0,1,0]:[1,0,0]));const b2=cr(t,n0),r=Array.isArray(R)?R[k]:R,ring=[];
+      for(let j=0;j<=seg;j++){const a=j/seg*6.2832,d=n0.map((v,x)=>v*Math.cos(a)+b2[x]*Math.sin(a));ring.push([P[k].map((v,x)=>v+d[x]*r),d]);}
+      if(last)for(let j=0;j<seg;j++)quad([last[j][0],last[j+1][0],ring[j+1][0],ring[j][0]],nz(last[j][1].map((v,x)=>v+ring[j+1][1][x])),U);last=ring;}};
+  const surf=(f,nu,nv,i,two)=>{const U=sw_(i); // a curved sheet: f(s, t) → a point, s and t 0..1, in nu × nv quads (two: both faces, a hair apart: a leaf, a petal)
+    for(let a=0;a<nu;a++)for(let b=0;b<nv;b++){const Q=[f(a/nu,b/nv),f((a+1)/nu,b/nv),f((a+1)/nu,(b+1)/nv),f(a/nu,(b+1)/nv)],n=nz(cr(sub(Q[2],Q[0]),sub(Q[3],Q[1])));quad(Q,n,U);
+      if(two)quad(Q.map(q=>q.map((v,x)=>v-n[x]*0.003)),n.map(v=>-v),U);}};
   const geo=R=>({pos:new Float32Array(pos),nrm:new Float32Array(nrm),uv:new Float32Array(uv),idx:new Uint16Array(idx),R});
-  return{pos,nrm,uv,idx,sw_,quad,box,beam,lathe,geo};}
+  return{pos,nrm,uv,idx,sw_,quad,box,beam,lathe,tube,surf,geo};}
 // ── A player's buoy (the Surface Map): a float in its colour, a mast with the player's name on a sign, a lantern on top (its spot light), and the
 // souvenirs they have kept hung round it ──
 const BUOY_SOUV={postcard:6,keychain:5,hat:7,stuffy:8,tshirt:9}; // each souvenir's swatch on it
@@ -387,20 +395,35 @@ function plantPic(c,X,Y,S,st,stems){ // the plant at its stage, in the 65 × 108
   const put=(k,f,ax,ay)=>{const[n,x,y,w,h]=PLANT_ART[k],im=plantImg(n);if(!im)return false;f=f||1;ax=ax!=null?ax:x+w/2;ay=ay!=null?ay:y+h;c.drawImage(im,X+(ax-(ax-x)*f)*S,Y+(ay-(ay-y)*f)*S,w*f*S,h*f*S);return true;};
   if(st<=1)return put('top',0.38,33,108);if(st===2)return put('base',0.78);let ok=put('base');for(let i=0;i<stems;i++)ok=put('top',0.9-i*0.12,33-(i%2?-6:6)*(i+1)*0.5,70-i*8)&&ok;ok=put('top')&&ok; // (more stems the more trash a bud needs)
   if(st===4)ok=put('bud')&&ok;if(st>=5)ok=put('flower')&&ok;return ok;}
-function plantModel(type){const[,m,st0,ex]=type.split(':'),st=+st0||1,M=PLANT_MAT[m]||PLANT_MAT.paper,A=512,tx=document.createElement('canvas');tx.width=tx.height=A;const c=tx.getContext('2d'),S=4,Y0=48;
-  matTile(c,0,0,'#060608','paint');matTile(c,32,0,'#ff7a00','flat');matTile(c,64,0,`rgb(${M.c})`,M.t);
-  const ok=plantPic(c,0,Y0,S,st,Math.max(0,+ex||0));
-  {const d=c.getImageData(0,Y0,65*S,108*S),D=d.data,sp={metal:0.85,glass:0.9,paint:0.55,cloth:0.05}[M.t]||0; // recoloured in its material: its drawing's light and dark kept (outlines, veins), the material's colour and grain over it, its shine in the alpha
-    for(let i=0;i<D.length;i+=4){if(D[i+3]<128){D[i+3]=0;continue;}const r=D[i],g=D[i+1],b=D[i+2],px=(i>>2)%(65*S),py=((i>>2)/(65*S))|0;if(r>200&&g>90&&g<190&&b<90){D[i+3]=255;continue;} // (the orange ring stays as it is)
-      let l=(0.3*r+0.59*g+0.11*b)/255;if(M.t==='metal')l*=0.9+0.2*Math.sin(py*1.7+px*0.05);else if(M.t==='cloth'){l*=((px>>1)+(py>>1))%2?1.06:0.94;if(px%14===0&&py%4<2)l*=0.55;} // brushed metal; a weave, its seams' stitches
-      const k=M.t==='glass'?0.55+0.6*l:M.t==='flat'?0.15+0.95*l:0.2+1.05*l;D[i]=Math.min(255,M.c[0]*k);D[i+1]=Math.min(255,M.c[1]*k);D[i+2]=Math.min(255,M.c[2]*k);D[i+3]=Math.round(255*(1-sp/2));}
-    c.putImageData(d,0,Y0);}
-  const K=meshKit(A,false,true),{quad,lathe,uv}=K,u=2/108,W=65*u/2,yb=-0.06,yt=yb+2,U=[[0,(Y0+108*S)/A],[65*S/A,(Y0+108*S)/A],[65*S/A,Y0/A],[0,Y0/A]],Ub=[U[1],U[0],U[3],U[2]];
-  const sheet=(a)=>{const ca=Math.cos(a),sa=Math.sin(a);quad([[-W*ca,yb,-W*sa],[W*ca,yb,W*sa],[W*ca,yt,W*sa],[-W*ca,yt,-W*sa]],[-sa,0,ca],U);quad([[W*ca,yb,W*sa],[-W*ca,yb,-W*sa],[-W*ca,yt,-W*sa],[W*ca,yt,W*sa]],[sa,0,-ca],Ub);}; // the drawing on both faces
-  sheet(0);if(m!=='paper'){sheet(Math.PI/2); // crossed: it stands from every side
-    if(st===4)lathe([[0,0.002],[0.06,0.11],[0.24,0.14],[0.38,0.08],[0.46,0.002]],14,[2,2,2,2],yt-27*u); // the bud, round
-    if(st>=5){const y=yt-7.6*u;lathe([[-0.13,0.002],[-0.1,0.22],[0,0.3],[0.1,0.22],[0.13,0.002]],18,[0,0,0,0],y);const n=uv.length/4;lathe([[-0.02,0.31],[0.02,0.31]],24,[1],y);for(let k=n;k<uv.length/4;k++)uv[k*4+2]=1;}} // its black middle (a Dark Remnant), ringed in orange, lit
+function plantModel(type){const[,m,st0,ex]=type.split(':'),st=+st0||1,M=PLANT_MAT[m]||PLANT_MAT.paper,A=512,tx=document.createElement('canvas');tx.width=tx.height=A;const c=tx.getContext('2d'),S=4,Y0=48,tint=k=>`rgb(${M.c.map(v=>Math.round(Math.min(255,v*k))).join(',')})`;
+  matTile(c,0,0,'#060608','paint');matTile(c,32,0,'#ff7a00','flat');matTile(c,64,0,`rgb(${M.c})`,M.t);matTile(c,96,0,tint(0.6),M.t);matTile(c,128,0,tint(1.3),M.t); // its black middle, the orange ring, its material: as it is, darker (stem, veins, seams), lighter (petals)
+  const K=meshKit(A,false,true),{quad,lathe,uv}=K,u=2/108,yb=-0.06,yt=yb+2;let ok=true;
+  if(m==='paper'){ok=plantPic(c,0,Y0,S,st,Math.max(0,+ex||0)); // paper: the drawing itself, flat and white as the paper duck, on both faces
+    {const d=c.getImageData(0,Y0,65*S,108*S),D=d.data;for(let i=0;i<D.length;i+=4){if(D[i+3]<128){D[i+3]=0;continue;}const r=D[i],g=D[i+1],b=D[i+2];if(r>200&&g>90&&g<190&&b<90){D[i+3]=255;continue;} /* (the orange ring stays as it is) */
+      const k=0.15+0.95*(0.3*r+0.59*g+0.11*b)/255;D[i]=Math.min(255,M.c[0]*k);D[i+1]=Math.min(255,M.c[1]*k);D[i+2]=Math.min(255,M.c[2]*k);D[i+3]=255;}c.putImageData(d,0,Y0);}
+    const W=65*u/2,U=[[0,(Y0+108*S)/A],[65*S/A,(Y0+108*S)/A],[65*S/A,Y0/A],[0,Y0/A]];quad([[-W,yb,0],[W,yb,0],[W,yt,0],[-W,yt,0]],[0,0,1],U);quad([[W,yb,0],[-W,yb,0],[-W,yt,0],[W,yt,0]],[0,0,-1],[U[1],U[0],U[3],U[2]]);}
+  else plantMesh(K,st,Math.max(0,+ex||0),u,yb,m==='fabric');
   const M2={g:K.geo(2.1),nomk:1,mat:13,c1:[1,1,1],c2:[1,1,1],img:tx};if(ok)_duckModels.set(type,M2);return M2;} // (until its drawings have loaded: drawn without, and built again)
+function plantMesh(K,st,ex,u,yb,seams){ // metal, glass, plastic and fabric: the plant built round in its material (tiles 2–4 as plantModel lays them), after RecyclingPlant.svg — a tapering stem
+  // with an S in it, leaves in pairs (each pair a quarter turn on from the last: ex more pairs the more trash its bud needs), cupped and drooping, a midrib and veins raised on them (fabric: its
+  // edges stitched); at the bud, a round bud with its petals' tips showing; in bloom, two rings of cupped petals round the black middle, ringed in glowing orange. In the drawing's units (108 tall)
+  const{tube,surf,lathe,beam,uv}=K,P=(x,y,z)=>[x*u,yb+y*u,z*u],H=st<=1?22:st===2?46:st===3?80:86;
+  const spine=t=>[2.6*Math.sin(t*Math.PI*1.3)*(st<=1?0.4:1),H*t,0.8*Math.sin(t*Math.PI*2)];
+  const S=[];for(let k=0;k<=14;k++)S.push(spine(k/14));tube(S.map(p=>P(...p)),S.map((p,k)=>(2.3-1.1*k/14)*(st<=1?0.55:1)*u),8,3); // the stem
+  const leaf=(at,phi,L)=>{const p=spine(at),d=[Math.cos(phi),0,Math.sin(phi)],sd=[-d[2],0,d[0]],F=(s,v)=>{s=0.03+0.97*s;const w=L*0.4*Math.pow(Math.sin(Math.PI*s),0.7)+L*0.004,r=L*(0.55*s-0.45*s*s)+v*v*w*0.35; // along it, across it (−1..1): it rises, droops, and cups
+      return[p[0]+d[0]*(1.2+L*0.92*s)+sd[0]*v*w,p[1]+r,p[2]+d[2]*(1.2+L*0.92*s)+sd[2]*v*w];},Q=(s,v,o)=>{const q=F(s,v);return P(q[0],q[1]+(o||0),q[2]);};
+    surf((s,t)=>Q(s,t*2-1),10,4,2,1);const M=[];for(let k=0;k<=8;k++)M.push(Q(k/8,0,0.25));tube(M,[0,1,2,3,4,5,6,7,8].map(k=>(0.45-0.4*k/8)*u),5,3); // the leaf, its midrib
+    for(const s of[0.28,0.48,0.68])for(const v of[-1,1])tube([Q(s,0,0.25),Q(s+0.12,v*0.45,0.25),Q(s+0.2,v*0.75,0.2)],0.16*u,4,3); // its veins
+    if(seams)for(let k=1;k<12;k+=2)for(const v of[-0.9,0.9])beam(Q(k/12,v,0.15),Q((k+1)/12,v,0.15),0.25*u,3);}; // stitched round its edge
+  const pairs=st<=1?[[1,7]]:st===2?[[0.82,18],[1,7]]:[[0.4,21],[0.72,18],...Array.from({length:ex},(_,i)=>[0.55+i*0.09,15-i*2]),[1,st===3?7:5]];
+  pairs.forEach(([at,L],i)=>{const a=i*Math.PI/2+0.4;leaf(at,a,L*1.2);leaf(at,a+Math.PI,L*1.13);});
+  const L=(prof,seg,col,y)=>lathe(prof.map(([a,b])=>[a*u,b*u]),seg,[col],yb+y*u);
+  if(st===4){const e=[];for(let k=0;k<=8;k++){const t=k/8;e.push([t*24,7*Math.pow(Math.sin(Math.PI*Math.min(1,t*0.92+0.04)),0.7)*(1-0.22*t)+0.002]);}L(e,16,2,H-1); // the bud, round
+    for(let k=0;k<9;k++){const a=k/9*6.2832;surf((s,t)=>{const v=t*2-1,w=2.2*Math.sin(Math.PI*(0.1+0.9*s)),r=2.5+2.2*s;return P(Math.cos(a)*r-Math.sin(a)*v*w,H+19+5.5*s,Math.sin(a)*r+Math.cos(a)*v*w);},3,2,4,1);}} // its petals' tips, showing
+  if(st>=5){const y=H+2;L([[-4,0.002],[-1.5,3.5],[0,6],[1,7]],12,3,y); // the bloom: its cup, two rings of petals, the black middle ringed in orange
+    for(const[n,r0,len,wd,up,dy,ph]of[[13,8,22,9,0.18,0,0],[11,7,15,8,0.5,1.6,0.5]])for(let k=0;k<n;k++){const a=(k+ph)/n*6.2832,ca=Math.cos(a),sa=Math.sin(a);
+      surf((s,t)=>{const v=t*2-1,w=wd*0.5*Math.pow(Math.sin(Math.PI*(0.08+0.9*s)),0.5)+0.05,r=r0+len*s,h=y+dy+len*(up*s-0.25*s*s)+v*v*w*0.3;return P(ca*r-sa*v*w,h,sa*r+ca*v*w);},8,4,4,1);}
+    L([[0,12.4],[1.5,12.7],[3.5,11.3],[5.5,7.8],[7,3.4],[7.6,0.002]],24,0,y+2);const n=uv.length/4;L([[0.4,13],[2.2,13]],24,1,y+2);for(let k=n;k<uv.length/4;k++)uv[k*4+2]=1;}} // (the ring: lit)
 // ── A shop: its building as a 3D model the duck renderer draws (material 13, painted): walls with window and door openings, the lit room
 // behind them, frames and a roof edge, scaffolding on the roof and the sign mounted on it. One texture holds its colours, the room and the sign. ──
 function shopModel(id,bk,lit,fl,si,open,soon,ph){ // si: the sign's loaded image; open: its doors stand open (its menu is open); soon: Coming soon (closed, its sign saying so, lit) → the model's type, for drawDuck3D
