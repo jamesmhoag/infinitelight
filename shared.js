@@ -993,4 +993,8 @@ const SFX_MAKE={
   knock:(c,o,t,v)=>{sfxBurst(c,o,t,0.3,0.4*v,'lowpass',240,90,1.2,'brown');}, // water slapping the hull, heard from inside
   gull:(c,o,t,v)=>{for(let i=0;i<2;i++){const s=t+i*0.35;sfxTone(c,o,s,1400,0.3,0.03*v,'triangle',900);}}, // a gull, far off, on a calm day
 };
+// ── An event's frame (the surface's capture, evFrameDraw; the Surface Map's, hubEvent): a faint line in the card's shape with sparkles running round it, brighter as it starts (em 1 → 0). L: [x, y, w, h] ──
+function evFrameBox(c2,L,em,now){c2.save();c2.strokeStyle=`rgba(255,255,255,${(0.22+0.6*em).toFixed(3)})`;c2.lineWidth=1+2*em;c2.shadowColor='rgba(255,255,255,0.8)';c2.shadowBlur=6+14*em;c2.strokeRect(...L);c2.restore();
+  const P=2*(L[2]+L[3]);for(let i=0;i<10;i++){let d=((now/1400+i/10)%1)*P,px,py;if(d<L[2]){px=L[0]+d;py=L[1];}else if((d-=L[2])<L[3]){px=L[0]+L[2];py=L[1]+d;}else if((d-=L[3])<L[2]){px=L[0]+L[2]-d;py=L[1]+L[3];}else{d-=L[2];px=L[0];py=L[1]+L[3]-d;}
+    const tw=0.5+0.5*Math.sin(now/90+i*1.7);c2.fillStyle=`rgba(255,255,255,${((0.4+0.6*em)*tw).toFixed(3)})`;c2.beginPath();c2.arc(px,py,1+1.5*tw+2*em,0,6.2832);c2.fill();}}
 function sfxPlay(c,o,k,v,a){if(!c||!o||!SFX_MAKE[k]||c.state!=='running')return;try{SFX_MAKE[k](c,o,c.currentTime+0.01,v==null?1:v,a);}catch(e){}}

@@ -171,7 +171,7 @@ body.shop-open #hdock{z-index:59}#hinv .slot.wal::before{border-color:rgba(255,2
 <div id="veil"></div>
 <div id="bfx"></div>
 <iframe id="neb" data-tt="map.ui.surface"></iframe>
-<script src="content.js?v=20261124e"></script><script src="shared.js?v=20261124e"></script><script src="cabin.js?v=20261124e"></script><script src="music.js?v=20261124e"></script>
+<script src="content.js?v=20261126a"></script><script src="shared.js?v=20261126a"></script><script src="cabin.js?v=20261126a"></script><script src="music.js?v=20261126a"></script>
 <script>
 // ╔══════════════════════════════════════════════════════════════════════════════╗
 // ║  MAP ENGINE                                                                 ║
@@ -190,7 +190,7 @@ let playLog=[],clock=3,day=1,pool=6,burstFx=null,dayLog=[],dayCnt={b:0,d:0},pend
 // // clock: the hour (3 = Twilight … 24 = Midnight, the day's last turn); day: your attempts; pool: what the source put out at its last burst; fresh: no ring added yet since it
 let constel=[],armed=null,weaveSel=[],weaveAsk=null,clearFx={},mergeFx=[],feedMsg={t:'',d:'',at:-1e9}; // constellations {keys,type}; the armed map item; a Weave being drawn; animations; the final count
 const STEP_H=3; // the day: eight turns of three hours
-const CACHE_V='20261124e'; // the build: bump with shared.js's
+const CACHE_V='20261126a'; // the build: bump with shared.js's
 const SCENE=new URLSearchParams(location.search).get('scene'); // a Guide / event demo: the map plays a scripted moment (no surface behind it)
 let phase='move',turnTimer=0,mergeTimer=0;
 let gameOverReason='';
@@ -281,18 +281,17 @@ function diveStart(key,dir,done,back){const c=cells[key];if(!c||!cam){if(done)do
 function diveStep(){ // over the hex, waiting for the buoy to be under; then turning to look straight down with the hex filling the frame; then down into it (coming out: the same, backwards)
   const D=dive,u=Math.min(1,(performance.now()-D.t0)/D.ms),U=D.dir>0?u:1-u,p1=ease5(U/0.45),p2=ease5((U-0.28)/0.47),p3=ease5((U-0.62)/0.38),A=D.a;
   camX=camTX=A.x+(D.x-A.x)*p1;camY=camTY=A.y+(D.y-A.y)*p1;camV.x=camV.y=camV.z=0;camTiltOv=A.t*(1-p2);const z=A.z*Math.pow(D.zFit/A.z,p2);camZoomTo(z*Math.pow(2.6,p3)); /* (over the hex, turning to look down, then down: each overlapping the next) */
-  if(u>=1){const d=D.done;dive=null;if(D.dir<0){camTiltOv=null;mapResize();camHandStart();}if(d)d();}} // the day's end: one smooth move from where the camera is to where the next day starts (its middle and zoom)
+  if(u>=1){const d=D.done;dive=null;if(D.dir<0){camTiltOv=null;mapResize();camHandStart();}if(d)d();}}
 function camSees(wx,wy){if(!cam)return false;const[X,Y]=w2sc(wx,wy),m=Math.min(SW,SH)*0.08;return X>m&&X<SW-m&&Y>m&&Y<SH-m;} // a point well inside the screen
-function camTweenTo(keys,ms){const b=camBounds(keys);if(!b||SCENE)return;const f=camFit(b);camTween={t0:performance.now(),dur:ms*(T.mapCamSlow||1.8),a:{x:camX,y:camY,z:viewZoom},b:f};}
-function camFrame(){ // the camera is held on the spill: at its extent (a rectangle round its hexes, plus the lake margin, room for a bottle or a duck to swim in) it stops dead; a spill smaller than the view sits in its middle
+function camFrame(){ // the camera is free: it is never aimed at the middle and the spill's extent does not hold it. Only the Point has to stay in view, and it may sit right on the view's edge (cut by it), so a zoom on the cursor is not pulled anywhere
   if(SCENE||!cam||!SW)return;
   if(dive){diveStep();return;}
   if(statusCam){const C=statusCam;zoomT=C.z;const[wx,wy]=s2wp(Math.max(80,(SW-C.w)/2),SH*0.55);camTX=camX+(buoy.x-wx);camTY=camY+(buoy.y-wy);return;} /* (no edge: it is framing the buoy) */
   if(camTween){const t=Math.min(1,(performance.now()-camTween.t0)/camTween.dur),e=ease5(t),A=camTween.a,B=camTween.b;camX=camTX=A.x+(B.x-A.x)*e;camY=camTY=A.y+(B.y-A.y)*e;camZoomTo(A.z*Math.pow(B.z/A.z,e));camV.x=camV.y=camV.z=0;if(t>=1){camTween=null;mapResize();camHandStart();}return;} /* (zoom eased evenly in scale: no rush at either end) */
   const b=camBounds(Object.keys(cells));if(!b)return;const f=camFit(b);zoomFloor=f.z;
   if(zoomAuto||viewZoom<f.z-1e-3){const d=f.z-viewZoom;if(Math.abs(d)>2e-3){camZoomTo(viewZoom+(Math.abs(d)<0.01?d:d*0.12));_zoomSettle=1;}else if(_zoomSettle){_zoomSettle=0;mapResize();}} // its zoom follows the spill (at most out to it; held there until you zoom in)
-  const[lx,ty,rx,by]=camView(),cx=v=>b[2]-b[0]<=rx-lx?(b[0]+b[2])/2-(lx+rx)/2:Math.max(b[0]-lx,Math.min(b[2]-rx,v)),cy=v=>b[3]-b[1]<=by-ty?(b[1]+b[3])/2-(ty+by)/2:Math.max(b[1]-ty,Math.min(b[3]-by,v));
-  camTX=cx(camTX);camTY=cy(camTY);camX=cx(camX);camY=cy(camY);} // (a hard edge: the camera itself, not only where it is heading)
+  const o=(X,Y)=>{const[wx,wy]=s2wp(X,Y);return[wx-camX,wy-camY];},[tx,ty]=o(SW,0),[bx,by]=o(SW,SH),fit=(x,y)=>{const v=Math.max(ty,Math.min(by,-y)),hw=tx+(bx-tx)*(v-ty)/(by-ty);return[-Math.max(-hw,Math.min(hw,-x)),-v];}; // what the screen shows of the plane, from the camera: wider at its top than its bottom (the tilt). The Point is the plane's 0,0: the view's edges may come up to it, no further
+  [camTX,camTY]=fit(camTX,camTY);[camX,camY]=fit(camX,camY);} // (a hard edge: the camera itself, not only where it is heading)
 let zoomAuto=true,zoomFloor=0,_zoomSettle=0; // the camera's zoom follows the spill until you zoom in; zooming back out to it picks it up again
 function focusCam(a,move){if(_mpFor)return; // (a friend's move: the host's view stays)
   const[wx,wy]=a2w(pQ,pR);if(move&&camSees(wx,wy)){buoy.follow=false;return;} /* a move to a hex you can see: the camera stays where you put it */
@@ -432,9 +431,9 @@ function completeCaptureForCell(cellKey,kind,tally){
   nebulaCellKey=null;
   detectMerges();dangerift(); // (the dim fortune Dangerift: this clear may be beside a Rift)
   clearFx[cellKey]={t0:null}; // its picture resolves into the clear when the map is next on screen
-  if(ringCheck()){updateHint();hubEvent('map_clear');saveMap();return;}
+  if(ringCheck()){updateHint();hubEvent('map_clear',a2w(c.q,c.r));saveMap();return;}
   // (a clear takes no time: only a move, without a String, moves the day on)
-  updateHint();hubEvent('map_clear');saveMap();
+  updateHint();hubEvent('map_clear',a2w(c.q,c.r));saveMap();
 }
 const tired=()=>clock===24&&!SCENE; // Midnight: no more moves (Rest ends the day)
 // Fresh water: the barrel holds Water max (6); every move drinks one. It is filled again by a bright clear, and whenever you are beside a bright hex or the Point.
@@ -626,7 +625,7 @@ function makeConstellation(type){
   const nc={keys:weaveSel.slice(),type},P=k=>a2w(...parseK(k)),broken=[];
   for(const o of constel)if(constEdges(nc).some(([a,b])=>constEdges(o).some(([c,d])=>![c,d].includes(a)&&![c,d].includes(b)&&segX(P(a),P(b),P(c),P(d)))))broken.push(o); // a newer one crossing an older one breaks it
   constel=constel.filter(o=>!broken.includes(o));constel.push(nc);spend('weave',nc.keys.length);weaveSel=[];weaveAsk=null;armed=null;
-  feed(txt('map.constellation',KIND_NAME[type]),txt('map.gives_a_every_time',KIND_NAME[type],(broken.length?txt('map.broke_older',broken.length):'')));hubEvent('map_constellation');updateHint();syncDock();saveMap();}
+  feed(txt('map.constellation',KIND_NAME[type]),txt('map.gives_a_every_time',KIND_NAME[type],(broken.length?txt('map.broke_older',broken.length):'')));hubEvent('map_constellation',[...P(nc.keys[0]),2.5]);updateHint();syncDock();saveMap();}
 function checkConstellations(){constel=constel.filter(c=>c.keys.every(isBright));}
 function awardConstellations(){checkConstellations();const got={},laps=runBad(run,'laps'),gl=runBonus(run,'glasses');for(const c of constel){c.n=(c.n||0)+1;if(laps&&c.n%2)continue; // a dim fortune: every other time of day
     for(const k of gl&&c.type==='lens'?['prism','knot','gate'].concat(run.keysGone?[]:['key']):[c.type]){const w=Math.max(1,Math.round(T.mapWeavePay!=null?T.mapWeavePay:5));neb({cmd:'award',kind:k,n:w});got[k]=(got[k]||0)+w;}} // Broken Glasses: a Lens one pays the others
@@ -648,7 +647,7 @@ function collapseRing(n,kind){flotLake(k=>{const c=cells[k];return(c.q||c.r)&&ce
   if(kind==='rift')b=d=0;else for(let i=0;i<rf;i++){if(b>0)b--;else if(d>0)d--;} // (a Rift counts against a bright, or a dark when no bright is left; a Rift ring counts nothing)
   (dayCnt.col=dayCnt.col||[]).push({n,kind,b,d});pool=Math.max(0,pool-gone);
   const P=ringSlot(pQ,pR); // where the buoy is round the centre: it goes in with its ring (from inside it: onto ring 1, the same way round)
-  phase='collapse';armed=null;weaveSel=[];weaveAsk=null;dropSession();hubEvent('map_ring');if(kind==='bright')hubEvent('map_brightstar');if(kind==='dark')hubEvent('map_darkstar');
+  phase='collapse';armed=null;weaveSel=[];weaveAsk=null;dropSession();{const at=[0,0,n*1.5+1];hubEvent('map_ring',at);if(kind==='bright')hubEvent('map_brightstar',at);if(kind==='dark')hubEvent('map_darkstar',at);} // (framed round the Point, the whole ring in it)
   const base=T.mapCollapseMs||1400;let t=0;for(let i=n,j=0;i>=1;i--,j++){const dur=Math.max(110,base*0.55*Math.pow(0.7,j)),ri=i;at(t,()=>fallRing(ri,dur));t+=dur;} // the ring and what is inside it fall in, the ring first, each faster
   feed(full?txt('map.win'):txt('map.collapse.t',n,txt('map.ringkind.'+kind)),txt(full?'map.win.d':'map.collapse.d',b,d));playRec('◎ '+txt('map.collapse.t',n,txt('map.ringkind.'+kind)),b+' bright · '+d+' dark','collapse');
   if(full){at(t,()=>{burstFx={t0:performance.now(),kind:'flash',dur:700};});at(t+420,()=>winDay(P));}
@@ -666,15 +665,15 @@ function shrinkRings(n,P){ // the rings past n close in: ring n+1 becomes ring 1
   const m=Math.max(1,P.m-n),h=P.m>n?slotHex(m,P.s,P.p,P.m):slotHex(1,P.s,0,1);[pQ,pR]=cells[K(h[0],h[1])]&&!cells[K(h[0],h[1])].isVoid?h:(ring(1).find(([q,r])=>cells[K(q,r)]&&!cells[K(q,r)].isVoid)||h);if(!cells[K(pQ,pR)])cells[K(pQ,pR)]={q:pQ,r:pR,v:0,cap:false,capVal:0,isP:false,mergeId:null,isVoid:false};
   cells[K(pQ,pR)].isP=true;buoyGo('sail');totalCells=Object.keys(cells).length;turn=Math.max(1,ringMax());
   checkConstellations();redistribute();checkVoidAccess();phase='move';
-  {const ks=[];for(let i=1;i<=Math.min(3,turn);i++)for(const[q,r]of ring(i))if(cells[K(q,r)])ks.push(K(q,r));camTweenTo(ks.length?ks:['0,0'],900);}
+  if(!SCENE)focusCam(true); // (the camera goes in with your buoy, never to the middle)
   if(phase==='move'&&!tired()&&!getMoves().length){phase='gameover';gameOverReason=txt('map.go.nomoves');}updateHint();saveMap();}
 let fireworks=[]; // a Win's fireworks: one over each hex of the new spill, its light reflected in the water under it
 function winDay(P){ // everything fell in: Midnight, the run's day logged as a Win, a new spill bursts out under fireworks (each hex stained with its particles as its burst goes off), and at Twilight a new day
-  dayLog.push({day,end:'win',ring:0,b:dayCnt.b,d:dayCnt.d,win:true,col:dayCnt.col});dayCnt={b:0,d:0};hubEvent('map_end');clock=24;showTurn();
+  dayLog.push({day,end:'win',ring:0,b:dayCnt.b,d:dayCnt.d,win:true,col:dayCnt.col});dayCnt={b:0,d:0};hubEvent('map_end',[0,0,4]);clock=24;showTurn();
   newMap();{const o=cells[K(pQ,pR)];if(o)o.isP=false;const h=slotHex(1,P.s,0,1);[pQ,pR]=h;cells[K(pQ,pR)].isP=true;buoyGo('sail');} // (the buoy: on the first ring, the same way round)
   const now=performance.now(),ks=Object.keys(cells).filter(k=>!cells[k].isVoid).sort((a,b)=>{const A=cells[a],B=cells[b];return cellRing(A.q,A.r)-cellRing(B.q,B.r)||Math.random()-0.5;});phase='collapse';
   ks.forEach((k,i)=>{const t=now+600+i*140+Math.random()*90,[x,y]=a2w(cells[k].q,cells[k].r);cells[k].stain=t+450;fireworks.push({x,y,t,c:[EFFECT_HEX[(Math.random()*6)|0],EFFECT_HEX[(Math.random()*6)|0]],ps:Array.from({length:42},()=>{const u=Math.random()*2-1,a=Math.random()*6.2832,s=Math.sqrt(1-u*u);return[s*Math.cos(a),s*Math.sin(a),u,0.7+0.6*Math.random()];})});});
-  const end=600+ks.length*140+1800;{const ks3=[];for(let i=1;i<=3;i++)for(const[q,r]of ring(i))ks3.push(K(q,r));camTweenTo(ks3,900);}
+  const end=600+ks.length*140+1800;if(!SCENE)focusCam(true);
   at(end,()=>{for(const k in cells)delete cells[k].stain;saveMap();if(SCENE)winRest();else showDayReport();}); // (the report: Rest starts the new day)
   saveMap();}
 function winRest(){document.getElementById('day-report').classList.remove('show');clock=3;day++;neb({cmd:'day',day});popSoonOpen();phase='move';feed(txt('map.win.new',day),txt('map.win.new2'));showTurn();updateHint();saveMap();} // after a Win's fireworks: Rest, and the new day begins at Twilight
@@ -702,7 +701,6 @@ function endDay(){ // Midnight passed: it all falls into the source (the outer r
   {const toys={more:toyN('more'),up:toyN('up'),skip:toyN('skip'),shuffle:toyN('shuffle')},fl=plantsMidnight();pendingEnd={how:'midnight',n:0,win:false,toys,fl,spill:spillOf(),sing:singEarn(fl),lost:wreckCheck('midnight')};}phase='collapse';armed=null;weaveSel=[];weaveAsk=null;dropSession();
   const base=T.mapCollapseMs||1400;let t=0;for(let i=ringMax(),j=0;i>0;i--,j++){const dur=Math.max(110,base*0.55*Math.pow(0.7,j)),ri=i;at(t,()=>fallRing(ri,dur));t+=dur;}
   at(t,()=>{burstFx={t0:performance.now(),kind:'flash',dur:700};});at(t+420,finishDay);
-  {const R=1,ks=[];for(let i=1;i<=R;i++)for(const[q,r]of ring(i))ks.push(K(q,r));camTweenTo(ks,t+420);}
   feed(txt('map.midnight'),txt('map.the_spill_falls_back'));showTurn();updateHint();saveMap();}
 function fallRing(i,dur){ // one ring falls into the source
   for(const k of Object.keys(cells)){const c=cells[k];if(!c.isVoid&&cellRing(c.q,c.r)===i){delete cells[k];totalCells--;}}
@@ -745,7 +743,7 @@ function unproj(X,Y){const nx=X/SW*2-1,ny=1-Y/SH*2,a=m4.tx(cam.ipv,[nx,ny,-1,1])
 function mapResize(){hubLog('resize / zoom');SW=innerWidth;SH=innerHeight;const E=1.3/Math.min(1,Math.max(0.2,viewZoom));_E=E;MW=Math.round(SW*E);MH=Math.round(SH*E); // the plane only as big as this zoom needs (a smaller canvas is a faster frame)
   MK=Math.max(0.5,Math.min(viewZoom*(window.devicePixelRatio||1),Math.sqrt((T.mapPlanePx||2.5e6)/(MW*MH)))); // as sharp as this zoom shows it (a plane px is about viewZoom screen px), within a pixel budget: the plane is uploaded to the GPU every frame
   mc.width=Math.round(MW*MK);mc.height=Math.round(MH*MK);const dp=window.devicePixelRatio||1;sc.width=Math.round(SW*dp);sc.height=Math.round(SH*dp);camUpdate();}
-function zoomUser(f){if(dive||camTween)return;buoy.follow=false;zoomT=null;camV.z=0;zoomView(f);zoomAuto=viewZoom<=zoomFloor*1.02;} // the wheel / + −: off the spill's own zoom once you zoom in
+function zoomUser(f,X,Y){if(dive||camTween)return;buoy.follow=false;zoomT=null;camV.z=0;const z0=viewZoom,a=X!=null&&s2wp(X,Y);zoomView(f);if(a&&viewZoom!==z0){const b=s2wp(X,Y);panCam(a[0]-b[0],a[1]-b[1]);}zoomAuto=viewZoom<=zoomFloor*1.02;} // the wheel / + −: off the spill's own zoom once you zoom in. The wheel zooms on the cursor (X, Y): what is under it stays under it
 function zoomView(f){const z=Math.max(zoomFloor||T.mapZoomMin||0.55,Math.min(T.mapZoomMax||1.8,viewZoom*f));if(z===viewZoom)return;viewZoom=z;const E=1.3/Math.min(1,z);if(Math.abs(E-_E)>0.12||z>1)mapResize();else camUpdate();}
 // ── drawing the scene: the plane (mc, uploaded as a texture) as the ground, then the ducks on it, in true 3D with the same camera
 let G3=null,_sunH=3,_sun={from:3,to:3,t0:0}; // _sunH: the hour the ducks are lit for, moving to the clock (_sun)
@@ -953,6 +951,7 @@ function mapRender(){
   mctx.restore();
   // Direction line
   if(hoverMove&&phase!=='gameover'){const pts=[{q:pQ,r:pR},...hoverMove.path,{q:hoverMove.q,r:hoverMove.r}];mctx.beginPath();for(let i=0;i<pts.length;i++){const[sx,sy]=w2s(...a2w(pts[i].q,pts[i].r));if(!i)mctx.moveTo(sx,sy);else mctx.lineTo(sx,sy);}mctx.strokeStyle='rgba(0,210,210,0.6)';mctx.lineWidth=1.5;mctx.setLineDash([5,4]);mctx.stroke();mctx.setLineDash([]);const[dx,dy]=w2s(...a2w(hoverMove.q,hoverMove.r));mctx.beginPath();mctx.arc(dx,dy,3.5,0,Math.PI*2);mctx.fillStyle='rgba(0,220,220,0.7)';mctx.fill();}
+  if(mapEv){const ms=now-mapEv.t0;if(ms>=(T.evCaptureMs||2400))mapEv=null;else{const[X,Y]=w2s(mapEv.x,mapEv.y),rh=mapEv.rh,rw=rh*(T.evAspect||1.65);evFrameBox(mctx,[X-rw,Y-rh,2*rw,2*rh],Math.max(0,1-ms/(T.evEmphMs||500)),now);}} // an event's frame (shared.js: the surface's own), lying on the water round where it happened
   hubPh('overlays');requestPreviews(mapNeed);hubPh('previews');pondStep(now);if(!SCENE){buoyStep(now,1);buoyPlane(now);}hubPh('ducks');sceneRender(now);buoyBeam(now);fireworksDraw(now);hubPh('3d');
   // HUD
   let st=`${clockStr()} · day ${day} · rings ${turn} · score ${score.toFixed(2)} · captures ${captureOrder.length}`;
@@ -975,7 +974,7 @@ let mX=-1,mY=-1,mDownAt=-1,mUpAt=-1,ptOver=null; // the cursor
 const overScene=()=>ptOver===sc||!!(ptOver&&ptOver.closest&&!ptOver.closest('button,.slot,.shop,input,select,#hdock,#tuneP,#mModes,#shop,#menu,#day-report,#letter')); // over the map itself (a read-out like the legend does not count as being in the way) (drawn by the shared cursor code, as on a surface)
 sc.addEventListener('mousemove',e=>{if(currentView==='map')[hQ,hR]=evA(e);});
 document.addEventListener('mousemove',e=>{mX=e.clientX;mY=e.clientY;},true);document.addEventListener('mousedown',()=>{mDownAt=performance.now();},true);document.addEventListener('mouseup',()=>{mUpAt=performance.now();mDownAt=-1;},true);
-window.addEventListener('wheel',e=>{if(currentView!=='map'||menuOpen||shopUI||(e.target.closest&&e.target.closest('#tuneP,#mModes')))return;e.preventDefault();zoomUser(Math.exp(-e.deltaY*0.0015));},{passive:false});
+window.addEventListener('wheel',e=>{if(currentView!=='map'||menuOpen||shopUI||(e.target.closest&&e.target.closest('#tuneP,#mModes')))return;e.preventDefault();zoomUser(Math.exp(-e.deltaY*0.0015),e.clientX,e.clientY);},{passive:false});
 sc.addEventListener('contextmenu',e=>{e.preventDefault();if(currentView!=='map')return;if(armed){armed=null;weaveSel=[];weaveAsk=null;updateHint();syncDock();}else focusCam(true);}); // right-click puts a selected item down, else takes the view back to your hex
 let drag=null; // a left-button drag pans the map
 function panCam(dx,dy){if(dive||camTween)return;hubLearn('hubview');buoy.follow=false; // (you took the view; a scene's own camera move cannot be taken)
@@ -1167,11 +1166,11 @@ function openBottle(d){ // clicked: the cork comes out and the letter is unrolle
   if(d.duck&&DUCK_TYPES[d.duck]){const v=DUCK_TYPES[d.duck],el=document.getElementById('letter'),nw=!(duckLog[d.duck]>0);neb({cmd:'giveDuck',type:d.duck});duckLog[d.duck]=(duckLog[d.duck]||0)+1; // a duck in a bottle: it joins your collection
     if(nw)pondPut(d.duck,d.x+Math.cos(d.hd+1.6)*HEX*0.8,d.y+Math.sin(d.hd+1.6)*HEX*0.8,performance.now()); // a new one goes straight onto the lake
     letter={duck:d.duck};el.querySelector('.lt').textContent=(nw?txt('map.a_duck_you_have'):txt('map.a_duck_was_in'));el.querySelector('.lf').textContent=duckStar(v)+v.name;el.querySelector('.ln').textContent=txt('map.added_to_your_collection',duckLog[d.duck]);
-    el.classList.remove('show');void el.offsetWidth;el.classList.add('show');hubEvent('map_bottle');return;}
+    el.classList.remove('show');void el.offsetWidth;el.classList.add('show');hubEvent('map_bottle',[d.x,d.y]);return;}
   let rd=[];try{rd=JSON.parse(localStorage.getItem(LETTER_KEY)||'[]')||[];}catch(e){}
   const left=LETTERS.map((_,i)=>i).filter(i=>!rd.includes(i)),i=left.length?left[(Math.random()*left.length)|0]:(Math.random()*LETTERS.length)|0;if(!rd.includes(i))rd.push(i);try{localStorage.setItem(LETTER_KEY,JSON.stringify(rd));}catch(e){} // collected for good (the Guide's Letters); once every one is found, they come again
   letter=LETTERS[i];const el=document.getElementById('letter');el.querySelector('.lt').textContent=letter.t;el.querySelector('.lf').textContent=letter.f;el.querySelector('.ln').textContent=txt('map.of_letters_collected_kept',rd.length,LETTERS.length);
-  el.classList.remove('show');void el.offsetWidth;el.classList.add('show');hubEvent('map_bottle');}
+  el.classList.remove('show');void el.offsetWidth;el.classList.add('show');hubEvent('map_bottle',[d.x,d.y]);}
 function closeLetter(){letter=null;document.getElementById('letter').classList.remove('show');evPump();}
 const LETTER_KEY='il_letters_v1';
 // ── The player's buoy: on the hex you stand on, floating half under its surface; it bobs and turns slowly, ripples the water, and its spot light sweeps
@@ -1360,8 +1359,9 @@ let evQ=[];
 const evAsked=new Set(); // (asked for once a session: the surface's reply may take a moment to say it is seen)
 const MAP_EV={};for(const r of csvRead('events'))MAP_EV[r.id]=r;
 let _guideRows=null;function hubLearn(id){if(SCENE||disc.has('g_'+id))return;disc.add('g_'+id);neb({cmd:'discover',id:'g_'+id});const g=(_guideRows=_guideRows||csvRead('guide')).find(x=>x.id===id);if(g)feed(txt('guide.learned',g.name),''); } // a Journal entry learned on the map, where it happens (the surface keeps it)
-function hubEvent(id){if(SCENE)return;if(disc.has('ev:'+id)||evAsked.has(id))return;evAsked.add(id); // something seen for the first time on the map: said in the feed (one place for every message: no card over the map), and discovered (its card is in the Guide)
-  const r=MAP_EV[id];if(r)feed(r.name,tpl(String(r.facts||'').split('\n')[0]));disc.add('ev:'+id);neb({cmd:'discover',id:'ev:'+id});}
+let mapEv=null; // an event's frame on the map: where (x, y on the plane), how big (rh: half its height) and since when
+function hubEvent(id,at){if(SCENE)return;if(disc.has('ev:'+id)||evAsked.has(id))return;evAsked.add(id); // something seen for the first time on the map: said in the feed (one place for every message: no card over the map), framed where it happened as the surface frames its own (at: [x, y, half its height in hexes]; your buoy if not said) for Event capture ms, and discovered (its card is in the Guide)
+  at=at||[buoy.x,buoy.y];mapEv={x:at[0],y:at[1],rh:HEX*(at[2]||1.25),t0:performance.now()};const r=MAP_EV[id];if(r)feed(r.name,tpl(String(r.facts||'').split('\n')[0]));disc.add('ev:'+id);neb({cmd:'discover',id:'ev:'+id});}
 function evPump(){if(currentView==='overlay'&&evQ.length&&nebReady){neb({cmd:'event',ids:evQ.splice(0)});return;} // joins the hand already showing
   if(currentView!=='map'||menuOpen||shopUI||letter||!nebReady||!evQ.length)return;const ids=evQ.splice(0).filter(i=>!disc.has('ev:'+i));if(!ids.length)return;currentView='overlay';showNeb(true);neb({cmd:'event',ids});} // together, as one hand
 function openGuide(){if(!nebReady||currentView!=='map')return;currentView='overlay';showNeb(true);neb({cmd:'guide',jlog});} // (the Journal tells your days from your log)
@@ -1636,7 +1636,7 @@ function curLights(X,Y){ // the cursor's own light, on what is near it on the ma
   if(SCENE||currentView!=='map'||mX<0||menuOpen||shopUI||!overScene())return[];const R=T.mapCursorLightR!=null?T.mapCursorLightR:170,d=Math.hypot(mX-X,mY-Y);if(d>=R)return[];return[[mX,mY-30,255,248,235,(T.mapCursorLightA!=null?T.mapCursorLightA:0.9)*(1-d/R),160]];}
 function shopTick(){if(SCENE&&!document.body.classList.contains('scene-shops'))return;
   document.body.classList.toggle('thru',!!armed||voidOpen);const box=document.getElementById('shops'),seen=new Set();
-  for(const s of shopList()){if(s.lit&&!disc.has('ev:shop_'+s.id))hubEvent('shop_'+s.id); // a shop is discovered the first time it opens
+  for(const s of shopList()){if(s.lit&&!disc.has('ev:shop_'+s.id))hubEvent('shop_'+s.id,[s.wx,s.wy]); // a shop is discovered the first time it opens
     const op=!!(shopUI&&shopUI.key===s.key),cv=shopSprite(s.id,s.bk,s.lit,s.yaw,op,s.soon);if(!cv)continue;/* (its doors open while its menu is) */seen.add(s.key);let el=shopEls[s.key];
     if(!el){el=shopEls[s.key]=document.createElement('div');el.className='shop';el.dataset.key=s.key;box.appendChild(el);
       let h=7;for(const ch of s.key)h=(h*31+ch.charCodeAt(0))>>>0;el._fl=`neon${h%4} ${(2.5+(h>>4)%60/10).toFixed(1)}s ${-((h>>10)%50)/10}s infinite`;} // its own flicker: which, how fast, where in it
@@ -1662,7 +1662,7 @@ function openShop(key){const el=shopEls[key],s=el&&el._s;if(!s||phase==='collaps
     feed(SHOPS[s.id].n,txt(droneOwned()?(drone?'map.drone.out':'map.drone.today'):disc.has('cat:'+s.id)?'map.cat.far_has':'map.cat.far'),'no');return;} // too far: go beside it, or order from its catalogue (the desk drawer, below deck)
   if(s.id!=='gift'&&!SCENE&&!disc.has('cat:'+s.id))catTake(s.id); // (its catalogue: taken on the way in)
   if(s.id==='dim'&&dimAdmit!==day&&!SCENE){const i=trashBag.findIndex(t=>t.k==='ticket');if(i>=0){trashBag.splice(i,1);dimAdmit=day;feed(txt('map.dim.ticket'),txt('map.dim.ticket_d'));saveMap();}} // Dim's: an admission ticket from your trash bag lets you in for the day (else admission is bought at the gate)
-  shopUI={id:s.id,rank:s.rank||3,exit:s.id==='gift',key};renderShop();hubEvent('shop_'+s.id);}
+  shopUI={id:s.id,rank:s.rank||3,exit:s.id==='gift',key};renderShop();hubEvent('shop_'+s.id,[s.wx,s.wy]);}
 // Catalogues: one for each shop, taken from its counter the first time you are in, or found in a box from it on the lake; kept in the desk drawer below deck.
 // Ordering from one: what it gives floats to you on a life preserver from that shop (flotPut), a hex a time of day (flotDrift); open it beside it
 function catTake(id){disc.add('cat:'+id);neb({cmd:'discover',id:'cat:'+id});feed(txt('map.cat.took',SHOPS[id].n),txt('map.cat.took_d'));}
