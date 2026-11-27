@@ -66,11 +66,7 @@ button:hover{background:rgba(255,255,255,0.15);}
 #inventoryPanel .slot .ic{font-size:13px;line-height:1;}
 .ico{display:inline-block;vertical-align:-3px;margin-right:3px;line-height:0}.ico svg{display:inline-block}
 #inventoryPanel .slot .cnt{margin-top:0;}
-#inventoryPanel .slot.rd5{position:relative;display:grid;grid-template:1fr 1fr/1fr 1fr;padding:1px;gap:1px;margin-right:6px}
-.rd5 .rdb{display:flex;align-items:center;justify-content:center;font:8px monospace;border-radius:2px;background:rgba(255,255,255,0.06);color:rgba(255,255,255,0.7)}
-.rd5 .rdb.on{background:rgba(120,200,255,0.5);color:#fff}
-.rd5 .rdb[data-m=rad]{position:absolute;left:50%;top:50%;width:14px;height:14px;margin:-7px 0 0 -7px;border-radius:50%;background:#222;border:1px solid rgba(255,255,255,0.3);font-size:9px}
-.rd5 .rdb[data-m=rad].on{background:rgba(120,200,255,0.85)}
+#inventoryPanel .sep{width:6px}
 </style>
 <div id="wrap">
   <canvas id="c"></canvas>
@@ -121,7 +117,7 @@ button:hover{background:rgba(255,255,255,0.15);}
   <div id="dock" class="bottom"><div id="inventoryPanel"></div><div id="touch-info"></div></div>
   <canvas id="cur"></canvas>
 </div>
-<script src="content.js?v=20261126a"></script><script src="shared.js?v=20261126a"></script>
+<script src="content.js?v=20261127a"></script><script src="shared.js?v=20261127a"></script>
 <script>
 txtApply(); // the page's own labels (content/strings.csv)
 const _SRC=document.documentElement.outerHTML; // kept so the Encyclopedia can run live scenes as embedded copies of the game
@@ -225,11 +221,11 @@ function heatTick(now){
   const target=heat.until>now?Math.max(0,(heat.until-now)/heat.dur):Math.min(1,heat.v/Math.max(1,T.heatMax));
   heat.disp+=(target-heat.disp)*Math.min(1,dt/120);
 }
-let statsCollapsed=false,statsLineIdx=0,telemetryOn=false,dynamicsOn=false,classOn=false,showRadii=false,statsFull='';
-function toggleRadii(){showRadii=!showRadii;const b=document.getElementById('rdb');if(b)b.textContent=txt('surf.effect_radii',(showRadii?txt('surf.on'):txt('surf.off')));}
-function toggleTelemetry(){telemetryOn=!telemetryOn;const b=document.getElementById('tlb');if(b)b.textContent=txt('surf.telemetry',(telemetryOn?txt('surf.on'):txt('surf.off')));}
-function toggleClass(){classOn=!classOn;const b=document.getElementById('clb');if(b)b.textContent=txt('surf.class',(classOn?txt('surf.on'):txt('surf.off')));}
-function toggleDynamics(){dynamicsOn=!dynamicsOn;const b=document.getElementById('dyb');if(b)b.textContent=txt('surf.dynamics',(dynamicsOn?txt('surf.on'):txt('surf.off')));}
+let statsCollapsed=false,statsLineIdx=0,statsFull=''; // (telemetryOn, dynamicsOn, classOn, showRadii, risksOn: the overlays, one setting for every scene — shared.js)
+function toggleRadii(){showRadii=!showRadii;ovlSave();const b=document.getElementById('rdb');if(b)b.textContent=txt('surf.effect_radii',(showRadii?txt('surf.on'):txt('surf.off')));}
+function toggleTelemetry(){telemetryOn=!telemetryOn;ovlSave();const b=document.getElementById('tlb');if(b)b.textContent=txt('surf.telemetry',(telemetryOn?txt('surf.on'):txt('surf.off')));}
+function toggleClass(){classOn=!classOn;ovlSave();const b=document.getElementById('clb');if(b)b.textContent=txt('surf.class',(classOn?txt('surf.on'):txt('surf.off')));}
+function toggleDynamics(){dynamicsOn=!dynamicsOn;ovlSave();const b=document.getElementById('dyb');if(b)b.textContent=txt('surf.dynamics',(dynamicsOn?txt('surf.on'):txt('surf.off')));}
 setTimeout(()=>{const g=id=>document.getElementById(id);
   for(const id of['statsTools']){const el=g(id);if(el)for(const ev of['mousedown','mouseup','click','dblclick','wheel','contextmenu','pointerdown'])el.addEventListener(ev,e=>e.stopPropagation());}
   const c=g('stColl'),l=g('stLine'),t=g('stTele'),o=g('stLog');
@@ -438,7 +434,7 @@ const TUNE_DEFS=[];{let sec=null,tab=null;for(const r of csvRead('tuners')){if(!
 
 for(const g of DISC_LIST){TUNE_DEFS.push({sec:'Discoveries — '+g[0],tab:'discoveries'});for(const d of g[1])TUNE_DEFS.push({key:'dc_'+d[0],label:d[1],min:0,max:9999999,step:1,tip:'Dim you must hold while hovering to discover this element (nothing is spent). 0 = always visible'});}
 
-let baseScale=1,dilations=[],dilLast=0,dilSlow=0,risksOn=false,_glAt=0,_bhSF=-1,_bhSN=0,_batchSnd=false,_batchCis=new Map(),_scStep=0,_scAt=0;
+let baseScale=1,dilations=[],dilLast=0,dilSlow=0,_glAt=0,_bhSF=-1,_bhSN=0,_batchSnd=false,_batchCis=new Map(),_scStep=0,_scAt=0;
 
 
 
@@ -4396,7 +4392,7 @@ const CREATE_KINDS=['create','shapes','goods','entangle'],TOOL_CATS={ // each Bu
   entangle:new Set(['inertia','select','prefab','duplicate','remove'])}, // Entanglement: what is already there
   toolHas=(kind,cat)=>!!(TOOL_CATS[kind]&&TOOL_CATS[kind].has(cat)); // Entanglement: the Inertializer, Select, Prefab, Duplicate (Copy, Move, Repurpose) and Remove; Create: the rest
 const _toolType={};
-function armInventoryItem(kind){
+function armInventoryItem(kind){dockFn=null; // (an item taken: Home's function, if one was in hand, is let go)
   if(kind==='cache-disable'){invDisableMode=!invDisableMode;updateInventoryUI();flashSaveStatus((invDisableMode?txt('surf.disable_mode_click_an'):txt('surf.disable_mode_off')));return;}
   if(invDisableMode&&INV_KINDS.includes(kind)){if(invDisabled.has(kind))invDisabled.delete(kind);else{invDisabled.add(kind);if(armedInvItem&&armedInvItem.kind===kind)armedInvItem=null;if(conMode&&conKind===kind)setConMode(false);}saveInventory();updateInventoryUI();return;}
   if(kind==='weave'){if(conMode&&conKind==='leash'){setConMode(false);return;}if(inventory.weave<=0){flashSaveStatus(txt('surf.no_weave_hold_5'));return;}armedInvItem=null;setConMode(true,'leash');playItemSelectSound();return;}
@@ -4505,7 +4501,7 @@ function applyDisc(){
   document.querySelectorAll('#inventoryPanel .slot').forEach(el=>{el.dataset.disc='slot_'+el.dataset.kind;});
   const old=_discOld&&!!document.querySelector('#inventoryPanel .slot'),tel=!ilQuiet()&&Object.keys(T).some(k=>k.slice(0,7)==='dc_obj_'&&discSeen.has('sn:of_'+k.slice(7))&&discHas('ot_'+k.slice(7))&&!discSeen.has('sn:ot_'+k.slice(7)));let ch=0; // tel: a kind of thing you have met whose telemetry you have not looked at yet (the read-outs' slot says so: not each button)
   document.querySelectorAll('[data-disc]').forEach(el=>{const id=el.dataset.disc,cost=BUILD?0:T['dc_'+id]||0,lock=cost>0&&!discSeen.has(id);el.classList.toggle('disc-lock',lock);if(lock)el.dataset.cost=fmtCount(cost);
-    if(old&&!lock){discSeen.add('sn:'+id);discSeen.add('dr:'+id);ch=1;}ch|=inkDisc(el,id,lock);});{const rs=document.querySelector('.slot.rd5');if(rs)rs.classList.toggle('isnew',tel);} // found (or free from the start): written in the first time it shows, and new until it is first used (inkDisc, content.js)
+    if(old&&!lock){discSeen.add('sn:'+id);discSeen.add('dr:'+id);ch=1;}ch|=inkDisc(el,id,lock);});{const rs=document.querySelector('.slot.ovl[data-m="tel"]');if(rs)rs.classList.toggle('isnew',tel);} // found (or free from the start): written in the first time it shows, and new until it is first used (inkDisc, content.js)
   if(old)_discOld=false;if(ch)saveInventory();
 }
 function discReveal(id){ // found: it is written in with the pen, as you would note it yourself (inkWrite; a demo's too)
@@ -4559,17 +4555,17 @@ function updateInventoryUI(){
   // Game-speed control — Pause / 1× / 2×, mouse-wheel styled since that's exactly how it's normally driven over the
   // scene. Sits at the left of the bar, separate from the items. Click cycles Pause → 1× → 2× → Pause…; scrolling
   // over it steps the same way scrolling the scene does (up = faster, down = slower/pause).
-  const st=speedCtlState();
-  let html=`<div class="slot" data-kind="vol" onclick="toggleMute()" title="Sound on / off" style="font-size:15px;line-height:1;display:flex;align-items:center;justify-content:center;min-width:30px">${audioMuted?'🔇':'🔊'}</div><div class="slot speedctl st-${st}" data-kind="speedctl" onclick="cycleSpeedCtl()" onwheel="wheelOnSpeedCtl(event)">
-    <div class="ic">${speedIconSVG()}</div>
-    <div class="cnt">${st==='pause'?'❚❚':speedLabel(speedMult)}</div>
-  </div>`;
-  html+=`<div class="slot" data-kind="guide" onclick="openRules()" title="Guide"><div class="ic"><svg width="16" height="16" viewBox="0 0 16 16"><circle cx="8" cy="8" r="7" fill="none" stroke="currentColor" stroke-width="1.3"/><rect x="7.2" y="7" width="1.6" height="5" fill="currentColor"/><circle cx="8" cy="4.6" r="1" fill="currentColor"/></svg></div></div>`;
-  html+=`<div class="slot" data-kind="buoy" onclick="openCollections()" title="${txt('coll.title')}"><div class="ic">${BUOY_ICO}</div></div>`; // your buoy: Status and your collections
-  html+=readoutSlotHTML();
-  const showStd=!BUILD||dockSet==='std',showBuild=!BUILD||dockSet==='build'; // Build mode: the dock shows its own tools or the standard items (the toggle); sound, speed, Guide, buoy, overlays and the feed arrow always
-  if(BUILD)html+=`<div class="slot dockset" onclick="dockSetToggle()" title="${txt(dockSet==='build'?'build.dock_build':'build.dock_std')}"><div class="ic">${dockSet==='build'?'⚒':'◇'}</div><div class="cnt">${txt(dockSet==='build'?'build.dock_build_s':'build.dock_std_s')}</div></div>`;
-  if(showStd)for(const kind of INV_KINDS){ // shown whether paused or not
+  const st=speedCtlState(),all=!!window.__SCENE,G=dockValid(),fn=k=>` data-fn="1" class="slot${dockFn===k?' armed':''}`;
+  {const k=armedInvItem?armedInvItem.kind:conMode?conItem(conKind):null,g=k&&(CREATE_KINDS.includes(k)||String(k).startsWith('cache')?'create':Object.keys(DOCK_SETS).find(x=>DOCK_SETS[x].includes(k)));if(g)dockGroup=g;} // (what is in hand: its set shows)
+  if(!G.includes(dockGroup))dockGroup='home';const on=g=>all?G.includes(g):dockGroup===g; // one set at a time (a Guide demo: all of them, as they were)
+  let html=all?'':dockTabs(G);
+  if(on('home')){ // Home: sound, the game's speed, the Guide, your buoy. In hand (a middle click), the wheel is the speed's or the volume's, and a click on the surface opens the other two
+    html+=`<div${fn('vol')}" data-kind="vol" onclick="toggleMute()"><div class="ic"><svg width="16" height="16" viewBox="0 0 16 16"><path fill="currentColor" d="M2 6h2.6L8 3v10L4.6 10H2z"/>${audioMuted?'<path d="M10.5 6l4 4m0-4l-4 4" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/>':'<path d="M10.3 5.6a3.4 3.4 0 0 1 0 4.8M12.2 3.8a6 6 0 0 1 0 8.4" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/>'}</svg></div><div class="cnt">${audioMuted?txt('surf.off'):Math.round(T.masterVol*100)+'%'}</div></div>
+    <div${fn('speedctl')} speedctl st-${st}" data-kind="speedctl" onclick="cycleSpeedCtl()" onwheel="wheelOnSpeedCtl(event)"><div class="ic">${speedIconSVG()}</div><div class="cnt">${st==='pause'?'❚❚':speedLabel(speedMult)}</div></div>
+    <div${fn('guide')}" data-kind="guide" onclick="openRules()"><div class="ic"><svg width="16" height="16" viewBox="0 0 16 16"><circle cx="8" cy="8" r="7" fill="none" stroke="currentColor" stroke-width="1.3"/><rect x="7.2" y="7" width="1.6" height="5" fill="currentColor"/><circle cx="8" cy="4.6" r="1" fill="currentColor"/></svg></div></div>
+    <div${fn('buoy')}" data-kind="buoy" onclick="openCollections()"><div class="ic">${BUOY_ICO}</div></div>`;}
+  if(on('ovl'))html+=ovlSlots();
+  for(const g of['chest','sew','con'])if(on(g))for(const kind of DOCK_SETS[g]){ // the Treasure chest (every remnant collected), Sewing (Spindle, String, Weave), Constellations (what Weave patterns gathered)
     const count=inventory[kind];
     const armed=kind==='weave'?(conMode&&conKind==='leash'):(kind==='knot'||kind==='prism'||kind==='lens'||kind==='gate')?(conMode&&conKind===kind):(armedInvItem&&armedInvItem.kind===kind);
     html+=`<div class="slot${armed?' armed':''}${count<=0?' empty':''}${invDisabled.has(kind)?' dis':''}${(invFlash.kind===kind&&performance.now()-invFlash.at<900)?' flash':''}" data-kind="${kind}"
@@ -4578,24 +4574,28 @@ function updateInventoryUI(){
       <div class="cnt">${BUILD?'∞':fmtCount(count)}</div>
     </div>`;
   }
-  if(itemCacheMode&&showBuild){
-    html+=(BUILD?'':`<div class="slot cache" data-kind="cache-clear" data-arm="1"><div class="ic">✖</div><div class="cnt">clear</div></div>
+  if(on('create')){ // Creation tools (only while they are active: Build mode's Create and Entanglement, the item cache)
+    if(itemCacheMode)html+=(BUILD?'':`<div class="slot cache" data-kind="cache-clear" data-arm="1"><div class="ic">✖</div><div class="cnt">clear</div></div>
     <div class="slot cache" data-kind="cache-fill" data-arm="1"><div class="ic">⤒</div><div class="cnt">fill</div></div>`)+`<div class="slot cache${invDisableMode?' armed':''}" data-kind="cache-disable" data-arm="1"><div class="ic">⦸</div><div class="cnt">off</div></div>`;
+    if(createItemMode)for(const k of CREATE_KINDS)html+=`<div class="slot create${armedInvItem&&armedInvItem.kind===k?' armed':''}" data-kind="${k}" data-arm="1"><div class="ic">${INV_ICON[k]}</div><div class="cnt">∞</div></div>`; // Create, then Entanglement (the tools for what is there)
   }
-  if(createItemMode&&showBuild){
-    for(const k of CREATE_KINDS)html+=`<div class="slot create${armedInvItem&&armedInvItem.kind===k?' armed':''}" data-kind="${k}" data-arm="1"><div class="ic">${INV_ICON[k]}</div><div class="cnt">∞</div></div>`; // Create, then Entanglement (the tools for what is there)
-  }
-  if(!window.__SCENE)html+=ilDockArrow(dockMin).replace('class="slot dmin"','class="slot dmin" onclick="dockMinToggle()"'); // the feed put away (▾) or brought back (▴): the same on the map and every surface
+  if(!all)html+=ilDockArrow(dockMin).replace('class="slot dmin"','class="slot dmin" onclick="dockMinToggle()"'); // the feed put away (▾) or brought back (▴): the same on the map and every surface
   el.innerHTML=html;applyDisc();
 }
-let dockSet='build';try{dockSet=localStorage.getItem('il_dockset')==='std'?'std':'build';}catch(e){} // Build mode's dock: its own tools ('build') or the standard items ('std'), remembered in this browser
-function dockSetToggle(){dockSet=dockSet==='build'?'std':'build';try{localStorage.setItem('il_dockset',dockSet);}catch(e){}
-  if(armedInvItem&&((dockSet==='std')===(CREATE_KINDS.includes(armedInvItem.kind)||String(armedInvItem.kind).startsWith('cache'))))armedInvItem=null; // the tool held goes when its set is put away
-  if(conMode&&dockSet==='build')setConMode(false);updateInventoryUI();}
-window.dockSetToggle=dockSetToggle;
+const dockValid=()=>['home',...(itemCacheMode||createItemMode?['create']:[]),'ovl','chest','sew','con'],dockRefresh=()=>updateInventoryUI(); // the dock's sets valid on a surface (Creation tools: only while Build mode's tools or the item cache are on)
+// The wheel and the middle button (the dock's sets, shared.js): with nothing in hand the wheel goes through the sets. A middle click takes the next thing of the set shown in hand:
+// an item; in Overlays the next overlay; in Home a function (dockFn): the speed or the volume, whose wheel it then is (what the wheel did anywhere before), or the Guide or your buoy, which a click on the surface then opens
+function dockMiddle(){const g=dockGroup;if(g==='ovl'){cycleReadouts();updateInventoryUI();}
+  else if(g==='home'){if(armedInvItem)armedInvItem=null;if(conMode)setConMode(false);dockFnStep('#inventoryPanel');updateInventoryUI();if(dockFn)flashSaveStatus(txt('dock.hand',invHoverParts(dockFn)[0]));}
+  else if(g==='create'){if(createItemMode)armInventoryItem(CREATE_KINDS[(CREATE_KINDS.indexOf(armedInvItem?armedInvItem.kind:'')+1)%CREATE_KINDS.length]);}
+  else cycleStandardInvItem(DOCK_SETS[g]);}
+function dockFnUse(dy){const k=dockFn;if(!k)return false;if(k==='speedctl'){if(dy==null)return false;wheelSpeedStep(dy>0?1:-1,performance.now());} // (the speed and the volume stay in hand: a click still plays the surface)
+  else if(k==='vol'){if(dy==null)return false;const v=Math.max(0,Math.min(1,Math.round(((audioMuted?0:T.masterVol)+(dy>0?-0.05:0.05))*20)/20));setSound(v>0,v>0?v:null);}
+  else if(dy==null){dockFn=null;if(k==='guide')openRules();else openCollections();}else return true;
+  updateInventoryUI();return true;}
 window.armInventoryItem=armInventoryItem;
 { const ip=document.getElementById('inventoryPanel'); // press, not click: nothing that happens between press and release (a rebuild, a placed tool…) can make a slot ignore you
-  if(ip)ip.addEventListener('mousedown',e=>{if(e.button!==0)return;const rb=e.target.closest&&e.target.closest('[data-m]');if(rb){e.preventDefault();toggleReadout(rb.dataset.m);return;}const sl=e.target.closest&&e.target.closest('.slot[data-arm]');if(sl){e.preventDefault();armInventoryItem(sl.dataset.kind);}});
+  if(ip)ip.addEventListener('mousedown',e=>{if(e.button!==0)return;const gt=e.target.closest&&e.target.closest('.slot.grp');if(gt){e.preventDefault();dockGroupSet(gt.dataset.g);if(armedInvItem)armedInvItem=null;if(conMode)setConMode(false);updateInventoryUI();return;} /* a set clicked: it shows (what was in hand is put away) */const rb=e.target.closest&&e.target.closest('[data-m]');if(rb){e.preventDefault();toggleReadout(rb.dataset.m);return;}const sl=e.target.closest&&e.target.closest('.slot[data-arm]');if(sl){e.preventDefault();armInventoryItem(sl.dataset.kind);}});
 }
 // Knot: the Point consumes every point, remnant and particle in its CURRENT effect radius, exactly as if each had collided
 // with it — mass, composition and energy go into the Point, and the consumed objects (points/remnants) are pulled in by the
@@ -8394,14 +8394,14 @@ function cycleCreateType(){
 // own dock slot), so it's deliberately left out of this cycle, the same way Standard is left out of Create's own
 // cycle above. Skips anything you don't currently have any of, so it always lands on something usable; arms nothing
 // (and says so) if you have none of these at all.
-function cycleStandardInvItem(){
-  const n=INV_KINDS.length;
-  const start=INV_KINDS.indexOf(armedInvItem?armedInvItem.kind:(conMode?conItem(conKind):''));
+function cycleStandardInvItem(L=INV_KINDS){ // the next item you have of a list (the dock's set shown: a middle click)
+  const n=L.length;
+  const start=L.indexOf(armedInvItem?armedInvItem.kind:(conMode?conItem(conKind):''));
   for(let step=1;step<=n;step++){
-    const kind=INV_KINDS[(((start<0?-1:start)+step)%n+n)%n];
+    const kind=L[(((start<0?-1:start)+step)%n+n)%n];if(kind===(armedInvItem?armedInvItem.kind:conMode?conItem(conKind):''))return; // (the only one: it stays in hand)
     if(inventory[kind]<=0||invDisabled.has(kind)||false)continue;
     armInventoryItem(kind);
-    return;
+    if((armedInvItem&&armedInvItem.kind===kind)||(conMode&&conItem(conKind)===kind))return; // (one that cannot be taken yet, not bought: the next)
   }
   flashSaveStatus(txt('surf.no_items_to_cycle'));
 }
@@ -8695,8 +8695,9 @@ window.addEventListener('blur',()=>{uiPress=false;releaseMouseDown(performance.n
 // create slots instead (create mode's own behavior is unchanged). Prevented on mousedown so the browser's autoscroll
 // icon never appears; auxclick is also swallowed for browsers that fire it for the middle button.
 wrap.addEventListener('mousedown',e=>{
-  if(e.button===1){e.preventDefault();if(dupHolding())rotateHeldBy(Math.PI/2);else if(createActive())cycleCreateType();else cycleStandardInvItem();} // middle click: 90° from current for a held duplicate / move
-});
+  if(e.button===1){e.preventDefault();if(dupHolding())rotateHeldBy(Math.PI/2);else if(createActive())cycleCreateType();else dockMiddle();} // middle click: 90° from current for a held duplicate / move; a Build tool's next type; else the next thing of the dock's set
+  else if(e.button===0&&dockFn&&!overUI&&(e.target===canvas||e.target===wrap||e.target.id==='cur')&&dockFnUse()){e.stopPropagation();e.preventDefault();} // the Guide or your buoy in hand: a click on the surface opens it
+},true);
 wrap.addEventListener('auxclick',e=>{if(e.button===1)e.preventDefault();});
 // Mouse wheel: cycles the color/kind within the CURRENT slot only. No-op in
 // Standard (nothing to cycle) and no-op outright in activate mode.
@@ -8715,9 +8716,8 @@ wrap.addEventListener('wheel',e=>{
   // Any other active/armed item owns the wheel outright, in every game-speed mode — including kinds with nothing
   // to scroll (Bright/Dim/Neutron/Magnetic/Pulsing/Key): they still swallow the event so it never falls through
   // to the game-speed control.
-  if(!createActive()){ // no item can keep the wheel from the game speed: changing speed simply disables the armed item
-    e.preventDefault();const before=speedMult+'|'+isPaused;
-    wheelSpeedStep(e.deltaY>0?1:-1,performance.now());
+  if(!createActive()){e.preventDefault(); // the speed in hand (Home; a middle click takes it), or the volume: the wheel is its own. An item in hand keeps the wheel; nothing in hand: the dock's next set, or the one before
+    if(dockFn)dockFnUse(e.deltaY);else if(!armedInvItem&&!conMode&&dockGroupStep(e.deltaY>0?1:-1,dockValid())){updateInventoryUI();flashSaveStatus(txt('dock.g.'+dockGroup));}
     return;
   }
   if(createActive()&&currentType().cat==='inertia'){e.preventDefault();inertWheel(e.deltaY);return;} // wheel up = clockwise spin, down = counter-clockwise
@@ -9538,6 +9538,7 @@ wrap.addEventListener('dblclick',e=>{
 // mirror image of the inward punch a left-click gives it.
 wrap.addEventListener('contextmenu',e=>{
   e.preventDefault();ruleLearn('rclick');
+  if(dockFn){dockFn=null;updateInventoryUI();cursorRClickAt=performance.now();return;} // one of Home's functions in hand: let go
   if(e.target&&e.target.closest&&e.target.closest('#dock')){ // right-click on the dock: the cursor's right-click punch + put the armed item away
     cursorRClickAt=performance.now();
     if(whiteChain.length>0){whiteChain.length=0;flashSaveStatus(txt('surf.pattern_cancelled'));}
@@ -9592,9 +9593,8 @@ wrap.addEventListener('contextmenu',e=>{
   cursorRClickAt=performance.now();
 });
 
-let readoutStep=0;
-function cycleReadouts(){ // nothing selected: right-click steps off → telemetry → dynamics → class → effect radii → all → off
-  const n=(readoutStep=(readoutStep+1)%7);telemetryOn=n===1||n===6;dynamicsOn=n===2||n===6;classOn=n===3||n===6;showRadii=n===4||n===6;risksOn=n===5||n===6;
+function cycleReadouts(){ // nothing selected: a right-click (or a middle click in the dock's Overlays set) steps off → class → mass & energy → telemetry → targets → threats → all → off (ovlCycle, shared.js)
+  ovlCycle();
   for(const [i,t,v] of [['tlb','Telemetry',telemetryOn],['dyb','Dynamics',dynamicsOn],['clb','Class',classOn],['rdb','Effect radii',showRadii]]){const b=document.getElementById(i);if(b)b.textContent=t+': '+((v?txt('surf.on'):txt('surf.off')));}
 }
 let lastNow=0,frameCount=0,maxWhites=0;
@@ -11260,8 +11260,11 @@ function setFeed(n,d,color,key){ // key: what it tells of (a kind of thing's fee
 }
 function invHoverParts(kind,worst){
   if(kind==='guide')return[txt('surf.i_guide'),txt('surf.rules_the_object_map')];
-  if(kind==='readouts')return[txt('surf.readouts'),txt('surf.t_telemetry_r_risks')];
-  if(kind==='speedctl')return[txt('surf.game_speed'),txt('surf.click_cycle_pause_1',(isPaused?txt('surf.paused'):speedLabel(speedMult)))];
+  if(kind.slice(0,4)==='grp_')return[txt('dock.g.'+kind.slice(4)),txt('dock.g.'+kind.slice(4)+'_d')+' · '+txt('dock.hint')];
+  if(kind.slice(0,4)==='ovl_')return[txt('ovl.'+kind.slice(4)),txt('ovl.'+kind.slice(4)+'_d')];
+  if(kind==='vol')return[txt('dock.vol',audioMuted?txt('surf.off'):Math.round(T.masterVol*100)+'%'),txt('dock.vol_d')];
+  if(kind==='buoy')return[txt('coll.title'),txt('dock.buoy_d')];if(kind==='dmin')return[txt(dockMin?'map.dock.show':'map.dock.hide'),''];
+  if(kind==='speedctl')return[txt('surf.game_speed'),txt('surf.click_cycle_pause_1',(isPaused?txt('surf.paused'):speedLabel(speedMult)))+' · '+txt('dock.speed_d')];
   if(kind==='cache-clear')return[txt('surf.clear_items'),txt('surf.removes_every_item_from')];
   if(kind==='cache-fill')return[txt('surf.fill_items'),txt('surf.fills_every_item_to')];
   if(kind==='cache-disable')return[txt('surf.disable_items'),txt('surf.toggle_then_click_items')];
@@ -11315,7 +11318,9 @@ function updateInfoAndStats(now,hoverObj){
   } else if(!hoverInvKind&&!overUI&&goodAt(mouse.x,mouse.y,1)){const g=goodAt(mouse.x,mouse.y,1); // a commodity, sign or its packaging (trash): named, and what it is for
     {const tm=trashMat(g);setFeed(goodName(g),tm?txt('good.trash_m',txt('trash.'+tm),txt(BUILD||trashNet(tm,k=>discSeen.has(k))?'good.trash_net':'good.trash_nonet',txt('trash.'+tm))):txt(g.kind==='sign'?'good.sign_d':g.open?'good.trash_d':g.kind==='chest'?'chest.need_key':'good.closed_d'),'rgba(255,255,255,0.92)');} // trash: what it is made of, and whether your net can scoop it
   } else if(hoverInvKind){
-    const pr=invHoverParts(hoverInvKind);setFeed(pr[0],pr[1],'rgba(255,255,255,0.92)');
+    const pr=invHoverParts(hoverInvKind),k=hoverInvKind,it=INV_KINDS.includes(k),g=k.slice(0,4)==='grp_'?null:Object.keys(DOCK_SETS).find(x=>DOCK_SETS[x].includes(k))||(CREATE_KINDS.includes(k)||k.slice(0,5)==='cache'?'create':k.slice(0,4)==='ovl_'?'ovl':'home'), // a slot under the cursor: what it is, and what the overlays that are on say of it (its set; how many you have of how many; in hand or not; what it does; what uses it up)
+      ov=ovlText(g?{cls:txt('ovl.c.slot',pr[0],txt('dock.g.'+g)),dyn:it?txt('ovl.have',fmtCount(inventory[k]),fmtCount(invMaxFor(k))):null,tel:txt(invDisabled.has(k)?'ovl.s.off':(armedInvItem&&armedInvItem.kind===k)||dockFn===k||(conMode&&conItem(conKind)===k)||(g==='ovl'&&ovlGet(k.slice(4)))?(g==='ovl'?'ovl.s.on':'ovl.s.hand'):'ovl.s.rest'),rad:pr[1],risk:it?txt(inventory[k]>0?'ovl.r.spent':'ovl.r.none'):txt('ovl.r.inert')}:{cls:txt('ovl.c.slot',pr[0],txt('ovl.set')),rad:txt('dock.hint')});
+    setFeed(pr[0],ov?(showRadii||!pr[1]?ov:pr[1]+'  ·  '+ov):pr[1],'rgba(255,255,255,0.92)');
   } else if(conMode){
     let n=0;for(let i=0;i<active.length;i++){const p=active[i];if(isConTarget(p)&&conEligible(p))n++;}
     const kindWord=conKind==='knot'?'Knot':conKind==='prism'?'Prism':conKind==='gate'?'Gate':conKind==='lens'?'Lens':'Weave';
@@ -12788,7 +12793,7 @@ window.rebuild=rebuild;window.toggleTrails=toggleTrails;
 // The Encyclopedia embeds a copy of this very game (same code, same physics, same effects) in a small frame and scripts a tiny world in it.
 // ── additions (v129) ──
 function riskOf(p){if(!p.collapsed||p.failedCollapse||p.isRemnant)return 0;return p.mass>=T.darkMass/2?2:p.mass>=T.darkMass/4?1:0;} // WARNING from a quarter of the Dark Remnant mass (two such make an exotic remnant), DANGER from half (two make a Dark Remnant)
-function toggleRisks(){risksOn=!risksOn;}
+function toggleRisks(){risksOn=!risksOn;ovlSave();}
 let _rbSig='';
 function syncReadoutBtns(){const sg=[telemetryOn,risksOn,dynamicsOn,classOn,showRadii].join();if(sg===_rbSig)return;_rbSig=sg;updateInventoryUI();}
 function addDilation(R){const lo=novaMassRadius(T.collMass),hi=novaMassRadius(T.darkMass),f=Math.max(0,Math.min(1,(R-lo)/Math.max(1,hi-lo)));dilations.push({a:T.dilMin+(T.dilMax-T.dilMin)*f,age:0});}
@@ -12820,7 +12825,6 @@ function spawnCollectSparks(p){const now=performance.now(),k=p.remKind||'brown',
     else{const an=Math.random()*6.2832;ex=Math.cos(an)*r;ey=Math.sin(an)*r;}
     shardFx.push({x:p.x+ex,y:p.y+ey,cx:p.x,cy:p.y-r*0.5,rise:0.01+Math.random()*0.02,vx:0,vy:0,born:now,dur:450+Math.random()*450,s:0.9+Math.random()*1.4,col:cols[i%cols.length],tw:Math.random()*6.28});}}
 function toggleReadout(m){if(m==='tel')toggleTelemetry();else if(m==='risk')toggleRisks();else if(m==='dyn')toggleDynamics();else if(m==='cls')toggleClass();else toggleRadii();updateInventoryUI();}
-function readoutSlotHTML(){const b=(m,l,on)=>`<span data-m="${m}" class="rdb${on?' on':''}">${l}</span>`;return `<div class="slot rd5" data-kind="readouts">${b('tel','T',telemetryOn)}${b('risk','R',risksOn)}${b('dyn','D',dynamicsOn)}${b('cls','C',classOn)}${b('rad','◎',showRadii)}</div>`;}
 function liveSrc(name,rec,hold){return '<!doctype html>'+_SRC.replace('<script>',()=>'<script>window.__SCENE='+JSON.stringify(name)+';'+(hold?'window.__evHoldEnd=1;':'')+(rec?'window.__REPLAY='+JSON.stringify(rec).replace(/</g,'\\u003c')+';'+(rec.t0?'{const n=performance.now.bind(performance),T0='+rec.t0+';let g=null;performance.now=()=>g==null?T0:n()+g;window.__clkGo=()=>{g=T0-n();};const f=window.requestAnimationFrame.bind(window);window.requestAnimationFrame=c=>f(()=>c(performance.now()));}':''):'')+'document.documentElement.style.visibility="hidden";'+'window.__INV='+(rec?rec.inv:(invertMode?1:0))+';window.__T='+JSON.stringify(rec&&rec.T||T)+';<\/script><script>');} // (a recording: its clock is the moment's own, so every time in what it saved still holds; its settings are the ones it happened in)
 
 const SCENES={};
@@ -13175,13 +13179,13 @@ let _evDesk=[];
 const evLostEnd=(c,now,end)=>c.gone||!!c.lost&&(end||now-c.lost>=(T.evLostMs!=null?T.evLostMs:350)); // a capture to cancel: its subject gone, or not a good shot (evFollow) for too long, or as it ends
 function evCapTick(now){for(const c of[..._evBg,_evCap]){if(!c)continue;evFollow(c,now);const fg=c===_evCap,end=now-c.t0>=Math.max(T.evCaptureMs||2400,fg?T.evSoloMs||1600:0),lost=evLostEnd(c,now,end);if(!end&&!lost)continue;
     if(fg)_evCap=null;else _evBg.splice(_evBg.indexOf(c),1);
-    if(lost){if(fg){const{x,y,rw,rh}=c.rect;wrapCopies(x,y,Math.max(rw,rh),(ox,oy)=>{const P=[[-rw,-rh],[rw,-rh],[rw,rh],[-rw,rh]].map(q=>({x:x+ox+q[0],y:y+oy+q[1]}));P.forEach((p,i)=>spawnEdgeSparks(p,P[(i+1)%4],[255,255,255],now));});} // cancelled: its frame shatters into sparks; nothing is kept, and it is not discovered
+    if(lost){if(c.id.slice(0,3)!=='rl_'){const{x,y,rw,rh}=c.rect;wrapCopies(x,y,Math.max(rw,rh),(ox,oy)=>{const P=[[-rw,-rh],[rw,-rh],[rw,rh],[-rw,rh]].map(q=>({x:x+ox+q[0],y:y+oy+q[1]}));P.forEach((p,i)=>spawnEdgeSparks(p,P[(i+1)%4],[255,255,255],now));});} // cancelled: its frame shatters into sparks; nothing is kept, and it is not discovered
       const i=FX_EV_IDS.indexOf(c.id);setTimeout(()=>{if(i>=0)_fxEv[i]=0;delete _fxEvO[c.id];},T.evCaptureMs||2400);continue;} // (an effect's event can be tried again, after a while)
     evCapSave(c);if(c.id.slice(0,3)==='rl_')continue; // (a Journal entry's own picture: saved, no more)
     discSeen.add('ev:'+c.id);saveInventory(); // it held to the end: discovered (the Journal has it), its recording kept as it is now (its still)
     if(fg){_evHand=[c.id,..._evDesk.filter(i=>i!==c.id)];_evDesk=[];showEventCard(c.id,false);}else _evDesk.push(c.id);evDeskSync();}} // nothing else happened: the game pauses and its card shows, the rest of the desk in its hand; a quiet one joins the desk
-function evFrameDraw(c2,now){const c=_evCap;if(!c||!c.rect)return;const{x,y,rw,rh}=c.rect,em=Math.max(0,1-(now-c.t0)/(T.evEmphMs||500)); // the frame round it (the card's shape; evFrameBox in shared.js, the Surface Map's too): brighter as it starts
-  if(c.sz==='f')evFrameBox(c2,[W/2-rw+3,3,2*rw-6,H-6],em,now);else wrapCopies(x,y,Math.max(rw,rh),(ox,oy)=>evFrameBox(c2,[x+ox-rw,y+oy-rh,2*rw,2*rh],em,now));}
+function evFrameDraw(c2,now){for(const c of[..._evBg,_evCap]){if(!c||!c.rect||c.id.slice(0,3)==='rl_')continue;const{x,y,rw,rh}=c.rect,em=Math.max(0,1-(now-c.t0)/(T.evEmphMs||500)); // the frame round each event being captured, the ones recorded for the desk too (never a Journal entry's own picture): the card's shape (evFrameBox in shared.js, the Surface Map's too), brighter as it starts
+    if(c.sz==='f')evFrameBox(c2,[W/2-rw+3,3,2*rw-6,H-6],em,now);else wrapCopies(x,y,Math.max(rw,rh),(ox,oy)=>evFrameBox(c2,[x+ox-rw,y+oy-rh,2*rw,2*rh],em,now));}}
 const evRecFor=id=>id&&(_evRecs[id]||null),evStillHTML=ids=>{const R=ids.map(evRecFor).find(r=>r&&r.still);return R?`<img class="still" src="${R.still}" alt="">`:'';}; // a recording; and its still as a picture (a small card's art, at rest)
 if(!window.__SCENE)IDB.keys().then(ks=>{const P=IDB.key('evrec:');for(const k of ks)if(typeof k==='string'&&k.startsWith(P))IDB.get(k.slice(k.indexOf('evrec:'))).then(r=>{if(r&&r.id)_evRecs[r.id]=r;}).catch(()=>{});}).catch(()=>{}); // (your recordings, back from the last time you played)
 function evReplayMount(h,rec){if(!h||h.firstChild)return;const f=document.createElement('iframe'),v=document.createElement('canvas'),g=v.getContext('2d'),aw=h.clientWidth||300,ah=h.clientHeight||190,dp=Math.min(2,window.devicePixelRatio||1),k=Math.max(aw/(rec.fw||rec.w),ah/(rec.fh||rec.h)),P=(rec.path||[[0,0,0]])[0],c={sz:EV_FRAME[rec.id]||'l',t0:rec.cap0||0};let X=0,Y=0,last=null;
@@ -13210,7 +13214,7 @@ function cardHTML(ev,mini,pg){ // the one card format: name bar, art box, type l
 function mountScene(h,w,hh){if(!h||h.firstChild||document.querySelectorAll('.rl-live iframe:not(.held),.mtg .art iframe:not(.held)').length>=5)return; /* (a page's picture holding on its last frame does not count) */{const R=(h.dataset.ev||'').split(',').map(evRecFor).find(Boolean);if(R&&!w){evReplayMount(h,R);return;}} /* something you witnessed: your own recording of it, live (a demo only for what you have not) */const f=document.createElement('iframe'),nm=h.dataset.s||h.dataset.scene;f.style.cssText='border:0;max-width:100%;pointer-events:none;background:#000;border-radius:6px;'+(w?`width:${w}px;height:${hh}px`:'width:100%;height:100%');
   Object.assign(f,sceneSrc(nm,h.dataset.hold));if(h.dataset.hold&&nm.slice(0,4)!=='hub:')f.className='held';h.appendChild(f);}
 function sceneSrc(nm,hold){if(nm.slice(0,4)!=='hub:')return{srcdoc:liveSrc(nm,null,hold)};const[sn,dk]=nm.slice(4).split(':'); // a demo's page (a Surface Map demo is played by the map itself): mountScene's, and a shop shelf card's
-  return{src:'Surface_Map_HUB.html?v=20261126a&scene='+sn+(sn==='shop'?'&k='+encodeURIComponent(dk||''):'')+'&T='+encodeURIComponent(JSON.stringify(mapSceneT()))+'&D='+encodeURIComponent(JSON.stringify(dk&&DUCK_TYPES[dk]?{[dk]:DUCK_TYPES[dk]}:Object.fromEntries(Object.entries(DUCK_TYPES).slice(0,4))))};}
+  return{src:'Surface_Map_HUB.html?v=20261127a&scene='+sn+(sn==='shop'?'&k='+encodeURIComponent(dk||''):'')+'&T='+encodeURIComponent(JSON.stringify(mapSceneT()))+'&D='+encodeURIComponent(JSON.stringify(dk&&DUCK_TYPES[dk]?{[dk]:DUCK_TYPES[dk]}:Object.fromEntries(Object.entries(DUCK_TYPES).slice(0,4))))};}
 function mapSceneT(){const o={};for(const k in T)if(/^(map|bh|duck|wake|glass|metal|dimGlow|glowHalo|maxSpeed)/.test(k))o[k]=T[k];return o;} // what a map demo needs of the tuners
 function showCardHTML(html){ // a Guide card (an entry or a shop) opened over the Guide, where an event card shows
   guideCSS();if(!_evOpen)_evPausedIt=false;_evOpen=true;_evReview=true;const ov=evOverlayEl();ov.innerHTML=`<div class="ev-box">${html}<button id="evOk">${txt('card.close')}</button></div>`;ov.style.display='flex';wrap.classList.add('ev-open');

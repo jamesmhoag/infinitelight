@@ -25,7 +25,8 @@ body.dock-min:not(.shop-open) #hinv .slot:not(.up):not(:hover)>*,body.dock-min:n
 #hinv .slot.armed::before{background:rgba(255,220,120,0.28);border-color:rgba(255,220,120,0.8)}#hinv .slot.empty{opacity:0.4}
 #hinv .slot svg{width:18px;height:18px;color:#fff}#hinv .slot b{font-weight:400;margin-top:1px}#hinv .sep{width:6px}
 #hfeed.flash{animation:feedFlash .6s ease-out}@keyframes feedFlash{0%{background:rgba(255,255,255,.35)}100%{background:rgba(0,0,0,.6)}} /* the feed flashes: why that click did nothing */
-#hfeed{font:12px monospace;text-align:center;min-width:420px;height:30px;color:#fff;background:rgba(0,0,0,0.6);padding:3px 14px;display:flex;flex-direction:column;justify-content:center}
+#hfeed .fo{font-size:9px;line-height:12px;color:#9fd8ff;white-space:normal;overflow:hidden}
+#hfeed{font:12px monospace;text-align:center;min-width:420px;min-height:30px;color:#fff;background:rgba(0,0,0,0.6);padding:3px 14px;display:flex;flex-direction:column;justify-content:center}
 #hfeed .fn{line-height:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}#hfeed .fd{font-size:9px;line-height:11px;opacity:0.62;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 #hfeed button{font:11px monospace;margin:0 4px;padding:1px 8px;background:rgba(255,220,120,0.2);border:1px solid rgba(255,220,120,0.7);color:#fff;border-radius:3px}
 #bottom-bar{bottom:76px}#legend{bottom:76px}
@@ -171,7 +172,7 @@ body.shop-open #hdock{z-index:59}#hinv .slot.wal::before{border-color:rgba(255,2
 <div id="veil"></div>
 <div id="bfx"></div>
 <iframe id="neb" data-tt="map.ui.surface"></iframe>
-<script src="content.js?v=20261126a"></script><script src="shared.js?v=20261126a"></script><script src="cabin.js?v=20261126a"></script><script src="music.js?v=20261126a"></script>
+<script src="content.js?v=20261127a"></script><script src="shared.js?v=20261127a"></script><script src="cabin.js?v=20261127a"></script><script src="music.js?v=20261127a"></script>
 <script>
 // ╔══════════════════════════════════════════════════════════════════════════════╗
 // ║  MAP ENGINE                                                                 ║
@@ -190,7 +191,7 @@ let playLog=[],clock=3,day=1,pool=6,burstFx=null,dayLog=[],dayCnt={b:0,d:0},pend
 // // clock: the hour (3 = Twilight … 24 = Midnight, the day's last turn); day: your attempts; pool: what the source put out at its last burst; fresh: no ring added yet since it
 let constel=[],armed=null,weaveSel=[],weaveAsk=null,clearFx={},mergeFx=[],feedMsg={t:'',d:'',at:-1e9}; // constellations {keys,type}; the armed map item; a Weave being drawn; animations; the final count
 const STEP_H=3; // the day: eight turns of three hours
-const CACHE_V='20261126a'; // the build: bump with shared.js's
+const CACHE_V='20261127a'; // the build: bump with shared.js's
 const SCENE=new URLSearchParams(location.search).get('scene'); // a Guide / event demo: the map plays a scripted moment (no surface behind it)
 let phase='move',turnTimer=0,mergeTimer=0;
 let gameOverReason='';
@@ -283,14 +284,14 @@ function diveStep(){ // over the hex, waiting for the buoy to be under; then tur
   camX=camTX=A.x+(D.x-A.x)*p1;camY=camTY=A.y+(D.y-A.y)*p1;camV.x=camV.y=camV.z=0;camTiltOv=A.t*(1-p2);const z=A.z*Math.pow(D.zFit/A.z,p2);camZoomTo(z*Math.pow(2.6,p3)); /* (over the hex, turning to look down, then down: each overlapping the next) */
   if(u>=1){const d=D.done;dive=null;if(D.dir<0){camTiltOv=null;mapResize();camHandStart();}if(d)d();}}
 function camSees(wx,wy){if(!cam)return false;const[X,Y]=w2sc(wx,wy),m=Math.min(SW,SH)*0.08;return X>m&&X<SW-m&&Y>m&&Y<SH-m;} // a point well inside the screen
-function camFrame(){ // the camera is free: it is never aimed at the middle and the spill's extent does not hold it. Only the Point has to stay in view, and it may sit right on the view's edge (cut by it), so a zoom on the cursor is not pulled anywhere
+function camFrame(){ // the camera is free: it is never aimed at the middle and the spill's extent does not hold it. Only your buoy has to stay in view, and it may sit right on the view's edge (cut by it), so a zoom on the cursor is not pulled anywhere
   if(SCENE||!cam||!SW)return;
   if(dive){diveStep();return;}
   if(statusCam){const C=statusCam;zoomT=C.z;const[wx,wy]=s2wp(Math.max(80,(SW-C.w)/2),SH*0.55);camTX=camX+(buoy.x-wx);camTY=camY+(buoy.y-wy);return;} /* (no edge: it is framing the buoy) */
   if(camTween){const t=Math.min(1,(performance.now()-camTween.t0)/camTween.dur),e=ease5(t),A=camTween.a,B=camTween.b;camX=camTX=A.x+(B.x-A.x)*e;camY=camTY=A.y+(B.y-A.y)*e;camZoomTo(A.z*Math.pow(B.z/A.z,e));camV.x=camV.y=camV.z=0;if(t>=1){camTween=null;mapResize();camHandStart();}return;} /* (zoom eased evenly in scale: no rush at either end) */
   const b=camBounds(Object.keys(cells));if(!b)return;const f=camFit(b);zoomFloor=f.z;
   if(zoomAuto||viewZoom<f.z-1e-3){const d=f.z-viewZoom;if(Math.abs(d)>2e-3){camZoomTo(viewZoom+(Math.abs(d)<0.01?d:d*0.12));_zoomSettle=1;}else if(_zoomSettle){_zoomSettle=0;mapResize();}} // its zoom follows the spill (at most out to it; held there until you zoom in)
-  const o=(X,Y)=>{const[wx,wy]=s2wp(X,Y);return[wx-camX,wy-camY];},[tx,ty]=o(SW,0),[bx,by]=o(SW,SH),fit=(x,y)=>{const v=Math.max(ty,Math.min(by,-y)),hw=tx+(bx-tx)*(v-ty)/(by-ty);return[-Math.max(-hw,Math.min(hw,-x)),-v];}; // what the screen shows of the plane, from the camera: wider at its top than its bottom (the tilt). The Point is the plane's 0,0: the view's edges may come up to it, no further
+  const o=(X,Y)=>{const[wx,wy]=s2wp(X,Y);return[wx-camX,wy-camY];},[tx,ty]=o(SW,0),[bx,by]=o(SW,SH),fit=(x,y)=>{const v=Math.max(ty,Math.min(by,buoy.y-y)),hw=tx+(bx-tx)*(v-ty)/(by-ty);return[buoy.x-Math.max(-hw,Math.min(hw,buoy.x-x)),buoy.y-v];}; // what the screen shows of the plane, from the camera: wider at its top than its bottom (the tilt). The view's edges may come up to your buoy, no further (as it moves, it takes the view with it)
   [camTX,camTY]=fit(camTX,camTY);[camX,camY]=fit(camX,camY);} // (a hard edge: the camera itself, not only where it is heading)
 let zoomAuto=true,zoomFloor=0,_zoomSettle=0; // the camera's zoom follows the spill until you zoom in; zooming back out to it picks it up again
 function focusCam(a,move){if(_mpFor)return; // (a friend's move: the host's view stays)
@@ -501,8 +502,10 @@ function trashAt(k){const c=cells[k],t=trashBag[0];if(!trashOK(k)){hexTap(k);ret
 function seedOK(k){const c=cells[k];return!!(c&&seeds>0&&c.cap&&c.kind==='dark'&&!plants[k]&&hexD(c,here())<=1);}
 function plantSeed(k){if(!seedOK(k)){hexTap(k);return;}seeds--;plants[k]={m:null,n:0};jot('seed');plantSync();feed(txt('map.plant.seed'),txt('map.plant.seed_d',plantBloom()));if(!seeds&&armed==='seed')armed=null;updateHint();syncDock();saveMap();}
 function plantSync(){for(const k in plants){if(!cells[k]){delete plants[k];continue;}if(plants[k].n&&!pond.some(d=>d.plant===k)){const[x,y]=a2w(cells[k].q,cells[k].r);pond.push({type:plantType(plants[k]),plant:k,x,y,hd:Math.random()*6.28,sp:0,cur:0,next:1e15,born:performance.now(),seen:true,lastRip:0,ph:0});}}} // each growing plant stands on its hex (drawn as the lake's ducks and goods are)
-function plantsMidnight(){const out=[],h=here();for(const k in plants){const p=plants[k];if(p.n<plantBloom())continue;p.bloom=1; /* (a bud short of its trash: it falls in with the spill) */const t=plantTier(k),c=cells[k],pick=hexD(c,h)<=1;
-    if(pick){const n=Math.round((T.mapFlowerDim!=null?T.mapFlowerDim:50000)*(t===3?100:t===2?10:1));neb({cmd:'award',kind:'dim',n});feed(txt('map.plant.picked',txt('trash.'+p.m)),txt('map.plant.picked_d',fmtN(n)));}
+const flowerDim=k=>{const t=plantTier(k),v=t===3?T.mapFlowerDim3:t===2?T.mapFlowerDim2:T.mapFlowerDim;return Math.round(v!=null?v:[50000,500000,5000000][t-1]);}; // what a flower pays, by the size of the Dark Remnant its seed went in (one hex, a merged three, a merged hex of seven): each its own tuner
+function plantPick(k){const p=plants[k],c=cells[k];if(!p||!p.bloom||!c||hexD(c,here())>1)return false;const n=flowerDim(k),m=txt('trash.'+(p.m||'paper')); // a flower picked from a hex beside you, by hand (no trash can: that is for making one): it pays its Dim
+  neb({cmd:'award',kind:'dim',n});feed(txt('map.plant.picked',m),txt('map.plant.picked_d',fmtN(n)));return true;}
+function plantsMidnight(){const out=[],h=here();for(const k in plants){const p=plants[k];if(p.n<plantBloom()&&!p.bloom)continue;p.bloom=1; /* (a bud short of its trash: it falls in with the spill) */const t=plantTier(k),pick=plantPick(k); // (beside you as it blooms: picked there and then)
     out.push({m:p.m,t,k,picked:pick?1:0});jot('bloom',{m:p.m,picked:pick?1:0});}
   if(out.length&&out.some(f=>!f.picked))feed(txt('map.plant.bloomed',out.filter(f=>!f.picked).length),txt('map.plant.bloomed_d'));return out;}
 function plantInfo(k,c){const t=trashBag[0];if(k==='seed')return c?[txt('map.plant.seed_here'),seedOK(K(c.q,c.r))?txt('map.plant.seed_ok'):txt('map.plant.seed_no')]:[txt('map.plant.seeds',seeds),txt('map.plant.seed_d',plantBloom())];
@@ -565,6 +568,8 @@ const ITEM_NOTE={leash:txt('map.unwinds_a_cleared_hex'),dial:txt('map.goes_strai
   knot:txt('map.used_on_a_surface_2'),gate:txt('map.used_on_a_surface_3'),
   key:txt('map.key_note'),lens:txt('map.used_on_a_surface_5')};
 function itemInfo(k,c){ // an item in the dock: what it does; in hand over a hex, what it would do there (and what it costs)
+  if(k.slice(0,4)==='grp_')return[txt('dock.g.'+k.slice(4)),txt('dock.g.'+k.slice(4)+'_d')+' · '+txt('dock.hint')];if(k.slice(0,4)==='ovl_')return[txt('ovl.'+k.slice(4)),txt('ovl.'+k.slice(4)+'_d')];if(k==='zoom')return[txt('dock.zoom',viewZoom.toFixed(1)),txt('dock.zoom_d')]; // the dock's sets, overlays and view
+  if(['drinks','rec','batt','wx','anchor','dmin'].includes(k)){const el=document.querySelector('#hinv .slot[data-k="'+k+'"]');return[(el&&(el.title||el.dataset.more))||k,k==='dmin'?'':txt('dock.g.home_d')];} // (Home's own: what each says of itself)
   if(k==='buoy')return[txt('map.buoy.deck'),txt('map.buoy.deck_d')];if(k==='trash'||k==='seed')return plantInfo(k,c);if(k==='test')return[txt('test.tool'),txt('test.tool_hint')]; // the test tool in hand
   const n=inv[k]||0,nm=KIND_NAME[k]||k;if(!ITEM_NOTE[k])return[curName(k),txt('map.you_have',fmtN(shopWallet(k)))];
   if(!c)return[nm+' × '+n+((armed===k?txt('map.in_hand'):(DOCK_ITEMS.includes(k)?txt('map.click_to_take_it'):txt('map.earned_on_the_map')))),ITEM_NOTE[k]];
@@ -589,7 +594,7 @@ function itemOK(k){const c=cells[k];if(!c)return false;if(armed==='test')return 
 function hexLine(q0,r0,q1,r1){const n=dist(q0,r0,q1,r1),out=[];for(let i=0;i<=n;i++){const t=n?i/n:0,x=q0+(q1-q0)*t+1e-6,z=r0+(r1-r0)*t+1e-6,y=-x-z;let rx=Math.round(x),rz=Math.round(z),ry=Math.round(y);const dx=Math.abs(rx-x),dy=Math.abs(ry-y),dz=Math.abs(rz-z);
   if(dx>dy&&dx>dz)rx=-ry-rz;else if(dy<=dz)rz=-rx-ry;out.push([rx,rz]);}return out;} // the hexes a straight line from one hex to another passes over
 const riftBetween=(q0,r0,q1,r1)=>hexLine(q0,r0,q1,r1).some(([q,r])=>{const c=cells[K(q,r)];return!!(c&&c.rift)||pdHas(K(q,r));}); // (a Rift, or the Parade Day parade, in the way) // a Rift in the way of a String's straight line
-function armItem(kind){if(phase==='ended'||phase==='collapse')return;armed=armed===kind?null:kind;dockUp[kind]=performance.now();weaveSel=[];weaveAsk=null;updateHint();syncDock();}
+function armItem(kind){if(phase==='ended'||phase==='collapse')return;dockFn=null;armed=armed===kind?null:kind;dockUp[kind]=performance.now();weaveSel=[];weaveAsk=null;updateHint();syncDock();}
 function spend(kind,n){if(_mpFor){netOut({t:'spend',kind,n},_mpFor);return;} // (a friend's: off their own)
   inv[kind]=Math.max(0,(inv[kind]||0)-n);neb({cmd:'spend',kind,n});syncDock();}
 function spindleFill(k){ // Spindle on an open hex below 1.00: wound up to 1.00, and held there until it is cleared
@@ -691,9 +696,10 @@ function fireworksDraw(now){ // over the scene (the beam's layer): a rocket up f
 // anchor, a rudder or a motor is on your hull (it holds you through it). The feed says so in the morning, and the day's log lists what went overboard
 function holdChance(s){let h=T.mapWreckHold!=null?T.mapWreckHold:0.1;for(const it of SHOP_ITEMS)if(it.fx.hold&&it.fx.hold[s]!=null&&disc.has('up:'+it.id))h=Math.max(h,+it.fx.hold[s]);return Math.min(1,h);} // how likely a thing on that kind of mount holds on through a wreck (its strength: Bright Ideas, then Custom Hulls)
 const atHelm=()=>!asleep; // awake: at the helm (a rudder steers you through a Rift's wreck); resting past Midnight you are asleep at the wheel
+const wreckP=()=>Math.min(T.mapWreckMax!=null?T.mapWreckMax:0.9,cellRing(pQ,pR)*(T.mapWreckPerRing!=null?T.mapWreckPerRing:0.12)); // Midnight's chance for each thing on your mounts, where you are now
 function wreckCheck(why){if(SCENE||MP.on||!buoyKit)return[];const C=kitCounts(buoyKit),on=[];for(const s of KIT_SLOTS)buoyKit.slots[s].slice(0,C[s]).forEach((id,i)=>{if(id)on.push({s,i,id});}); // why: 'midnight' (the collapse) or 'rift' (a Rift you tore)
   const has=f=>on.some(m=>{const it=shopItem(m.id);return it&&f(it.fx);});if(!on.length||(why==='rift'?atHelm()&&has(f=>f.rudder||f.motor):has(f=>f.anchor||f.motor)))return[]; // at Midnight an anchor or motor holds you (asleep, a rudder cannot steer); a Rift's wreck: a rudder or motor, at the helm
-  const p=why==='rift'?(T.mapWreckRift!=null?T.mapWreckRift:0.5):Math.min(T.mapWreckMax!=null?T.mapWreckMax:0.9,cellRing(pQ,pR)*(T.mapWreckPerRing!=null?T.mapWreckPerRing:0.12)),lost=on.filter(m=>Math.random()<p&&Math.random()>=holdChance(m.s));
+  const p=why==='rift'?(T.mapWreckRift!=null?T.mapWreckRift:0.5):wreckP(),lost=on.filter(m=>Math.random()<p&&Math.random()>=holdChance(m.s));
   if(!lost.length)return[];for(const m of lost)buoyKit.slots[m.s][m.i]=null;kitSave(buoyKit);const ids=lost.map(m=>m.id);if(ids.includes('record')&&MUSIC.cur&&!MUSIC.cur.album&&!MUSIC.cur.tape){ids.push(MUSIC.cur.id);musicStop();} // (the record on the gramophone goes with it; the rest of your records are below deck)
   neb({cmd:'lose',ids});return ids;}
 function endDay(){ // Midnight passed: it all falls into the source (the outer rings first, each faster), a flash, and a new spill at Twilight
@@ -951,6 +957,7 @@ function mapRender(){
   mctx.restore();
   // Direction line
   if(hoverMove&&phase!=='gameover'){const pts=[{q:pQ,r:pR},...hoverMove.path,{q:hoverMove.q,r:hoverMove.r}];mctx.beginPath();for(let i=0;i<pts.length;i++){const[sx,sy]=w2s(...a2w(pts[i].q,pts[i].r));if(!i)mctx.moveTo(sx,sy);else mctx.lineTo(sx,sy);}mctx.strokeStyle='rgba(0,210,210,0.6)';mctx.lineWidth=1.5;mctx.setLineDash([5,4]);mctx.stroke();mctx.setLineDash([]);const[dx,dy]=w2s(...a2w(hoverMove.q,hoverMove.r));mctx.beginPath();mctx.arc(dx,dy,3.5,0,Math.PI*2);mctx.fillStyle='rgba(0,220,220,0.7)';mctx.fill();}
+  ovlTargets(now);
   if(mapEv){const ms=now-mapEv.t0;if(ms>=(T.evCaptureMs||2400))mapEv=null;else{const[X,Y]=w2s(mapEv.x,mapEv.y),rh=mapEv.rh,rw=rh*(T.evAspect||1.65);evFrameBox(mctx,[X-rw,Y-rh,2*rw,2*rh],Math.max(0,1-ms/(T.evEmphMs||500)),now);}} // an event's frame (shared.js: the surface's own), lying on the water round where it happened
   hubPh('overlays');requestPreviews(mapNeed);hubPh('previews');pondStep(now);if(!SCENE){buoyStep(now,1);buoyPlane(now);}hubPh('ducks');sceneRender(now);buoyBeam(now);fireworksDraw(now);hubPh('3d');
   // HUD
@@ -974,8 +981,11 @@ let mX=-1,mY=-1,mDownAt=-1,mUpAt=-1,ptOver=null; // the cursor
 const overScene=()=>ptOver===sc||!!(ptOver&&ptOver.closest&&!ptOver.closest('button,.slot,.shop,input,select,#hdock,#tuneP,#mModes,#shop,#menu,#day-report,#letter')); // over the map itself (a read-out like the legend does not count as being in the way) (drawn by the shared cursor code, as on a surface)
 sc.addEventListener('mousemove',e=>{if(currentView==='map')[hQ,hR]=evA(e);});
 document.addEventListener('mousemove',e=>{mX=e.clientX;mY=e.clientY;},true);document.addEventListener('mousedown',()=>{mDownAt=performance.now();},true);document.addEventListener('mouseup',()=>{mUpAt=performance.now();mDownAt=-1;},true);
-window.addEventListener('wheel',e=>{if(currentView!=='map'||menuOpen||shopUI||(e.target.closest&&e.target.closest('#tuneP,#mModes')))return;e.preventDefault();zoomUser(Math.exp(-e.deltaY*0.0015),e.clientX,e.clientY);},{passive:false});
-sc.addEventListener('contextmenu',e=>{e.preventDefault();if(currentView!=='map')return;if(armed){armed=null;weaveSel=[];weaveAsk=null;updateHint();syncDock();}else focusCam(true);}); // right-click puts a selected item down, else takes the view back to your hex
+window.addEventListener('wheel',e=>{if(currentView!=='map'&&currentView!=='cabin'||menuOpen||shopUI||(e.target.closest&&e.target.closest('#tuneP,#mModes')))return;e.preventDefault();
+  if(currentView==='map'&&(SCENE||dockFn==='zoom')){zoomUser(Math.exp(-e.deltaY*0.0015),e.clientX,e.clientY);if(!SCENE){const b=document.querySelector('#hinv .slot[data-k="zoom"] b');if(b)b.textContent='×'+viewZoom.toFixed(1);}return;} // the view in hand (Home; a middle click takes it): the wheel zooms on the cursor
+  if(armed||dockFn||!dockGroupStep(e.deltaY>0?1:-1,dockValid()))return; // (anything else in hand keeps the wheel) nothing in hand: the dock's next set, or the one before
+  feed(txt('dock.g.'+dockGroup),txt('dock.g.'+dockGroup+'_d'),'hint');syncDock();},{passive:false});
+sc.addEventListener('contextmenu',e=>{e.preventDefault();if(currentView!=='map')return;if(armed||dockFn){armed=dockFn=null;weaveSel=[];weaveAsk=null;updateHint();syncDock();}else focusCam(true);}); // right-click puts down what is in hand (an item, or one of Home's functions), else takes the view back to your hex
 let drag=null; // a left-button drag pans the map
 function panCam(dx,dy){if(dive||camTween)return;hubLearn('hubview');buoy.follow=false; // (you took the view; a scene's own camera move cannot be taken)
   const x=camTX+dx,y=camTY+dy;camX+=x-camTX;camY+=y-camTY;camTX=x;camTY=y;camV.x=camV.y=0;camFrame();} // (camFrame keeps the view on the spill)
@@ -1031,11 +1041,11 @@ document.addEventListener('click',e=>{if(currentView!=='map'||menuOpen||shopUI||
 document.addEventListener('click',e=>{ // a lake duck clicked (even under a read-out like the legend): dunked, it comes back up — and the click goes no further
   if(drag&&drag.moved)return;if(currentView!=='map'||menuOpen||shopUI||!(e.target===sc||(e.target.closest&&!e.target.closest('button,.slot,.shop,input,select,#hdock,#tuneP,#mModes,#shop,#menu,#day-report,#letter,#nameAsk'))))return;
   if(!SCENE&&buoyHit(e.clientX,e.clientY)){e.stopPropagation();cabinOpen();return;} // your buoy: down its hatch, below deck (cabin.js), where Status and your collections open from what is in the cabin
-  const du=duckUnder(e.clientX,e.clientY);if(!du||du.dunk)return;e.stopPropagation();if(du.bottle&&!du.empty){openBottle(du);return;}if(du.good&&!du.good.open&&du.flot&&hexD(cells[du.flot],here())>1){feed(goodNameM(du.good),txt('good.ring_far'),'no');return;}if(du.good&&!du.good.open&&!TRASH_ONLY.includes(du.good.kind)){openLakeGood(du);return;}if(du.good&&lakeTrash(du))return;if(du.plant){const p=plants[du.plant];feed(txt('map.plant.name',p&&p.m?txt('trash.'+p.m):'—'),txt('map.plant.stat',p?p.n:0,plantBloom()));return;}
+  const du=duckUnder(e.clientX,e.clientY);if(!du||du.dunk)return;e.stopPropagation();if(du.bottle&&!du.empty){openBottle(du);return;}if(du.good&&!du.good.open&&du.flot&&hexD(cells[du.flot],here())>1){feed(goodNameM(du.good),txt('good.ring_far'),'no');return;}if(du.good&&!du.good.open&&!TRASH_ONLY.includes(du.good.kind)){openLakeGood(du);return;}if(du.good&&lakeTrash(du))return;if(du.plant){const p=plants[du.plant];if(p&&p.bloom){const k=du.plant,[x,y]=a2w(cells[k].q,cells[k].r);if(plantPick(k)){jot('bloom',{m:p.m,picked:1});delete plants[k];splashes.push({x,y,t:performance.now(),n:8,a:0});updateHint();saveMap();}else feed(txt('map.plant.flower',txt('trash.'+(p.m||'paper'))),txt('map.plant.pick_far',fmtN(flowerDim(k))),'no');return;} /* a flower: picked from beside it */feed(txt('map.plant.name',p&&p.m?txt('trash.'+p.m):'—'),txt('map.plant.stat',p?p.n:0,plantBloom()));return;}
   du.dunk=performance.now();ripples.push({x:du.x,y:du.y,t:du.dunk,dk:onWhite(du.x,du.y),big:1});neb({cmd:'quack',type:du.type,v:1});},true);
 document.addEventListener('keydown',e=>{if(currentView==='cabin'){if(e.key==='Escape'){e.preventDefault();cabinClose();}return;} // below deck: Esc climbs back up
   if(document.getElementById('nameAsk').classList.contains('show'))return; // naming your buoy: Enter sets it
-  if(e.code==='Escape'){e.preventDefault();if(letter){closeLetter();return;}if(shopUI){closeShop();return;}if(currentView==='map'&&armed){armed=null;weaveSel=[];weaveAsk=null;updateHint();syncDock();return;}if(currentView==='map')toggleMenu();return;}
+  if(e.code==='Escape'){e.preventDefault();if(letter){closeLetter();return;}if(shopUI){closeShop();return;}if(currentView==='map'&&(armed||dockFn)){armed=dockFn=null;weaveSel=[];weaveAsk=null;updateHint();syncDock();return;}if(currentView==='map')toggleMenu();return;}
   if(menuOpen||shopUI)return;
   if(e.target&&/^(INPUT|SELECT|TEXTAREA)$/.test(e.target.tagName))return; // typing in the Tune panel's filter
   if(e.code==='Backquote'||e.code==='KeyH'){document.body.classList.toggle('ui-hidden');neb({cmd:'ui',hidden:document.body.classList.contains('ui-hidden')});return;}
@@ -1636,7 +1646,7 @@ function curLights(X,Y){ // the cursor's own light, on what is near it on the ma
   if(SCENE||currentView!=='map'||mX<0||menuOpen||shopUI||!overScene())return[];const R=T.mapCursorLightR!=null?T.mapCursorLightR:170,d=Math.hypot(mX-X,mY-Y);if(d>=R)return[];return[[mX,mY-30,255,248,235,(T.mapCursorLightA!=null?T.mapCursorLightA:0.9)*(1-d/R),160]];}
 function shopTick(){if(SCENE&&!document.body.classList.contains('scene-shops'))return;
   document.body.classList.toggle('thru',!!armed||voidOpen);const box=document.getElementById('shops'),seen=new Set();
-  for(const s of shopList()){if(s.lit&&!disc.has('ev:shop_'+s.id))hubEvent('shop_'+s.id,[s.wx,s.wy]); // a shop is discovered the first time it opens
+  for(const s of shopList()){ // (a shop is discovered the first time you go in and see what it sells: shopOpen)
     const op=!!(shopUI&&shopUI.key===s.key),cv=shopSprite(s.id,s.bk,s.lit,s.yaw,op,s.soon);if(!cv)continue;/* (its doors open while its menu is) */seen.add(s.key);let el=shopEls[s.key];
     if(!el){el=shopEls[s.key]=document.createElement('div');el.className='shop';el.dataset.key=s.key;box.appendChild(el);
       let h=7;for(const ch of s.key)h=(h*31+ch.charCodeAt(0))>>>0;el._fl=`neon${h%4} ${(2.5+(h>>4)%60/10).toFixed(1)}s ${-((h>>10)%50)/10}s infinite`;} // its own flicker: which, how fast, where in it
@@ -1944,39 +1954,86 @@ function mpViewItems(){const v=document.getElementById('mpView');if(!v)return;le
 // ║  DOCK, FEED AND CURSOR — the surface's own slots, feed line and cursor       ║
 // ╚══════════════════════════════════════════════════════════════════════════════╝
 let icons={};const DUCK_ICO='<svg viewBox="0 0 22 22"><path fill="currentColor" d="M8 4a3.5 3.5 0 0 1 3.4 4.4L15 8l-2.2 2.2c2.6.2 5.2 1 6.2-1 .6 3.6-1.6 8.8-8 8.8-4.4 0-7-2.4-7-5.4 0-2 1.3-3.2 2.4-3.8A3.5 3.5 0 0 1 8 4z"/></svg>';const DOCK_ITEMS=['leash','dial','weave','key'];
+const dockValid=()=>SCENE?[]:currentView==='cabin'?['home','ovl','chest','sew','con']:['home','create','ovl','chest','sew','con'], // the dock's sets valid here (below deck there is nothing to plant or throw: no Creation tools)
+  dockRefresh=()=>syncDock();
 function syncDock(){const box=document.getElementById('hinv');if(!box)return;
-  const nw=k=>disc.has('sn:')&&ilNew('hk_'+k)?' isnew':''; // (a slot never yet used: new)
-  box.innerHTML=DOCK_ITEMS.map(k=>`<div class="slot${armed===k?' armed':''}${(inv[k]||0)<=0?' empty':nw(k)}" data-k="${k}" data-new="hk_${k}" title="${KIND_NAME[k]}">${icons[k]||KIND_NAME[k][0]}<b>${inv[k]||0}</b></div>`).join('')+
-    '<div class="sep"></div>'+['prism','knot','gate','lens'].filter(k=>(inv[k]||0)>0).map(k=>`<div class="slot empty" data-k="${k}" title="${KIND_NAME[k]} (earned)">${icons[k]||KIND_NAME[k][0]}<b>${inv[k]}</b></div>`).join('')+
-    (shopUI?'<div class="sep"></div>'+(shopUI.gift?['gift']:['bright','dim','neutron','magnetic','pulsing','duck']).map(c=>`<div class="slot${c===shopUI.tab?' wal':''}" data-k="${c}" title="${curName(c)}">${curIcon(c)}<b>${fmtN(shopWallet(c))}</b></div>`).join(''):''); // in a shop: every purse, the open tab's lit
-  if(!SCENE&&buoyKit&&buoyKit.slots.hull.slice(0,kitCounts(buoyKit).hull).some(id=>{const it=shopItem(id);return it&&it.fx.anchor;}))box.insertAdjacentHTML('afterbegin',`<div class="slot anchor${anchored()?' armed':''}" data-k="anchor" title="${txt(anchored()?'map.anchor.down':'map.anchor.up')}" onclick="anchorSet(!anchored())">⚓<b>${txt(anchored()?'map.anchor.down_s':'map.anchor.up_s')}</b></div>`); // the anchor: down (the tide holds off) or up
-  if(!SCENE&&WX_TYPES.some(wxOn))box.insertAdjacentHTML('afterbegin',`<div class="slot" data-k="wx" title="${wxName()}">${wxBliz()||wxSnow()?'❄':wxStorm()?'⛈':wxOn('rain')?'🌧':wxOn('fog')?'🌫':wxOn('wind')?'💨':wxOn('hot')?'☀':'🧊'}<b>${wxOn('wind')?'→↗↑←↙↓'.split('')[wxDir]:''}</b></div>`); // the weather
-  if(!SCENE&&(batteries||BATT_GEAR.some(g=>disc.has('up:'+g[0]))))box.insertAdjacentHTML('afterbegin',`<div class="slot${BATT_GEAR.some(g=>disc.has('up:'+g[0])&&!powered(g[0]))?' empty':''}" data-k="batt" title="${txt('map.batt.have',batteries)}">🔋<b>${batteries}</b></div>`); // your batteries
-  if(!SCENE&&recPlayer())box.insertAdjacentHTML('afterbegin',`<div class="slot rec${MUSIC.cur&&MUSIC.pref.on?' armed':''}" data-k="rec" title="${txt('map.rec.slot',MUSIC.cur?MUSIC.cur.n:txt('map.rec.off'))}" onclick="recordsOpen()">♪<b>${MUSIC.cur?txt('map.rec.on_s'):txt('map.rec.off_s')}</b></div>`); // the record player: your records
-  if(!SCENE)box.insertAdjacentHTML('afterbegin',`<div class="slot water${dry()?' empty':''}" data-k="drinks" title="${txt('map.water.slot',drinks,waterMax())}${bottle?' · '+txt('map.water.slot_bottle'):''}"><svg viewBox="0 0 22 22" width="18" height="18"><path d="M11 2C8 7 5 10.5 5 14a6 6 0 0 0 12 0c0-3.5-3-7-6-12z" fill="${bottle?'#9fe6ff':'currentColor'}" opacity=".9"/></svg><b>${drinks}${bottle?'+1':''}${fridge?' ❄'+fridge:''}</b></div><div class="sep"></div>`);{const w=box.querySelector('.slot.water');if(w)w.onclick=fridgeDrink;} // the fresh drinks barrel (and a bottle, drunk, waiting for your next move)
-  if(!SCENE&&(trashBag.length||seeds)){box.insertAdjacentHTML('beforeend','<div class="sep"></div>'+(trashBag.length?`<div class="slot${armed==='trash'?' armed':''}" data-k="trash" title="${txt('map.trash.slot',trashBag.length,txt('trash.'+trashBag[0].m))}">♻<b>${trashBag.length}</b></div>`:'')+(seeds?`<div class="slot${armed==='seed'?' armed':''}" data-k="seed" title="${txt('map.plant.seeds',seeds)}">🌱<b>${seeds}</b></div>`:''));for(const el of box.querySelectorAll('.slot[data-k="trash"],.slot[data-k="seed"]'))el.onclick=()=>armItem(el.dataset.k);} // your trash bag (oldest first) and seeds
-  box.insertAdjacentHTML('beforeend',`<div class="slot buoy${nw('buoy')}" data-k="buoy" data-new="hk_buoy" title="${txt('map.buoy.deck')}">${BUOY_ICO}</div>`);box.querySelector('.buoy').onclick=()=>currentView==='cabin'?cabinClose():cabinOpen(); // your buoy: below deck, or back up (its Status is the mirror there)
-  box.insertAdjacentHTML('beforeend',ilDockArrow(dockMin));
+  const nw=k=>disc.has('sn:')&&ilNew('hk_'+k)?' isnew':'',G=dockValid(),fnOn=k=>dockFn===k?' armed':''; // (a slot never yet used: new)
+  if(armed){const a=armed==='trash'||armed==='seed'?'create':Object.keys(DOCK_SETS).find(x=>DOCK_SETS[x].includes(armed));if(a)dockGroup=a;} // (what is in hand: its set shows)
+  if(G.length&&!G.includes(dockGroup))dockGroup='home';
+  const g=shopUI?'chest':dockGroup,on=x=>SCENE?x==='sew'||x==='con':g===x;let h=SCENE?'':dockTabs(G); // in a shop: your purses (a scene: the items, as they were)
+  if(on('home')){
+    if(currentView!=='cabin')h+=`<div class="slot${fnOn('zoom')}" data-k="zoom" data-fn="1" title="${txt('dock.zoom',viewZoom.toFixed(1))}"><svg viewBox="0 0 22 22" width="18" height="18"><circle cx="9.5" cy="9.5" r="5.5" fill="none" stroke="currentColor" stroke-width="1.8"/><path d="M14 14l5 5" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg><b>×${viewZoom.toFixed(1)}</b></div>`; // the view: in hand, the wheel zooms on the cursor
+    h+=`<div class="slot buoy${nw('buoy')}${fnOn('buoy')}" data-k="buoy" data-fn="1" data-new="hk_buoy" title="${txt('map.buoy.deck')}">${BUOY_ICO}</div>`; // your buoy: below deck, or back up (its Status is the mirror there)
+    h+=`<div class="slot water${dry()?' empty':''}${fnOn('drinks')}" data-k="drinks"${fridge&&!bottle?' data-fn="1"':''} title="${txt('map.water.slot',drinks,waterMax())}${bottle?' · '+txt('map.water.slot_bottle'):''}"><svg viewBox="0 0 22 22" width="18" height="18"><path d="M11 2C8 7 5 10.5 5 14a6 6 0 0 0 12 0c0-3.5-3-7-6-12z" fill="${bottle?'#9fe6ff':'currentColor'}" opacity=".9"/></svg><b>${drinks}${bottle?'+1':''}${fridge?' ❄'+fridge:''}</b></div>`; // the fresh drinks barrel (and a bottle, drunk, waiting for your next move)
+    if(recPlayer())h+=`<div class="slot rec${MUSIC.cur&&MUSIC.pref.on?' armed':''}${fnOn('rec')}" data-k="rec" data-fn="1" title="${txt('map.rec.slot',MUSIC.cur?MUSIC.cur.n:txt('map.rec.off'))}">♪<b>${MUSIC.cur?txt('map.rec.on_s'):txt('map.rec.off_s')}</b></div>`; // the record player: your records
+    if(batteries||BATT_GEAR.some(x=>disc.has('up:'+x[0])))h+=`<div class="slot${BATT_GEAR.some(x=>disc.has('up:'+x[0])&&!powered(x[0]))?' empty':''}" data-k="batt" title="${txt('map.batt.have',batteries)}">🔋<b>${batteries}</b></div>`; // your batteries
+    if(WX_TYPES.some(wxOn))h+=`<div class="slot" data-k="wx" title="${wxName()}">${wxBliz()||wxSnow()?'❄':wxStorm()?'⛈':wxOn('rain')?'🌧':wxOn('fog')?'🌫':wxOn('wind')?'💨':wxOn('hot')?'☀':'🧊'}<b>${wxOn('wind')?'→↗↑←↙↓'.split('')[wxDir]:''}</b></div>`; // the weather
+    if(buoyKit&&buoyKit.slots.hull.slice(0,kitCounts(buoyKit).hull).some(id=>{const it=shopItem(id);return it&&it.fx.anchor;}))h+=`<div class="slot anchor${anchored()?' armed':''}${fnOn('anchor')}" data-k="anchor" data-fn="1" title="${txt(anchored()?'map.anchor.down':'map.anchor.up')}">⚓<b>${txt(anchored()?'map.anchor.down_s':'map.anchor.up_s')}</b></div>`; // the anchor: down (the tide holds off) or up
+}
+  if(on('create'))h+=`<div class="slot${armed==='trash'?' armed':''}${trashBag.length?'':' empty'}" data-k="trash" title="${trashBag.length?txt('map.trash.slot',trashBag.length,txt('trash.'+trashBag[0].m)):txt('map.trash.none')}">♻<b>${trashBag.length}</b></div><div class="slot${armed==='seed'?' armed':''}${seeds?'':' empty'}" data-k="seed" title="${txt('map.plant.seeds',seeds)}">🌱<b>${seeds}</b></div>`; // the map's creation tools: your trash bag (oldest first) and seeds
+  if(on('ovl'))h+=ovlSlots();
+  if(on('chest'))h+=(shopUI&&shopUI.gift?['gift']:['bright','dim','neutron','magnetic','pulsing','duck']).map(c=>`<div class="slot${shopUI&&c===shopUI.tab?' wal':''}" data-k="${c}" title="${curName(c)}">${curIcon(c)}<b>${fmtN(shopWallet(c))}</b></div>`).join(''); // every purse (in a shop, the open tab's lit)
+  for(const x of['sew','con'])if(on(x))h+=DOCK_SETS[x].map(k=>`<div class="slot${armed===k?' armed':''}${(inv[k]||0)<=0||!DOCK_ITEMS.includes(k)?' empty':nw(k)}" data-k="${k}" data-new="hk_${k}" title="${KIND_NAME[k]}${DOCK_ITEMS.includes(k)?'':' (earned)'}">${icons[k]||KIND_NAME[k][0]}<b>${inv[k]||0}</b></div>`).join(''); // Sewing; Constellations (what is used on a surface only: earned here, never taken in hand)
+  box.innerHTML=h+ilDockArrow(dockMin);
+  const q=k=>box.querySelector('.slot[data-k="'+k+'"]'),click=(k,f)=>{const el=q(k);if(el)el.onclick=f;};
+  click('drinks',fridgeDrink);click('rec',recordsOpen);click('anchor',()=>anchorSet(!anchored()));click('zoom',()=>{dockFn=dockFn==='zoom'?null:'zoom';syncDock();});click('buoy',()=>currentView==='cabin'?cabinClose():cabinOpen());
+  for(const el of box.querySelectorAll('.slot.grp'))el.onclick=()=>{dockGroupSet(el.dataset.g);if(armed){armed=null;weaveSel=[];weaveAsk=null;updateHint();}syncDock();}; // a set clicked: it shows (what was in hand is put away)
+  for(const el of box.querySelectorAll('.slot.ovl'))el.onclick=()=>{ovlSet(el.dataset.m,!ovlGet(el.dataset.m));syncDock();};
   for(const k of [...DOCK_ITEMS,'prism','knot','gate','key','lens'])if((inv[k]||0)!==dockSeen[k]){if(dockSeen[k]!=null)dockUp[k]=performance.now();dockSeen[k]=inv[k]||0;} // a count that changed shows for a while
   dockLinger(performance.now());
-  for(const el of box.querySelectorAll('.slot'))if(DOCK_ITEMS.includes(el.dataset.k))el.onclick=()=>armItem(el.dataset.k);
+  for(const el of box.querySelectorAll('.slot'))if(DOCK_ITEMS.includes(el.dataset.k)||(el.dataset.k==='trash'&&trashBag.length)||(el.dataset.k==='seed'&&seeds))el.onclick=()=>armItem(el.dataset.k);
   box.querySelector('.dmin').onclick=()=>dockMinSet(!dockMin);
   const fd=document.getElementById('hfeed');if(weaveAsk){fd.innerHTML='<div class="fn">'+txt('map.weave.make')+' '+weaveAsk.map(k=>`<button data-k="${k}">${KIND_NAME[k]}</button>`).join('')+'</div><div class="fd">'+txt('map.weave.cost',weaveSel.length)+'</div>';for(const b of fd.querySelectorAll('button'))b.onclick=()=>makeConstellation(b.dataset.k);}
   else if(fd.querySelector('button'))fd.innerHTML='<div class="fn"></div><div class="fd"></div>';}
+// The wheel and the middle button (the dock's sets, shared.js): with nothing in hand the wheel goes through the sets; a middle click takes the next thing of the set shown in hand
+// (an item; in Home a function: the view, whose wheel then zooms, or one a click on the scene then uses; in Overlays, the next overlay). A right click lets it go
+function dockMiddle(){const g=dockGroup;if(g==='ovl')ovlCycle();else if(g==='home'){if(armed){armed=null;updateHint();}dockFnStep('#hinv');if(dockFn)feed(txt('dock.hand',itemInfo(dockFn)[0]),txt(dockFn==='zoom'?'dock.zoom_d':'dock.hint'),'hint');}
+  else{const L=g==='create'?['trash','seed'].filter(k=>k==='trash'?trashBag.length:seeds):(DOCK_SETS[g]||[]).filter(k=>DOCK_ITEMS.includes(k)&&(inv[k]||0)>0),n=L[(L.indexOf(armed)+1)%Math.max(1,L.length)];
+    if(currentView!=='map'||!n)feed(txt('dock.g.'+g),txt('dock.none'),'hint');else if(n!==armed)armItem(n);}
+  syncDock();}
+function dockFnUse(){const k=dockFn;if(!k||k==='zoom')return false;dockFn=null;({buoy:()=>currentView==='cabin'?cabinClose():cabinOpen(),drinks:fridgeDrink,rec:recordsOpen,anchor:()=>anchorSet(!anchored())}[k]||(()=>{}))();syncDock();return true;} // a click on the scene with one of Home's functions in hand: it is used (the view's stays in hand: its wheel zooms)
+document.addEventListener('mousedown',e=>{if(e.button!==1||SCENE||menuOpen||shopUI||currentView!=='map'&&currentView!=='cabin'||(e.target.closest&&e.target.closest('#tuneP,#mModes,input,select,textarea')))return;e.preventDefault();dockMiddle();});
+document.addEventListener('auxclick',e=>{if(e.button===1)e.preventDefault();});
+document.addEventListener('click',e=>{if(!dockFn||dockFn==='zoom'||menuOpen||shopUI||drag&&drag.moved||!(e.target===sc||currentView==='cabin'&&CABIN.cv&&e.target===CABIN.cv))return;e.stopPropagation();dockFnUse();},true);
 let dockMin=ilDockMin();document.body.classList.toggle('dock-min',dockMin);
 function dockMinSet(v,quiet){dockMin=ilDockMin(!!v);document.body.classList.toggle('dock-min',dockMin);dockUp.dmin=performance.now();for(const k of DOCK_ITEMS)dockUp[k]=performance.now();syncDock();if(!quiet)neb({cmd:'dockmin',v:dockMin});} // the feed put away or back: here and on the surface alike
 const dockUp={},dockSeen={}; // when each slot was last used or changed: in the reduced dock it stays up a while after (Dock linger ms)
 function dockLinger(now){const ms=T.mapDockLingerMs!=null?T.mapDockLingerMs:2500;for(const el of document.querySelectorAll('#hinv .slot')){const k=el.dataset.k;el.classList.toggle('up',armed===k||now-(dockUp[k]||-1e9)<ms);const f=dockFx[k],on=f&&now-f.at<1400;el.classList.toggle('gain',!!(on&&f.up));el.classList.toggle('spend',!!(on&&!f.up));}}
 function duckUnder(X,Y){let best=null,bd=1e9;for(const d of pond){if(!d._s)continue;const[px,py]=w2s(d.x,d.y),[sx,sy,k]=proj(px,py),r=d._s*k*0.9,dd=Math.hypot(X-sx,Y-sy);if(dd<r&&dd<bd){bd=dd;best=d;}}return best;}
+// What each overlay says of a thing on the map or below deck (ovlText shows the ones that are on): cls its name and kind, dyn what it is worth, tel how it moves and its state, rad what a click does and from how far, risk what can end it
+const ovlOf={left:()=>Math.max(0,Math.round((24-clock)/3)),deg:a=>Math.round(((a*180/Math.PI)%360+360)%360),
+  slot(k){if(k.slice(0,4)==='grp_')return{cls:txt('ovl.c.slot',txt('dock.g.'+k.slice(4)),txt('ovl.set')),rad:txt('dock.hint')};if(k.slice(0,4)==='ovl_')return{cls:txt('ovl.c.slot',txt('ovl.'+k.slice(4)),txt('dock.g.ovl')),tel:txt(ovlGet(k.slice(4))?'ovl.s.on':'ovl.s.off'),rad:txt('ovl.'+k.slice(4)+'_d'),risk:txt('ovl.r.inert')};
+    const purse=['bright','dim','neutron','magnetic','pulsing','duck','gift'].includes(k),g=Object.keys(DOCK_SETS).find(x=>DOCK_SETS[x].includes(k))||(k==='trash'||k==='seed'?'create':purse?'chest':'home'),I=itemInfo(k),n=k==='trash'?trashBag.length:k==='seed'?seeds:k==='drinks'?drinks:k==='batt'?batteries:g==='home'?null:shopWallet(k);
+    return{cls:txt('ovl.c.slot',I[0],txt('dock.g.'+g)),dyn:n==null?null:k==='drinks'?txt('ovl.have',n,waterMax()):txt('ovl.count',fmtN(n)),tel:txt(armed===k||dockFn===k?'ovl.s.hand':'ovl.s.rest'),rad:I[1]||I[0],risk:n==null?txt('ovl.r.inert'):n>0?txt('ovl.r.spent'):txt('ovl.r.none')};},
+  hex(c){const k=K(c.q,c.r),I=hexInfo(c),mine=k===K(pQ,pR),mv=!mine&&!tired()&&getMoves().some(m=>K(m.q,m.r)===k),p=plants[k];
+    return{cls:txt('ovl.c.hex',I[0],cellRing(c.q,c.r)),dyn:c.isVoid?null:c.cap?txt('ovl.v.cap',(c.capVal||0).toFixed(2)):txt('ovl.v.hex',c.v.toFixed(2),Math.round(cellCov(c)*100)),tel:txt('ovl.t.hex',hexD(c,here()),wxName()),
+      rad:armed?itemInfo(armed,c)[1]:mine&&!c.cap&&!c.isVoid&&c.v>0?txt('ovl.a.enter'):mv?txt('ovl.a.move'):txt('ovl.a.none'),risk:c.rift?txt('ovl.r.rift'):c.isVoid?txt('ovl.r.source'):p&&!p.bloom&&p.n<plantBloom()?txt('ovl.r.plant',plantBloom()):txt(c.cap?'ovl.r.kept':'ovl.r.midnight',this.left())};},
+  buoy(){const m=buoy.mv,C=buoyKit?kitCounts(buoyKit):null,on=C?KIT_SLOTS.reduce((n,x)=>n+buoyKit.slots[x].slice(0,C[x]).filter(Boolean).length,0):0,held=kitOn(f=>f.anchor||f.motor);
+    return{cls:txt('ovl.c.buoy',playerName||txt('map.buoy.name')),dyn:txt('ovl.v.buoy',fmtN(Math.round(score)),drinks,waterMax(),on),
+      tel:txt('ovl.t.buoy',currentView==='cabin'?txt('ovl.t.below'):m?txt('ovl.t.moving',Math.round(Math.hypot(m.x1-m.x0,m.y1-m.y0)/m.dur*1000)):txt('ovl.t.float'),txt(asleep?'ovl.t.asleep':anchored()?'ovl.t.anchor':tired()?'ovl.t.tired':dry()?'ovl.t.dry':'ovl.t.mobile'),Math.round((0.0045+buoy.spin)*60*180/Math.PI),this.deg(buoy.hd||0),pQ+','+pR,cellRing(pQ,pR)),
+      rad:txt(currentView==='cabin'?'ovl.a.up':'ovl.a.deck'),risk:held?txt('ovl.r.held'):txt('ovl.r.wreck',Math.round(wreckP()*100))};},
+  pond(d){const p=d.plant&&plants[d.plant],v=DUCK_TYPES[d.type]||{},nm=p?txt('map.plant.name',p.m?txt('trash.'+p.m):'—'):d.bottle?txt(d.empty?'map.bottle.empty':'map.bottle.full'):d.good?goodNameM(d.good):(v.name||d.type),[bx,by]=a2w(pQ,pR),near=p||d.flot?hexD(cells[d.plant||d.flot]||{q:99,r:99},here())<=1:Math.hypot(d.x-bx,d.y-by)<=HEX*2.2,rc=txt(near?'ovl.a.reach':'ovl.a.far');
+    return{cls:p?txt('ovl.c.plant',nm,plantStage(p)):txt(d.good||d.bottle?'ovl.c.good':'ovl.c.duck',nm),dyn:p?txt('ovl.v.plant',p.n,plantBloom(),fmtN(flowerDim(d.plant))):d.good||d.bottle?null:txt('ovl.v.duck',duckLog[d.type]||0),
+      tel:p||d.flot||!(d.sp>0.01)?txt('ovl.t.still'):txt('ovl.t.drift',Math.round(d.sp*60),this.deg(d.hd||0)),rad:p?txt(p.bloom?'ovl.a.pick':'ovl.a.feed',rc):d.good||d.bottle?txt('ovl.a.near',rc):txt('ovl.a.dunk'),risk:p&&!p.bloom&&p.n<plantBloom()?txt('ovl.r.plant',plantBloom()):txt('ovl.r.drift')};},
+  shop(key){const el=shopEls[key],x=el&&el._s;if(!x)return null;const S=SHOPS[x.id],I=shopInfo(key);return{cls:txt('ovl.c.shop',S.n,txt(S.street?'ovl.c.street':'ovl.c.popup')),dyn:txt('ovl.v.shop',x.rank||3,txt(x.lit?'ovl.v.open':'ovl.v.closed')),tel:txt('ovl.t.still'),rad:txt('ovl.a.shop',txt(shopHere(key)?'ovl.a.reach':'ovl.a.far')),risk:I[1]};},
+  cabin(id){const I=cabinInfo(id);return{cls:txt('ovl.c.cabin',I[0]),dyn:id==='ink'||id==='chest'?I[1]:null,tel:txt('ovl.t.room'),rad:txt(CABIN_DO[id]==='up'?'ovl.a.up':CABIN_DO[id]?'ovl.a.open':'ovl.a.look'),risk:txt('ovl.r.inert')};}};
+function ovlTargets(now){if(!showRadii||SCENE||currentView!=='map')return;const c=mctx,mv=tired()?[]:getMoves();c.save();c.setLineDash([4,5]);c.lineDashOffset=-now/60;c.lineWidth=1.5;c.strokeStyle='rgba(120,220,255,.85)'; // Targets, on the map: everything a click would act on now is ringed (the hexes you can move to or use what is in hand on, your own, your buoy, what on the lake is in reach)
+  for(const k in cells){const h=cells[k];if(!(armed?itemOK(k):k===K(pQ,pR)||mv.some(m=>K(m.q,m.r)===k)))continue;const[x,y]=w2s(...a2w(h.q,h.r));hexPath(x,y,HEX*0.86);c.stroke();}
+  const[bx,by]=a2w(pQ,pR);for(const d of pond){if(!d._s||!(d.plant||d.flot?hexD(cells[d.plant||d.flot]||{q:99,r:99},here())<=1:Math.hypot(d.x-bx,d.y-by)<=HEX*2.2))continue;const[x,y]=w2s(d.x,d.y);c.beginPath();c.arc(x,y,d._s*0.55,0,6.2832);c.stroke();}
+  {const[x,y]=w2s(buoy.x,buoy.y);c.beginPath();c.arc(x,y,HEX*0.45,0,6.2832);c.stroke();}c.restore();}
 function feedPop(){if(!dockMin)return;document.body.classList.add('feed-pop');clearTimeout(feedPop._t);feedPop._t=setTimeout(()=>{feedPop._t=0;if(!feedPop.hold)document.body.classList.remove('feed-pop');},3800);}
 function feedTick(now){{const dk=document.getElementById('hdock'),r=dk&&dk.getBoundingClientRect(),inF=dockMin&&r&&mX>=r.left&&mX<=r.right&&mY>=r.top-10&&mY<=innerHeight;feedPop.hold=inF;if(inF)document.body.classList.add('feed-pop');else if(dockMin&&!feedPop._t)document.body.classList.remove('feed-pop');} // (put away: pointing into its place below the items brings it up while you are there)
    // the feed: a recent message, else what the cursor is over (a duck, a hex), else what you can do now
   dockLinger(now);if(weaveAsk)return;const fd=document.getElementById('hfeed');if(!fd)return;const fn=fd.querySelector('.fn'),fdd=fd.querySelector('.fd');if(!fn)return;
   let a,b;const over=currentView==='map'&&!menuOpen?ptOver:null,onMap=over===sc;
   const du=onMap?duckUnder(mX,mY):null,hc=onMap&&hQ!==null?cells[K(hQ,hR)]:null;
-  const slot=over&&over.closest&&over.closest('#hinv .slot');
+  const slot=ptOver&&ptOver.closest&&ptOver.closest('#hinv .slot'),sh=onMap&&!slot?shopAt(mX,mY):null,bu=onMap&&!sh&&!SCENE&&buoyHit(mX,mY);
+  {let fo=fd.querySelector('.fo');if(!fo){fo=document.createElement('div');fo.className='fo';fd.appendChild(fo);}const nOn=SCENE?0:OVL.filter(([m])=>ovlGet(m)).length;fo.style.display=nOn?'':'none';fo.style.height=12*Math.ceil(nOn*0.6)+'px';fd.style.minWidth=nOn?'min(92vw,760px)':''; /* (its room is kept while any overlay is on, whatever it says: the dock never shifts under the cursor) */ // what the overlays that are on say of what the cursor is over (shared.js ovlText): a slot, a shop, your buoy, anything on the lake, a hex; below deck, what is pointed at
+    const o=!(telemetryOn||dynamicsOn||classOn||showRadii||risksOn)||menuOpen||shopUI?null:slot?ovlOf.slot(slot.dataset.k):currentView==='cabin'?(CABIN.hov?ovlOf.cabin(CABIN.hov):null):sh?ovlOf.shop(sh.dataset.key):bu?ovlOf.buoy():du?ovlOf.pond(du):hc?ovlOf.hex(hc):null,t=ovlText(o);if(fo.textContent!==t)fo.textContent=t;}
   if(now-feedMsg.at<3500){a=feedMsg.t;b=feedMsg.d;}
   else if(slot){[a,b]=itemInfo(slot.dataset.k);}
+  else if(bu&&!shopUI){a=txt('map.buoy.name')+(playerName?' · '+playerName:'');b=txt('map.buoy.deck');}
+  else if(du&&du.plant&&plants[du.plant]&&plants[du.plant].bloom&&!shopUI){const k=du.plant;a=txt('map.plant.flower',txt('trash.'+(plants[k].m||'paper')));b=txt(hexD(cells[k],here())<=1?'map.plant.pick':'map.plant.pick_far',fmtN(flowerDim(k)));}
   else if(shopUI){[a,b]=shopHover||[shopUI.id?SHOPS[shopUI.id].n:txt(shopUI.records?'map.rec.title':'map.cat.drawer'),shopUI.exit||!shopUI.id?'':txt('map.shop.point')];}
   else if(onMap&&shopAt(mX,mY)){[a,b]=shopInfo(shopAt(mX,mY).dataset.key);}
   else if(du&&du.bottle){a=txt(du.empty?'map.bottle.empty':'map.bottle.full');b=txt(du.empty?'map.bottle.emptyinfo':'map.bottle.fullinfo');}
