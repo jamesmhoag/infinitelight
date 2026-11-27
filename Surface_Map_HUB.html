@@ -26,8 +26,8 @@ body.dock-min:not(.shop-open) #hinv .slot:not(.up):not(:hover)>*,body.dock-min:n
 #hinv .slot.armed::before{background:rgba(255,220,120,0.28);border-color:rgba(255,220,120,0.8)}#hinv .slot.empty{opacity:0.4}
 #hinv .slot svg{width:18px;height:18px;color:#fff}#hinv .slot b{font-weight:400;margin-top:1px}#hinv .sep{width:6px}
 #hfeed.flash{animation:feedFlash .6s ease-out}@keyframes feedFlash{0%{background:rgba(255,255,255,.35)}100%{background:rgba(0,0,0,.6)}} /* the feed flashes: why that click did nothing */
-#hfeed .fo{font-size:9px;line-height:12px;color:#9fd8ff;white-space:normal;overflow:hidden}
-#hfeed{font:12px monospace;text-align:center;min-width:420px;min-height:30px;color:#fff;background:rgba(0,0,0,0.6);padding:3px 14px;display:flex;flex-direction:column;justify-content:center}
+#ovtip{position:fixed;z-index:60;pointer-events:none;display:none;font:10px/13px monospace;color:#e8f4ff;background:rgba(8,12,22,.78);border:1px solid rgba(160,215,255,.35);border-radius:5px;padding:4px 7px;max-width:300px;white-space:normal;text-align:left}#ovtip i{font-style:normal;color:#9fd8ff;margin-right:3px}
+#hfeed{font:12px monospace;text-align:center;min-width:420px;height:30px;color:#fff;background:rgba(0,0,0,0.6);padding:3px 14px;display:flex;flex-direction:column;justify-content:center}
 #hfeed .fn{line-height:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}#hfeed .fd{font-size:9px;line-height:11px;opacity:0.62;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 #hfeed button{font:11px monospace;margin:0 4px;padding:1px 8px;background:rgba(255,220,120,0.2);border:1px solid rgba(255,220,120,0.7);color:#fff;border-radius:3px}
 #bottom-bar{bottom:76px}#legend{bottom:76px}
@@ -173,7 +173,7 @@ body.shop-open #hdock{z-index:59}#hinv .slot.wal::before{border-color:rgba(255,2
 <div id="veil"></div>
 <div id="bfx"></div>
 <iframe id="neb" data-tt="map.ui.surface"></iframe>
-<script src="content.js?v=20261127e"></script><script src="shared.js?v=20261127e"></script><script src="cabin.js?v=20261127e"></script><script src="music.js?v=20261127e"></script>
+<script src="content.js?v=20261127f"></script><script src="shared.js?v=20261127f"></script><script src="cabin.js?v=20261127f"></script><script src="music.js?v=20261127f"></script>
 <script>
 // ╔══════════════════════════════════════════════════════════════════════════════╗
 // ║  MAP ENGINE                                                                 ║
@@ -192,7 +192,7 @@ let playLog=[],clock=3,day=1,pool=6,burstFx=null,dayLog=[],dayCnt={b:0,d:0},pend
 // // clock: the hour (3 = Twilight … 24 = Midnight, the day's last turn); day: your attempts; pool: what the source put out at its last burst; fresh: no ring added yet since it
 let constel=[],armed=null,weaveSel=[],weaveAsk=null,clearFx={},mergeFx=[],feedMsg={t:'',d:'',at:-1e9}; // constellations {keys,type}; the armed map item; a Weave being drawn; animations; the final count
 const STEP_H=3; // the day: eight turns of three hours
-const CACHE_V='20261127e'; // the build: bump with shared.js's
+const CACHE_V='20261127f'; // the build: bump with shared.js's
 // The map's chance is seeded: every Math.random on this page comes from one generator whose state (_rs) is part of the map's state, kept in every keyframe of a recording (mapKey).
 // A recording played again starts from the same state and takes the same steps (below), so chance falls as it fell: the ducks swim where they swam
 let _rs=(Date.now()^Math.round(performance.now()*1000))>>>0;Math.random=()=>{_rs=(_rs+0x6D2B79F5)>>>0;let t=_rs;t=Math.imul(t^t>>>15,t|1);t^=t+Math.imul(t^t>>>7,t|61);return((t^t>>>14)>>>0)/4294967296;};
@@ -510,7 +510,9 @@ function seedOK(k){const c=cells[k];return!!(c&&seeds>0&&c.cap&&c.kind==='dark'&
 function plantSeed(k){if(!seedOK(k)){hexTap(k);return;}seeds--;plants[k]={m:null,n:0};jot('seed');plantSync();feed(txt('map.plant.seed'),txt('map.plant.seed_d',plantBloom()));if(!seeds&&armed==='seed')armed=null;updateHint();syncDock();saveMap();}
 function plantSync(){for(const k in plants){if(!cells[k]){delete plants[k];continue;}if(plants[k].n&&!pond.some(d=>d.plant===k)){const[x,y]=a2w(cells[k].q,cells[k].r);pond.push({type:plantType(plants[k]),plant:k,x,y,hd:Math.random()*6.28,sp:0,cur:0,next:1e15,born:performance.now(),seen:true,lastRip:0,ph:0});}}} // each growing plant stands on its hex (drawn as the lake's ducks and goods are)
 const flowerDim=k=>{const t=plantTier(k),v=t===3?T.mapFlowerDim3:t===2?T.mapFlowerDim2:T.mapFlowerDim;return Math.round(v!=null?v:[50000,500000,5000000][t-1]);}; // what a flower pays, by the size of the Dark Remnant its seed went in (one hex, a merged three, a merged hex of seven): each its own tuner
-function plantPick(k){const p=plants[k],c=cells[k];if(!p||!p.bloom||!c||hexD(c,here())>1)return false;const n=flowerDim(k),m=txt('trash.'+(p.m||'paper')); // a flower picked from a hex beside you, by hand (no trash can: that is for making one): it pays its Dim
+let pickFx=[]; // flowers that reached your buoy: each a burst of orange sparks, fading (as Dim collected on a surface)
+function pickFxDraw(c2,now){pickFx=pickFx.filter(f=>now-f.t<650);for(const f of pickFx){const u=(now-f.t)/650,[X,Y]=w2s(f.x,f.y);for(let i=0;i<16;i++){const a=i/16*6.2832+f.a,r=HEX*(0.12+0.5*u*(0.7+0.3*Math.sin(i*5.1)));c2.fillStyle=`rgba(255,${150+Math.round(60*Math.sin(i*2.3)**2)},60,${(0.95*(1-u)*(1-u)).toFixed(3)})`;c2.beginPath();c2.arc(X+Math.cos(a)*r,Y+Math.sin(a)*r,HEX*0.045*(1-u*0.6),0,6.2832);c2.fill();}}}
+function plantPick(k){const p=plants[k],c=cells[k];if(!p||!p.bloom||p.pick||!c||hexD(c,here())>1)return false;const n=flowerDim(k),m=txt('trash.'+(p.m||'paper')); // a flower picked from a hex beside you, by hand (no trash can: that is for making one): it pays its Dim
   neb({cmd:'award',kind:'dim',n});feed(txt('map.plant.picked',m),txt('map.plant.picked_d',fmtN(n)));return true;}
 function plantsMidnight(){const out=[],h=here();for(const k in plants){const p=plants[k];if(p.n<plantBloom()&&!p.bloom)continue;p.bloom=1; /* (a bud short of its trash: it falls in with the spill) */const t=plantTier(k),pick=plantPick(k); // (beside you as it blooms: picked there and then)
     out.push({m:p.m,t,k,picked:pick?1:0});jot('bloom',{m:p.m,picked:pick?1:0});}
@@ -575,7 +577,7 @@ const ITEM_NOTE={leash:txt('map.unwinds_a_cleared_hex'),dial:txt('map.goes_strai
   knot:txt('map.used_on_a_surface_2'),gate:txt('map.used_on_a_surface_3'),
   key:txt('map.key_note'),lens:txt('map.used_on_a_surface_5')};
 function itemInfo(k,c){ // an item in the dock: what it does; in hand over a hex, what it would do there (and what it costs)
-  if(k.slice(0,4)==='grp_')return[txt('dock.g.'+k.slice(4)),txt('dock.g.'+k.slice(4)+'_d')+' · '+txt('dock.hint')];if(k.slice(0,4)==='ovl_')return[txt('ovl.'+k.slice(4)),txt('ovl.'+k.slice(4)+'_d')];if(k==='zoom')return[txt('dock.zoom',viewZoom.toFixed(1)),txt('dock.zoom_d')];if(k==='guide')return[txt('dock.journal'),evTodo()?txt('ev.review',evTodo()):txt('surf.rules_the_object_map')]; // the dock's sets, overlays, view and Journal
+  if(k.slice(0,4)==='grp_')return[txt('dock.g.'+k.slice(4)),txt('dock.g.'+k.slice(4)+'_d')+' · '+txt('dock.hint')];if(k.slice(0,4)==='ovl_')return[txt('ovl.'+k.slice(4)),txt('ovl.'+k.slice(4)+'_d')];if(k==='guide')return[txt('dock.journal'),evTodo()?txt('ev.review',evTodo()):txt('surf.rules_the_object_map')]; // the dock's sets, overlays, view and Journal
   if(['drinks','rec','batt','wx','anchor','dmin'].includes(k)){const el=document.querySelector('#hinv .slot[data-k="'+k+'"]');return[(el&&(el.title||el.dataset.more))||k,k==='dmin'?'':txt('dock.g.home_d')];} // (Home's own: what each says of itself)
   if(k==='buoy')return[txt('map.buoy.deck'),txt('map.buoy.deck_d')];if(k==='trash'||k==='seed')return plantInfo(k,c);if(k==='test')return[txt('test.tool'),txt('test.tool_hint')]; // the test tool in hand
   const n=inv[k]||0,nm=KIND_NAME[k]||k;if(!ITEM_NOTE[k])return[curName(k),txt('map.you_have',fmtN(shopWallet(k)))];
@@ -964,7 +966,7 @@ function mapRender(){
   mctx.restore();
   // Direction line
   if(hoverMove&&phase!=='gameover'){const pts=[{q:pQ,r:pR},...hoverMove.path,{q:hoverMove.q,r:hoverMove.r}];mctx.beginPath();for(let i=0;i<pts.length;i++){const[sx,sy]=w2s(...a2w(pts[i].q,pts[i].r));if(!i)mctx.moveTo(sx,sy);else mctx.lineTo(sx,sy);}mctx.strokeStyle='rgba(0,210,210,0.6)';mctx.lineWidth=1.5;mctx.setLineDash([5,4]);mctx.stroke();mctx.setLineDash([]);const[dx,dy]=w2s(...a2w(hoverMove.q,hoverMove.r));mctx.beginPath();mctx.arc(dx,dy,3.5,0,Math.PI*2);mctx.fillStyle='rgba(0,220,220,0.7)';mctx.fill();}
-  ovlTargets(now);
+  ovlTargets(now);pickFxDraw(mctx,now);
   mapEvDraw(mctx,now,'map');
   hubPh('overlays');requestPreviews(mapNeed);hubPh('previews');pondStep(now);if(!SCENE||REPLAY){buoyStep(now,1);buoyPlane(now);}hubPh('ducks');sceneRender(now);buoyBeam(now);fireworksDraw(now);hubPh('3d');
   // HUD
@@ -989,10 +991,8 @@ const overScene=()=>ptOver===sc||!!(ptOver&&ptOver.closest&&!ptOver.closest('but
 sc.addEventListener('mousemove',e=>{if(currentView==='map')[hQ,hR]=evA(e);});
 document.addEventListener('mousemove',e=>{mX=e.clientX;mY=e.clientY;},true);document.addEventListener('mousedown',()=>{mDownAt=performance.now();},true);document.addEventListener('mouseup',()=>{mUpAt=performance.now();mDownAt=-1;},true);
 window.addEventListener('wheel',e=>{if(currentView!=='map'&&currentView!=='cabin'||menuOpen||shopUI||(e.target.closest&&e.target.closest('#tuneP,#mModes')))return;e.preventDefault();
-  if(currentView==='map'&&(SCENE||dockFn==='zoom')){zoomUser(Math.exp(-e.deltaY*0.0015),e.clientX,e.clientY);if(!SCENE){const b=document.querySelector('#hinv .slot[data-k="zoom"] b');if(b)b.textContent='×'+viewZoom.toFixed(1);}return;} // the view in hand (Home; a middle click takes it): the wheel zooms on the cursor
-  if(armed||dockFn||!dockGroupStep(e.deltaY>0?1:-1,dockValid()))return; // (anything else in hand keeps the wheel) nothing in hand: the dock's next set, or the one before
-  feed(txt('dock.g.'+dockGroup),txt('dock.g.'+dockGroup+'_d'),'hint');syncDock();},{passive:false});
-sc.addEventListener('contextmenu',e=>{e.preventDefault();if(currentView!=='map')return;if(armed||dockFn){armed=dockFn=null;weaveSel=[];weaveAsk=null;updateHint();syncDock();}else focusCam(true);}); // right-click puts down what is in hand (an item, or one of Home's functions), else takes the view back to your hex
+  if(currentView==='map')zoomUser(Math.exp(-e.deltaY*0.0015),e.clientX,e.clientY);},{passive:false}); // the wheel zooms on the cursor, always
+sc.addEventListener('contextmenu',e=>{e.preventDefault();if(currentView!=='map'&&currentView!=='cabin'||menuOpen||shopUI)return;if(armed||dockFn){armed=dockFn=null;weaveSel=[];weaveAsk=null;updateHint();syncDock();}else if(dockGroupStep(1,dockValid())){feed(txt('dock.g.'+dockGroup),txt('dock.g.'+dockGroup+'_d'),'hint');syncDock();}}); // right-click puts down what is in hand (an item, or one of Home's functions), else goes to the dock's next set (the Home key takes the view back to your hex)
 let drag=null; // a left-button drag pans the map
 function panCam(dx,dy){if(dive||camTween)return;hubLearn('hubview');buoy.follow=false; // (you took the view; a scene's own camera move cannot be taken)
   const x=camTX+dx,y=camTY+dy;camX+=x-camTX;camY+=y-camTY;camTX=x;camTY=y;camV.x=camV.y=0;camFrame();} // (camFrame keeps the view on the spill)
@@ -1048,9 +1048,10 @@ document.addEventListener('click',e=>{if(currentView!=='map'||menuOpen||shopUI||
 document.addEventListener('click',e=>{ // a lake duck clicked (even under a read-out like the legend): dunked, it comes back up — and the click goes no further
   if(drag&&drag.moved)return;if(currentView!=='map'||menuOpen||shopUI||!(e.target===sc||(e.target.closest&&!e.target.closest('button,.slot,.shop,input,select,#hdock,#tuneP,#mModes,#shop,#menu,#day-report,#letter,#nameAsk'))))return;
   if(!SCENE&&buoyHit(e.clientX,e.clientY)){e.stopPropagation();cabinOpen();return;} // your buoy: down its hatch, below deck (cabin.js), where Status and your collections open from what is in the cabin
-  const du=duckUnder(e.clientX,e.clientY);if(!du||du.dunk)return;e.stopPropagation();if(du.bottle&&!du.empty){openBottle(du);return;}if(du.good&&!du.good.open&&du.flot&&hexD(cells[du.flot],here())>1){feed(goodNameM(du.good),txt('good.ring_far'),'no');return;}if(du.good&&!du.good.open&&!TRASH_ONLY.includes(du.good.kind)){openLakeGood(du);return;}if(du.good&&lakeTrash(du))return;if(du.plant){const p=plants[du.plant];if(p&&p.bloom){const k=du.plant,[x,y]=a2w(cells[k].q,cells[k].r);if(plantPick(k)){jot('bloom',{m:p.m,picked:1});delete plants[k];splashes.push({x,y,t:performance.now(),n:8,a:0});updateHint();saveMap();}else feed(txt('map.plant.flower',txt('trash.'+(p.m||'paper'))),txt('map.plant.pick_far',fmtN(flowerDim(k))),'no');return;} /* a flower: picked from beside it */feed(txt('map.plant.name',p&&p.m?txt('trash.'+p.m):'—'),txt('map.plant.stat',p?p.n:0,plantBloom()));return;}
+  const du=duckUnder(e.clientX,e.clientY);if(!du||du.dunk)return;e.stopPropagation();if(du.bottle&&!du.empty){openBottle(du);return;}if(du.good&&!du.good.open&&du.flot&&hexD(cells[du.flot],here())>1){feed(goodNameM(du.good),txt('good.ring_far'),'no');return;}if(du.good&&!du.good.open&&!TRASH_ONLY.includes(du.good.kind)){openLakeGood(du);return;}if(du.good&&lakeTrash(du))return;if(du.plant){const p=plants[du.plant];if(p&&p.pick)return;if(p&&p.bloom){const k=du.plant,[x,y]=a2w(cells[k].q,cells[k].r);if(plantPick(k)){jot('bloom',{m:p.m,picked:1});p.pick=performance.now();updateHint();}else feed(txt('map.plant.flower',txt('trash.'+(p.m||'paper'))),txt('map.plant.pick_far',fmtN(flowerDim(k))),'no');return;} /* a flower: picked from beside it */feed(txt('map.plant.name',p&&p.m?txt('trash.'+p.m):'—'),txt('map.plant.stat',p?p.n:0,plantBloom()));return;}
   du.dunk=performance.now();ripples.push({x:du.x,y:du.y,t:du.dunk,dk:onWhite(du.x,du.y),big:1});neb({cmd:'quack',type:du.type,v:1});},true);
 document.addEventListener('keydown',e=>{if(currentView==='cabin'){if(e.key==='Escape'){e.preventDefault();cabinClose();}return;} // below deck: Esc climbs back up
+  if(e.key==='Home'&&currentView==='map'&&!menuOpen&&!shopUI){e.preventDefault();focusCam(true);return;} // Home: the view back to your hex
   if(document.getElementById('nameAsk').classList.contains('show'))return; // naming your buoy: Enter sets it
   if(e.code==='Escape'){e.preventDefault();if(letter){closeLetter();return;}if(shopUI){closeShop();return;}if(currentView==='map'&&(armed||dockFn)){armed=dockFn=null;weaveSel=[];weaveAsk=null;updateHint();syncDock();return;}if(currentView==='map')toggleMenu();return;}
   if(menuOpen||shopUI)return;
@@ -1273,7 +1274,9 @@ function pondStep(now){
   if(cw&&_cwPrev&&now>_cwPrev.t){const dx=cw[0]-_cwPrev.x,dy=cw[1]-_cwPrev.y;cv=Math.hypot(dx,dy)/(now-_cwPrev.t);ca=Math.atan2(dy,dx);}_cwPrev=cw?{x:cw[0],y:cw[1],t:now}:null;_cvLast=cv/(T.mapDuckBumpV||0.35);
   goodsSpawn(now);
   pond=pond.filter(d=>{
-    if(d.plant){const p=plants[d.plant],c=cells[d.plant];if(!p||!c)return false;const[x,y]=a2w(c.q,c.r);d.x=x;d.y=y;d.type=plantType(p);d._s=HEX*(T.mapPlantScale!=null?T.mapPlantScale:0.9);d._sink=0;return true;} // a recycling plant on its hex
+    if(d.plant){const p=plants[d.plant],c=cells[d.plant];if(!p||!c)return false;const[x,y]=a2w(c.q,c.r),u=p.pick?(now-p.pick)/(T.mapPickMs||650):0,e=u*u*(3-2*u); // a recycling plant on its hex; its flower picked, it shrinks away to your buoy and bursts there in sparks (pickFx)
+      if(p.pick&&(u>=1||u<0)){delete plants[d.plant];pickFx.push({x:buoy.x,y:buoy.y,t:now,a:Math.random()*6.28});ripples.push({x:buoy.x,y:buoy.y,t:now,dk:onWhite(buoy.x,buoy.y)});saveMap();return false;}
+      d.x=x+(buoy.x-x)*e;d.y=y+(buoy.y-y)*e;d.type=plantType(p);d._s=HEX*(T.mapPlantScale!=null?T.mapPlantScale:0.9)*(1-0.85*e);d._sink=0;return true;}
     if(d.good&&d.good.kind==='sign')d.type=goodTypeM(d.good); // a sign on the lake: lit and blinking while its shop is open
     if(d.flot){const c=cells[d.flot];if(!c||!c.flot){if(d.good.give&&!d.good.open){delete d.flot;d.burn=now;return true;}return false;} /* (its hex fell in, an order on it: it sinks, lost) */const[x,y]=a2w(c.q,c.r);d.x+=(x-d.x)*0.04*dt;d.y+=(y-d.y)*0.04*dt;d.hd+=0.002*dt;d._s=HEX*0.62*(T.mapGoodScale||0.7)*(d.good.id?(T.mapOrderScale||0.5):1); /* (an order: about your buoy's size, box and preserver together) */return true;} // flotsam on its hex: it drifts to it, turning slowly
     if(d.burn){const u=(now-d.burn)/(T.mapChestBurnMs||2600);d._sink=Math.min(1,u)*0.8;d.fade=Math.max(0,1-u);if(u>=1)return false;if(Math.random()<0.3)splashes.push({x:d.x,y:d.y,t:now,n:2,a:Math.random()*6.28});d._s=HEX*0.62*(T.mapGoodScale||0.7);return true;} // an emptied chest: it sinks and burns away as a crate does
@@ -2022,7 +2025,6 @@ function syncDock(){const box=document.getElementById('hinv');if(!box)return;
   if(G.length&&!G.includes(dockGroup))dockGroup='home';
   const g=shopUI?'chest':dockGroup,on=x=>SCENE?x==='sew'||x==='con':g===x;let h=SCENE?'':dockTabs(G); // in a shop: your purses (a scene: the items, as they were)
   if(on('home')){
-    if(currentView!=='cabin')h+=`<div class="slot${fnOn('zoom')}" data-k="zoom" data-fn="1" title="${txt('dock.zoom',viewZoom.toFixed(1))}"><svg viewBox="0 0 22 22" width="18" height="18"><circle cx="9.5" cy="9.5" r="5.5" fill="none" stroke="currentColor" stroke-width="1.8"/><path d="M14 14l5 5" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg><b>×${viewZoom.toFixed(1)}</b></div>`; // the view: in hand, the wheel zooms on the cursor
     h+=`<div class="slot buoy${nw('buoy')}${fnOn('buoy')}" data-k="buoy" data-fn="1" data-new="hk_buoy" title="${txt('map.buoy.deck')}">${BUOY_ICO}</div>`; // your buoy: below deck, or back up (its Status is the mirror there)
     {const n=evTodo();h+=`<div class="slot${n?' todo':''}${fnOn('guide')}" data-k="guide" data-fn="1"><svg width="18" height="18" viewBox="0 0 16 16"><circle cx="8" cy="8" r="7" fill="none" stroke="currentColor" stroke-width="1.3"/><rect x="7.2" y="7" width="1.6" height="5" fill="currentColor"/><circle cx="8" cy="4.6" r="1" fill="currentColor"/></svg><b>${n?'✦'+n:''}</b></div>`;} // your Journal: how many events there are to review (it opens at the first)
     h+=`<div class="slot water${dry()?' empty':''}${fnOn('drinks')}" data-k="drinks"${fridge&&!bottle?' data-fn="1"':''} title="${txt('map.water.slot',drinks,waterMax())}${bottle?' · '+txt('map.water.slot_bottle'):''}"><svg viewBox="0 0 22 22" width="18" height="18"><path d="M11 2C8 7 5 10.5 5 14a6 6 0 0 0 12 0c0-3.5-3-7-6-12z" fill="${bottle?'#9fe6ff':'currentColor'}" opacity=".9"/></svg><b>${drinks}${bottle?'+1':''}${fridge?' ❄'+fridge:''}</b></div>`; // the fresh drinks barrel (and a bottle, drunk, waiting for your next move)
@@ -2037,7 +2039,7 @@ function syncDock(){const box=document.getElementById('hinv');if(!box)return;
   for(const x of['sew','con'])if(on(x))h+=DOCK_SETS[x].map(k=>`<div class="slot${armed===k?' armed':''}${(inv[k]||0)<=0||!DOCK_ITEMS.includes(k)?' empty':nw(k)}" data-k="${k}" data-new="hk_${k}" title="${KIND_NAME[k]}${DOCK_ITEMS.includes(k)?'':' (earned)'}">${icons[k]||KIND_NAME[k][0]}<b>${inv[k]||0}</b></div>`).join(''); // Sewing; Constellations (what is used on a surface only: earned here, never taken in hand)
   box.innerHTML=h+ilDockArrow(dockMin);
   const q=k=>box.querySelector('.slot[data-k="'+k+'"]'),click=(k,f)=>{const el=q(k);if(el)el.onclick=f;};
-  click('guide',journalOpen);click('drinks',fridgeDrink);click('rec',recordsOpen);click('anchor',()=>anchorSet(!anchored()));click('zoom',()=>{dockFn=dockFn==='zoom'?null:'zoom';syncDock();});click('buoy',()=>currentView==='cabin'?cabinClose():cabinOpen());
+  click('guide',journalOpen);click('drinks',fridgeDrink);click('rec',recordsOpen);click('anchor',()=>anchorSet(!anchored()));click('buoy',()=>currentView==='cabin'?cabinClose():cabinOpen());
   for(const el of box.querySelectorAll('.slot.grp'))el.onclick=()=>{dockGroupSet(el.dataset.g);if(armed){armed=null;weaveSel=[];weaveAsk=null;updateHint();}syncDock();}; // a set clicked: it shows (what was in hand is put away)
   for(const el of box.querySelectorAll('.slot.ovl'))el.onclick=()=>{ovlSet(el.dataset.m,!ovlGet(el.dataset.m));syncDock();};
   for(const k of [...DOCK_ITEMS,'prism','knot','gate','key','lens'])if((inv[k]||0)!==dockSeen[k]){if(dockSeen[k]!=null)dockUp[k]=performance.now();dockSeen[k]=inv[k]||0;} // a count that changed shows for a while
@@ -2046,40 +2048,44 @@ function syncDock(){const box=document.getElementById('hinv');if(!box)return;
   box.querySelector('.dmin').onclick=()=>dockMinSet(!dockMin);
   const fd=document.getElementById('hfeed');if(weaveAsk){fd.innerHTML='<div class="fn">'+txt('map.weave.make')+' '+weaveAsk.map(k=>`<button data-k="${k}">${KIND_NAME[k]}</button>`).join('')+'</div><div class="fd">'+txt('map.weave.cost',weaveSel.length)+'</div>';for(const b of fd.querySelectorAll('button'))b.onclick=()=>makeConstellation(b.dataset.k);}
   else if(fd.querySelector('button'))fd.innerHTML='<div class="fn"></div><div class="fd"></div>';}
-// The wheel and the middle button (the dock's sets, shared.js): with nothing in hand the wheel goes through the sets; a middle click takes the next thing of the set shown in hand
-// (an item; in Home a function: the view, whose wheel then zooms, or one a click on the scene then uses; in Overlays, the next overlay). A right click lets it go
+// The right and the middle button (the dock's sets, shared.js): a right click with nothing in hand goes to the next set; a middle click takes the next thing of the set shown in hand
+// (an item; in Home a function, which a click on the scene then uses; in Overlays, the next overlay). A right click with something in hand lets it go. The wheel zooms, as ever
 function journalOpen(){if(currentView==='cabin')currentView='map';openGuide();} // (as the Journal on the desk below deck opens it)
-function dockMiddle(){const g=dockGroup;if(g==='ovl')ovlCycle();else if(g==='home'){if(armed){armed=null;updateHint();}dockFnStep('#hinv');if(dockFn)feed(txt('dock.hand',itemInfo(dockFn)[0]),txt(dockFn==='zoom'?'dock.zoom_d':'dock.hint'),'hint');}
+function dockMiddle(){const g=dockGroup;if(g==='ovl')ovlCycle();else if(g==='home'){if(armed){armed=null;updateHint();}dockFnStep('#hinv');if(dockFn)feed(txt('dock.hand',itemInfo(dockFn)[0]),txt('dock.hint'),'hint');}
   else{const L=g==='create'?['trash','seed'].filter(k=>k==='trash'?trashBag.length:seeds):(DOCK_SETS[g]||[]).filter(k=>DOCK_ITEMS.includes(k)&&(inv[k]||0)>0),n=L[(L.indexOf(armed)+1)%Math.max(1,L.length)];
     if(currentView!=='map'||!n)feed(txt('dock.g.'+g),txt('dock.none'),'hint');else if(n!==armed)armItem(n);}
   syncDock();}
-function dockFnUse(){const k=dockFn;if(!k||k==='zoom')return false;dockFn=null;({guide:journalOpen,buoy:()=>currentView==='cabin'?cabinClose():cabinOpen(),drinks:fridgeDrink,rec:recordsOpen,anchor:()=>anchorSet(!anchored())}[k]||(()=>{}))();syncDock();return true;} // a click on the scene with one of Home's functions in hand: it is used (the view's stays in hand: its wheel zooms)
+function dockFnUse(){const k=dockFn;if(!k)return false;dockFn=null;({guide:journalOpen,buoy:()=>currentView==='cabin'?cabinClose():cabinOpen(),drinks:fridgeDrink,rec:recordsOpen,anchor:()=>anchorSet(!anchored())}[k]||(()=>{}))();syncDock();return true;} // a click on the scene with one of Home's functions in hand: it is used (the view's stays in hand: its wheel zooms)
 document.addEventListener('mousedown',e=>{if(e.button!==1||SCENE||menuOpen||shopUI||currentView!=='map'&&currentView!=='cabin'||(e.target.closest&&e.target.closest('#tuneP,#mModes,input,select,textarea')))return;e.preventDefault();dockMiddle();});
 document.addEventListener('auxclick',e=>{if(e.button===1)e.preventDefault();});
-document.addEventListener('click',e=>{if(!dockFn||dockFn==='zoom'||menuOpen||shopUI||drag&&drag.moved||!(e.target===sc||currentView==='cabin'&&CABIN.cv&&e.target===CABIN.cv))return;e.stopPropagation();dockFnUse();},true);
+document.addEventListener('click',e=>{if(!dockFn||menuOpen||shopUI||drag&&drag.moved||!(e.target===sc||currentView==='cabin'&&CABIN.cv&&e.target===CABIN.cv))return;e.stopPropagation();dockFnUse();},true);
 let dockMin=ilDockMin();document.body.classList.toggle('dock-min',dockMin);
 function dockMinSet(v,quiet){dockMin=ilDockMin(!!v);document.body.classList.toggle('dock-min',dockMin);dockUp.dmin=performance.now();for(const k of DOCK_ITEMS)dockUp[k]=performance.now();syncDock();if(!quiet)neb({cmd:'dockmin',v:dockMin});} // the feed put away or back: here and on the surface alike
 const dockUp={},dockSeen={}; // when each slot was last used or changed: in the reduced dock it stays up a while after (Dock linger ms)
 function dockLinger(now){{const g=document.querySelector('#hinv .slot[data-k="guide"]');if(g){const n=evTodo(),t=n?'✦'+n:'';if(g.lastChild.textContent!==t){g.lastChild.textContent=t;g.classList.toggle('todo',n>0);}}} // (the Journal's count keeps up with what you read)
   const ms=T.mapDockLingerMs!=null?T.mapDockLingerMs:2500;for(const el of document.querySelectorAll('#hinv .slot')){const k=el.dataset.k;el.classList.toggle('up',armed===k||now-(dockUp[k]||-1e9)<ms);const f=dockFx[k],on=f&&now-f.at<1400;el.classList.toggle('gain',!!(on&&f.up));el.classList.toggle('spend',!!(on&&!f.up));}}
 function duckUnder(X,Y){let best=null,bd=1e9;for(const d of pond){if(!d._s)continue;const[px,py]=w2s(d.x,d.y),[sx,sy,k]=proj(px,py),r=d._s*k*0.9,dd=Math.hypot(X-sx,Y-sy);if(dd<r&&dd<bd){bd=dd;best=d;}}return best;}
-// What each overlay says of a thing on the map or below deck (ovlText shows the ones that are on): cls its name and kind, dyn what it is worth, tel how it moves and its state, rad what a click does and from how far, risk what can end it
-const ovlOf={left:()=>Math.max(0,Math.round((24-clock)/3)),deg:a=>Math.round(((a*180/Math.PI)%360+360)%360),
-  slot(k){if(k.slice(0,4)==='grp_')return{cls:txt('ovl.c.slot',txt('dock.g.'+k.slice(4)),txt('ovl.set')),rad:txt('dock.hint')};if(k.slice(0,4)==='ovl_')return{cls:txt('ovl.c.slot',txt('ovl.'+k.slice(4)),txt('dock.g.ovl')),tel:txt(ovlGet(k.slice(4))?'ovl.s.on':'ovl.s.off'),rad:txt('ovl.'+k.slice(4)+'_d'),risk:txt('ovl.r.inert')};
+// What each overlay says of a thing on the map or below deck, kept to what is useful (ovlTip shows the ones that are on, by the thing itself, as a surface does by its own): cls its name and kind,
+// dyn what it is worth, tel how it moves and its state, rad what a click does, risk what the weather does to it (a hex, your buoy, what is on the lake)
+const ovlOf={deg:a=>Math.round(((a*180/Math.PI)%360+360)%360),
+  wx(c){const L=[];if(tornado&&c&&tornado.q===c.q&&tornado.r===c.r)L.push(txt('ovl.w.tornado'));if(c&&c.ice)L.push(txt('ovl.w.ice'));if(c&&hexD(c,here())>fogR())L.push(txt('ovl.w.fog'));if(wxOn('wind'))L.push(txt('ovl.w.wind','→↗↑←↙↓'.split('')[wxDir]));if(wxSnow())L.push(txt('ovl.w.snow'));else{if(wxOn('rain'))L.push(txt('ovl.w.rain'));if(wxOn('cold'))L.push(txt('ovl.w.cold'));}if(wxOn('hot'))L.push(txt('ovl.w.hot'));if(wxStorm())L.push(txt('ovl.w.storm'));return L.length?L.join(' · '):txt('ovl.w.calm');}, // the weather's threat there, now
+  slot(k){if(k.slice(0,4)==='grp_')return{cls:txt('dock.g.'+k.slice(4)),rad:txt('dock.g.'+k.slice(4)+'_d')};if(k.slice(0,4)==='ovl_')return{cls:txt('ovl.'+k.slice(4)),tel:txt(ovlGet(k.slice(4))?'ovl.s.on':'ovl.s.off'),rad:txt('ovl.'+k.slice(4)+'_d')};
     const purse=['bright','dim','neutron','magnetic','pulsing','duck','gift'].includes(k),g=Object.keys(DOCK_SETS).find(x=>DOCK_SETS[x].includes(k))||(k==='trash'||k==='seed'?'create':purse?'chest':'home'),I=itemInfo(k),n=k==='trash'?trashBag.length:k==='seed'?seeds:k==='drinks'?drinks:k==='batt'?batteries:g==='home'?null:shopWallet(k);
-    return{cls:txt('ovl.c.slot',I[0],txt('dock.g.'+g)),dyn:n==null?null:k==='drinks'?txt('ovl.have',n,waterMax()):txt('ovl.count',fmtN(n)),tel:txt(armed===k||dockFn===k?'ovl.s.hand':'ovl.s.rest'),rad:I[1]||I[0],risk:n==null?txt('ovl.r.inert'):n>0?txt('ovl.r.spent'):txt('ovl.r.none')};},
-  hex(c){const k=K(c.q,c.r),I=hexInfo(c),mine=k===K(pQ,pR),mv=!mine&&!tired()&&getMoves().some(m=>K(m.q,m.r)===k),p=plants[k];
-    return{cls:txt('ovl.c.hex',I[0],cellRing(c.q,c.r)),dyn:c.isVoid?null:c.cap?txt('ovl.v.cap',(c.capVal||0).toFixed(2)):txt('ovl.v.hex',c.v.toFixed(2),Math.round(cellCov(c)*100)),tel:txt('ovl.t.hex',hexD(c,here()),wxName()),
-      rad:armed?itemInfo(armed,c)[1]:mine&&!c.cap&&!c.isVoid&&c.v>0?txt('ovl.a.enter'):mv?txt('ovl.a.move'):txt('ovl.a.none'),risk:c.rift?txt('ovl.r.rift'):c.isVoid?txt('ovl.r.source'):p&&!p.bloom&&p.n<plantBloom()?txt('ovl.r.plant',plantBloom()):txt(c.cap?'ovl.r.kept':'ovl.r.midnight',this.left())};},
-  buoy(){const m=buoy.mv,C=buoyKit?kitCounts(buoyKit):null,on=C?KIT_SLOTS.reduce((n,x)=>n+buoyKit.slots[x].slice(0,C[x]).filter(Boolean).length,0):0,held=kitOn(f=>f.anchor||f.motor);
-    return{cls:txt('ovl.c.buoy',playerName||txt('map.buoy.name')),dyn:txt('ovl.v.buoy',fmtN(Math.round(score)),drinks,waterMax(),on),
-      tel:txt('ovl.t.buoy',currentView==='cabin'?txt('ovl.t.below'):m?txt('ovl.t.moving',Math.round(Math.hypot(m.x1-m.x0,m.y1-m.y0)/m.dur*1000)):txt('ovl.t.float'),txt(asleep?'ovl.t.asleep':anchored()?'ovl.t.anchor':tired()?'ovl.t.tired':dry()?'ovl.t.dry':'ovl.t.mobile'),Math.round((0.0045+buoy.spin)*60*180/Math.PI),this.deg(buoy.hd||0),pQ+','+pR,cellRing(pQ,pR)),
-      rad:txt(currentView==='cabin'?'ovl.a.up':'ovl.a.deck'),risk:held?txt('ovl.r.held'):txt('ovl.r.wreck',Math.round(wreckP()*100))};},
-  pond(d){const p=d.plant&&plants[d.plant],v=DUCK_TYPES[d.type]||{},nm=p?txt('map.plant.name',p.m?txt('trash.'+p.m):'—'):d.bottle?txt(d.empty?'map.bottle.empty':'map.bottle.full'):d.good?goodNameM(d.good):(v.name||d.type),[bx,by]=a2w(pQ,pR),near=p||d.flot?hexD(cells[d.plant||d.flot]||{q:99,r:99},here())<=1:Math.hypot(d.x-bx,d.y-by)<=HEX*2.2,rc=txt(near?'ovl.a.reach':'ovl.a.far');
-    return{cls:p?txt('ovl.c.plant',nm,plantStage(p)):txt(d.good||d.bottle?'ovl.c.good':'ovl.c.duck',nm),dyn:p?txt('ovl.v.plant',p.n,plantBloom(),fmtN(flowerDim(d.plant))):d.good||d.bottle?null:txt('ovl.v.duck',duckLog[d.type]||0),
-      tel:p||d.flot||!(d.sp>0.01)?txt('ovl.t.still'):txt('ovl.t.drift',Math.round(d.sp*60),this.deg(d.hd||0)),rad:p?txt(p.bloom?'ovl.a.pick':'ovl.a.feed',rc):d.good||d.bottle?txt('ovl.a.near',rc):txt('ovl.a.dunk'),risk:p&&!p.bloom&&p.n<plantBloom()?txt('ovl.r.plant',plantBloom()):txt('ovl.r.drift')};},
-  shop(key){const el=shopEls[key],x=el&&el._s;if(!x)return null;const S=SHOPS[x.id],I=shopInfo(key);return{cls:txt('ovl.c.shop',S.n,txt(S.street?'ovl.c.street':'ovl.c.popup')),dyn:txt('ovl.v.shop',x.rank||3,txt(x.lit?'ovl.v.open':'ovl.v.closed')),tel:txt('ovl.t.still'),rad:txt('ovl.a.shop',txt(shopHere(key)?'ovl.a.reach':'ovl.a.far')),risk:I[1]};},
-  cabin(id){const I=cabinInfo(id);return{cls:txt('ovl.c.cabin',I[0]),dyn:id==='ink'||id==='chest'?I[1]:null,tel:txt('ovl.t.room'),rad:txt(CABIN_DO[id]==='up'?'ovl.a.up':CABIN_DO[id]?'ovl.a.open':'ovl.a.look'),risk:txt('ovl.r.inert')};}};
+    return{cls:I[0],dyn:n==null?null:k==='drinks'?txt('ovl.have',n,waterMax()):fmtN(n),tel:armed===k||dockFn===k?txt('ovl.s.hand'):null,rad:g==='home'||purse?null:I[1],risk:k==='drinks'||k==='batt'||k==='wx'?this.wx():null};},
+  hex(c){const k=K(c.q,c.r),I=hexInfo(c),mine=k===K(pQ,pR),mv=!mine&&!tired()&&getMoves().some(m=>K(m.q,m.r)===k),n=hexD(c,here());
+    return{cls:I[0],dyn:c.isVoid?null:c.cap?txt('ovl.v.cap',(c.capVal||0).toFixed(2)):txt('ovl.v.hex',c.v.toFixed(2),Math.round(cellCov(c)*100)),tel:n?txt('ovl.t.hex',n,cellRing(c.q,c.r)):txt('ovl.t.here',cellRing(c.q,c.r)),
+      rad:armed?itemInfo(armed,c)[1]:mine&&!c.cap&&!c.isVoid&&c.v>0?txt('ovl.a.enter'):mv?txt('ovl.a.move'):null,risk:this.wx(c)};},
+  buoy(){const m=buoy.mv;return{cls:playerName||txt('map.buoy.name'),dyn:txt('ovl.v.buoy',fmtN(Math.round(score)),drinks,waterMax()),
+      tel:txt('ovl.t.buoy',currentView==='cabin'?txt('ovl.t.below'):m?txt('ovl.t.moving',Math.round(Math.hypot(m.x1-m.x0,m.y1-m.y0)/m.dur*1000)):txt('ovl.t.float'),txt(asleep?'ovl.t.asleep':anchored()?'ovl.t.anchor':tired()?'ovl.t.tired':dry()?'ovl.t.dry':'ovl.t.mobile'),Math.round((0.0045+buoy.spin)*60*180/Math.PI)),
+      rad:txt(currentView==='cabin'?'ovl.a.up':'ovl.a.deck'),risk:this.wx(cells[K(pQ,pR)])};},
+  pond(d){const p=d.plant&&plants[d.plant],v=DUCK_TYPES[d.type]||{},nm=p?txt('map.plant.name',p.m?txt('trash.'+p.m):'—'):d.bottle?txt(d.empty?'map.bottle.empty':'map.bottle.full'):d.good?goodNameM(d.good):(v.name||d.type),[bx,by]=a2w(pQ,pR),near=p||d.flot?hexD(cells[d.plant||d.flot]||{q:99,r:99},here())<=1:Math.hypot(d.x-bx,d.y-by)<=HEX*2.2;
+    return{cls:nm,dyn:p?txt('ovl.v.plant',p.n,plantBloom(),fmtN(flowerDim(d.plant))):null,tel:p||d.flot||!(d.sp>0.01)?txt('ovl.t.still'):txt('ovl.t.drift',Math.round(d.sp*60),this.deg(d.hd||0)),
+      rad:(p?(p.bloom?txt('ovl.a.pick'):txt('ovl.a.feed')):d.good||d.bottle?txt('ovl.a.near'):txt('ovl.a.dunk'))+(near||!(p||d.good||d.bottle)?'':' · '+txt('ovl.a.far')),risk:this.wx(cells[d.plant||d.flot])};},
+  shop(key){const el=shopEls[key],x=el&&el._s;if(!x)return null;const S=SHOPS[x.id];return{cls:S.n,dyn:txt('ovl.v.shop',x.rank||3),tel:txt(x.lit?'ovl.v.open':'ovl.v.closed'),rad:txt('ovl.a.shop')+(shopHere(key)?'':' · '+txt('ovl.a.far')),risk:wxDown[x.id]===day?txt('wx.bolt_d'):this.wx(cells[key])};},
+  cabin(id){const I=cabinInfo(id);return{cls:I[0],dyn:id==='ink'||id==='chest'?I[1]:null,rad:CABIN_DO[id]==='up'?txt('ovl.a.up'):CABIN_DO[id]?txt('ovl.a.open'):null};}};
+function ovlTip(o,x,y){let el=document.getElementById('ovtip');const L=o?OVL.filter(([m])=>ovlGet(m)&&o[m]):[];if(!L.length){if(el)el.style.display='none';return;} // the overlays' hover text: by the thing itself, a line for each that is on
+  if(!el){el=document.createElement('div');el.id='ovtip';document.body.appendChild(el);}const h=L.map(([m])=>`<div><i>${txt('ovl.'+m)}</i> ${o[m]}</div>`).join('');if(el._h!==h){el._h=h;el.innerHTML=h;}el.style.display='block';
+  const w=el.offsetWidth,hh=el.offsetHeight;el.style.left=Math.max(4,Math.min(innerWidth-w-4,x+16))+'px';el.style.top=Math.max(4,Math.min(innerHeight-hh-4,y-hh-10<4?y+18:y-hh-10))+'px';}
 function ovlTargets(now){if(!showRadii||SCENE||currentView!=='map')return;const c=mctx,mv=tired()?[]:getMoves();c.save();c.setLineDash([4,5]);c.lineDashOffset=-now/60;c.lineWidth=1.5;c.strokeStyle='rgba(120,220,255,.85)'; // Targets, on the map: everything a click would act on now is ringed (the hexes you can move to or use what is in hand on, your own, your buoy, what on the lake is in reach)
   for(const k in cells){const h=cells[k];if(!(armed?itemOK(k):k===K(pQ,pR)||mv.some(m=>K(m.q,m.r)===k)))continue;const[x,y]=w2s(...a2w(h.q,h.r));hexPath(x,y,HEX*0.86);c.stroke();}
   const[bx,by]=a2w(pQ,pR);for(const d of pond){if(!d._s||!(d.plant||d.flot?hexD(cells[d.plant||d.flot]||{q:99,r:99},here())<=1:Math.hypot(d.x-bx,d.y-by)<=HEX*2.2))continue;const[x,y]=w2s(d.x,d.y);c.beginPath();c.arc(x,y,d._s*0.55,0,6.2832);c.stroke();}
@@ -2091,8 +2097,9 @@ function feedTick(now){{const dk=document.getElementById('hdock'),r=dk&&dk.getBo
   let a,b;const over=currentView==='map'&&!menuOpen?ptOver:null,onMap=over===sc;
   const du=onMap?duckUnder(mX,mY):null,hc=onMap&&hQ!==null?cells[K(hQ,hR)]:null;
   const slot=ptOver&&ptOver.closest&&ptOver.closest('#hinv .slot'),sh=onMap&&!slot?shopAt(mX,mY):null,bu=onMap&&!sh&&!SCENE&&buoyHit(mX,mY);
-  {let fo=fd.querySelector('.fo');if(!fo){fo=document.createElement('div');fo.className='fo';fd.appendChild(fo);}const nOn=SCENE?0:OVL.filter(([m])=>ovlGet(m)).length;fo.style.display=nOn?'':'none';fo.style.height=12*Math.ceil(nOn*0.6)+'px';fd.style.minWidth=nOn?'min(92vw,760px)':''; /* (its room is kept while any overlay is on, whatever it says: the dock never shifts under the cursor) */ // what the overlays that are on say of what the cursor is over (shared.js ovlText): a slot, a shop, your buoy, anything on the lake, a hex; below deck, what is pointed at
-    const o=!(telemetryOn||dynamicsOn||classOn||showRadii||risksOn)||menuOpen||shopUI?null:slot?ovlOf.slot(slot.dataset.k):currentView==='cabin'?(CABIN.hov?ovlOf.cabin(CABIN.hov):null):sh?ovlOf.shop(sh.dataset.key):bu?ovlOf.buoy():du?ovlOf.pond(du):hc?ovlOf.hex(hc):null,t=ovlText(o);if(fo.textContent!==t)fo.textContent=t;}
+  {const any=!SCENE&&(telemetryOn||dynamicsOn||classOn||showRadii||risksOn)&&!menuOpen&&!shopUI,at=(x,y)=>w2sc(x,y); // what the overlays that are on say of what the cursor is over, shown by the thing itself (ovlTip): a slot, a shop, your buoy, anything on the lake, a hex; below deck, what is pointed at
+    if(!any)ovlTip(null);else if(slot){const r=slot.getBoundingClientRect();ovlTip(ovlOf.slot(slot.dataset.k),r.left+r.width/2-16,r.top);}else if(currentView==='cabin')ovlTip(CABIN.hov?ovlOf.cabin(CABIN.hov):null,mX,mY);
+    else if(sh){const r=sh.getBoundingClientRect();ovlTip(ovlOf.shop(sh.dataset.key),r.right-10,r.top+r.height/2);}else if(bu){const p=buoyScreen(0.9);ovlTip(ovlOf.buoy(),p[0]+14,p[1]);}else if(du){const p=at(du.x,du.y);ovlTip(ovlOf.pond(du),p[0]+8,p[1]);}else if(hc){const p=at(...a2w(hc.q,hc.r));ovlTip(ovlOf.hex(hc),p[0]+HEX*0.5*viewZoom,p[1]);}else ovlTip(null);}
   if(now-feedMsg.at<3500){a=feedMsg.t;b=feedMsg.d;}
   else if(slot){[a,b]=itemInfo(slot.dataset.k);}
   else if(bu&&!shopUI){a=txt('map.buoy.name')+(playerName?' · '+playerName:'');b=txt('map.buoy.deck');}

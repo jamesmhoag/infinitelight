@@ -647,6 +647,7 @@ spindlePointCost,5,Spindle on a Point,1,50,1,Surface Map — items,map,,,,Spindl
 mapPlantBud,4,Plant bud trash,2,12,1,Surface Map — the day,map,,,,Trash a recycling plant takes to grow its bud (over 4: a stem more for each),
 mapPlantBloom,5,Plant bloom trash,2,12,1,Surface Map — the day,map,,,,"Trash a recycling plant must have by Midnight to bloom (at least its bud's); short of it, it falls in with the spill",
 mapFlowerDim,50000,Flower Dim,0,1000000,1000,Surface Map — the day,map,,,,"Dim for a flower picked from a hex beside it (a click on it once it has bloomed, or as it blooms at Midnight), its seed planted in a Dark Remnant of one hex",
+mapPickMs,650,Flower pick ms,100,3000,50,Surface Map — the day,map,,,,"How long a picked flower takes to shrink away to your buoy, where it bursts in sparks",
 mapFlowerDim2,500000,Flower Dim (three),0,10000000,10000,Surface Map — the day,map,,,,"Dim for a flower picked from a plant whose seed went in a merged Dark Remnant (three hexes)",
 mapFlowerDim3,5000000,Flower Dim (seven),0,100000000,100000,Surface Map — the day,map,,,,"Dim for a flower picked from a plant whose seed went in a merged hex of seven",
 mapPlantScale,0.9,Plant size,0.3,2,0.05,Surface Map — the day,map,,,,How big a recycling plant stands on its hex (× a hex),

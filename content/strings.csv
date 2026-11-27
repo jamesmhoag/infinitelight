@@ -1472,25 +1472,21 @@ map.rec.g_edm,EDM,Music,
 map.rec.g_symphony,Symphony,Music,
 map.rec.found,"A record: {0}",Music,
 dock.g.home,Home,the dock,
-dock.g.home_d,"Your buoy and its settings: sound, speed, the view",the dock,
+dock.g.home_d,"Your buoy, your Journal and your settings",the dock,
 dock.g.create,Creation tools,the dock,
 dock.g.create_d,"What makes things here: on a surface, Build mode's tools; on the map, your trash bag and seeds",the dock,
 dock.g.ovl,Overlays,the dock,
-dock.g.ovl_d,"What pointing at anything tells you: here, on the map, below deck and over every slot",the dock,
+dock.g.ovl_d,"What pointing at anything tells you, by the thing itself",the dock,
 dock.g.chest,Treasure chest,the dock,
 dock.g.chest_d,Every remnant you have collected,the dock,
 dock.g.sew,Sewing,the dock,
 dock.g.sew_d,"Spindle, String and Weave",the dock,
 dock.g.con,Constellations,the dock,
 dock.g.con_d,"What your Weave patterns gathered: Prisms, Gates, Knots, Keys and Lenses",the dock,
-dock.hint,Wheel: the next set · middle click: the next thing in it · right click: let it go,the dock,
 dock.none,Nothing here to take in hand yet,the dock,
 dock.vol,Sound: {0},the dock,"0 = off, or its volume"
 dock.vol_d,Click: on / off. In hand (middle click): the wheel turns it up and down,the dock,
-dock.speed_d,"In hand (middle click): the wheel changes the speed, as it did anywhere before",the dock,
 dock.buoy_d,Status and your collections,the dock,
-dock.zoom,The view: × {0},the dock,0 = zoom
-dock.zoom_d,"In hand (middle click, or a click here): the wheel zooms on the cursor. + and − zoom too",the dock,
 dock.hand,{0}: in hand,the dock,0 = what
 ovl.cls,Class,overlays,
 ovl.cls_s,class,overlays,
@@ -1503,73 +1499,14 @@ ovl.tel_s,motion,overlays,
 ovl.tel_d,"How fast it moves and turns, and the state it is in",overlays,
 ovl.rad,Targets,overlays,
 ovl.rad_s,target,overlays,
-ovl.rad_d,"What a click does there, and how far it reaches",overlays,
+ovl.rad_d,"What a click does there",overlays,
 ovl.risk,Threats,overlays,
 ovl.risk_s,threat,overlays,
-ovl.risk_d,"What can end it, and how long it has",overlays,
-ovl.set,a set of the dock,overlays,
+ovl.risk_d,"What the weather does to it",overlays,
 ovl.have,{0} of {1},overlays,0 = have; 1 = most
-ovl.count,{0},overlays,0 = how many
 ovl.s.hand,in hand,overlays,
-ovl.s.rest,at rest,overlays,
 ovl.s.off,switched off,overlays,
 ovl.s.on,on,overlays,
-ovl.r.none,none left,overlays,
-ovl.r.spent,spent as it is used,overlays,
-ovl.r.inert,inert: nothing can end it,overlays,
-ovl.r.midnight,falls into the Point at Midnight ({0} time(s) of day left),overlays,0 = times of day left
-ovl.r.kept,locked: it is counted when the day ends ({0} time(s) of day left),overlays,0
-ovl.r.rift,torn: nothing can be done here; tearing one wrecks you,overlays,
-ovl.r.source,the Point: everything falls into it at Midnight,overlays,
-ovl.r.wreck,Midnight's collapse: {0}% for each thing on its mounts to go overboard,overlays,0 = chance
-ovl.r.held,held through Midnight (an anchor or a motor),overlays,
-ovl.r.drift,adrift: it goes down with the spill at Midnight,overlays,
-ovl.r.plant,"short of {0} trash by Midnight, it falls in with the spill",overlays,0 = bloom trash
-ovl.c.hex,"{0} — a hex of the map, ring {1}",overlays,0 = what; 1 = ring
-ovl.c.buoy,"{0} — your buoy, a vessel",overlays,0 = its name
-ovl.c.duck,{0} — a duck on the lake,overlays,0
-ovl.c.good,{0} — adrift on the lake,overlays,0
-ovl.c.plant,"{0} — a recycling plant, stage {1} of 5",overlays,0; 1
-ovl.c.shop,{0} — a shop ({1}),overlays,0 = name; 1 = main street or pop-up
-ovl.c.street,main street,overlays,
-ovl.c.popup,pop-up,overlays,
-ovl.c.cabin,{0} — below deck,overlays,0
-ovl.c.slot,{0} — {1},overlays,0 = the thing; 1 = its set
-ovl.v.hex,worth {0} · {1}% covered,overlays,0 = value; 1 = coverage
-ovl.v.cap,locked at {0},overlays,0 = value
-ovl.v.buoy,score {0} · water {1} of {2} · {3} on its mounts,overlays,0; 1; 2; 3
-ovl.v.duck,seen {0} time(s),overlays,0
-ovl.v.plant,{0} of {1} trash · its flower pays {2} Dim,overlays,0; 1; 2
-ovl.v.shop,rank {0} · {1},overlays,0 = rank; 1 = open or closed
-ovl.v.open,open,overlays,
-ovl.v.closed,closed,overlays,
-ovl.t.hex,{0} hex(es) from you · the water: {1},overlays,0 = distance; 1 = weather
-ovl.t.buoy,"{0} · {1} · turning {2}°/s, heading {3}° · hex {4}, ring {5}",overlays,0 = moving or at rest; 1 = mobile or why not; 2; 3; 4; 5
-ovl.t.moving,sailing {0} px/s,overlays,0
-ovl.t.float,"afloat, bobbing",overlays,
-ovl.t.below,you are below deck,overlays,
-ovl.t.mobile,free to move,overlays,
-ovl.t.anchor,anchored,overlays,
-ovl.t.tired,too tired to move,overlays,
-ovl.t.asleep,asleep,overlays,
-ovl.t.dry,out of water,overlays,
-ovl.t.drift,"drifting {0} px/s, heading {1}°",overlays,0; 1
-ovl.t.still,"still, on its hex",overlays,
-ovl.t.room,it sways with the swell,overlays,
-ovl.a.move,a click moves you here,overlays,
-ovl.a.enter,a click (or Space) enters this surface,overlays,
-ovl.a.none,a click does nothing here,overlays,
-ovl.a.deck,a click takes you below deck,overlays,
-ovl.a.up,a click takes you back up,overlays,
-ovl.a.dunk,a click dunks it; a drag carries it,overlays,
-ovl.a.near,a click opens or scoops it from beside it ({0}),overlays,0 = in reach or too far
-ovl.a.reach,in reach,overlays,
-ovl.a.far,too far,overlays,
-ovl.a.pick,a click picks its flower from a hex beside it ({0}),overlays,0
-ovl.a.feed,your trash bag feeds it from a hex beside it,overlays,
-ovl.a.shop,a click goes in from beside it ({0}),overlays,0
-ovl.a.open,a click opens it,overlays,
-ovl.a.look,nothing to open: it only says what it is,overlays,
 map.plant.flower,A {0} flower,Surface Map feed,0 = material
 map.plant.pick_far,Go beside it to pick it: + {0} Dim,Surface Map feed,0 = Dim
 map.plant.pick,Click to pick it: + {0} Dim,Surface Map feed,0 = Dim
@@ -1580,3 +1517,51 @@ ev.lost,"It did not last",Events,
 ev.lost_d,"Something was happening, and it did not finish: nothing was recorded",Events,
 ev.review,"{0} new to read: a click opens your Journal at the first",Events,0 = how many
 dock.journal,"Your Journal",the dock,
+dock.hint,Right click: the next set · middle click: the next thing in it · right click with something in hand: let it go,the dock,
+ovl.w.calm,calm: no threat,overlays (weather),
+ovl.w.tornado,a tornado is here: it takes what it passes,overlays (weather),
+ovl.w.ice,iced over: nothing moves onto it,overlays (weather),
+ovl.w.fog,hidden in the fog: out of reach,overlays (weather),
+ovl.w.wind,wind {0}: against it a move drinks twice,overlays (weather),0 = its direction
+ovl.w.rain,rain: hull mounts soggy,overlays (weather),
+ovl.w.cold,cold: ice forms,overlays (weather),
+ovl.w.snow,"snow: the barrel is frozen, ice grows",overlays (weather),
+ovl.w.hot,hot: moves drink more,overlays (weather),
+ovl.w.storm,storm: lightning strikes,overlays (weather),
+ovl.v.hex,worth {0} · {1}% covered,overlays,0; 1
+ovl.v.cap,locked at {0},overlays,0
+ovl.v.buoy,score {0} · water {1}/{2},overlays,0; 1; 2
+ovl.v.plant,{0}/{1} trash · flower {2} Dim,overlays,0; 1; 2
+ovl.v.shop,rank {0},overlays,0
+ovl.v.open,open,overlays,
+ovl.v.closed,closed,overlays,
+ovl.t.hex,{0} away · ring {1},overlays,0 = hexes; 1
+ovl.t.here,you are here · ring {0},overlays,0
+ovl.t.buoy,{0} · {1} · bobbing {2}°/s,overlays,0; 1; 2
+ovl.t.moving,sailing {0} px/s,overlays,0
+ovl.t.float,afloat,overlays,
+ovl.t.below,below deck,overlays,
+ovl.t.mobile,free to move,overlays,
+ovl.t.anchor,anchored,overlays,
+ovl.t.tired,too tired to move,overlays,
+ovl.t.asleep,asleep,overlays,
+ovl.t.dry,out of water,overlays,
+ovl.t.drift,"{0} px/s, heading {1}°",overlays,0; 1
+ovl.t.still,still,overlays,
+ovl.a.move,click: move here,overlays,
+ovl.a.enter,click or Space: enter,overlays,
+ovl.a.deck,click: below deck,overlays,
+ovl.a.up,click: back up,overlays,
+ovl.a.dunk,click: dunk · drag: carry,overlays,
+ovl.a.near,click: open or scoop,overlays,
+ovl.a.far,too far,overlays,
+ovl.a.pick,click: pick its flower,overlays,
+ovl.a.feed,fed from your trash bag,overlays,
+ovl.a.shop,click: go in,overlays,
+ovl.a.open,click: open,overlays,
+ovl.c.slot,{0} — {1},overlays,0 = the thing; 1 = its set
+ovl.r.none,none left,overlays,
+ovl.r.spent,spent as it is used,overlays,
+ovl.r.inert,inert,overlays,
+ovl.set,a set of the dock,overlays,
+ovl.s.rest,at rest,overlays,

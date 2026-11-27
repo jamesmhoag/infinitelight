@@ -117,7 +117,7 @@ button:hover{background:rgba(255,255,255,0.15);}
   <div id="dock" class="bottom"><div id="inventoryPanel"></div><div id="touch-info"></div></div>
   <canvas id="cur"></canvas>
 </div>
-<script src="content.js?v=20261127e"></script><script src="shared.js?v=20261127e"></script>
+<script src="content.js?v=20261127f"></script><script src="shared.js?v=20261127f"></script>
 <script>
 txtApply(); // the page's own labels (content/strings.csv)
 const _SRC=document.documentElement.outerHTML; // kept so the Encyclopedia can run live scenes as embedded copies of the game
@@ -4561,7 +4561,7 @@ function updateInventoryUI(){
   let html=all?'':dockTabs(G);
   if(on('home')){ // Home: sound, the game's speed, the Guide, your buoy. In hand (a middle click), the wheel is the speed's or the volume's, and a click on the surface opens the other two
     html+=`<div${fn('vol')}" data-kind="vol" onclick="toggleMute()"><div class="ic"><svg width="16" height="16" viewBox="0 0 16 16"><path fill="currentColor" d="M2 6h2.6L8 3v10L4.6 10H2z"/>${audioMuted?'<path d="M10.5 6l4 4m0-4l-4 4" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/>':'<path d="M10.3 5.6a3.4 3.4 0 0 1 0 4.8M12.2 3.8a6 6 0 0 1 0 8.4" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/>'}</svg></div><div class="cnt">${audioMuted?txt('surf.off'):Math.round(T.masterVol*100)+'%'}</div></div>
-    <div${fn('speedctl')} speedctl st-${st}" data-kind="speedctl" onclick="cycleSpeedCtl()" onwheel="wheelOnSpeedCtl(event)"><div class="ic">${speedIconSVG()}</div><div class="cnt">${st==='pause'?'❚❚':speedLabel(speedMult)}</div></div>
+    <div class="slot speedctl st-${st}" data-kind="speedctl" onclick="cycleSpeedCtl()" onwheel="wheelOnSpeedCtl(event)"><div class="ic">${speedIconSVG()}</div><div class="cnt">${st==='pause'?'❚❚':speedLabel(speedMult)}</div></div>
     <div${fn('guide')}${evNew().length?' todo':''}" data-kind="guide" onclick="guideOpen()"><div class="ic"><svg width="16" height="16" viewBox="0 0 16 16"><circle cx="8" cy="8" r="7" fill="none" stroke="currentColor" stroke-width="1.3"/><rect x="7.2" y="7" width="1.6" height="5" fill="currentColor"/><circle cx="8" cy="4.6" r="1" fill="currentColor"/></svg></div>${evNew().length?`<div class="cnt">✦${evNew().length}</div>`:''}</div>
     <div${fn('buoy')}" data-kind="buoy" onclick="openCollections()"><div class="ic">${BUOY_ICO}</div></div>`;}
   if(on('ovl'))html+=ovlSlots();
@@ -4583,15 +4583,14 @@ function updateInventoryUI(){
   el.innerHTML=html;applyDisc();
 }
 const dockValid=()=>['home',...(itemCacheMode||createItemMode?['create']:[]),'ovl','chest','sew','con'],dockRefresh=()=>updateInventoryUI(); // the dock's sets valid on a surface (Creation tools: only while Build mode's tools or the item cache are on)
-// The wheel and the middle button (the dock's sets, shared.js): with nothing in hand the wheel goes through the sets. A middle click takes the next thing of the set shown in hand:
-// an item; in Overlays the next overlay; in Home a function (dockFn): the speed or the volume, whose wheel it then is (what the wheel did anywhere before), or the Guide or your buoy, which a click on the surface then opens
+// The right and the middle button (the dock's sets, shared.js): a right click with nothing in hand and nothing shining goes to the next set. A middle click takes the next thing of the set shown in hand:
+// an item; in Overlays the next overlay; in Home a function (dockFn): the volume, whose wheel it then is, or the Guide or your buoy, which a click on the surface then opens. The wheel is the game's speed, as ever
 function dockMiddle(){const g=dockGroup;if(g==='ovl'){cycleReadouts();updateInventoryUI();}
   else if(g==='home'){if(armedInvItem)armedInvItem=null;if(conMode)setConMode(false);dockFnStep('#inventoryPanel');updateInventoryUI();if(dockFn)flashSaveStatus(txt('dock.hand',invHoverParts(dockFn)[0]));}
   else if(g==='create'){if(createItemMode)armInventoryItem(CREATE_KINDS[(CREATE_KINDS.indexOf(armedInvItem?armedInvItem.kind:'')+1)%CREATE_KINDS.length]);}
   else cycleStandardInvItem(DOCK_SETS[g]);}
-function dockFnUse(dy){const k=dockFn;if(!k)return false;if(k==='speedctl'){if(dy==null)return false;wheelSpeedStep(dy>0?1:-1,performance.now());} // (the speed and the volume stay in hand: a click still plays the surface)
-  else if(k==='vol'){if(dy==null)return false;const v=Math.max(0,Math.min(1,Math.round(((audioMuted?0:T.masterVol)+(dy>0?-0.05:0.05))*20)/20));setSound(v>0,v>0?v:null);}
-  else if(dy==null){dockFn=null;if(k==='guide')guideOpen();else openCollections();}else return true;
+function dockFnUse(dy){const k=dockFn;if(!k)return false;if(k==='vol'){if(dy==null)return false; /* (the volume stays in hand: a click still plays the surface) */const v=Math.max(0,Math.min(1,Math.round(((audioMuted?0:T.masterVol)+(dy>0?-0.05:0.05))*20)/20));setSound(v>0,v>0?v:null);}
+  else if(dy==null){dockFn=null;if(k==='guide')guideOpen();else openCollections();}else return false;
   updateInventoryUI();return true;}
 window.armInventoryItem=armInventoryItem;
 { const ip=document.getElementById('inventoryPanel'); // press, not click: nothing that happens between press and release (a rebuild, a placed tool…) can make a slot ignore you
@@ -8716,8 +8715,8 @@ wrap.addEventListener('wheel',e=>{
   // Any other active/armed item owns the wheel outright, in every game-speed mode — including kinds with nothing
   // to scroll (Bright/Dim/Neutron/Magnetic/Pulsing/Key): they still swallow the event so it never falls through
   // to the game-speed control.
-  if(!createActive()){e.preventDefault(); // the speed in hand (Home; a middle click takes it), or the volume: the wheel is its own. An item in hand keeps the wheel; nothing in hand: the dock's next set, or the one before
-    if(dockFn)dockFnUse(e.deltaY);else if(!armedInvItem&&!conMode&&dockGroupStep(e.deltaY>0?1:-1,dockValid())){updateInventoryUI();flashSaveStatus(txt('dock.g.'+dockGroup));}
+  if(!createActive()){e.preventDefault(); // no item can keep the wheel from the game speed: changing speed simply disables the armed item (the volume in hand, Home: the wheel turns it instead)
+    if(!dockFnUse(e.deltaY))wheelSpeedStep(e.deltaY>0?1:-1,performance.now());
     return;
   }
   if(createActive()&&currentType().cat==='inertia'){e.preventDefault();inertWheel(e.deltaY);return;} // wheel up = clockwise spin, down = counter-clockwise
@@ -9569,7 +9568,7 @@ wrap.addEventListener('contextmenu',e=>{
   }
   if(buildSel()&&selRight(mouse.x,mouse.y)){cursorRClickAt=performance.now();return;} // Build mode, Play off: right click drops one from the selection, or clears it
   if(levelCleared){if(HUB){hubPost({type:'return'});hubIdle();return;}rebuild();return;}
-  if(!pressedIDs.size&&!pendingActs.size){cycleReadouts();cursorRClickAt=performance.now();return;}
+  if(!pressedIDs.size&&!pendingActs.size){if(dockGroupStep(1,dockValid())){updateInventoryUI();flashSaveStatus(txt('dock.g.'+dockGroup));}cursorRClickAt=performance.now();return;} // nothing in hand and nothing shining: the dock's next set
   // Deactivating a whole batch at once should only sound one terminating
   // chord per distinct color present in the batch, not one per point — so
   // gather the loudest (biggest-mass) representative of each color first.
@@ -9593,7 +9592,7 @@ wrap.addEventListener('contextmenu',e=>{
   cursorRClickAt=performance.now();
 });
 
-function cycleReadouts(){ // nothing selected: a right-click (or a middle click in the dock's Overlays set) steps off → class → mass & energy → telemetry → targets → threats → all → off (ovlCycle, shared.js)
+function cycleReadouts(){ // a middle click in the dock's Overlays set steps off → class → mass & energy → telemetry → targets → threats → all → off (ovlCycle, shared.js)
   ovlCycle();
   for(const [i,t,v] of [['tlb','Telemetry',telemetryOn],['dyb','Dynamics',dynamicsOn],['clb','Class',classOn],['rdb','Effect radii',showRadii]]){const b=document.getElementById(i);if(b)b.textContent=t+': '+((v?txt('surf.on'):txt('surf.off')));}
 }
@@ -11264,7 +11263,7 @@ function invHoverParts(kind,worst){
   if(kind.slice(0,4)==='ovl_')return[txt('ovl.'+kind.slice(4)),txt('ovl.'+kind.slice(4)+'_d')];
   if(kind==='vol')return[txt('dock.vol',audioMuted?txt('surf.off'):Math.round(T.masterVol*100)+'%'),txt('dock.vol_d')];
   if(kind==='buoy')return[txt('coll.title'),txt('dock.buoy_d')];if(kind==='dmin')return[txt(dockMin?'map.dock.show':'map.dock.hide'),''];
-  if(kind==='speedctl')return[txt('surf.game_speed'),txt('surf.click_cycle_pause_1',(isPaused?txt('surf.paused'):speedLabel(speedMult)))+' · '+txt('dock.speed_d')];
+  if(kind==='speedctl')return[txt('surf.game_speed'),txt('surf.click_cycle_pause_1',(isPaused?txt('surf.paused'):speedLabel(speedMult)))];
   if(kind==='cache-clear')return[txt('surf.clear_items'),txt('surf.removes_every_item_from')];
   if(kind==='cache-fill')return[txt('surf.fill_items'),txt('surf.fills_every_item_to')];
   if(kind==='cache-disable')return[txt('surf.disable_items'),txt('surf.toggle_then_click_items')];
@@ -13185,7 +13184,7 @@ const evRecFor=id=>{const r=id&&_evRecs[id];return r&&!r.frames?r:null;}, /* (ne
 if(!window.__SCENE)IDB.keys().then(ks=>{const P=IDB.key('evrec:');for(const k of ks)if(typeof k==='string'&&k.startsWith(P))IDB.get(k.slice(k.indexOf('evrec:'))).then(r=>{if(r&&r.id)_evRecs[r.id]=r;}).catch(()=>{});}).catch(()=>{}); // (your recordings, back from the last time you played)
 function evReplayMount(h,rec){if(!h||h.firstChild)return;
   if(rec.hub){const f=document.createElement('iframe'),aw=h.clientWidth||300,ah=h.clientHeight||190,w=rec.w||aw,hh=rec.h||ah,F=rec.fr||[0,0,w,hh],k=Math.min(1,Math.max(aw/w,ah/hh,Math.min(aw/F[2],ah/F[3]))),fit=(c,v,full)=>full*k<=v?(v-full*k)/2:Math.min(0,Math.max(v-full*k,v/2-c*k)); // the copy runs at the size yours was (so the cursor is where it was), and the page shows the part round the event (fr), never enlarged and never past the view's edge
-    f.style.cssText=`border:0;pointer-events:none;position:absolute;left:0;top:0;width:${w}px;height:${hh}px;transform-origin:0 0;transform:translate(${fit(F[0]+F[2]/2,aw,w).toFixed(1)}px,${fit(F[1]+F[3]/2,ah,hh).toFixed(1)}px) scale(${k.toFixed(4)});background:#000`;if(getComputedStyle(h).position==='static')h.style.position='relative';h.style.overflow='hidden';f.src='Surface_Map_HUB.html?v=20261127e&scene=replay&ev='+encodeURIComponent(rec.id)+(h.dataset.hold?'&hold=1':'');h.appendChild(f);return;} // an event recorded on the Surface Map, below deck or in a shop (mapRec): played again live by a copy of the map itself, every layer as it was
+    f.style.cssText=`border:0;pointer-events:none;position:absolute;left:0;top:0;width:${w}px;height:${hh}px;transform-origin:0 0;transform:translate(${fit(F[0]+F[2]/2,aw,w).toFixed(1)}px,${fit(F[1]+F[3]/2,ah,hh).toFixed(1)}px) scale(${k.toFixed(4)});background:#000`;if(getComputedStyle(h).position==='static')h.style.position='relative';h.style.overflow='hidden';f.src='Surface_Map_HUB.html?v=20261127f&scene=replay&ev='+encodeURIComponent(rec.id)+(h.dataset.hold?'&hold=1':'');h.appendChild(f);return;} // an event recorded on the Surface Map, below deck or in a shop (mapRec): played again live by a copy of the map itself, every layer as it was
   const f=document.createElement('iframe'),v=document.createElement('canvas'),g=v.getContext('2d'),aw=h.clientWidth||300,ah=h.clientHeight||190,dp=Math.min(2,window.devicePixelRatio||1),k=Math.max(aw/(rec.fw||rec.w),ah/(rec.fh||rec.h)),P=(rec.path||[[0,0,0]])[0],c={sz:EV_FRAME[rec.id]||'l',t0:rec.cap0||0};let X=0,Y=0,last=null;
   // your moment, played again live: a copy of the game at the size it happened plays it out of sight (its frame scaled to fill the card), and this canvas is the view of it. It keeps on the subject wherever it goes (the copy follows it as play did, and says where), the surface joined round it across its edges and corners: a subject at an edge sits in the middle like any other, and one that crosses an edge is never lost
   f.style.cssText=`border:0;pointer-events:none;position:absolute;left:0;top:0;width:${rec.w}px;height:${rec.h}px;opacity:0`;v.width=Math.round(aw*dp);v.height=Math.round(ah*dp);v.style.cssText='position:absolute;left:0;top:0;width:100%;height:100%';if(getComputedStyle(h).position==='static')h.style.position='relative';h.style.overflow='hidden';h.style.background=rec.inv?'#fff':'#000'; // (a page's picture layer stays where it is laid: absolute, over the whole picture)
@@ -13210,7 +13209,7 @@ function cardHTML(ev,mini,pg){ // the one card format: name bar, art box, type l
 function mountScene(h,w,hh){if(!h||h.firstChild||document.querySelectorAll('.rl-live iframe:not(.held),.mtg .art iframe:not(.held)').length>=5)return; /* (a page's picture holding on its last frame does not count) */{const R=(h.dataset.ev||'').split(',').map(evRecFor).find(Boolean);if(R&&!w){evReplayMount(h,R);return;}} /* something you witnessed: your own recording of it, live (a demo only for what you have not) */const f=document.createElement('iframe'),nm=h.dataset.s||h.dataset.scene;f.style.cssText='border:0;max-width:100%;pointer-events:none;background:#000;border-radius:6px;'+(w?`width:${w}px;height:${hh}px`:'width:100%;height:100%');
   Object.assign(f,sceneSrc(nm,h.dataset.hold));if(h.dataset.hold&&nm.slice(0,4)!=='hub:')f.className='held';h.appendChild(f);}
 function sceneSrc(nm,hold){if(nm.slice(0,4)!=='hub:')return{srcdoc:liveSrc(nm,null,hold)};const[sn,dk]=nm.slice(4).split(':'); // a demo's page (a Surface Map demo is played by the map itself): mountScene's, and a shop shelf card's
-  return{src:'Surface_Map_HUB.html?v=20261127e&scene='+sn+(sn==='shop'?'&k='+encodeURIComponent(dk||''):'')+'&T='+encodeURIComponent(JSON.stringify(mapSceneT()))+'&D='+encodeURIComponent(JSON.stringify(dk&&DUCK_TYPES[dk]?{[dk]:DUCK_TYPES[dk]}:Object.fromEntries(Object.entries(DUCK_TYPES).slice(0,4))))};}
+  return{src:'Surface_Map_HUB.html?v=20261127f&scene='+sn+(sn==='shop'?'&k='+encodeURIComponent(dk||''):'')+'&T='+encodeURIComponent(JSON.stringify(mapSceneT()))+'&D='+encodeURIComponent(JSON.stringify(dk&&DUCK_TYPES[dk]?{[dk]:DUCK_TYPES[dk]}:Object.fromEntries(Object.entries(DUCK_TYPES).slice(0,4))))};}
 function mapSceneT(){const o={};for(const k in T)if(/^(map|bh|duck|wake|glass|metal|dimGlow|glowHalo|maxSpeed)/.test(k))o[k]=T[k];return o;} // what a map demo needs of the tuners
 function showCardHTML(html){ // a Guide card (an entry or a shop) opened over the Guide, where an event card shows
   guideCSS();if(!_evOpen)_evPausedIt=false;_evOpen=true;_evReview=true;const ov=evOverlayEl();ov.innerHTML=`<div class="ev-box">${html}<button id="evOk">${txt('card.close')}</button></div>`;ov.style.display='flex';wrap.classList.add('ev-open');

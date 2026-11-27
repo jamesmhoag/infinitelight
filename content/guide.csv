@@ -34,7 +34,7 @@ heat,touch,Heat,pnt,Doing a lot heats the cursor.,"Adds heat | Wipes, double dab
 Too hot | The cursor rests, then you need a brand new click."
 rclick,touch,Right click,dim,Does the first thing that applies.,"1 | Cancels a shape you are linking, or a tool in your hand.
 2 | Stops all shining.
-3 | With nothing shining, steps the readouts: telemetry, dynamics, class, effect radii, all, off."
+3 | With nothing shining and nothing in your hand, shows the dock's next set."
 shift,touch,Colour changes,pig,"Colours change slowly, never in a jump.","Next door | A neighbour colour: it changes at once and the look eases over.
 Skipping | A colour two steps away spends the time as the colour between. An opposite colour spends it as white (no effect).
 Interrupted | If more changes arrive, it stays on the colour between and the timer restarts. It finishes only when changes stop.
@@ -225,8 +225,9 @@ Open | Click it: the cork comes out and the letter inside is unrolled to read. T
 Kept | Every letter you find is kept in the Guide (Letters), a book in the order you found them. Each bottle holds one you have not found, until you have them all.
 Who | Someone else was here before you. Some of them wanted out; some of them left a tip.
 A duck | Now and then a bottle holds a duck instead (Bottle duck chance): opening it adds the duck to your collection."
-hubview,surf,Looking round,particle,"The map follows you, but you can look around.","Drag | Drag to look around. The Point always stays in view.
-Right-click | Back to your hex (or puts an item you are holding down).
+hubview,surf,Looking round,particle,"The map follows you, but you can look around.","Drag | Drag to look around. Your buoy always stays in view. The wheel zooms on the cursor.
+Right-click | Puts down what you are holding; with nothing held, shows the dock's next set.
+Home | Back to your hex.
 Modes | Telemetry shows each hex's value, coverage and ring; Stats shows the frame rate and the grid. ~ (or H) hides every panel."
 shopstreet,shops,Main street,sign:corner,"Shops that stand round the Point, always, from the first day.","Hours | Each keeps its own hours and is lit only while it is open. A closed shop can not be entered (a holiday, a dim fortune, closes them a time of day early).
 Discovered | A shop is discovered the first time it opens: one open all day on the first morning, the others at the first hour they open.
