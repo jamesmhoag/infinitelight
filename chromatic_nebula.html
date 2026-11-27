@@ -66,7 +66,7 @@ button:hover{background:rgba(255,255,255,0.15);}
 #inventoryPanel .slot .ic{font-size:13px;line-height:1;}
 .ico{display:inline-block;vertical-align:-3px;margin-right:3px;line-height:0}.ico svg{display:inline-block}
 #inventoryPanel .slot .cnt{margin-top:0;}
-#inventoryPanel .sep{width:6px}
+#inventoryPanel .sep{width:6px}#inventoryPanel .slot.todo{border-color:rgba(160,215,255,.9);box-shadow:0 0 8px rgba(140,200,255,.55)}#inventoryPanel .slot.todo .cnt{color:#bfe4ff}
 </style>
 <div id="wrap">
   <canvas id="c"></canvas>
@@ -117,7 +117,7 @@ button:hover{background:rgba(255,255,255,0.15);}
   <div id="dock" class="bottom"><div id="inventoryPanel"></div><div id="touch-info"></div></div>
   <canvas id="cur"></canvas>
 </div>
-<script src="content.js?v=20261127a"></script><script src="shared.js?v=20261127a"></script>
+<script src="content.js?v=20261127b"></script><script src="shared.js?v=20261127b"></script>
 <script>
 txtApply(); // the page's own labels (content/strings.csv)
 const _SRC=document.documentElement.outerHTML; // kept so the Encyclopedia can run live scenes as embedded copies of the game
@@ -4562,7 +4562,7 @@ function updateInventoryUI(){
   if(on('home')){ // Home: sound, the game's speed, the Guide, your buoy. In hand (a middle click), the wheel is the speed's or the volume's, and a click on the surface opens the other two
     html+=`<div${fn('vol')}" data-kind="vol" onclick="toggleMute()"><div class="ic"><svg width="16" height="16" viewBox="0 0 16 16"><path fill="currentColor" d="M2 6h2.6L8 3v10L4.6 10H2z"/>${audioMuted?'<path d="M10.5 6l4 4m0-4l-4 4" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/>':'<path d="M10.3 5.6a3.4 3.4 0 0 1 0 4.8M12.2 3.8a6 6 0 0 1 0 8.4" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/>'}</svg></div><div class="cnt">${audioMuted?txt('surf.off'):Math.round(T.masterVol*100)+'%'}</div></div>
     <div${fn('speedctl')} speedctl st-${st}" data-kind="speedctl" onclick="cycleSpeedCtl()" onwheel="wheelOnSpeedCtl(event)"><div class="ic">${speedIconSVG()}</div><div class="cnt">${st==='pause'?'❚❚':speedLabel(speedMult)}</div></div>
-    <div${fn('guide')}" data-kind="guide" onclick="openRules()"><div class="ic"><svg width="16" height="16" viewBox="0 0 16 16"><circle cx="8" cy="8" r="7" fill="none" stroke="currentColor" stroke-width="1.3"/><rect x="7.2" y="7" width="1.6" height="5" fill="currentColor"/><circle cx="8" cy="4.6" r="1" fill="currentColor"/></svg></div></div>
+    <div${fn('guide')}${evNew().length?' todo':''}" data-kind="guide" onclick="guideOpen()"><div class="ic"><svg width="16" height="16" viewBox="0 0 16 16"><circle cx="8" cy="8" r="7" fill="none" stroke="currentColor" stroke-width="1.3"/><rect x="7.2" y="7" width="1.6" height="5" fill="currentColor"/><circle cx="8" cy="4.6" r="1" fill="currentColor"/></svg></div>${evNew().length?`<div class="cnt">✦${evNew().length}</div>`:''}</div>
     <div${fn('buoy')}" data-kind="buoy" onclick="openCollections()"><div class="ic">${BUOY_ICO}</div></div>`;}
   if(on('ovl'))html+=ovlSlots();
   for(const g of['chest','sew','con'])if(on(g))for(const kind of DOCK_SETS[g]){ // the Treasure chest (every remnant collected), Sewing (Spindle, String, Weave), Constellations (what Weave patterns gathered)
@@ -4591,7 +4591,7 @@ function dockMiddle(){const g=dockGroup;if(g==='ovl'){cycleReadouts();updateInve
   else cycleStandardInvItem(DOCK_SETS[g]);}
 function dockFnUse(dy){const k=dockFn;if(!k)return false;if(k==='speedctl'){if(dy==null)return false;wheelSpeedStep(dy>0?1:-1,performance.now());} // (the speed and the volume stay in hand: a click still plays the surface)
   else if(k==='vol'){if(dy==null)return false;const v=Math.max(0,Math.min(1,Math.round(((audioMuted?0:T.masterVol)+(dy>0?-0.05:0.05))*20)/20));setSound(v>0,v>0?v:null);}
-  else if(dy==null){dockFn=null;if(k==='guide')openRules();else openCollections();}else return true;
+  else if(dy==null){dockFn=null;if(k==='guide')guideOpen();else openCollections();}else return true;
   updateInventoryUI();return true;}
 window.armInventoryItem=armInventoryItem;
 { const ip=document.getElementById('inventoryPanel'); // press, not click: nothing that happens between press and release (a rebuild, a placed tool…) can make a slot ignore you
@@ -11259,7 +11259,7 @@ function setFeed(n,d,color,key){ // key: what it tells of (a kind of thing's fee
   if(nw||key&&INK.live[key]){touchInfoEl._inkKey=null;inkWrite(touchInfoEl,key,900);}
 }
 function invHoverParts(kind,worst){
-  if(kind==='guide')return[txt('surf.i_guide'),txt('surf.rules_the_object_map')];
+  if(kind==='guide')return[txt('surf.i_guide'),evNew().length?txt('ev.review',evNew().length):txt('surf.rules_the_object_map')];
   if(kind.slice(0,4)==='grp_')return[txt('dock.g.'+kind.slice(4)),txt('dock.g.'+kind.slice(4)+'_d')+' · '+txt('dock.hint')];
   if(kind.slice(0,4)==='ovl_')return[txt('ovl.'+kind.slice(4)),txt('ovl.'+kind.slice(4)+'_d')];
   if(kind==='vol')return[txt('dock.vol',audioMuted?txt('surf.off'):Math.round(T.masterVol*100)+'%'),txt('dock.vol_d')];
@@ -13102,12 +13102,10 @@ const CONV={
  unwind:{t:'Spindle unwind',f:()=>['every '+tvE(T.unwindMs,'unwindMs')+' ms the target gives back '+tvE(T.unwindPct,'unwindPct')+'% of its starting mass as particles, so any size unwinds in '+tvE((Math.ceil(100/T.unwindPct)*T.unwindMs/1000).toFixed(1),'unwindMs unwindPct')+' s','while it unwinds nothing touches it and it touches nothing: no collisions, no effects either way','each lump carries energy = lump mass × (target energy ÷ target mass), so energy is conserved per mass','a still target spreads up to '+tvE(T.unwindMaxWidth,'unwindMaxWidth')+' px over '+tvE(T.unwindGrowMs,'unwindGrowMs')+' ms; when its mass is gone it disappears (no remnant)']}
 };
 // ── Events: the first time something happens, a card pauses the game and unlocks its Guide entries ──
-const EVENTS=csvRead('events').map(r=>{const f=r.facts.split('\n');return{id:r.id,name:r.name,type:r.type,rar:r.rarity,scene:r.scene,ico:r.icon,facts:()=>f.map(x=>String(x).replace(/\{([^{}]+)\}/g,(m,e)=>{const w=/^\d+$/.test(e)?'':VAL[e]||e,n=[...new Set((String(w).match(/\bT\.(\w+)|runT\('(\w+)'\)/g)||[]).map(v=>v.replace(/^T\.|runT\('|'\)/g,'')))].join(' ');return tvE(tpl(m),n);})),flavor:r.flavor,seen:r.witnessed};}); // (each value tagged with the variables it comes from: tvHTML) // content/events.csv (facts: one line each; {…} worked out as it shows; seen: what was witnessed, its page's first line)
-let _evQ=[],_evOpen=false,_evPausedIt=false,_evReview=false,_evHand=[],_evAct=0,_evDraw=false; // _evDraw: a Carnival draw is showing (it closes only by picking) // discoveries made together come as a hand: one card shown, the rest to pick
-function fireEvent(id,at,src){if(!window.__SCENE&&!BUILD)stat('ev:'+id);if(window.__SCENE||BUILD||discSeen.has('ev:'+id)||_evQ.indexOf(id)>=0||[_evCap,..._evBg].some(c=>c&&c.id===id)||!EVENTS.some(e=>e.id===id))return;if(!at&&EV_FRAME[id]==='f')at={x:W/2,y:H/2}; // (the whole surface: its centre) (one being captured is not taken twice)
-  const sz=EV_FRAME[id],desk=!_evOpen&&!_evCap&&[..._evDesk,...evNew()].some(i=>i!==id); // desk: some still to review, so it joins them there (recorded quietly for its card) and play goes on
-  if(at&&sz&&(desk||!_rulesOpen&&!_menuOpen&&!_evOpen&&!isPaused)){if(desk)_evBg.push(evCapNew(id,at,sz,performance.now(),src));else evCapStart(id,at,sz,src);return;} // where it happened, a capture frames it as it unfolds (src: what its subject came of: the Point a remnant formed from, the two that merged, a Pattern's Points). It is discovered only if its capture holds to the end (evCapTick): a moment that did not last is not witnessed, and can be another time
-  discSeen.add('ev:'+id);saveInventory();if(desk)_evDesk.push(id);else _evQ.push(id);evDeskSync();} // nowhere to frame it: discovered as it happens (a card at once, or onto the desk); new until it is looked at, anywhere (ilNew)
+const EVENTS=csvRead('events').map(r=>{const f=r.facts.split('\n');return{id:r.id,name:r.name,type:r.type,rar:r.rarity,scene:r.scene,ico:r.icon,capture:r.capture,facts:()=>f.map(x=>String(x).replace(/\{([^{}]+)\}/g,(m,e)=>{const w=/^\d+$/.test(e)?'':VAL[e]||e,n=[...new Set((String(w).match(/\bT\.(\w+)|runT\('(\w+)'\)/g)||[]).map(v=>v.replace(/^T\.|runT\('|'\)/g,'')))].join(' ');return tvE(tpl(m),n);})),flavor:r.flavor,seen:r.witnessed};}); // (each value tagged with the variables it comes from: tvHTML) // content/events.csv (facts: one line each; {…} worked out as it shows; seen: what was witnessed, its page's first line)
+let _evOpen=false,_evPausedIt=false,_evReview=false,_evDraw=false; // a card is open (a Guide card, a secret's, a box's); _evDraw: a Carnival draw is showing (it closes only by picking)
+function fireEvent(id,at,src){if(!window.__SCENE&&!BUILD)stat('ev:'+id);if(window.__SCENE||BUILD||discSeen.has('ev:'+id)||[_evCap,..._evBg].some(c=>c&&c.id===id)||!EVENTS.some(e=>e.id===id))return; // (one being captured is not taken twice)
+  evCapStart(id,at||{x:W/2,y:H/2},EV_FRAME[id]||'f',src);} // every event is captured, with no exception: framed where it happened (the whole surface if nowhere is said) as it unfolds (src: what its subject came of: the Point a remnant formed from, the two that merged, a Pattern's Points), over its own time (evCapMs). It is discovered only if its capture holds to the end (evCapTick): a moment that did not last is not witnessed, and can be another time. No card stops play: it goes to your Journal to review (the Journal's slot in Home counts what is new)
 // ── Event capture: the moment an event first happens, the game does not stop at once. A frame (a faint line with sparkles, brighter as it starts) follows it
 // round the surface (wrapping with it), sized by its kind (EV_FRAME: small for a pigment or Point, large for a Dark Remnant or a nova, the whole screen for a
 // Rift), the game slows by Event slow (with the novas' slows) and the scene is recorded (a rolling recording keeps Event pre ms before it). If nothing else
@@ -13129,7 +13127,7 @@ const evNew=()=>EVENTS.filter(e=>discSeen.has('ev:'+e.id)&&ilNew('ev:'+e.id)).ma
 var _evSurfAt=0; // (var: a surface is built before this part of the page has run)
 const _evDC=new WeakMap(); // (each nebula particle's record, made once: they keep still until woken)
 var _evRep=null,_evCap=null; // an event's capture, as it is played again (in a recording's own copy of the game) and as it happens (var: the draw asks after them before this part of the page has run)
-let _evSnaps=[],_evIn=[],_evBg=[],_evSnapAt=0,_evRecs={},_evDeskOpen=false;
+let _evSnaps=[],_evIn=[],_evBg=[],_evSnapAt=0,_evRecs={};
 // The recording is not pictures: it is the surface's own state (each object as Duplicate copies it, shining or not, and the nebula's particles there),
 // taken Event pre ms before the event, in a frame of the card's own shape round it (unwrapped across the screen's edges: a moment at an edge is one
 // piece). On its card it plays again, live, in a copy of the game at the size it happened and in the settings it happened in: your own moment,
@@ -13150,7 +13148,7 @@ function evRecord(now,force){if(window.__SCENE||BUILD)return;{let lo=(_evCap&&_e
 if(!window.__SCENE)for(const ty of['mousedown','mouseup','mousemove','dblclick','contextmenu','wheel'])document.addEventListener(ty,e=>{if(!wrapRect||BUILD||!e.isTrusted)return;if(ty!=='mousemove'&&e.target!==canvas&&e.target!==wrap)return; // your input as it happened (what the surface itself got): the recording plays it again
   _evIn.push({t:performance.now(),ty,x:e.clientX-wrapRect.left,y:e.clientY-wrapRect.top,b:e.button||0,bs:e.buttons||0,d:e.deltaY||0});},true);
 function evCapNew(id,at,sz,now,src){let S=_evSnaps[0]||null;if(!S||S.t<_evSurfAt){evRecord(now,true);S=_evSnaps[_evSnaps.length-1];} // (a new surface: from the moment it is there, not the one before)
-  const c={id,at,sz,t0:now,snap:S,ux:0,uy:0,px:at.x,py:at.y,x0:at.x,y0:at.y,id0:pidCounter,obj:at.id!=null?1:0,ids:new Set((src||[]).filter(Boolean).map(o=>o.id))};c.rect=Object.assign({x:at.x,y:at.y},evFrameR(c)); // ids: its subject and what it came of (all that is not dimmed)
+  const c={id,at,sz,t0:now,ms:evCapMs(EVENTS.find(e=>e.id===id)),snap:S,ux:0,uy:0,px:at.x,py:at.y,x0:at.x,y0:at.y,id0:pidCounter,obj:at.id!=null?1:0,ids:new Set((src||[]).filter(Boolean).map(o=>o.id))};c.rect=Object.assign({x:at.x,y:at.y},evFrameR(c)); // ids: its subject and what it came of (all that is not dimmed)
   if(c.obj)c.ids.add(at.id);else if(!src){const R=T.evAdoptR!=null?T.evAdoptR:90;for(const o of active)if(_wrapD(o.x-at.x,W)**2+_wrapD(o.y-at.y,H)**2<R*R)c.ids.add(o.id);} // (a place with nothing named: what was there)
   return c;}
 function evCapStart(id,at,sz,src){const now=performance.now();if(_evCap)_evBg.push(_evCap); // another one during this: the first is recorded on quietly, and goes to the desk if it holds
@@ -13175,20 +13173,21 @@ function evCapSave(c){const S=c.snap;if(!S)return;const{rw,rh}=evFrameR(c),cx=W/
   const ins=_evIn.filter(e=>e.t>=S.t).map(e=>({t:e.t,ty:e.ty,dx:e.x-cx,dy:e.y-cy,b:e.b,bs:e.bs,d:e.d})),st=S.st&&Object.assign({},S.st,S.st.x<-999?{dx:-9999,dy:-9999}:{dx:S.st.x-cx,dy:S.st.y-cy}); // (the cursor off the surface stays off)
   const rec={id:c.id,w:Math.round(W),h:Math.round(H),fw:Math.round(2*rw),fh:Math.round(2*rh),path:[[Math.round(c.t0),Math.round(c.x0-cx),Math.round(c.y0-cy)]],obj:c.obj,src:S.L.map((q,i)=>c.ids.has(q.oid)?i:-1).filter(i=>i>=0),still:evStill(c),sk:evSketch(c.rect,new Set([c.at&&c.at.id,...c.ids])),inv:invertMode?1:0,end:Math.round(now),dur:Math.round(now-S.t+(T.evReplayTail||900)),objs,dorm,at:Date.now(), // (path: where its subject was as it began; obj: a thing, not a place; src: which of objs it came of; still: how it ended; sk: what was in its frame then, for its page's drawing; end: when)
     t0:S.t,cap0:c.t0,st,ins,T:Object.assign({},T),purse:Object.assign({},inventory),ups:[...discSeen].filter(d=>d.slice(0,3)==='up:'),run:JSON.parse(JSON.stringify(runState||{}))};_evRecs[c.id]=rec;IDB.put('evrec:'+c.id,rec).catch(()=>{});} // (and everything it ran on: every setting, your purse, upgrades and day)
-let _evDesk=[];
 const evLostEnd=(c,now,end)=>c.gone||!!c.lost&&(end||now-c.lost>=(T.evLostMs!=null?T.evLostMs:350)); // a capture to cancel: its subject gone, or not a good shot (evFollow) for too long, or as it ends
-function evCapTick(now){for(const c of[..._evBg,_evCap]){if(!c)continue;evFollow(c,now);const fg=c===_evCap,end=now-c.t0>=Math.max(T.evCaptureMs||2400,fg?T.evSoloMs||1600:0),lost=evLostEnd(c,now,end);if(!end&&!lost)continue;
+function evCapTick(now){for(const c of[..._evBg,_evCap]){if(!c)continue;evFollow(c,now);const fg=c===_evCap,end=now-c.t0>=c.ms,lost=evLostEnd(c,now,end),ev=c.id.slice(0,3)!=='rl_'&&EVENTS.find(e=>e.id===c.id);if(!end&&!lost)continue;
     if(fg)_evCap=null;else _evBg.splice(_evBg.indexOf(c),1);
-    if(lost){if(c.id.slice(0,3)!=='rl_'){const{x,y,rw,rh}=c.rect;wrapCopies(x,y,Math.max(rw,rh),(ox,oy)=>{const P=[[-rw,-rh],[rw,-rh],[rw,rh],[-rw,rh]].map(q=>({x:x+ox+q[0],y:y+oy+q[1]}));P.forEach((p,i)=>spawnEdgeSparks(p,P[(i+1)%4],[255,255,255],now));});} // cancelled: its frame shatters into sparks; nothing is kept, and it is not discovered
-      const i=FX_EV_IDS.indexOf(c.id);setTimeout(()=>{if(i>=0)_fxEv[i]=0;delete _fxEvO[c.id];},T.evCaptureMs||2400);continue;} // (an effect's event can be tried again, after a while)
-    evCapSave(c);if(c.id.slice(0,3)==='rl_')continue; // (a Journal entry's own picture: saved, no more)
-    discSeen.add('ev:'+c.id);saveInventory(); // it held to the end: discovered (the Journal has it), its recording kept as it is now (its still)
-    if(fg){_evHand=[c.id,..._evDesk.filter(i=>i!==c.id)];_evDesk=[];showEventCard(c.id,false);}else _evDesk.push(c.id);evDeskSync();}} // nothing else happened: the game pauses and its card shows, the rest of the desk in its hand; a quiet one joins the desk
-function evFrameDraw(c2,now){for(const c of[..._evBg,_evCap]){if(!c||!c.rect||c.id.slice(0,3)==='rl_')continue;const{x,y,rw,rh}=c.rect,em=Math.max(0,1-(now-c.t0)/(T.evEmphMs||500)); // the frame round each event being captured, the ones recorded for the desk too (never a Journal entry's own picture): the card's shape (evFrameBox in shared.js, the Surface Map's too), brighter as it starts
+    if(lost){if(ev){const{x,y,rw,rh}=c.rect;wrapCopies(x,y,Math.max(rw,rh),(ox,oy)=>{const P=[[-rw,-rh],[rw,-rh],[rw,rh],[-rw,rh]].map(q=>({x:x+ox+q[0],y:y+oy+q[1]}));P.forEach((p,i)=>spawnEdgeSparks(p,P[(i+1)%4],[255,255,255],now));});flashSaveStatus(txt('ev.lost'));} // cancelled: its frame shatters into sparks; nothing is kept, and it is not discovered
+      const i=FX_EV_IDS.indexOf(c.id);setTimeout(()=>{if(i>=0)_fxEv[i]=0;delete _fxEvO[c.id];},c.ms);continue;} // (an effect's event can be tried again, after a while)
+    evCapSave(c);if(!ev)continue; // (a Journal entry's own picture: saved, no more)
+    discSeen.add('ev:'+c.id);saveInventory();updateInventoryUI();flashSaveStatus(txt('ev.kept',ev.name));}} // it held to the end: discovered, its recording kept as it is now (its still), and added to what there is to review in your Journal. Play goes on
+function evFrameDraw(c2,now){for(const c of[..._evBg,_evCap]){if(!c||!c.rect||c.id.slice(0,3)==='rl_')continue;const{x,y,rw,rh}=c.rect,em=Math.max(0,1-(now-c.t0)/(T.evEmphMs||500)); // the frame round each event being captured (never a Journal entry's own picture): the card's shape (evFrameBox in shared.js, the Surface Map's too), brighter as it starts
     if(c.sz==='f')evFrameBox(c2,[W/2-rw+3,3,2*rw-6,H-6],em,now);else wrapCopies(x,y,Math.max(rw,rh),(ox,oy)=>evFrameBox(c2,[x+ox-rw,y+oy-rh,2*rw,2*rh],em,now));}}
 const evRecFor=id=>id&&(_evRecs[id]||null),evStillHTML=ids=>{const R=ids.map(evRecFor).find(r=>r&&r.still);return R?`<img class="still" src="${R.still}" alt="">`:'';}; // a recording; and its still as a picture (a small card's art, at rest)
 if(!window.__SCENE)IDB.keys().then(ks=>{const P=IDB.key('evrec:');for(const k of ks)if(typeof k==='string'&&k.startsWith(P))IDB.get(k.slice(k.indexOf('evrec:'))).then(r=>{if(r&&r.id)_evRecs[r.id]=r;}).catch(()=>{});}).catch(()=>{}); // (your recordings, back from the last time you played)
-function evReplayMount(h,rec){if(!h||h.firstChild)return;const f=document.createElement('iframe'),v=document.createElement('canvas'),g=v.getContext('2d'),aw=h.clientWidth||300,ah=h.clientHeight||190,dp=Math.min(2,window.devicePixelRatio||1),k=Math.max(aw/(rec.fw||rec.w),ah/(rec.fh||rec.h)),P=(rec.path||[[0,0,0]])[0],c={sz:EV_FRAME[rec.id]||'l',t0:rec.cap0||0};let X=0,Y=0,last=null;
+function evReplayMount(h,rec){if(!h||h.firstChild)return;
+  if(rec.frames){const im=document.createElement('img'),F=rec.frames,hold=!!h.dataset.hold;let i=hold?F.length-1:0,at=0;im.style.cssText='position:absolute;left:0;top:0;width:100%;height:100%;object-fit:cover';im.src=F[i];if(getComputedStyle(h).position==='static')h.style.position='relative';h.style.overflow='hidden';h.style.background='#000';h.appendChild(im); // a recording made of pictures (the Surface Map's own, hubEvent): played as they were taken, holding on the last a moment (a page at rest: its last)
+    const run=t=>{if(!im.isConnected)return;requestAnimationFrame(run);if(hold||t-at<(i===F.length-1?(T.evReplayTail||900):rec.ms||250))return;at=t;i=(i+1)%F.length;im.src=F[i];};requestAnimationFrame(run);return;}
+  const f=document.createElement('iframe'),v=document.createElement('canvas'),g=v.getContext('2d'),aw=h.clientWidth||300,ah=h.clientHeight||190,dp=Math.min(2,window.devicePixelRatio||1),k=Math.max(aw/(rec.fw||rec.w),ah/(rec.fh||rec.h)),P=(rec.path||[[0,0,0]])[0],c={sz:EV_FRAME[rec.id]||'l',t0:rec.cap0||0};let X=0,Y=0,last=null;
   // your moment, played again live: a copy of the game at the size it happened plays it out of sight (its frame scaled to fill the card), and this canvas is the view of it. It keeps on the subject wherever it goes (the copy follows it as play did, and says where), the surface joined round it across its edges and corners: a subject at an edge sits in the middle like any other, and one that crosses an edge is never lost
   f.style.cssText=`border:0;pointer-events:none;position:absolute;left:0;top:0;width:${rec.w}px;height:${rec.h}px;opacity:0`;v.width=Math.round(aw*dp);v.height=Math.round(ah*dp);v.style.cssText='position:absolute;left:0;top:0;width:100%;height:100%';if(getComputedStyle(h).position==='static')h.style.position='relative';h.style.overflow='hidden';h.style.background=rec.inv?'#fff':'#000'; // (a page's picture layer stays where it is laid: absolute, over the whole picture)
   f.srcdoc=liveSrc('replay',rec,h.dataset.hold);if(h.dataset.hold)f.className='held';h.appendChild(f);h.appendChild(v);
@@ -13196,10 +13195,8 @@ function evReplayMount(h,rec){if(!h||h.firstChild)return;const f=document.create
     const kk=Math.min(k*evZoomK(c,w.performance.now()),(T.evReplayZoomMax||1.6)/dp),tx=rec.w/2+P[1]+w.__evU[0],ty=rec.h/2+P[2]+w.__evU[1],e=w===last?0.18:1;last=w;X+=(tx-X)*e;Y+=(ty-Y)*e;const mx=(X%rec.w+rec.w)%rec.w,my=(Y%rec.h+rec.h)%rec.h; // (the view eases after its subject: no jolt when the frame takes up what came of it)
     g.setTransform(1,0,0,1,0,0);g.imageSmoothingQuality='high';g.fillStyle=rec.inv?'#fff':'#000';g.fillRect(0,0,v.width,v.height);
     for(const ox of[-rec.w,0,rec.w])for(const oy of[-rec.h,0,rec.h]){const L=aw/2+(ox-mx)*kk,U=ah/2+(oy-my)*kk;if(L>=aw||U>=ah||L+rec.w*kk<=0||U+rec.h*kk<=0)continue;g.setTransform(kk*dp,0,0,kk*dp,L*dp,U*dp);g.drawImage(cv,0,0,rec.w,rec.h);if(cu&&cu.width&&w.getComputedStyle(cu).display!=='none')g.drawImage(cu,0,0,rec.w,rec.h);}};pan();}
-function evDeskSync(){let el=document.getElementById('evDesk');const n=new Set([..._evDesk,...evNew()]).size;if(!el){el=document.createElement('button');el.id='evDesk';el.style.cssText='position:absolute;right:12px;bottom:calc(var(--dock-h,0px) + 14px);z-index:30;background:rgba(0,0,0,.75);color:#fff;border:1px solid rgba(255,255,255,.35);border-radius:14px;font:11px monospace;padding:4px 10px;display:none';
-    el.onmousedown=e=>e.stopPropagation();el.onclick=e=>{e.stopPropagation();const ids=[...new Set([..._evDesk,...evNew()])].filter(i=>EVENTS.some(v=>v.id===i));if(!ids.length)return;_evDesk=[];_evDeskOpen=true;_evHand=ids;_evAct=0;showEventCard(ids[0],true);};wrap.appendChild(el);}
-  el.textContent=txt('ev.desk',n);el.dataset.more=txt('ev.desk_tip');el.style.display=n&&!window.__SCENE&&!BUILD?'':'none';el.classList.toggle('new',_evDesk.length>0);}
-function eventPump(){evCapTick(performance.now());if(!_evQ.length||_evCap||_rulesOpen||_menuOpen||(_evOpen&&!_evHand.length))return;const n=_evHand.length;_evHand.push(..._evQ.splice(0));showEventCard(_evHand[n?_evAct:0],false);} // new ones join an open hand
+function eventPump(){evCapTick(performance.now());}
+function guideOpen(){if(!_rulesOpen&&evNew().length)_jGo=jFirst();openRules('guide');} // the Journal (Home's slot): with anything new to review, it opens at the first of it
 const gEsc=s=>String(s).replace(/[&<>]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[c]));
 // Tiers (instead of rarity): how deep in the game a card sits. Muted tones: a card only explains, it has no use of its own
 const TIER=['I','II','III','IV','V'],TIER_COL=['#8b8678','#918a76','#978c71','#9d8d6b','#a38e64'],EV_TIER={c:0,u:1,r:2,m:3};
@@ -13214,26 +13211,24 @@ function cardHTML(ev,mini,pg){ // the one card format: name bar, art box, type l
 function mountScene(h,w,hh){if(!h||h.firstChild||document.querySelectorAll('.rl-live iframe:not(.held),.mtg .art iframe:not(.held)').length>=5)return; /* (a page's picture holding on its last frame does not count) */{const R=(h.dataset.ev||'').split(',').map(evRecFor).find(Boolean);if(R&&!w){evReplayMount(h,R);return;}} /* something you witnessed: your own recording of it, live (a demo only for what you have not) */const f=document.createElement('iframe'),nm=h.dataset.s||h.dataset.scene;f.style.cssText='border:0;max-width:100%;pointer-events:none;background:#000;border-radius:6px;'+(w?`width:${w}px;height:${hh}px`:'width:100%;height:100%');
   Object.assign(f,sceneSrc(nm,h.dataset.hold));if(h.dataset.hold&&nm.slice(0,4)!=='hub:')f.className='held';h.appendChild(f);}
 function sceneSrc(nm,hold){if(nm.slice(0,4)!=='hub:')return{srcdoc:liveSrc(nm,null,hold)};const[sn,dk]=nm.slice(4).split(':'); // a demo's page (a Surface Map demo is played by the map itself): mountScene's, and a shop shelf card's
-  return{src:'Surface_Map_HUB.html?v=20261127a&scene='+sn+(sn==='shop'?'&k='+encodeURIComponent(dk||''):'')+'&T='+encodeURIComponent(JSON.stringify(mapSceneT()))+'&D='+encodeURIComponent(JSON.stringify(dk&&DUCK_TYPES[dk]?{[dk]:DUCK_TYPES[dk]}:Object.fromEntries(Object.entries(DUCK_TYPES).slice(0,4))))};}
+  return{src:'Surface_Map_HUB.html?v=20261127b&scene='+sn+(sn==='shop'?'&k='+encodeURIComponent(dk||''):'')+'&T='+encodeURIComponent(JSON.stringify(mapSceneT()))+'&D='+encodeURIComponent(JSON.stringify(dk&&DUCK_TYPES[dk]?{[dk]:DUCK_TYPES[dk]}:Object.fromEntries(Object.entries(DUCK_TYPES).slice(0,4))))};}
 function mapSceneT(){const o={};for(const k in T)if(/^(map|bh|duck|wake|glass|metal|dimGlow|glowHalo|maxSpeed)/.test(k))o[k]=T[k];return o;} // what a map demo needs of the tuners
 function showCardHTML(html){ // a Guide card (an entry or a shop) opened over the Guide, where an event card shows
   guideCSS();if(!_evOpen)_evPausedIt=false;_evOpen=true;_evReview=true;const ov=evOverlayEl();ov.innerHTML=`<div class="ev-box">${html}<button id="evOk">${txt('card.close')}</button></div>`;ov.style.display='flex';wrap.classList.add('ev-open');
   ov.querySelectorAll('canvas.rl-m').forEach(cv=>rulesDraw(cv,cv.dataset.k));applyDisc();rulesRemount();document.getElementById('evOk').onclick=()=>closeEventCard();}
-document.addEventListener('click',e=>{const c=e.target.closest&&e.target.closest('.mtg.fd');if(!c||c.closest('.ev-hand'))return;e.stopPropagation();e.preventDefault();c.classList.remove('fd');ilSee(c.dataset.new);evDeskSync();},true); // a new card lies face down: a click turns it over, and it is seen (in a hand, a click picks it up first)
+document.addEventListener('click',e=>{const c=e.target.closest&&e.target.closest('.mtg.fd');if(!c||c.closest('.ev-hand'))return;e.stopPropagation();e.preventDefault();c.classList.remove('fd');ilSee(c.dataset.new);updateInventoryUI();},true); // a new card lies face down: a click turns it over, and it is seen (in a hand, a click picks it up first)
 document.addEventListener('click',e=>{const t=e.target.closest&&e.target.closest('.ctabs span');if(!t)return;const b=t.closest('.mtg');b.querySelectorAll('.ctabs span').forEach(x=>x.classList.toggle('on',x===t));b.querySelectorAll('.clist').forEach(l=>l.style.display=l.dataset.t===t.dataset.t?'':'none');}); // a shop's currency tabs, on its card or its page
 function evOverlayEl(){let ov=document.getElementById('evOverlay');
   if(!ov){ov=document.createElement('div');ov.id='evOverlay';wrap.appendChild(ov);for(const t of ['mousedown','mouseup','click','dblclick'])ov.addEventListener(t,e=>e.stopPropagation());ov.addEventListener('contextmenu',e=>{e.stopPropagation();e.preventDefault();});ov.addEventListener('wheel',e=>e.stopPropagation(),{passive:true});}
   return ov;}
-function showEventCard(id,review){
+function showEventCard(id){ // an event's card opened on its own (a secret told at the Carnival): its picture and name, your recording of it when there is one (else its demo)
   const ev=EVENTS.find(e=>e.id===id);if(!ev)return;guideCSS();
-  if(!_evOpen){_evPausedIt=false;if(!isPaused&&!_rulesOpen){togglePause();_evPausedIt=isPaused;}} // looking at an event (as it happens, or from the desk) pauses the game
-  if(!review){let nw=0;for(const h of _evHand)if(!discSeen.has('ev:'+h)){discSeen.add('ev:'+h);nw=1;}if(nw)saveInventory();_evAct=Math.max(0,_evHand.indexOf(id));}else if(!_evDeskOpen)_evHand=[];else _evAct=Math.max(0,_evHand.indexOf(id));
-  _evOpen=true;_evReview=review;releaseMouseDown(performance.now());uiPress=false;
+  if(!_evOpen){_evPausedIt=false;if(!isPaused&&!_rulesOpen){togglePause();_evPausedIt=isPaused;}} // looking at it pauses the game
+  _evOpen=true;_evReview=true;releaseMouseDown(performance.now());uiPress=false;
   const ov=evOverlayEl();ov.querySelectorAll('iframe').forEach(f=>f.remove());
-  ov.innerHTML=`<div class="ev-box">${cardHTML(ev,2)}${_evHand.length>1?`<div class="ev-hand">${_evHand.map((h,i)=>i===_evAct?'':cardHTML(EVENTS.find(e=>e.id===h),true)).join('')}</div>`:''}<button id="evOk">${txt(review?'card.close':'card.continue')}</button></div>`;
-  ov.style.display='flex';wrap.classList.add('ev-open');
-  ov.querySelectorAll('.ev-hand .mtg').forEach(c=>{c.onclick=()=>showEventCard(c.dataset.ev,false);});ov.querySelectorAll('canvas.rl-m').forEach(cv=>rulesDraw(cv,cv.dataset.k));
-  const art=ov.querySelector('.art');art.dataset.s=ev.scene;art.dataset.ev=id;mountScene(art); // its art: your recording of it, when there is one (else its demo)
+  ov.innerHTML=`<div class="ev-box">${cardHTML(ev,2)}<button id="evOk">${txt('card.close')}</button></div>`;
+  ov.style.display='flex';wrap.classList.add('ev-open');ov.querySelectorAll('canvas.rl-m').forEach(cv=>rulesDraw(cv,cv.dataset.k));
+  const art=ov.querySelector('.art');art.dataset.s=ev.scene;art.dataset.ev=id;mountScene(art);
   document.getElementById('evOk').onclick=()=>closeEventCard();
 }
 function shopBackHTML(k){return `<div class="mtg back sb"><div class="art"><img class="sign hid" src="shops/sign_${k}.svg" alt=""></div></div>`;} // a shop not yet found: its sign's shape
@@ -13248,7 +13243,7 @@ function shopCardHTML(k){const S=SHOPS[k],t=S.street?0:SHOP_TIER(k)===0?2:1,f=n=
   return `<div class="mtg full" data-shop="${k}" style="--rc:${TIER_COL[t]}"><div class="nm"><b>${gEsc(S.n)}</b><span class="gem"></span></div><div class="art" data-k="sign:${k}"><div class="art-live" data-scene="hub:shop:${k}"></div></div><div class="ty"><span>Shop · ${S.street?'main street':'pop-up'}</span><span>Tier ${TIER[t]}</span></div><div class="tx"><p>${gEsc(S.tag)}</p><p>${gEsc(how)}</p><p>${gEsc(S.about||'')}</p><p><b>Sells</b> (each found by discovery):</p>${items}</div></div>`;}
 function closeEventCard(){if(_evDraw)return;
   const ov=document.getElementById('evOverlay');if(ov){ov.querySelectorAll('iframe').forEach(f=>f.remove());ov.style.display='none';}
-  wrap.classList.remove('ev-open');_evOpen=false;_evHand=[];_evDeskOpen=false;
+  wrap.classList.remove('ev-open');_evOpen=false;
   if(_evPausedIt&&isPaused&&!_rulesOpen){togglePause();pauseRampDur=Math.max(pauseRampDur,T.evResumeMs);}_evPausedIt=false; // the game goes on, if looking paused it: a slow start back, to pick up where you were
   hubOverlayCheck();
 }
@@ -13592,7 +13587,7 @@ function journalRender(body){const P=journalPages(),ns=P.length/2,go=_jGo;_jGo=n
   body.querySelectorAll('canvas.rl-m').forEach(c=>rulesDraw(c,c.dataset.k));body.querySelectorAll('[data-disc]').forEach(el=>el.classList.toggle('disc-lock',!discHas(el.dataset.disc)));
   if(jFit(body))return;body.querySelectorAll('details').forEach(d=>d.ontoggle=()=>jFit(body));if(document.fonts)document.fonts.ready.then(()=>{if(body.isConnected&&_rulesOpen&&_rulesMode==='guide')jFit(body);}); // (opening the math, or the hand's letters arriving, can make a page's words run over)
   rulesRemount();
-  body.querySelectorAll('.bk-p[data-key]').forEach(pe=>{const key=pe.dataset.key;if(ilNew(key)||INK.live['pg:'+key]){inkWrite(pe.querySelector('.bk-c'),'pg:'+key);ilSee(key);}});evDeskSync();} // a new page is written in as you turn to it (and is new no longer)
+  body.querySelectorAll('.bk-p[data-key]').forEach(pe=>{const key=pe.dataset.key;if(ilNew(key)||INK.live['pg:'+key]){inkWrite(pe.querySelector('.bk-c'),'pg:'+key);ilSee(key);}});updateInventoryUI();} // a new page is written in as you turn to it (and is new no longer)
 function rulesRender(){
   const body=document.getElementById('rlBody');if(!body)return;guideCSS();
   const ov=document.getElementById('rulesOverlay');ov.classList.toggle('inv',!!invertMode);body.classList.toggle('by',_rulesTab==='buoy');body.classList.toggle('jr',_rulesMode==='guide');
@@ -13836,7 +13831,7 @@ function statusData(){const cap={};for(const k of ['bright','dim','neutron','mag
 function hubWake(){hubAsleep=false;if(!rafId)rafId=requestAnimationFrame(loop);}
 function hubIdle(){DUCK_SUN=duckSun(12);clearStage();feedAlert.until=0;levelCoverage=null;hubLevel=null;if(isPaused)togglePause();if(!hubOverlay)hubAsleep=true;} // back on the map: the loop stops (it shares the map's thread); a Guide / event card over the map keeps it
 function hubOverlay_(on){hubOverlay=on;wrap.classList.toggle('hub-ov',on);if(on)hubWake();} // the map's Guide / event cards show over a bare black stage
-function hubOverlayCheck(){if(hubOverlay&&!_rulesOpen&&!_evOpen&&!_evQ.length){hubOverlay_(false);hubAsleep=true;hubState('overlayDone');}}
+function hubOverlayCheck(){if(hubOverlay&&!_rulesOpen&&!_evOpen){hubOverlay_(false);hubAsleep=true;hubState('overlayDone');}}
 function clearFootText(){return HUB?'right-click to return to the Surface Map':'right-click to rebuild';}
 
 // The particle layer a hex shows on the map: sample the surface at the map's lattice spots (uv in 0..1)
@@ -13926,6 +13921,7 @@ window.addEventListener('message',e=>{
   else if(m.cmd==='ui')wrap.classList.toggle('ui-hidden',!!m.hidden); // ~ on the map: one hide / show for both
   else if(m.cmd==='tune'){applyLoadedConfig(m.T,true);debounceSave();}
   else if(m.cmd==='test'&&['discAll','testFill','unlockAll','testOn','testOff','testRun'].includes(m.f)){window[m.f](m.a);}
+  else if(m.cmd==='evrec'){if(m.rec&&m.rec.id){_evRecs[m.rec.id]=m.rec;IDB.put('evrec:'+m.rec.id,m.rec).catch(()=>{});}} /* an event recorded on the Surface Map (hubEvent): its pictures, kept with yours */
   else if(m.cmd==='discover'){if(m.id.slice(0,2)==='g_'){ruleLearn(m.id.slice(2));return;}discSeen.add(m.id);saveInventory();hubState();}
   else if(m.cmd==='spend'){inventory[m.kind]=Math.max(0,(inventory[m.kind]||0)-(m.n||1));saveInventory();updateInventoryUI();hubState();} // the map used an item (Spindle, String, Weave)
   else if(m.cmd==='award'){addInventory(m.kind,m.n||1);hubState();} // a map constellation paid out
@@ -13973,7 +13969,7 @@ function shopBuy(id,arg,ship){ // ship: bought from a shop you are not at: what 
   saveInventory();updateInventoryUI();applyDisc();return{ok:1,msg:got,draw,ship:ship||null};}
 function secretCards(){const c=[...EVENTS.filter(e=>!evSeen(e.id)).map(e=>({id:'ev:'+e.id,ev:e.id,n:e.name})),...RULES.filter(e=>!ruleOk(e[0])).map(e=>({id:'g_'+e[0],rule:e[0],n:e[2]}))];return c.sort(()=>Math.random()-0.5).slice(0,3);} // what a Card of Secrets can turn up: events not yet witnessed, and Guide entries not yet found that the Guide would show
 function shopPick(i){const d=runState.draw,c=d&&d.cards[i];if(!c)return{ok:0,text:'Nothing to pick'};runState.draw=null;let title,text; // a card turned over: what it gives
-  if(d.kind==='secret'){discSeen.add(c.id);title='A secret';text=c.n+' is discovered for good.';saveInventory();applyDisc();hubOverlay_(true);if(c.ev)showEventCard(c.ev,true);else showCardHTML(ruleCardHTML(RULES.find(x=>x[0]===c.rule),false));return{ok:1,title,text,good:true,show:1};} // the card itself, shown over the map
+  if(d.kind==='secret'){discSeen.add(c.id);title='A secret';text=c.n+' is discovered for good.';saveInventory();applyDisc();hubOverlay_(true);if(c.ev)showEventCard(c.ev);else showCardHTML(ruleCardHTML(RULES.find(x=>x[0]===c.rule),false));return{ok:1,title,text,good:true,show:1};} // the card itself, shown over the map
   else if(d.kind==='sing'){runState.sing=[{g:c.g,b:c.b,t:c.t,m:c.m}];fortuneStart({good:1,id:c.g});title=singName(c);text=singFacts(c).join(' ');saveInventory();updateInventoryUI();applyDisc();showCardHTML(singHTML(c));mountScene(document.querySelector('#evOverlay .art'));return{ok:1,title,text,good:true,show:1,sing:1,id:c.id};} // a singularity: it holds while you are awake today
   else if(d.kind==='fortune'){runState.dimNext=c; /* every fortune, good or dim, is for tomorrow (it takes hold as the day starts: fortuneStart) */title=txt(c.good?'card.fortune.goodnext':'card.fortune.dimnext');text=fortuneText(c,c.duck);}
   else{const t=runNow();runState.bonus={id:c.id,item:c.item||null,until:t+24,thru:t+21}; /* a Daily Wonder lasts a full day: until this time of day tomorrow */if(c.id==='inf')for(const k of ['leash','dial','weave'])inventory[k]=k===c.item?invMaxFor(k):0;title=c.n;text=c.t+'.';}
@@ -14432,7 +14428,7 @@ if(!window.__SCENE)registerGuideDisc();
   if(window.__SCENE){sceneBoot(window.__SCENE,window.__T);return;}
   await loadConfig();
   if(T.wakeBudgetPerFrame>5000)T.wakeBudgetPerFrame=400;if(!(T.fadeBudgetMs>0))T.fadeBudgetMs=4; // (0 meant unlimited: one burst of fades could take seconds) // (old saves: 150000 meant unlimited; waking now queues instead of dropping, so a real budget is safe)
-  buildTunePanel();updateRect();evDeskSync();
+  buildTunePanel();updateRect();
   if(HUB)hubIdle();else{rebuild();fireEvent('surface');}if(BUILD)buildStart();
   gameCursor({hide:el=>{const own=!/rules-open|ev-open|menu-open/.test(wrap.className)&&!document.getElementById('duckView')&&!!(el&&el.closest&&el.closest('#wrap'))&&!el.closest('#rulesOverlay,#evOverlay,#gameMenu');curCanvas.style.visibility=own?'':'hidden';return own;}}); // over the scene and its dock, the surface's own cursor; over every menu, card and panel outside it, the same cursor (never the system's)
   updateInventoryUI();applyDisc();updateSettleBtn();if(T.soundOn)setSound(true,null,true);

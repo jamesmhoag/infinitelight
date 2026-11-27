@@ -22,6 +22,8 @@ body{background:#050608;overflow:hidden;font-family:'Share Tech Mono',monospace;
 #hinv .dmin{font-size:13px;cursor:pointer}#hinv .dmin>span{opacity:.6}#hinv .dmin:hover>span{opacity:1} /* the feed's ▾ / ▴: a button like the others */
 body.dock-top #hdock{top:0;bottom:auto;flex-direction:column-reverse;border-radius:0 0 8px 8px}#hfeed{cursor:pointer} /* the feed clicked: it and the items go to the top edge (and back), as on a surface */body.dock-min:not(.feed-pop) #hfeed{display:none}body.dock-min #hinv .slot.dmin>*,body.dock-min #hinv .slot.dmin::before{transform:none!important;opacity:1!important} /* (its ▴ stays, to bring the feed back) */ /* the dock's own hide (its ▾): the feed goes, and each item keeps out of the way until pointed at (~ leaves the dock as it is, but for the ▾) */
 body.dock-min:not(.shop-open) #hinv .slot:not(.up):not(:hover)>*,body.dock-min:not(.shop-open) #hinv .slot:not(.up):not(:hover)::before{transform:translateY(130%);opacity:0} /* each item down out of the way until you point at its own place: then it comes up from below */
+#hinv .slot.todo::before{border-color:rgba(160,215,255,.9);box-shadow:0 0 8px rgba(140,200,255,.55)}#hinv .slot.todo b{color:#bfe4ff}
+body.ev-cap #shop,body.ev-cap #letter{box-shadow:0 0 0 2px rgba(255,255,255,.75),0 0 26px rgba(255,255,255,.55)} /* an event being captured in a shop or over a letter: its frame is the panel's own edge */
 #hinv .slot.armed::before{background:rgba(255,220,120,0.28);border-color:rgba(255,220,120,0.8)}#hinv .slot.empty{opacity:0.4}
 #hinv .slot svg{width:18px;height:18px;color:#fff}#hinv .slot b{font-weight:400;margin-top:1px}#hinv .sep{width:6px}
 #hfeed.flash{animation:feedFlash .6s ease-out}@keyframes feedFlash{0%{background:rgba(255,255,255,.35)}100%{background:rgba(0,0,0,.6)}} /* the feed flashes: why that click did nothing */
@@ -172,7 +174,7 @@ body.shop-open #hdock{z-index:59}#hinv .slot.wal::before{border-color:rgba(255,2
 <div id="veil"></div>
 <div id="bfx"></div>
 <iframe id="neb" data-tt="map.ui.surface"></iframe>
-<script src="content.js?v=20261127a"></script><script src="shared.js?v=20261127a"></script><script src="cabin.js?v=20261127a"></script><script src="music.js?v=20261127a"></script>
+<script src="content.js?v=20261127b"></script><script src="shared.js?v=20261127b"></script><script src="cabin.js?v=20261127b"></script><script src="music.js?v=20261127b"></script>
 <script>
 // ╔══════════════════════════════════════════════════════════════════════════════╗
 // ║  MAP ENGINE                                                                 ║
@@ -191,7 +193,7 @@ let playLog=[],clock=3,day=1,pool=6,burstFx=null,dayLog=[],dayCnt={b:0,d:0},pend
 // // clock: the hour (3 = Twilight … 24 = Midnight, the day's last turn); day: your attempts; pool: what the source put out at its last burst; fresh: no ring added yet since it
 let constel=[],armed=null,weaveSel=[],weaveAsk=null,clearFx={},mergeFx=[],feedMsg={t:'',d:'',at:-1e9}; // constellations {keys,type}; the armed map item; a Weave being drawn; animations; the final count
 const STEP_H=3; // the day: eight turns of three hours
-const CACHE_V='20261127a'; // the build: bump with shared.js's
+const CACHE_V='20261127b'; // the build: bump with shared.js's
 const SCENE=new URLSearchParams(location.search).get('scene'); // a Guide / event demo: the map plays a scripted moment (no surface behind it)
 let phase='move',turnTimer=0,mergeTimer=0;
 let gameOverReason='';
@@ -432,9 +434,9 @@ function completeCaptureForCell(cellKey,kind,tally){
   nebulaCellKey=null;
   detectMerges();dangerift(); // (the dim fortune Dangerift: this clear may be beside a Rift)
   clearFx[cellKey]={t0:null}; // its picture resolves into the clear when the map is next on screen
-  if(ringCheck()){updateHint();hubEvent('map_clear',a2w(c.q,c.r));saveMap();return;}
+  if(ringCheck()){updateHint();hubEvent('map_clear',a2w(c.q,c.r),()=>c.cap&&cells[K(c.q,c.r)]===c);saveMap();return;}
   // (a clear takes no time: only a move, without a String, moves the day on)
-  updateHint();hubEvent('map_clear',a2w(c.q,c.r));saveMap();
+  updateHint();hubEvent('map_clear',a2w(c.q,c.r),()=>c.cap&&cells[K(c.q,c.r)]===c);saveMap();
 }
 const tired=()=>clock===24&&!SCENE; // Midnight: no more moves (Rest ends the day)
 // Fresh water: the barrel holds Water max (6); every move drinks one. It is filled again by a bright clear, and whenever you are beside a bright hex or the Point.
@@ -568,7 +570,7 @@ const ITEM_NOTE={leash:txt('map.unwinds_a_cleared_hex'),dial:txt('map.goes_strai
   knot:txt('map.used_on_a_surface_2'),gate:txt('map.used_on_a_surface_3'),
   key:txt('map.key_note'),lens:txt('map.used_on_a_surface_5')};
 function itemInfo(k,c){ // an item in the dock: what it does; in hand over a hex, what it would do there (and what it costs)
-  if(k.slice(0,4)==='grp_')return[txt('dock.g.'+k.slice(4)),txt('dock.g.'+k.slice(4)+'_d')+' · '+txt('dock.hint')];if(k.slice(0,4)==='ovl_')return[txt('ovl.'+k.slice(4)),txt('ovl.'+k.slice(4)+'_d')];if(k==='zoom')return[txt('dock.zoom',viewZoom.toFixed(1)),txt('dock.zoom_d')]; // the dock's sets, overlays and view
+  if(k.slice(0,4)==='grp_')return[txt('dock.g.'+k.slice(4)),txt('dock.g.'+k.slice(4)+'_d')+' · '+txt('dock.hint')];if(k.slice(0,4)==='ovl_')return[txt('ovl.'+k.slice(4)),txt('ovl.'+k.slice(4)+'_d')];if(k==='zoom')return[txt('dock.zoom',viewZoom.toFixed(1)),txt('dock.zoom_d')];if(k==='guide')return[txt('dock.journal'),evTodo()?txt('ev.review',evTodo()):txt('surf.rules_the_object_map')]; // the dock's sets, overlays, view and Journal
   if(['drinks','rec','batt','wx','anchor','dmin'].includes(k)){const el=document.querySelector('#hinv .slot[data-k="'+k+'"]');return[(el&&(el.title||el.dataset.more))||k,k==='dmin'?'':txt('dock.g.home_d')];} // (Home's own: what each says of itself)
   if(k==='buoy')return[txt('map.buoy.deck'),txt('map.buoy.deck_d')];if(k==='trash'||k==='seed')return plantInfo(k,c);if(k==='test')return[txt('test.tool'),txt('test.tool_hint')]; // the test tool in hand
   const n=inv[k]||0,nm=KIND_NAME[k]||k;if(!ITEM_NOTE[k])return[curName(k),txt('map.you_have',fmtN(shopWallet(k)))];
@@ -630,7 +632,7 @@ function makeConstellation(type){
   const nc={keys:weaveSel.slice(),type},P=k=>a2w(...parseK(k)),broken=[];
   for(const o of constel)if(constEdges(nc).some(([a,b])=>constEdges(o).some(([c,d])=>![c,d].includes(a)&&![c,d].includes(b)&&segX(P(a),P(b),P(c),P(d)))))broken.push(o); // a newer one crossing an older one breaks it
   constel=constel.filter(o=>!broken.includes(o));constel.push(nc);spend('weave',nc.keys.length);weaveSel=[];weaveAsk=null;armed=null;
-  feed(txt('map.constellation',KIND_NAME[type]),txt('map.gives_a_every_time',KIND_NAME[type],(broken.length?txt('map.broke_older',broken.length):'')));hubEvent('map_constellation',[...P(nc.keys[0]),2.5]);updateHint();syncDock();saveMap();}
+  feed(txt('map.constellation',KIND_NAME[type]),txt('map.gives_a_every_time',KIND_NAME[type],(broken.length?txt('map.broke_older',broken.length):'')));hubEvent('map_constellation',[...P(nc.keys[0]),2.5],()=>constel.includes(nc));updateHint();syncDock();saveMap();}
 function checkConstellations(){constel=constel.filter(c=>c.keys.every(isBright));}
 function awardConstellations(){checkConstellations();const got={},laps=runBad(run,'laps'),gl=runBonus(run,'glasses');for(const c of constel){c.n=(c.n||0)+1;if(laps&&c.n%2)continue; // a dim fortune: every other time of day
     for(const k of gl&&c.type==='lens'?['prism','knot','gate'].concat(run.keysGone?[]:['key']):[c.type]){const w=Math.max(1,Math.round(T.mapWeavePay!=null?T.mapWeavePay:5));neb({cmd:'award',kind:k,n:w});got[k]=(got[k]||0)+w;}} // Broken Glasses: a Lens one pays the others
@@ -958,14 +960,14 @@ function mapRender(){
   // Direction line
   if(hoverMove&&phase!=='gameover'){const pts=[{q:pQ,r:pR},...hoverMove.path,{q:hoverMove.q,r:hoverMove.r}];mctx.beginPath();for(let i=0;i<pts.length;i++){const[sx,sy]=w2s(...a2w(pts[i].q,pts[i].r));if(!i)mctx.moveTo(sx,sy);else mctx.lineTo(sx,sy);}mctx.strokeStyle='rgba(0,210,210,0.6)';mctx.lineWidth=1.5;mctx.setLineDash([5,4]);mctx.stroke();mctx.setLineDash([]);const[dx,dy]=w2s(...a2w(hoverMove.q,hoverMove.r));mctx.beginPath();mctx.arc(dx,dy,3.5,0,Math.PI*2);mctx.fillStyle='rgba(0,220,220,0.7)';mctx.fill();}
   ovlTargets(now);
-  if(mapEv){const ms=now-mapEv.t0;if(ms>=(T.evCaptureMs||2400))mapEv=null;else{const[X,Y]=w2s(mapEv.x,mapEv.y),rh=mapEv.rh,rw=rh*(T.evAspect||1.65);evFrameBox(mctx,[X-rw,Y-rh,2*rw,2*rh],Math.max(0,1-ms/(T.evEmphMs||500)),now);}} // an event's frame (shared.js: the surface's own), lying on the water round where it happened
+  mapEvDraw(mctx,now,'map');
   hubPh('overlays');requestPreviews(mapNeed);hubPh('previews');pondStep(now);if(!SCENE){buoyStep(now,1);buoyPlane(now);}hubPh('ducks');sceneRender(now);buoyBeam(now);fireworksDraw(now);hubPh('3d');
   // HUD
   let st=`${clockStr()} · day ${day} · rings ${turn} · score ${score.toFixed(2)} · captures ${captureOrder.length}`;
   if(phase==='gameover')st+=txt('map.stat.gameover',gameOverReason);
   document.getElementById('score-display').textContent=st;
   {turnLabel(document.getElementById('turn-label'));document.getElementById('rest-btn').classList.toggle('on',canRest());}
-  ptOver=mX>=0?document.elementFromPoint(mX,mY):null;statsTick(now);shopTick();discTick();feedTick(now);cursorTick(now);hubPh('hud');hubPerfFrame(now); // ptOver: one hit test a frame, before the shops move (a hit test after a style change forces a layout)
+  ptOver=mX>=0?document.elementFromPoint(mX,mY):null;statsTick(now);shopTick();discTick();mapEvTick(now);feedTick(now);cursorTick(now);hubPh('hud');hubPerfFrame(now); // ptOver: one hit test a frame, before the shops move (a hit test after a style change forces a layout)
   if(!SCENE&&!document.hasFocus()&&currentView==='map'){mapRafId=setTimeout(()=>{mapRafId=requestAnimationFrame(mapRender);},1000/(T.mapIdleFps||8));hubPerf.last=0;} // the window is not in use (another window in front): a few frames a second, so a map left open costs little
   else mapRafId=requestAnimationFrame(mapRender);
 }
@@ -1369,9 +1371,35 @@ let evQ=[];
 const evAsked=new Set(); // (asked for once a session: the surface's reply may take a moment to say it is seen)
 const MAP_EV={};for(const r of csvRead('events'))MAP_EV[r.id]=r;
 let _guideRows=null;function hubLearn(id){if(SCENE||disc.has('g_'+id))return;disc.add('g_'+id);neb({cmd:'discover',id:'g_'+id});const g=(_guideRows=_guideRows||csvRead('guide')).find(x=>x.id===id);if(g)feed(txt('guide.learned',g.name),''); } // a Journal entry learned on the map, where it happens (the surface keeps it)
-let mapEv=null; // an event's frame on the map: where (x, y on the plane), how big (rh: half its height) and since when
-function hubEvent(id,at){if(SCENE)return;if(disc.has('ev:'+id)||evAsked.has(id))return;evAsked.add(id); // something seen for the first time on the map: said in the feed (one place for every message: no card over the map), framed where it happened as the surface frames its own (at: [x, y, half its height in hexes]; your buoy if not said) for Event capture ms, and discovered (its card is in the Guide)
-  at=at||[buoy.x,buoy.y];mapEv={x:at[0],y:at[1],rh:HEX*(at[2]||1.25),t0:performance.now()};const r=MAP_EV[id];if(r)feed(r.name,tpl(String(r.facts||'').split('\n')[0]));disc.add('ev:'+id);neb({cmd:'discover',id:'ev:'+id});}
+// ── Events on the map, below deck and in a shop: captured as a surface captures its own. The view is kept in pictures all the time (mapSnap: one every Event snapshot ms, Event pre ms
+// back), so a recording has the moment before. When an event triggers (hubEvent) its frame shows — round where it happened on the water; round the whole view below deck; round the
+// shop's shelves or the letter — and it is recorded for its own time (evCapMs). It is discovered only if it holds to the end (mapEvTick): what happened still there (hold: the hex
+// still cleared, the constellation still drawn), and in view (you still in the shop, below deck, reading the letter; on the map, nothing opened over it) but for Event lost ms at most,
+// and never as it ends. Held, its pictures are kept as its recording (the surface keeps them with yours: evrec), it is said in the feed and added to what there is to review in your
+// Journal. Not held, its frame breaks into sparks (evFrameShatter), nothing is kept and it is not discovered: it can happen again ──
+let mapEvs=[],_mapSnaps=[],_mapSnapAt=0;const evAspect=()=>T.evAspect||1.65;
+function hubEvent(id,at,hold){if(SCENE)return;if(disc.has('ev:'+id)||evAsked.has(id))return;evAsked.add(id); // at: [x, y, half its height in hexes] on the plane (your buoy if not said); hold: what has to stay true of it
+  at=at||[buoy.x,buoy.y];mapEvs.push({id,view:id==='cabin'?'cabin':id==='map_bottle'?'letter':id.slice(0,5)==='shop_'?'shop':'map',x:at[0],y:at[1],rh:HEX*(at[2]||1.25),hold,asked:performance.now(),t0:0,ms:evCapMs(MAP_EV[id])});}
+const mapEvView=c=>c.view==='shop'?!!(shopUI&&'shop_'+shopUI.id===c.id):c.view==='cabin'?currentView==='cabin'&&CABIN.dir>0:c.view==='letter'?!!letter:currentView==='map'&&!menuOpen&&!shopUI&&!letter, // is it in view: in its shop, below deck, the letter open; on the map, with nothing over it
+  mapEvCrop=c=>{if(c.view!=='map')return[0,0,SW,SH];const p=w2sc(c.x,c.y),q=w2sc(c.x,c.y+c.rh),hh=Math.max(40,Math.hypot(q[0]-p[0],q[1]-p[1])*1.3),hw=hh*evAspect();return[p[0]-hw,p[1]-hh,2*hw,2*hh];}; // the part of the view its recording keeps: round where it happened (the whole view below deck, in a shop, for a letter)
+function mapSnap(now,cab){if(now-_mapSnapAt<(T.evSnapMs||250)||!SW||(currentView==='cabin')!==!!cab)return;_mapSnapAt=now;const /* (cab: called by the cabin's own loop: each view's picture is taken by the loop that has just drawn it) */src=cab?CABIN.cv:sc,k=Math.min(1,720/SW),pre=T.evPreMs!=null?T.evPreMs:600; // the view as it is now, kept small (called as it is drawn: a picture of it can be taken)
+  const keep=Math.min(now,...mapEvs.filter(c=>c.t0).map(c=>c.t0))-pre-300;let S=_mapSnaps.length&&_mapSnaps[0].t<keep?_mapSnaps.shift():null;while(_mapSnaps.length&&_mapSnaps[0].t<keep)_mapSnaps.shift(); // (the oldest no recording needs is drawn over)
+  if(!S||S.cv.width!==Math.round(SW*k)||S.cv.height!==Math.round(SH*k)){S={cv:document.createElement('canvas')};S.cv.width=Math.round(SW*k);S.cv.height=Math.round(SH*k);}S.t=now;S.k=k;S.crop={};
+  try{const g=S.cv.getContext('2d');g.drawImage(src,0,0,S.cv.width,S.cv.height);if(!cab)for(const el of Object.values(shopEls)){const cv=el.isConnected&&el.firstChild;if(!cv||!cv.getContext||!cv.width)continue;const r=cv.getBoundingClientRect();g.drawImage(cv,r.left*k,r.top*k,r.width*k,r.height*k);}}catch(e){return;} // (the shops stand over the scene: drawn onto its picture)
+  for(const c of mapEvs)if(c.t0&&!c.broke)S.crop[c.id]=mapEvCrop(c);_mapSnaps.push(S);}
+function mapEvTick(now,cab){if(SCENE)return;mapSnap(now,cab);document.body.classList.toggle('ev-cap',mapEvs.some(c=>c.t0&&!c.broke&&(c.view==='shop'||c.view==='letter')));
+  for(const c of mapEvs.slice()){const drop=()=>mapEvs.splice(mapEvs.indexOf(c),1),held=!c.hold||!!c.hold(),ok=held&&mapEvView(c);
+    if(c.broke){if(now-c.broke>700)drop();continue;}
+    if(!c.t0){if(ok){c.t0=now;c.crop0=mapEvCrop(c);neb({cmd:'tap'});}else if(!held||now-c.asked>20000){evAsked.delete(c.id);drop();}continue;} // it happened out of view (a clear made on a surface, seen as you come back): its capture starts when it is in view; gone before that, it was not witnessed
+    c.lost=ok?0:c.lost||now;const end=now-c.t0>=c.ms;
+    if(c.lost&&(end||!held||now-c.lost>=(T.evLostMs!=null?T.evLostMs:350))){c.broke=now;evAsked.delete(c.id);feed(txt('ev.lost'),txt('ev.lost_d'),'no');continue;} // it did not last: its frame breaks, nothing is kept, and it is not discovered
+    if(!end)continue;drop();const pre=T.evPreMs!=null?T.evPreMs:600,A=evAspect(),w=360,h=c.view==='map'?Math.round(w/A):Math.round(w*SH/SW),cv=document.createElement('canvas'),g=cv.getContext('2d'),frames=[];cv.width=w;cv.height=h;
+    for(const S of _mapSnaps){if(S.t<c.t0-pre)continue;const R=S.crop[c.id]||c.crop0;g.fillStyle='#000';g.fillRect(0,0,w,h);try{g.drawImage(S.cv,R[0]*S.k,R[1]*S.k,R[2]*S.k,R[3]*S.k,0,0,w,h);frames.push(cv.toDataURL('image/jpeg',0.72));}catch(e){}} // its recording: the pictures from just before it to its end, each cut to its frame
+    const r=MAP_EV[c.id],sid=c.id.slice(0,5)==='shop_'?c.id.slice(5):null;disc.add('ev:'+c.id);neb({cmd:'discover',id:'ev:'+c.id});if(frames.length)neb({cmd:'evrec',rec:{id:c.id,frames,ms:T.evSnapMs||250,still:frames[frames.length-1],w,h,at:Date.now()}});
+    feed(txt('ev.kept',r?r.name:sid&&SHOPS[sid]?SHOPS[sid].n:c.id),r?tpl(String(r.facts||'').split('\n')[0]):txt('ev.kept_d'));syncDock();}}
+const evTodo=()=>[...disc].filter(d=>d.slice(0,3)==='ev:'&&ilNew(d)).length; // the events discovered and not yet read (the Journal's slot in Home counts them)
+function mapEvDraw(c2,now,view,W_,H_){for(const c of mapEvs){if(c.view!==view||!c.t0)continue;let L;if(view==='map'){const[X,Y]=w2s(c.x,c.y),rw=c.rh*evAspect();L=[X-rw,Y-c.rh,2*rw,2*c.rh];}else L=[5,5,W_-10,H_-10]; // each event's frame (shared.js: the surface's own): on the map, lying on the water round where it happened; below deck, round the whole view
+    if(c.broke)evFrameShatter(c2,L,Math.min(1,(now-c.broke)/700));else evFrameBox(c2,L,Math.max(0,1-(now-c.t0)/(T.evEmphMs||500)),now);}}
 function evPump(){if(currentView==='overlay'&&evQ.length&&nebReady){neb({cmd:'event',ids:evQ.splice(0)});return;} // joins the hand already showing
   if(currentView!=='map'||menuOpen||shopUI||letter||!nebReady||!evQ.length)return;const ids=evQ.splice(0).filter(i=>!disc.has('ev:'+i));if(!ids.length)return;currentView='overlay';showNeb(true);neb({cmd:'event',ids});} // together, as one hand
 function openGuide(){if(!nebReady||currentView!=='map')return;currentView='overlay';showNeb(true);neb({cmd:'guide',jlog});} // (the Journal tells your days from your log)
@@ -1964,6 +1992,7 @@ function syncDock(){const box=document.getElementById('hinv');if(!box)return;
   if(on('home')){
     if(currentView!=='cabin')h+=`<div class="slot${fnOn('zoom')}" data-k="zoom" data-fn="1" title="${txt('dock.zoom',viewZoom.toFixed(1))}"><svg viewBox="0 0 22 22" width="18" height="18"><circle cx="9.5" cy="9.5" r="5.5" fill="none" stroke="currentColor" stroke-width="1.8"/><path d="M14 14l5 5" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg><b>×${viewZoom.toFixed(1)}</b></div>`; // the view: in hand, the wheel zooms on the cursor
     h+=`<div class="slot buoy${nw('buoy')}${fnOn('buoy')}" data-k="buoy" data-fn="1" data-new="hk_buoy" title="${txt('map.buoy.deck')}">${BUOY_ICO}</div>`; // your buoy: below deck, or back up (its Status is the mirror there)
+    {const n=evTodo();h+=`<div class="slot${n?' todo':''}${fnOn('guide')}" data-k="guide" data-fn="1"><svg width="18" height="18" viewBox="0 0 16 16"><circle cx="8" cy="8" r="7" fill="none" stroke="currentColor" stroke-width="1.3"/><rect x="7.2" y="7" width="1.6" height="5" fill="currentColor"/><circle cx="8" cy="4.6" r="1" fill="currentColor"/></svg><b>${n?'✦'+n:''}</b></div>`;} // your Journal: how many events there are to review (it opens at the first)
     h+=`<div class="slot water${dry()?' empty':''}${fnOn('drinks')}" data-k="drinks"${fridge&&!bottle?' data-fn="1"':''} title="${txt('map.water.slot',drinks,waterMax())}${bottle?' · '+txt('map.water.slot_bottle'):''}"><svg viewBox="0 0 22 22" width="18" height="18"><path d="M11 2C8 7 5 10.5 5 14a6 6 0 0 0 12 0c0-3.5-3-7-6-12z" fill="${bottle?'#9fe6ff':'currentColor'}" opacity=".9"/></svg><b>${drinks}${bottle?'+1':''}${fridge?' ❄'+fridge:''}</b></div>`; // the fresh drinks barrel (and a bottle, drunk, waiting for your next move)
     if(recPlayer())h+=`<div class="slot rec${MUSIC.cur&&MUSIC.pref.on?' armed':''}${fnOn('rec')}" data-k="rec" data-fn="1" title="${txt('map.rec.slot',MUSIC.cur?MUSIC.cur.n:txt('map.rec.off'))}">♪<b>${MUSIC.cur?txt('map.rec.on_s'):txt('map.rec.off_s')}</b></div>`; // the record player: your records
     if(batteries||BATT_GEAR.some(x=>disc.has('up:'+x[0])))h+=`<div class="slot${BATT_GEAR.some(x=>disc.has('up:'+x[0])&&!powered(x[0]))?' empty':''}" data-k="batt" title="${txt('map.batt.have',batteries)}">🔋<b>${batteries}</b></div>`; // your batteries
@@ -1976,7 +2005,7 @@ function syncDock(){const box=document.getElementById('hinv');if(!box)return;
   for(const x of['sew','con'])if(on(x))h+=DOCK_SETS[x].map(k=>`<div class="slot${armed===k?' armed':''}${(inv[k]||0)<=0||!DOCK_ITEMS.includes(k)?' empty':nw(k)}" data-k="${k}" data-new="hk_${k}" title="${KIND_NAME[k]}${DOCK_ITEMS.includes(k)?'':' (earned)'}">${icons[k]||KIND_NAME[k][0]}<b>${inv[k]||0}</b></div>`).join(''); // Sewing; Constellations (what is used on a surface only: earned here, never taken in hand)
   box.innerHTML=h+ilDockArrow(dockMin);
   const q=k=>box.querySelector('.slot[data-k="'+k+'"]'),click=(k,f)=>{const el=q(k);if(el)el.onclick=f;};
-  click('drinks',fridgeDrink);click('rec',recordsOpen);click('anchor',()=>anchorSet(!anchored()));click('zoom',()=>{dockFn=dockFn==='zoom'?null:'zoom';syncDock();});click('buoy',()=>currentView==='cabin'?cabinClose():cabinOpen());
+  click('guide',journalOpen);click('drinks',fridgeDrink);click('rec',recordsOpen);click('anchor',()=>anchorSet(!anchored()));click('zoom',()=>{dockFn=dockFn==='zoom'?null:'zoom';syncDock();});click('buoy',()=>currentView==='cabin'?cabinClose():cabinOpen());
   for(const el of box.querySelectorAll('.slot.grp'))el.onclick=()=>{dockGroupSet(el.dataset.g);if(armed){armed=null;weaveSel=[];weaveAsk=null;updateHint();}syncDock();}; // a set clicked: it shows (what was in hand is put away)
   for(const el of box.querySelectorAll('.slot.ovl'))el.onclick=()=>{ovlSet(el.dataset.m,!ovlGet(el.dataset.m));syncDock();};
   for(const k of [...DOCK_ITEMS,'prism','knot','gate','key','lens'])if((inv[k]||0)!==dockSeen[k]){if(dockSeen[k]!=null)dockUp[k]=performance.now();dockSeen[k]=inv[k]||0;} // a count that changed shows for a while
@@ -1987,18 +2016,20 @@ function syncDock(){const box=document.getElementById('hinv');if(!box)return;
   else if(fd.querySelector('button'))fd.innerHTML='<div class="fn"></div><div class="fd"></div>';}
 // The wheel and the middle button (the dock's sets, shared.js): with nothing in hand the wheel goes through the sets; a middle click takes the next thing of the set shown in hand
 // (an item; in Home a function: the view, whose wheel then zooms, or one a click on the scene then uses; in Overlays, the next overlay). A right click lets it go
+function journalOpen(){if(currentView==='cabin')currentView='map';openGuide();} // (as the Journal on the desk below deck opens it)
 function dockMiddle(){const g=dockGroup;if(g==='ovl')ovlCycle();else if(g==='home'){if(armed){armed=null;updateHint();}dockFnStep('#hinv');if(dockFn)feed(txt('dock.hand',itemInfo(dockFn)[0]),txt(dockFn==='zoom'?'dock.zoom_d':'dock.hint'),'hint');}
   else{const L=g==='create'?['trash','seed'].filter(k=>k==='trash'?trashBag.length:seeds):(DOCK_SETS[g]||[]).filter(k=>DOCK_ITEMS.includes(k)&&(inv[k]||0)>0),n=L[(L.indexOf(armed)+1)%Math.max(1,L.length)];
     if(currentView!=='map'||!n)feed(txt('dock.g.'+g),txt('dock.none'),'hint');else if(n!==armed)armItem(n);}
   syncDock();}
-function dockFnUse(){const k=dockFn;if(!k||k==='zoom')return false;dockFn=null;({buoy:()=>currentView==='cabin'?cabinClose():cabinOpen(),drinks:fridgeDrink,rec:recordsOpen,anchor:()=>anchorSet(!anchored())}[k]||(()=>{}))();syncDock();return true;} // a click on the scene with one of Home's functions in hand: it is used (the view's stays in hand: its wheel zooms)
+function dockFnUse(){const k=dockFn;if(!k||k==='zoom')return false;dockFn=null;({guide:journalOpen,buoy:()=>currentView==='cabin'?cabinClose():cabinOpen(),drinks:fridgeDrink,rec:recordsOpen,anchor:()=>anchorSet(!anchored())}[k]||(()=>{}))();syncDock();return true;} // a click on the scene with one of Home's functions in hand: it is used (the view's stays in hand: its wheel zooms)
 document.addEventListener('mousedown',e=>{if(e.button!==1||SCENE||menuOpen||shopUI||currentView!=='map'&&currentView!=='cabin'||(e.target.closest&&e.target.closest('#tuneP,#mModes,input,select,textarea')))return;e.preventDefault();dockMiddle();});
 document.addEventListener('auxclick',e=>{if(e.button===1)e.preventDefault();});
 document.addEventListener('click',e=>{if(!dockFn||dockFn==='zoom'||menuOpen||shopUI||drag&&drag.moved||!(e.target===sc||currentView==='cabin'&&CABIN.cv&&e.target===CABIN.cv))return;e.stopPropagation();dockFnUse();},true);
 let dockMin=ilDockMin();document.body.classList.toggle('dock-min',dockMin);
 function dockMinSet(v,quiet){dockMin=ilDockMin(!!v);document.body.classList.toggle('dock-min',dockMin);dockUp.dmin=performance.now();for(const k of DOCK_ITEMS)dockUp[k]=performance.now();syncDock();if(!quiet)neb({cmd:'dockmin',v:dockMin});} // the feed put away or back: here and on the surface alike
 const dockUp={},dockSeen={}; // when each slot was last used or changed: in the reduced dock it stays up a while after (Dock linger ms)
-function dockLinger(now){const ms=T.mapDockLingerMs!=null?T.mapDockLingerMs:2500;for(const el of document.querySelectorAll('#hinv .slot')){const k=el.dataset.k;el.classList.toggle('up',armed===k||now-(dockUp[k]||-1e9)<ms);const f=dockFx[k],on=f&&now-f.at<1400;el.classList.toggle('gain',!!(on&&f.up));el.classList.toggle('spend',!!(on&&!f.up));}}
+function dockLinger(now){{const g=document.querySelector('#hinv .slot[data-k="guide"]');if(g){const n=evTodo(),t=n?'✦'+n:'';if(g.lastChild.textContent!==t){g.lastChild.textContent=t;g.classList.toggle('todo',n>0);}}} // (the Journal's count keeps up with what you read)
+  const ms=T.mapDockLingerMs!=null?T.mapDockLingerMs:2500;for(const el of document.querySelectorAll('#hinv .slot')){const k=el.dataset.k;el.classList.toggle('up',armed===k||now-(dockUp[k]||-1e9)<ms);const f=dockFx[k],on=f&&now-f.at<1400;el.classList.toggle('gain',!!(on&&f.up));el.classList.toggle('spend',!!(on&&!f.up));}}
 function duckUnder(X,Y){let best=null,bd=1e9;for(const d of pond){if(!d._s)continue;const[px,py]=w2s(d.x,d.y),[sx,sy,k]=proj(px,py),r=d._s*k*0.9,dd=Math.hypot(X-sx,Y-sy);if(dd<r&&dd<bd){bd=dd;best=d;}}return best;}
 // What each overlay says of a thing on the map or below deck (ovlText shows the ones that are on): cls its name and kind, dyn what it is worth, tel how it moves and its state, rad what a click does and from how far, risk what can end it
 const ovlOf={left:()=>Math.max(0,Math.round((24-clock)/3)),deg:a=>Math.round(((a*180/Math.PI)%360+360)%360),

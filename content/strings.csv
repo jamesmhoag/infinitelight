@@ -1190,8 +1190,6 @@ build.sel_mixed,mixed,Build menu,shown in a Selection box when the selected obje
 build.sel_box,"The value every selected object shares (empty: they differ). Type one to set it on all of them.",Build menu,the Selection boxes' tooltip
 build.sel_cleared,Selection cleared,Build menu,
 build.sel_set,"Set on {count} selected.",Build menu,count = $0 — objects changed
-ev.desk,✦ {0} to review,Events,
-ev.desk_tip,"Discoveries you have not looked at yet: events captured while another was happening, and any still new. Click to review them.",Events,
 journal.notes,"your notes…",the Journal,
 journal.empty,"Nothing is known yet.",the Journal,
 journal.map,"How everything becomes everything else. Point at a step to read it; click to keep it.",the Journal,
@@ -1576,3 +1574,9 @@ map.plant.flower,A {0} flower,Surface Map feed,0 = material
 map.plant.pick_far,Go beside it to pick it: + {0} Dim,Surface Map feed,0 = Dim
 map.plant.pick,Click to pick it: + {0} Dim,Surface Map feed,0 = Dim
 map.buoy.name,Your buoy,Surface Map feed,
+ev.kept,"Recorded: {0}",Events,0 = the event
+ev.kept_d,"It is in your Journal: its slot in Home counts what you have not read",Events,
+ev.lost,"It did not last",Events,
+ev.lost_d,"Something was happening, and it did not finish: nothing was recorded",Events,
+ev.review,"{0} new to read: a click opens your Journal at the first",Events,0 = how many
+dock.journal,"Your Journal",the dock,
