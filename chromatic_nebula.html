@@ -1980,7 +1980,7 @@ function applyActiveRemnantEffect(p,q){
     const bs0=pulsingBeamState(p);
     if(p.magTintCI!==undefined)tintForce(p,q,bs0.rMain,pulseTintCI(p,bs0.side)); // coloured: primary colour on the first side, secondary on the second
     if(bs0.side===0)pulseSetActive(q,true,bs0.ep); // first side activates everything it reaches; the second side changes no status (its only deactivation is the snake cap, pulseEnforceCap)
-    if(bs0.side===0&&q.isRemnant&&q.remKind!=='pulsing'&&!q._collected&&!q.dying&&!underGlass(q.x,q.y)){const ck=collectKindOf(q);if(ck&&inventory[ck]<invMaxFor(ck))q._dialCollect=true;} // …and collects the loose remnants it touches
+    if(bs0.side===0&&q.isRemnant&&q.remKind!=='pulsing'&&!q._collected&&!q.dying&&!underGlass(q.x,q.y)){if(collectKindOf(q))q._dialCollect=true;} // …and collects the loose remnants it touches
   }
 }
 function magAngle(p){return p.magAxis+(p.rotation||0);} // Magnetic split line: its own axis plus the remnant's live rotation
@@ -2117,7 +2117,7 @@ function runT(k){ // a tuner as today's fortune, daily wonder, Luck Charms and t
   if(k==='duckExoticChance')return v*(lucky?2:1)+0.2*L('e');if(k==='duckRareChance')return v*(lucky?2:1)+0.2*L('r');if(k==='duckMidChance')return v*(lucky?2:1)+0.1*L('r');if(k==='duckLuckStep')return lucky?0.04:v;
   if(k==='orbitsPerDial'||k==='weaveMinPoints')return v+(runBad(r,'laps')?1:0);if(k==='flockSecondsPerLeash'||k==='weaveSeconds')return v+(runBad(r,'slow')?1:0);
   if(k==='riftMass')return v>0&&runBad(r,'rift')?Math.max(1000,v-10000):v;return v;}
-function invFull(kind){return !BUILD&&inventory[kind]>=invMaxFor(kind);} // a purse with no room left: nothing more of that kind is netted, earned or bought (a catch already in the net that crosses it is still collected, its excess skipped). Never in Build mode, where every item is endless: collecting and earning still happen there, so nothing on a surface is out of reach
+function invFull(kind){return !BUILD&&inventory[kind]>=invMaxFor(kind);} // a purse with no room left: nothing more of that kind is earned or bought. Remnants are still collected (a rupee pouch: taken off the surface, counted for the surface's tally and its shops, nothing added past the cap). Never in Build mode, where every item is endless: collecting and earning still happen there, so nothing on a surface is out of reach
 function invFullMsg(kind){return T.chestOn&&!BUILD&&CHEST_KINDS.includes(kind)?txt(shopCap(kind,k=>discSeen.has(k))?'surf.compartment_full':'surf.chest_full',INV_LABEL[kind]):txt('surf.is_full',INV_LABEL[kind]);} // what is full: its own compartment, the shared chest, or (Chest off) its purse
 // The treasure chest (Chest on): the remnants you hold (Bright, Neutron, Magnetic, Pulsing, each at the value it was collected at) share one chest of Chest
 // start (999). BRiGHT IDEAS sells each kind its own compartment (999: out of the shared chest), then bigger ones (exotics 9,999; Bright 99,999, then
@@ -2144,11 +2144,11 @@ function remnantValue(p,kind){const e=!!p.enriched,pr=gearOn('proc_'+(kind==='di
   // infected with (each stacked status) as well; a relic is worth 10 × as much unprocessed, as before processed, and Relic refinery × more again
   if(kind==='bright'||kind==='dim')return pr||e?Math.max(1,Math.ceil((p.energy||0)*(pr?k:10)*rf)):1;if(runBad(runState,'exo1'))return 1; // (a dim fortune: exotic remnants collect as 1)
   return (e?(pr?100:10)*rf:1)+(pr?((p._stB&&p._stB.length)||0)*Math.ceil(T.statusEnergy*k):0);}
-let surfaceTally={},surfaceLost={},surfaceFull={}; // (surfaceFull: the kinds whose purse filled this surface, part of a catch skipped)
+let surfaceTally={},surfaceLost={},surfaceFull={}; // (surfaceTally: what was collected, room or not — it opens the pop-up shops; surfaceFull: the kinds whose purse filled, part of what was collected not added)
 function tallyLost(p){const k=collectKindOf(p);if(k)surfaceLost[k]=(surfaceLost[k]||0)+remnantValue(p,k);}
 function boomBust(n){return runBonus(runState,'boom')?(Math.random()<0.5?n*5:0):n;} // a Boom or Bust day: ×5 or nothing
 function collectRemnantsToInventory(whiteCount,brownCount,activeCounts){const c=Object.assign({},activeCounts,{bright:whiteCount,dim:brownCount}); // everything left at a Surface Clear: filled up to each cap, the rest skipped (as a net's catch)
-  for(const k in c){const n=boomBust(c[k]);if(!(n>0))continue;const got=addInventory(k,n)||0;if(got>0)surfaceTally[k]=(surfaceTally[k]||0)+got;if(got<n)surfaceFull[k]=1;}
+  for(const k in c){const n=boomBust(c[k]);if(!(n>0))continue;const got=addInventory(k,n)||0;surfaceTally[k]=(surfaceTally[k]||0)+n;if(got<n)surfaceFull[k]=1;}
 }
 // ── Orbit (String) and Chase (Spindle) detection between white points ─────────
 // Tracked per ORDERED pair (A orbits/chases B) so A-around-B and B-around-A
@@ -5319,7 +5319,6 @@ function collectRemnant(c){
   c.inShape=!!bondOf(c.p);
   if(!c.free){ const hn=performance.now(); if(heatBlocked(hn)&&!c.netted)return false; // an overheated cursor collects nothing (but a catch already in the net always comes in)
     const pr=_collectFor?_collectFor.downAt:mouseDownAt;if(_collHeatPress===pr)heatAdd(1,hn);else _collHeatPress=pr; } // (a String shot collecting costs no heat) the first object of a press is free; each further one adds heat, like a swipe
-  if(!_collectFor&&!c.netted&&invFull(c.kind)){flashSaveStatus(invFullMsg(c.kind));return false;} // (netted: collected anyway, nothing added past the cap — collecting still takes it off the surface)
   c.p._collected=true;if(blackHole)c.p._bhGone=true;lastCollectDoneAt=performance.now();discObj(c.p);if(lastCollectTarget===c.p)lastCollectTarget=null;
   unbond(c.p);
   const idx=active.indexOf(c.p);if(idx>=0)active.splice(idx,1);
@@ -5327,7 +5326,7 @@ function collectRemnant(c){
   // Bright / Dim remnants are worth 10× their energy, rounded up (0.823 → 9, 0.0003 → 1); Neutron, Magnetic and Pulsing always count 1
   if(!_collectFor)stat('collect:'+c.kind); // (lifetime: remnants of each kind collected)
   const want=_collectFor?remnantValue(c.p,c.kind):boomBust(remnantValue(c.p,c.kind)),got=_collectFor||BUILD?want:Math.min(want,Math.max(0,invMaxFor(c.kind)-inventory[c.kind])); // (a Boom or Bust day: ×5 or nothing) filled up to the cap, the rest skipped
-  if(_collectFor)mpGot(c.kind,got);else{if(got>0)addInventory(c.kind,got);surfaceTally[c.kind]=(surfaceTally[c.kind]||0)+got;if(got<want)surfaceFull[c.kind]=1;if(MP.live)MP.score.host+=got;} // a second player's pickup is theirs
+  if(_collectFor)mpGot(c.kind,got);else{if(got>0)addInventory(c.kind,got);surfaceTally[c.kind]=(surfaceTally[c.kind]||0)+want;if(got<want)surfaceFull[c.kind]=1;if(MP.live)MP.score.host+=got;} // a second player's pickup is theirs
   if(!_batchSnd){const cp=c.p.remKind?c.p:Object.assign({},c.p,{remKind:'brown'});_playRemnantActionSoundInner(cp,false,1);} // exactly the tuner's pickup sound for that remnant type
   if(NET.sum&&!_collectFor)NET.sum[c.kind]=(NET.sum[c.kind]||0)+got; // one catch of the net: summed, one burst and one +n per kind when it is all in (netTick)
   else{spawnCollectSparks(c.p); // the remnant's edge breaks into particles that gather inward and rise
@@ -5349,9 +5348,7 @@ function tryPickupRemnant(mx,my){
   { const nta=performance.now();
     if(lastCollectAll&&(BUILD||gearOn('hoop1'))&&nta-lastCollectAll.t<380&&Math.hypot(mx-lastCollectAll.x,my-lastCollectAll.y)<34){ // second quick click: sweep up the NEAREST remnants of the same type, anywhere on screen, up to the snake length in all
       const k=lastCollectAll.kind;lastCollectAll=null;const R=T.touchR*(gearOn('hoop2')?T.netDbl2Mult||6:T.netDblMult||3); // the net slashed in wide: every remnant of that kind within its hoop
-      const cs=[];for(const q of active){if(q.dying||q.captured||q._collected||q._netAt||collectKindOf(q)!==k||underGlass(q.x,q.y)||bondOf(q))continue;const d=Math.hypot(_wrapD(q.x-mx,W),_wrapD(q.y-my,H));if(d<=R)cs.push({p:q,kind:k,d});}
-      cs.sort((a,b)=>a.d-b.d);let room=BUILD?Infinity:invMaxFor(k)-inventory[k],n=0;while(n<cs.length&&room>0)room-=remnantValue(cs[n++].p,k);cs.length=n; // only what the purse has room for, nearest first (the last may cross the cap: it is collected, its excess skipped); the rest are never touched
-      if(!n)flashSaveStatus(invFullMsg(k));
+      const cs=[];for(const q of active){if(q.dying||q.captured||q._collected||q._netAt||collectKindOf(q)!==k||underGlass(q.x,q.y)||bondOf(q))continue;if(Math.hypot(_wrapD(q.x-mx,W),_wrapD(q.y-my,H))<=R)cs.push({p:q,kind:k});}
       netScoop(cs,mx,my,R,true)||netRipple(mx,my,R,0.8);
       lastCollectDoneAt=nta;
       return true; // the click is spent either way — it never falls through to an activation
@@ -5361,7 +5358,7 @@ function tryPickupRemnant(mx,my){
   // lands during that ease still collects the target it just had, rather than falling through to a plain activation.
   if(!c&&lastCollectTarget&&!lastCollectTarget.dying&&!lastCollectTarget.captured&&performance.now()-lastCollectSeenAt<T.collectGraceMs)c={p:lastCollectTarget,kind:collectKindOf(lastCollectTarget)};
   if(!c||!c.kind)return false;
-  if(invFull(c.kind)||heatBlocked(performance.now())){if(invFull(c.kind))flashSaveStatus(invFullMsg(c.kind));return false;} // a full purse (or an overheated nib) never dips the net: the click is a plain one, as the cursor showed
+  if(heatBlocked(performance.now()))return false; // an overheated nib never dips the net
   if(!netScoop([c],mx,my,Math.max(T.cursorBaseR,8)*1.1,false))collectRemnant(c);lastCollectAll={kind:c.kind,t:performance.now(),x:mx,y:my}; // scooped: collected as the net comes up
   return true;
 }
@@ -5379,8 +5376,7 @@ const NET={dips:[],rip:[],spl:[],held:[],rope:null,sum:null,v:0,w:0,wi:0,s:0,fx:
   netSnap=u=>u<=0?0:u>=1?1:1+2.70158*Math.pow(u-1,3)+1.70158*Math.pow(u-1,2); // the flip: slow to start, then over with a snap that overshoots and settles
 function netRipple(x,y,R,a){NET.rip.push({x,y,R,a:a||1,t0:performance.now()});}
 function netKeep(c){if(!c||!c.p||c.p._collected||c.p._netAt||!c.kind||heatBlocked(performance.now()))return;if(!NET.kind)NET.kind=c.kind;else if(c.kind!==NET.kind)return; /* a wipe nets only the kind it began on: the rest pass through */
-  if(!BUILD&&NET.held.reduce((a,h)=>a+(h.kind===c.kind?remnantValue(h.p,h.kind):0),0)>=invMaxFor(c.kind)-inventory[c.kind])return; // the net holds only what the purse has room for (the one that crosses the cap is taken, its excess skipped): the rest pass through, never gathered and dropped
-  c.p._netAt=performance.now();c.j=Math.random()*6.2832;unbond(c.p);NET.held.push(c);if(NET.held.length>1)playScaleStep();} // gathered into the net while the press is held (a rising glissando links them)
+c.p._netAt=performance.now();c.j=Math.random()*6.2832;unbond(c.p);NET.held.push(c);if(NET.held.length>1)playScaleStep();} // gathered into the net while the press is held (a rising glissando links them)
 function netScoop(cs,x,y,R,dbl){const now=performance.now(),list=cs.filter(c=>c&&c.p&&!c.p._collected&&!c.p._netAt);if(!list.length)return false;let R1=NET.R;
   for(const c of list){c.p._netAt=now;c.ox=_wrapD(c.p.x-x,W);c.oy=_wrapD(c.p.y-y,H);if(dbl)R1=Math.max(R1,Math.min(R,Math.hypot(c.ox,c.oy)+placedRadius(c.p)+4));} // a double dab's hoop swells just far enough to take in every one
   NET.dips.push({x,y,R0:NET.R,R1,dbl,cs:list,t0:now,bx:-NET.fx,by:-NET.fy});NET.v=0;netRipple(x,y,NET.R,1);splashRing(NET.spl,x,y,NET.R*(T.netSplashR||2.2),T.netSplashN||12);return true;} // (bx, by: back along the path it came, where the net trails)
@@ -11180,8 +11176,7 @@ function computeHoverAndCursor(now){
     const createColor=inCreate?currentCreateColor():null;
     const hoverCollectRaw=(!overUI&&!heatLocked&&!armedInvItem&&!inCreate&&!conMode&&!(dragMode&&!collectHold))?collectableAt(mouse.x,mouse.y):null;
     if(hoverCollectRaw){lastCollectTarget=hoverCollectRaw.p;lastCollectSeenAt=now;}
-    const hoverCollectFull=!!(hoverCollectRaw&&invFull(hoverCollectRaw.kind));
-    const hoverCollect=(hoverCollectRaw&&!hoverCollectFull)?hoverCollectRaw:null; // a full target shows no collect cursor (the feed still notes it)
+    const hoverCollect=hoverCollectRaw; // a full purse still collects (nothing added past its cap): the net shows, the feed says what is full
     const targeting=inCreate?true:(!!hoverObj||cursorUiTarget||!!hoverCollect||collectHold);
     // Every cursor state change is eased (punchy, ~55 ms): ring colour, idle dimming and the symbols all cross-fade — nothing pops.
     const dtm=curSm.last?Math.min(100,now-curSm.last):16;curSm.last=now;

@@ -660,7 +660,7 @@ surf.targets_available_chain_bonds,Targets available: {targets} · chain: {chain
 chain = $1 — points in the chain
 bonds = $2 — bonds made"
 surf.bright_remnant, Bright remnant,surface,
-surf.can_t_collect_inventory,Can't collect — inventory full,surface,
+surf.can_t_collect_inventory,Still collected — nothing added past the cap,surface,
 surf.mass_energy,{effect}mass {mass} · energy {energy}{motion}{life},surface,"effect = $0 — what the remnant does, when it does something
 mass = $1 — its mass
 energy = $2 — its energy
