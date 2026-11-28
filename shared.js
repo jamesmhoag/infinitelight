@@ -21,7 +21,7 @@ const DUCK_MAT={plastic:0,wood:1,metal:2,glass:3,dim:4,bright:5,shining:6,gold:7
 const duckStar=v=>v&&v.rare?'★ ':v&&v.mid?'☆ ':''; // a rare exotic's mark; a mid-tier one's
 const _duckModels=new Map();let _duckTex=null;
 function duckModel(type){ // a type = one of the two baked meshes + its own colours and material (or 'bottle:<colour>:<part>', a message in a bottle's glass, cork or letter)
-  if(_duckModels.has(type))return _duckModels.get(type);if(type.slice(0,7)==='bottle:')return bottleModel(type);if(type.slice(0,4)==='ice:')return iceModel(type);if(type.slice(0,12)==='good:bottle:')return bottleModel('bottle:green:glass'); /* (a glass bottle thrown away is the message in a bottle's own glass, its cork gone: one bottle, full or trash) */if(type.slice(0,5)==='good:')return goodModel(type);if(type.slice(0,5)==='plant')return plantModel(type);if(type.slice(0,5)==='item:')return itemModel(type);
+  if(_duckModels.has(type))return _duckModels.get(type);if(type.slice(0,7)==='bottle:')return bottleModel(type);if(type.slice(0,4)==='ice:')return iceModel(type);if(type.slice(0,9)==='snowmass:')return _duckModels.get(type)||null;if(type.slice(0,12)==='good:bottle:')return bottleModel('bottle:green:glass'); /* (a glass bottle thrown away is the message in a bottle's own glass, its cork gone: one bottle, full or trash) */if(type.slice(0,5)==='good:')return goodModel(type);if(type.slice(0,5)==='plant')return plantModel(type);if(type.slice(0,5)==='item:')return itemModel(type);
   const v=DUCK_TYPES[type]||DUCK_TYPES.classic,geo=duckGeo(v.head?'bighead':'classic');if(!geo)return null;
   const M={g:geo,mat:v.tex==='rainbow'?8:DUCK_MAT[v.mat||'plastic'],c1:(v.col||DUCK_YEL).map(c=>c/255),c2:(v.col2||DUCK_ORA).map(c=>c/255)};
   _duckModels.set(type,M);return M;}
@@ -41,52 +41,75 @@ function bottleModel(type){const[,col,part]=type.split(':');let g=_duckModels.ge
 // ── Ice on the Surface Map's lake ('ice:<L>:<s>:<part>:<v>:<mask>:<dep>:<ld>:<lm>'): a hexagonal floe in terraced tiers (flat tops, each a little narrower), its corners on the map's own hex corners; L 0 (a floating cube) … 4 (as wide as its hex:
 // floes side by side make a glacier, each still a hex). part 'ice': clear blue ice (material 15: bumpy, the scene bent through it and reflected off it); 'snow': snow lying on its terraces, more of each ledge and the top the more s (0–3) ──
 const iceDim=L=>{const r0=0.42+0.135*L;return{r0};}; // a floe's size: its base's corner radius, in hexes
-// 'ice:<L>:<s>:<part>:<v>:<mask>:<dep>:<ld>:<lm>' — L its size 0–4; s its snow 0–3; v which of eight shapes; mask: the sides (bit k: the neighbour at 60°·k) that are ice too, where its base
+// 'ice:<L>:0:ice:<v>:<mask>:<dep>:<ld>:<lm>' — L its size 0–4; v which of eight shapes; mask: the sides (bit k: the neighbour at 60°·k) that are ice too, where its base
 // reaches right across to meet theirs (one mass); dep: how deep in its cluster it lies (1 its edge … 3), so the middle of a mass rises highest; ld, lm: which way (30°·ld) and how far its cluster's middle is, its tiers leaning up toward it
-function iceModel(type){const[,L0,s0,part,v0,m0,d0,ld0,lm0]=type.split(':'),L=+L0||0,sn=+s0||0,vr=+v0||0,mask=+m0||0,dep=Math.max(1,+d0||1),la=(+ld0||0)*Math.PI/6,lm=+lm0||0;if(part==='snow'&&!sn)return null;
-  const pos=[],nrm=[],uv=[],idx=[];let RR=0;const H=(a,b)=>{const x=Math.sin(a*127.1+b*311.7+vr*74.7+L*19.3+mask*3.7+dep*11.1)*43758.5453;return x-Math.floor(x);},TAU=6.2832,
+const _iceFloe=new Map();
+function iceFloe(L,vr,mask,dep,ld,lm){const key=[L,vr,mask,dep,ld,lm].join(':');let F=_iceFloe.get(key);if(F)return F; // a floe's shape (its tiers, ridges, edges and tops) as functions: what its ice is built from, and what the snow on its mass lies on
+  const la=ld*Math.PI/6;dep=Math.max(1,dep);let pos=[],nrm=[],uv=[],idx=[],RR=0;
+  const H=(a,b)=>{const x=Math.sin(a*127.1+b*311.7+vr*74.7+L*19.3+mask*3.7+dep*11.1)*43758.5453;return x-Math.floor(x);},TAU=6.2832,
     {r0}=iceDim(L),T=3+L+(dep-1)*2+(H(9,9)<0.5?0:1),Ht=(0.38+0.13*L)*(1+0.5*(dep-1))*(0.85+0.3*H(8,8)),D=0.22+0.06*L,w=[],ys=[],rs=[],ox=[],oz=[];
   for(let i=0;i<T;i++)w.push(i===0?1.6:Math.pow(0.18+1.6*H(i,1),1.6)+0.12);{let a=0;const W=w.reduce((x,y)=>x+y);for(let i=0;i<T;i++){a+=w[i];ys.push(Ht*a/W);}} // tiers of very uneven height: a body, then terraces from a sliver to a tall step
   for(let i=0;i<T;i++){rs.push(i===0?r0:rs[i-1]*(0.6+0.33*H(i,2)));const k=i?0.17*rs[i]:0;ox.push(i?ox[i-1]+(H(i,3)-0.5)*k*1.2+Math.cos(la)*lm*0.09*rs[i-1]:0);oz.push(i?oz[i-1]+(H(i,4)-0.5)*k*1.2+Math.sin(la)*lm*0.09*rs[i-1]:0);} // each set in by its own amount, off centre, leaning up toward the middle of its mass
   const NRg=3+((vr+L)%3),rg=[];for(let k=0;k<NRg;k++)rg.push([H(k,5)*TAU,0.07+0.1*H(k,6),0.05+0.09*H(k,7),Math.floor(H(k,8)*T)]); // ridges coming off it: [angle, width, how far out, the tier they start on]
-  const wrap=a=>Math.atan2(Math.sin(a),Math.cos(a)),ridge=(i,a)=>{let v=0;for(const[ak,wk,ak2,t0]of rg)if(i>=t0){const d=Math.abs(wrap(a-ak))/wk;if(d<1)v+=ak2*(1-d*d)*(1-d*d);}return v;},
+  const wrap=a=>{a=(a+Math.PI)%TAU;return(a<0?a+TAU:a)-Math.PI;},ridge=(i,a)=>{let v=0;for(const[ak,wk,ak2,t0]of rg)if(i>=t0){const d=Math.abs(wrap(a-ak))/wk;if(d<1)v+=ak2*(1-d*d)*(1-d*d);}return v;},
     hexR=(r,a)=>{const e=((a+Math.PI/6)%(Math.PI/3)+Math.PI/3)%(Math.PI/3)-Math.PI/6;return r*Math.cos(Math.PI/6)/Math.cos(e);},
     joinW=a=>{let m=0;for(let k=0;k<6;k++)if(mask>>k&1){const d=Math.abs(wrap(a-k*Math.PI/3));m=Math.max(m,d<0.55?1:d<0.95?1-(d-0.55)/0.4:0);}return m*m*(3-2*m);}, // how much its base reaches across to a neighbour's here (a side that is ice too, and its corners)
     rb=(i,a,y)=>{const own=hexR(rs[i],a)*(1+ridge(i,a)+0.03*Math.sin(a*9+i*2.3+vr)+0.018*Math.sin(a*23+i*1.7)+(y==null?0:0.025*Math.sin(y*31+a*4+i)));if(i>1||!mask)return own;const j=joinW(a)*(i===0?1:0.45);return own+(hexR(1.06,a)-own)*j;}, // its edge at angle a, down its wall grooved; joined to a neighbour: right across to it
-    topY=(i,x,z,u)=>ys[i]+(0.016+0.007*L)*(Math.sin(x*8.3+i*3+vr)*Math.sin(z*7.1-i+vr*2)+0.6*Math.sin((x+z)*16.7+i)+0.2*Math.sin((x-z)*29+vr))+0.05*ridge(i,Math.atan2(z-oz[i],x-ox[i]))*Math.min(1,u*1.4)-0.02*u*u, // its top: never flat
+    tn=(i,x,z)=>{const th=H(i,11)*TAU,c=Math.cos(th),sn_=Math.sin(th),u=x*c-z*sn_,v=x*sn_+z*c,f1=5+5*H(i,12),f2=10+9*H(i,13),wu=u+0.25*Math.sin(v*3.1+H(i,14)*6),wv=v+0.25*Math.sin(u*2.7+H(i,15)*6);return(0.012+0.005*L)*(Math.sin(wu*f1)*Math.sin(wv*f1*0.83)+0.45*Math.sin(wu*f2*0.7+wv*f2*0.6+H(i,16)*6));}, // a top's swells: turned, stretched and warped its own way on every tier of every floe (nothing lines up from one to the next)
+    topY=(i,x,z,u)=>ys[i]+tn(i,x,z)+0.05*ridge(i,Math.atan2(z-oz[i],x-ox[i]))*Math.min(1,u*1.4)-0.02*u*u, // its top: never flat
     V=(x,y,z)=>{pos.push(x,y,z);nrm.push(0,1,0);uv.push(x*64,z*64,y*64,-1);RR=Math.max(RR,Math.hypot(x,y,z));return pos.length/3-1;},
     NA=60,grid=(rows,f)=>{const b0=pos.length/3;for(let k=0;k<NA;k++){const a=k/NA*TAU;for(let r=0;r<rows;r++){const[x,y,z]=f(a,r);V(x,y,z);}}
       for(let k=0;k<NA;k++)for(let r=0;r<rows-1;r++){const A=b0+k*rows+r,B=b0+((k+1)%NA)*rows+r;idx.push(A,B,A+1,A+1,B,B+1);}
       const P=q=>[pos[q*3],pos[q*3+1],pos[q*3+2]];for(let k=0;k<NA;k++)for(let r=0;r<rows;r++){const me=b0+k*rows+r,ka=b0+((k+NA-1)%NA)*rows+r,kb=b0+((k+1)%NA)*rows+r,ra=b0+k*rows+Math.max(0,r-1),rb_=b0+k*rows+Math.min(rows-1,r+1);
         const t1=P(kb).map((v,j)=>v-P(ka)[j]),t2=P(rb_).map((v,j)=>v-P(ra)[j]);let n=[t1[1]*t2[2]-t1[2]*t2[1],t1[2]*t2[0]-t1[0]*t2[2],t1[0]*t2[1]-t1[1]*t2[0]];const l=Math.hypot(...n);n=l>1e-9?n.map(v=>v/l):[0,1,0];nrm[me*3]=n[0];nrm[me*3+1]=n[1];nrm[me*3+2]=n[2];}};
   const NR=7,at=(i,a,u)=>{const R=rb(i,a)*u;return[ox[i]+Math.cos(a)*R,oz[i]+Math.sin(a)*R];},
-    iceAt=(x,z)=>{for(let i=T-1;i>=0;i--){const dx=x-ox[i],dz=z-oz[i],a=Math.atan2(dz,dx),R=rb(i,a),d=Math.hypot(dx,dz);if(d<=R)return[topY(i,x,z,d/R),i];}return null;}; // its top, where you are over it (the highest tier there), and which tier
-  if(part!=='snow'){for(let i=0;i<T;i++){const yb=i?ys[i-1]-0.05:-D,NV=5; // each tier: its grooved wall, then its uneven top
+    NT=360,RT=[],GT=[];for(let i=0;i<T;i++){const r=new Float32Array(NT+1),g=new Float32Array(NT+1);for(let k=0;k<=NT;k++){const a=k/NT*TAU-Math.PI;r[k]=rb(i,a);g[k]=ridge(i,a);}RT.push(r);GT.push(g);} // (its edges and ridges looked up by angle: what the snow asks of it, many thousand times)
+  const lk=(A,a)=>{const f=(a+Math.PI)/TAU*NT,k=Math.max(0,Math.min(NT-1,f|0)),u=f-k;return A[k]+(A[k+1]-A[k])*u;},rbf=(i,a)=>lk(RT[i],a),
+    iceAt=(x,z)=>{for(let i=T-1;i>=0;i--){const dx=x-ox[i],dz=z-oz[i],a=Math.atan2(dz,dx),R=lk(RT[i],a),d=Math.hypot(dx,dz);if(d<=R){const u=d/R;return[ys[i]+tn(i,x,z)+0.05*lk(GT[i],a)*Math.min(1,u*1.4)-0.02*u*u,i];}}return null;}; // its top, where you are over it (the highest tier there), and which tier (as topY)
+  F={T,ys,rs,ox,oz,D,rb,rbf,topY,iceAt,at,grid,V,NA,NR,TAU,tri:(a,b,c)=>idx.push(a,b,c),out:()=>{const o={pos,nrm,uv,idx,R:RR};pos=[];nrm=[];uv=[];idx=[];RR=0;return o;}};_iceFloe.set(key,F);return F;}
+function iceWind(p,n,x){for(let q=0;q<x.length;q+=3){const a=x[q]*3,b=x[q+1]*3,c=x[q+2]*3,ux=p[b]-p[a],uy=p[b+1]-p[a+1],uz=p[b+2]-p[a+2],wx=p[c]-p[a],wy=p[c+1]-p[a+1],wz=p[c+2]-p[a+2];if((uy*wz-uz*wy)*n[a]+(uz*wx-ux*wz)*n[a+1]+(ux*wy-uy*wx)*n[a+2]<0){const t=x[q+1];x[q+1]=x[q+2];x[q+2]=t;}}} // (each face wound to its normal)
+function iceModel(type){const[,L0,,,v0,m0,d0,ld0,lm0]=type.split(':'),L=+L0||0,F=iceFloe(L,+v0||0,+m0||0,+d0||1,+ld0||0,+lm0||0),{T,ys,rs,ox,oz,D,rb,topY,at,grid,V,NA,NR,TAU}=F;
+  {for(let i=0;i<T;i++){const yb=i?ys[i-1]-0.05:-D,NV=5; // each tier: its grooved wall, then its uneven top
       grid(NV,(a,r)=>{const u=r/(NV-1),yt=topY(i,...at(i,a,1),1),y=yb+(yt-yb)*u,R=rb(i,a,y)*(1-0.04*(1-u)*(i?1:0));return[ox[i]+Math.cos(a)*R,y,oz[i]+Math.sin(a)*R];});
       grid(NR,(a,r)=>{const u=r/(NR-1),[x,z]=at(i,a,u);return[x,topY(i,x,z,u),z];});
-      if(i===0){const c=V(0,-D,0);for(let k=0;k<NA;k++){const a=k/NA*TAU,b=(k+1)/NA*TAU,p=V(Math.cos(a)*rb(0,a),-D,Math.sin(a)*rb(0,a)),q=V(Math.cos(b)*rb(0,b),-D,Math.sin(b)*rb(0,b));nrm[c*3+1]=nrm[p*3+1]=nrm[q*3+1]=-1;idx.push(c,p,q);}}}}
-  else{ // snow: one blanket over the whole floe as it accumulates — a thin, patchy cover on the open tops, and DRIFTS: blown into the inner corners at the foot of each step, billowing up against it.
-    // Where a drift reaches the top of its step it runs on smoothly into the snow on the layer above; where the step is too tall for it, the drift stops short and the ice stands out of the snow (the blanket is not drawn up a cliff)
-    const N=Math.round(88+L*6),Rm=1.12,sp=2*Rm/(N-1),G=new Float32Array(N*N),Ig=new Float32Array(N*N),Ok=new Uint8Array(N*N),X=c=>-Rm+c*sp;
-    for(let r=0;r<N;r++)for(let c=0;c<N;c++){const q=iceAt(X(c),X(r)),k=r*N+c;if(q){Ig[k]=q[0];Ok[k]=1;}else Ig[k]=ys[0]-0.12;}
-    const blur=(Gv,rad,passes)=>{const tmp=new Float32Array(N*N);Gv.set(Ig);for(let pass=0;pass<passes;pass++){for(let r=0;r<N;r++)for(let c=0;c<N;c++){let a=0,n=0;for(let d=-rad;d<=rad;d++){const cc=c+d;if(cc<0||cc>=N)continue;a+=Gv[r*N+cc];n++;}tmp[r*N+c]=a/n;}
-      for(let r=0;r<N;r++)for(let c=0;c<N;c++){let a=0,n=0;for(let d=-rad;d<=rad;d++){const rr=r+d;if(rr<0||rr>=N)continue;a+=tmp[rr*N+c];n++;}Gv[r*N+c]=a/n;}}};const Gs=new Float32Array(N*N);blur(G,Math.max(2,Math.round((0.07+0.02*sn)/sp)),2);blur(Gs,3,2); // the floe's tops blurred (Gs a little: what the snow smooths its small dips with): higher than a top where a step rises beside it (an inner corner)
-    const t=0.012+0.014*sn,kd=0.75+0.3*sn,cliff=sp*2.2,
-      S=new Float32Array(N*N),eps=0.006;
-    for(let r=0;r<N;r++)for(let c=0;c<N;c++){const k=r*N+c,x=X(c),z=X(r);if(!Ok[k]){ // just past its outer edge: the snow rolls over it in a lip (where there is any at the edge)
-        const a=Math.atan2(z,x),R0=rb(0,a),e=Math.hypot(x,z)-R0;if(e<0.05){const ex=Math.cos(a)*R0*0.999,ez=Math.sin(a)*R0*0.999,qe=iceAt(ex,ez);if(qe){const de=t;if(de>eps){const v=e/0.05;S[k]=qe[0]+de*(1-v*v)-0.05*v*v;Ok[k]=2;}}}continue;}
-      const drift=Math.max(0,G[k]-Ig[k])*kd*(0.88+0.2*Math.sin(x*6.1+vr)*Math.sin(z*5.3+vr*2)),d=t*(1+0.12*Math.sin(x*4.7+vr)*Math.sin(z*3.9-vr*1.3)+0.06*Math.sin(x*9.3-z*7.1+vr))+drift; // the cover (every top that is not a wall), and a drift where the blur stands above the top (it billows a little)
-      S[k]=Math.max(Ig[k]+d*0.55,Gs[k]+d);} // (lying: it smooths over the ripples and small dips under it)
-    { // a cap: where a top drops away down a wall to a lower layer, its snow rounds over the edge like a cap (thinning to a soft rounded lip at the very edge), rather than stopping square
-      const w=3,E=new Int8Array(N*N).fill(99),Q=[];for(let r=0;r<N;r++)for(let c=0;c<N;c++){const k=r*N+c;if(Ok[k]!==1)continue;for(let dr=-1;dr<=1;dr++)for(let dc=-1;dc<=1;dc++){const rr=r+dr,cc=c+dc;if(rr<0||cc<0||rr>=N||cc>=N)continue;const q=rr*N+cc;if(Ok[q]===1&&Ig[k]-Ig[q]>cliff){E[k]=0;}}if(!E[k])Q.push(k);}
-      for(let h=0;h<Q.length;h++){const k=Q[h],r=(k/N)|0,c=k%N;if(E[k]>=w)continue;for(const[dr,dc]of[[1,0],[-1,0],[0,1],[0,-1]]){const rr=r+dr,cc=c+dc;if(rr<0||cc<0||rr>=N||cc>=N)continue;const q=rr*N+cc;if(Ok[q]===1&&E[q]>E[k]+1&&Math.abs(Ig[q]-Ig[k])<cliff){E[q]=E[k]+1;Q.push(q);}}}
-      for(let k=0;k<N*N;k++)if(E[k]<w){const u=(E[k]+0.5)/w,f=0.35+0.65*Math.sqrt(Math.max(0,1-(1-u)*(1-u)));S[k]=Ig[k]+(S[k]-Ig[k])*f;}}
-    const vi=new Int32Array(N*N).fill(-1);for(let r=0;r<N;r++)for(let c=0;c<N;c++){const k=r*N+c;if(!Ok[k])continue;const g=(a,b)=>{const rr=Math.max(0,Math.min(N-1,r+b)),cc=Math.max(0,Math.min(N-1,c+a));return Ok[rr*N+cc]?S[rr*N+cc]:S[k];},
-        gx=(g(1,0)-g(-1,0))/(2*sp),gz=(g(0,1)-g(0,-1))/(2*sp);vi[k]=V(X(c),S[k],X(r));const l=Math.hypot(gx,1,gz),n=[-gx/l,1/l,-gz/l],m=vi[k]*3;nrm[m]=n[0];nrm[m+1]=n[1];nrm[m+2]=n[2];} // (its normals from its own slope)
-    const tri=(a,b,c)=>{if(vi[a]<0||vi[b]<0||vi[c]<0)return;const ys3=[S[a],S[b],S[c]];if(Math.max(...ys3)-Math.min(...ys3)>cliff)return;if(S[a]<Ig[a]&&S[b]<Ig[b]&&S[c]<Ig[c]&&Ok[a]===1&&Ok[b]===1&&Ok[c]===1)return;idx.push(vi[a],vi[b],vi[c]);}; // (not up a cliff; not where it is all under the ice)
-    for(let r=0;r<N-1;r++)for(let c=0;c<N-1;c++){const k=r*N+c;tri(k,k+1,k+N);tri(k+1,k+N+1,k+N);}}
-  for(let q=0;q<idx.length;q+=3){const P=k=>[pos[k*3],pos[k*3+1],pos[k*3+2]],A=P(idx[q]),u=P(idx[q+1]).map((v,j)=>v-A[j]),w2=P(idx[q+2]).map((v,j)=>v-A[j]),c=[u[1]*w2[2]-u[2]*w2[1],u[2]*w2[0]-u[0]*w2[2],u[0]*w2[1]-u[1]*w2[0]],k=idx[q];if(c[0]*nrm[k*3]+c[1]*nrm[k*3+1]+c[2]*nrm[k*3+2]<0){const t2=idx[q+1];idx[q+1]=idx[q+2];idx[q+2]=t2;}} // (each face wound to its normal)
-  const M={g:{pos:new Float32Array(pos),nrm:new Float32Array(nrm),uv:new Float32Array(uv),idx:new Uint16Array(idx),R:RR},nomk:1,mat:part==='snow'?16:15,c1:part==='snow'?[0.97,0.98,1]:[0.7,0.88,1],c2:part==='snow'?[0.97,0.98,1]:[0.7,0.88,1]};_duckModels.set(type,M);return M;}
+      if(i===0){const c=V(0,-D,0);for(let k=0;k<NA;k++){const a=k/NA*TAU,b=(k+1)/NA*TAU,p=V(Math.cos(a)*rb(0,a),-D,Math.sin(a)*rb(0,a)),q=V(Math.cos(b)*rb(0,b),-D,Math.sin(b)*rb(0,b));F.tri(c,p,q);}}}}
+  const g=F.out();for(let q=0;q<g.idx.length;q+=3)if(g.pos[g.idx[q]*3+1]<=-D+1e-6&&g.pos[g.idx[q+1]*3+1]<=-D+1e-6&&g.pos[g.idx[q+2]*3+1]<=-D+1e-6)for(let e=0;e<3;e++)g.nrm[g.idx[q+e]*3+1]=-1; // (its underside faces down)
+  iceWind(g.pos,g.nrm,g.idx);const M={g:{pos:new Float32Array(g.pos),nrm:new Float32Array(g.nrm),uv:new Float32Array(g.uv),idx:new Uint16Array(g.idx),R:g.R},nomk:1,mat:15,c1:[0.7,0.88,1],c2:[0.7,0.88,1]};_duckModels.set(type,M);return M;}
+// ── Snow on a mass of ice (snowMass): one blanket formed over the whole mass by the rules, not per floe — every floe's tops together as one heightfield (so a drift runs across the seam between two floes
+// and nothing repeats from one to the next: its little variation is by where it lies on the lake, wx/wz). fl: [{F: its floe's shape, x, z: its middle in the mass's model units, g: its scale}]; sn its snow 0–3. Cached by key ──
+function* snowMass(key,fl,sn,wx,wz){let M;const pos=[],nrm=[],uv=[],idx=[];let RR=0;
+  const V=(x,y,z)=>{pos.push(x,y,z);nrm.push(0,1,0);uv.push(x*64,z*64,y*64,-1);RR=Math.max(RR,Math.hypot(x,y,z));return pos.length/3-1;};
+  let x0=1e9,x1=-1e9,z0=1e9,z1=-1e9;for(const f of fl){const r=1.2*f.g;x0=Math.min(x0,f.x-r);x1=Math.max(x1,f.x+r);z0=Math.min(z0,f.z-r);z1=Math.max(z1,f.z+r);}
+  let sp=0.028;const area=(x1-x0)*(z1-z0);if(area/(sp*sp)>60000)sp=Math.sqrt(area/60000); // (a big mass: a coarser grid, never more than the mesh can hold)
+  const NX=Math.ceil((x1-x0)/sp)+1,NZ=Math.ceil((z1-z0)/sp)+1,N=NX*NZ,X=c=>x0+c*sp,Z=r=>z0+r*sp,Ig=new Float32Array(N),Ok=new Uint8Array(N),FL=new Int16Array(N).fill(-1);
+  const iceAtM=(x,z)=>{let best=null,bi=-1;for(let i=0;i<fl.length;i++){const f=fl[i],dx=x-f.x,dz=z-f.z;if(dx*dx+dz*dz>1.44*f.g*f.g)continue;const q=f.F.iceAt(dx/f.g,dz/f.g);if(q&&(!best||q[0]*f.g>best)){best=q[0]*f.g;bi=i;}}return bi<0?null:[best,bi];}; // the mass's top there: the highest of the floes over it
+  for(let r=0;r<NZ;r++){if(!(r&1))yield;for(let c=0;c<NX;c++){const k=r*NX+c,q=iceAtM(X(c),Z(r));if(q){Ig[k]=q[0];Ok[k]=1;FL[k]=q[1];}else Ig[k]=-0.2;}}yield;
+  const blur=(Gv,rad,passes)=>{const tmp=new Float32Array(N);Gv.set(Ig);for(let p=0;p<passes;p++){for(let r=0;r<NZ;r++){let a=0,n=0;for(let c=-rad;c<NX+rad;c++){if(c+rad<NX){a+=Gv[r*NX+c+rad];n++;}if(c-rad-1>=0){a-=Gv[r*NX+c-rad-1];n--;}if(c>=0)tmp[r*NX+c]=a/n;}}
+      for(let c=0;c<NX;c++){let a=0,n=0;for(let r=-rad;r<NZ+rad;r++){if(r+rad<NZ){a+=tmp[(r+rad)*NX+c];n++;}if(r-rad-1>=0){a-=tmp[(r-rad-1)*NX+c];n--;}if(r>=0)Gv[r*NX+c]=a/n;}}}}; // (a running box blur, rows then columns)
+  const G=new Float32Array(N),Gs=new Float32Array(N);blur(G,Math.max(2,Math.round((0.07+0.02*sn)/sp)),2);yield;blur(Gs,Math.max(1,Math.round(0.18/sp)),2); // G: the tops blurred wide (higher than a top where a step rises beside it: an inside corner); Gs a little (what the snow smooths over)
+  const W=(x,z)=>{const a=x+wx,b=z+wz,u=a+0.9*Math.sin(b*0.83+1.3)+0.5*Math.sin(b*1.91-a*0.37),v=b+0.9*Math.sin(a*0.71-0.4)+0.5*Math.sin(a*2.07+b*0.29);return 0.5*Math.sin(u*2.3)*Math.sin(v*2.9)+0.3*Math.sin(u*4.1+v*1.7+Math.sin(u*0.5)*2)+0.2*Math.sin(v*5.3-u*2.2);}; // its variation, by where it lies on the lake (never the same twice)
+  const t=0.012+0.014*sn,kd=0.75+0.3*sn,cliff=sp*2.2,eps=0.006,S=new Float32Array(N);
+  for(let r=0;r<NZ;r++){if(!(r&3))yield;for(let c=0;c<NX;c++){const k=r*NX+c,x=X(c),z=Z(r);if(!Ok[k]){ // just past the mass's outer edge: the snow rolls over it in a lip
+      let e=1e9,ie=-1;for(let i=0;i<fl.length;i++){const f=fl[i],dx=x-f.x,dz=z-f.z;if(dx*dx+dz*dz>1.7*f.g*f.g)continue;const a=Math.atan2(dz,dx),ed=Math.hypot(dx,dz)-f.F.rbf(0,a)*f.g;if(ed<e){e=ed;ie=i;}}
+      if(e<0.05){const f=fl[ie],a=Math.atan2(z-f.z,x-f.x),R0=f.F.rbf(0,a)*f.g*0.999,qe=iceAtM(f.x+Math.cos(a)*R0,f.z+Math.sin(a)*R0);if(qe){const v=e/0.05;S[k]=qe[0]+t*(1-v*v)-0.05*v*v;Ok[k]=2;}}continue;}
+    const drift=Math.max(0,G[k]-Ig[k])*kd*(0.9+0.22*W(x*0.8,z*0.8)),d=t*(1+0.14*W(x,z))+drift;S[k]=Math.max(Ig[k]+d*0.18,Gs[k]+d);}} // the cover on every top that is not a wall, and a drift where the wide blur stands above the top (it billows a little)
+  yield;{ // a cap: where a top drops away down a wall to a lower layer, its snow rounds over the edge to a soft lip rather than stopping square
+    const w=3,E=new Int8Array(N).fill(99),Q=[];for(let r=0;r<NZ;r++)for(let c=0;c<NX;c++){const k=r*NX+c;if(Ok[k]!==1)continue;for(let dr=-1;dr<=1&&E[k];dr++)for(let dc=-1;dc<=1;dc++){const rr=r+dr,cc=c+dc;if(rr<0||cc<0||rr>=NZ||cc>=NX)continue;const q=rr*NX+cc;if(Ok[q]===1&&Ig[k]-Ig[q]>cliff){E[k]=0;break;}}if(!E[k])Q.push(k);}
+    for(let h=0;h<Q.length;h++){const k=Q[h],r=(k/NX)|0,c=k%NX;if(E[k]>=w)continue;for(const[dr,dc]of[[1,0],[-1,0],[0,1],[0,-1]]){const rr=r+dr,cc=c+dc;if(rr<0||cc<0||rr>=NZ||cc>=NX)continue;const q=rr*NX+cc;if(Ok[q]===1&&E[q]>E[k]+1&&Math.abs(Ig[q]-Ig[k])<cliff){E[q]=E[k]+1;Q.push(q);}}}
+    for(let k=0;k<N;k++)if(E[k]<w){const u=(E[k]+0.5)/w,f=0.35+0.65*Math.sqrt(Math.max(0,1-(1-u)*(1-u)));S[k]=Ig[k]+(S[k]-Ig[k])*f;}}
+  yield;const vi=new Int32Array(N).fill(-1);for(let r=0;r<NZ;r++){if(!(r&3))yield;for(let c=0;c<NX;c++){const k=r*NX+c;if(!Ok[k])continue;const g=(a,b)=>{const rr=Math.max(0,Math.min(NZ-1,r+b)),cc=Math.max(0,Math.min(NX-1,c+a)),q=rr*NX+cc;return Ok[q]&&Math.abs(S[q]-S[k])<cliff?S[q]:S[k];},
+      gx=(g(1,0)-g(-1,0))/(2*sp),gz=(g(0,1)-g(0,-1))/(2*sp);vi[k]=V(X(c),S[k],Z(r));const l=Math.hypot(gx,1,gz),m=vi[k]*3;nrm[m]=-gx/l;nrm[m+1]=1/l;nrm[m+2]=-gz/l;}} // (its normals from its own slope, not across a cliff)
+  const tri=(a,b,c)=>{if(vi[a]<0||vi[b]<0||vi[c]<0)return;if(Math.max(S[a],S[b],S[c])-Math.min(S[a],S[b],S[c])>cliff)return;idx.push(vi[a],vi[b],vi[c]);}; // (never up a wall: there the ice shows)
+  for(let r=0;r<NZ-1;r++)for(let c=0;c<NX-1;c++){const k=r*NX+c;tri(k,k+1,k+NX);tri(k+1,k+NX+1,k+NX);}
+  yield;iceWind(pos,nrm,idx);M={g:{pos:new Float32Array(pos),nrm:new Float32Array(nrm),uv:new Float32Array(uv),idx:new Uint16Array(idx),R:RR},nomk:1,mat:16,c1:[0.97,0.98,1],c2:[0.97,0.98,1]};
+  for(const k of [..._duckModels.keys()])if(k.slice(0,9)==='snowmass:'&&k.split('|')[0]===key.split('|')[0]&&k!==key)_duckModels.delete(k); // (the same mass's older snow goes)
+  _duckModels.set(key,M);return M;}
+const _snowJobs=new Map(),_snowDone={}; // a mass's snow is formed a little each frame (snowMassStep: within its time), its last finished snow drawn meanwhile
+function snowMassStep(key,fl,sn,wx,wz,ms){const base=key.split('|')[0];if(_duckModels.has(key)){_snowDone[base]=key;return key;}
+  let j=_snowJobs.get(base);if(!j||j.key!==key){j={key,gen:snowMass(key,fl,sn,wx,wz)};_snowJobs.set(base,j);}
+  if(!_snowDone[base]||!_duckModels.has(_snowDone[base]))ms=Math.max(ms,30); // (none yet to show: it is formed faster)
+  const t0=performance.now();for(;;){const r=j.gen.next();if(r.done){_snowJobs.delete(base);_snowDone[base]=key;break;}if(performance.now()-t0>ms)break;}
+  const k=_snowDone[base];return k&&_duckModels.has(k)?k:null;}
 function drawBottleScene(G,d,o){ // a bottle on the lake: its letter (a glass one, until opened), the cork, then the bottle (a duck's bottle is gold or opaque white: what is in it is a surprise)
   for(const part of d.empty?['glass']:d.duck?['cork','glass']:['note','cork','glass'])drawDuckScene(G,'bottle:'+d.col+':'+part,o);}
 // ── Painted models (shops, buoys): a mesh built of quads, boxes and beams, each face pointing at its colour in one texture (A px square; colours are 32 px swatches along its top) ──
