@@ -51,11 +51,20 @@ function iceModel(type){const[,L0,s0,part]=type.split(':'),L=+L0||0,sn=+s0||0;if
       if(i===0)fan(C,y0,[0,-1,0]);
       if(i<d.T-1){const I=[0,1,2,3,4,5].map(j=>cr(d.r(i+1),j,i+1));for(let j=0;j<6;j++){const a=C[j],b=C[(j+1)%6],e=I[(j+1)%6],f=I[j];quad([[a[0],y1,a[1]],[f[0],y1,f[1]],[e[0],y1,e[1]],[b[0],y1,b[1]]],[0,1,0]);}} // the terrace's ledge
       else fan(C,y1,[0,1,0]);}} // its flat top
-  else{const t=0.028,f=Math.min(1,sn/3*1.25);for(let i=0;i<d.T;i++){const y=d.y(i)+0.004,last=i===d.T-1,ri=last?0:d.r(i+1)*0.97,ro=last?d.r(i)*Math.min(0.94,0.3+0.22*sn):ri+(d.r(i)-ri)*f; // snow on each ledge (from its back wall outward), and on the top
-      const N=18,O=[],I=[];for(let k=0;k<N;k++){const j=k/3,jf=Math.floor(j),u=j-jf,A=cr(1,jf,i),B=cr(1,jf+1,i),x=A[0]+(B[0]-A[0])*u,z=A[1]+(B[1]-A[1])*u,lump=1-0.12*hs(i*7+k,sn)*(last?1.6:1);O.push([x*ro*lump,z*ro*lump]);I.push([x*ri,z*ri]);}
-      const yt=y+t*(0.7+0.6*hs(i,sn+3));for(let k=0;k<N;k++){const a=O[k],b=O[(k+1)%N],ia=I[k],ib=I[(k+1)%N];if(last)tri(V(0,yt+t*0.5,0,[0,1,0]),V(b[0],yt,b[1],[0,1,0]),V(a[0],yt,a[1],[0,1,0]));else quad([[a[0],yt,a[1]],[ia[0],yt+t*0.4,ia[1]],[ib[0],yt+t*0.4,ib[1]],[b[0],yt,b[1]]],[0,1,0]); // its soft top
-        const n=nrmOf([a[0],y,a[1]],[a[0],yt,a[1]],[b[0],y,b[1]]),o=n[0]*a[0]+n[2]*a[1]<0;quad(o?[[a[0],y,a[1]],[a[0],yt,a[1]],[b[0],yt,b[1]],[b[0],y,b[1]]]:[[b[0],y,b[1]],[b[0],yt,b[1]],[a[0],yt,a[1]],[a[0],y,a[1]]],o?n.map(x=>-x):n);}}} // and its edge
-  const M={g:{pos:new Float32Array(pos),nrm:new Float32Array(nrm),uv:new Float32Array(uv),idx:new Uint16Array(idx),R},nomk:1,mat:part==='snow'?0:15,c1:part==='snow'?[0.95,0.97,1]:[0.78,0.91,1],c2:part==='snow'?[0.95,0.97,1]:[0.78,0.91,1]};_duckModels.set(type,M);return M;}
+  else{const T0=0.016+0.024*sn,NA=48,NR=7,NO=6; // snow: frosting laid over each terrace and the top, out to the very edge and rolling over it (a soft round lip, longer drips here and there), heaped against the wall behind it; smooth, its lumps gentle
+    const hexR=(r,a)=>{const e=((a+Math.PI/6)%(Math.PI/3)+Math.PI/3)%(Math.PI/3)-Math.PI/6;return r*Math.cos(Math.PI/6)/Math.cos(e);}, // the hex's edge at angle a (corners at −30° + 60°k, as the tiers')
+      lump=(x,z,i)=>0.8+0.22*Math.sin(x*6.3+i*2.1+sn)*Math.sin(z*5.7-i)+0.12*Math.sin((x+z)*13.1+i*5.3)+0.08*Math.sin((x-z)*21.7+sn*3); // (by where it lies: smooth, no seam round the middle)
+    for(let i=0;i<d.T;i++){const last=i===d.T-1,y=d.y(i),ro=d.r(i)*0.995,ri=last?0:d.r(i+1),b0=pos.length/3,rows=NR+NO+1;
+      for(let k=0;k<NA;k++){const a=k/NA*6.2832,ca=Math.cos(a),sa=Math.sin(a),Ro=hexR(ro,a),Ri=last?0:hexR(ri,a),drip=0.55+0.9*Math.max(0,Math.sin(a*7+i*3.3+sn))**6; // (longer drips here and there)
+        for(let r=0;r<=NR+NO;r++){let R,Y;if(r<=NR){const u=r/NR,R0=Ri+(Ro-Ri)*u,th=T0*lump(ca*R0,sa*R0,i)*(last?1:1+1.4*Math.pow(1-u,3))*(0.35+0.65*Math.min(1,u*4+(last?1:0.25)));R=Ri+(Ro-Ri)*u;Y=y+th;} // across the terrace: thicker heaped against its wall
+          else{const v=(r-NR)/NO,th=T0*lump(ca*Ro,sa*Ro,i),an=v*Math.PI*0.62*drip;R=Ro+th*0.55*Math.sin(an)*(1-0.25*v);Y=y+th*Math.cos(an)-th*v*v*0.9*drip;} // over the edge: the lip rolls round and down the wall
+          V(ca*R,Y,sa*R,[0,1,0]);}}
+      for(let k=0;k<NA;k++)for(let r=0;r<rows-1;r++){const A=b0+k*rows+r,B=b0+((k+1)%NA)*rows+r;idx.push(A,B,A+1,A+1,B,B+1);}
+      for(let k=0;k<NA;k++)for(let r=0;r<rows;r++){const P=q=>[pos[q*3],pos[q*3+1],pos[q*3+2]],me=b0+k*rows+r,ka=b0+((k+NA-1)%NA)*rows+r,kb=b0+((k+1)%NA)*rows+r,ra=b0+k*rows+Math.max(0,r-1),rb=b0+k*rows+Math.min(rows-1,r+1); // smooth normals from its neighbours
+        const t1=P(kb).map((v,j)=>v-P(ka)[j]),t2=P(rb).map((v,j)=>v-P(ra)[j]);let n=[t1[1]*t2[2]-t1[2]*t2[1],t1[2]*t2[0]-t1[0]*t2[2],t1[0]*t2[1]-t1[1]*t2[0]];if(r===0&&last)n=[0,1,0];const l=Math.hypot(...n)||1;n=n.map(v=>v/l);if(n[1]<-0.2&&r<NR)n=n.map(v=>-v);nrm[me*3]=n[0];nrm[me*3+1]=n[1];nrm[me*3+2]=n[2];}
+    }
+    for(let q=0;q<idx.length;q+=3){const P=k=>[pos[k*3],pos[k*3+1],pos[k*3+2]],A=P(idx[q]),u=P(idx[q+1]).map((v,j)=>v-A[j]),w=P(idx[q+2]).map((v,j)=>v-A[j]),c=[u[1]*w[2]-u[2]*w[1],u[2]*w[0]-u[0]*w[2],u[0]*w[1]-u[1]*w[0]],k=idx[q];if(c[0]*nrm[k*3]+c[1]*nrm[k*3+1]+c[2]*nrm[k*3+2]<0){const t=idx[q+1];idx[q+1]=idx[q+2];idx[q+2]=t;}}} // (each face wound to its normal)
+  const M={g:{pos:new Float32Array(pos),nrm:new Float32Array(nrm),uv:new Float32Array(uv),idx:new Uint16Array(idx),R},nomk:1,mat:part==='snow'?16:15,c1:part==='snow'?[0.97,0.98,1]:[0.7,0.88,1],c2:part==='snow'?[0.97,0.98,1]:[0.7,0.88,1]};_duckModels.set(type,M);return M;}
 function drawBottleScene(G,d,o){ // a bottle on the lake: its letter (a glass one, until opened), the cork, then the bottle (a duck's bottle is gold or opaque white: what is in it is a surprise)
   for(const part of d.empty?['glass']:d.duck?['cork','glass']:['note','cork','glass'])drawDuckScene(G,'bottle:'+d.col+':'+part,o);}
 // ── Painted models (shops, buoys): a mesh built of quads, boxes and beams, each face pointing at its colour in one texture (A px square; colours are 32 px swatches along its top) ──
@@ -592,6 +601,10 @@ function duckCtx(gl){
     'uniform vec3 uC1;uniform vec3 uC2;uniform float uM;uniform float uGl;uniform float uTr;uniform float uA;uniform sampler2D uTex;uniform vec4 uTS;'+
     'uniform sampler2D uEnv;uniform vec3 uEP;uniform float uEA;uniform vec4 uLd[6];uniform vec3 uLc[6];uniform vec4 uLs[6];uniform vec2 uLr[6];uniform vec3 uDim;uniform float uAA;uniform vec3 uSunL;uniform vec3 uSunC;'+
     'vec3 hue(float h){return clamp(abs(mod(h*6.0+vec3(0.0,4.0,2.0),6.0)-3.0)-1.0,0.0,1.0);}'+
+    'float h31(vec3 p){p=fract(p*0.3183099+vec3(0.71,0.113,0.419));p*=17.0;return fract(p.x*p.y*p.z*(p.x+p.y+p.z));}'+ // a hash, and value noise from it (ice's and snow's surfaces)
+    'float vn(vec3 p){vec3 i=floor(p),f=fract(p);f=f*f*(3.0-2.0*f);return mix(mix(mix(h31(i),h31(i+vec3(1,0,0)),f.x),mix(h31(i+vec3(0,1,0)),h31(i+vec3(1,1,0)),f.x),f.y),mix(mix(h31(i+vec3(0,0,1)),h31(i+vec3(1,0,1)),f.x),mix(h31(i+vec3(0,1,1)),h31(i+vec3(1,1,1)),f.x),f.y),f.z);}'+
+    'vec3 vg(vec3 p){float e=0.07,c=vn(p);return vec3(vn(p+vec3(e,0,0))-c,vn(p+vec3(0,e,0))-c,vn(p+vec3(0,0,e))-c)/e;}'+ // its gradient: a normal map
+    'float fb(vec3 p){return vn(p)*0.5+vn(p*2.13)*0.27+vn(p*4.7)*0.15+vn(p*9.9)*0.08;}'+
     'float cov(float v){float d=(v*255.0-128.0)/48.0;float w='+(dd?'max(fwidth(d)*0.75,0.02)':'uAA')+';return smoothstep(-w,w,d);}'+ // distance field → anti-aliased coverage
     'void main(){if(uCl*vH<0.0)discard;vec3 n=normalize(vN);'+ // uCl: only what is above the water (1), or below it (−1, a reflection) — a bottle floats half under
     'if(!gl_FrontFacing)n=-n;vec3 V=vec3(0.0,0.0,1.0),L=normalize(uSunL),H=normalize(L+V);'+ // the time of day's sun or moon (duckSun)
@@ -611,14 +624,20 @@ function duckCtx(gl){
     'c=mix(c,eC,eye);c=mix(c,lC,ln);'+
     'vec3 env=vec3(0.0),gs=vec3(0.0),lt=vec3(0.0);if(m==13.0){for(int i=0;i<6;i++){if(uLd[i].w>0.0){vec3 l;float at=1.0;if(uPt>1.5){vec3 Lv=uLd[i].xyz-vP;float d=max(1e-3,length(Lv));l=Lv/d;float q=d/max(1e-3,uLr[i].y);at=1.0/(1.0+q*q)*(1.0-smoothstep(0.75,1.0,q));if(uLs[i].w>-1.5)at*=smoothstep(uLr[i].x,uLs[i].w,dot(-l,uLs[i].xyz));}else if(uPt>0.5){vec3 Lv=uLd[i].xyz-vP;float d=max(1e-3,length(Lv)),D=max(1e-3,length(uLd[i].xyz));l=Lv/d;at=smoothstep(0.72,0.975,dot(-l,-uLd[i].xyz/D))*1.9/(1.0+d*d/(D*D));}else l=normalize(uLd[i].xyz);'+
       'lt+=uLc[i]*uLd[i].w*at*(max(0.0,dot(n,l))+0.6*pow(max(0.0,dot(n,normalize(l+V))),24.0));}}}'+ // a painted model in a light: a lamp where it is (on its own: a cone aimed at it, so each wall has its hotspot and falls off round it, as the spot does on the ground), its diffuse and a soft sheen
-    'if(m==15.0){vec3 q=vU.xyz/64.0;float b1=sin(q.x*9.0+sin(q.z*6.0)*1.7)*cos(q.z*8.0-q.y*5.0),b2=sin(q.x*4.0-q.y*6.0+q.z*3.0),b3=cos(q.z*13.0+q.x*5.0+q.y*9.0);n=normalize(n+vec3(b1*0.12+b3*0.04,(b2-b1)*0.07,b2*0.09+b3*0.05));dif=max(0.0,dot(n,L));nh=max(0.0,dot(n,H));nz=max(0.0,n.z);edg=1.0-nz;rim=pow(edg,3.0);}'+ // ice: its surface bumpy and uneven (by where on it, so it stays with it as it bobs)
-    'if(m==2.0||m==3.0||m==7.0||m==15.0){vec3 r=reflect(-V,n);env=texture2D(uEnv,clamp(uEP.xy-r.xy*uEP.z+vec2(vP.x,-vP.y)*uEW,0.0,1.0)).rgb;'+
+    'vec3 iq=vU.xyz/64.0;float frost=0.0;if(m==15.0||m==16.0){vec3 gq=m==15.0?vg(iq*7.0)*0.55+vg(iq*19.0)*0.3+vg(iq*47.0)*0.12:vg(iq*11.0)*0.35+vg(iq*36.0)*0.22+vg(iq*90.0)*0.08;'+ // ice: a rough, uneven surface, a normal map from noise at three scales (by where on the floe, so it stays with it as it bobs); snow: soft lumps and grain
+    'n=normalize(n-gq*(m==15.0?0.16:0.2));if(m==15.0)frost=smoothstep(0.44,0.76,fb(iq*6.0+vec3(3.1)));dif=max(0.0,dot(n,L));nh=max(0.0,dot(n,H));nz=max(0.0,n.z);edg=1.0-nz;rim=pow(edg,3.0);}'+
+    'if(m==2.0||m==3.0||m==7.0||m==15.0||m==16.0){vec3 r=reflect(-V,n);env=texture2D(uEnv,clamp(uEP.xy-r.xy*uEP.z+vec2(vP.x,-vP.y)*uEW,0.0,1.0)).rgb;'+
     'for(int i=0;i<6;i++){if(uLd[i].w>0.0)gs+=uLc[i]*uLd[i].w*pow(max(0.0,dot(n,normalize(normalize(uLd[i].xyz)+V))),90.0);}}'+ // (empty light slots are skipped: normalize(0) is NaN)
     'vec3 col;float a=1.0;bool em=m==13.0&&((vU.z>0.5&&vU.z<1.5)||vU.z>2.5);if(uEo>0.5&&!em){gl_FragColor=vec4(0.0);return;}'+ // em: what glows on a painted model (uEo: draw only that — a shop's neon glow is blurred from it)
     'if(m==1.0){col=c*(0.62+0.32*g)*(0.35+0.75*dif)+pow(nh,12.0)*0.12*uGl;}'+
     'else if(m==13.0){vec4 t=texture2D(uImg,vU.xy);if(t.a<0.5)discard;float ks=clamp((1.0-t.a)*2.0,0.0,1.0);'+(dd?'if(uPb>0.0){float hb=dot(t.rgb,vec3(0.3,0.59,0.11))*uPb;vec3 dpx=dFdx(vP),dpy=dFdy(vP);float hx=dFdx(hb),hy=dFdy(hb);vec3 r1=cross(dpy,n),r2=cross(n,dpx);float det=dot(dpx,r1);if(abs(det)>1e-9){n=normalize(abs(det)*n-sign(det)*(hx*r1+hy*r2));dif=max(0.0,dot(n,L));nh=max(0.0,dot(n,H));}}':'')+'col=vU.z>2.5?t.rgb*(0.5+0.3*max(0.0,n.y)+0.3*max(0.0,n.z))*uEm:vU.z>1.5?vec3(0.13,0.13,0.15)*(0.45+0.6*dif):vU.z>0.5?t.rgb*uEm+t.rgb*lt*0.4:t.rgb*(0.3+0.8*dif+lt)+pow(nh,30.0)*0.04;col+=(pow(nh,64.0)*1.3+pow(nh,10.0)*0.12)*ks*uGl*uSunC+lt*ks*0.35;}'+ // (uPb: a painted model whose tiles carry relief — its bump from the texture's light and dark; its alpha below 1: how shiny, sun and lamps glinting off it) // Painted (a shop): its texture (uv in vU.xy), lit by the sun; vU.z 1 = glowing (an open shop\'s sign and lamp), 2 = the back of a sign, 3 = inside an open shop (lit by its lamp)
-    'else if(m==15.0){vec3 tr=texture2D(uEnv,clamp(uEP.xy+n.xy*uEP.z*0.4+vec2(vP.x,-vP.y)*uEW,0.0,1.0)).rgb;float fr=0.06+0.94*pow(edg,2.5),sp=pow(nh,60.0)*1.1*uGl+pow(nh,12.0)*0.12;'+ // ice: the scene behind bent through it (tr), and reflected off it more at a slant (fr), glinting
-    'col=mix(tr*vec3(0.74,0.9,1.0)*(0.8+0.25*dif),env*uEA,fr*0.75)+c*(0.14+0.3*dif)+sp+gs+vec3(0.55,0.82,0.98)*rim*0.4;a=min(1.0,0.74+0.24*edg+sp*0.3);}'+
+    'else if(m==15.0){vec3 rf=refract(-V,n,0.76);vec3 tr=texture2D(uEnv,clamp(uEP.xy+vec2(-rf.x,rf.y)*uEP.z*0.55+vec2(vP.x,-vP.y)*uEW,0.0,1.0)).rgb;'+ // ice, see-through: what is behind and under it bent through it (refracted) and tinted, the scene reflected off it (more at a slant: Fresnel), the sun's and every lamp's glints, a rough frost in patches
+    'float fr=0.05+0.95*pow(edg,3.0),sp=(pow(nh,140.0)*2.6+pow(nh,24.0)*0.35)*uGl;vec3 tint=vec3(0.62,0.86,1.0),body=mix(tr,vec3(0.6,0.84,0.97),0.38)*tint*(0.75+0.4*dif)+c*0.06;'+
+    'col=mix(body,env*uEA*1.1,fr*0.8)+sp*uSunC+gs*1.3+tint*rim*0.55;col=mix(col,vec3(0.9,0.96,1.0)*(0.62+0.45*dif),frost*0.65);'+
+    'a=clamp(0.42+0.5*fr+frost*0.5+sp*0.4+edg*0.28,0.0,1.0);}'+
+    'else if(m==16.0){float wr=0.6+0.4*dot(n,L);vec3 sh=mix(vec3(0.72,0.8,0.95),vec3(1.0),smoothstep(0.1,0.9,wr));'+ // snow: soft wrapped light (blue in its shadows), a little of the scene in it, and sparkling — each grain a tiny mirror glinting as the floe turns
+    'vec3 cell=floor(iq*150.0);vec3 gn=normalize(n+(vec3(h31(cell),h31(cell+7.1),h31(cell+3.7))-0.5)*1.4);float tw=pow(max(0.0,dot(reflect(-L,gn),V)),28.0)*step(0.86,h31(cell+1.9));'+
+    'float ao=0.78+0.22*smoothstep(-0.2,0.6,n.y);col=c*sh*(0.5+0.42*dif+0.1*nz)*ao*(0.55+0.45*uSunC)+env*uEA*0.06+gs*0.45+vec3(tw*1.8)*uSunC;a=1.0;}'+
     'else if(m==3.0&&uGc>0.5){float fr=0.04+0.96*pow(edg,3.0),sp=(pow(nh,90.0)*2.0)*uGl;vec3 R=env*uEA*(0.22+0.78*fr)+sp+gs;float ga=0.05+0.3*fr;gl_FragColor=vec4(min(R+c*0.06,vec3(1.0))*uA,min(1.0,ga+sp*0.5)*uA);return;}'+ // clear glass (a shop window): nearly see-through, the room behind shows; what it reflects (Fresnel: more at a slant) and its glints are added over it
     'else if(m==3.0){float sp=(pow(nh,80.0)*1.6+rim*0.6)*uGl;col=c*(0.7*(0.55+0.5*dif)+0.25*edg)+sp+env*uEA*(0.3+0.7*edg)+gs;a=min(1.0,0.42+0.55*pow(edg,1.5)+sp/1.2+ln*0.6);}'+
     'else if(m==2.0||m==7.0){float au=m==7.0?1.0:0.0;vec3 r=reflect(-V,n);float el=dot(env,vec3(0.3,0.59,0.11)),hz=smoothstep(-0.2,0.25,r.y),fr=pow(edg,2.0);'+ // Metal and Gold: a chrome-style horizon split and the scene's brightness drive a dark → metal → bright ramp, so both read as polished metal
@@ -680,7 +699,7 @@ function duckBind(G,M,env,hpx){ // everything a duck draw shares: its mesh and m
       for(const [p,v] of [[gl.TEXTURE_MIN_FILTER,gl.LINEAR_MIPMAP_LINEAR],[gl.TEXTURE_MAG_FILTER,gl.LINEAR],[gl.TEXTURE_WRAP_S,gl.CLAMP_TO_EDGE],[gl.TEXTURE_WRAP_T,gl.CLAMP_TO_EDGE]])gl.texParameteri(gl.TEXTURE_2D,p,v);G.itex.set(M.img,t);}
     gl.activeTexture(gl.TEXTURE2);gl.bindTexture(gl.TEXTURE_2D,t);gl.uniform1i(u.uImg,2);}
   gl.uniform1f(u.uEo,M.eo?1:0);gl.uniform1f(u.uEm,M.emk!=null?M.emk:1);gl.uniform1f(u.uGc,M.gc?1:0);gl.uniform1f(u.uEW,M.ew||0);
-  const refl=M.mat===2||M.mat===3||M.mat===7,ld=new Float32Array(24),lc=new Float32Array(18);
+  const refl=M.mat===2||M.mat===3||M.mat===7||M.mat===15||M.mat===16,ld=new Float32Array(24),lc=new Float32Array(18);
   if(refl&&env){gl.uniform3f(u.uEP,1-env.x/Math.max(1,W),env.y/Math.max(1,H),0.22);gl.uniform1f(u.uEA,M.mat===3?T.glassReflect:T.metalReflA);}
   else{gl.uniform3f(u.uEP,0.5,0.5,0.22);gl.uniform1f(u.uEA,refl?0.5:0);}
   if(env&&(refl||M.mat===13)){ // the lights near it: glints on metal and glass, and light on a painted model (a shop in the buoy's light)
@@ -690,7 +709,7 @@ function duckBind(G,M,env,hpx){ // everything a duck draw shares: its mesh and m
   gl.uniform3fv(u.uSunL,DUCK_SUN.d);gl.uniform3fv(u.uSunC,DUCK_SUN.c);gl.uniform3fv(u.uC1,M.c1);gl.uniform3fv(u.uC2,M.c2);gl.uniform1f(u.uM,M.mat);gl.uniform1f(u.uFl,M.mat===12||M.mat===11?0.07:0); /* (Paper, and the Silhouette: a paper duck, all black) */gl.uniform1f(u.uNk,M.nomk?1:0);gl.uniform1f(u.uPb,M.pb||0);gl.uniform1f(u.uGl,T.duckGloss);gl.uniform1f(u.uTr,T.duckTrans);}
 function duckDrawCalls(G,M){ // depth pre-pass so only the nearest surface is coloured; glass shows its inside wall first
   const gl=G.gl,n=M.g.idx.length;gl.enable(gl.DEPTH_TEST);gl.depthFunc(gl.LEQUAL);gl.enable(gl.BLEND);gl.blendFunc(gl.ONE,gl.ONE_MINUS_SRC_ALPHA);gl.enable(gl.CULL_FACE);
-  if(M.mat===3||M.mat===14){gl.cullFace(gl.FRONT);gl.drawElements(gl.TRIANGLES,n,gl.UNSIGNED_SHORT,0);}
+  if(M.mat===3||M.mat===14||M.mat===15){gl.cullFace(gl.FRONT);gl.drawElements(gl.TRIANGLES,n,gl.UNSIGNED_SHORT,0);}
   else{gl.colorMask(false,false,false,false);gl.cullFace(gl.BACK);gl.drawElements(gl.TRIANGLES,n,gl.UNSIGNED_SHORT,0);gl.colorMask(true,true,true,true);}
   gl.cullFace(gl.BACK);gl.drawElements(gl.TRIANGLES,n,gl.UNSIGNED_SHORT,0);gl.disable(gl.CULL_FACE);}
 function drawDuck3D(c,type,q,at,h,alpha,maxS,env,wat){ // wat: it floats on water ({n: the water's up in the view, h: its middle's height above it, clip: 1 what is above, −1 what is below (a reflection), mirror}) // the type's model turned by q, h px per model unit, drawn centred on each [x,y] of at (a 2D canvas);

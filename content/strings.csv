@@ -1576,3 +1576,10 @@ map.unknown.duck_d,"You have never had one like it: click it to find out what it
 map.fogged,Fog,Surface Map feed (hover),
 map.fogged_d,"Whatever is there cannot be made out from here",Surface Map feed (hover),
 map.ice,Ice,Surface Map feed (hover),
+map.water.frozen,"The barrel is frozen ({water} of {max} as ice)",Surface Map (water),"water = $0 — drinks in it
+max = $1 — what it holds"
+map.water.frozen_d,"Snow (cold and rain) has frozen your barrel: none of it can be drunk, and no light can fill it, until the snow lets up. Rest to wait it out, or drink a bottle.",Surface Map (water),
+map.water.frozen_alt,"Snow has frozen your barrel: you are drinking from a bottle until it thaws",Surface Map (water),
+map.water.frozen_rest,"The barrel is still frozen: time passes while the snow lasts",Surface Map (water),
+map.water.out_lit,"You are beside the light: rest and the barrel fills",Surface Map (water),
+map.water.out_anchor,"Anchored, the tide cannot carry you in: raise the anchor and rest, or buy a bottle",Surface Map (water),

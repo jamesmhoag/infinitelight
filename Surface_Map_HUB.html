@@ -322,7 +322,8 @@ function showTurn(){neb({cmd:'clock',clock,day});mapHistKeep();if(buoy.rested&&c
 
 function anchored(){return !!(buoyKit&&buoyKit.anchor&&buoyKit.slots.hull.slice(0,kitCounts(buoyKit).hull).some(id=>{const it=shopItem(id);return it&&it.fx.anchor;}));} // an anchor on the hull mount, and down
 function anchorSet(down){if(!buoyKit)return;buoyKit.anchor=down;kitSave(buoyKit);syncDock();}
-function restTide(){ // resting with the barrel dry: a time of day passes and the tide carries you a hex toward the Point (if a hex that way can be entered), where you can drink again
+function restTide(){ // resting with the barrel dry:
+  if(wxSnow()||waterLit()){feed(txt('map.water.rest'),wxSnow()?txt('map.water.frozen_rest'):txt('map.water.out_lit'));advanceTurn();waterNear();updateHint();saveMap();return;} // (frozen: no tide brings water; beside the light already: it fills as time passes) a time of day passes and the tide carries you a hex toward the Point (if a hex that way can be entered), where you can drink again
   if(anchored()){feed(txt('map.anchor.held'),txt('map.anchor.held_d'));advanceTurn();waterNear();updateHint();saveMap();return;} // anchored: the tide cannot carry you; a time of day passes where you are
   const r0=cellRing(pQ,pR);let best=null;for(const m of getMoves()){if(!cells[K(m.q,m.r)]||cells[K(m.q,m.r)].isVoid)continue;const r=cellRing(m.q,m.r);if(r<r0&&(!best||r<best.r))best={q:m.q,r:m.r,rr:r};}
   if(best){buoyTo(best.q,best.r,'sail');feed(txt('map.water.tide'),txt('map.water.tide_d'));}else feed(txt('map.water.rest'),txt('map.water.rest_d'));
@@ -482,8 +483,13 @@ let fridge=0;const fridgeCap=()=>{let n=0;for(const it of SHOP_ITEMS)if(it.fx.fr
 function fridgeDrink(){if(!fridge||bottle||bottleAt===day*24+clock){if(bottleAt===day*24+clock&&fridge)feed(txt('map.water.fridge'),txt('map.water.one_a_time'),'no');return;}fridge--;bottle=1;bottleAt=day*24+clock;feed(txt('map.water.fridge'),txt('map.water.bottle_d'));syncDock();saveMap();}
 let drinks=null,bottle=0,bottleAt=-1;const waterMax=()=>Math.max(1,Math.round(T.mapWaterMax||3),...SHOP_ITEMS.filter(i=>i.fx.barrel&&disc.has('up:'+i.id)).map(i=>+i.fx.barrel)); // the barrel (Water max: 3), or the Water cooler's 6if(drinks==null)drinks=waterMax();
 const dry=()=>!SCENE&&!MP.on&&!asleep&&(drinks<=0||wxSnow())&&!bottle&&!fridge; // out of water: no moves until you rest (playing together: water is not kept yet)
-function waterFill(why){if(drinks>=waterMax())return;drinks=waterMax();if(why)feed(txt('map.water.filled'),txt('map.water.filled_'+why,drinks));syncDock();}
-function waterNear(){if(pQ===0&&pR===0||neighbors(pQ,pR).some(([q,r])=>(q===0&&r===0)||isBright(K(q,r))))waterFill('near');} // beside a bright hex or the Point: the barrel is filled
+const waterLit=()=>pQ===0&&pR===0||neighbors(pQ,pR).some(([q,r])=>(q===0&&r===0)||isBright(K(q,r))); // beside a bright hex or the Point (where the barrel fills)
+function waterWhy(){ // what the water is doing, and why: one account for the feed, the hint and the dock (never a fill the barrel cannot take, or a tide to water you already have)
+  const n=drinks,M=waterMax();if(wxSnow()&&n>0)return[txt('map.water.frozen',n,M),txt(bottle||fridge?'map.water.frozen_alt':'map.water.frozen_d')];
+  if(n<=0)return[txt('map.water.out'),txt(wxSnow()?'map.water.frozen_d':waterLit()?'map.water.out_lit':anchored()?'map.water.out_anchor':'map.water.out_d')];
+  return[txt('map.water.slot',n,M),bottle?txt('map.water.slot_bottle'):''];}
+function waterFill(why){if(wxSnow())return; /* (frozen: it cannot take any) */if(drinks>=waterMax())return;drinks=waterMax();if(why)feed(txt('map.water.filled'),txt('map.water.filled_'+why,drinks));syncDock();}
+function waterNear(){if(waterLit())waterFill('near');} // beside a bright hex or the Point: the barrel is filled
 function waterDrinkMove(from){let n=1;if(from&&wxOn('wind')){const dq=Math.sign(pQ-from.q),dr=Math.sign(pR-from.r),d=DIRS.findIndex(([a,b])=>a===dq&&b===dr);if(d===wxDir)n=0;else if(d===(wxDir+3)%6)n=2;} // the wind at your back: no drink; against it: two
   if(wxOn('hot'))n++;for(let i=0;i<n;i++)waterDrink();} // (Hot: one more)
 function waterDrink(){if(SCENE||MP.on)return;if(bottle){bottle=0;}else if(drinks>0&&!wxSnow())drinks--; /* (Snow: the barrel is frozen) */else if(fridge>0)fridge--;syncDock();} // (the barrel dry: a bottle from the fridge)
@@ -541,7 +547,7 @@ function lakeTrash(d){const g=d.good,m=TRASH_OF[g.kind];if(!m)return false;const
 function doMove(tq,tr){
   if(phase==='gameover'||phase==='collapse')return;if(tired()){feed(txt('map.too_tired_to_move'),txt('map.rest_under_midnight_to'),'no');return;}
   if(asleep){feed(txt('map.sleep.asleep'),txt('map.sleep.until',clockStr(asleep.until)),'no');return;}
-  if(dry()){feed(txt('map.water.out'),txt('map.water.out_d'),'no');return;}
+  if(dry()){const[a,b]=waterWhy();feed(a,b,'no');return;}
   if(wxStun){wxStun=0;feed(txt('wx.struck'),txt('wx.stun_d'),'no');advanceTurn();updateHint();saveMap();return;} // (lightning struck: this move is lost)
   if(anchored()){anchorSet(false);feed(txt('map.anchor.raised'),txt('map.anchor.raised_d'));} // (moving raises it)
   hubLearn('hubmove');hubLearn('hubtime');hubLearn('hublight');
@@ -562,7 +568,7 @@ function updateHint(){ // the feed's resting line: what you can do now
   else if(phase==='captured'){a=(tired()?txt('map.cleared_too_tired_to'):txt('map.cleared'));b=(tired()?txt('map.rest_under_midnight_to'):txt('map.move_on'));}
   else if(phase==='collapse'){a=(pendingEnd?txt('map.midnight'):fireworks.length?txt('map.win'):txt('map.collapsing'));b=(pendingEnd?txt('map.the_rings_fall_into'):txt('map.close_the_report_to'));}
   else if(asleep){a=txt('map.sleep.asleep');b=txt('map.sleep.until',clockStr(asleep.until));}
-  else if(dry()&&(phase==='move'||phase==='captured')&&!tired()){a=txt('map.water.out');b=txt('map.water.out_d');}
+  else if(dry()&&(phase==='move'||phase==='captured')&&!tired()){[a,b]=waterWhy();}
   else if(armed==='weave'){a=txt('map.weave_click_bright_hexes');b=(weaveSel.length?txt('map.chosen',weaveSel.length):txt('map.right_click_esc_or'));}
   else if(armed==='dial'){a=txt('map.string_click_any_open');b=txt('map.1_string_per_hex');}
   else if(armed==='leash'){a=txt('map.spindle_click_a_cleared');b=txt('map.a_great_dark_remnant');}
@@ -798,10 +804,13 @@ function duckRot(d,now,m){const f=duckFace(d,now),td=d.tod?now-d.tod:1e9,r=td<24
 const _iceL={}; // each iced hex's floe as it grows (eased: a floating cube filling out to its hex)
 function iceScene(now,mir){ // the ice on the lake, in 3D (iceModel in shared.js): a floe on each iced hex, wider and more terraced the more ice round it (side by side, a glacier), snow lying on its ledges as it binds (Snow) — bobbing, the scene bent through it and reflected off it
   if(!G3||!G3.duck||!cam)return;let env=false;for(const k in cells){const h=cells[k];if(!h.ice){delete _iceL[k];continue;}const[wx,wy]=a2w(h.q,h.r),fs=fogSee(wx,wy);if(fs<=0)continue;
-    const nb=neighbors(h.q,h.r).filter(a=>(cells[K(...a)]||{}).ice).length,Lt=Math.min(4,nb+(wxSnow()?1:0)),Le=_iceL[k]=_iceL[k]==null?Lt:_iceL[k]+(Lt-_iceL[k])*0.02,L=Math.round(Le),sn=Math.min(3,Math.floor(Le*0.75)+(wxSnow()?1:wxOn('cold')?0:-1)),gr=iceDim(Le).r0/iceDim(L).r0;
-    if(!env){duckEnvUpdate(mc,now,G3.duck);env=true;}const[px,py]=w2s(wx,wy),[X,Y,kk]=proj(px,py),ph=(h.q*7.3+h.r*3.1),b=HEX*(0.035-0.006*L)*Math.sin(now/1100+ph),tl=(0.06-0.012*L)*Math.sin(now/1500+ph*1.7),ct=Math.cos(tl),st=Math.sin(tl),m=mir?-1:1; // it bobs (a small floe more, a glacier hardly), rocking a little
+    const nb=neighbors(h.q,h.r).filter(a=>(cells[K(...a)]||{}).ice).length,Lt=Math.min(4,nb+(wxSnow()?1:0)),Le=_iceL[k]=_iceL[k]==null?Lt:_iceL[k]+(Lt-_iceL[k])*0.02,L=Math.round(Le),sn=Math.min(3,Math.floor(Le*0.75)+(wxSnow()?1:wxOn('cold')?-1:-2)),gr=iceDim(Le).r0/iceDim(L).r0;
+    if(!env){duckEnvUpdate(mc,now,G3.duck);env=true;}const[px,py]=w2s(wx,wy),[X,Y,kk]=proj(px,py),ph=(h.q*7.3+h.r*3.1),b=HEX*(0.06-0.01*L)*Math.sin(now/1100+ph)-HEX*0.02,tl=(0.09-0.016*L)*Math.sin(now/1500+ph*1.7),ct=Math.cos(tl),st=Math.sin(tl),m=mir?-1:1; // it bobs (a small floe more, a glacier hardly), rocking a little
     const rot=new Float32Array([1,0,0, 0,st,ct*m, 0,ct,-st*m]),size=HEX*0.97*gr,o={rot,size,pos:[px-MW/2,py-MH/2,b*m],view:cam.view,proj:cam.proj,viewRot:cam.viewRot,env:{x:X,y:Y,lights:mir?[]:curLights(X,Y)},px:size*kk,clip:mir?-1:1,alpha:fs*(mir?(T.mapDuckRefl!=null?T.mapDuckRefl:0.4):1),mirror:!!mir};
     drawDuckScene(G3.duck,'ice:'+L+':0:ice',o);if(sn>0)drawDuckScene(G3.duck,'ice:'+L+':'+sn+':snow',o);}}
+const isSign=d=>!!(d.good&&d.good.kind==='sign');
+function signFlat(d,now,m){const f=duckFace(d,now),t=0.05*Math.sin(now/1300+d.ph),ct=Math.cos(t),st=Math.sin(t); // a shop's sign adrift: lying flat on the water, its face (its brand and its lights) up to the sky, rocking a little on the swell; m −1: its reflection
+  return new Float32Array([f[0],f[1],0, f[1]*ct,-f[0]*ct,st*m, -f[1]*st,f[0]*st,ct*m]);}
 function sceneRender(now){
   if(!G3)G3=sceneInit();if(!G3||!cam)return;const gl=G3.gl;
   gl.viewport(0,0,sc.width,sc.height);gl.clearColor(5/255,6/255,8/255,1);gl.clearDepth(1);gl.clear(gl.COLOR_BUFFER_BIT|gl.DEPTH_BUFFER_BIT);
@@ -819,13 +828,13 @@ function sceneRender(now){
     const s=duckSun(_sunH),R=cam.viewRot,l=[s.d[0],-s.d[1],s.d[2]];DUCK_SUN={d:[0,1,2].map(i=>R[i]*l[0]+R[3+i]*l[1]+R[6+i]*l[2]),c:s.c};} // (the plane's y runs down the screen)
   const ra=T.mapDuckRefl!=null?T.mapDuckRefl:0.4; // ducks are mirrored in the surface beneath them
   if(ra>0){gl.clear(gl.DEPTH_BUFFER_BIT);for(const d of pond)if(d._s&&d.bottle&&fogSee(d.x,d.y)>0)drawBottleScene(G3.duck,d,bottleOpts(d,now,-1,ra*fogSee(d.x,d.y)));for(const d of pond){if(!d._s||d.bottle||fogSee(d.x,d.y)<=0)continue;const[px,py]=w2s(d.x,d.y),[X,Y,k]=proj(px,py),size=d._s,bob=duckBob(d,now);
-    drawDuckScene(G3.duck,d.type,{rot:duckRot(d,now,-1),size,pos:[px-MW/2,py-MH/2,-bob],view:cam.view,proj:cam.proj,viewRot:cam.viewRot,env:{x:X,y:Y,lights:[]},px:size*k,alpha:ra*(d.fade!=null?d.fade:1)*fogSee(d.x,d.y),mirror:true,clip:-1});}
+    drawDuckScene(G3.duck,d.type,{rot:isSign(d)?signFlat(d,now,-1):duckRot(d,now,-1),size,pos:[px-MW/2,py-MH/2,isSign(d)?-size*0.04:-bob],view:cam.view,proj:cam.proj,viewRot:cam.viewRot,env:{x:X,y:Y,lights:[]},px:size*k,alpha:ra*(d.fade!=null?d.fade:1)*fogSee(d.x,d.y),mirror:true,clip:-1});}
     shopsScene(now,true);iceScene(now,true);if(!SCENE||REPLAY)buoyDraw(now,true);gl.clear(gl.DEPTH_BUFFER_BIT);} // (your buoy and the shops, mirrored too)
   for(const d of pond)if(d._s&&d.bottle&&fogSee(d.x,d.y)>0){if(!envd){duckEnvUpdate(mc,now,G3.duck);envd=true;}drawBottleScene(G3.duck,d,bottleOpts(d,now,1,fogSee(d.x,d.y)));} // (lost in the fog: not drawn) // glass: it reflects the scene round it
   for(const d of pond){if(!d._s||d.bottle||fogSee(d.x,d.y)<=0)continue;const M=duckModel(d.type),refl=!!M&&(M.mat===2||M.mat===3||M.mat===7),[px,py]=w2s(d.x,d.y),[X,Y,k]=proj(px,py); // (metal, gold and glass — a duck's or a plant's — reflect the scene)
     if(refl&&!envd){duckEnvUpdate(mc,now,G3.duck);envd=true;}
     const size=d._s; // upright on the plane: its forward along its heading, its up out of the plane
-    drawDuckScene(G3.duck,d.type,{rot:duckRot(d,now,1),size,pos:[px-MW/2,py-MH/2,duckBob(d,now)],view:cam.view,proj:cam.proj,viewRot:cam.viewRot,env:{x:X,y:Y,lights:curLights(X,Y)},px:size*k,clip:1,alpha:fogSee(d.x,d.y)*(d.fade!=null?d.fade:1)});}
+    drawDuckScene(G3.duck,d.type,{rot:isSign(d)?signFlat(d,now,1):duckRot(d,now,1),size,pos:[px-MW/2,py-MH/2,isSign(d)?size*(0.04+0.012*Math.sin(now/900+d.ph)):duckBob(d,now)],view:cam.view,proj:cam.proj,viewRot:cam.viewRot,env:{x:X,y:Y,lights:curLights(X,Y)},px:size*k,clip:1,alpha:fogSee(d.x,d.y)*(d.fade!=null?d.fade:1)});}
   iceScene(now,false);shopsScene(now,false);if(!SCENE||REPLAY)buoyDraw(now,false);} // the shops, in every light where they stand; your buoy, half under the surface
 function duckBob(d,now){return d._s*(0.36+0.03*Math.sin(now/700+d.ph)-(d._sink||0)*1.3);} // how high a lake duck floats: dunked or splashing up, under the waterline
 let _glow=null;
@@ -2056,7 +2065,7 @@ function syncDock(){const box=document.getElementById('hinv');if(!box)return;
   if(on('home')){
     h+=`<div class="slot buoy${nw('buoy')}${fnOn('buoy')}" data-k="buoy" data-fn="1" data-new="hk_buoy" title="${txt('map.buoy.deck')}">${BUOY_ICO}</div>`; // your buoy: below deck, or back up (its Status is the mirror there)
     {const n=evTodo();h+=`<div class="slot${n?' todo':''}${fnOn('guide')}" data-k="guide" data-fn="1"><svg width="18" height="18" viewBox="0 0 16 16"><circle cx="8" cy="8" r="7" fill="none" stroke="currentColor" stroke-width="1.3"/><rect x="7.2" y="7" width="1.6" height="5" fill="currentColor"/><circle cx="8" cy="4.6" r="1" fill="currentColor"/></svg><b>${n?'✦'+n:''}</b></div>`;} // your Journal: how many events there are to review (it opens at the first)
-    h+=`<div class="slot water${dry()?' empty':''}${fnOn('drinks')}" data-k="drinks"${fridge&&!bottle?' data-fn="1"':''} title="${txt('map.water.slot',drinks,waterMax())}${bottle?' · '+txt('map.water.slot_bottle'):''}"><svg viewBox="0 0 22 22" width="18" height="18"><path d="M11 2C8 7 5 10.5 5 14a6 6 0 0 0 12 0c0-3.5-3-7-6-12z" fill="${bottle?'#9fe6ff':'currentColor'}" opacity=".9"/></svg><b>${drinks}${bottle?'+1':''}${fridge?' ❄'+fridge:''}</b></div>`; // the fresh drinks barrel (and a bottle, drunk, waiting for your next move)
+    h+=`<div class="slot water${dry()?' empty':''}${fnOn('drinks')}" data-k="drinks"${fridge&&!bottle?' data-fn="1"':''} title="${waterWhy().filter(Boolean).join(' · ')}"><svg viewBox="0 0 22 22" width="18" height="18"><path d="M11 2C8 7 5 10.5 5 14a6 6 0 0 0 12 0c0-3.5-3-7-6-12z" fill="${bottle?'#9fe6ff':'currentColor'}" opacity=".9"/></svg><b>${drinks}${bottle?'+1':''}${fridge?' ❄'+fridge:''}</b></div>`; // the fresh drinks barrel (and a bottle, drunk, waiting for your next move)
     if(recPlayer())h+=`<div class="slot rec${MUSIC.cur&&MUSIC.pref.on?' armed':''}${fnOn('rec')}" data-k="rec" data-fn="1" title="${txt('map.rec.slot',MUSIC.cur?MUSIC.cur.n:txt('map.rec.off'))}">♪<b>${MUSIC.cur?txt('map.rec.on_s'):txt('map.rec.off_s')}</b></div>`; // the record player: your records
     if(batteries||BATT_GEAR.some(x=>disc.has('up:'+x[0])))h+=`<div class="slot${BATT_GEAR.some(x=>disc.has('up:'+x[0])&&!powered(x[0]))?' empty':''}" data-k="batt" title="${txt('map.batt.have',batteries)}">🔋<b>${batteries}</b></div>`; // your batteries
     if(WX_TYPES.some(wxOn))h+=`<div class="slot" data-k="wx" title="${wxName()}">${wxBliz()||wxSnow()?'❄':wxStorm()?'⛈':wxOn('rain')?'🌧':wxOn('fog')?'🌫':wxOn('wind')?'💨':wxOn('hot')?'☀':'🧊'}<b>${wxOn('wind')?'→↗↑←↙↓'.split('')[wxDir]:''}</b></div>`; // the weather
