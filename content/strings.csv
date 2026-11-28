@@ -1583,3 +1583,4 @@ map.water.frozen_alt,"Snow has frozen your barrel: you are drinking from a bottl
 map.water.frozen_rest,"The barrel is still frozen: time passes while the snow lasts",Surface Map (water),
 map.water.out_lit,"You are beside the light: rest and the barrel fills",Surface Map (water),
 map.water.out_anchor,"Anchored, the tide cannot carry you in: raise the anchor and rest, or buy a bottle",Surface Map (water),
+status.empty,"Nothing yet: what you find, collect and buy shows here",Status,

@@ -1734,6 +1734,8 @@ function sceneLights(wx,wy,mir,skip){ // the lights round a point of the scene, 
   return o;}
 function shopRot(yw,lean,m){const a=-yw*Math.PI/180,ca=Math.cos(a),sa=Math.sin(a),cl=Math.cos(lean),sl=-Math.sin(lean); // a shop in the scene: turned on the ground by yw, and leant toward the camera by lean (so it is seen from as far above as Shop view angle, as it always has been); m −1 its reflection
   return new Float32Array([ca,cl*sa,-sl*sa*m, 0,sl,cl*m, -sa,cl*ca,-sl*ca*m]);}
+let _shopNewAt=0,_shopNew={};function shopNew(id){const now=performance.now();if(now-_shopNewAt>1000){_shopNewAt=now;_shopNew={};} // a shop with something new: its grand opening (never yet been in) or an item that opened today — its bulbs chase round its sign to say so (else they shine steady)
+  if(_shopNew[id]==null)_shopNew[id]=!disc.has('ev:shop_'+id)||SHOP_ITEMS.some(i=>i.shop===id&&!disc.has('up:'+i.id)&&!achLocked('item',i.id,ready)&&((i.req&&fresh('up:'+i.req))||achFresh('item',i.id)));return _shopNew[id];}
 function shopsScene(now,mir){ // every shop in the 3D scene, lit by every light where it is (sceneLights) and the time of day: its walls, its glass (reflecting the street), its sign and lit room glowing; or (mir) mirrored in the water under it
   if(!G3||!G3.duck||!cam||SCENE&&!document.body.classList.contains('scene-shops'))return;const ra=T.mapShopReflect!=null?T.mapShopReflect:0.7;if(mir&&ra<=0)return;
   const pt=T.mapShopPitch!=null?T.mapShopPitch:22,lean=Math.max(0,(90-(camTiltOv!=null?camTiltOv:(T.mapTilt!=null?T.mapTilt:32))-pt))*Math.PI/180,m=mir?-1:1,emk=shopGlowK();let envd=false;
@@ -1745,7 +1747,7 @@ function shopsScene(now,mir){ // every shop in the 3D scene, lit by every light 
     const L3=sceneLights(s.wx,s.wy,mir),o={rot,size,pos,view:cam.view,proj:cam.proj,viewRot:cam.viewRot,env:{x:X,y:Y,lights:[]},px:size*k,clip:m,mirror:mir,alpha:mir?ra:1,L3};
     const sb=T.mapSignBright!=null?T.mapSignBright:1.7,fr=Math.floor(now/(T.signAnimMs||180));M.emk=(s.soon?1:0.7+0.3*emk)*sb;drawDuckScene(G3.duck,type,o);M.emk=1; // (its sign and lit rooms luminous: Sign brightness)
     {const fk=shopExtra(type,'flag',{wx:buoyWx(),f:fr%8});if(fk)drawDuckScene(G3.duck,fk,o); // its flag flying from its roof (the one flag: as your buoy's)
-      if(s.lit||s.soon){const bk=shopExtra(type,'bulbs',fr%4),BM=bk&&duckModel(bk);if(BM){BM.emk=Math.min(2.2,emk*sb*1.2);drawDuckScene(G3.duck,bk,o);}} // the bulbs round its sign, chasing round while it is lit
+      if(s.lit||s.soon){const bk=shopExtra(type,'bulbs',shopNew(s.id)||s.soon?fr%4:'on'),BM=bk&&duckModel(bk);if(BM){BM.emk=Math.min(2.2,emk*sb*1.2);drawDuckScene(G3.duck,bk,o);}} // the bulbs round its sign, chasing round while it is lit
       if(wxSnow()){const nk=shopExtra(type,'snow');if(nk)drawDuckScene(G3.duck,nk,Object.assign({},o,{env:{x:X,y:Y,lights:mir?[]:curLights(X,Y)}}));}} // snow on its roof, its sign and its sills
     if(!envd){duckEnvUpdate(shopEnv(),now+0.5,G3.duck);envd=true;}drawDuckScene(G3.duck,type+'|glass',Object.assign({},o,{env:{x:X,y:Y,lights:mir?[]:curLights(X,Y)},alpha:(s.lit?0.6+0.7*(1-emk):1)*(mir?ra:1),L3:null}));}
   {const SL=shopList(),a=SL.find(x=>x.id==='line'),b=SL.find(x=>x.id==='clock');if(a&&b){ // the great flagpole at the Point: on main street, between INFINITE LINE and the Clock smith, the Point's own flag on it
