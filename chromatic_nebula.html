@@ -14353,21 +14353,38 @@ function riftSpine(x,y,r){ // the open Rift's line: the crack's own legs, end to
   const sp=[...sides[0].reverse(),[x,y],...sides[1]],q=riftSides(x,y,r);sp.pin=[L+4*q[0].q,4*q[0].q,4*q[1].q];return sp;} // (pin: where it formed, and each side's way to its edge: the pinch's span)
 function riftOffset(pts,d){return pts.map((p,i)=>{const a=pts[Math.max(0,i-1)],b=pts[Math.min(pts.length-1,i+1)],ex=b[0]-a[0],ey=b[1]-a[1],l=Math.hypot(ex,ey)||1;return[p[0]-ey/l*d,p[1]+ex/l*d];});} // the line moved out d to one side (its wave's fronts)
 function riftCrackPath(x,y,r,n,P){ // the crack, in four stages (n: 0–4, fractional while one runs): from where the mass was, out both ways along the Rift's legs (riftSides) to the screen's edges, the
-  // first stage a quarter of each side's way, each after it another quarter: at the fourth, they reach the edges. Jagged like glass, short splinters off it
-  P=P||new Path2D();
-  for(const sd of riftSides(x,y,r)){let px=x,py=y,i=0;P.moveTo(px,py);
+  // first stage a quarter of each side's way, each after it another quarter: at the fourth, they reach the edges. Jagged like glass, short splinters off it. P.segs: each piece of it [x0,y0,x1,y1, how far back from its tip, its jag]
+  P=P||new Path2D();P.segs=[];P.seed=r.seed;
+  for(const sd of riftSides(x,y,r)){let px=x,py=y,i=0,s0=0;const tot=[0,1,2,3].reduce((a,k)=>a+(k<n?sd.q*Math.min(1,n-k):0),0);P.moveTo(px,py);let lx=px,ly=py;
     for(let k=0;k<4&&k<n;k++){const[ux,uy]=sd.legs[k],len=sd.q*Math.min(1,n-k),st=Math.max(6,Math.min(46,len/3));
-      for(let d=st;d<=len+0.01;d+=st,i++){const j=(riftJag(i,r.seed+sd.sd)-0.5)*3,qx=px+ux*Math.min(d,len)-uy*j,qy=py+uy*Math.min(d,len)+ux*j;P.lineTo(qx,qy);
-        if(riftJag(i+50,r.seed+sd.sd)<0.2){const ba=(riftJag(i+80,r.seed)-0.5)*1.6,bl=6+16*riftJag(i+90,r.seed);P.lineTo(qx+(ux*Math.cos(ba)-uy*Math.sin(ba))*bl,qy+(ux*Math.sin(ba)+uy*Math.cos(ba))*bl);P.moveTo(qx,qy);}}
-      px+=ux*len;py+=uy*len;P.lineTo(px,py);}}
+      for(let d=st;d<=len+0.01;d+=st,i++){const j=(riftJag(i,r.seed+sd.sd)-0.5)*3,qx=px+ux*Math.min(d,len)-uy*j,qy=py+uy*Math.min(d,len)+ux*j;P.lineTo(qx,qy);const sa=s0+Math.min(d,len);P.segs.push([lx,ly,qx,qy,tot-sa,i+sd.sd*500]);lx=qx;ly=qy;
+        if(riftJag(i+50,r.seed+sd.sd)<0.2){const ba=(riftJag(i+80,r.seed)-0.5)*1.6,bl=6+16*riftJag(i+90,r.seed),bx=qx+(ux*Math.cos(ba)-uy*Math.sin(ba))*bl,by=qy+(ux*Math.sin(ba)+uy*Math.cos(ba))*bl;P.lineTo(bx,by);P.moveTo(qx,qy);P.segs.push([qx,qy,bx,by,Math.min(tot-sa,8),i+sd.sd*500+77,1]);}}
+      px+=ux*len;py+=uy*len;s0+=len;P.lineTo(px,py);P.segs.push([lx,ly,px,py,tot-s0,i+sd.sd*500+3]);lx=px;ly=py;}
+    (P.tips=P.tips||[]).push([px,py]);}
   return P;}
-function drawRiftCrack(c,P,now){drawRiftGlow(c,P,now,0.5,0,true);c.save();c.strokeStyle='rgba(255,255,255,0.9)';c.lineWidth=1.2;c.stroke(P);c.restore();}
+let _riftGlowCv=null; // a forming crack's glow is drawn here first, so it can be faded out toward the crack's tips before it goes on screen
+function drawRiftCrack(c,P,now,thin){thin=thin==null?1:thin; // a forming crack: a thin black line of varying width along it, tapering to a point at its tips, the Dark Remnant's glow round it far softer than an open Rift's,
+  // fading out smoothly toward its tips (none at the very tip). Each piece of it (P.segs) is cut fine, so the taper runs smoothly along it
+  if(!P.segs){drawRiftGlow(c,P,now,0.2*thin,0,true,0.45*thin);return;}
+  const cv=_riftGlowCv=_riftGlowCv||document.createElement('canvas');if(cv.width!==c.canvas.width||cv.height!==c.canvas.height){cv.width=c.canvas.width;cv.height=c.canvas.height;}
+  const g=cv.getContext('2d');g.setTransform(1,0,0,1,0,0);g.clearRect(0,0,cv.width,cv.height);g.setTransform(c.getTransform());
+  const Q=new Path2D();for(const[x0,y0,x1,y1,,,br]of P.segs)if(!br){Q.moveTo(x0,y0);Q.lineTo(x1,y1);}
+  drawRiftGlow(g,Q,now,0.3*thin,0,true,0.55*thin);g.globalCompositeOperation='destination-out';
+  for(const[tx,ty]of P.tips||[]){const R=110,rg=g.createRadialGradient(tx,ty,0,tx,ty,R);rg.addColorStop(0,'rgba(0,0,0,1)');rg.addColorStop(0.15,'rgba(0,0,0,0.97)');rg.addColorStop(1,'rgba(0,0,0,0)');g.fillStyle=rg;g.fillRect(tx-R,ty-R,R*2,R*2);}
+  g.globalCompositeOperation='source-over';c.save();c.setTransform(1,0,0,1,0,0);c.drawImage(cv,0,0);c.restore();
+  const F=[];for(const[x0,y0,x1,y1,tp,jg,br]of P.segs){const L=Math.hypot(x1-x0,y1-y0),m=Math.max(1,Math.ceil(L/4)),w0=br?0.5:0.7+1.6*riftJag(jg,P.seed||0);
+    for(let k=0;k<m;k++){const t=Math.max(0,tp+(br?0:L*(1-(k+0.5)/m)));F.push([x0+(x1-x0)*k/m,y0+(y1-y0)*k/m,x0+(x1-x0)*(k+1)/m,y0+(y1-y0)*(k+1)/m,w0*Math.min(1,t/38)*thin,t]);}}
+  c.save();c.lineJoin='round';
+  for(const pass of[0,1]){c.lineCap=pass?'round':'butt';for(const[ax,ay,bx,by,w,t]of F){if(w<0.08)continue;c.beginPath();c.moveTo(ax,ay);c.lineTo(bx,by);
+    if(pass){c.strokeStyle='#000';c.lineWidth=w;}else{c.strokeStyle=`rgba(255,150,60,${(0.3*Math.min(1,t/30)*thin).toFixed(3)})`;c.lineWidth=w+1;}c.stroke();}} // (its edges just catching the glow, under it; then the black line)
+  c.restore();}
 function drawRift(c,bh,now){const r=bh.rift;
   if(bh.phase==='crack'){const u=Math.min(1,(now-bh.crackStart)/Math.max(1,T.riftCrackMs||260));drawRiftCrack(c,riftCrackPath(bh.x,bh.y,r,4*(1-Math.pow(1-u,3))),now);return;} // the crack runs out both ways from where the mass was
   drawRiftGlow(c,riftStripe(new Path2D(),r.pts,Math.max(0.5,bh.consumeR),r.seed,70),now,1);} // open: the stripe along the crack's own legs (a line Dark Remnant: its rings' glow, the void black)
 function drawRiftWave(c,bh,now){const a=bh.activateR,bw=Math.max(30,Math.min(150,a*0.2)); // the wave out from a Rift, both sides at once, its fronts following the Rift's line: a white flare and the Dark Remnant's glow along each (behind them all is black, as a Dark Remnant's)
   c.save();c.lineJoin='round';c.globalCompositeOperation='screen';const P=new Path2D();
-  for(const sd of[-1,1]){const o=riftOffset(bh.rift.pts,sd*a);P.moveTo(...o[0]);for(const q of o)P.lineTo(...q);}
+  {const S=[];const pts=bh.rift.pts;for(let i=1;i<pts.length;i++){const[ax,ay]=pts[i-1],[bx,by]=pts[i],L=Math.hypot(bx-ax,by-ay),n=Math.max(1,Math.ceil(L/12));for(let k=0;k<n;k++)S.push([ax+(bx-ax)*k/n,ay+(by-ay)*k/n]);}S.push(pts[pts.length-1]); // (its line, finely: so its fronts follow it smoothly)
+    for(const sd of[-1,1]){const o=riftOffset(S,sd*a).filter(q=>{const[nx,ny]=riftNear(pts,q[0],q[1]);return Math.hypot(q[0]-nx,q[1]-ny)>=a*0.97;});if(o.length<2)continue;P.moveTo(...o[0]);for(const q of o)P.lineTo(...q);}} // (where a front would fold back in on the inside of a bend it is left out: it never pinches in)
   c.filter=`blur(${(bw*0.25).toFixed(1)}px)`;c.strokeStyle='rgba(255,255,255,0.5)';c.lineWidth=bw*0.6;c.stroke(P);c.filter='none';c.globalCompositeOperation='source-over';drawRiftGlow(c,P,now,1,0,true);c.restore();}
 
 
@@ -14379,12 +14396,12 @@ function riftCheck(now){
   for(let i=0;i<active.length;i++){const q=active[i];if(q.dying||q.captured||q._bhGone||!(q.mass>0))continue;
     const k=Math.min(gh-1,Math.max(0,(q.y/C)|0))*gw+Math.min(gw-1,Math.max(0,(q.x/C)|0));m[k]+=q.mass;mx[k]+=q.x*q.mass;my[k]+=q.y*q.mass;me[k]+=q.energy||0;}
   const own=new Set(),sum=ks=>ks.reduce((a,k)=>a+(m[k]||0),0);
-  for(const f of riftForms){f.ks=f.ks.filter(k=>k<N);f.mass=sum(f.ks);for(const k of f.ks)own.add(k);
+  riftForms=riftForms.filter(f=>!f.fz||now-f.fz<450);for(const f of riftForms){if(f.fz)continue;f.ks=f.ks.filter(k=>k<N);f.mass=sum(f.ks);for(const k of f.ks)own.add(k);
     if(f.mass>=RM){if(f.seal){f.seal=false;f.t=now;f.grow=now;} // held (or picked up again while sealing)
       else if(f.n<4&&now-f.t>=T.riftStageMs){f.n++;f.t=f.grow=now;logEv('rift: crack '+f.n+' of 4');}
-      else if(f.n>=4&&!blackHole&&now-f.grow>=(T.riftCrackMs||260)){f.open=1;fireEvent('rift',{x:f.x,y:f.y});flashSaveStatus(txt('surf.a_rift_tore_open',Math.round(f.mass).toLocaleString()));triggerBlackRemnant(f.x,f.y,now,f.mass,f.e,undefined,{a:f.a,seed:f.seed});}}
+      else if(f.n>=4&&!blackHole&&now-f.grow>=(T.riftCrackMs||260)){f.open=1;fireEvent('rift',{x:f.x,y:f.y});flashSaveStatus(txt('surf.a_rift_tore_open',Math.round(f.mass).toLocaleString()));triggerBlackRemnant(f.x,f.y,now,f.mass,f.e,undefined,{a:f.a,seed:f.seed});for(const g of riftForms)if(g!==f&&!g.fz)g.fz=now;}} // (one tearing: every other crack fizzles out)
     else{if(!f.seal){f.seal=true;f.t=now;}else if(now-f.t>=T.riftSealMs){f.n--;f.t=now;}}}
-  riftForms=riftForms.filter(f=>!f.open&&f.n>0);if(blackHole)return;
+  riftForms=riftForms.filter(f=>!f.open&&(f.n>0||f.fz));if(blackHole)return;
   let best=0,bi=-1,bj=-1;
   for(let j=0;j<gh-1;j++)for(let i=0;i<gw-1;i++){const a=j*gw+i;if(own.has(a)||own.has(a+1)||own.has(a+gw)||own.has(a+gw+1))continue;const sm=m[a]+m[a+1]+m[a+gw]+m[a+gw+1];if(sm>best){best=sm;bi=i;bj=j;}}
   if(best<RM)return;
@@ -14392,8 +14409,13 @@ function riftCheck(now){
   const cx=sx/best,cy=sy/best,a=Math.random()*Math.PI;logEv('rift: mass '+Math.round(best)+' within '+(2*C)+'px at '+(cx|0)+','+(cy|0)+': a crack');
   riftForms.push({x:cx,y:cy,a,nx:-Math.sin(a),ny:Math.cos(a),seed:Math.random()*100,ks,mass:best,e:se,n:1,t:now,grow:now,seal:false});flashSaveStatus(txt('surf.a_rift_cracks',Math.round(best).toLocaleString()));
 }
-function riftFormsDraw(c,now){const ms=Math.max(1,T.riftCrackMs||260); // each forming Rift's crack: a stage at a time, each running out over Rift crack ms, sealing back over Rift seal ms
-  for(const f of riftForms){const u=f.seal?Math.max(0,1-(now-f.t)/Math.max(1,T.riftSealMs)):Math.min(1,(now-f.grow)/ms),n=f.n-1+(f.seal?u:1-Math.pow(1-u,3));if(n>0.01)drawRiftCrack(c,riftCrackPath(f.x,f.y,f,n),now);}}
+function riftFormsDraw(c,now){const ms=Math.max(1,T.riftCrackMs||260),S=Math.max(1,T.riftSealMs); // each forming Rift's crack: a stage at a time, each running out over Rift crack ms. Sealing, it holds, then its last stage alone draws back quickly, thinning (the last of all
+  // snaps away and is gone); a crack another Rift's tearing fizzles flickers, thins and goes in a moment
+  for(const f of riftForms){let n,th=1;
+    if(f.fz){const u=Math.min(1,(now-f.fz)/450);n=f.n*(1-u*u);th=(1-u)*(0.5+0.5*Math.abs(Math.sin(now/23+f.seed)));if(u>=1)continue;}
+    else if(f.seal){const e=(now-f.t)/S,u=Math.max(0,Math.min(1,(e-0.6)/0.4)),eu=u*u*(3-2*u);n=f.n-eu;th=f.n<=1?1-0.85*eu:1;}
+    else{const u=Math.min(1,(now-f.grow)/ms);n=f.n-1+(1-Math.pow(1-u,3));}
+    if(n>0.01)drawRiftCrack(c,riftCrackPath(f.x,f.y,f,n),now,th);}}
 
 SCENES.rift={dur:9000,setup(S){T.riftMass=2650;T.riftR=60;for(let i=0;i<6;i++){const a=i/6*6.2832,r=S.rem(S.W/2+Math.cos(a)*90,S.H/2+Math.sin(a)*70,'brown');r.mass=450;updateCached(r);r.vx=-Math.cos(a)*0.9;r.vy=-Math.sin(a)*0.7;}}}; // dim remnants drift together until their mass tears the surface
 Object.assign(RULE_EV,{rift:'rift'});Object.assign(RULE_SCENES,{rift:['rift']});

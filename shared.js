@@ -1118,12 +1118,12 @@ function skStrokes(sk,seed){ // the list as a hand's strokes (each a wobbling li
 function darkRingCfgs(k){return[ // the Dark Remnant's two glowing rings (k scales their widths, blurs and sway): the void's own look and a Rift's
   {width:T.bhRingWidth*k,blurWide:T.bhBlurWide*k,blurMid:T.bhBlurMid*k,alphaWide:T.bhAlphaWide,alphaMid:T.bhAlphaMid,beatMs:T.bhRingBeatMs,pulseAmt:T.bhRingPulseAmt,swayR:T.bhRingSwayR*k,swaySpeed:T.bhRingSwaySpeed},
   {width:T.bhRing2Width*k,blurWide:T.bhRing2BlurWide*k,blurMid:T.bhRing2BlurMid*k,alphaWide:T.bhRing2AlphaWide,alphaMid:T.bhRing2AlphaMid,beatMs:T.bhRing2BeatMs,pulseAmt:T.bhRing2PulseAmt,swayR:T.bhRing2SwayR*k,swaySpeed:T.bhRing2SwaySpeed}];}
-function drawRiftGlow(c,P,now,k,ph,line){ // P's outline as a line Dark Remnant: its two rings' banded glow (dark amber, bright amber, amber, as drawBHGlowRing's gradient) along the edge, swaying and beating, in its wide
+function drawRiftGlow(c,P,now,k,ph,line,am){ // am: how strong (a forming crack's glow: far less than an open Rift's) // P's outline as a line Dark Remnant: its two rings' banded glow (dark amber, bright amber, amber, as drawBHGlowRing's gradient) along the edge, swaying and beating, in its wide
   // and mid blur passes; then P filled pure black (the void; line: a crack, only the glow)
   if(T.bhRingBeatMs>0){const o=ph||0;c.save();c.globalCompositeOperation='lighter';c.lineJoin='round';
     darkRingCfgs(k).forEach((cf,ri)=>{const pu=heartbeatPulse((((now+o)%cf.beatMs)/cf.beatMs+ri*0.5)%1)*cf.pulseAmt,bA=1+pu*0.6,rw=Math.max(0.5,cf.width)*(1+pu),sa=now*0.001*cf.swaySpeed;
       c.save();c.translate(Math.cos(sa)*cf.swayR,Math.sin(sa)*cf.swayR*0.6);
-      for(const[bl,al]of[[cf.blurWide,cf.alphaWide],[cf.blurMid,cf.alphaMid]]){if(!(al>0))continue;c.filter=bl>0?`blur(${Math.max(0.5,bl).toFixed(1)}px)`:'none';c.globalAlpha=Math.min(1,al);
+      for(const[bl,al]of[[cf.blurWide,cf.alphaWide],[cf.blurMid,cf.alphaMid]]){if(!(al>0))continue;c.filter=bl>0?`blur(${Math.max(0.5,bl).toFixed(1)}px)`:'none';c.globalAlpha=Math.min(1,al)*(am==null?1:am);
         for(const[wm,col,a]of[[2,'200,100,20',0.35],[1.2,'255,120,20',0.35],[0.5,'255,160,40',0.6]]){c.strokeStyle=`rgba(${col},${Math.min(1,a*bA).toFixed(3)})`;c.lineWidth=rw*wm;c.stroke(P);}}
       c.restore();});
     c.restore();}
