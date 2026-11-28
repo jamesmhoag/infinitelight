@@ -38,33 +38,39 @@ function bottleModel(type){const[,col,part]=type.split(':');let g=_duckModels.ge
       cork:[[0.82,0],[0.82,0.105],[1.1,0.105],[1.13,0.09],[1.13,0]],note:[[-0.72,0],[-0.72,0.15],[0.3,0.15],[0.3,0]]}[part];
     g=latheGeo(P,part==='glass'?28:16);_duckModels.set('geo|bottle:'+part,g);}
   const c=part==='glass'?BOTTLE_COL[col]||BOTTLE_COL.clear:part==='cork'?[176,126,78]:[238,228,198],M={g,nomk:1,mat:part==='glass'?(col==='gold'?7:col==='white'?0:3):1,c1:c.map(v=>v/255),c2:c.map(v=>v/255)};_duckModels.set(type,M);return M;}
-// ── Ice on the Surface Map's lake ('ice:<L>:<s>:<part>'): a hexagonal floe in terraced tiers (flat tops, each a little narrower), its corners on the map's own hex corners; L 0 (a floating cube) … 4 (as wide as its hex:
+// ── Ice on the Surface Map's lake ('ice:<L>:<s>:<part>:<v>'): a hexagonal floe in terraced tiers (flat tops, each a little narrower), its corners on the map's own hex corners; L 0 (a floating cube) … 4 (as wide as its hex:
 // floes side by side make a glacier, each still a hex). part 'ice': clear blue ice (material 15: bumpy, the scene bent through it and reflected off it); 'snow': snow lying on its terraces, more of each ledge and the top the more s (0–3) ──
-const iceDim=L=>{const T=2+(L>=2)+(L>=4),r0=0.42+0.135*L,Ht=0.34+0.11*L,h1=Ht*0.45;return{T,r0,Ht,D:Ht*0.55,y:i=>i===0?h1:h1+(Ht-h1)*i/(T-1),r:i=>r0*(1-0.16*i)};};
-function iceModel(type){const[,L0,s0,part]=type.split(':'),L=+L0||0,sn=+s0||0;if(part==='snow'&&!sn)return null;const d=iceDim(L),pos=[],nrm=[],uv=[],idx=[];let R=0;
-  const hs=(i,j)=>{const v=Math.sin(i*127.1+j*311.7+L*74.7)*43758.5453;return v-Math.floor(v);},cr=(r,j,i)=>{const a=(60*j-30)*Math.PI/180,k=L>=4&&i===0?1:1-0.06*hs(i,j);return[Math.cos(a)*r*k,Math.sin(a)*r*k];}, // a tier's corners (a glacier's base: exact, so floes meet)
-    V=(x,y,z,n)=>{pos.push(x,y,z);nrm.push(...n);uv.push(x*64,z*64,y*64,-1);R=Math.max(R,Math.hypot(x,y,z));return pos.length/3-1;},tri=(a,b,c)=>{const P=k=>[pos[k*3],pos[k*3+1],pos[k*3+2]],A=P(a),u=P(b).map((v,i)=>v-A[i]),w=P(c).map((v,i)=>v-A[i]),cz=(u[1]*w[2]-u[2]*w[1])*nrm[a*3]+(u[2]*w[0]-u[0]*w[2])*nrm[a*3+1]+(u[0]*w[1]-u[1]*w[0])*nrm[a*3+2];cz>=0?idx.push(a,b,c):idx.push(a,c,b);}, // (wound to face its normal)
-    quad=(P,n)=>{const b=P.map(q=>V(q[0],q[1],q[2],n));tri(b[0],b[1],b[2]);tri(b[0],b[2],b[3]);},nrmOf=(a,b,c)=>{const u=[b[0]-a[0],b[1]-a[1],b[2]-a[2]],v=[c[0]-a[0],c[1]-a[1],c[2]-a[2]],n=[u[1]*v[2]-u[2]*v[1],u[2]*v[0]-u[0]*v[2],u[0]*v[1]-u[1]*v[0]],l=Math.hypot(...n)||1;return n.map(x=>x/l);},
-    fan=(C,y,n)=>{const c=V(0,y,0,n);const b=C.map(q=>V(q[0],y,q[1],n));for(let j=0;j<6;j++)n[1]>0?tri(c,b[(j+1)%6],b[j]):tri(c,b[j],b[(j+1)%6]);};
-  if(part!=='snow'){for(let i=0;i<d.T;i++){const y0=i?d.y(i-1):-d.D,y1=d.y(i),C=[0,1,2,3,4,5].map(j=>cr(d.r(i),j,i));
-      for(let j=0;j<6;j++){const a=C[j],b=C[(j+1)%6],P=[[a[0],y0,a[1]],[b[0],y0,b[1]],[b[0],y1,b[1]],[a[0],y1,a[1]]],n=nrmOf(P[0],P[2],P[1]);quad(n[0]*(a[0]+b[0])+n[2]*(a[1]+b[1])<0?P.reverse():P,n[0]*(a[0]+b[0])+n[2]*(a[1]+b[1])<0?n.map(x=>-x):n);} // its walls
-      if(i===0)fan(C,y0,[0,-1,0]);
-      if(i<d.T-1){const I=[0,1,2,3,4,5].map(j=>cr(d.r(i+1),j,i+1));for(let j=0;j<6;j++){const a=C[j],b=C[(j+1)%6],e=I[(j+1)%6],f=I[j];quad([[a[0],y1,a[1]],[f[0],y1,f[1]],[e[0],y1,e[1]],[b[0],y1,b[1]]],[0,1,0]);}} // the terrace's ledge
-      else fan(C,y1,[0,1,0]);}} // its flat top
-  else{const T0=0.016+0.024*sn,NA=48,NR=7,NO=6; // snow: frosting laid over each terrace and the top, out to the very edge and rolling over it (a soft round lip, longer drips here and there), heaped against the wall behind it; smooth, its lumps gentle
-    const hexR=(r,a)=>{const e=((a+Math.PI/6)%(Math.PI/3)+Math.PI/3)%(Math.PI/3)-Math.PI/6;return r*Math.cos(Math.PI/6)/Math.cos(e);}, // the hex's edge at angle a (corners at −30° + 60°k, as the tiers')
-      lump=(x,z,i)=>0.8+0.22*Math.sin(x*6.3+i*2.1+sn)*Math.sin(z*5.7-i)+0.12*Math.sin((x+z)*13.1+i*5.3)+0.08*Math.sin((x-z)*21.7+sn*3); // (by where it lies: smooth, no seam round the middle)
-    for(let i=0;i<d.T;i++){const last=i===d.T-1,y=d.y(i),ro=d.r(i)*0.995,ri=last?0:d.r(i+1),b0=pos.length/3,rows=NR+NO+1;
-      for(let k=0;k<NA;k++){const a=k/NA*6.2832,ca=Math.cos(a),sa=Math.sin(a),Ro=hexR(ro,a),Ri=last?0:hexR(ri,a),drip=0.55+0.9*Math.max(0,Math.sin(a*7+i*3.3+sn))**6; // (longer drips here and there)
-        for(let r=0;r<=NR+NO;r++){let R,Y;if(r<=NR){const u=r/NR,R0=Ri+(Ro-Ri)*u,th=T0*lump(ca*R0,sa*R0,i)*(last?1:1+1.4*Math.pow(1-u,3))*(0.35+0.65*Math.min(1,u*4+(last?1:0.25)));R=Ri+(Ro-Ri)*u;Y=y+th;} // across the terrace: thicker heaped against its wall
-          else{const v=(r-NR)/NO,th=T0*lump(ca*Ro,sa*Ro,i),an=v*Math.PI*0.62*drip;R=Ro+th*0.55*Math.sin(an)*(1-0.25*v);Y=y+th*Math.cos(an)-th*v*v*0.9*drip;} // over the edge: the lip rolls round and down the wall
-          V(ca*R,Y,sa*R,[0,1,0]);}}
+const iceDim=L=>{const r0=0.42+0.135*L;return{r0,T:3+L};}; // a floe's size (its base's corner radius, in hexes) and how many tiers it has
+function iceModel(type){const[,L0,s0,part,v0]=type.split(':'),L=+L0||0,sn=+s0||0,vr=+v0||0;if(part==='snow'&&!sn)return null;const pos=[],nrm=[],uv=[],idx=[];let RR=0; // vr: which of a few floes of that size (each hex has its own)
+  const H=(a,b)=>{const x=Math.sin(a*127.1+b*311.7+vr*74.7+L*19.3)*43758.5453;return x-Math.floor(x);},TAU=6.2832,
+    {r0,T}=iceDim(L),Ht=0.4+0.13*L,D=Ht*0.5,w=[],ys=[],rs=[],ox=[],oz=[];
+  for(let i=0;i<T;i++)w.push(i===0?2.0:0.45+H(i,1)*0.9);{let a=0;const W=w.reduce((x,y)=>x+y);for(let i=0;i<T;i++){a+=w[i];ys.push(Ht*a/W);}} // tiers of uneven height: a tall body, then smaller terraces
+  for(let i=0;i<T;i++){rs.push(i===0?r0:rs[i-1]*(0.72+0.18*H(i,2)));ox.push(i?ox[i-1]+(H(i,3)-0.5)*0.16*rs[i]:0);oz.push(i?oz[i-1]+(H(i,4)-0.5)*0.16*rs[i]:0);} // each inset by its own amount and set a little off centre
+  const NRg=3+((vr+L)%3),rg=[];for(let k=0;k<NRg;k++)rg.push([H(k,5)*TAU,0.07+0.1*H(k,6),0.05+0.09*H(k,7),Math.floor(H(k,8)*T)]); // ridges coming off it: [angle, width, how far out, the tier they start on]
+  const wrap=a=>Math.atan2(Math.sin(a),Math.cos(a)),ridge=(i,a)=>{let v=0;for(const[ak,wk,ak2,t0]of rg)if(i>=t0){const d=Math.abs(wrap(a-ak))/wk;if(d<1)v+=ak2*(1-d*d)*(1-d*d);}return v;},
+    hexR=(r,a)=>{const e=((a+Math.PI/6)%(Math.PI/3)+Math.PI/3)%(Math.PI/3)-Math.PI/6;return r*Math.cos(Math.PI/6)/Math.cos(e);},
+    exact=i=>i===0&&L>=4, // (a glacier's base: exactly its hex, so floes meet)
+    rb=(i,a,y)=>exact(i)?hexR(rs[0],a):hexR(rs[i],a)*(1+ridge(i,a)+0.03*Math.sin(a*9+i*2.3+vr)+0.018*Math.sin(a*23+i*1.7)+(y==null?0:0.025*Math.sin(y*31+a*4+i))), // its edge at angle a (and down its wall: grooved)
+    topY=(i,x,z,u)=>ys[i]+(0.016+0.007*L)*(Math.sin(x*8.3+i*3+vr)*Math.sin(z*7.1-i+vr*2)+0.6*Math.sin((x+z)*16.7+i)+0.2*Math.sin((x-z)*29+vr))+0.05*ridge(i,Math.atan2(z-oz[i],x-ox[i]))*Math.min(1,u*1.4)-0.02*u*u, // its top: never flat (swells, a ridge's spine running up it, a slight fall to the edge)
+    V=(x,y,z)=>{pos.push(x,y,z);nrm.push(0,1,0);uv.push(x*64,z*64,y*64,-1);RR=Math.max(RR,Math.hypot(x,y,z));return pos.length/3-1;},
+    NA=60,grid=(rows,f)=>{const b0=pos.length/3;for(let k=0;k<NA;k++){const a=k/NA*TAU;for(let r=0;r<rows;r++){const[x,y,z]=f(a,r);V(x,y,z);}}
       for(let k=0;k<NA;k++)for(let r=0;r<rows-1;r++){const A=b0+k*rows+r,B=b0+((k+1)%NA)*rows+r;idx.push(A,B,A+1,A+1,B,B+1);}
-      for(let k=0;k<NA;k++)for(let r=0;r<rows;r++){const P=q=>[pos[q*3],pos[q*3+1],pos[q*3+2]],me=b0+k*rows+r,ka=b0+((k+NA-1)%NA)*rows+r,kb=b0+((k+1)%NA)*rows+r,ra=b0+k*rows+Math.max(0,r-1),rb=b0+k*rows+Math.min(rows-1,r+1); // smooth normals from its neighbours
-        const t1=P(kb).map((v,j)=>v-P(ka)[j]),t2=P(rb).map((v,j)=>v-P(ra)[j]);let n=[t1[1]*t2[2]-t1[2]*t2[1],t1[2]*t2[0]-t1[0]*t2[2],t1[0]*t2[1]-t1[1]*t2[0]];if(r===0&&last)n=[0,1,0];const l=Math.hypot(...n)||1;n=n.map(v=>v/l);if(n[1]<-0.2&&r<NR)n=n.map(v=>-v);nrm[me*3]=n[0];nrm[me*3+1]=n[1];nrm[me*3+2]=n[2];}
-    }
-    for(let q=0;q<idx.length;q+=3){const P=k=>[pos[k*3],pos[k*3+1],pos[k*3+2]],A=P(idx[q]),u=P(idx[q+1]).map((v,j)=>v-A[j]),w=P(idx[q+2]).map((v,j)=>v-A[j]),c=[u[1]*w[2]-u[2]*w[1],u[2]*w[0]-u[0]*w[2],u[0]*w[1]-u[1]*w[0]],k=idx[q];if(c[0]*nrm[k*3]+c[1]*nrm[k*3+1]+c[2]*nrm[k*3+2]<0){const t=idx[q+1];idx[q+1]=idx[q+2];idx[q+2]=t;}}} // (each face wound to its normal)
-  const M={g:{pos:new Float32Array(pos),nrm:new Float32Array(nrm),uv:new Float32Array(uv),idx:new Uint16Array(idx),R},nomk:1,mat:part==='snow'?16:15,c1:part==='snow'?[0.97,0.98,1]:[0.7,0.88,1],c2:part==='snow'?[0.97,0.98,1]:[0.7,0.88,1]};_duckModels.set(type,M);return M;}
+      const P=q=>[pos[q*3],pos[q*3+1],pos[q*3+2]];for(let k=0;k<NA;k++)for(let r=0;r<rows;r++){const me=b0+k*rows+r,ka=b0+((k+NA-1)%NA)*rows+r,kb=b0+((k+1)%NA)*rows+r,ra=b0+k*rows+Math.max(0,r-1),rb_=b0+k*rows+Math.min(rows-1,r+1); // smooth normals from its neighbours
+        const t1=P(kb).map((v,j)=>v-P(ka)[j]),t2=P(rb_).map((v,j)=>v-P(ra)[j]);let n=[t1[1]*t2[2]-t1[2]*t2[1],t1[2]*t2[0]-t1[0]*t2[2],t1[0]*t2[1]-t1[1]*t2[0]];const l=Math.hypot(...n);n=l>1e-9?n.map(v=>v/l):[0,1,0];nrm[me*3]=n[0];nrm[me*3+1]=n[1];nrm[me*3+2]=n[2];}};
+  const NR=7,at=(i,a,u)=>{const R=rb(i,a)*u;return[ox[i]+Math.cos(a)*R,oz[i]+Math.sin(a)*R];};
+  if(part!=='snow'){for(let i=0;i<T;i++){const yb=i?ys[i-1]-0.05:-D,NV=5; // each tier: its grooved wall, then its uneven top (subdivided from its middle out)
+      grid(NV,(a,r)=>{const u=r/(NV-1),yt=topY(i,...at(i,a,1),1),y=yb+(yt-yb)*u,R=rb(i,a,y)*(1-0.04*(1-u)*(i?1:0));return[ox[i]+Math.cos(a)*R,y,oz[i]+Math.sin(a)*R];});
+      grid(NR,(a,r)=>{const u=r/(NR-1),[x,z]=at(i,a,u);return[x,topY(i,x,z,u),z];});
+      if(i===0){const c=V(0,-D,0);for(let k=0;k<NA;k++){const a=k/NA*TAU,b=(k+1)/NA*TAU,p=V(Math.cos(a)*rb(0,a),-D,Math.sin(a)*rb(0,a)),q=V(Math.cos(b)*rb(0,b),-D,Math.sin(b)*rb(0,b));nrm[c*3+1]=nrm[p*3+1]=nrm[q*3+1]=-1;idx.push(c,p,q);}}}} // (its underside)
+  else{const T0=0.014+0.02*sn,cover=-0.48+0.22*sn,NO=5; // snow: lying on each top, smooth where it lies and thinning away to nothing where the ice shows through (by a field over the floe: more of it covered the more snow), heaped against a wall, rolling over an edge in a soft lip
+    const cv=(i,x,z)=>{const f=0.5*Math.sin(x*5.3+i*1.3+vr)*Math.sin(z*4.6-vr)+0.3*Math.sin((x-z)*9.1+sn+i)+0.2*Math.sin((x+z)*15.7+vr*3);const t=Math.max(0,Math.min(1,(f+cover+0.25)/0.5));return t*t*(3-2*t);};
+    for(let i=0;i<T;i++){const last=i===T-1;
+      grid(NR+NO,(a,r)=>{if(r<NR){const u=r/(NR-1),[x,z]=at(i,a,u),c=cv(i,x,z);let heap=1;if(!last){const R=Math.hypot(x-ox[i+1],z-oz[i+1]),Ri=rb(i+1,Math.atan2(z-oz[i+1],x-ox[i+1]));heap=1+1.3*Math.pow(Math.max(0,1-Math.max(0,R-Ri)/0.12),2);}
+          return[x,topY(i,x,z,u)+(c>0.02?T0*c*heap*(0.85+0.3*Math.sin(x*13+z*11+i)):-0.008),z];} // (no snow there: it sinks out of sight under the ice)
+        const v=(r-NR+1)/NO,[x,z]=at(i,a,1),c=cv(i,x,z),th=T0*c,y=topY(i,x,z,1),dr=0.55+0.9*Math.pow(Math.max(0,Math.sin(a*7+i*3.3+sn+vr)),6),an=v*Math.PI*0.62*dr,R=rb(i,a)+(c>0.02?th*0.6*Math.sin(an):-0.012); // over the edge: the lip rolls round and down (longer drips here and there), only where it lies
+        return[ox[i]+Math.cos(a)*R,c>0.02?y+th*Math.cos(an)-th*v*v*0.9*dr:y-0.01-0.03*v,oz[i]+Math.sin(a)*R];});}}
+  for(let q=0;q<idx.length;q+=3){const P=k=>[pos[k*3],pos[k*3+1],pos[k*3+2]],A=P(idx[q]),u=P(idx[q+1]).map((v,j)=>v-A[j]),w2=P(idx[q+2]).map((v,j)=>v-A[j]),c=[u[1]*w2[2]-u[2]*w2[1],u[2]*w2[0]-u[0]*w2[2],u[0]*w2[1]-u[1]*w2[0]],k=idx[q];if(c[0]*nrm[k*3]+c[1]*nrm[k*3+1]+c[2]*nrm[k*3+2]<0){const t=idx[q+1];idx[q+1]=idx[q+2];idx[q+2]=t;}} // (each face wound to its normal)
+  const M={g:{pos:new Float32Array(pos),nrm:new Float32Array(nrm),uv:new Float32Array(uv),idx:new Uint16Array(idx),R:RR},nomk:1,mat:part==='snow'?16:15,c1:part==='snow'?[0.97,0.98,1]:[0.7,0.88,1],c2:part==='snow'?[0.97,0.98,1]:[0.7,0.88,1]};_duckModels.set(type,M);return M;}
 function drawBottleScene(G,d,o){ // a bottle on the lake: its letter (a glass one, until opened), the cork, then the bottle (a duck's bottle is gold or opaque white: what is in it is a surprise)
   for(const part of d.empty?['glass']:d.duck?['cork','glass']:['note','cork','glass'])drawDuckScene(G,'bottle:'+d.col+':'+part,o);}
 // ── Painted models (shops, buoys): a mesh built of quads, boxes and beams, each face pointing at its colour in one texture (A px square; colours are 32 px swatches along its top) ──

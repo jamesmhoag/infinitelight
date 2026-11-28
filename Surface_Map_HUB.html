@@ -804,10 +804,10 @@ function duckRot(d,now,m){const f=duckFace(d,now),td=d.tod?now-d.tod:1e9,r=td<24
 const _iceL={}; // each iced hex's floe as it grows (eased: a floating cube filling out to its hex)
 function iceScene(now,mir){ // the ice on the lake, in 3D (iceModel in shared.js): a floe on each iced hex, wider and more terraced the more ice round it (side by side, a glacier), snow lying on its ledges as it binds (Snow) — bobbing, the scene bent through it and reflected off it
   if(!G3||!G3.duck||!cam)return;let env=false;for(const k in cells){const h=cells[k];if(!h.ice){delete _iceL[k];continue;}const[wx,wy]=a2w(h.q,h.r),fs=fogSee(wx,wy);if(fs<=0)continue;
-    const nb=neighbors(h.q,h.r).filter(a=>(cells[K(...a)]||{}).ice).length,Lt=Math.min(4,nb+(wxSnow()?1:0)),Le=_iceL[k]=_iceL[k]==null?Lt:_iceL[k]+(Lt-_iceL[k])*0.02,L=Math.round(Le),sn=Math.min(3,Math.floor(Le*0.75)+(wxSnow()?1:wxOn('cold')?-1:-2)),gr=iceDim(Le).r0/iceDim(L).r0;
+    const nb=neighbors(h.q,h.r).filter(a=>(cells[K(...a)]||{}).ice).length,Lt=Math.min(4,nb+(wxSnow()?1:0)),Le=_iceL[k]=_iceL[k]==null?Lt:_iceL[k]+(Lt-_iceL[k])*0.02,L=Math.round(Le),sn=Math.min(3,Math.floor(Le*0.75)+(wxSnow()?1:wxOn('cold')?-1:-2)),gr=iceDim(Le).r0/iceDim(L).r0,vr=((h.q*73856093)^(h.r*19349663))>>>0&3;
     if(!env){duckEnvUpdate(mc,now,G3.duck);env=true;}const[px,py]=w2s(wx,wy),[X,Y,kk]=proj(px,py),ph=(h.q*7.3+h.r*3.1),b=HEX*(0.06-0.01*L)*Math.sin(now/1100+ph)-HEX*0.02,tl=(0.09-0.016*L)*Math.sin(now/1500+ph*1.7),ct=Math.cos(tl),st=Math.sin(tl),m=mir?-1:1; // it bobs (a small floe more, a glacier hardly), rocking a little
     const rot=new Float32Array([1,0,0, 0,st,ct*m, 0,ct,-st*m]),size=HEX*0.97*gr,o={rot,size,pos:[px-MW/2,py-MH/2,b*m],view:cam.view,proj:cam.proj,viewRot:cam.viewRot,env:{x:X,y:Y,lights:mir?[]:curLights(X,Y)},px:size*kk,clip:mir?-1:1,alpha:fs*(mir?(T.mapDuckRefl!=null?T.mapDuckRefl:0.4):1),mirror:!!mir};
-    drawDuckScene(G3.duck,'ice:'+L+':0:ice',o);if(sn>0)drawDuckScene(G3.duck,'ice:'+L+':'+sn+':snow',o);}}
+    drawDuckScene(G3.duck,'ice:'+L+':0:ice:'+vr,o);if(sn>0)drawDuckScene(G3.duck,'ice:'+L+':'+sn+':snow:'+vr,o);}}
 const isSign=d=>!!(d.good&&d.good.kind==='sign');
 function signFlat(d,now,m){const f=duckFace(d,now),t=0.05*Math.sin(now/1300+d.ph),ct=Math.cos(t),st=Math.sin(t); // a shop's sign adrift: lying flat on the water, its face (its brand and its lights) up to the sky, rocking a little on the swell; m −1: its reflection
   return new Float32Array([f[0],f[1],0, f[1]*ct,-f[0]*ct,st*m, -f[1]*st,f[0]*st,ct*m]);}
