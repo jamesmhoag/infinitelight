@@ -2117,14 +2117,15 @@ function runT(k){ // a tuner as today's fortune, daily wonder, Luck Charms and t
   if(k==='duckExoticChance')return v*(lucky?2:1)+0.2*L('e');if(k==='duckRareChance')return v*(lucky?2:1)+0.2*L('r');if(k==='duckMidChance')return v*(lucky?2:1)+0.1*L('r');if(k==='duckLuckStep')return lucky?0.04:v;
   if(k==='orbitsPerDial'||k==='weaveMinPoints')return v+(runBad(r,'laps')?1:0);if(k==='flockSecondsPerLeash'||k==='weaveSeconds')return v+(runBad(r,'slow')?1:0);
   if(k==='riftMass')return v>0&&runBad(r,'rift')?Math.max(1000,v-10000):v;return v;}
-function invFull(kind){return !BUILD&&inventory[kind]>=invMaxFor(kind);} // a purse with no room left: nothing more of that kind is collected, earned or bought. Never in Build mode, where every item is endless: collecting and earning still happen there, so nothing on a surface is out of reach
-// The treasure chest (Chest on): the remnants you hold (Bright, Dim, Neutron, Magnetic, Pulsing, each at the value it was collected at) share one chest of Chest
-// start (999). BRiGHT IDEAS sells each kind its own compartment (999: out of the shared chest), then bigger ones (exotics 9,999; Bright and Dim 99,999, then
-// 9,999,999): a compartment is a purse cap bought (fx.cap, shopCap), as every other
+function invFull(kind){return !BUILD&&inventory[kind]>=invMaxFor(kind);} // a purse with no room left: nothing more of that kind is netted, earned or bought (a catch already in the net that crosses it is still collected, its excess skipped). Never in Build mode, where every item is endless: collecting and earning still happen there, so nothing on a surface is out of reach
+function invFullMsg(kind){return T.chestOn&&!BUILD&&CHEST_KINDS.includes(kind)?txt(shopCap(kind,k=>discSeen.has(k))?'surf.compartment_full':'surf.chest_full',INV_LABEL[kind]):txt('surf.is_full',INV_LABEL[kind]);} // what is full: its own compartment, the shared chest, or (Chest off) its purse
+// The treasure chest (Chest on): the remnants you hold (Bright, Neutron, Magnetic, Pulsing, each at the value it was collected at) share one chest of Chest
+// start (999). BRiGHT IDEAS sells each kind its own compartment (999: out of the shared chest), then bigger ones (exotics 9,999; Bright 99,999, then
+// 9,999,999): a compartment is a purse cap bought (fx.cap, shopCap), as every other. Dim is not in the chest: it fills the Ink Well, which has no cap
 function gearOn(id){return !!window.__SCENE||discSeen.has('up:'+id);} // an upgrade bought and kept ('up:<id>'; a journal scene: shown)
-function chestCap(kind){const has=k=>discSeen.has(k),own=shopCap(kind,has);if(own)return own;let o=0;for(const k of CHEST_KINDS)if(k!==kind&&!shopCap(k,has))o+=inventory[k]||0;return Math.max(0,(T.chestStart||999)-o);} // its own compartment, or what is left of the shared chest (plus what this kind already holds)
+function chestCap(kind){const has=k=>discSeen.has(k),own=shopCap(kind,has);if(own)return own;let o=0;for(const k of CHEST_KINDS)if(k!==kind&&k!=='dim'&&!shopCap(k,has))o+=inventory[k]||0;return Math.max(0,(T.chestStart||999)-o);} // its own compartment, or what is left of the shared chest (plus what this kind already holds)
 function shineMax(){return Math.max(1,T.maxActivePoints|0,window.__SCENE?0:shopCap('shine',k=>discSeen.has(k)));} // how many things the nib can have shining at once (Nib shine: the tuner, or more bought at INFINITE LINE)
-function invMaxFor(kind){if(kind==='key'&&runState.keysGone)return 0;if(T.chestOn&&!BUILD&&CHEST_KINDS.includes(kind))return chestCap(kind);return Math.max(T['invMax'+kind[0].toUpperCase()+kind.slice(1)],shopCap(kind,k=>discSeen.has(k)));} // the tuner, or a bigger cap bought in a shop
+function invMaxFor(kind){if(kind==='key'&&runState.keysGone)return 0;if(kind==='dim')return Infinity;if(T.chestOn&&!BUILD&&CHEST_KINDS.includes(kind))return chestCap(kind);return Math.max(T['invMax'+kind[0].toUpperCase()+kind.slice(1)],shopCap(kind,k=>discSeen.has(k)));} // the tuner, or a bigger cap bought in a shop
 // Adds (or, with a negative amount, spends) units of one inventory kind,
 // clamped between 0 and that kind's current tunable max.
 function addInventory(kind,amount,bought,at){ // (at: where it was earned, for its event's frame) // bought: from a shop (no fortune or bonus applies)
@@ -2136,19 +2137,18 @@ function addInventory(kind,amount,bought,at){ // (at: where it was earned, for i
   const was=inventory[kind];inventory[kind]=Math.max(0,Math.min(Math.max(max,was),inventory[kind]+amount)); /* (more than the cap already held, as from before a smaller chest: kept, never cut down; it just cannot grow) */const dn=inventory[kind]-was;if(dn>0&&!bought)stat('earn:'+kind,dn);else if(dn<0)stat('use:'+kind,-dn); // (lifetime: earned, not bought; used)
   saveInventory();
   updateInventoryUI();
+  return dn; // what was actually added (a full purse: less than asked, or 0)
 }
 // Bright/Dim remnants left over at Surface Clear are "collected artifacts."
 function remnantValue(p,kind){const e=!!p.enriched,pr=gearOn('proc_'+(kind==='dim'?'bright':kind)),rf=e&&gearOn('proc_relic')?(T.relicRefine||10):1,k=e?100:10; // what collecting this remnant is worth. BRiGHT IDEAS' processing: Bright / Dim 10 × their energy (1 each without it); an exotic one counts what it was
   // infected with (each stacked status) as well; a relic is worth 10 × as much unprocessed, as before processed, and Relic refinery × more again
   if(kind==='bright'||kind==='dim')return pr||e?Math.max(1,Math.ceil((p.energy||0)*(pr?k:10)*rf)):1;if(runBad(runState,'exo1'))return 1; // (a dim fortune: exotic remnants collect as 1)
   return (e?(pr?100:10)*rf:1)+(pr?((p._stB&&p._stB.length)||0)*Math.ceil(T.statusEnergy*k):0);}
-let surfaceTally={},surfaceLost={};
+let surfaceTally={},surfaceLost={},surfaceFull={}; // (surfaceFull: the kinds whose purse filled this surface, part of a catch skipped)
 function tallyLost(p){const k=collectKindOf(p);if(k)surfaceLost[k]=(surfaceLost[k]||0)+remnantValue(p,k);}
 function boomBust(n){return runBonus(runState,'boom')?(Math.random()<0.5?n*5:0):n;} // a Boom or Bust day: ×5 or nothing
-function collectRemnantsToInventory(whiteCount,brownCount,activeCounts){whiteCount=boomBust(whiteCount);brownCount=boomBust(brownCount);if(activeCounts)for(const k in activeCounts)activeCounts[k]=boomBust(activeCounts[k]);const tt=(k,n)=>{if(n>0)surfaceTally[k]=(surfaceTally[k]||0)+n;};tt('bright',whiteCount);tt('dim',brownCount);if(activeCounts)for(const k in activeCounts)tt(k,activeCounts[k]);
-  if(activeCounts)for(const k in activeCounts)if(activeCounts[k]>0)addInventory(k,activeCounts[k]);
-  if(whiteCount>0)addInventory('bright',whiteCount);
-  if(brownCount>0)addInventory('dim',brownCount);
+function collectRemnantsToInventory(whiteCount,brownCount,activeCounts){const c=Object.assign({},activeCounts,{bright:whiteCount,dim:brownCount}); // everything left at a Surface Clear: filled up to each cap, the rest skipped (as a net's catch)
+  for(const k in c){const n=boomBust(c[k]);if(!(n>0))continue;const got=addInventory(k,n)||0;if(got>0)surfaceTally[k]=(surfaceTally[k]||0)+got;if(got<n)surfaceFull[k]=1;}
 }
 // ── Orbit (String) and Chase (Spindle) detection between white points ─────────
 // Tracked per ORDERED pair (A orbits/chases B) so A-around-B and B-around-A
@@ -4537,7 +4537,7 @@ function testOff(){let s=null;try{s=JSON.parse(localStorage.getItem(TEST_SNAP)||
   try{localStorage.removeItem(TEST_SNAP);}catch(e){}applyDisc();updateInventoryUI();testSync();if(HUB)hubPost({type:'testRestored'});else location.reload();}
 function testMode(){if(HUB){hubPost({type:'testMode'});return;}if(TEST.get('mode'))testOff();else testOn();} // (on the map, the map runs it: its own save is snapshotted too)
 function testRun(a){a=a||{};if('fortune' in a){runState.fortune=a.fortune;fortuneStart();}if(a.sing){runState.sing=a.sing;for(const x of a.sing)if(x.g)fortuneStart({good:1,id:x.g});}saveInventory();updateInventoryUI();applyDisc();if(HUB)hubState();} // the map's test tool: today's fortune, and the singularities that hold (each good one taking hold as a card's does)
-function testFill(){for(const k in inventory)inventory[k]=Math.max(inventory[k]||0,invMaxFor(k));saveInventory();updateInventoryUI();if(HUB)hubState();flashSaveStatus(txt('test.filled'));}
+function testFill(){for(const k in inventory)if(isFinite(invMaxFor(k)))inventory[k]=Math.max(inventory[k]||0,invMaxFor(k)); /* (Dim has no cap: left as it is) */saveInventory();updateInventoryUI();if(HUB)hubState();flashSaveStatus(txt('test.filled'));}
 function testClear(kind){if(levelCleared)return;const now=performance.now();simulationStarted=true;
   if(kind==='bright'){const keep=[];_dormantInstant=true;for(let i=0;i<dormant.length;i++){const p=dormant[i];if(!p)continue;if(keep.length<12&&Math.random()<0.02)keep.push([p.x,p.y]);removeDormant(i,now);}_dormantInstant=false; /* every particle goes; a few bright remnants are left where some were, and the clear is the usual one */
     for(let i=active.length-1;i>=0;i--)if(!active[i].isRemnant){pressedIDs.delete(active[i].id);active.splice(i,1);}for(const q of keep)createRemnantAt(q[0],q[1],'white');return;}
@@ -4546,7 +4546,7 @@ window.discAll=discAll;window.testFill=testFill;window.testClear=testClear;windo
 for(const ev of ['mousedown','mouseup','click','dblclick','contextmenu','wheel'])document.addEventListener(ev,e=>{const el=e.target.closest&&e.target.closest('.disc-lock');if(el){e.stopPropagation();e.preventDefault();}},true); // an undiscovered element cannot be used
 function updateInventoryUI(){
   if(runState.bonus&&runState.bonus.id==='inf')inventory[runState.bonus.item]=invMaxFor(runState.bonus.item); // an Endless … day: never runs out
-  if(BUILD)for(const k of INV_KINDS)inventory[k]=Math.max(1,invMaxFor(k)); // Build mode: every item, endless
+  if(BUILD)for(const k of INV_KINDS)if(isFinite(invMaxFor(k)))inventory[k]=Math.max(1,invMaxFor(k)); // Build mode: every item, endless (Dim has no cap to fill)
   const el=document.getElementById('inventoryPanel');
   if(!el)return;
   const show=true; // the inventory is reachable whether paused or not
@@ -5317,22 +5317,22 @@ function unbond(p){for(let bi=activeBonds.length-1;bi>=0;bi--){const bd=activeBo
 function collectRemnant(c){
   if(!c||!c.p||c.p._collected||c.p._netAt||!c.kind)return false;ruleLearn('goal');ruleLearn('collect'); // one collect per collectable: a fast second click (the grace window's last target, a hold's first, a double click's sweep) finds it already taken
   c.inShape=!!bondOf(c.p);
-  if(!c.free){ const hn=performance.now(); if(heatBlocked(hn))return false; // an overheated cursor collects nothing
+  if(!c.free){ const hn=performance.now(); if(heatBlocked(hn)&&!c.netted)return false; // an overheated cursor collects nothing (but a catch already in the net always comes in)
     const pr=_collectFor?_collectFor.downAt:mouseDownAt;if(_collHeatPress===pr)heatAdd(1,hn);else _collHeatPress=pr; } // (a String shot collecting costs no heat) the first object of a press is free; each further one adds heat, like a swipe
-  if(!_collectFor&&invFull(c.kind)){flashSaveStatus(txt('surf.is_full',INV_LABEL[c.kind]));return false;}
+  if(!_collectFor&&!c.netted&&invFull(c.kind)){flashSaveStatus(invFullMsg(c.kind));return false;} // (netted: collected anyway, nothing added past the cap — collecting still takes it off the surface)
   c.p._collected=true;if(blackHole)c.p._bhGone=true;lastCollectDoneAt=performance.now();discObj(c.p);if(lastCollectTarget===c.p)lastCollectTarget=null;
   unbond(c.p);
   const idx=active.indexOf(c.p);if(idx>=0)active.splice(idx,1);
   pressedIDs.delete(c.p.id);if(lastActivatedId===c.p.id)lastActivatedId=-1;
   // Bright / Dim remnants are worth 10× their energy, rounded up (0.823 → 9, 0.0003 → 1); Neutron, Magnetic and Pulsing always count 1
   if(!_collectFor)stat('collect:'+c.kind); // (lifetime: remnants of each kind collected)
-  const per=remnantValue(c.p,c.kind),got=_collectFor?per:boomBust(Math.min(per,Math.max(1,invMaxFor(c.kind)-inventory[c.kind]))); // (a Boom or Bust day: ×5 or nothing)
-  if(_collectFor)mpGot(c.kind,got);else{addInventory(c.kind,got);surfaceTally[c.kind]=(surfaceTally[c.kind]||0)+got;if(MP.live)MP.score.host+=got;} // a second player's pickup is theirs
+  const want=_collectFor?remnantValue(c.p,c.kind):boomBust(remnantValue(c.p,c.kind)),got=_collectFor||BUILD?want:Math.min(want,Math.max(0,invMaxFor(c.kind)-inventory[c.kind])); // (a Boom or Bust day: ×5 or nothing) filled up to the cap, the rest skipped
+  if(_collectFor)mpGot(c.kind,got);else{if(got>0)addInventory(c.kind,got);surfaceTally[c.kind]=(surfaceTally[c.kind]||0)+got;if(got<want)surfaceFull[c.kind]=1;if(MP.live)MP.score.host+=got;} // a second player's pickup is theirs
   if(!_batchSnd){const cp=c.p.remKind?c.p:Object.assign({},c.p,{remKind:'brown'});_playRemnantActionSoundInner(cp,false,1);} // exactly the tuner's pickup sound for that remnant type
   if(NET.sum&&!_collectFor)NET.sum[c.kind]=(NET.sum[c.kind]||0)+got; // one catch of the net: summed, one burst and one +n per kind when it is all in (netTick)
   else{spawnCollectSparks(c.p); // the remnant's edge breaks into particles that gather inward and rise
-  earnFx.push({kind:'plus',x:c.p.x,y:c.p.y-14,text:(_collectFor?(_collectFor.name||'Friend')+' ':'')+INV_ICON[c.kind]+' +'+got,born:performance.now(),dur:1100});}if(_collectFor)return true;
-  {const nf=performance.now();if(collectFeed.kind===c.kind&&nf-collectFeed.t<1500){collectFeed.n++;collectFeed.got+=got;}else collectFeed={kind:c.kind,n:1,got,t:nf};collectFeed.t=nf;flashSaveStatus(txt('surf.collected_for',INV_ICON[c.kind],collectFeed.n,COLLECT_NAME[c.kind],(collectFeed.n===1?'':txt('surf.s')),collectFeed.got,INV_LABEL[c.kind]));}
+  earnFx.push({kind:'plus',x:c.p.x,y:c.p.y-14,text:(_collectFor?(_collectFor.name||'Friend')+' ':'')+INV_ICON[c.kind]+(!_collectFor&&invFull(c.kind)?' '+txt('surf.full'):' +'+got),born:performance.now(),dur:1100});}if(_collectFor)return true; // (a purse it filled says Full, not +n)
+  {const nf=performance.now();if(collectFeed.kind===c.kind&&nf-collectFeed.t<1500){collectFeed.n++;collectFeed.got+=got;}else collectFeed={kind:c.kind,n:1,got,t:nf};collectFeed.t=nf;flashSaveStatus(invFull(c.kind)?invFullMsg(c.kind):txt('surf.collected_for',INV_ICON[c.kind],collectFeed.n,COLLECT_NAME[c.kind],(collectFeed.n===1?'':txt('surf.s')),collectFeed.got,INV_LABEL[c.kind]));}
   return true;
 }
 // A short plain click on a remnant collects it (like an activation click). A HOLD that began on a remnant turns into hold-collect
@@ -5349,7 +5349,9 @@ function tryPickupRemnant(mx,my){
   { const nta=performance.now();
     if(lastCollectAll&&(BUILD||gearOn('hoop1'))&&nta-lastCollectAll.t<380&&Math.hypot(mx-lastCollectAll.x,my-lastCollectAll.y)<34){ // second quick click: sweep up the NEAREST remnants of the same type, anywhere on screen, up to the snake length in all
       const k=lastCollectAll.kind;lastCollectAll=null;const R=T.touchR*(gearOn('hoop2')?T.netDbl2Mult||6:T.netDblMult||3); // the net slashed in wide: every remnant of that kind within its hoop
-      const cs=[];for(const q of active){if(q.dying||q.captured||q._collected||collectKindOf(q)!==k||underGlass(q.x,q.y)||bondOf(q))continue;if(Math.hypot(_wrapD(q.x-mx,W),_wrapD(q.y-my,H))<=R)cs.push({p:q,kind:k});}
+      const cs=[];for(const q of active){if(q.dying||q.captured||q._collected||q._netAt||collectKindOf(q)!==k||underGlass(q.x,q.y)||bondOf(q))continue;const d=Math.hypot(_wrapD(q.x-mx,W),_wrapD(q.y-my,H));if(d<=R)cs.push({p:q,kind:k,d});}
+      cs.sort((a,b)=>a.d-b.d);let room=BUILD?Infinity:invMaxFor(k)-inventory[k],n=0;while(n<cs.length&&room>0)room-=remnantValue(cs[n++].p,k);cs.length=n; // only what the purse has room for, nearest first (the last may cross the cap: it is collected, its excess skipped); the rest are never touched
+      if(!n)flashSaveStatus(invFullMsg(k));
       netScoop(cs,mx,my,R,true)||netRipple(mx,my,R,0.8);
       lastCollectDoneAt=nta;
       return true; // the click is spent either way — it never falls through to an activation
@@ -5359,6 +5361,7 @@ function tryPickupRemnant(mx,my){
   // lands during that ease still collects the target it just had, rather than falling through to a plain activation.
   if(!c&&lastCollectTarget&&!lastCollectTarget.dying&&!lastCollectTarget.captured&&performance.now()-lastCollectSeenAt<T.collectGraceMs)c={p:lastCollectTarget,kind:collectKindOf(lastCollectTarget)};
   if(!c||!c.kind)return false;
+  if(invFull(c.kind)||heatBlocked(performance.now())){if(invFull(c.kind))flashSaveStatus(invFullMsg(c.kind));return false;} // a full purse (or an overheated nib) never dips the net: the click is a plain one, as the cursor showed
   if(!netScoop([c],mx,my,Math.max(T.cursorBaseR,8)*1.1,false))collectRemnant(c);lastCollectAll={kind:c.kind,t:performance.now(),x:mx,y:my}; // scooped: collected as the net comes up
   return true;
 }
@@ -5375,7 +5378,9 @@ const NET={dips:[],rip:[],spl:[],held:[],rope:null,sum:null,v:0,w:0,wi:0,s:0,fx:
   NET_PH={one:[0,0.3,0.4,0.72,0.78,1],dbl:[0.25,0.45,0.52,0.75,0.8,1.5]},netSm=u=>u<=0?0:u>=1?1:u*u*(3-2*u), // a scoop's beats (of its length): widest, drawn in by, flip from, flip to, collected at; its length × Net scoop ms
   netSnap=u=>u<=0?0:u>=1?1:1+2.70158*Math.pow(u-1,3)+1.70158*Math.pow(u-1,2); // the flip: slow to start, then over with a snap that overshoots and settles
 function netRipple(x,y,R,a){NET.rip.push({x,y,R,a:a||1,t0:performance.now()});}
-function netKeep(c){if(!c||!c.p||c.p._collected||c.p._netAt||!c.kind)return;if(!NET.held.length&&!NET.dips.some(d=>!d.done&&mouseDown))NET.kind=c.kind;else if(NET.kind&&c.kind!==NET.kind)return; /* a wipe nets only the kind it began on: the rest pass through */c.p._netAt=performance.now();c.j=Math.random()*6.2832;unbond(c.p);NET.held.push(c);if(NET.held.length>1)playScaleStep();} // gathered into the net while the press is held (a rising glissando links them)
+function netKeep(c){if(!c||!c.p||c.p._collected||c.p._netAt||!c.kind||heatBlocked(performance.now()))return;if(!NET.kind)NET.kind=c.kind;else if(c.kind!==NET.kind)return; /* a wipe nets only the kind it began on: the rest pass through */
+  if(!BUILD&&NET.held.reduce((a,h)=>a+(h.kind===c.kind?remnantValue(h.p,h.kind):0),0)>=invMaxFor(c.kind)-inventory[c.kind])return; // the net holds only what the purse has room for (the one that crosses the cap is taken, its excess skipped): the rest pass through, never gathered and dropped
+  c.p._netAt=performance.now();c.j=Math.random()*6.2832;unbond(c.p);NET.held.push(c);if(NET.held.length>1)playScaleStep();} // gathered into the net while the press is held (a rising glissando links them)
 function netScoop(cs,x,y,R,dbl){const now=performance.now(),list=cs.filter(c=>c&&c.p&&!c.p._collected&&!c.p._netAt);if(!list.length)return false;let R1=NET.R;
   for(const c of list){c.p._netAt=now;c.ox=_wrapD(c.p.x-x,W);c.oy=_wrapD(c.p.y-y,H);if(dbl)R1=Math.max(R1,Math.min(R,Math.hypot(c.ox,c.oy)+placedRadius(c.p)+4));} // a double dab's hoop swells just far enough to take in every one
   NET.dips.push({x,y,R0:NET.R,R1,dbl,cs:list,t0:now,bx:-NET.fx,by:-NET.fy});NET.v=0;netRipple(x,y,NET.R,1);splashRing(NET.spl,x,y,NET.R*(T.netSplashR||2.2),T.netSplashN||12);return true;} // (bx, by: back along the path it came, where the net trails)
@@ -5383,9 +5388,9 @@ function netTick(now){const D=Math.max(60,T.netScoopMs||750);
   for(const d of NET.dips){const P=NET_PH[d.dbl?'dbl':'one'],u=(now-d.t0)/(D*P[5]),k=netSm((u-P[0])/(P[1]-P[0]));
     if(!d.done)for(const c of d.cs)if(!c.p._collected&&!c.p.dying){c.p.x=d.x+c.ox*(1-k);c.p.y=d.y+c.oy*(1-k);c.p.vx=c.p.vy=0;} // drawn in to the hoop's middle (a double dab's as it shrinks back)
     if(!d.done&&u>=P[4]){d.done=true;const live=d.cs.filter(c=>!c.p._collected&&!c.p.dying&&active.indexOf(c.p)>=0);
-      if(mouseDown){if(!NET.held.length&&live.length)NET.kind=live[0].kind;NET.held.push(...live.filter(c=>c.kind===NET.kind));} // pressed again before it came up: they stay in the net and follow it until the press ends
-      else{for(const c of d.cs)c.p._netAt=0;NET.sum={};_batchSnd=true;let n=0,rep1=null;try{for(const c of live){if(collectRemnant(c)===false)break;n++;if(!rep1)rep1=c.p;}}finally{_batchSnd=false;} // one catch: one burst, one sound, one sum
-        if(rep1){spawnCollectSparks(rep1);_playRemnantActionSoundInner(rep1.remKind?rep1:Object.assign({},rep1,{remKind:'brown'}),false,Math.min(1.6,1+(n-1)*0.05));let row=0;for(const kd in NET.sum)earnFx.push({kind:'plus',x:d.x,y:d.y-14-16*row++,text:INV_ICON[kd]+' +'+NET.sum[kd],born:now,dur:1300});}
+      if(mouseDown){if(!NET.kind&&live.length)NET.kind=live[0].kind;NET.held.push(...live);} // pressed again before it came up: they stay in the net and follow it until the press ends (every one of them: none is left behind with the net's mark on it)
+      else{for(const c of d.cs)c.p._netAt=0;NET.sum={};_batchSnd=true;let n=0,rep1=null;try{for(const c of live){c.netted=true;if(collectRemnant(c)===false)continue;n++;if(!rep1)rep1=c.p;}}finally{_batchSnd=false;} // one catch: one burst, one sound, one sum. Netted, every one comes in (a full purse or an overheated nib takes nothing past the cap, but never leaves it in the net)
+        if(rep1){spawnCollectSparks(rep1);_playRemnantActionSoundInner(rep1.remKind?rep1:Object.assign({},rep1,{remKind:'brown'}),false,Math.min(1.6,1+(n-1)*0.05));let row=0;for(const kd in NET.sum)earnFx.push({kind:'plus',x:d.x,y:d.y-14-16*row++,text:INV_ICON[kd]+(invFull(kd)?' '+txt('surf.full'):' +'+NET.sum[kd]),born:now,dur:1300});} // (a purse it filled: Full, not +n)
         NET.sum=null;lastCollectDoneAt=now;}
       netRipple(d.x,d.y,d.R0*0.8,1);splashRing(NET.spl,d.x,d.y,d.R0*(T.netSplashR||2.2),T.netSplashN||12);}} // one ripple and one splash going in, one coming out (a double dab's too)
   NET.dips=NET.dips.filter(d=>now-d.t0<D*NET_PH[d.dbl?'dbl':'one'][5]);NET.rip=NET.rip.filter(r=>now-r.t0<(T.netRippleMs||900));
@@ -5921,12 +5926,12 @@ function roundRectPath(ctx,x,y,w,h,r){
 //   - 'points': aggregate counts/mass/energy across the white and brown
 //               remnants left on screen, alongside time & clicks.
 function fmtDur(ms){const t=ms/1000;if(t<60)return t.toFixed(1)+'s';const m=Math.floor(t/60);if(m<60)return m+'m '+String(Math.floor(t%60)).padStart(2,'0')+'s';return Math.floor(m/60)+'h '+String(m%60).padStart(2,'0')+'m';}
-function clearLineW(c,l){if(typeof l==='string')return measureTextI(c,l);let w=c.measureText(l.lab+'  ').width;for(const e of l.it)w+=17+c.measureText('×'+e.n+'  ').width;return w;}
+function clearLineW(c,l){if(typeof l==='string')return measureTextI(c,l);let w=c.measureText(l.lab+'  ').width;for(const e of l.it)w+=17+c.measureText((e.n>0||/^\d/.test(e.n)?'×':'')+e.n+'  ').width;return w;}
 function drawClearLine(c,l,x,y){ // a label followed by each item's own inventory icon and count
   if(typeof l==='string'){fillTextI(c,l,x,y);return;}
   const al=c.textAlign;c.textAlign='left';let xx=x-clearLineW(c,l)/2;
   c.fillText(l.lab+'  ',xx,y);xx+=c.measureText(l.lab+'  ').width;
-  for(const e of l.it){const im=icoImg(e.k);if(im.complete&&im.naturalWidth)c.drawImage(im,xx,y-11,14,14);xx+=17;const t='×'+e.n+'  ';c.fillText(t,xx,y);xx+=c.measureText(t).width;}
+  for(const e of l.it){const im=icoImg(e.k);if(im.complete&&im.naturalWidth)c.drawImage(im,xx,y-11,14,14);xx+=17;const t=(e.n>0||/^\d/.test(e.n)?'×':'')+e.n+'  '; /* (a purse that filled: '×3 Full', or 'Full') */c.fillText(t,xx,y);xx+=c.measureText(t).width;}
   c.textAlign=al;
 }
 function drawClearOverlay(ctx,now){
@@ -5938,7 +5943,7 @@ function drawClearOverlay(ctx,now){
     lines.push(txt('surf.clear.dark'));
     lines.push(`collapsed  mass ${clearInfo.collapsedMass.toFixed(0)}   energy ${clearInfo.collapsedEnergy.toFixed(2)}`);
   }
-  { const tl=(lab,o)=>{const it=['dim','bright','neutron','magnetic','pulsing'].filter(k=>o[k]).map(k=>({k,n:o[k]}));if(it.length)lines.push({lab,it});};
+  { const tl=(lab,o)=>{const it=['dim','bright','neutron','magnetic','pulsing'].filter(k=>o[k]||(o===surfaceTally&&surfaceFull[k])).map(k=>({k,n:o===surfaceTally&&surfaceFull[k]?(o[k]?o[k]+' ':'')+txt('surf.full'):o[k]}));if(it.length)lines.push({lab,it});};
     tl('collected',surfaceTally);if(clearInfo.type==='black')tl('lost',surfaceLost); }
   ctx.save();
   const titleFont='bold 16px monospace',bodyFont='12px monospace',footFont='11px monospace';
@@ -6441,7 +6446,7 @@ function rebuild(seed,pic){if(!pic)_evSurfAt=performance.now(); // (a new surfac
   nebDirty=false;
   dormant=new Array(GW*GH).fill(null);voidLocked=new Uint8Array(GW*GH);settleFades.length=0;glideById.clear();interpList.length=0;interpByCell.clear();transitions.length=0;pausePaths.clear();orbitTrack={};leashTrack={};
   active=[];pressedIDs.clear();lastActivatedId=-1;pidCounter=0;maxWhites=0;fpsCount=0;fpsLast=performance.now();dispersions.length=0;flashes.length=0;blackHole=null;riftForms=[];buildDarks=[];
-  levelCleared=false;clearInfo=null;totalActivations=0;levelStartTime=performance.now();simulationStarted=false;surfaceTally={};surfaceLost={};goods.length=0;ducks.length=0;
+  levelCleared=false;clearInfo=null;totalActivations=0;levelStartTime=performance.now();simulationStarted=false;surfaceTally={};surfaceLost={};surfaceFull={};goods.length=0;ducks.length=0;
   {const dockEl=document.getElementById('dock');if(dockEl)dockEl.classList.remove('dr-hidden');}
   buildSeed=typeof seed==='number'?seed:(hubLevel?hubLevel.seed:Math.random()*100);lvOff=lvHex?mapFieldOff(lvHex[0],lvHex[1]):null;
   prepareImageSample();
@@ -6531,7 +6536,7 @@ function updateParticleBtn(){const b=document.getElementById('pvb');if(b)b.textC
 // decides whether the two action slots are shown.
 let itemCacheMode=false;
 function cacheAction(fill){ruleLearn('cache');
-  for(const k of INV_KINDS)inventory[k]=fill?invMaxFor(k):0;
+  for(const k of INV_KINDS)if(!fill||isFinite(invMaxFor(k)))inventory[k]=fill?invMaxFor(k):0; // (Dim has no cap: a fill leaves it)
   syncKeyShapes();saveInventory();updateInventoryUI();
   flashSaveStatus((fill?txt('surf.every_item_filled_to'):txt('surf.every_item_cleared')));
 }
@@ -6592,7 +6597,7 @@ function clearStage(){
   nebDirty=false;
   dormant=new Array(GW*GH).fill(null);voidLocked=new Uint8Array(GW*GH);dormantCount=0;settleFades.length=0;glideById.clear();interpList.length=0;interpByCell.clear();transitions.length=0;pausePaths.clear();orbitTrack={};leashTrack={};
   active=[];pressedIDs.clear();lastActivatedId=-1;pidCounter=0;maxWhites=0;fpsCount=0;fpsLast=performance.now();dispersions.length=0;flashes.length=0;blackHole=null;riftForms=[];buildDarks=[];
-  levelCleared=false;clearInfo=null;totalActivations=0;levelStartTime=performance.now();simulationStarted=false;surfaceTally={};surfaceLost={};goods.length=0;ducks.length=0;
+  levelCleared=false;clearInfo=null;totalActivations=0;levelStartTime=performance.now();simulationStarted=false;surfaceTally={};surfaceLost={};surfaceFull={};goods.length=0;ducks.length=0;
   {const dockEl=document.getElementById('dock');if(dockEl)dockEl.classList.remove('dr-hidden');}
   buildSeed=Math.random()*100;
   rebuildNebula(); // bakes the (now-empty) dormant array into a blank nebula image
@@ -11268,7 +11273,7 @@ function invHoverParts(kind,worst){
   if(kind==='cache-fill')return[txt('surf.fill_items'),txt('surf.fills_every_item_to')];
   if(kind==='cache-disable')return[txt('surf.disable_items'),txt('surf.toggle_then_click_items')];
   if(CREATE_KINDS.includes(kind))return[INV_ICON[kind]+' '+INV_LABEL[kind],INV_DESC[kind]+' · ∞ / ∞'];
-  const cm=worst?'99 / 99':inventory[kind]+' / '+invMaxFor(kind);
+  const cm=worst?'99 / 99':inventory[kind]+' / '+(isFinite(invMaxFor(kind))?invMaxFor(kind):'∞');
   return[INV_ICON[kind]+' '+INV_LABEL[kind],INV_DESC[kind]+' · '+cm];
 }
 function computeFeedWidth(){
@@ -11359,7 +11364,7 @@ function updateInfoAndStats(now,hoverObj){
     }
   } else if(!overUI&&!armedInvItem&&mouse.x>=0&&mouse.x<W&&mouse.y>=0&&mouse.y<H&&(()=>{const c=collectableAt(mouse.x,mouse.y);return c&&invFull(c.kind);})()){
     const c=collectableAt(mouse.x,mouse.y);
-    setFeed(txt('surf.is_full',INV_LABEL[c.kind]),txt('surf.can_t_collect_inventory'),'rgba(255,190,150,0.95)');
+    setFeed(invFullMsg(c.kind),txt('surf.can_t_collect_inventory'),'rgba(255,190,150,0.95)'); // (its own compartment, the shared chest, or its purse)
   } else if(infoSrc&&feedLock(infoSrc)){
     // (locked: the feed already says what it costs)
   } else if(infoSrc){

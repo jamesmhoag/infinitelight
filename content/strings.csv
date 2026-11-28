@@ -526,6 +526,9 @@ surf.a_burst_needs_neutrons,A burst needs {cost} Neutrons.,surface,cost = $0 —
 surf.moment_captured,⛩ Moment captured,surface,
 surf.item_cost,"· this takes {0} {1} (you have {2})",surface,"0 = how many; 1 = the item; 2 = held"
 surf.is_full,{item} is full,surface,item = $0 — the item
+surf.compartment_full,{item} compartment is full,surface,item = $0 — the remnant (its own chest compartment)
+surf.chest_full,Chest is full,surface,
+surf.full,Full,surface,
 surf.item_unbought,"{item} is not yours to use yet: {buy} ({shop})",surface,"item = $0 — DEPTH, BALANCE, …; buy = $1 — the upgrade; shop = $2"
 surf.s,s,surface,
 surf.collected_for,{icon} collected {count} {kind}{plural} for {got} {item},surface,"icon = $0 — the item's icon

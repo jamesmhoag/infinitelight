@@ -405,7 +405,6 @@ pulsingEffR,200,Pulsing R,0,200,5,Exotic Remnant,gameplay,,,,Pulsing Remnant eff
 pulsingArcWidth,0,Pulsing arc,0,3.2,0.1,Exotic Remnant,gameplay,,,,Angular width (radians) of the Pulsing Remnant's narrow arc,radians: total angular width of the Pulsing Remnant's narrow arc
 prismRemnantAddFrac,0.5,Prism add frac,0,2,0.05,Exotic Remnant,gameplay,,,,"Neutron/Pulsing only: how much of the target's own total mass the Prism's colour adds in, as a fraction (added to the existing composition, not a replacement — Magnetic and plain Bright targets always fully replace)",Neutron/Pulsing only: fraction of the target's own total mass that the Prism's colour adds into the existing composition
 invMaxBright,9999999,Max Bright,0,9999999,1,Inventory,gameplay,,,,Purse cap for collected Bright remnants,
-invMaxDim,9999999,Max Dim,0,9999999,1,Inventory,gameplay,,,,Purse cap for collected Dim remnants,
 invMaxDial,10,Max String,0,99,1,Inventory,gameplay,,,,Purse cap for collected Strings,
 invMaxLeash,10,Max Spindle,0,99,1,Inventory,gameplay,,,,Purse cap for collected Spindles,
 invMaxLens,10,Max Lens,0,99,1,Inventory,gameplay,,,,Purse cap for collected Lenses,

@@ -162,9 +162,6 @@ Totals: 201 items drawn, 48 on a live scene.
 | Bright compartment (`chest_bright`) | chest | drawing `chest` (bright/999) |
 | Bright compartment 99,999 (`chest_bright2`) | chest | drawing `chest` (bright/99999) |
 | Bright compartment 9,999,999 (`chest_bright3`) | chest | drawing `chest` (bright/9999999) |
-| Dim compartment (`chest_dim`) | chest | drawing `chest` (dim/999) |
-| Dim compartment 99,999 (`chest_dim2`) | chest | drawing `chest` (dim/99999) |
-| Dim compartment 9,999,999 (`chest_dim3`) | chest | drawing `chest` (dim/9999999) |
 | Magnetic compartment (`chest_magnetic`) | chest | drawing `chest` (magnetic/999) |
 | Magnetic compartment 9,999 (`chest_magnetic2`) | chest | drawing `chest` (magnetic/9999) |
 | Neutron compartment (`chest_neutron`) | chest | drawing `chest` (neutron/999) |
