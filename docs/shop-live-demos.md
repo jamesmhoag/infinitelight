@@ -2,6 +2,8 @@
 
 Each shelf card shows **the item itself, turning slowly** (`itemModel`: a collectable model by its form, `itemForm`; a duck item shows a duck), and **pointed at, its live demo** of what it does. Where the item has one, that demo is a **drawing** (`ITEM_DRAW`, chosen by `itemDraw`): white ink and glowing pigment on black, the way the Journal draws, looping on the card itself — e.g. the pen nib with the number of glowing pigments it now holds round it, the net's swoop or hoop taking what it reaches, a constellation or item shape drawn edge by edge, a prism/knot/lens set on the centre or the sectors. Otherwise the surface's live scene plays (`itemScene`).
 
+**Surface tools** (the nib's shine and gestures, the net, its hoops and gear, the sewing gear, the collectable items, the constellation and shape upgrades) no longer use a drawing: at rest their card shows their live scene's ending drawn as the Journal draws (`skStrokes`), and pointed at the scene plays (`itemScene`: `shine|act15,act5`, `net:hoop1|hoop1,swoop`, `netx:magnetic|strainer`, `orbit|needle`, `chase|spool`, `weave|loom`, `prism`, …). Rows below marked drawing `shine`, `heat`, `net`, `netx`, `constel`, `shape` or `give` now play their scene this way.
+
 Set by hand in `content/shop_items.csv`: `demo` (a scene name: plays that live scene instead of the drawing) and `model` (a form name for its turning model).
 
 Totals: 201 items drawn, 48 on a live scene.

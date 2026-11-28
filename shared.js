@@ -836,6 +836,49 @@ function riftPoly(P,pts,w,seed){ // a jagged filled polygon (three scars merged 
     for(let i=0;i<n;i++){const u=i/n,o=w*(riftJag(i+j*97,seed)-0.5)*0.7;out.push([a[0]+(b[0]-a[0])*u+nx*o,a[1]+(b[1]-a[1])*u+ny*o]);}});
   P.moveTo(...out[0]);for(const p of out)P.lineTo(...p);P.closePath();return P;}
 const DARK_RING_COLS=['255,150,40','255,120,20']; // the Dark Remnant's two glowing rings (a Rift's edges too; the journal's drawings wash in them)
+const RELIC_EDGE={brown:'178,140,235',white:'255,214,110',neutron:'255,150,95',pulsing:'130,225,255'}; // a relic's soft outline, by kind (a Magnetic one: its two colours)
+// ── A drawing, as the Journal draws a page's picture (and a shop's card its tool's demo): a scene's ending (evSketch's list) as a hand's strokes, washed in like watercolour; inkStrokes (content.js) draws them ──
+function skStrokes(sk,seed){ // the list as a hand's strokes (each a wobbling line of points; inkStrokes draws them): never twice the same (seed: its page)
+  let h=2166136261;for(const c of String(seed))h=Math.imul(h^c.charCodeAt(0),16777619);const rnd=()=>{h=Math.imul(h^h>>>15,2246822507);h=Math.imul(h^h>>>13,3266489909);return((h^=h>>>16)>>>0)/4294967296;},j=v=>(rnd()-0.5)*v;
+  const a=sk[0],S=[],put=(p,c,f,w)=>S.push({p,c,f,w}),line=(x0,y0,x1,y1,c,w)=>{const l=Math.hypot(x1-x0,y1-y0);put([[x0,y0],[(x0+x1)/2+j(l*0.06),(y0+y1)/2+j(l*0.06)],[x1,y1]],c,null,w);},
+    ring=(x,y,r,c,f,w,n0)=>{const n=n0||Math.max(8,Math.round(10+r*40)),a0=rnd()*6.28,p=[];for(let i=0;i<=n+1;i++){const t=a0+i/n*6.2832,q=r*(1+j(0.09));p.push([x+Math.cos(t)*q,y+Math.sin(t)*q]);}put(p,c,f,w);},
+    poly=(x,y,r,n,rot,c,f)=>{const p=[];for(let i=0;i<=n;i++){const t=rot+i/n*6.2832;p.push([x+Math.cos(t)*r*(1+j(0.08)),y+Math.sin(t)*r*(1+j(0.08))]);}p[n]=p[0];put(p,c,f,1.2);},
+    dash=(x,y,r,c)=>{const n=Math.max(6,Math.round(r*22));for(let i=0;i<n;i++){const t=i/n*6.2832+j(0.05),u=t+3.6/n,q=r*(1+j(0.03));put([[x+Math.cos(t)*q,y+Math.sin(t)*q],[x+Math.cos((t+u)/2)*q,y+Math.sin((t+u)/2)*q],[x+Math.cos(u)*q,y+Math.sin(u)*q]],c,null,0.7);}},
+    rays=(x,y,r0,r1,n,c)=>{for(let i=0;i<n;i++){const t=i/n*6.2832+j(0.2);line(x+Math.cos(t)*r0,y+Math.sin(t)*r0,x+Math.cos(t)*r1*(1+j(0.3)),y+Math.sin(t)*r1*(1+j(0.3)),c,0.8);}};
+  put([[-a,-1],[a+j(0.02),-1+j(0.02)],[a+j(0.02),1],[-a,1+j(0.02)],[-a,-1.02]],null,null,1.3); // its frame first
+  const last=()=>S[S.length-1],wsh=(o,x,y,r0,r1,c,al,rg)=>{o.wash=[x,y,r0,r1,c,al,rg?1:0];return o;}, // a watercolour wash, laid under the stroke just put (inkStrokes)
+    blot=(x,y,r0,r1,c,al,rg)=>{put([[x,y],[x+0.002,y]],null,null,0.1);return Object.assign(wsh(last(),x,y,r0,r1,c,al,rg),{nl:1});}, // a wash on its own (no line)
+    sq=(x,y,r,rot,c,f,fa)=>{poly(x,y,r,4,rot,c,f);if(fa!=null)last().fa=fa;return last();};
+  // Each thing as its own symbol, from what it is in the scene (its colours, size, turn and reach: the same values it is drawn with there), washed in like watercolour
+  for(const[k,x,y,r0,c,er,vx,vy,rm,em]of sk.slice(1)){const r=Math.max(0.035,r0||0),rk=rm&&rm[0],rot=rm?rm[1]:0;
+    if(em){const R2=Math.max(r*2.6,(er||0)*0.6,0.13);ring(x+j(0.01),y+j(0.01),R2,null,null,1.5);ring(x+j(0.01),y+j(0.01),R2*1.08,null,null,0.8);} // what it is about: circled, twice round, as a hand marks it
+    if(k==='particle'){blot(x+j(0.006),y+j(0.006),0.004,0.026+rnd()*0.012,c,0.45);continue;} // a particle: a faint, blurred dot of its colour (no outline)
+    if(k==='shape'){const q=er,p=[];for(let i=0;i<q.length;i+=2)p.push([q[i]+j(0.012),q[i+1]+j(0.012)]);if(c)p.push(p[0]);put(p,null,c?'120,110,90':null,1.5);continue;}
+    if(k==='bond'){const q=er,p=[];for(let i=0;i<q.length;i+=2)p.push([q[i]+j(0.01),q[i+1]+j(0.01)]);if(vy)p.push(p[0]);for(let i=1;i<p.length;i++)line(p[i-1][0],p[i-1][1],p[i][0],p[i][1],c,1.3);if(vx==='lens'||vx==='gate'){const cx=p.reduce((s,v)=>s+v[0],0)/p.length,cy=p.reduce((s,v)=>s+v[1],0)/p.length;ring(cx,cy,0.05,null,null,0.7,8);}continue;} // a joining: its lines (a Lens or Gate: an eye at its heart)
+    if(k==='field_dim'||k==='field_bright'){ring(x,y,r,c,null,1.1);ring(x,y,r*0.62,null,null,0.6);if(k==='field_dim')for(let i=-2;i<=2;i++){const u=i/2.6*r,w=Math.sqrt(Math.max(0,r*r*0.38-u*u));line(x+u-w*0.6,y-u-w*0.6,x+u+w*0.6,y-u+w*0.6,null,0.6);}else{poly(x,y,r*0.35,4,0,null,null);}continue;} // DEPTH: a ring hatched; BALANCE: a ring round a still square
+    if(k==='rift'){const ux=vx||1,uy=vy||0,n=9,p=[],q=[];for(let i=0;i<=n;i++){const t=(i/n-0.5)*2*r,g=0.008+0.026*Math.sin(Math.PI*i/n),o=(i%2?1:-1)*0.02*(1+rnd());p.push([x+ux*t-uy*(o+g),y+uy*t+ux*(o+g)]);q.unshift([x+ux*t-uy*(o-g),y+uy*t+ux*(o-g)]);}
+      put([...p,...q,p[0]],null,'0,0,0',1.2);Object.assign(last(),{fa:0.92,glow:[DARK_RING_COLS[0],0.05,0.95]});continue;} // a tear: a black gap, its edges glowing orange (the Dark Remnant's rings)
+    if(k==='target'){ring(x,y,r,null,null,0.9);ring(x,y,r*0.4,null,null,0.7,7);for(const[a0,b0]of[[1,0],[-1,0],[0,1],[0,-1]])line(x+a0*r*0.6,y+b0*r*0.6,x+a0*r*1.5,y+b0*r*1.5,null,0.8);continue;} // where a String is aimed
+    if(k==='chase'){const l=Math.hypot(vx,vy)||1,ux=vx/l,uy=vy/l,n=Math.max(2,Math.round(l/0.06));for(let i=0;i<n;i+=2){const t0=i/n*l,t1=Math.min(l,(i+1)/n*l);line(x+ux*t0,y+uy*t0,x+ux*t1,y+uy*t1,null,0.8);}const ex=x+ux*l*0.8,ey=y+uy*l*0.8;put([[ex-ux*0.05-uy*0.03,ey-uy*0.05+ux*0.03],[ex,ey],[ex-ux*0.05+uy*0.03,ey-uy*0.05-ux*0.03]],null,null,0.8);continue;} // one following another: a dotted line, an arrowhead
+    if(k==='orbit'){const p=[],a0=rnd()*6.28;for(let i=0;i<=30;i++){const t=a0+i/30*5.5;p.push([x+Math.cos(t)*r,y+Math.sin(t)*r]);}put(p,null,null,0.8);const t=a0+5.5,ex=x+Math.cos(t)*r,ey=y+Math.sin(t)*r,tx=-Math.sin(t),ty=Math.cos(t);put([[ex-tx*0.05-ty*0.03,ey-ty*0.05+tx*0.03],[ex,ey],[ex-tx*0.05+ty*0.03,ey-ty*0.05-tx*0.03]],null,null,0.8);continue;} // one circling another: a looping arrow
+    if(k==='still'){poly(x,y,r*2.2,4,0.7854,null,null);continue;} // held still: a box round it
+    if(k==='cursor'){ring(x,y,r,null,null,0.8);line(x-r*0.35,y,x+r*0.35,y,null,0.7);line(x,y-r*0.35,x,y+r*0.35,null,0.7);continue;}
+    if(k==='duck'){ring(x,y+r*0.25,r*0.8,null,'255,214,60',1.2);ring(x+r*0.55,y-r*0.55,r*0.45,null,'255,214,60',1.2);put([[x+r*0.95,y-r*0.6],[x+r*1.4,y-r*0.45],[x+r*0.95,y-r*0.35]],null,'255,128,10',1.1);line(x+r*0.6,y-r*0.65,x+r*0.62,y-r*0.63,null,1.6);continue;}
+    if(k==='hole'||k==='dark'){const R2=r*(k==='dark'?1.5:1);[[DARK_RING_COLS[0],T.bhAlphaWide,T.bhRingWidth],[DARK_RING_COLS[1],T.bhRing2AlphaMid,T.bhRing2Width]].forEach(([col,al,w],i)=>blot(x,y,R2*(1+i*0.3),R2*(1.3+i*0.35+(w||20)/120),col,Math.min(0.9,al||0.6),1));} // the Dark Remnant: bigger, dim, its two rings washed round it
+    if(k==='hole'||k==='dark'){ring(x,y,r*(k==='dark'?1.5:1),null,'20,16,30',1.6);last().fa=0.85;for(let i=-3;i<=3;i++){const u=i/3.5*r,w=Math.sqrt(Math.max(0,r*r-u*u));line(x+u-w*0.7,y-u-w*0.7,x+u+w*0.7,y-u+w*0.7,null,0.9);}if(k==='hole'){const p=[];for(let i=0;i<40;i++){const t=i*0.5,q=r*(1.15+i*0.028);p.push([x+Math.cos(t)*q,y+Math.sin(t)*q]);}put(p,null,null,0.7);}continue;}
+    const K=k==='relic'?{brown:'dim',white:'bright'}[rk]||rk||'neutron':k; // a relic: drawn as what it was, then ringed in its relic colour
+    if(er>r&&!rm)dash(x,y,er,c);
+    if(K==='pigment'||K==='eclipse'||K==='crystal'){ring(x,y,r,c,K==='eclipse'?'20,16,30':K==='crystal'?'255,255,255':null,1.2);wsh(last(),x,y,r*(er>r?0.9:0.6),r*(er>r?1.4:1.05),K==='eclipse'?'30,24,40':c,0.55);} // a pigment: a ring of its colour, washed in (bleeding out under its edge when it is active)
+    else if(K==='point'){ring(x,y,r*0.5,null,'255,255,255',0.6);last().fa=0.95;wsh(last(),x,y,r*0.5,r*1.9,c,0.7,1);} // a Point: white, in a blurred ring of its colour
+    else if(K==='dim'){ring(x,y,r,null,'24,18,14',1.1);last().fa=0.9;wsh(last(),x,y,r*0.8,r*2.1,DARK_RING_COLS[0],0.5);} // a Dim Remnant: dark, in an orange wash
+    else if(K==='bright'){['255,170,200','170,255,210','170,200,255'].forEach((hc,i)=>blot(x+Math.cos(i*2.1)*r*0.5,y+Math.sin(i*2.1)*r*0.5,0,r*1.9,hc,0.3));wsh(sq(x,y,r*1.25,rot-1.5708,null,'255,255,255',0.95),x,y,r,r*2.6,'255,255,255',0.9);} // a Bright Remnant: a white square in a chromatic white wash
+    else if(K==='neutron'){wsh(sq(x,y,r*1.3,rot+0.7854,null,'190,215,255',0.55),x,y,r,Math.max(r*2,er||0),'140,175,255',0.35);} // a Neutron: its square (as big as it is now), faint blue, washed out to its reach
+    else if(K==='magnetic'){const c2=rm&&rm[2]||c,ca=Math.cos(rot),sa=Math.sin(rot),h=r*1.3,P=(u,v)=>[x+u*ca-v*sa,y+u*sa+v*ca];put([P(-h,0),P(0,h),P(h,0),P(-h,0)],c,c,1.1);last().fa=0.6;put([P(-h,0),P(0,-h),P(h,0),P(-h,0)],c2,c2,1.1);last().fa=0.6;wsh(last(),x,y,r,r*2,c,0.25);} // a Magnetic: its square split, a half in each of its colours
+    else if(K==='pulsing'){poly(x,y,r*1.35,3,rot-1.5708,c,null);Object.assign(last(),{glow:[c,0.05,0.9],w:1.4});wsh(last(),x,y,r*0.5,Math.max(r*2.2,er||0),c,0.3);} // a Pulsing: a triangle, its glow washed out round it
+    else ring(x,y,r,null,c,1.1);
+    if(k==='relic'){const ec=RELIC_EDGE[rk]||RELIC_EDGE.neutron;if(rk==='magnetic'){ring(x,y,r*1.9,rm[2]||c,null,1);ring(x,y,r*2.05,c,null,1);}else{ring(x,y,r*1.9,ec,null,1.1);last().glow=[ec,0.04,0.8];}} // its ringed border
+    const v=Math.hypot(vx||0,vy||0);if(v>0.04){const m=Math.min(0.5,v),ux=vx/v,uy=vy/v,x0=x+ux*r*1.3,y0=y+uy*r*1.3,x1=x0+ux*m,y1=y0+uy*m;line(x0,y0,x1,y1,null,0.8);put([[x1-ux*0.05-uy*0.03,y1-uy*0.05+ux*0.03],[x1,y1],[x1-ux*0.05+uy*0.03,y1-uy*0.05-ux*0.03]],null,null,0.8);}} // (where it was going)
+  return Object.assign(S,{a});}
 function darkRingCfgs(k){return[ // the Dark Remnant's two glowing rings (k scales their widths, blurs and sway): the void's own look and a Rift's
   {width:T.bhRingWidth*k,blurWide:T.bhBlurWide*k,blurMid:T.bhBlurMid*k,alphaWide:T.bhAlphaWide,alphaMid:T.bhAlphaMid,beatMs:T.bhRingBeatMs,pulseAmt:T.bhRingPulseAmt,swayR:T.bhRingSwayR*k,swaySpeed:T.bhRingSwaySpeed},
   {width:T.bhRing2Width*k,blurWide:T.bhRing2BlurWide*k,blurMid:T.bhRing2BlurMid*k,alphaWide:T.bhRing2AlphaWide,alphaMid:T.bhRing2AlphaMid,beatMs:T.bhRing2BeatMs,pulseAmt:T.bhRing2PulseAmt,swayR:T.bhRing2SwayR*k,swaySpeed:T.bhRing2SwaySpeed}];}
@@ -883,10 +926,14 @@ function shopEditApply(){const E=shopEdits();for(const b of SHOP_BASE){const it=
 function shopEditSet(id,k,v){const E=shopEdits(),b=SHOP_BASE.find(x=>x.id===id);if(!b)return;const o=E[id]||{};if(v===b[k]||v==null)delete o[k];else o[k]=v;if(Object.keys(o).length)E[id]=o;else delete E[id];try{localStorage.setItem(SHOP_EDIT_KEY,JSON.stringify(E));}catch(e){}shopEditApply();}
 function shopEditReset(){try{localStorage.removeItem(SHOP_EDIT_KEY);}catch(e){}shopEditApply();}
 shopEditApply();
-// An item's live demo on its shelf card (its scene: a surface demo, or the map's own 'hub:…'; else its shop's)
-const ITEM_SCENE={leash:'unwind',dial:'stringhome',weave:'weave',prism:'prism',knot:'knot',lens:'lens',gate:'gate',key:'itemcache',shine:'cap',bright:'collect',dim:'collect',neutron:'neutron',magnetic:'magnetic',pulsing:'pulsing',
-  p_dim:'depth',p_bright:'balance',p_neu:'dynamism',p_mag:'harmony',p_pul:'rhythm',swoop:'collect',hoop1:'collect',hoop2:'collect',strainer:'magnetic',mesh:'neutron',fence:'pulsing',proc_relic:'relic',wipe:'wipe',dbl:'dbl',mop:'mop'};
-function itemScene(it){const f=it.fx,o=f.give||f.cap||f.heat;if(it.demo)return it.demo;if(ITEM_SCENE[it.id])return ITEM_SCENE[it.id];if(o){const k=Object.keys(o)[0];if(ITEM_SCENE[k])return ITEM_SCENE[k];}
+// An item's live demo on its shelf card (its scene: a surface demo, or the map's own 'hub:…'; else its shop's). A surface demo's name is <scene>[:<arg>][|<gear>,…]: an upgrade's demo
+// owns only it and the upgrades it needs (itemChain), so it shows what that one adds (Nib shine 15 shines 15, the Big hoop takes only what its hoop reaches); its card at rest is that demo's ending, drawn as the Journal draws
+const ITEM_SCENE={leash:'unwind',dial:'stringhome',weave:'weave',prism:'prism',knot:'knot',lens:'lens',gate:'gate',key:'itemcache',bright:'collect',dim:'collect',neutron:'neutron',magnetic:'magnetic',pulsing:'pulsing',
+  p_dim:'depth',p_bright:'balance',p_neu:'dynamism',p_mag:'harmony',p_pul:'rhythm',proc_relic:'relic',wipe:'wipe',dbl:'dbl',mop:'mop',needle:'orbit',spool:'chase',loom:'weave'};
+const itemChain=it=>{const L=[];for(let i=it;i&&!L.includes(i.id);i=shopItem(i.req))L.push(i.id);return L;}; // an upgrade and every one it needs
+function itemScene(it){const f=it.fx,o=f.give||f.cap||f.heat,k=o&&Object.keys(o)[0];if(it.demo)return it.demo;
+  const b=ITEM_SCENE[it.id]||(f.cap&&f.cap.shine?'shine':/^(swoop|hoop)/.test(it.id)?'net:'+it.id:f.net?'netx:'+f.net:/^(cl\d|cl_|w_\w+_[cs]$|orbit_|sh\d|sh_|rect)/.test(it.id)?ITEM_SCENE[(it.id.match(/lens|gate|knot|key|prism/)||['prism'])[0]]:k&&ITEM_SCENE[k]); // (a constellation or shape upgrade: its item, made)
+  if(b)return f.up||f.cap?b+'|'+itemChain(it).join(','):b;
   if(f.proc)return ITEM_SCENE[f.proc]||'collect';if(f.xbuy||f.xsell)return 'collect';if(f.duck||it.shop==='duck')return 'duck';if(f.clock!=null||f.wake||it.id==='alarm')return 'hub:time';if(f.water||f.fridge)return 'hub:bottle';
   if(f.mount||f.part||f.hold)return 'hub:move';return 'hub:shop:'+it.shop;}
 const _signBk=new Map();let _clkSvg=null;const _clkImg={};

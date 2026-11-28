@@ -14,7 +14,7 @@ afternoon,clock,Afternoon,2000,,1,,"{""clock"":15}",,,The day's clock is turned 
 dusk,clock,Dusk,2000,,1,,"{""clock"":18}",,,The day's clock is turned to Dusk,,
 night,clock,Evening,2000,,1,,"{""clock"":21}",,,The day's clock is turned to Night,,
 midnight,clock,Midnight,2000,,1,,"{""clock"":24}",,,The day's clock is turned to Midnight,,
-alarm,clock,Alarm clock,5000,,1,,"{""up"":1}",,,"Kept (on your gadget shelf): Rest any time, and sleep two times of day. Runs on 1 battery a day",,
+alarm,clock,Alarm clock,5000,,1,,"{""up"":1}",,,"Kept (on your gadget shelf): a Rest before Midnight is a nap of two times of day, not a sleep to the next Morning. Runs on 1 battery a day",,
 wakecall,clock,Wake-up call,150,,1,,"{""wake"":1}",,,Tomorrow you wake at Dawn instead of Morning,,
 yesterday,clock,"Yesterday, this time",250000,,1,,"{""clock"":""yesterday""}",,,The map back as it was at the start of this time of day yesterday (you where you were),,
 tomorrow,clock,"Tomorrow, this time",250000,,1,,"{""clock"":""tomorrow""}",,,"A clean new map, a day on, at this time of day, before any move (you beside main street)",,

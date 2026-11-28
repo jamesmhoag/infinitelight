@@ -117,7 +117,7 @@ button:hover{background:rgba(255,255,255,0.15);}
   <div id="dock" class="bottom"><div id="inventoryPanel"></div><div id="touch-info"></div></div>
   <canvas id="cur"></canvas>
 </div>
-<script src="content.js?v=20261127f"></script><script src="shared.js?v=20261127f"></script>
+<script src="content.js?v=20261127g"></script><script src="shared.js?v=20261127g"></script>
 <script>
 txtApply(); // the page's own labels (content/strings.csv)
 const _SRC=document.documentElement.outerHTML; // kept so the Encyclopedia can run live scenes as embedded copies of the game
@@ -207,7 +207,8 @@ const wrap=document.getElementById('wrap'),statsEl=document.getElementById('stat
 // and then needs a NEW press before it works again. heat.disp is the smoothed amount shown on the cursor (full ring = T.heatMax).
 let heat={v:0,disp:0,until:0,dur:1,needNew:false,last:0}; // (let: a second player's own heat is swapped in while their input runs — withHeat)
 function withHeat(h,fn){const o=heat;heat=h;try{return fn();}finally{heat=o;}}
-const heatK=g=>window.__SCENE?1:shopLeast('heat',g,k=>discSeen.has(k)); // how much a gesture heats the nib (INFINITE LINE: Light wipe, Quick double dab, Easy mop)
+let sceneGear=null; // a demo's own upgrades (its name's |gear list, 'up:<id>'): only those are owned in it; null: a demo owns every one
+const heatK=g=>sceneGear?shopLeast('heat',g,k=>sceneGear.has(k)):window.__SCENE?1:shopLeast('heat',g,k=>discSeen.has(k)); // how much a gesture heats the nib (INFINITE LINE: Light wipe, Quick double dab, Easy mop)
 function heatBlocked(now){return heat.until>now||heat.needNew;}
 function heatAdd(n,now){
   if(!(n>0)||heat.until>now)return;
@@ -738,7 +739,6 @@ function remColors(p){ // a remnant's colours (rc: its own; a Magnetic one's two
   if(isMagnetic){const pc0=magRGB(p.magPrimaryCI),oc0=magRGB(p.magOppositeCI);pc=invRGB(pc0.r,pc0.g,pc0.b);oc=invRGB(oc0.r,oc0.g,oc0.b);if(p.magBW){pc={r:228,g:228,b:234};oc={r:58,g:58,b:66};}}
   if(p.magTintCI!==undefined&&!isMagnetic&&!isBlackKind&&p.remKind!=='brown'){const mc0=magRGB(curTintCI(p)),mc=invRGB(mc0.r,mc0.g,mc0.b);rc=`${mc.r},${mc.g},${mc.b}`;} // colour shared by a Magnetic Remnant
   return{rc,pc,oc};}
-const RELIC_EDGE={brown:'178,140,235',white:'255,214,110',neutron:'255,150,95',pulsing:'130,225,255'}; // a relic's soft outline, by kind (a Magnetic one: its two colours)
 function drawRemnantGlyph(pointsCtx,p,now){
   const isBlackKind=p.remKind==='black';
   const isNeutron=p.remKind==='neutron',isMagnetic=p.remKind==='magnetic',isPulsing=p.remKind==='pulsing';
@@ -2122,9 +2122,9 @@ function invFullMsg(kind){return T.chestOn&&!BUILD&&CHEST_KINDS.includes(kind)?t
 // The treasure chest (Chest on): the remnants you hold (Bright, Neutron, Magnetic, Pulsing, each at the value it was collected at) share one chest of Chest
 // start (999). BRiGHT IDEAS sells each kind its own compartment (999: out of the shared chest), then bigger ones (exotics 9,999; Bright 99,999, then
 // 9,999,999): a compartment is a purse cap bought (fx.cap, shopCap), as every other. Dim is not in the chest: it fills the Ink Well, which has no cap
-function gearOn(id){return !!window.__SCENE||discSeen.has('up:'+id);} // an upgrade bought and kept ('up:<id>'; a journal scene: shown)
+function gearOn(id){return sceneGear?sceneGear.has('up:'+id):!!window.__SCENE||discSeen.has('up:'+id);} // an upgrade bought and kept ('up:<id>'; a journal scene: shown)
 function chestCap(kind){const has=k=>discSeen.has(k),own=shopCap(kind,has);if(own)return own;let o=0;for(const k of CHEST_KINDS)if(k!==kind&&k!=='dim'&&!shopCap(k,has))o+=inventory[k]||0;return Math.max(0,(T.chestStart||999)-o);} // its own compartment, or what is left of the shared chest (plus what this kind already holds)
-function shineMax(){return Math.max(1,T.maxActivePoints|0,window.__SCENE?0:shopCap('shine',k=>discSeen.has(k)));} // how many things the nib can have shining at once (Nib shine: the tuner, or more bought at INFINITE LINE)
+function shineMax(){return Math.max(1,T.maxActivePoints|0,sceneGear?shopCap('shine',k=>sceneGear.has(k)):window.__SCENE?0:shopCap('shine',k=>discSeen.has(k)));} // how many things the nib can have shining at once (Nib shine: the tuner, or more bought at INFINITE LINE)
 function invMaxFor(kind){if(kind==='key'&&runState.keysGone)return 0;if(kind==='dim')return Infinity;if(T.chestOn&&!BUILD&&CHEST_KINDS.includes(kind))return chestCap(kind);return Math.max(T['invMax'+kind[0].toUpperCase()+kind.slice(1)],shopCap(kind,k=>discSeen.has(k)));} // the tuner, or a bigger cap bought in a shop
 // Adds (or, with a negative amount, spends) units of one inventory kind,
 // clamped between 0 and that kind's current tunable max.
@@ -12962,6 +12962,28 @@ const SCENES={};
   SCENES.crash={dur:9000,setup(S){const mk=(x,k,s)=>{const p=S.rem(x,S.H/2,k);p.vx=s*T.maxSpeed;p.rot=s*T.maxRotSpeed;return p;};mk(S.W/2-8,'neutron',1);mk(S.W/2+8,'pulsing',-1);}};
   const fxp=v=>({dur:8000,setup(S){flags(0,1,1,0,0);const p=createPointAt(S.W/2,S.H/2,v,true);p.lifespan=2500;S.p=p;},tick(S,t){const r=active.find(q=>q.isRemnant&&q.enriched);S.focus(r);const o=r||S.p;S.look(t,o.x,o.y);}}); // the subject is the relic it leaves: its readouts show once it forms
   SCENES.eclpoint=fxp('black');SCENES.cryspoint=fxp('white');
+  // ── The shops' tools in use (a shelf card's live demo; its ending is the card's drawing). Each owns only the gear its name gives (sceneGear), so an upgrade shows what it adds ──
+  SCENES.shine={dur:9000,setup(S){flags(0,0,0,1,0);const n=shineMax(),N=Math.min(70,Math.max(9,Math.round(n*1.6)+4));S.ps=[]; // Nib shine: more pigments than it can hold, dabbed one after another along a snake; only the newest n shine (the oldest gives way), so the shining runs on off its end
+    for(let i=0;i<N;i++){const u=i/(N-1),x=18+(S.W-36)*u,y=S.H/2+Math.sin(u*TAU*1.5)*S.H*0.3;S.ps.push(S.pig(x,y,5,Math.max(3,9-n/6)));}}, // (SNARE: each brings what it reaches to rest, so the snake lies still)
+    tick(S,t,now){const N=S.ps.length,u=Math.min(1,Math.max(0,(t-600)/6800)),i=Math.min(N-1,Math.floor(u*N)),p=S.ps[i];mouse.x+=(p.x-mouse.x)*0.35;mouse.y+=(p.y-mouse.y)*0.35;if(mouse.x<-999){mouse.x=p.x;mouse.y=p.y;}
+      for(let j=0;j<=i;j++)if(t>600&&!S['a'+j]){S['a'+j]=1;cursorClickAt=now;S.act(S.ps[j],Math.max(8,Math.min(16,(S.W-36)/S.ps.length*1.2)));enforceMaxActivePoints();}}};
+  SCENES.net=m=>({dur:8000,setup(S){flags(0,0,1,0,0);const cx=S.W/2,cy=S.H/2,R=[];S.m=m; // the net: a dab takes one; the Swoop net sweeps every one of the kind it passes; a hoop takes every one of the kind its hoop reaches (Big, then Really big)
+      if(m==='swoop'){for(let i=0;i<9;i++){const u=i/8;R.push(S.rem(30+(S.W-60)*u,cy+Math.sin(u*TAU)*S.H*0.22,i%4===3?'brown':'white'));}}
+      else if(/^hoop/.test(m)){R.push(S.rem(cx,cy,'white'));const r1=T.touchR*(T.netDblMult||3),r2=T.touchR*(T.netDbl2Mult||6);
+        for(const[r,n]of[[r1*0.6,5],[(r1+r2)/2,7],[r2*1.25,8]])for(let i=0;i<n;i++){const a=i/n*TAU+r,x=cx+Math.cos(a)*r,y=cy+Math.sin(a)*r*0.6;if(x>8&&x<S.W-8&&y>8&&y<S.H-8)R.push(S.rem(x,y,i%3===2?'brown':'white'));}} // a ring in its hoop, a ring only the Really big one reaches, a ring past both (and Dim among them: not the kind)
+      else for(let i=0;i<5;i++)R.push(S.rem(S.W*(0.15+i*0.175),cy+(i%2?18:-18),'white'));
+      S.rs=R;},
+    tick(S,t){const R=S.rs,a=R[0],go=(x,y)=>{mouse.x=x;mouse.y=y;S.in('mousemove',x,y);};
+      if(S.m==='swoop'){const u=Math.min(1,Math.max(0,(t-1500)/3200)),i=Math.min(R.length-1,Math.floor(u*(R.length-1))),b=R[i],c=R[Math.min(R.length-1,i+1)],f=u*(R.length-1)-i;
+        if(t>600&&t<1500){go(a.x,a.y);if(!S.d){S.d=1;S.in('mousedown',a.x,a.y);}}else if(t>=1500&&t<4800)go(b.x+(c.x-b.x)*f,b.y+(c.y-b.y)*f);else if(t>=4800&&!S.u){S.u=1;S.in('mouseup',mouse.x,mouse.y);}}
+      else if(/^hoop/.test(S.m)){if(t>600&&t<1000)go(a.x,a.y);for(const[k,at]of[['d1',1000],['u1',1080],['d2',1220],['u2',1300]])if(t>at&&!S[k]){S[k]=1;S.in(k[0]==='d'?'mousedown':'mouseup',a.x,a.y);}}
+      else R.forEach((r,i)=>{const at=700+i*1300;if(t>at-500&&t<at)go(r.x,r.y);if(t>at&&!S['d'+i]){S['d'+i]=1;S.in('mousedown',r.x,r.y);}if(t>at+80&&!S['u'+i]){S['u'+i]=1;S.in('mouseup',r.x,r.y);}});}});
+  SCENES.netx=k=>({dur:7000,setup(S){flags(0,0,1,0,0);S.rs=[S.rem(S.W*0.3,S.H*0.45,k),S.rem(S.W*0.55,S.H*0.6,'white'),S.rem(S.W*0.75,S.H*0.4,k)];S.rs[0].rot=S.rs[2].rot=0.01;}, // its gear: the net catches that kind too
+    tick(S,t){S.rs.forEach((r,i)=>{const at=900+i*1700;if(t>at-500&&t<at){mouse.x=r.x;mouse.y=r.y;S.in('mousemove',r.x,r.y);}if(t>at&&!S['d'+i]){S['d'+i]=1;S.in('mousedown',r.x,r.y);}if(t>at+80&&!S['u'+i]){S['u'+i]=1;S.in('mouseup',r.x,r.y);}});}});
+  SCENES.orbit={dur:11000,setup(S){flags(0,0,1,0,0);S.b=S.pnt(S.W/2,S.H/2,4);S.a=S.pnt(S.W/2+40,S.H/2,1);S.ang=0;}, // the Needle: a point circling a still one, its laps drawn as it goes (a Spindle coming)
+    tick(S,t){const r=Math.min(46,S.H*0.32),w=0.0016,A=S.a,B=S.b;if(A.dying||B.dying)return;S.ang=t*w;B.vx=B.vy=0;B.x=S.W/2;B.y=S.H/2;A.x=B.x+Math.cos(S.ang)*r;A.y=B.y+Math.sin(S.ang)*r;A.vx=-Math.sin(S.ang)*r*w*16;A.vy=Math.cos(S.ang)*r*w*16;S.look(t,B.x,B.y);}};
+  SCENES.chase={dur:9000,setup(S){flags(0,0,1,0,0);const v=0.5;S.a=S.pnt(S.W*0.2,S.H/2,1);S.b=S.pnt(S.W*0.2+26,S.H/2,5);for(const p of[S.a,S.b]){p.vx=v;p.vy=0.12;p.rot=0;}}, // the Spool: one point following another, at its speed and spin, held as long as it lasts (a String coming)
+    tick(S,t){for(const p of[S.a,S.b]){if(p.dying)continue;p.vx=0.5;p.vy=0.12;p.rot=0;}S.look(t,S.b.x,S.b.y);}};
 })();
 function sceneBoot(name,TT){
   {const l=document.getElementById('ilLoad');if(l)l.remove();document.documentElement.classList.remove('il-arrive');} // (a copy of a page that was still loading carries its loading screen: a demo or a recording never shows it)
@@ -12969,8 +12991,9 @@ function sceneBoot(name,TT){
   if(name!=='replay'){{const k=0.5/Math.max(0.05,T.particleScale||1);T.nebBlur*=k;T.nebBlur2*=k;} // a demo draws particles at half size: its blur radii shrink with them, so the look matches play (a recording plays at the size it happened, in your settings)
   T.particleScale=0.5;T.particleGap=2;T.nebBlurScale=1;T.glowResScale=1;} // a demo canvas is small: its blur and glow layers can run at full resolution
   const dockScene=(name==='itemcache'||name==='discover');wrap.classList.add('ui-hidden');if(!dockScene)document.getElementById('dock').style.display='none';wrap.style.pointerEvents='none';for(const k in T)if(k.slice(0,3)==='dc_')T[k]=0;
-  const def=SCENES[name]||{dur:3000,setup(){}};
+  const[sn0,gr]=String(name).split('|'),[sn,...sa]=sn0.split(':'),d0=SCENES[sn],def=(typeof d0==='function'?d0(...sa):d0)||{dur:3000,setup(){}}; // <scene>[:<arg>…][|<gear>,…]: a scene made for its argument, owning only that gear
   const S={W:0,H:0,t0:0,n:0,
+    in:(ty,x,y)=>{const r=canvas.getBoundingClientRect();inPlay({ty,b:0,bs:ty==='mouseup'||ty==='mousemove'&&!mouseDown?0:1},canvas,r.left+x,r.top+y);}, // a real press, move or release there: the game itself does what it does
     part:(x,y,c,h)=>createParticleAt(x,y,c,h),
     pig:(x,y,c,m,h)=>{const p=createPointAt(x,y,c,false,h);if(m){p.mass=m;updateCached(p);}p.birthProgress=1;return p;},
     pnt:(x,y,c)=>{const p=createPointAt(x,y,c,true);p.birthProgress=1;p._keep=true;p.lifespan=Infinity;return p;},
@@ -12985,12 +13008,12 @@ function sceneBoot(name,TT){
     band:c=>(c/6+(Math.random()*0.12-0.06)*T.seedSpread+1)%1, // a hue in colour c's own range, strayed by Seed spread like the stages' nebula — never far enough to become another effect
     patch:(gx,gy,w,h,f)=>{for(let y=gy;y<gy+h;y++)for(let x=gx;x<gx+w;x++)S.part(GRID_OX+(x+0.5)*PIXEL_SIZE,GRID_OY+(y+0.5)*PIXEL_SY,f(x,y));},
     ring:(n,r0,r1,f)=>{for(let i=0;i<n;i++){const a=i/n*TAU0+0.4,r=r0+(r1-r0)*((i*7)%n)/n;f(S.W/2+Math.cos(a)*r,S.H/2+Math.sin(a)*r,i);}}};
-  const TAU0=6.2832;const CORE=new Set(['W','H','t0','n','part','pig','pnt','rem','keep','act','rnd','band','ring','patch','focus','look']);
+  const TAU0=6.2832;const CORE=new Set(['W','H','t0','n','in','part','pig','pnt','rem','keep','act','rnd','band','ring','patch','focus','look']);
   const start=()=>{
     clearStage();if(invertMode!==!!window.__INV)toggleInvertMode();
     heat.v=0;heat.until=0;heat.needNew=false;mouse.x=mouse.y=-9999;mouseDown=false;dragMode=false;armedInvItem=null;conMode=false;
     earnFx.length=0;constellationFx.length=0;implosions.length=0;dimFlashes.length=0;dialMarks.length=0;dialQueue.length=0;dialLoaded=[];burnFx.length=0;weaveTrack={};keySeq=null;
-    for(const k in inventory)inventory[k]=0;
+    for(const k in inventory)inventory[k]=0;sceneGear=gr!=null?new Set(gr.split(',').filter(Boolean).map(g=>'up:'+g)):null;
     S.W=W;S.H=H;S.t0=performance.now();S.n++;sceneFocus=[];for(const k of Object.keys(S))if(!CORE.has(k))delete S[k];telemetryOn=dynamicsOn=classOn=showRadii=risksOn=false;discSeen=new Set();itemCacheMode=false;
     if(window.__clkGo)window.__clkGo();def.setup(S);document.documentElement.style.visibility=''; // (a recording's clock starts at its moment now, not while the page was loading; nothing shows before the scene is set)
   };
@@ -13184,7 +13207,7 @@ const evRecFor=id=>{const r=id&&_evRecs[id];return r&&!r.frames?r:null;}, /* (ne
 if(!window.__SCENE)IDB.keys().then(ks=>{const P=IDB.key('evrec:');for(const k of ks)if(typeof k==='string'&&k.startsWith(P))IDB.get(k.slice(k.indexOf('evrec:'))).then(r=>{if(r&&r.id)_evRecs[r.id]=r;}).catch(()=>{});}).catch(()=>{}); // (your recordings, back from the last time you played)
 function evReplayMount(h,rec){if(!h||h.firstChild)return;
   if(rec.hub){const f=document.createElement('iframe'),aw=h.clientWidth||300,ah=h.clientHeight||190,w=rec.w||aw,hh=rec.h||ah,F=rec.fr||[0,0,w,hh],k=Math.min(1,Math.max(aw/w,ah/hh,Math.min(aw/F[2],ah/F[3]))),fit=(c,v,full)=>full*k<=v?(v-full*k)/2:Math.min(0,Math.max(v-full*k,v/2-c*k)); // the copy runs at the size yours was (so the cursor is where it was), and the page shows the part round the event (fr), never enlarged and never past the view's edge
-    f.style.cssText=`border:0;pointer-events:none;position:absolute;left:0;top:0;width:${w}px;height:${hh}px;transform-origin:0 0;transform:translate(${fit(F[0]+F[2]/2,aw,w).toFixed(1)}px,${fit(F[1]+F[3]/2,ah,hh).toFixed(1)}px) scale(${k.toFixed(4)});background:#000`;if(getComputedStyle(h).position==='static')h.style.position='relative';h.style.overflow='hidden';f.src='Surface_Map_HUB.html?v=20261127f&scene=replay&ev='+encodeURIComponent(rec.id)+(h.dataset.hold?'&hold=1':'');h.appendChild(f);return;} // an event recorded on the Surface Map, below deck or in a shop (mapRec): played again live by a copy of the map itself, every layer as it was
+    f.style.cssText=`border:0;pointer-events:none;position:absolute;left:0;top:0;width:${w}px;height:${hh}px;transform-origin:0 0;transform:translate(${fit(F[0]+F[2]/2,aw,w).toFixed(1)}px,${fit(F[1]+F[3]/2,ah,hh).toFixed(1)}px) scale(${k.toFixed(4)});background:#000`;if(getComputedStyle(h).position==='static')h.style.position='relative';h.style.overflow='hidden';f.src='Surface_Map_HUB.html?v=20261127g&scene=replay&ev='+encodeURIComponent(rec.id)+(h.dataset.hold?'&hold=1':'');h.appendChild(f);return;} // an event recorded on the Surface Map, below deck or in a shop (mapRec): played again live by a copy of the map itself, every layer as it was
   const f=document.createElement('iframe'),v=document.createElement('canvas'),g=v.getContext('2d'),aw=h.clientWidth||300,ah=h.clientHeight||190,dp=Math.min(2,window.devicePixelRatio||1),k=Math.max(aw/(rec.fw||rec.w),ah/(rec.fh||rec.h)),P=(rec.path||[[0,0,0]])[0],c={sz:EV_FRAME[rec.id]||'l',t0:rec.cap0||0};let X=0,Y=0,last=null;
   // your moment, played again live: a copy of the game at the size it happened plays it out of sight (its frame scaled to fill the card), and this canvas is the view of it. It keeps on the subject wherever it goes (the copy follows it as play did, and says where), the surface joined round it across its edges and corners: a subject at an edge sits in the middle like any other, and one that crosses an edge is never lost
   f.style.cssText=`border:0;pointer-events:none;position:absolute;left:0;top:0;width:${rec.w}px;height:${rec.h}px;opacity:0`;v.width=Math.round(aw*dp);v.height=Math.round(ah*dp);v.style.cssText='position:absolute;left:0;top:0;width:100%;height:100%';if(getComputedStyle(h).position==='static')h.style.position='relative';h.style.overflow='hidden';h.style.background=rec.inv?'#fff':'#000'; // (a page's picture layer stays where it is laid: absolute, over the whole picture)
@@ -13209,7 +13232,7 @@ function cardHTML(ev,mini,pg){ // the one card format: name bar, art box, type l
 function mountScene(h,w,hh){if(!h||h.firstChild||document.querySelectorAll('.rl-live iframe:not(.held),.mtg .art iframe:not(.held)').length>=5)return; /* (a page's picture holding on its last frame does not count) */{const R=(h.dataset.ev||'').split(',').map(evRecFor).find(Boolean);if(R&&!w){evReplayMount(h,R);return;}} /* something you witnessed: your own recording of it, live (a demo only for what you have not) */const f=document.createElement('iframe'),nm=h.dataset.s||h.dataset.scene;f.style.cssText='border:0;max-width:100%;pointer-events:none;background:#000;border-radius:6px;'+(w?`width:${w}px;height:${hh}px`:'width:100%;height:100%');
   Object.assign(f,sceneSrc(nm,h.dataset.hold));if(h.dataset.hold&&nm.slice(0,4)!=='hub:')f.className='held';h.appendChild(f);}
 function sceneSrc(nm,hold){if(nm.slice(0,4)!=='hub:')return{srcdoc:liveSrc(nm,null,hold)};const[sn,dk]=nm.slice(4).split(':'); // a demo's page (a Surface Map demo is played by the map itself): mountScene's, and a shop shelf card's
-  return{src:'Surface_Map_HUB.html?v=20261127f&scene='+sn+(sn==='shop'?'&k='+encodeURIComponent(dk||''):'')+'&T='+encodeURIComponent(JSON.stringify(mapSceneT()))+'&D='+encodeURIComponent(JSON.stringify(dk&&DUCK_TYPES[dk]?{[dk]:DUCK_TYPES[dk]}:Object.fromEntries(Object.entries(DUCK_TYPES).slice(0,4))))};}
+  return{src:'Surface_Map_HUB.html?v=20261127g&scene='+sn+(sn==='shop'?'&k='+encodeURIComponent(dk||''):'')+'&T='+encodeURIComponent(JSON.stringify(mapSceneT()))+'&D='+encodeURIComponent(JSON.stringify(dk&&DUCK_TYPES[dk]?{[dk]:DUCK_TYPES[dk]}:Object.fromEntries(Object.entries(DUCK_TYPES).slice(0,4))))};}
 function mapSceneT(){const o={};for(const k in T)if(/^(map|bh|duck|wake|glass|metal|dimGlow|glowHalo|maxSpeed)/.test(k))o[k]=T[k];return o;} // what a map demo needs of the tuners
 function showCardHTML(html){ // a Guide card (an entry or a shop) opened over the Guide, where an event card shows
   guideCSS();if(!_evOpen)_evPausedIt=false;_evOpen=true;_evReview=true;const ov=evOverlayEl();ov.innerHTML=`<div class="ev-box">${html}<button id="evOk">${txt('card.close')}</button></div>`;ov.style.display='flex';wrap.classList.add('ev-open');
@@ -13460,47 +13483,6 @@ function evSketch(R,ids){R=R||{x:W/2,y:H/2,rw:W/2,rh:H/2};const k=1/R.rh,wr=R.rw
   if(blackHole){const q=at(blackHole);if(q)L.push(['hole',...q,n3(Math.max(8,blackHole.consumeR||0)*k)]);}
   if(mouse.x>=0){const q=at(mouse);if(q)L.push(['cursor',...q,n3((T.cursorBaseR||8)*k)]);}
   return[n3(R.rw/R.rh),...L.sort((a,b)=>(a[0]==='particle')-(b[0]==='particle')||a[1]-b[1])];}
-function skStrokes(sk,seed){ // the list as a hand's strokes (each a wobbling line of points; inkStrokes draws them): never twice the same (seed: its page)
-  let h=2166136261;for(const c of String(seed))h=Math.imul(h^c.charCodeAt(0),16777619);const rnd=()=>{h=Math.imul(h^h>>>15,2246822507);h=Math.imul(h^h>>>13,3266489909);return((h^=h>>>16)>>>0)/4294967296;},j=v=>(rnd()-0.5)*v;
-  const a=sk[0],S=[],put=(p,c,f,w)=>S.push({p,c,f,w}),line=(x0,y0,x1,y1,c,w)=>{const l=Math.hypot(x1-x0,y1-y0);put([[x0,y0],[(x0+x1)/2+j(l*0.06),(y0+y1)/2+j(l*0.06)],[x1,y1]],c,null,w);},
-    ring=(x,y,r,c,f,w,n0)=>{const n=n0||Math.max(8,Math.round(10+r*40)),a0=rnd()*6.28,p=[];for(let i=0;i<=n+1;i++){const t=a0+i/n*6.2832,q=r*(1+j(0.09));p.push([x+Math.cos(t)*q,y+Math.sin(t)*q]);}put(p,c,f,w);},
-    poly=(x,y,r,n,rot,c,f)=>{const p=[];for(let i=0;i<=n;i++){const t=rot+i/n*6.2832;p.push([x+Math.cos(t)*r*(1+j(0.08)),y+Math.sin(t)*r*(1+j(0.08))]);}p[n]=p[0];put(p,c,f,1.2);},
-    dash=(x,y,r,c)=>{const n=Math.max(6,Math.round(r*22));for(let i=0;i<n;i++){const t=i/n*6.2832+j(0.05),u=t+3.6/n,q=r*(1+j(0.03));put([[x+Math.cos(t)*q,y+Math.sin(t)*q],[x+Math.cos((t+u)/2)*q,y+Math.sin((t+u)/2)*q],[x+Math.cos(u)*q,y+Math.sin(u)*q]],c,null,0.7);}},
-    rays=(x,y,r0,r1,n,c)=>{for(let i=0;i<n;i++){const t=i/n*6.2832+j(0.2);line(x+Math.cos(t)*r0,y+Math.sin(t)*r0,x+Math.cos(t)*r1*(1+j(0.3)),y+Math.sin(t)*r1*(1+j(0.3)),c,0.8);}};
-  put([[-a,-1],[a+j(0.02),-1+j(0.02)],[a+j(0.02),1],[-a,1+j(0.02)],[-a,-1.02]],null,null,1.3); // its frame first
-  const last=()=>S[S.length-1],wsh=(o,x,y,r0,r1,c,al,rg)=>{o.wash=[x,y,r0,r1,c,al,rg?1:0];return o;}, // a watercolour wash, laid under the stroke just put (inkStrokes)
-    blot=(x,y,r0,r1,c,al,rg)=>{put([[x,y],[x+0.002,y]],null,null,0.1);return Object.assign(wsh(last(),x,y,r0,r1,c,al,rg),{nl:1});}, // a wash on its own (no line)
-    sq=(x,y,r,rot,c,f,fa)=>{poly(x,y,r,4,rot,c,f);if(fa!=null)last().fa=fa;return last();};
-  // Each thing as its own symbol, from what it is in the scene (its colours, size, turn and reach: the same values it is drawn with there), washed in like watercolour
-  for(const[k,x,y,r0,c,er,vx,vy,rm,em]of sk.slice(1)){const r=Math.max(0.035,r0||0),rk=rm&&rm[0],rot=rm?rm[1]:0;
-    if(em){const R2=Math.max(r*2.6,(er||0)*0.6,0.13);ring(x+j(0.01),y+j(0.01),R2,null,null,1.5);ring(x+j(0.01),y+j(0.01),R2*1.08,null,null,0.8);} // what it is about: circled, twice round, as a hand marks it
-    if(k==='particle'){blot(x+j(0.006),y+j(0.006),0.004,0.026+rnd()*0.012,c,0.45);continue;} // a particle: a faint, blurred dot of its colour (no outline)
-    if(k==='shape'){const q=er,p=[];for(let i=0;i<q.length;i+=2)p.push([q[i]+j(0.012),q[i+1]+j(0.012)]);if(c)p.push(p[0]);put(p,null,c?'120,110,90':null,1.5);continue;}
-    if(k==='bond'){const q=er,p=[];for(let i=0;i<q.length;i+=2)p.push([q[i]+j(0.01),q[i+1]+j(0.01)]);if(vy)p.push(p[0]);for(let i=1;i<p.length;i++)line(p[i-1][0],p[i-1][1],p[i][0],p[i][1],c,1.3);if(vx==='lens'||vx==='gate'){const cx=p.reduce((s,v)=>s+v[0],0)/p.length,cy=p.reduce((s,v)=>s+v[1],0)/p.length;ring(cx,cy,0.05,null,null,0.7,8);}continue;} // a joining: its lines (a Lens or Gate: an eye at its heart)
-    if(k==='field_dim'||k==='field_bright'){ring(x,y,r,c,null,1.1);ring(x,y,r*0.62,null,null,0.6);if(k==='field_dim')for(let i=-2;i<=2;i++){const u=i/2.6*r,w=Math.sqrt(Math.max(0,r*r*0.38-u*u));line(x+u-w*0.6,y-u-w*0.6,x+u+w*0.6,y-u+w*0.6,null,0.6);}else{poly(x,y,r*0.35,4,0,null,null);}continue;} // DEPTH: a ring hatched; BALANCE: a ring round a still square
-    if(k==='rift'){const ux=vx||1,uy=vy||0,n=9,p=[],q=[];for(let i=0;i<=n;i++){const t=(i/n-0.5)*2*r,g=0.008+0.026*Math.sin(Math.PI*i/n),o=(i%2?1:-1)*0.02*(1+rnd());p.push([x+ux*t-uy*(o+g),y+uy*t+ux*(o+g)]);q.unshift([x+ux*t-uy*(o-g),y+uy*t+ux*(o-g)]);}
-      put([...p,...q,p[0]],null,'0,0,0',1.2);Object.assign(last(),{fa:0.92,glow:[DARK_RING_COLS[0],0.05,0.95]});continue;} // a tear: a black gap, its edges glowing orange (the Dark Remnant's rings)
-    if(k==='target'){ring(x,y,r,null,null,0.9);ring(x,y,r*0.4,null,null,0.7,7);for(const[a0,b0]of[[1,0],[-1,0],[0,1],[0,-1]])line(x+a0*r*0.6,y+b0*r*0.6,x+a0*r*1.5,y+b0*r*1.5,null,0.8);continue;} // where a String is aimed
-    if(k==='chase'){const l=Math.hypot(vx,vy)||1,ux=vx/l,uy=vy/l,n=Math.max(2,Math.round(l/0.06));for(let i=0;i<n;i+=2){const t0=i/n*l,t1=Math.min(l,(i+1)/n*l);line(x+ux*t0,y+uy*t0,x+ux*t1,y+uy*t1,null,0.8);}const ex=x+ux*l*0.8,ey=y+uy*l*0.8;put([[ex-ux*0.05-uy*0.03,ey-uy*0.05+ux*0.03],[ex,ey],[ex-ux*0.05+uy*0.03,ey-uy*0.05-ux*0.03]],null,null,0.8);continue;} // one following another: a dotted line, an arrowhead
-    if(k==='orbit'){const p=[],a0=rnd()*6.28;for(let i=0;i<=30;i++){const t=a0+i/30*5.5;p.push([x+Math.cos(t)*r,y+Math.sin(t)*r]);}put(p,null,null,0.8);const t=a0+5.5,ex=x+Math.cos(t)*r,ey=y+Math.sin(t)*r,tx=-Math.sin(t),ty=Math.cos(t);put([[ex-tx*0.05-ty*0.03,ey-ty*0.05+tx*0.03],[ex,ey],[ex-tx*0.05+ty*0.03,ey-ty*0.05-tx*0.03]],null,null,0.8);continue;} // one circling another: a looping arrow
-    if(k==='still'){poly(x,y,r*2.2,4,0.7854,null,null);continue;} // held still: a box round it
-    if(k==='cursor'){ring(x,y,r,null,null,0.8);line(x-r*0.35,y,x+r*0.35,y,null,0.7);line(x,y-r*0.35,x,y+r*0.35,null,0.7);continue;}
-    if(k==='duck'){ring(x,y+r*0.25,r*0.8,null,'255,214,60',1.2);ring(x+r*0.55,y-r*0.55,r*0.45,null,'255,214,60',1.2);put([[x+r*0.95,y-r*0.6],[x+r*1.4,y-r*0.45],[x+r*0.95,y-r*0.35]],null,'255,128,10',1.1);line(x+r*0.6,y-r*0.65,x+r*0.62,y-r*0.63,null,1.6);continue;}
-    if(k==='hole'||k==='dark'){const R2=r*(k==='dark'?1.5:1);[[DARK_RING_COLS[0],T.bhAlphaWide,T.bhRingWidth],[DARK_RING_COLS[1],T.bhRing2AlphaMid,T.bhRing2Width]].forEach(([col,al,w],i)=>blot(x,y,R2*(1+i*0.3),R2*(1.3+i*0.35+(w||20)/120),col,Math.min(0.9,al||0.6),1));} // the Dark Remnant: bigger, dim, its two rings washed round it
-    if(k==='hole'||k==='dark'){ring(x,y,r*(k==='dark'?1.5:1),null,'20,16,30',1.6);last().fa=0.85;for(let i=-3;i<=3;i++){const u=i/3.5*r,w=Math.sqrt(Math.max(0,r*r-u*u));line(x+u-w*0.7,y-u-w*0.7,x+u+w*0.7,y-u+w*0.7,null,0.9);}if(k==='hole'){const p=[];for(let i=0;i<40;i++){const t=i*0.5,q=r*(1.15+i*0.028);p.push([x+Math.cos(t)*q,y+Math.sin(t)*q]);}put(p,null,null,0.7);}continue;}
-    const K=k==='relic'?{brown:'dim',white:'bright'}[rk]||rk||'neutron':k; // a relic: drawn as what it was, then ringed in its relic colour
-    if(er>r&&!rm)dash(x,y,er,c);
-    if(K==='pigment'||K==='eclipse'||K==='crystal'){ring(x,y,r,c,K==='eclipse'?'20,16,30':K==='crystal'?'255,255,255':null,1.2);wsh(last(),x,y,r*(er>r?0.9:0.6),r*(er>r?1.4:1.05),K==='eclipse'?'30,24,40':c,0.55);} // a pigment: a ring of its colour, washed in (bleeding out under its edge when it is active)
-    else if(K==='point'){ring(x,y,r*0.5,null,'255,255,255',0.6);last().fa=0.95;wsh(last(),x,y,r*0.5,r*1.9,c,0.7,1);} // a Point: white, in a blurred ring of its colour
-    else if(K==='dim'){ring(x,y,r,null,'24,18,14',1.1);last().fa=0.9;wsh(last(),x,y,r*0.8,r*2.1,DARK_RING_COLS[0],0.5);} // a Dim Remnant: dark, in an orange wash
-    else if(K==='bright'){['255,170,200','170,255,210','170,200,255'].forEach((hc,i)=>blot(x+Math.cos(i*2.1)*r*0.5,y+Math.sin(i*2.1)*r*0.5,0,r*1.9,hc,0.3));wsh(sq(x,y,r*1.25,rot-1.5708,null,'255,255,255',0.95),x,y,r,r*2.6,'255,255,255',0.9);} // a Bright Remnant: a white square in a chromatic white wash
-    else if(K==='neutron'){wsh(sq(x,y,r*1.3,rot+0.7854,null,'190,215,255',0.55),x,y,r,Math.max(r*2,er||0),'140,175,255',0.35);} // a Neutron: its square (as big as it is now), faint blue, washed out to its reach
-    else if(K==='magnetic'){const c2=rm&&rm[2]||c,ca=Math.cos(rot),sa=Math.sin(rot),h=r*1.3,P=(u,v)=>[x+u*ca-v*sa,y+u*sa+v*ca];put([P(-h,0),P(0,h),P(h,0),P(-h,0)],c,c,1.1);last().fa=0.6;put([P(-h,0),P(0,-h),P(h,0),P(-h,0)],c2,c2,1.1);last().fa=0.6;wsh(last(),x,y,r,r*2,c,0.25);} // a Magnetic: its square split, a half in each of its colours
-    else if(K==='pulsing'){poly(x,y,r*1.35,3,rot-1.5708,c,null);Object.assign(last(),{glow:[c,0.05,0.9],w:1.4});wsh(last(),x,y,r*0.5,Math.max(r*2.2,er||0),c,0.3);} // a Pulsing: a triangle, its glow washed out round it
-    else ring(x,y,r,null,c,1.1);
-    if(k==='relic'){const ec=RELIC_EDGE[rk]||RELIC_EDGE.neutron;if(rk==='magnetic'){ring(x,y,r*1.9,rm[2]||c,null,1);ring(x,y,r*2.05,c,null,1);}else{ring(x,y,r*1.9,ec,null,1.1);last().glow=[ec,0.04,0.8];}} // its ringed border
-    const v=Math.hypot(vx||0,vy||0);if(v>0.04){const m=Math.min(0.5,v),ux=vx/v,uy=vy/v,x0=x+ux*r*1.3,y0=y+uy*r*1.3,x1=x0+ux*m,y1=y0+uy*m;line(x0,y0,x1,y1,null,0.8);put([[x1-ux*0.05-uy*0.03,y1-uy*0.05+ux*0.03],[x1,y1],[x1-ux*0.05+uy*0.03,y1-uy*0.05-ux*0.03]],null,null,0.8);}} // (where it was going)
-  return Object.assign(S,{a});}
 function skImage(im,a){ // a picture with nothing to list (a glyph, a shop's sign, a map demo), as a drawing: hatched across wherever it stands out from its ground, crossed where it stands out most
   const n=46,m=Math.max(8,Math.round(n/a)),cv=document.createElement('canvas'),c=cv.getContext('2d');cv.width=n;cv.height=m;let d;try{c.drawImage(im,0,0,n,m);d=c.getImageData(0,0,n,m).data;}catch(e){return null;}
   const lum=i=>d[i*4+3]<250?d[i*4+3]*0.6:(d[i*4]*0.3+d[i*4+1]*0.59+d[i*4+2]*0.11),g=lum(0),v=(x,y)=>x<0||y<0||x>=n||y>=m?0:Math.abs(lum(y*n+x)-g),S=[],X=x=>(x/n*2-1)*a,Y=y=>y/m*2-1,jt=()=>(Math.random()-0.5)*0.012;
@@ -13909,7 +13891,7 @@ window.addEventListener('message',e=>{
   else if(m.cmd==='event'){const ids=(m.ids||[m.id]).filter(i=>!discSeen.has('ev:'+i));if(!ids.length){hubState('overlayDone');return;}hubOverlay_(true);ids.forEach(fireEvent);}
   else if(m.cmd==='sound')setSound(m.on,m.vol);
   else if(m.cmd==='singDraw'){runState.draw={kind:'sing',cards:m.cards,skip:!!m.skip};saveInventory();hubOverlay_(true);showDraw();} // the new day's singularities: pick one
-  else if(m.cmd==='demo')hubPost(Object.assign({type:'demo',name:m.name},sceneSrc(m.name))); // a shop shelf card's live demo, for the map to play
+  else if(m.cmd==='demo')hubPost(Object.assign({type:'demo',name:m.name,sk:m.sk||0},sceneSrc(m.name))); // a shop shelf card's live demo, for the map to play
   else if(m.cmd==='shopEdit'){shopEditApply();hubState();} // the tuner's Shops tab changed an item
   else if(m.cmd==='music'){hubMusicOn=!!m.on;hubMusicNone=!!m.none;syncGameMenu();} // the map's music on / off (said back after the Esc menu's Music)
   else if(m.cmd==='unbox'){const H=m.give||{},got=[];if(m.item){const it=boxItem(m.item);if(it){if(it.fx.give)for(const k in it.fx.give)H[k]=(H[k]||0)+it.fx.give[k];if(shopOnce(it))discSeen.add('up:'+it.id);if(it.fx.disc)discSeen.add(it.fx.disc);discSeen.add('si_'+it.id);applyDisc();got.push(it.n);hubOverlay_(true);boxCard(it);}else H[CHEST_KINDS.includes((SHOPS[m.item]||{}).cur)?SHOPS[m.item].cur:'bright']=20;} /* (something its shop sells: free; nothing left to give, its remnants) */for(const k in H){if(k==='duck'){for(let i=0;i<H[k];i++){const t=rollDuckType();duckLog[t]=(duckLog[t]||0)+1;got.push('🦆 '+DUCK_TYPES[t].name);}continue;}addInventory(k,H[k],true);got.push(fmtCount(H[k])+' '+(INV_LABEL[k]||k));}saveInventory();updateInventoryUI();hubPost({type:'unboxed',id:m.id,got:got.join(', '),item:m.item&&hubOverlay?1:0});hubState();} // a box (or a can, a cup) opened on the lake: what it held is yours
