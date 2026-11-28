@@ -261,7 +261,7 @@ function newMap(rings){flotLake(()=>true); // a new map, a descent and every mid
   dropSession();cells={};totalCells=0;captureOrder=[];mergeGroups=[];mergeIdCounter=0;voidOpen=false;phase='move';gameOverReason='';prev={};constel=[];weaveSel=[];weaveAsk=null;armed=null;
   cells[K(0,0)]={q:0,r:0,v:0,cap:false,capVal:0,isP:false,mergeId:null,isVoid:true};totalCells++;
   turn=Math.max(1,rings||1);for(let n=1;n<=turn;n++)addRing(n);pool=Math.round(MAP_POOL*(1+(spill.pct||0)/100)*100)/100;const N=totalCells-1;for(const k in cells)if(!cells[k].isVoid)cells[k].v=Math.round(pool/N*10000)/10000; // (what the last collapse took in: ±20% at most)
-  const r1=ring(1),si=Math.floor(Math.random()*r1.length);pQ=r1[si][0];pR=r1[si][1];
+  const r1=ring(1).filter(a=>!(cells[K(...a)]||{}).ice),r1b=r1.length?r1:ring(1),si=Math.floor(Math.random()*r1b.length);pQ=r1b[si][0];pR=r1b[si][1]; // (beside the source, never on ice)
   if(MP.on&&MP.role==='host'){const h=mpP('h');if(h){h.q=pQ;h.r=pR;}for(const P of MP.players)if(P.id!=='h'){const sp=mpSpot();P.q=sp[0];P.r=sp[1];}} // (playing together: everyone starts the new day beside the source)
   cells[K(pQ,pR)].isP=true;burstFx={t0:performance.now(),kind:'burst'};
 }
@@ -350,7 +350,12 @@ function wxTick(){if(SCENE||MP.on)return;if(day<=1){wx={};wxLeft={};tornado=null
   if(wxOn('rain')&&!wxSnow()&&drinks<waterMax()){drinks++;syncDock();}
   for(const k in cells){const c=cells[k];if(!c.ice)continue;if(wxSnow()){if(Math.random()<0.3){const n=neighbors(c.q,c.r).map(a=>K(...a)).filter(x=>{const d=cells[x];return d&&!d.cap&&!d.isVoid&&!d.ice&&!d.shop&&x!==K(pQ,pR);});if(n.length)cells[n[(Math.random()*n.length)|0]].ice=1;}} // snow: ice binds together and grows
     else if(++c.ice>3||Math.random()<0.35||!wxOn('cold')&&Math.random()<0.6)delete c.ice;} // it drifts off as the day goes on
-  if(wxOn('cold'))for(let i=0;i<wx.cold;i++){const k=wxOpenHex();if(k)cells[k].ice=1;}
+  { // the ice drifts: a hex a time of day, downwind when it blows, else out from the Point (in the cold that formed it at the source); off the spill's edge, it floats away
+    const ok=k=>{const d=cells[k];return d&&!d.cap&&!d.isVoid&&!d.ice&&!d.shop&&!d.flot&&k!==K(pQ,pR);},wd=wxOn('wind')?DIRS[wxDir]:null,[wx0,wy0]=wd?a2w(...wd):[0,0],key=c=>wd?(a2w(c.q,c.r)[0]*wx0+a2w(c.q,c.r)[1]*wy0):cellRing(c.q,c.r);
+    const L=Object.keys(cells).filter(k=>cells[k].ice).map(k=>cells[k]).sort((a,b)=>key(b)-key(a));
+    for(const c of L){let to=null;if(wd){to=K(c.q+wd[0],c.r+wd[1]);}else{const r0=cellRing(c.q,c.r),o=neighbors(c.q,c.r).filter(a=>cellRing(...a)>r0);if(o.length)to=K(...o[(((c.q*7+c.r*13+turn)%o.length)+o.length)%o.length]);}
+      if(to&&!cells[to]){delete c.ice;continue;}if(to&&ok(to)){cells[to].ice=c.ice;delete c.ice;}}}
+  if(wxOn('cold')&&clock<=6){const r1=ring(1).map(a=>K(...a)).filter(k=>{const d=cells[k];return d&&!d.cap&&!d.isVoid&&!d.ice&&!d.shop&&k!==K(pQ,pR);});for(let i=0;i<wx.cold+(wxSnow()?1:0)&&r1.length;i++){const k=r1.splice((Math.random()*r1.length)|0,1)[0];cells[k].ice=1;}} // new ice forms at the day's start, round the source, and drifts out over the morning
   if(wxStorm()){if(!tornado){const k=wxOpenHex();if(k){const[q,r]=parseK(k);tornado={q,r};feed(txt('wx.tornado'),txt('wx.tornado_d'));}}
     else{const d=DIRS[(wxDir+[-1,0,0,1][(Math.random()*4)|0]+6)%6];tornado.q+=d[0];tornado.r+=d[1];const k=K(tornado.q,tornado.r);if(!cells[k]||cells[k].isVoid&&!(tornado.q===0&&tornado.r===0))tornado=null;else{wxShopHit(k,'tornado');if(tornado.q===pQ&&tornado.r===pR)wxFling();}}
     if(Math.random()<(T.wxLightning!=null?T.wxLightning:0.5)){wxFlash=performance.now();setTimeout(()=>sfx('thunder'),300+Math.random()*900);if(Math.random()<0.25){wxStun=1;const lost=wreckCheck('rift');feed(txt('wx.struck'),txt('wx.struck_d')+(lost.length?' '+txt('map.wreck.lost',lost.map(id=>(shopItem(id)||{}).n||id).join(', ')):''),'no');}
@@ -488,6 +493,10 @@ function fridgeDrink(){if(!fridge||bottle||bottleAt===day*24+clock){if(bottleAt=
 let drinks=null,bottle=0,bottleAt=-1;const waterMax=()=>Math.max(1,Math.round(T.mapWaterMax||3),...SHOP_ITEMS.filter(i=>i.fx.barrel&&disc.has('up:'+i.id)).map(i=>+i.fx.barrel)); // the barrel (Water max: 3), or the Water cooler's 6if(drinks==null)drinks=waterMax();
 const dry=()=>!SCENE&&!MP.on&&!asleep&&(drinks<=0||wxSnow())&&!bottle&&!fridge; // out of water: no moves until you rest (playing together: water is not kept yet)
 const waterLit=()=>pQ===0&&pR===0||neighbors(pQ,pR).some(([q,r])=>(q===0&&r===0)||isBright(K(q,r))); // beside a bright hex or the Point (where the barrel fills)
+function weatherInfo(){ // the weather, and what it does to you now, in a line each: its names, then concisely its effects (Status of the sky, for the feed)
+  if(!WX_TYPES.some(wxOn))return[txt('wx.calm'),txt('wx.i.calm')];const L=[];
+  if(wxSnow())L.push(txt('wx.i.frozen'));if(wxOn('fog'))L.push(txt('wx.i.fog',fogR()));if(wxOn('wind'))L.push(txt('wx.i.wind',wx.wind>2?txt('wx.i.strong'):''));if(wxOn('rain')&&!wxSnow())L.push(txt('wx.i.rain'));if(wxOn('hot'))L.push(txt('wx.i.hot'));if(wxOn('cold')&&!wxSnow())L.push(txt('wx.i.cold'));if(wxStorm())L.push(txt('wx.i.storm'));
+  return[wxName(),L.join(' · ')];}
 function waterWhy(){ // what the water is doing, and why: one account for the feed, the hint and the dock (never a fill the barrel cannot take, or a tide to water you already have)
   const n=drinks,M=waterMax();if(wxSnow()&&n>0)return[txt('map.water.frozen',n,M),txt(bottle||fridge?'map.water.frozen_alt':'map.water.frozen_d')];
   if(n<=0)return[txt('map.water.out'),txt(wxSnow()?'map.water.frozen_d':waterLit()?'map.water.out_lit':anchored()?'map.water.out_anchor':'map.water.out_d')];
@@ -572,7 +581,7 @@ function updateHint(){ // the feed's resting line: what you can do now
   else if(phase==='captured'){a=(tired()?txt('map.cleared_too_tired_to'):txt('map.cleared'));b=(tired()?txt('map.rest_under_midnight_to'):txt('map.move_on'));}
   else if(phase==='collapse'){a=(pendingEnd?txt('map.midnight'):fireworks.length?txt('map.win'):txt('map.collapsing'));b=(pendingEnd?txt('map.the_rings_fall_into'):txt('map.close_the_report_to'));}
   else if(asleep){a=txt('map.sleep.asleep');b=txt('map.sleep.until',clockStr(asleep.until));}
-  else if(dry()&&(phase==='move'||phase==='captured')&&!tired()){[a,b]=waterWhy();}
+  else if(dry()&&(phase==='move'||phase==='captured')&&!tired()){[a,b]=wxSnow()&&drinks>0?weatherInfo():waterWhy();}
   else if(armed==='weave'){a=txt('map.weave_click_bright_hexes');b=(weaveSel.length?txt('map.chosen',weaveSel.length):txt('map.right_click_esc_or'));}
   else if(armed==='dial'){a=txt('map.string_click_any_open');b=txt('map.1_string_per_hex');}
   else if(armed==='leash'){a=txt('map.spindle_click_a_cleared');b=txt('map.a_great_dark_remnant');}
@@ -2201,7 +2210,8 @@ function feedTick(now){{const dk=document.getElementById('hdock'),r=dk&&dk.getBo
   else if(du&&du.good){const g=du.good,c=du.flot&&cells[du.flot];a=goodNameM(g)+(g.open?txt('good.opened'):'');b=g.kind==='sign'?txt('good.sign_d'):g.give&&!g.open?txt(c&&hexD(c,here())>1?'good.ring_far':'good.ring_near'):c?txt('good.flotsam_d',c.q,c.r):txt(g.open?'good.trash_d':g.kind==='chest'?'chest.need_key':'good.closed_d');} // a good, an order or its packaging (trash)
   else if(du&&!duckLog[du.type]){a=txt('map.unknown.duck');b=txt('map.unknown.duck_d');} // a duck you have never had: not known for what it is
   else if(du){const v=DUCK_TYPES[du.type]||{};a=txt('map.duck.name',duckStar(v)+(v.name||''),duckLog[du.type]||0);b=txt('map.duck.info',(v.axis||'')+(v.detail?': '+v.detail:''));}
-  else if(hc&&armed){[a,b]=itemInfo(armed,hc);a=hexInfo(hc)[0]+' · '+a;}else if(hc){[a,b]=hexInfo(hc);}else{[a,b]=armed?itemInfo(armed):hintLine;}
+  else if(hc&&armed){[a,b]=itemInfo(armed,hc);a=hexInfo(hc)[0]+' · '+a;}else if(hc){[a,b]=hexInfo(hc);if(dry()&&getMoves().some(m=>m.q===hc.q&&m.r===hc.r)){const[w1,w2]=waterWhy();b=w1+' · '+w2;}} // (a move you could make, but for your water: why not)
+  else if(onMap&&!armed&&WX_TYPES.some(wxOn)){[a,b]=weatherInfo();}else{[a,b]=armed?itemInfo(armed):hintLine;} // (the open water, the fog: the weather and what it does)
   if(fn.textContent!==a)fn.textContent=a||'';if(fdd.textContent!==(b||''))fdd.textContent=b||'';
   const nk=currentView==='cabin'&&CABIN.hov?'cabf_'+CABIN.hov:du&&du.type?'duckf_'+du.type:null;if(nk&&disc.has('sn:')&&ilSee(nk,'dr:')){fd._inkKey=null;inkWrite(fd,nk,900);}} // what it tells of a thing, the first time it is shown: written in
 function cursorTick(now){ // the map's cursor (content.js gameCursor, over every menu and card too): here only its trail, on the ground

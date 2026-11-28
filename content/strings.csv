@@ -1584,3 +1584,12 @@ map.water.frozen_rest,"The barrel is still frozen: time passes while the snow la
 map.water.out_lit,"You are beside the light: rest and the barrel fills",Surface Map (water),
 map.water.out_anchor,"Anchored, the tide cannot carry you in: raise the anchor and rest, or buy a bottle",Surface Map (water),
 status.empty,"Nothing yet: what you find, collect and buy shows here",Status,
+wx.i.calm,"Calm: nothing in the sky to worry about",Surface Map (weather),
+wx.i.frozen,"Barrel frozen solid: you can't drink from it",Surface Map (weather),
+wx.i.fog,"Fog: you can't see or move past {n} hexes",Surface Map (weather),n = $0 — how far you can see
+wx.i.wind,"{strong}Wind: moving against it drinks twice, with it none; your flag flies with it",Surface Map (weather),strong = $0 — 'Strong ' when it blows hard
+wx.i.strong,Strong ,Surface Map (weather),
+wx.i.rain,"Rain: your barrel fills each time of day; hull mounts soggy",Surface Map (weather),
+wx.i.hot,"Heat: every move drinks one more",Surface Map (weather),
+wx.i.cold,"Cold: ice forms by the source at the day's start and drifts out",Surface Map (weather),
+wx.i.storm,"Storm: lightning strikes, a tornado rides the wind",Surface Map (weather),
