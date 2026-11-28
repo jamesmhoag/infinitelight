@@ -80,7 +80,7 @@ function iceModel(type){const[,L0,,,v0,m0,d0,ld0,lm0]=type.split(':'),L=+L0||0,F
 function* snowMass(key,fl,sn,wx,wz){let M;const pos=[],nrm=[],uv=[],idx=[];let RR=0;
   const V=(x,y,z)=>{pos.push(x,y,z);nrm.push(0,1,0);uv.push(x*64,z*64,y*64,-1);RR=Math.max(RR,Math.hypot(x,y,z));return pos.length/3-1;};
   let x0=1e9,x1=-1e9,z0=1e9,z1=-1e9;for(const f of fl){const r=1.2*f.g;x0=Math.min(x0,f.x-r);x1=Math.max(x1,f.x+r);z0=Math.min(z0,f.z-r);z1=Math.max(z1,f.z+r);}
-  let sp=0.022;const area=(x1-x0)*(z1-z0);if(area/(sp*sp)>60000)sp=Math.sqrt(area/60000); // (a big mass: a coarser grid, never more than the mesh can hold)
+  let sp=0.022;const area=(x1-x0)*(z1-z0);if(area/(sp*sp)>50000)sp=Math.sqrt(area/50000); // (a big mass: a coarser grid, never more than the mesh can hold)
   const NX=Math.ceil((x1-x0)/sp)+1,NZ=Math.ceil((z1-z0)/sp)+1,N=NX*NZ,X=c=>x0+c*sp,Z=r=>z0+r*sp,Ig=new Float32Array(N),Ok=new Uint8Array(N),FL=new Int16Array(N).fill(-1);
   const iceAtM=(x,z)=>{let best=null,bi=-1;for(let i=0;i<fl.length;i++){const f=fl[i],dx=x-f.x,dz=z-f.z;if(dx*dx+dz*dz>1.44*f.g*f.g)continue;const q=f.F.iceAt(dx/f.g,dz/f.g);if(q&&(!best||q[0]*f.g>best)){best=q[0]*f.g;bi=i;}}return bi<0?null:[best,bi];}; // the mass's top there: the highest of the floes over it
   for(let r=0;r<NZ;r++){if(!(r&1))yield;for(let c=0;c<NX;c++){const k=r*NX+c,q=iceAtM(X(c),Z(r));if(q){Ig[k]=q[0];Ok[k]=1;FL[k]=q[1];}else Ig[k]=-0.2;}}yield;
@@ -89,9 +89,7 @@ function* snowMass(key,fl,sn,wx,wz){let M;const pos=[],nrm=[],uv=[],idx=[];let R
   const G=new Float32Array(N),Gs=new Float32Array(N);blur(G,Math.max(2,Math.round((0.05+0.012*sn)/sp)),2);yield;blur(Gs,Math.max(1,Math.round(0.18/sp)),2); // G: the tops blurred wide (higher than a top where a step rises beside it: an inside corner); Gs a little (what the snow smooths over)
   const W=(x,z)=>{const a=x+wx,b=z+wz,u=a+0.9*Math.sin(b*0.83+1.3)+0.5*Math.sin(b*1.91-a*0.37),v=b+0.9*Math.sin(a*0.71-0.4)+0.5*Math.sin(a*2.07+b*0.29);return 0.5*Math.sin(u*2.3)*Math.sin(v*2.9)+0.3*Math.sin(u*4.1+v*1.7+Math.sin(u*0.5)*2)+0.2*Math.sin(v*5.3-u*2.2);}; // its variation, by where it lies on the lake (never the same twice)
   const t=0.012+0.014*sn,kd=0.42+0.12*sn,dMax=0.03+0.02*sn,cliff=sp*2.2,eps=0.006,S=new Float32Array(N);
-  for(let r=0;r<NZ;r++){if(!(r&3))yield;for(let c=0;c<NX;c++){const k=r*NX+c,x=X(c),z=Z(r);if(!Ok[k]){ // just past the mass's outer edge: the snow rolls over it in a lip
-      let e=1e9,ie=-1;for(let i=0;i<fl.length;i++){const f=fl[i],dx=x-f.x,dz=z-f.z;if(dx*dx+dz*dz>1.7*f.g*f.g)continue;const a=Math.atan2(dz,dx),ed=Math.hypot(dx,dz)-f.F.rbf(0,a)*f.g;if(ed<e){e=ed;ie=i;}}
-      if(e<0.05){const f=fl[ie],a=Math.atan2(z-f.z,x-f.x),R0=f.F.rbf(0,a)*f.g*0.999,qe=iceAtM(f.x+Math.cos(a)*R0,f.z+Math.sin(a)*R0);if(qe){const v=e/0.05;S[k]=qe[0]+t*(1-v*v)-0.05*v*v;Ok[k]=2;}}continue;}
+  for(let r=0;r<NZ;r++){if(!(r&3))yield;for(let c=0;c<NX;c++){const k=r*NX+c,x=X(c),z=Z(r);if(!Ok[k])continue; // (past its edges: the frosting's roll, below)
     const drift=Math.min(dMax,Math.max(0,G[k]-Ig[k])*kd)*(0.9+0.22*W(x*0.8,z*0.8)),d=t*(1+0.14*W(x,z))+drift;S[k]=Math.max(Ig[k]+d*0.18,Gs[k]+d);}} // the cover on every top that is not a wall, and a drift where the wide blur stands above the top (it billows a little)
   yield;{ // a cap: where a top drops away down a wall to a lower layer, its snow rounds over the edge to a soft lip rather than stopping square
     const w=3,E=new Int8Array(N).fill(99),Q=[];for(let r=0;r<NZ;r++)for(let c=0;c<NX;c++){const k=r*NX+c;if(Ok[k]!==1)continue;for(let dr=-1;dr<=1&&E[k];dr++)for(let dc=-1;dc<=1;dc++){const rr=r+dr,cc=c+dc;if(rr<0||cc<0||rr>=NZ||cc>=NX)continue;const q=rr*NX+cc;if(Ok[q]===1&&Ig[k]-Ig[q]>cliff){E[k]=0;break;}}if(!E[k])Q.push(k);}
@@ -103,6 +101,21 @@ function* snowMass(key,fl,sn,wx,wz){let M;const pos=[],nrm=[],uv=[],idx=[];let R
       gx=((g(1,0)-g(-1,0))*2+(g(2,0)-g(-2,0))+(g(1,1)-g(-1,1))+(g(1,-1)-g(-1,-1)))/(12*sp),gz=((g(0,1)-g(0,-1))*2+(g(0,2)-g(0,-2))+(g(1,1)-g(1,-1))+(g(-1,1)-g(-1,-1)))/(12*sp);vi[k]=V(X(c),S[k],Z(r)); /* (a smooth normal: its slope over a wider reach, so it shades round, never in facets) */const l=Math.hypot(gx,1,gz),m=vi[k]*3;nrm[m]=-gx/l;nrm[m+1]=1/l;nrm[m+2]=-gz/l;}} // (its normals from its own slope, not across a cliff)
   const tri=(a,b,c)=>{if(vi[a]<0||vi[b]<0||vi[c]<0)return;if(Math.max(S[a],S[b],S[c])-Math.min(S[a],S[b],S[c])>cliff)return;idx.push(vi[a],vi[b],vi[c]);}; // (never up a wall: there the ice shows)
   for(let r=0;r<NZ-1;r++)for(let c=0;c<NX-1;c++){const k=r*NX+c;tri(k,k+1,k+NX);tri(k+1,k+NX+1,k+NX);}
+  yield;{ // the frosting's edge: wherever the blanket ends over a drop (the mass's outer edge, the top of a step it does not bridge) its edge is smoothed out of the grid's stairs and rolled over in a soft round bead that curls back in under itself
+    const EC=new Map(),key2=(a,b)=>a<b?a*131072+b:b*131072+a;for(let q=0;q<idx.length;q+=3){if(!(q%24000))yield;for(let e=0;e<3;e++){const a=idx[q+e],b=idx[q+(e+1)%3],k2=key2(a,b),o=EC.get(k2);if(o)o.n++;else EC.set(k2,{a,b,c:idx[q+(e+2)%3],n:1});}}
+    const nb=new Map(),inn=new Map(),add=(a,b,c)=>{(nb.get(a)||nb.set(a,[]).get(a)).push(b);inn.set(a,c);};for(const o of EC.values())if(o.n===1){add(o.a,o.b,o.c);add(o.b,o.a,o.c);} // its open edges, each knowing a vertex inside
+    const P=v=>[pos[v*3],pos[v*3+1],pos[v*3+2]],used=new Set(),chains=[];
+    for(const v0 of nb.keys()){if(used.has(v0))continue;const ch=[v0];used.add(v0);for(let dir=0;dir<2;dir++){let cur=dir?ch[0]:ch[ch.length-1];for(;;){const nx=(nb.get(cur)||[]).find(w=>!used.has(w));if(nx==null)break;used.add(nx);if(dir)ch.unshift(nx);else ch.push(nx);cur=nx;}}
+      const loop=ch.length>3&&(nb.get(ch[0])||[]).includes(ch[ch.length-1]);if(ch.length>=3)chains.push({ch,loop});}
+    yield;
+    for(const{ch,loop}of chains){yield;if(pos.length/3>64000)break;const n=ch.length,at=i=>loop?ch[(i+n)%n]:ch[Math.max(0,Math.min(n-1,i))];
+      for(let pass=0;pass<4;pass++){const Q=ch.map(v=>P(v));for(let i=0;i<n;i++){if(!loop&&(i===0||i===n-1))continue;const a=Q[loop?(i+n-1)%n:i-1],b=Q[loop?(i+1)%n:i+1],v=ch[i]*3;for(const d of[0,2])pos[v+d]=Q[i][d]*0.5+(a[d]+b[d])*0.25;pos[v+1]=Q[i][1]*0.6+(a[1]+b[1])*0.2;}} // the stairs smoothed into a flowing line
+      if(n<10)continue; /* (a scrap of an edge: smoothed, no bead) */const rings=[];for(let i=0;i<n;i++){if(i&&!(i%120))yield;const p=P(ch[i]),a=P(at(i-1)),b=P(at(i+1)),tx=b[0]-a[0],tz=b[2]-a[2],tl=Math.hypot(tx,tz)||1;let nx=tz/tl,nz=-tx/tl;const c=P(inn.get(ch[i]));if((c[0]-p[0])*nx+(c[2]-p[2])*nz>0){nx=-nx;nz=-nz;} // its way out, away from the blanket
+        const qo=iceAtM(p[0]+nx*0.045,p[2]+nz*0.045),wall=qo&&qo[0]>p[1]-0.012;if(wall){rings.push(null);continue;} // (against a wall rising beside it: no bead, it is tucked in)
+        const w=W(p[0]*1.7,p[2]*1.7),r=(t*1.25+0.012)*(0.82+0.3*w),drip=1+1.4*Math.pow(Math.max(0,Math.sin(p[0]*11.3+p[2]*9.7+w*3)),10),cx=p[0]+nx*r*0.22,cy=p[1]-r*0.72,cz=p[2]+nz*r*0.22,K=12,ring=[];
+        for(let j=0;j<=K;j++){const th=(1.95-j/K*4.55),co=Math.cos(th),si=Math.sin(th),sy=si<0?0.9*drip:0.95,x=cx+nx*r*co,y=cy+r*si*sy,z=cz+nz*r*co,l=Math.hypot(co,si/sy)||1;const vI=V(x,y,z),m=vI*3;nrm[m]=nx*co/l;nrm[m+1]=si/sy/l;nrm[m+2]=nz*co/l;ring.push(vI);} // over its top, out, down round its belly and back in under itself
+        rings.push(ring);}
+      for(let i=0;i<(loop?n:n-1);i++){const A=rings[i],B=rings[(i+1)%n];if(!A||!B)continue;for(let j=0;j<A.length-1;j++)idx.push(A[j],B[j],A[j+1],A[j+1],B[j],B[j+1]);}}}
   yield;iceWind(pos,nrm,idx);M={g:{pos:new Float32Array(pos),nrm:new Float32Array(nrm),uv:new Float32Array(uv),idx:new Uint16Array(idx),R:RR},nomk:1,mat:16,c1:[0.97,0.98,1],c2:[0.97,0.98,1]};
   for(const k of [..._duckModels.keys()])if(k.slice(0,9)==='snowmass:'&&k.split('|')[0]===key.split('|')[0]&&k!==key)_duckModels.delete(k); // (the same mass's older snow goes)
   _duckModels.set(key,M);return M;}
